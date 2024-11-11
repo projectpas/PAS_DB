@@ -10,7 +10,8 @@
  **************************************************************                 
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  -------------------------------                
-    1    18/05/2023   Satish Gohil  Count Showing issue fixed    
+    1    18/05/2023   Satish Gohil   Count Showing issue fixed    
+	2    18/05/2023   Hemant Saliya  Verify the count and correct the SP    
 **************************************************************/     
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
@@ -37,7 +38,7 @@ CREATE      PROCEDURE [dbo].[SearchPODashboardData]
  @PromisedDate datetime = null,      
  @EstRecdDate datetime = null,      
  @Status varchar(50) = null,      
-    @IsDeleted bit = null,      
+ @IsDeleted bit = null,      
  @MasterCompanyId int = null,      
  @EmployeeId bigint = 1      
 AS      
@@ -73,103 +74,97 @@ BEGIN
      SET @Status = null      
     END      
       
-    ;With Result AS(      
-    SELECT 'PO' AS 'Module', POP.PurchaseOrderPartRecordId AS 'RefId', PO.PurchaseOrderId AS 'POROId', PO.PurchaseOrderNumber AS 'PORO',     
- PO.OpenDate, POP.PartNumber, POP.PartDescription, PO.Requisitioner,       
-    (DATEDIFF(day, PO.OpenDate, GETDATE())) AS 'Age', ISNULL(POP.VendorListPrice, 0) AS 'Amount', POP.FunctionalCurrency AS 'Currency',       
-    PO.VendorName AS 'Vendor',  
- (CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1  Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNo',  
- (CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNo',  
- --POP.WorkOrderNo, POP.SalesOrderNo,  
-   WorkOrderRefNumber.WONum AS 'WorkOrderNum',
-   SalesOrderRefNumber.SONum AS 'SalesOrderNumber',
- PO.NeedByDate AS 'PromisedDate', POP.EstDeliveryDate AS 'EstRecdDate', PO.Status       
-    FROM PurchaseOrder PO WITH (NOLOCK)      
-     LEFT JOIN DBO.PurchaseOrderPart POP ON PO.PurchaseOrderId = POP.PurchaseOrderId AND POP.isParent=1      
-     INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = Po.PurchaseOrderId      
-     INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
-     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
-     LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON POP.SalesOrderId = SO.SalesOrderId      
-     LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON POP.WorkOrderId = WO.WorkOrderId      
-     LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON POP.RepairOrderId = RO.RepairOrderId      
-     LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON POP.ManufacturerId = M.ManufacturerId      
-    OUTER APPLY(      
-  SELECT case when COUNT(*) > 1 then 'Multiple' else MAX(I.WorkOrderNum) end 'RefNumber'  ,STRING_AGG(I.WorkOrderNum, ',') as 'WONum'    
-   FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
-   LEFT JOIN  [DBO].[WorkOrder] I WITH (NOLOCK) On POPR.ReferenceId = I.WorkOrderId    
-   WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
-   and POPR.ModuleId = 1  
-  -- group by popr.PurchaseOrderPartId,popr.ReferenceId,I.WorkOrderNum  
-  ) AS WorkOrderRefNumber   
-    OUTER APPLY(      
-  SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'   ,STRING_AGG(S.SalesOrderNumber, ',') as 'SONum'
-   FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
-   LEFT JOIN  [DBO].[SalesOrder] S WITH (NOLOCK) On POPR.ReferenceId = S.SalesOrderId   
-   WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
-   and POPR.ModuleId = 3  
-  -- group by popr.PurchaseOrderPartId,popr.ReferenceId,S.SalesOrderNumber  
-  ) AS SalesOrderRefNumber   
-    WHERE POP.QuantityBackOrdered > 0      
-    AND (PO.IsDeleted = @IsDeleted) and (@StatusID is null or PO.StatusId = @StatusID)      
-    AND PO.MasterCompanyId = @MasterCompanyId   
-  GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,POP.PurchaseOrderPartRecordId,PO.OpenDate, POP.PartNumber, POP.PartDescription,PO.Requisitioner,POP.VendorListPrice,POP.FunctionalCurrency, PO.VendorName ,PO.NeedByDate , POP.EstDeliveryDate, PO.Status, WorkOrderRefNumber.WONum,SalesOrderRefNumber.SONum
-   
-     
-  
+		;With Result AS(      
+		SELECT 'PO' AS 'Module', POP.PurchaseOrderPartRecordId AS 'RefId', PO.PurchaseOrderId AS 'POROId', PO.PurchaseOrderNumber AS 'PORO',     
+				PO.OpenDate, POP.PartNumber, POP.PartDescription, PO.Requisitioner,       
+				(DATEDIFF(day, PO.OpenDate, GETDATE())) AS 'Age', ISNULL(POP.VendorListPrice, 0) AS 'Amount', POP.FunctionalCurrency AS 'Currency',       
+				PO.VendorName AS 'Vendor',  
+				(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1  Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNo',  
+				(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNo',  
+				WorkOrderRefNumber.WONum AS 'WorkOrderNum',
+				SalesOrderRefNumber.SONum AS 'SalesOrderNumber',
+				PO.NeedByDate AS 'PromisedDate', POP.EstDeliveryDate AS 'EstRecdDate', PO.Status       
+		FROM PurchaseOrder PO WITH (NOLOCK)      
+			 LEFT JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND POP.isParent=1      
+			 INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = Po.PurchaseOrderId      
+			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
+			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
+			 LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON POP.SalesOrderId = SO.SalesOrderId      
+			 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON POP.WorkOrderId = WO.WorkOrderId      
+			 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON POP.RepairOrderId = RO.RepairOrderId      
+			 LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON POP.ManufacturerId = M.ManufacturerId      
+			OUTER APPLY(      
+				SELECT CASE WHEN COUNT(*) > 1 THEN 'Multiple' ELSE MAX(I.WorkOrderNum) END 'RefNumber'  ,STRING_AGG(I.WorkOrderNum, ',') as 'WONum'    
+				FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
+					LEFT JOIN  [DBO].[WorkOrder] I WITH (NOLOCK) On POPR.ReferenceId = I.WorkOrderId    
+				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
+					AND POPR.ModuleId = 1  
+			) AS WorkOrderRefNumber   
+			OUTER APPLY(      
+				SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'   ,STRING_AGG(S.SalesOrderNumber, ',') as 'SONum'
+				FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
+					LEFT JOIN  [DBO].[SalesOrder] S WITH (NOLOCK) On POPR.ReferenceId = S.SalesOrderId   
+				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
+					and POPR.ModuleId = 3  
+			) AS SalesOrderRefNumber   
+		WHERE POP.QuantityBackOrdered > 0      
+			AND (PO.IsDeleted = @IsDeleted) and (@StatusID is null or PO.StatusId = @StatusID)      
+			AND PO.MasterCompanyId = @MasterCompanyId   
+		GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,POP.PurchaseOrderPartRecordId,PO.OpenDate, POP.PartNumber, POP.PartDescription,PO.Requisitioner,POP.VendorListPrice,POP.FunctionalCurrency, PO.VendorName ,PO.NeedByDate , POP.EstDeliveryDate, PO.Status, WorkOrderRefNumber.WONum,SalesOrderRefNumber.SONum
       
-    UNION All      
+		UNION All      
       
-    SELECT 'RO' AS 'Module', ROP.RepairOrderPartRecordId AS 'RefId', RO.RepairOrderId AS 'POROId', RO.RepairOrderNumber AS 'PORO', RO.OpenDate, ROP.PartNumber, ROP.PartDescription, RO.Requisitioner,       
-    (DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ISNULL(ROP.VendorListPrice, 0) AS 'Amount', ROP.FunctionalCurrency AS 'Currency',       
-    RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo,'','', RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status 
-    FROM  DBO.RepairOrder RO WITH (NOLOCK)      
-     Left JOIN DBO.RepairOrderPart ROP ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
-     INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
-     INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
-     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
-    WHERE ROP.QuantityBackOrdered > 0      
-    AND (RO.IsDeleted = @IsDeleted) and (@StatusID is null or RO.StatusId = @StatusID)      
-    AND RO.MasterCompanyId = @MasterCompanyId),      
-    FinalResult AS (      
-    SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age,       
-    Amount, Currency, Vendor, WorkOrderNo, SalesOrderNo,WorkOrderNum,SalesOrderNumber, PromisedDate, EstRecdDate, Status FROM Result      
-    WHERE (      
-     (@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR       
-       (PORO like '%' + @GlobalFilter +'%') OR      
-       (OpenDate like '%' + @GlobalFilter +'%') OR      
-       (PartNumber like '%' + @GlobalFilter +'%') OR      
-       (PartDescription like '%'+ @GlobalFilter +'%') OR      
-       (Requisitioner like '%' + @GlobalFilter +'%') OR      
-       (Currency like '%' + @GlobalFilter +'%') OR      
-       (Vendor like '%' + @GlobalFilter +'%') OR      
-       (WorkOrderNo like '%' + @GlobalFilter +'%') OR      
-       (SalesOrderNo like '%' + @GlobalFilter +'%') OR      
-       (PromisedDate like '%' + @GlobalFilter +'%') OR      
-       (EstRecdDate like '%' + @GlobalFilter +'%') OR   
-       (Status like '%' + @GlobalFilter +'%')  OR    
-    (CAST(Age AS varchar(20)) like '%' + @GlobalFilter +'%') OR     
-    (CAST(Amount AS varchar(50)) like '%' + @GlobalFilter +'%')    
+		SELECT 'RO' AS 'Module', ROP.RepairOrderPartRecordId AS 'RefId', RO.RepairOrderId AS 'POROId', RO.RepairOrderNumber AS 'PORO', RO.OpenDate, ROP.PartNumber, ROP.PartDescription, RO.Requisitioner,       
+			(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ISNULL(ROP.VendorListPrice, 0) AS 'Amount', ROP.FunctionalCurrency AS 'Currency',       
+			RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo,'','', RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status 
+		FROM  DBO.RepairOrder RO WITH (NOLOCK)      
+			LEFT JOIN DBO.RepairOrderPart ROP ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
+			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
+			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
+			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
+		WHERE ROP.QuantityBackOrdered > 0      
+			AND (RO.IsDeleted = @IsDeleted) and (@StatusID is null or RO.StatusId = @StatusID)      
+			AND RO.MasterCompanyId = @MasterCompanyId),      
+			FinalResult AS (      
+			SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age,       
+			Amount, Currency, Vendor, WorkOrderNo, SalesOrderNo,WorkOrderNum,SalesOrderNumber, PromisedDate, EstRecdDate, Status FROM Result      
+		WHERE (      
+		   (@GlobalFilter <> '' AND ((Module like '%' + @GlobalFilter +'%' ) OR       
+		   (PORO like '%' + @GlobalFilter +'%') OR      
+		   (OpenDate like '%' + @GlobalFilter +'%') OR      
+		   (PartNumber like '%' + @GlobalFilter +'%') OR      
+		   (PartDescription like '%'+ @GlobalFilter +'%') OR      
+		   (Requisitioner like '%' + @GlobalFilter +'%') OR      
+		   (Currency like '%' + @GlobalFilter +'%') OR      
+		   (Vendor like '%' + @GlobalFilter +'%') OR      
+		   (WorkOrderNo like '%' + @GlobalFilter +'%') OR      
+		   (SalesOrderNo like '%' + @GlobalFilter +'%') OR      
+		   (PromisedDate like '%' + @GlobalFilter +'%') OR      
+		   (EstRecdDate like '%' + @GlobalFilter +'%') OR   
+		   (Status like '%' + @GlobalFilter +'%')  OR    
+		(CAST(Age AS varchar(20)) like '%' + @GlobalFilter +'%') OR     
+		(CAST(Amount AS varchar(50)) like '%' + @GlobalFilter +'%')    
     
-       ))      
-       OR         
-       (@GlobalFilter = '' AND       
-       (IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and       
-       (IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') and      
-       (IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and      
-       (IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and      
-       (IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and      
-       (IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') and      
-       (IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and      
-       (IsNull(@Vendor, '') = '' OR Vendor like '%'+ @Vendor +'%') and      
-       (IsNull(@WorkOrderNo, '') = '' OR WorkOrderNo like '%'+ @WorkOrderNo +'%') and      
-       (IsNull(@SalesOrderNo, '') = '' OR SalesOrderNo like '%'+ @SalesOrderNo +'%') and      
-       (IsNull(@PromisedDate, '') = '' OR Cast(PromisedDate as Date) = Cast(@PromisedDate as date)) and      
-       (IsNull(@EstRecdDate, '') = '' OR Cast(EstRecdDate as Date) = Cast(@EstRecdDate as date)) and      
-       (IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%') AND    
-    (IsNull(@Age, '') = '' OR CAST(Age AS varchar(20)) like '%'+ @Age +'%') and      
-    (IsNull(@Amount, '') = '' OR CAST(Amount AS varchar(50)) like '%'+ @Amount +'%'))      
-       )),      
-     ResultCount AS (Select COUNT(PORO) AS NumberOfItems FROM FinalResult)      
+		   ))      
+		   OR         
+		   (@GlobalFilter = '' AND       
+		   (IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and       
+		   (IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') and      
+		   (IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and      
+		   (IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and      
+		   (IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and      
+		   (IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') and      
+		   (IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and      
+		   (IsNull(@Vendor, '') = '' OR Vendor like '%'+ @Vendor +'%') and      
+		   (IsNull(@WorkOrderNo, '') = '' OR WorkOrderNo like '%'+ @WorkOrderNo +'%') and      
+		   (IsNull(@SalesOrderNo, '') = '' OR SalesOrderNo like '%'+ @SalesOrderNo +'%') and      
+		   (IsNull(@PromisedDate, '') = '' OR Cast(PromisedDate as Date) = Cast(@PromisedDate as date)) and      
+		   (IsNull(@EstRecdDate, '') = '' OR Cast(EstRecdDate as Date) = Cast(@EstRecdDate as date)) and      
+		   (IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%') AND    
+		(IsNull(@Age, '') = '' OR CAST(Age AS varchar(20)) like '%'+ @Age +'%') and      
+		(IsNull(@Amount, '') = '' OR CAST(Amount AS varchar(50)) like '%'+ @Amount +'%'))      
+		   )),      
+		 ResultCount AS (Select COUNT(PORO) AS NumberOfItems FROM FinalResult)      
       
      SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age,       
      Amount, Currency, Vendor, WorkOrderNo, SalesOrderNo,WorkOrderNum,SalesOrderNumber, PromisedDate, EstRecdDate, Status, NumberOfItems FROM FinalResult, ResultCount      

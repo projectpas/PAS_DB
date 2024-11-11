@@ -18,8 +18,12 @@
     [UpdatedDate]           DATETIME2 (7) CONSTRAINT [DF_CycleCountAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]              BIT           CONSTRAINT [DF_CycleCountAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT           CONSTRAINT [DF_CycleCountAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [PostedDate]            DATETIME2 (7) NULL,
+    [BatchName]             VARCHAR (50)  NULL,
     CONSTRAINT [PK_CycleCountAudit] PRIMARY KEY CLUSTERED ([CycleCountAuditId] ASC)
 );
+
+
 
 
 

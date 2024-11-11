@@ -204,7 +204,7 @@ BEGIN
 		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
 		MAX(UPPER(IM.partnumber)) 'pn',    
 		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
-		MAX(UPPER(WOS.Stage)) 'stagecode',  
+		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',
 		MAX(WOM.ExtendedCost) 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
@@ -239,6 +239,15 @@ BEGIN
 		INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		INNER JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
+		OUTER APPLY (
+        SELECT 
+            WOS_From.Code,
+            WOS_From.Stage
+        FROM 
+            DBO.WorkOrderStage WOS_From WITH (NOLOCK) 
+        WHERE 
+            WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
+		) AS WOS_From
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  		 
@@ -268,7 +277,7 @@ BEGIN
 		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
 		MAX(UPPER(IM.partnumber)) 'pn',    
 		MAX(UPPER(IM.PartDescription)) 'pnDescription',     
-		MAX(UPPER(WOS.Stage)) 'stagecode',  
+		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
@@ -302,7 +311,16 @@ BEGIN
 	    LEFT JOIN #tmpMultipleWOMStocklineKit tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.WorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
-		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+		OUTER APPLY (
+        SELECT 
+            WOS_From.Code,
+            WOS_From.Stage
+        FROM 
+            DBO.WorkOrderStage WOS_From WITH (NOLOCK) 
+        WHERE 
+            WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
+		) AS WOS_From
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0
@@ -331,8 +349,8 @@ BEGIN
 		MAX(UPPER(C.Name)) 'customername',
 		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
 		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
-		MAX(UPPER(WOS.Stage)) 'stagecode',  
+		MAX(UPPER(IM.PartDescription)) 'pnDescription',  
+		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
@@ -367,7 +385,16 @@ BEGIN
 	    INNER JOIN #tmpMultipleSubWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[SubWorkOrderId] = SWO.[SubWorkOrderId]
 		INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		INNER JOIN DBO.SubWorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
-		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
+		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+		OUTER APPLY (
+        SELECT 
+            WOS_From.Code,
+            WOS_From.Stage
+        FROM 
+            DBO.WorkOrderStage WOS_From WITH (NOLOCK) 
+        WHERE 
+            WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
+		) AS WOS_From
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  		 
@@ -397,8 +424,8 @@ BEGIN
 		MAX(UPPER(C.Name)) 'customername',
 		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
 		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
-		MAX(UPPER(WOS.Stage)) 'stagecode',  
+		MAX(UPPER(IM.PartDescription)) 'pnDescription',   
+		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
@@ -433,7 +460,16 @@ BEGIN
 	    LEFT JOIN #tmpMultipleSubWOMStocklineKit tmpWOM WITH (NOLOCK) ON tmpWOM.[SubWorkOrderId] = SWO.[SubWorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.SubWorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsKitId
-		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1   
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+		OUTER APPLY (
+        SELECT 
+            WOS_From.Code,
+            WOS_From.Stage
+        FROM 
+            DBO.WorkOrderStage WOS_From WITH (NOLOCK) 
+        WHERE 
+            WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
+		) AS WOS_From
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  

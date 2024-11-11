@@ -16,8 +16,9 @@
     1    01/29/2024   Moin Bloch    Created
 	2    02/21/2024   Moin Bloch    Flat SO Freigh AND Charge Amount Tax 
     3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+    4    11/11/2024	  Vishal Suthar	Modified to return proper Sub Total for Print PDF
 
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 20843
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 1283
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
@@ -39,6 +40,7 @@ BEGIN
 	DECLARE @ShipToSiteId BIGINT = 0;
 	DECLARE	@CustomerId  BIGINT = 0;
 	DECLARE @SalesOrderPartId BIGINT = 0;
+	DECLARE @SalesOrderStocklineId BIGINT = 0;
 	DECLARE @TotalSalesTax Decimal(18,2) = 0;
 	DECLARE @TotalOtherTax Decimal(18,2) = 0;
 	DECLARE @Total DECIMAL(18,2) = 0;
@@ -82,6 +84,7 @@ BEGIN
 		[CustomerId]  BIGINT NULL,
 		[SalesOrderId] BIGINT NULL,
 		[SalesOrderPartId] BIGINT NULL,
+		[SalesOrderStocklineId] BIGINT NULL,
 		[SalesTax] DECIMAL(18,2) NULL,
 		[OtherTax]  DECIMAL(18,2) NULL
 	)
@@ -103,12 +106,13 @@ BEGIN
 							 INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
 	                        WHERE [SalesOrderId] = @SalesOrderId;
 	
-	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])
+	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId],[SalesOrderStocklineId])
 			SELECT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
 			       CASE WHEN AAD.[SiteId] IS NOT NULL THEN AAD.[SiteId] ELSE CDS.CustomerDomensticShippingId END,
 				   SO.[CustomerId],
 				   SO.[SalesOrderId],
-				   SOP.[SalesOrderPartId]
+				   SOP.[SalesOrderPartId],
+				   SOPS.SalesOrderStocklineId
 			  FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 	    INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SO.[SalesOrderId] = SOP.[SalesOrderId] 
 	     LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH(NOLOCK) ON SOPS.[SalesOrderPartId] = SOP.[SalesOrderPartId] 
@@ -167,7 +171,8 @@ BEGIN
 		SELECT @OriginSiteId = [OriginSiteId],
 	           @ShipToSiteId = [ShipToSiteId],
 		       @CustomerId   = [CustomerId],
-			   @SalesOrderPartId = [SalesOrderPartId]
+			   @SalesOrderPartId = [SalesOrderPartId],
+			   @SalesOrderStocklineId = [SalesOrderStocklineId]
 		FROM #tmprShipDetails WHERE ID = @MinId
 
 		IF(@FreighFlag = 0)
@@ -197,11 +202,14 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		SELECT @Total = (ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOP.QtyOrder,0))
+		SELECT @Total = (ISNULL(SOSC.NetSaleAmount, 0))
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
+			LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 			INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN [dbo].[SalesOrderStocklineCost] SOSC WITH(NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
 			WHERE [SOP].[SalesOrderId] = @SalesOrderId 
-			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;
+			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId
+			  AND [STK].SalesOrderStocklineId = @SalesOrderStocklineId;
 			  
 	    SET @SubTotal += ISNULL(@Total,0);
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)

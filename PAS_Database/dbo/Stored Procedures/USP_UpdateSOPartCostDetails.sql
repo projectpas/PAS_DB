@@ -15,8 +15,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/25/2024   Vishal Suthar Created
+    2    11/11/2024   Vishal Suthar Fix the calculations for part cost and stockline cost
      
- EXECUTE USP_UpdateSOPartCostDetails 766, 1, 'ADMIN User', 1
+ EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 (
@@ -143,7 +144,9 @@ SET NOCOUNT ON
 						SET UnitSalesPrice = (SELECT SUM(ISNULL(SOSC.UnitSalesPrice, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						UnitSalesPriceExtended = (SELECT SUM(SOSC.UnitSalesPriceExtended) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						UnitCost = (SELECT SUM(ISNULL(SOSC.UnitCost, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
-						UnitCostExtended = (SELECT SUM(ISNULL(SOSC.UnitCostExtended, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId)
+						UnitCostExtended = (SELECT SUM(ISNULL(SOSC.UnitCostExtended, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
+						NetSaleAmount = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
+						TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + MiscCharges FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId)
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 					ELSE
@@ -164,12 +167,11 @@ SET NOCOUNT ON
 
 					UPDATE DBO.SalesOrderPartCost
 					SET 
-					NetSaleAmount = (UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount,
 					Freight = ISNULL(@Freight_S, 0),
 					MiscCharges = ISNULL(@Charges_S, 0),
 					MarkUpAmount = ISNULL(MarkUpAmount, 0),
 					MarginAmount = (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
-					TotalRevenue = ((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S,
+					--TotalRevenue = ((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S,
 					MarginPercentage = CASE WHEN (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) > 0 THEN ((((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
 					TaxPercentage = @SalesTax,
 					TaxAmount = ((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)

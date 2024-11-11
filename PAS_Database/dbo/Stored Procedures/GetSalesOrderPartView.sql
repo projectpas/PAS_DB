@@ -12,8 +12,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    09/26/2024   Vishal Suthar     Created
+    2    11/11/2024   Vishal Suthar     Modified to fix Qty available and Qty OH
      
--- EXEC [DBO].[GetSalesOrderPartView] 1269
+-- EXEC [DBO].[GetSalesOrderPartView] 1283
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT
@@ -80,8 +81,8 @@ BEGIN
         ISNULL(qs.ObtainFromName, '') AS ObtainFrom,
         ISNULL(q.SalesOrderQuoteNumber, '') AS SalesOrderQuoteNumber,
         ISNULL(q.OpenDate, GETDATE()) AS QuoteDate,
-        ISNULL(qs.QuantityAvailable, 0) AS QtyAvailable,
-        ISNULL(qs.QuantityOnHand, 0) AS QuantityOnHand,
+        --ISNULL(qs.QuantityAvailable, 0) AS QtyAvailable,
+        --ISNULL(qs.QuantityOnHand, 0) AS QuantityOnHand,
         ISNULL(iu.ShortName, '') AS UOM,
         ISNULL(Stk.QtyReserved, NULL) AS QtyReserved,
         CASE 
@@ -127,8 +128,16 @@ BEGIN
         itemMaster.ItemClassificationName AS ItemClassification,
         itemMaster.ItemGroup,
         rop.EstRecordDate AS roNextDlvrDate,
-		(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1) qtyAvailable,
-		(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1) quantityOnHand,
+		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN
+			(SELECT SUM(Stkl.QuantityAvailable) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		ELSE
+			(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		END QtyAvailable,
+		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN
+			(SELECT SUM(Stkl.QuantityOnHand) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		ELSE
+			(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		END QuantityOnHand,
 		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
 		(SELECT SUM(sobi.NoofPieces) FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId

@@ -14,7 +14,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    3    16/09/2024  AMIT GHEDIYA    Get Curr From Header data in print.
    4	11/04/2024	Vishal Suthar	Modified to make use of new SO Part tables
 
-EXEC RPT_GetSalesOrderPartsView 567
+EXEC RPT_GetSalesOrderPartsView 1283
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
@@ -39,7 +39,7 @@ BEGIN
 			stk.StockLineId,
 			UPPER(ISNULL(sl.StockLineNumber, '')) AS StockLineNumber,
 			sp.FxRate,
-			sp.QtyOrder Qty,
+			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN stk.QtyOrder ELSE sp.QtyOrder END Qty,
 			sp.QtyRequested,
 			sopc.NetSaleAmount UnitSalePrice,
 			sopc.MarkUpPercentage MarkUpPercentage,
@@ -299,6 +299,7 @@ BEGIN
 			dbo.SalesOrderPartV1 sp WITH(NOLOCK)
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sp.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sp.SalesOrderPartId
+			LEFT JOIN dbo.SalesOrderStocklineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
 			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON sp.ItemMasterId = im.ItemMasterId
 			LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId

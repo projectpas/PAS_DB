@@ -12,10 +12,11 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    04-July-2024   Hemant Saliya	Created (Update QuickBooks Customer Id In PAS)
+    2    12-Nov-2024   Devendra Shekh	Modified (Update AccountingIntegrationSettings LastRun, UpdatedDate)
      
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
+CREATE   PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
 @IntegrationTypeId INT = NULL,
 @ModuleId BIGINT = NULL,
 @ReferenceId BIGINT = NULL,
@@ -42,6 +43,8 @@ BEGIN
 		BEGIN
 			UPDATE Vendor SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE() WHERE VendorId = @ReferenceId			
 		END
+
+		UPDATE dbo.AccountingIntegrationSettings SET [LastRun] = GETUTCDATE(), [UpdatedDate] = GETUTCDATE() WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId;
 
 	END TRY    
 	BEGIN CATCH      

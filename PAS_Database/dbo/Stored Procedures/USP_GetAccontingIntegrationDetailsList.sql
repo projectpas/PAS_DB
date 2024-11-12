@@ -17,6 +17,7 @@
 	1    08/06/2020   HEMANT SALIYA	     CREATED
 	2    29/10/2024   Devendra Shekh	 Modified(added RedirectUrl,IntigrationStatus to select)
 	3    11/11/2024   Devendra Shekh	 Modified(resolved column filter issue)
+	4    12/11/2024   Devendra Shekh	 Modified(added LastSycDate to select)
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -185,7 +186,8 @@ BEGIN
 					ACI.IsActive,
 					ACI.IsDeleted,
 					ACS.RedirectUrl,
-					'Connect' AS [IntigrationStatus]
+					'Connect' AS [IntigrationStatus],
+					ACI.LastRun AS LastSycDate
 			FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 					LEFT JOIN #InsertedSyncRecords SR WITH (NOLOCK) ON SR.MasterCompanyId = ACI.MasterCompanyId 
 					LEFT JOIN #InsertedPendingSyncRecords PSR WITH (NOLOCK) ON PSR.MasterCompanyId = ACI.MasterCompanyId
@@ -209,7 +211,7 @@ BEGIN
 					(ISNULL(@SyncRecords,'') ='' OR CAST(SyncRecords AS VARCHAR) LIKE '%' + CAST(@SyncRecords AS VARCHAR) + '%') AND	
 					(ISNULL(@PendingSyncRecords,'') ='' OR CAST(PendingSyncRecords AS VARCHAR) LIKE '%' + CAST(@PendingSyncRecords AS VARCHAR) + '%') AND	
 					(ISNULL(@TotalCount,'') ='' OR CAST(TotalCount AS VARCHAR) LIKE '%' + CAST(@TotalCount AS VARCHAR) + '%') AND
-					--(ISNULL(@LastSycDate,'') ='' OR CAST(LastRun AS date) LIKE '%' + CAST(@LastSycDate AS date) + '%') AND						
+					(ISNULL(@LastSycDate,'') ='' OR CAST(LastSycDate as Date)=CAST(@LastSycDate as date))AND
 					(ISNULL(@Interval,'') ='' OR CAST(Interval as VARCHAR)=CAST(@Interval as VARCHAR))))
 
 			Select @Count = COUNT(AccountingIntegrationSettingsId) FROM #TempResult			
@@ -229,6 +231,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='INTERVAL')  THEN Interval END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTSYCDATE')  THEN LastSycDate END ASC,
 
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTRUN')  THEN LastRun END DESC,
@@ -238,7 +241,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='INTERVAL')  THEN Interval END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYCDATE')  THEN LastSycDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 	END TRY    

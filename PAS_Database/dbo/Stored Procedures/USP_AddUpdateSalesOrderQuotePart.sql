@@ -10,6 +10,7 @@
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
     1    07/25/2024   Vishal Suthar	 Created
+	2    12-11-2024   Shrey Chandegara Updated for IsNOQuote
 
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
@@ -18,7 +19,7 @@ insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.0000
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
 ***************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
+CREATE     PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
 	@tbl_SalesOrderQuotePartList SOQPartListType READONLY
 	--@tbl_SalesOrderQuoteStocklineList SOQStockLineListType READONLY
 AS
@@ -73,17 +74,18 @@ BEGIN
 		AltOrEqType varchar(25),
 		Notes nvarchar(max),
 		MasterCompanyId int,
-		CreatedBy varchar(100)
+		CreatedBy varchar(100),
+		IsNoQuote BIT NULL
 	)
 
 	INSERT INTO #SOQPartDetails (SalesOrderQuotePartId,SalesOrderQuoteId,ItemMasterId,ConditionId,PriorityId,StocklineId,QuantityQuote,SalesOrderQuoteStocklineId,StatusId,
 	QtyRequested,QtyQuoted,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
-	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy)
+	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote)
 	SELECT SalesOrderQuotePartId,SalesOrderQuoteId,ItemMasterId,ConditionId,PriorityId,StocklineId,QuantityQuote,SalesOrderQuoteStocklineId,StatusId,
 	QtyRequested,QtyQuoted,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
-	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy 
+	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote 
 	FROM @tbl_SalesOrderQuotePartList;
 
 	SELECT @SOQPartLoopID = MAX(ID) FROM #SOQPartDetails;
@@ -113,12 +115,13 @@ BEGIN
 		DECLARE @CustomerRequestDate AS Datetime2(7);
 		DECLARE @PromisedDate AS Datetime2(7);
 		DECLARE @EstimatedShipDate AS Datetime2(7);
+		DECLARE @IsNoQuote AS BIT = NULL;
 
 		SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId, @SalesOrderQuoteId = SalesOrderQuoteId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderQuoteStocklineId = SalesOrderQuoteStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyQuoted = QtyQuoted,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @QuantityToQuote = QuantityQuote, @Notes = Notes, 
-		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate
+		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@IsNoQuote = IsNoQuote
 		FROM #SOQPartDetails WHERE ID = @SOQPartLoopID;
 		
 		IF (ISNULL(@SalesOrderQuotePartId, 0) = 0) -- Add New Part
@@ -201,7 +204,9 @@ BEGIN
 			CustomerRequestDate = @CustomerRequestDate,
 			PromisedDate = @PromisedDate,
 			EstimatedShipDate = @EstimatedShipDate,
-			Notes = @Notes
+			Notes = @Notes,
+			IsNoQuote = @IsNoQuote,
+			QtyRequested = @QtyRequested
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details

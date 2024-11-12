@@ -35,5 +35,8 @@
     [AltOrEqType]                VARCHAR (25)    NULL,
     [Notes]                      NVARCHAR (MAX)  NULL,
     [MasterCompanyId]            INT             NULL,
-    [CreatedBy]                  VARCHAR (100)   NULL);
+    [CreatedBy]                  VARCHAR (100)   NULL,
+    [IsNoQuote]                  BIT             NULL);
+
+
 

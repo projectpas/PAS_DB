@@ -29,6 +29,7 @@
 	12   20/03/2024   HEMANT SALIYA Convert to Temp Table for handle Duplicate Values
 	13   23/04/2024   Moin Bloch	Updated Invoice Status is not changed Issue PN-7651
 	14   23/04/2024   Vishal Suthar	Modified to make use of new SO part table
+	15   07/11/2024   AMIT GHEDIYA	Modified for get InvoiceTypeId.
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1269,3,9
 **************************************************************/
@@ -60,6 +61,7 @@ BEGIN
 			SOBillingInvoicingItemId [BIGINT] NULL,
 			InvoiceDate [datetime2](7) NULL, 
 			InvoiceNo [VARCHAR](250)  NULL,
+			InvoiceTypeId [BIGINT] NULL,
 			SOShippingNum [VARCHAR](250)  NULL,
 			QtyToBill [INT]  NULL,
 			SalesOrderNumber [VARCHAR](250)  NULL,
@@ -98,7 +100,7 @@ BEGIN
 		BEGIN 
 			PRINT '1.0'
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
-			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
+			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
 			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling )
 		(
@@ -117,6 +119,7 @@ BEGIN
 			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
 			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId 
 			AND ISNULL(sobii_1.IsProforma, 0) = 0) >0  THEN sobi.InvoiceNo ELSE NULL END AS InvoiceNo,
+			sobi.InvoiceTypeId,
 			sos.SOShippingNum, 
 			sosi.QtyShipped as QtyToBill,   
 			so.SalesOrderNumber, 
@@ -203,7 +206,7 @@ BEGIN
 			WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId  
 			GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 			sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, cond.Description, curr.Code, stk.StockLineId,  
-			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOPC.UnitSalesPrice, sobi.InvoiceNo,
+			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOPC.UnitSalesPrice, sobi.InvoiceNo, sobi.InvoiceTypeId,
 			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.SOBillingInvoicingId, sobii.SOBillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling])
 		END
 		ELSE
@@ -215,7 +218,7 @@ BEGIN
 			BEGIN  
 				PRINT '2.1'
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
-					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
+					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
 					TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling] )
 				(
@@ -228,6 +231,7 @@ BEGIN
 				sobi.SOBillingInvoicingId,
 				sobi.InvoiceDate,
 				sobi.InvoiceNo AS InvoiceNo,
+				sobi.InvoiceTypeId,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then (SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) else (SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SalesOrderPartV1 SOPB WITH (NOLOCK) on SOPB.SalesOrderId = SOS.SalesOrderId AND SOPB.SalesOrderPartId = SOSI.SalesOrderPartId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOPB.ItemMasterId = @SalesOrderPartId AND SOPB.ConditionId = @ConditionId) end) AS SOShippingNum, 
@@ -320,7 +324,7 @@ BEGIN
 			BEGIN 
 				PRINT '2.2'
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
-				SalesOrderShippingId,SOBillingInvoicingId , SOBillingInvoicingItemId, InvoiceDate , InvoiceNo ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
+				SalesOrderShippingId,SOBillingInvoicingId , SOBillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
 				SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling] )
 				SELECT DISTINCT 0 AS SalesOrderShippingId,   
@@ -328,6 +332,7 @@ BEGIN
 					sobii.SOBillingInvoicingItemId,
 					sobi.InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
+					sobi.InvoiceTypeId,
 					'' AS SOShippingNum,
 					so.SalesOrderNumber, 
 					imt.partnumber, 
@@ -455,7 +460,7 @@ BEGIN
 		
 			PRINT '3.0'
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
-				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
+				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
 				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling] )
 			(
@@ -463,6 +468,7 @@ BEGIN
 					sobi.SOBillingInvoicingId,
 					sobi.InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
+					sobi.InvoiceTypeId,
 					'' AS SOShippingNum, 
 					stk.QtyOrder AS QtyToBill, 
 					so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
@@ -505,6 +511,7 @@ BEGIN
 					   SOBillingInvoicingId ,
 					   InvoiceDate , 
 					   InvoiceNo ,
+					   InvoiceTypeId,
 					   SOShippingNum ,	
 					   QtyToBill ,
 					   SalesOrderNumber ,

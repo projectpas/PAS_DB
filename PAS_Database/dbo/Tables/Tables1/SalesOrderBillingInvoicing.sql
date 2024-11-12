@@ -54,10 +54,21 @@
     [BillToUserType]       INT             NULL,
     [ShipToUserType]       INT             NULL,
     [ProformaDeposit]      DECIMAL (18, 2) NULL,
+    [OriginCountryId]      INT             NULL,
+    [ShipToCountryId]      INT             NULL,
+    [HSECCN]               VARCHAR (200)   NULL,
+    [Weight]               DECIMAL (10, 2) NULL,
+    [BillSizeLength]       DECIMAL (10, 2) NULL,
+    [BillSizeWidth]        DECIMAL (10, 2) NULL,
+    [BillSizeHeight]       DECIMAL (10, 2) NULL,
+    [SignEmpId]            BIGINT          NULL,
+    [SignEmpDate]          DATETIME2 (7)   NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicing_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderBillingInvoicing_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 

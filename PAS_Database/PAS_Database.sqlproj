@@ -3270,6 +3270,8 @@
     <Build Include="dbo\Tables\SalesOrderPartCostAudit.sql" />
     <Build Include="dbo\Tables\SalesOrderCostAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetCycleCountList.sql" />
+    <Build Include="dbo\Tables\CycleCountBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostCycleCountBatchDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

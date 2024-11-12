@@ -201,7 +201,8 @@ BEGIN
 			CustomerRequestDate = @CustomerRequestDate,
 			PromisedDate = @PromisedDate,
 			EstimatedShipDate = @EstimatedShipDate,
-			Notes = @Notes
+			Notes = @Notes,
+			QtyRequested = @QtyRequested
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details

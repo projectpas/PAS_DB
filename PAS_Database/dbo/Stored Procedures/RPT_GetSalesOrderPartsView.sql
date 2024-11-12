@@ -13,6 +13,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    2    01/18/2024  AMIT GHEDIYA    Remove duplication part display.
    3    16/09/2024  AMIT GHEDIYA    Get Curr From Header data in print.
    4	11/04/2024	Vishal Suthar	Modified to make use of new SO Part tables
+   5	11/12/2024	Vishal Suthar	Fixed Qty, Unit Price and Total issue
 
 EXEC RPT_GetSalesOrderPartsView 1283
 
@@ -76,7 +77,12 @@ BEGIN
 			ISNULL(sl.ControlNumber, '') AS ControlNumber,
 			sopc.UnitCost,
 			--sp.Qty * ISNULL(sp.UnitSalesPricePerUnit, 0) AS SalesPriceExtended,
-			CONVERT(varchar, CAST(ISNULL(ISNULL(sp.QtyOrder,0) * ISNULL(sopc.NetSaleAmount, 0), 0) AS money), 1) AS SalesPriceExtended,
+			--CONVERT(varchar, CAST(ISNULL(ISNULL(sp.QtyOrder,0) * ISNULL(sopc.NetSaleAmount, 0), 0) AS money), 1) AS SalesPriceExtended,
+			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN
+				CONVERT(varchar, CAST(ISNULL(ISNULL(sosc.NetSaleAmount, 0), 0) AS money), 1)
+			ELSE 
+				CONVERT(varchar, CAST(ISNULL(ISNULL(sopc.NetSaleAmount, 0), 0) AS money), 1) END
+			AS SalesPriceExtended,
 			sopc.MarginAmount MarkupExtended,
 			sopc.DiscountAmount SalesDiscountExtended,
 			sopc.NetSaleAmount NetSalePriceExtended,
@@ -181,7 +187,11 @@ BEGIN
 			ISNULL(ro.RepairOrderNumber, '') AS RONumber,
 			ISNULL(rop.EstRecordDate, NULL) AS EstRecordDate,
 			--ISNULL(sp.UnitSalesPricePerUnit, 0) AS UnitSalesPricePerUnit,
-			CONVERT(varchar, CAST(ISNULL(sopc.NetSaleAmount, 0) AS money), 1) AS UnitSalesPricePerUnit,
+			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN 
+				CONVERT(varchar, CAST(ISNULL(sosc.NetSaleAmount, 0) / stk.QtyOrder AS money), 1) 
+			ELSE
+				CONVERT(varchar, CAST(ISNULL(sopc.NetSaleAmount, 0) / sp.QtyOrder AS money), 1) END
+			AS UnitSalesPricePerUnit,
 			ISNULL(im.ItemClassificationName, '') AS ItemClassification,
 			ISNULL(im.ItemGroup, '') AS ItemGroup,
 			ISNULL(rop.EstRecordDate, NULL) AS roNextDlvrDate,

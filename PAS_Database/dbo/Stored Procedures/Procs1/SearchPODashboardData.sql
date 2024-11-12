@@ -11,33 +11,33 @@
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  -------------------------------                
     1    18/05/2023   Satish Gohil   Count Showing issue fixed    
-	2    18/05/2023   Hemant Saliya  Verify the count and correct the SP    
+	2    18/05/2023   Hemant Saliya  Verify the count AND correct the SP    
 **************************************************************/     
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
 CREATE      PROCEDURE [dbo].[SearchPODashboardData]      
  @PageNumber int,      
  @PageSize int,      
- @SortColumn varchar(50) = null,      
+ @SortColumn VARCHAR(50) = null,      
  @SortOrder int,      
  @StatusID int,      
- @GlobalFilter varchar(50) = null,      
- @Module varchar(50) = null,      
+ @GlobalFilter VARCHAR(50) = null,      
+ @Module VARCHAR(50) = null,      
  @RefId bigint = null,      
- @PORO varchar(50) = null,      
+ @PORO VARCHAR(50) = null,      
  @OpenDate datetime = null,      
- @PartNumber varchar(50) = null,      
- @PartDescription varchar(100) = null,      
- @Requisitioner varchar(50) = null,      
- @Age varchar(20) = null,      
- @Amount varchar(50) = null,      
- @Currency varchar(50) = null,      
- @Vendor varchar(50) = null,      
- @WorkOrderNo varchar(50) = null,      
- @SalesOrderNo varchar(50) = null,      
+ @PartNumber VARCHAR(50) = null,      
+ @PartDescription VARCHAR(100) = null,      
+ @Requisitioner VARCHAR(50) = null,      
+ @Age VARCHAR(20) = null,      
+ @Amount VARCHAR(50) = null,      
+ @Currency VARCHAR(50) = null,      
+ @Vendor VARCHAR(50) = null,      
+ @WorkOrderNo VARCHAR(50) = null,      
+ @SalesOrderNo VARCHAR(50) = null,      
  @PromisedDate datetime = null,      
  @EstRecdDate datetime = null,      
- @Status varchar(50) = null,      
+ @Status VARCHAR(50) = null,      
  @IsDeleted bit = null,      
  @MasterCompanyId int = null,      
  @EmployeeId bigint = 1      
@@ -97,18 +97,18 @@ BEGIN
 				SELECT CASE WHEN COUNT(*) > 1 THEN 'Multiple' ELSE MAX(I.WorkOrderNum) END 'RefNumber'  ,STRING_AGG(I.WorkOrderNum, ',') as 'WONum'    
 				FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
 					LEFT JOIN  [DBO].[WorkOrder] I WITH (NOLOCK) On POPR.ReferenceId = I.WorkOrderId    
-				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
+				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  AND pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
 					AND POPR.ModuleId = 1  
 			) AS WorkOrderRefNumber   
 			OUTER APPLY(      
 				SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'   ,STRING_AGG(S.SalesOrderNumber, ',') as 'SONum'
 				FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
 					LEFT JOIN  [DBO].[SalesOrder] S WITH (NOLOCK) On POPR.ReferenceId = S.SalesOrderId   
-				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
-					and POPR.ModuleId = 3  
+				WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId  AND pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
+					AND POPR.ModuleId = 3  
 			) AS SalesOrderRefNumber   
 		WHERE POP.QuantityBackOrdered > 0      
-			AND (PO.IsDeleted = @IsDeleted) and (@StatusID is null or PO.StatusId = @StatusID)      
+			AND ISNULL(PO.IsDeleted, 0) = @IsDeleted AND (@StatusID is null or PO.StatusId = @StatusID)      
 			AND PO.MasterCompanyId = @MasterCompanyId   
 		GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,POP.PurchaseOrderPartRecordId,PO.OpenDate, POP.PartNumber, POP.PartDescription,PO.Requisitioner,POP.VendorListPrice,POP.FunctionalCurrency, PO.VendorName ,PO.NeedByDate , POP.EstDeliveryDate, PO.Status, WorkOrderRefNumber.WONum,SalesOrderRefNumber.SONum
       
@@ -118,12 +118,12 @@ BEGIN
 			(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ISNULL(ROP.VendorListPrice, 0) AS 'Amount', ROP.FunctionalCurrency AS 'Currency',       
 			RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo,'','', RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status 
 		FROM  DBO.RepairOrder RO WITH (NOLOCK)      
-			LEFT JOIN DBO.RepairOrderPart ROP ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
+			LEFT JOIN DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
 			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
 			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
 		WHERE ROP.QuantityBackOrdered > 0      
-			AND (RO.IsDeleted = @IsDeleted) and (@StatusID is null or RO.StatusId = @StatusID)      
+			AND (RO.IsDeleted = @IsDeleted) AND (@StatusID is null or RO.StatusId = @StatusID)      
 			AND RO.MasterCompanyId = @MasterCompanyId),      
 			FinalResult AS (      
 			SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age,       
@@ -142,66 +142,66 @@ BEGIN
 		   (PromisedDate like '%' + @GlobalFilter +'%') OR      
 		   (EstRecdDate like '%' + @GlobalFilter +'%') OR   
 		   (Status like '%' + @GlobalFilter +'%')  OR    
-		(CAST(Age AS varchar(20)) like '%' + @GlobalFilter +'%') OR     
-		(CAST(Amount AS varchar(50)) like '%' + @GlobalFilter +'%')    
+		(CAST(Age AS VARCHAR(20)) like '%' + @GlobalFilter +'%') OR     
+		(CAST(Amount AS VARCHAR(50)) like '%' + @GlobalFilter +'%')    
     
 		   ))      
 		   OR         
 		   (@GlobalFilter = '' AND       
-		   (IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') and       
-		   (IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') and      
-		   (IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and      
-		   (IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') and      
-		   (IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') and      
-		   (IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') and      
-		   (IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and      
-		   (IsNull(@Vendor, '') = '' OR Vendor like '%'+ @Vendor +'%') and      
-		   (IsNull(@WorkOrderNo, '') = '' OR WorkOrderNo like '%'+ @WorkOrderNo +'%') and      
-		   (IsNull(@SalesOrderNo, '') = '' OR SalesOrderNo like '%'+ @SalesOrderNo +'%') and      
-		   (IsNull(@PromisedDate, '') = '' OR Cast(PromisedDate as Date) = Cast(@PromisedDate as date)) and      
-		   (IsNull(@EstRecdDate, '') = '' OR Cast(EstRecdDate as Date) = Cast(@EstRecdDate as date)) and      
+		   (IsNull(@Module, '') = '' OR Module like  '%'+ @Module +'%') AND       
+		   (IsNull(@PORO, '') = '' OR PORO like  '%'+ @PORO +'%') AND      
+		   (IsNull(@OpenDate, '') = '' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) AND      
+		   (IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') AND      
+		   (IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') AND      
+		   (IsNull(@Requisitioner, '') = '' OR Requisitioner like '%'+ @Requisitioner +'%') AND      
+		   (IsNull(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') AND      
+		   (IsNull(@Vendor, '') = '' OR Vendor like '%'+ @Vendor +'%') AND      
+		   (IsNull(@WorkOrderNo, '') = '' OR WorkOrderNo like '%'+ @WorkOrderNo +'%') AND      
+		   (IsNull(@SalesOrderNo, '') = '' OR SalesOrderNo like '%'+ @SalesOrderNo +'%') AND      
+		   (IsNull(@PromisedDate, '') = '' OR Cast(PromisedDate as Date) = Cast(@PromisedDate as date)) AND      
+		   (IsNull(@EstRecdDate, '') = '' OR Cast(EstRecdDate as Date) = Cast(@EstRecdDate as date)) AND      
 		   (IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%') AND    
-		(IsNull(@Age, '') = '' OR CAST(Age AS varchar(20)) like '%'+ @Age +'%') and      
-		(IsNull(@Amount, '') = '' OR CAST(Amount AS varchar(50)) like '%'+ @Amount +'%'))      
+		(IsNull(@Age, '') = '' OR CAST(Age AS VARCHAR(20)) like '%'+ @Age +'%') AND      
+		(IsNull(@Amount, '') = '' OR CAST(Amount AS VARCHAR(50)) like '%'+ @Amount +'%'))      
 		   )),      
 		 ResultCount AS (Select COUNT(PORO) AS NumberOfItems FROM FinalResult)      
       
      SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age,       
      Amount, Currency, Vendor, WorkOrderNo, SalesOrderNo,WorkOrderNum,SalesOrderNumber, PromisedDate, EstRecdDate, Status, NumberOfItems FROM FinalResult, ResultCount      
     ORDER BY        
-    CASE WHEN (@SortOrder=1 and @SortColumn='MODULE')  THEN Module END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='REFID')  THEN RefId END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='PORO')  THEN PORO END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='REQUISITIONER')  THEN Requisitioner END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='AGE')  THEN CAST(Age AS varchar(20)) END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='AMOUNT')  THEN CAST(Amount AS varchar(50)) END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='CURRENCY')  THEN Currency END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='VENDOR')  THEN Vendor END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNO')  THEN WorkOrderNo END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNO')  THEN SalesOrderNo END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='PROMISEDDATE')  THEN PromisedDate END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='ESTRECDDATE')  THEN EstRecdDate END ASC,      
-    CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='MODULE')  THEN Module END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='REFID')  THEN RefId END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='PORO')  THEN PORO END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='OPENDATE')  THEN OpenDate END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='REQUISITIONER')  THEN Requisitioner END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='AGE')  THEN CAST(Age AS VARCHAR(20)) END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='AMOUNT')  THEN CAST(Amount AS VARCHAR(50)) END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='CURRENCY')  THEN Currency END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='VENDOR')  THEN Vendor END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='WORKORDERNO')  THEN WorkOrderNo END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='SALESORDERNO')  THEN SalesOrderNo END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='PROMISEDDATE')  THEN PromisedDate END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='ESTRECDDATE')  THEN EstRecdDate END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='STATUS')  THEN Status END ASC,      
       
-    CASE WHEN (@SortOrder=-1 and @SortColumn='MODULE')  THEN Module END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='PORO')  THEN PORO END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='REQUISITIONER')  THEN Requisitioner END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='AGE')  THEN CAST(Age AS varchar(20)) END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='AMOUNT')  THEN CAST(Amount AS varchar(50)) END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='CURRENCY')  THEN Currency END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='VENDOR')  THEN Vendor END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNO')  THEN WorkOrderNo END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNO')  THEN SalesOrderNo END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='PROMISEDDATE')  THEN PromisedDate END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='ESTRECDDATE')  THEN EstRecdDate END DESC,      
-    CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='MODULE')  THEN Module END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='REFID')  THEN RefId END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='PORO')  THEN PORO END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN OpenDate END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='REQUISITIONER')  THEN Requisitioner END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='AGE')  THEN CAST(Age AS VARCHAR(20)) END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNT')  THEN CAST(Amount AS VARCHAR(50)) END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENCY')  THEN Currency END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDOR')  THEN Vendor END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERNO')  THEN WorkOrderNo END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='SALESORDERNO')  THEN SalesOrderNo END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='PROMISEDDATE')  THEN PromisedDate END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='ESTRECDDATE')  THEN EstRecdDate END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS')  THEN Status END DESC      
       
     OFFSET @RecordFrom ROWS       
     FETCH NEXT @PageSize ROWS ONLY      

@@ -202,10 +202,10 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId 
-					--AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
+					AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
 					AND ISNULL(ROP.IsDeleted,0) = 0 
 					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
-					--AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
+					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
 						
 				--* END: RepairOrder For Reserve *--
 
@@ -257,9 +257,9 @@ BEGIN
 					INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
 					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ESR.StockLineId = @StocklineId 
 					--AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 
-					--AND ISNULL(ESO.IsDeleted,0) = 0 
+					AND ISNULL(ESO.IsDeleted,0) = 0 
 					AND ISNULL(ESR.QtyToReserve,0) > 0 
-					--AND (ISNULL(ESO.StatusId,0) != @ExchClosedStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
+					AND (ISNULL(ESO.StatusId,0) != @ExchClosedStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
 			
 				--* END: ExchangeSalesOrder For Reserve *--
 
@@ -306,9 +306,9 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE VRD.MasterCompanyId = @MasterCompanyId AND VRD.StockLineId = @StocklineId 
-					--AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 
+					AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 
 					AND ISNULL(VRD.Qty,0) > 0 
-					--AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
+					AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
 		
 				--* END: RMA For Reserve *--
 

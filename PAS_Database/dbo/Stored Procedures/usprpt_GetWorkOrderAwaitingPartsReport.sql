@@ -40,7 +40,9 @@ BEGIN
     @Level8 VARCHAR(MAX) = NULL,    
     @Level9 VARCHAR(MAX) = NULL,    
     @Level10 VARCHAR(MAX) = NULL,    
-    @IsDownload BIT = NULL   
+    @IsDownload BIT = NULL,
+	@ReplaceProvisionId BIGINT = 0,
+	@ARConditionId BIGINT = 0
 
 	DECLARE @Stage varchar(300) = NULL  
     DECLARE @CustomerId varchar(100) = NULL 
@@ -50,6 +52,10 @@ BEGIN
 
      DECLARE @ModuleID INT = 12; -- MS Module ID    
      SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END    
+
+	 SELECT @ReplaceProvisionId = ProvisionId FROM Provision WHERE UPPER(StatusCode) = 'REPLACE'
+
+	 SELECT @ARConditionId = ConditionId FROM Condition WHERE UPPER(Code) = 'ASREMOVE' AND MasterCompanyId = @mastercompanyid
 
      SELECT @Stage = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(500)')='Stage'     
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(500)') ELSE @Stage END,    
@@ -101,6 +107,12 @@ BEGIN
 
 		IF OBJECT_ID(N'tempdb..#tmpMultipleWOMStocklineKit') IS NOT NULL
 			DROP TABLE #tmpMultipleWOMStocklineKit
+
+		IF OBJECT_ID(N'tempdb..#tmpMultipleSubWOMStockline') IS NOT NULL
+			DROP TABLE #tmpMultipleSubWOMStockline
+
+		IF OBJECT_ID(N'tempdb..#tmpMultipleSubWOMStocklineKit') IS NOT NULL
+			DROP TABLE #tmpMultipleSubWOMStocklineKit
 
 		CREATE TABLE #AwaitingPartsData
 		(	
@@ -175,70 +187,70 @@ BEGIN
 		INSERT INTO #tmpMultipleWOMStockline 
 		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
 
 		INSERT INTO #tmpMultipleSubWOMStockline 
 		SELECT DISTINCT	WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
 				FROM [dbo].[SubWorkOrderMaterials] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
 
 		INSERT INTO #tmpMultipleWOMStocklineKit
 		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
 
 		INSERT INTO #tmpMultipleSubWOMStocklineKit
 		SELECT DISTINCT WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
 				FROM [dbo].[SubWorkOrderMaterialsKit] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
     
 	INSERT INTO #AwaitingPartsData
-	SELECT DISTINCT 0 AS TotalRecordsCount,    
+	SELECT 0 AS TotalRecordsCount,    
 		WO.WorkOrderId,  
-		MAX(UPPER(WO.WorkOrderNum)) 'wonum',
-		MAX(UPPER(C.Name)) 'customername',
-		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
-		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
-		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',
-		MAX(WOM.ExtendedCost) 'approvedamount',
+		(UPPER(WO.WorkOrderNum)) 'wonum',
+		(UPPER(C.Name)) 'customername',
+		(UPPER(WOQ.QuoteNumber)) 'woqnum',
+		(UPPER(IM.partnumber)) 'pn',    
+		(UPPER(IM.PartDescription)) 'pnDescription',    
+		(UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',
+		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
-		UPPER(MAX(MSD.Level1Name)) AS level1,      
-		UPPER(MAX(MSD.Level2Name)) AS level2,     
-		UPPER(MAX(MSD.Level3Name)) AS level3,     
-		UPPER(MAX(MSD.Level4Name)) AS level4,     
-		UPPER(MAX(MSD.Level5Name)) AS level5,     
-		UPPER(MAX(MSD.Level6Name)) AS level6,     
-		UPPER(MAX(MSD.Level7Name)) AS level7,     
-		UPPER(MAX(MSD.Level8Name)) AS level8,     
-		UPPER(MAX(MSD.Level9Name)) AS level9,     
-		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
+		UPPER((MSD.Level1Name)) AS level1,      
+		UPPER((MSD.Level2Name)) AS level2,     
+		UPPER((MSD.Level3Name)) AS level3,     
+		UPPER((MSD.Level4Name)) AS level4,     
+		UPPER((MSD.Level5Name)) AS level5,     
+		UPPER((MSD.Level6Name)) AS level6,     
+		UPPER((MSD.Level7Name)) AS level7,     
+		UPPER((MSD.Level8Name)) AS level8,     
+		UPPER((MSD.Level9Name)) AS level9,     
+		UPPER((MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId 
 	FROM DBO.WorkOrder WO WITH (NOLOCK)      
 		INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
 		INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
 		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
 		INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND QuoteStatusId = @ApprovedQuoteStatusId
-		LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
+		INNER JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
 		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID    
 		LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId   
 		LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 		LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
-	    INNER JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
-		INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
-		INNER JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
+	    LEFT JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
+		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
+		LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -249,7 +261,7 @@ BEGIN
             WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
 		) AS WOS_From
 	WHERE    
-		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
+		(@CustomerId IS NULL OR WO.CustomerId = @CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  		 
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
@@ -267,34 +279,50 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY WO.WorkOrderId, tmpWOM.Quantity
+     GROUP BY WO.WorkOrderId, tmpWOM.Quantity,
+	 (UPPER(WO.WorkOrderNum)),
+	(UPPER(C.Name)),
+	(UPPER(WOQ.QuoteNumber)),
+	(UPPER(IM.partnumber)),    
+	(UPPER(IM.PartDescription)),    
+	(UPPER(WOS_From.Code + '-' + WOS_From.Stage)),
+	 MSD.Level1Name,
+	 MSD.Level2Name,
+	 MSD.Level3Name,
+	 MSD.Level4Name,
+	 MSD.Level5Name,
+	 MSD.Level6Name,
+	 MSD.Level7Name,
+	 MSD.Level8Name,
+	 MSD.Level9Name,
+	 MSD.Level10Name
 
 	INSERT INTO #AwaitingPartsData
-	SELECT DISTINCT 0 AS TotalRecordsCount,    
+	SELECT 0 AS TotalRecordsCount,    
 		WO.WorkOrderId,  
-		MAX(UPPER(WO.WorkOrderNum)) 'wonum',
-		MAX(UPPER(C.Name)) 'customername',
-		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
-		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',     
-		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
-		MAX(WOM.ExtendedCost) 'approvedamount',
+		(UPPER(WO.WorkOrderNum)) 'wonum',
+		(UPPER(C.Name)) 'customername',
+		(UPPER(WOQ.QuoteNumber)) 'woqnum',
+		(UPPER(IM.partnumber)) 'pn',    
+		(UPPER(IM.PartDescription)) 'pnDescription',     
+		( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
+		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
-		UPPER(MAX(MSD.Level1Name)) AS level1,      
-		UPPER(MAX(MSD.Level2Name)) AS level2,     
-		UPPER(MAX(MSD.Level3Name)) AS level3,     
-		UPPER(MAX(MSD.Level4Name)) AS level4,     
-		UPPER(MAX(MSD.Level5Name)) AS level5,     
-		UPPER(MAX(MSD.Level6Name)) AS level6,     
-		UPPER(MAX(MSD.Level7Name)) AS level7,     
-		UPPER(MAX(MSD.Level8Name)) AS level8,     
-		UPPER(MAX(MSD.Level9Name)) AS level9,     
-		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
+		UPPER((MSD.Level1Name)) AS level1,      
+		UPPER((MSD.Level2Name)) AS level2,     
+		UPPER((MSD.Level3Name)) AS level3,     
+		UPPER((MSD.Level4Name)) AS level4,     
+		UPPER((MSD.Level5Name)) AS level5,     
+		UPPER((MSD.Level6Name)) AS level6,     
+		UPPER((MSD.Level7Name)) AS level7,     
+		UPPER((MSD.Level8Name)) AS level8,     
+		UPPER((MSD.Level9Name)) AS level9,     
+		UPPER((MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId  
 	FROM DBO.WorkOrder WO WITH (NOLOCK)      
 		INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
@@ -322,7 +350,7 @@ BEGIN
             WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
 		) AS WOS_From
 	WHERE    
-		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
+		(@CustomerId IS NULL OR WO.CustomerId = @CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
@@ -340,34 +368,50 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY WO.WorkOrderId, tmpWOM.Quantity
+     GROUP BY WO.WorkOrderId, tmpWOM.Quantity,
+	 (UPPER(WO.WorkOrderNum)),
+	(UPPER(C.Name)),
+	(UPPER(WOQ.QuoteNumber)),
+	(UPPER(IM.partnumber)),    
+	(UPPER(IM.PartDescription)),    
+	(UPPER(WOS_From.Code + '-' + WOS_From.Stage)),
+	 MSD.Level1Name,
+	 MSD.Level2Name,
+	 MSD.Level3Name,
+	 MSD.Level4Name,
+	 MSD.Level5Name,
+	 MSD.Level6Name,
+	 MSD.Level7Name,
+	 MSD.Level8Name,
+	 MSD.Level9Name,
+	 MSD.Level10Name
 
  INSERT INTO #AwaitingPartsData
-	SELECT DISTINCT 0 AS TotalRecordsCount,    
+	SELECT 0 AS TotalRecordsCount,    
 		SWO.SubWorkOrderId,  
-		MAX(UPPER(SWO.SubWorkOrderNo)) 'wonum',
-		MAX(UPPER(C.Name)) 'customername',
-		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
-		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',  
-		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
-		MAX(WOM.ExtendedCost) 'approvedamount',
+		(UPPER(SWO.SubWorkOrderNo)) 'wonum',
+		(UPPER(C.Name)) 'customername',
+		(UPPER(WOQ.QuoteNumber)) 'woqnum',
+		(UPPER(IM.partnumber)) 'pn',    
+		(UPPER(IM.PartDescription)) 'pnDescription',  
+		(UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',
+		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
-		UPPER(MAX(MSD.Level1Name)) AS level1,      
-		UPPER(MAX(MSD.Level2Name)) AS level2,     
-		UPPER(MAX(MSD.Level3Name)) AS level3,     
-		UPPER(MAX(MSD.Level4Name)) AS level4,     
-		UPPER(MAX(MSD.Level5Name)) AS level5,     
-		UPPER(MAX(MSD.Level6Name)) AS level6,     
-		UPPER(MAX(MSD.Level7Name)) AS level7,     
-		UPPER(MAX(MSD.Level8Name)) AS level8,     
-		UPPER(MAX(MSD.Level9Name)) AS level9,     
-		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
+		UPPER((MSD.Level1Name)) AS level1,      
+		UPPER((MSD.Level2Name)) AS level2,     
+		UPPER((MSD.Level3Name)) AS level3,     
+		UPPER((MSD.Level4Name)) AS level4,     
+		UPPER((MSD.Level5Name)) AS level5,     
+		UPPER((MSD.Level6Name)) AS level6,     
+		UPPER((MSD.Level7Name)) AS level7,     
+		UPPER((MSD.Level8Name)) AS level8,     
+		UPPER((MSD.Level9Name)) AS level9,     
+		UPPER((MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId  
 	FROM DBO.SubWorkOrder SWO WITH (NOLOCK)    
 		INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId 
@@ -382,10 +426,10 @@ BEGIN
 		LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 		LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId 
-	    INNER JOIN #tmpMultipleSubWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[SubWorkOrderId] = SWO.[SubWorkOrderId]
-		INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
-		INNER JOIN DBO.SubWorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
-		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+	    LEFT JOIN #tmpMultipleSubWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[SubWorkOrderId] = SWO.[SubWorkOrderId]
+		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
+		LEFT JOIN DBO.SubWorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -396,7 +440,7 @@ BEGIN
             WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
 		) AS WOS_From
 	WHERE    
-		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
+		(@CustomerId IS NULL OR WO.CustomerId = @CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  		 
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
@@ -414,35 +458,51 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity
+    GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity,
+	 (UPPER(SWO.SubWorkOrderNo)),
+	(UPPER(C.Name)),
+	(UPPER(WOQ.QuoteNumber)),
+	(UPPER(IM.partnumber)),    
+	(UPPER(IM.PartDescription)),    
+	(UPPER(WOS_From.Code + '-' + WOS_From.Stage)),
+	 MSD.Level1Name,
+	 MSD.Level2Name,
+	 MSD.Level3Name,
+	 MSD.Level4Name,
+	 MSD.Level5Name,
+	 MSD.Level6Name,
+	 MSD.Level7Name,
+	 MSD.Level8Name,
+	 MSD.Level9Name,
+	 MSD.Level10Name
 
 
 	INSERT INTO #AwaitingPartsData
-	SELECT DISTINCT 0 AS TotalRecordsCount,    
+	SELECT 0 AS TotalRecordsCount,    
 		SWO.SubWorkOrderId,  
-		MAX(UPPER(SWO.SubWorkOrderNo)) 'wonum',
-		MAX(UPPER(C.Name)) 'customername',
-		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
-		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',   
-		MAX( UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
-		MAX(WOM.ExtendedCost) 'approvedamount',
+		(UPPER(SWO.SubWorkOrderNo)) 'wonum',
+		(UPPER(C.Name)) 'customername',
+		(UPPER(WOQ.QuoteNumber)) 'woqnum',
+		(UPPER(IM.partnumber)) 'pn',    
+		(UPPER(IM.PartDescription)) 'pnDescription',   
+		(UPPER(WOS_From.Code + '-' + WOS_From.Stage)) AS 'stagecode',  
+		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
-		UPPER(MAX(MSD.Level1Name)) AS level1,      
-		UPPER(MAX(MSD.Level2Name)) AS level2,     
-		UPPER(MAX(MSD.Level3Name)) AS level3,     
-		UPPER(MAX(MSD.Level4Name)) AS level4,     
-		UPPER(MAX(MSD.Level5Name)) AS level5,     
-		UPPER(MAX(MSD.Level6Name)) AS level6,     
-		UPPER(MAX(MSD.Level7Name)) AS level7,     
-		UPPER(MAX(MSD.Level8Name)) AS level8,     
-		UPPER(MAX(MSD.Level9Name)) AS level9,     
-		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
+		UPPER((MSD.Level1Name)) AS level1,      
+		UPPER((MSD.Level2Name)) AS level2,     
+		UPPER((MSD.Level3Name)) AS level3,     
+		UPPER((MSD.Level4Name)) AS level4,     
+		UPPER((MSD.Level5Name)) AS level5,     
+		UPPER((MSD.Level6Name)) AS level6,     
+		UPPER((MSD.Level7Name)) AS level7,     
+		UPPER((MSD.Level8Name)) AS level8,     
+		UPPER((MSD.Level9Name)) AS level9,     
+		UPPER((MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId  
 	FROM DBO.SubWorkOrder SWO WITH (NOLOCK)
 		INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId     
@@ -471,7 +531,7 @@ BEGIN
             WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
 		) AS WOS_From
 	WHERE    
-		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
+		(@CustomerId IS NULL OR WO.CustomerId = @CustomerId)	
 		AND ISNULL(WO.IsDeleted, 0) = 0  
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
@@ -489,7 +549,23 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity
+     GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity,
+	 (UPPER(SWO.SubWorkOrderNo)),
+	(UPPER(C.Name)),
+	(UPPER(WOQ.QuoteNumber)),
+	(UPPER(IM.partnumber)),    
+	(UPPER(IM.PartDescription)),    
+	(UPPER(WOS_From.Code + '-' + WOS_From.Stage)),
+	 MSD.Level1Name,
+	 MSD.Level2Name,
+	 MSD.Level3Name,
+	 MSD.Level4Name,
+	 MSD.Level5Name,
+	 MSD.Level6Name,
+	 MSD.Level7Name,
+	 MSD.Level8Name,
+	 MSD.Level9Name,
+	 MSD.Level10Name
 
 
 	IF ISNULL(@PageSize,0)=0    

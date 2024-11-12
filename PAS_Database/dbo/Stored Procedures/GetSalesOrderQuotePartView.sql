@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    09/06/2024   Vishal Suthar     Created
+	2    12-11-2024   Shrey Chandegara   Updated because TraceableToName,tagdate,tagtype not bind. 
      
 -- EXEC [DBO].[GetSalesOrderQuotePartView] 766, 'USD'
 **************************************************************/
@@ -129,7 +130,10 @@ BEGIN
         ISNULL(mf.Name, '') AS ManufacturerName,
         --part.SalesPriceExpiryDate,
         NULL SalesPriceExpiryDate,
-        part.IsNoQuote
+        part.IsNoQuote,
+		qs.TraceableToName,
+		qs.TagDate,
+		qs.TagType
     FROM DBO.SalesOrderQuotePartV1 part
     LEFT JOIN SalesOrderQuoteStocklineV1 stk ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN SalesOrderQuotePartCost PS ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId

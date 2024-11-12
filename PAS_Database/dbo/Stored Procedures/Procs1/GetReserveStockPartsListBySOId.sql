@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/08/2021   Vishal Suthar Modified the logic
     2    01/10/2024   Vishal Suthar Modified to make use of New SO Part Tables
+    3    11/12/2024   Vishal Suthar Fixed issues with listing the proper stocklines for reservation
      
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1269
 **************************************************************/
@@ -319,60 +320,92 @@ BEGIN
 			SET @ItemMasterId = NULL;	
 		END
 
-		SELECT DISTINCT so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description as Condition, SOP.SalesOrderPartId AS SalesOrderPartId,
-			im.PartNumber, im.PartDescription,im.ManufacturerName ManufacturerName, SOP.QtyRequested as Quantity
-			, ISNULL(sor.ReservedById, 0) AS ReservedById
-			, ISNULL(sor.IssuedById, 0) AS IssuedById
-			, '1' as PartStatusId
-			, IsAltPart = ISNULL(sor.IsAltPart, 0)
-			, IsEquPart = ISNULL(sor.IsEquPart, 0)
-			, sor.AltPartMasterPartId AS AltPartMasterPartId
-			, sor.EquPartMasterPartId AS EquPartMasterPartId
-			, 0 AS QtyToReserve
-			, (ISNULL(sop.QtyRequested, 0) - 
-			(SELECT ISNULL(sor.TotalReserved, 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SOR.StockLineId = sl.StockLineId AND SOR.SalesOrderId = @SalesOrderId) - 
-			(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved
-			, ISNULL(sor.TotalReserved, 0) AS QuantityReserved
-			, sl.QuantityAvailable, sl.QuantityOnHand, sl.QuantityOnOrder, sl.StockLineId
-			, sl.StockLineNumber, sl.ControlNumber,
-			CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMADER' ELSE (CASE WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA' ELSE (CASE WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER' ELSE 'OEM' END) END) END as StockType
-			,SO.MasterCompanyId
-			,SOP.LotId
-			,SOP.IsLotAssigned IsLotQty
-			FROM DBO.SalesOrder SO WITH (NOLOCK)
-			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-			LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) on SOP.SalesOrderPartId = Stk.SalesOrderPartId
-			LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) on sop.ItemMasterId = im.ItemMasterId
-			INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON (sl.StockLineId = Stk.StockLineId OR (SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))
-			LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
-			LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderId = SO.SalesOrderId AND SOR.StockLineId = Stk.StockLineId
-			WHERE so.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId
-			AND SL.QuantityAvailable > 0
-			AND SL.IsCustomerStock = 0
-			AND SL.IsParent = 1
-			AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
-			GROUP BY so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description,
-			im.PartNumber, im.PartDescription,im.ManufacturerName
-			, sl.QuantityAvailable
-			, sl.QuantityOnHand
-			, sl.QuantityOnOrder
-			, SOP.QtyRequested
-			, sor.TotalReserved
-			, SOP.SalesOrderPartId
-			, sl.StockLineId
-			, sl.StockLineNumber, sl.ControlNumber
-			,SO.MasterCompanyId
-			,im.IsPma
-			,im.IsDER
-			,SOR.ReservedById
-			,SOR.IssuedById
-			,SOR.IsAltPart
-			,SOR.IsEquPart, SOR.AltPartMasterPartId, SOR.EquPartMasterPartId
-			,SOP.LotId,SOP.IsLotAssigned
-			Having (ISNULL(SUM(sop.QtyOrder), 0) - 
-			(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SOR.StockLineId = sl.StockLineId AND SOR.SalesOrderId = @SalesOrderId) - 
-			(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0
+		SELECT DISTINCT 
+		so.SalesOrderId, 
+		im.ItemMasterId, 
+		sop.ConditionId, 
+		cond.Description as Condition, 
+		SOP.SalesOrderPartId AS SalesOrderPartId,
+		im.PartNumber, 
+		im.PartDescription,
+		im.ManufacturerName AS ManufacturerName, 
+		SOP.QtyRequested AS Quantity,
+		ISNULL(sor.ReservedById, 0) AS ReservedById,
+		ISNULL(sor.IssuedById, 0) AS IssuedById,
+		'1' AS PartStatusId,
+		ISNULL(sor.IsAltPart, 0) AS IsAltPart,
+		ISNULL(sor.IsEquPart, 0) AS IsEquPart,
+		sor.AltPartMasterPartId AS AltPartMasterPartId,
+		sor.EquPartMasterPartId AS EquPartMasterPartId,
+		0 AS QtyToReserve,
+		(ISNULL(sop.QtyRequested, 0) - 
+		 ISNULL(sop.QtyReserved, 0) - 
+		 (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved,
+		ISNULL(sop.QtyReserved, 0) AS QuantityReserved,
+		sl.QuantityAvailable, 
+		sl.QuantityOnHand, 
+		sl.QuantityOnOrder, 
+		sl.StockLineId,
+		sl.StockLineNumber, 
+		sl.ControlNumber,
+		CASE 
+			WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMADER' 
+			WHEN im.IsPma = 1 THEN 'PMA' 
+			WHEN im.IsDER = 1 THEN 'DER' 
+			ELSE 'OEM' 
+		END AS StockType,
+		SO.MasterCompanyId,
+		SOP.LotId,
+		SOP.IsLotAssigned AS IsLotQty
+		FROM DBO.SalesOrder SO WITH (NOLOCK)
+		INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
+		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
+		INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
+		LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON (sl.StockLineId = Stk.StockLineId OR (Stk.SalesOrderPartId IS NULL AND SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))
+		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
+		LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderId = SO.SalesOrderId AND SOR.StockLineId = Stk.StockLineId
+		WHERE 
+		so.IsDeleted = 0 
+		AND so.SalesOrderId = @SalesOrderId
+		AND SL.QuantityAvailable > 0
+		AND SL.IsCustomerStock = 0
+		AND SL.IsParent = 1
+		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
+		GROUP BY 
+		so.SalesOrderId, 
+		im.ItemMasterId, 
+		sop.ConditionId, 
+		cond.Description,
+		im.PartNumber, 
+		im.PartDescription,
+		im.ManufacturerName, 
+		sl.QuantityAvailable,
+		sl.QuantityOnHand, 
+		sl.QuantityOnOrder, 
+		SOP.QtyRequested,
+		SOP.QtyReserved,
+		SOP.SalesOrderPartId,
+		sl.StockLineId,
+		sl.StockLineNumber, 
+		sl.ControlNumber,
+		SO.MasterCompanyId,
+		im.IsPma,
+		im.IsDER,
+		SOR.ReservedById,
+		SOR.IssuedById,
+		SOR.IsAltPart,
+		SOR.IsEquPart, 
+		SOR.AltPartMasterPartId, 
+		SOR.EquPartMasterPartId,
+		SOP.LotId,
+		SOP.IsLotAssigned
+		HAVING 
+		(ISNULL(sop.QtyRequested, 0) - 
+		 ISNULL(sop.QtyReserved, 0) - 
+		 (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0;
 	END
 	COMMIT  TRANSACTION
 	END TRY    

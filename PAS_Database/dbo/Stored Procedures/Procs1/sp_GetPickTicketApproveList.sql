@@ -17,8 +17,9 @@
 	1    06/15/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
 	2    06/21/2023   Vishal Suthar Updated the SP to include pick ticket even after invoice is created directly
 	3    10/15/2024   Vishal Suthar Modified SP to get Pick ticket list from new SO Part tables
+	4    11/12/2024   Vishal Suthar Modified to fix the Qty Available
      
--- EXEC [dbo].[sp_GetPickTicketApproveList] 1103
+-- EXEC [dbo].[sp_GetPickTicketApproveList] 1292
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
@@ -33,8 +34,9 @@ BEGIN
 		;WITH CTE AS (select DISTINCT 0 AS SalesOrderPartId, sop.ItemMasterId, sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		(SELECT TOP 1 QtyRequested FROM SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS Qty,
 		'' AS SerialNumber, 
-		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN SalesOrderStockLine sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
-		AND sll.ItemMasterId = sop.ItemMasterId Where sp.SalesOrderId = @SalesOrderId) AS QuantityAvailable,
+		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN SalesOrderStocklineV1 sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
+		AND sll.ItemMasterId = sop.ItemMasterId 
+		Where sp.StockLineId = stk.StockLIneId) AS QuantityAvailable,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber 
 		,(SELECT SUM(SP.QtyToShip) FROM DBO.SOPickTicket SP WITH(NOLOCK)
 		INNER JOIN SalesOrder S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId
@@ -62,21 +64,20 @@ BEGIN
 		), 0) as TotalReadyToPick
 
 		from dbo.SalesOrderPartV1 sop WITH(NOLOCK)
-		LEFT JOIN SalesOrderStockLine stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN SalesOrderStockLineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
 		INNER JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
-		INNER JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId
-					AND soapr.CustomerStatusId = 2
+		INNER JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
 		INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
 		where sop.SalesOrderId=@SalesOrderId AND ((sopt.SOPickTicketId IS NULL AND sor.QtyToReserve > 0) OR sopt.SOPickTicketId IS NOT NULL)
 		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
-		,sl.isSerialized, imt.ItemMasterId)
+		,sl.isSerialized, imt.ItemMasterId, stk.StockLIneId)
 
 		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
 		SerialNumber, QuantityAvailable,

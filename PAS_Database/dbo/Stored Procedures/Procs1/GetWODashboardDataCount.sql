@@ -17,7 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/22/2022   Hemant Saliya   Created
 	2    03/08/2024   Bhargav Saliya  In WokOrder DashBoard  Count Issue Resolved
-	3	 08 NOV 2024  HEMANT SALIYA	  Verify the count and removed un used code 
+	3	 12 NOV 2024  HEMANT SALIYA	  Verify the count and removed un used code 
      
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
@@ -83,20 +83,16 @@ BEGIN
 				WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IncludeInDashboard, 0) = 1 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				order by [Sequence] ASC
 
-				--Select * from #tmpWorkOrderStage
-
 				UPDATE #tmpWorkOrderStage 
 					SET Counts = ISNULL(T2.StageCount, 0)
 				FROM #tmpWorkOrderStage AS WOS INNER JOIN (
 				SELECT DISTINCT ISNULL(COUNT(DISTINCT WOP.ID), 0) AS StageCount, WorkOrderStageId  
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
-				JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
-				JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
+					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
+					JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1
 				AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				GROUP BY WOP.WorkOrderStageId) AS T2 ON WOS.WorkOrderStageId = T2.WorkOrderStageId
-
-				--Select * from #tmpWorkOrderStage
 
 				UPDATE #tmpWorkOrderStage 
 						SET Counts = ISNULL(Counts, 0) + (SELECT ISNULL(COUNT(DISTINCT ReceivingCustomerWorkId), 0) 
@@ -106,61 +102,18 @@ BEGIN
 						AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
 				FROM #tmpWorkOrderStage AS WOS 
 				WHERE WOS.StageCode = 'RECEIVED'
-
-				--Select * from #tmpWorkOrderStage
-
-				--UPDATE #tmpWorkOrderStage 
-				--	SET Counts = (SELECT ISNULL(COUNT(DISTINCT ReceivingCustomerWorkId), 0) 
-				--	FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) 
-				--	JOIN dbo.Customer C ON c.CustomerId = RC.CustomerId
-				--	WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 AND RC.MasterCompanyId = @MasterCompanyId
-				--	AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
-				--FROM #tmpWorkOrderStage AS WOS 
-				--WHERE WOS.WorkOrderStageId = 111111 --INSERT B'CoZ No Stage Are Present
-
-				--Select * from #tmpWorkOrderStage
-
-				--UPDATE #tmpWorkOrderStage 
-				--	SET Counts = (SELECT DISTINCT ISNULL(COUNT(DISTINCT WO.WorkOrderId), 0) AS StageCount  
-				--		FROM dbo.WorkOrder WO WITH (NOLOCK) 
-				--		JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
-				--		JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
-				--		LEFT JOIN dbo.Employee EMP WITH (NOLOCK)  ON EMP.EmployeeId = WOP.TechnicianId
-				--		WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.TechnicianId,0) = 0 AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1
-				--		AND WOP.IsClosed = 0 --AND WOP.IsDeleted = 0 AND WOP.IsActive = 1
-				--		AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
-				--FROM #tmpWorkOrderStage AS WOS 
-				--WHERE WOS.WorkOrderStageId = 222222 --INSERT B'CoZ No Stage Are Present
-
-				--Select * from #tmpWorkOrderStage
 				
 				UPDATE #tmpWorkOrderStage 
 					SET Cost = ISNULL(T2.TotalCost, 0)
 				FROM #tmpWorkOrderStage AS WOS INNER JOIN (
 				SELECT DISTINCT ISNULL(SUM(WOC.Revenue), 0) AS TotalCost, WorkOrderStageId  
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
-				JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId	
-				JOIN dbo.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOP.ID = WOC.WOPartNoId	
-				JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
+					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId	
+					JOIN dbo.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOP.ID = WOC.WOPartNoId	
+					JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1--AND WO.WorkOrderStatusId  != @WorkOrderStatusId
-				AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
+					AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				GROUP BY WOP.WorkOrderStageId) AS T2 ON WOS.WorkOrderStageId = T2.WorkOrderStageId
-
-				--Select * from #tmpWorkOrderStage
-
-				--UPDATE #tmpWorkOrderStage 
-				--	SET Cost = ISNULL(T2.TotalCost, 0)
-				--FROM #tmpWorkOrderStage AS WOS INNER JOIN (
-				--SELECT DISTINCT ISNULL(SUM(WOC.Revenue), 0) AS TotalCost  
-				--FROM dbo.WorkOrder WO WITH (NOLOCK) 
-				--JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId	
-				--JOIN dbo.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOP.ID = WOC.WOPartNoId	
-				--JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
-				--WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.TechnicianId,0) = 0 AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1--AND WO.WorkOrderStatusId  != @WorkOrderStatusId
-				--AND WOP.IsClosed = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
-				--) AS T2 ON WOS.WorkOrderStageId = 222222
-
-				--Select * from #tmpWorkOrderStage
 
 				SELECT *, 
 				RowNumber = CASE WHEN((ROW_NUMBER() OVER (ORDER BY (SELECT NULL)))  % 4) = 0 THEN 4 ELSE (ROW_NUMBER() OVER (ORDER BY (SELECT NULL)))  % 4 END

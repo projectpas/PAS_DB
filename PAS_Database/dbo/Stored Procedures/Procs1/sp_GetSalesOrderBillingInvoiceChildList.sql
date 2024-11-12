@@ -30,6 +30,7 @@
 	13   23/04/2024   Moin Bloch	Updated Invoice Status is not changed Issue PN-7651
 	14   23/04/2024   Vishal Suthar	Modified to make use of new SO part table
 	15   07/11/2024   AMIT GHEDIYA	Modified for get InvoiceTypeId.
+	16   12/11/2024   AMIT GHEDIYA	Modified for get qtybilled.
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1269,3,9
 **************************************************************/
@@ -470,7 +471,7 @@ BEGIN
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					'' AS SOShippingNum, 
-					stk.QtyOrder AS QtyToBill, 
+					sop.QtyOrder AS QtyToBill, 
 					so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 					sl.SerialNumber, cr.[Name] AS CustomerName,   
 					stk.StockLineId,  

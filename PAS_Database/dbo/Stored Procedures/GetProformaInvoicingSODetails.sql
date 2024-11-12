@@ -11,6 +11,7 @@
 	1    01/31/2024   AMIT GHEDIYA	Created
 	2    04/01/2024   Bhargav Saliya  CreditTerms Changes
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	4    11/12/2024	  AMIT GHEDIYA		Modified to get invoiceNo 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetProformaInvoicingSODetails]
 	@SalesOrderPartId BIGINT,
@@ -26,6 +27,7 @@ SET NOCOUNT ON;
 					   sop.SalesOrderPartId, 
 					   0 AS SalesOrderShippingId, 
 					   NULL AS ShipDate, 
+					   sobi.InvoiceNo AS InvoiceNo,
 					   so.SalesOrderNumber, 
 					   CONCAT(emp.FirstName, ' ', emp.LastName) AS EmployeeName,
 					   so.EmployeeId, 
@@ -37,7 +39,7 @@ SET NOCOUNT ON;
 					   cf.CreditLimit, 
 					   cf.CreditTermsId, 
 					   so.[CreditTermName] AS CreditTerm, 
-					   cf.CurrencyId,
+					   sobi.CurrencyId,
 					   so.TypeId, 
 					   sotype.[Name] AS RevType, 
 					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,

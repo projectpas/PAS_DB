@@ -11,15 +11,16 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    20/02/2024   Moin Bloch     Created
-	2	 29/03/2024   Bhargav Saliya  Get CreditTermsName and NetDays From SO instead of CreditTerms
-	3	 27/07/2024   Bhargav Saliya  Get/added ShippingTerms
-	4	 19/09/2024   AMIT GHEDIYA    Get Cur from header for pdf.
-	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    20/02/2024   Moin Bloch		Created
+	2	 29/03/2024   Bhargav Saliya	Get CreditTermsName and NetDays From SO instead of CreditTerms
+	3	 27/07/2024   Bhargav Saliya	Get/added ShippingTerms
+	4	 19/09/2024   AMIT GHEDIYA		Get Cur from header for pdf.
+	5    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	6	 11/08/2024	  AMIT GHEDIYA		Modified to get shipping weight & ShipSize etc.
      
--- EXEC USP_GetSalesOrderBillingInvoicingPdfData 765
+-- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
 @SOBillingInvoicingId BIGINT
@@ -42,6 +43,7 @@ BEGIN
 
 	SELECT TOP 1 
 			1 AS ItemNo,
+			bi.InvoiceTypeId,
 			bi.SalesOrderId,
 			so.CustomerId,
 			cust.Name AS ClientName,
@@ -150,7 +152,17 @@ BEGIN
 			bi.ShipToUserType,
 			bi.BillToUserType,
 			ShippingTerms = posv.ShippingTerms,
-			FunctionalCurrency = scur.Code
+			FunctionalCurrency = scur.Code,
+			SignEmpName = ISNULL(emps.FirstName,'') + ISNULL(emps.LastName,''),
+			SignEmpTitle = ISNULL(jt.Description,''),
+			SignEmpDate = bi.SignEmpDate,
+			OriginCountry = originco.countries_name,
+			BillShipToCountry = shipingco.countries_name,
+			HSECCN = bi.HSECCN,
+			BillWeight = ISNULL(bi.[Weight],0),
+			BillSizeLength = ISNULL(bi.BillSizeLength,0),
+			BillSizeWidth = ISNULL(bi.BillSizeWidth,0),
+			BillSizeHeight = ISNULL(bi.BillSizeHeight,0)
 		FROM [dbo].[SalesOrderBillingInvoicing] bi WITH(NOLOCK)
 		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.SalesOrderId = so.SalesOrderId
 		 LEFT JOIN  [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -162,6 +174,8 @@ BEGIN
 		 LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
 		 LEFT JOIN  [dbo].[InvoiceType] it WITH(NOLOCK) ON bi.InvoiceTypeId = it.InvoiceTypeId
 		 LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
+		 LEFT JOIN  [dbo].[Employee] emps WITH(NOLOCK) ON bi.SignEmpId = emps.EmployeeId
+		 LEFT JOIN	[dbo].[JobTitle] jt WITH(NOLOCK) ON emps.JobTitleId = jt.JobTitleId
 		 LEFT JOIN  [dbo].[Customer] soldToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId = soldToCustomer.CustomerId
 		 LEFT JOIN  [dbo].[CustomerDomensticShipping] shipToSites WITH(NOLOCK) ON bi.ShipToSiteId = shipToSites.CustomerDomensticShippingId AND bi.ShipToUserType = @Customer
 		 LEFT JOIN  [dbo].[VendorShippingAddress] shipToSiteVendor WITH(NOLOCK) ON bi.ShipToSiteId = shipToSiteVendor.VendorShippingAddressId AND bi.ShipToUserType = @Vendor
@@ -178,6 +192,8 @@ BEGIN
 		 LEFT JOIN  [dbo].[Countries] AS billToCountry WITH(NOLOCK) ON billToAddress.CountryId = billToCountry.countries_id
 		 LEFT JOIN  [dbo].[Countries] AS billToCountryVendor WITH(NOLOCK) ON billToAddressVendor.CountryId = billToCountryVendor.countries_id
 		 LEFT JOIN  [dbo].[Countries] AS billToCountryCompany WITH(NOLOCK) ON billToAddressCompany.CountryId = billToCountryCompany.countries_id
+		 LEFT JOIN  [dbo].[Countries] AS originco WITH(NOLOCK) ON originco.countries_id = bi.OriginCountryId
+		 LEFT JOIN  [dbo].[Countries] AS shipingco WITH(NOLOCK) ON shipingco.countries_id = bi.ShipToCountryId
 		 LEFT JOIN  [dbo].[Employee] AS sp WITH(NOLOCK) ON so.SalesPersonId = sp.EmployeeId
 		 LEFT JOIN  [dbo].[Countries] AS cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
 		 LEFT JOIN  [dbo].[Currency] AS cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId

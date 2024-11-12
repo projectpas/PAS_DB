@@ -25,6 +25,7 @@
     9    11-July-2024 RAJESH GAMI       Add the tracebletype,traceble to, tagdate,tagtype and other required parent detail into stocklineDraft when part is splitted.     
 	10   26-09-2024   Abhishek Jirawla  Add Traceable to name in insert of stockline draft
 	11   15-10-2024   RAJESH GAMI       Add IsSubWOType and their values (WOMaterialsId, IsSubWOType , IsKitType)
+	11   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -228,7 +229,7 @@ BEGIN
       NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
       @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
-      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,CASE WHEN @IsKit = 0 THEN NULL ELSE @IsKit END , CASE WHEN @IsSubWO = 0 THEN NULL ELSE @IsSubWO END     
+      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
       FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     
       SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    

@@ -356,6 +356,8 @@ BEGIN
 					QuantityReserved = QuantityReserved - @QtyToUnReserve
 					WHERE StockLineId = @StockLineId;
 				END
+
+				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
 			END
 			ELSE
 			BEGIN

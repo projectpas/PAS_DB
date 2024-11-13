@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/25/2024   Vishal Suthar Created
     2    11/11/2024   Vishal Suthar Fix the calculations for part cost and stockline cost
+    3    11/13/2024   Vishal Suthar Fixed issue with unit price and unit cost calculation
      
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
@@ -133,17 +134,14 @@ SET NOCOUNT ON
 							SET UnitSalesPriceExtended = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
 							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount--, --(ISNULL(UnitSalesPrice, 0) * @StockLineQty),
-							--MarginAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0),
-							--MarginPercentage = CASE WHEN (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) > 0 THEN ((((ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0)) * 100) / (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges)) ELSE 0 END
 							WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							SET @MasterLoopID = @MasterLoopID - 1;
 						END
 
 						UPDATE DBO.SalesOrderPartCost
-						SET UnitSalesPrice = (SELECT SUM(ISNULL(SOSC.UnitSalesPrice, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
+						SET 
 						UnitSalesPriceExtended = (SELECT SUM(SOSC.UnitSalesPriceExtended) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
-						UnitCost = (SELECT SUM(ISNULL(SOSC.UnitCost, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						UnitCostExtended = (SELECT SUM(ISNULL(SOSC.UnitCostExtended, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						NetSaleAmount = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + MiscCharges FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId)

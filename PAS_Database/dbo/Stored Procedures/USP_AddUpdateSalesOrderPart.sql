@@ -193,6 +193,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+		PRINT 'I am here'
 			UPDATE [DBO].[SalesOrderPartV1]
 			SET Notes = @Notes,
 			CustomerRequestDate = @CustomerRequestDate,
@@ -226,6 +227,7 @@ BEGIN
 
 			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) -- Added at Stockline Level
 			BEGIN
+			PRINT 'Inside If'
 				UPDATE [DBO].[SalesOrderStocklineV1]
 				SET CustomerRequestDate = @CustomerRequestDate,
 				PromisedDate = @PromisedDate,
@@ -236,20 +238,8 @@ BEGIN
 				DECLARE @GrossAmt_S AS decimal(18,4);
 				DECLARE @NetSalesAmt_S AS decimal(18,4);
 
-				PRINT '11 @MarkUpAmount'
-				PRINT @MarkUpAmount
-				PRINT '11 @DiscountAmount'
-				PRINT @DiscountAmount
-				PRINT '11 @QtyOrder'
-				PRINT @QtyOrder
-
 				SET @MarkUpAmount = ISNULL(@MarkUpAmount, 0) * @QtyOrder;
 				SET @DiscountAmount = ISNULL(@DiscountAmount, 0) * @QtyOrder;
-
-				PRINT '12 @MarkUpAmount'
-				PRINT @MarkUpAmount
-				PRINT '12 @DiscountAmount'
-				PRINT @DiscountAmount
 
 				SET @GrossAmt_S = (@UnitSalesPrice + @MarkUpAmount);
 				SET @NetSalesAmt_S = @GrossAmt_S - (@DiscountAmount);
@@ -263,24 +253,51 @@ BEGIN
 				NetSaleAmount = ISNULL(@NetSalesAmt_S, 0)
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
+			PRINT 'QY REQ '
+			PRINT @QtyRequested
 
 			;WITH QuotedSums AS (
 				SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
-				FROM [DBO].[SalesOrderPartV1] SOP
-				LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
+				FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
+				LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
 				WHERE SOS.SalesOrderPartId IS NOT NULL
 				GROUP BY SOP.SalesOrderPartId
+
+				--UNION
+
+				--SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
+				--FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
+				--	LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
+				--WHERE SOS.SalesOrderPartId IS NULL
+				--GROUP BY SOP.SalesOrderPartId
 			)
+
 			UPDATE SOP
 			SET SOP.QtyRequested = @QtyRequested,
 				SOP.QtyOrder = QS.TotalQtyQuoted
 			FROM [DBO].[SalesOrderPartV1] SOP
-			INNER JOIN QuotedSums QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
+				INNER JOIN QuotedSums QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
 			WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
-			--UPDATE [DBO].[SalesOrderPartV1]
-			--SET QtyRequested = @QtyRequested,
-			--QtyOrder = @QtyQuoted_U
-			--WHERE SalesOrderPartId = @SalesOrderPartId;
+
+
+			IF EXISTS(SELECT * FROM #SOPartDetails WHERE  SalesOrderPartId = @SalesOrderPartId)
+			BEGIN
+				;WITH QuotedSumsNoStockline AS (
+					SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
+					FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
+						INNER JOIN #SOPartDetails AS SPD  WITH (NOLOCK) ON  SPD.SalesOrderPartId = SOP.SalesOrderPartId
+						LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
+					WHERE SOS.SalesOrderPartId IS NULL
+					GROUP BY SOP.SalesOrderPartId
+				)
+
+				UPDATE SOP
+				SET SOP.QtyRequested = @QtyRequested
+					--SOP.QtyOrder = QS.TotalQtyQuoted
+				FROM [DBO].[SalesOrderPartV1] SOP
+					INNER JOIN QuotedSumsNoStockline QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
+				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+			END
 		END
 
 		SELECT @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;

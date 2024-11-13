@@ -12,9 +12,10 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    09/06/2024   Vishal Suthar     Created
-	2    12-11-2024   Shrey Chandegara   Updated because TraceableToName,tagdate,tagtype not bind. 
+	2    12-11-2024   Shrey Chandegara  Updated because TraceableToName,tagdate,tagtype not bind. 
+	3    13-11-2024   Vishal Suthar		Fixed the QtyAvail and QtyOH
      
--- EXEC [DBO].[GetSalesOrderQuotePartView] 766, 'USD'
+-- EXEC [DBO].[GetSalesOrderQuotePartView] 897, 'USD'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
@@ -119,8 +120,8 @@ BEGIN
             WHEN itemMaster.IsDER = 1 THEN 'DER'
             ELSE 'OEM'
         END,
-        qs.QuantityAvailable QtyAvailable,
-        qs.QuantityOnHand,
+        (SELECT ISNULL(SUM(sl.QuantityAvailable), 0) FROM DBO.Stockline sl WITH (NOLOCK) WHERE sl.ItemMasterId = part.ItemMasterId AND sl.ConditionId = part.ConditionId AND sl.IsParent = 1 AND sl.IsCustomerStock = 0) AS QtyAvailable,
+        (SELECT ISNULL(SUM(sl.QuantityOnHand), 0) FROM DBO.Stockline sl WITH (NOLOCK) WHERE sl.ItemMasterId = part.ItemMasterId AND sl.ConditionId = part.ConditionId AND sl.IsParent = 1 AND sl.IsCustomerStock = 0) AS QuantityOnHand,
         part.IsConvertedToSalesOrder,
         --ISNULL(part.ItemNo, 0) AS ItemNo,
         0 AS ItemNo,

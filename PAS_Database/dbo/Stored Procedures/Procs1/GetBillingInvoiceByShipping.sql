@@ -29,7 +29,7 @@ SET NOCOUNT ON;
 		BEGIN
 			SELECT sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 					so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
-					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, cf.CurrencyId,
+					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, sobi.CurrencyId,
 					so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) as NoofPieces,
 					sobi.OriginCountryId AS OriginCountryId, 
 					sobi.ShipToCountryId AS ShipToCountryId, 
@@ -39,7 +39,8 @@ SET NOCOUNT ON;
 					sobi.BillSizeWidth AS BillSizeWidth,
 					sobi.BillSizeHeight AS BillSizeHeight,
 					sobi.SignEmpId AS SignEmpId,
-					sobi.SignEmpDate AS SignEmpDate
+					sobi.SignEmpDate AS SignEmpDate,
+					sobi.InvoiceNo
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -59,7 +60,7 @@ SET NOCOUNT ON;
 			BEGIN
 				SELECT sop.SalesOrderId, sop.SalesOrderPartId, sos.SalesOrderShippingId, sos.ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 					so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
-					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, cf.CurrencyId,
+					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId,
 					so.TypeId, sotype.[Name] as RevType, sosi.QtyShipped as NoofPieces,
 					sos.OriginCountryId, 
 					sos.ShipToCountryId, 
@@ -68,7 +69,8 @@ SET NOCOUNT ON;
 					sos.ShipSizeLength AS BillSizeLength,
 					sos.ShipSizeWidth AS BillSizeWidth,
 					sos.ShipSizeHeight AS BillSizeHeight,
-					emp.EmployeeId
+					emp.EmployeeId,
+					0 AS InvoiceNo
 				FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
 				INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
 				INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
@@ -87,7 +89,7 @@ SET NOCOUNT ON;
 			BEGIN
 				SELECT sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 					so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
-					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, cf.CurrencyId,
+					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, sobi.CurrencyId,
 					so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) as NoofPieces,
 					sobi.OriginCountryId AS OriginCountryId, 
 					sobi.ShipToCountryId AS ShipToCountryId, 
@@ -97,7 +99,8 @@ SET NOCOUNT ON;
 					sobi.BillSizeWidth AS BillSizeWidth,
 					sobi.BillSizeHeight AS BillSizeHeight,
 					sobi.SignEmpId AS SignEmpId,
-					sobi.SignEmpDate AS SignEmpDate
+					sobi.SignEmpDate AS SignEmpDate,
+					sobi.InvoiceNo
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

@@ -151,7 +151,9 @@ BEGIN
 			[WorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL,
+			[Quantity] [INT] NULL, 
+			[QuantityReserved] [INT] NULL,
+			[QuantityIssued] [INT] NULL
 		)
 
 		CREATE TABLE #tmpMultipleWOMStocklineKit
@@ -161,7 +163,9 @@ BEGIN
 			[WorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL,
+			[Quantity] [INT] NULL, 
+			[QuantityReserved] [INT] NULL,
+			[QuantityIssued] [INT] NULL
 		)
 
 		CREATE TABLE #tmpMultipleSubWOMStockline
@@ -171,7 +175,9 @@ BEGIN
 			[SubWorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL,
+			[Quantity] [INT] NULL, 
+			[QuantityReserved] [INT] NULL,
+			[QuantityIssued] [INT] NULL
 		)
 
 		CREATE TABLE #tmpMultipleSubWOMStocklineKit
@@ -181,32 +187,34 @@ BEGIN
 			[SubWorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL,
+			[Quantity] [INT] NULL, 
+			[QuantityReserved] [INT] NULL,
+			[QuantityIssued] [INT] NULL
 		)
 
 		INSERT INTO #tmpMultipleWOMStockline 
-		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
+		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
-		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
+		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleSubWOMStockline 
-		SELECT DISTINCT	WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
+		SELECT DISTINCT	WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
 				FROM [dbo].[SubWorkOrderMaterials] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
-		GROUP BY WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
+		GROUP BY WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleWOMStocklineKit
-		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
+		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
-		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
+		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleSubWOMStocklineKit
-		SELECT DISTINCT WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0))
+		SELECT DISTINCT WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
 				FROM [dbo].[SubWorkOrderMaterialsKit] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
-		GROUP BY WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId];
+		GROUP BY WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
     
 	INSERT INTO #AwaitingPartsData
 	SELECT 0 AS TotalRecordsCount,    
@@ -221,7 +229,7 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
-		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -279,7 +287,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY WO.WorkOrderId, tmpWOM.Quantity,
+     GROUP BY WO.WorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	 UPPER(WO.WorkOrderNum),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),
@@ -310,7 +318,7 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
-		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -368,7 +376,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY WO.WorkOrderId, tmpWOM.Quantity,
+     GROUP BY WO.WorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	UPPER(WO.WorkOrderNum),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),
@@ -399,7 +407,7 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
-		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -458,7 +466,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-    GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity,
+    GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	UPPER(SWO.SubWorkOrderNo),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),
@@ -490,7 +498,7 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
-		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -549,7 +557,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity,
+     GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	UPPER(SWO.SubWorkOrderNo),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),

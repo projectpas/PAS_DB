@@ -193,7 +193,6 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-		PRINT 'I am here'
 			UPDATE [DBO].[SalesOrderPartV1]
 			SET Notes = @Notes,
 			CustomerRequestDate = @CustomerRequestDate,
@@ -227,7 +226,6 @@ BEGIN
 
 			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) -- Added at Stockline Level
 			BEGIN
-			PRINT 'Inside If'
 				UPDATE [DBO].[SalesOrderStocklineV1]
 				SET CustomerRequestDate = @CustomerRequestDate,
 				PromisedDate = @PromisedDate,
@@ -253,8 +251,6 @@ BEGIN
 				NetSaleAmount = ISNULL(@NetSalesAmt_S, 0)
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
-			PRINT 'QY REQ '
-			PRINT @QtyRequested
 
 			;WITH QuotedSums AS (
 				SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
@@ -262,14 +258,6 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
 				WHERE SOS.SalesOrderPartId IS NOT NULL
 				GROUP BY SOP.SalesOrderPartId
-
-				--UNION
-
-				--SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
-				--FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
-				--	LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
-				--WHERE SOS.SalesOrderPartId IS NULL
-				--GROUP BY SOP.SalesOrderPartId
 			)
 
 			UPDATE SOP

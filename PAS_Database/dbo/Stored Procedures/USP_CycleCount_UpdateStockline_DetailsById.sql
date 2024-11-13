@@ -13,6 +13,7 @@
  ** PR   Date         Author       Change Description                
  ** --   --------     -------      --------------------------------              
     1    07/11/2024   Moin Bloch   Created    
+	2    12/11/2024   Moin Bloch   Added Acconting Batch SP and [CycleCountDetailId] In Temp Table    
          
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
@@ -28,7 +29,8 @@ BEGIN
 	BEGIN TRANSACTION  
 		BEGIN   
 		DECLARE @TotalRecord int = 0;   
-		DECLARE @MinId BIGINT = 1;   
+		DECLARE @MinId BIGINT = 1;
+		DECLARE @CycleCountDetailId BIGINT;
 		DECLARE @StockLineId BIGINT;
 		DECLARE @UnitCost DECIMAL(18,2) = 0;
 		DECLARE @CurrentStockQuantity INT = 0;
@@ -38,7 +40,12 @@ BEGIN
 		DECLARE @DifferenceQty INT = 0;
 		DECLARE @CCModuleId INT;	
 		DECLARE	@ActionId INT;
-		
+		DECLARE @CycleCountStatusId INT;
+		DECLARE @JournalBatchHeaderId BIGINT;
+		DECLARE @BatchName VARCHAR(200) = '';
+
+		SELECT @CycleCountStatusId = [CycleCountStatusId] FROM [dbo].[CycleCountStatus] WITH(NOLOCK) WHERE UPPER([Status]) = 'CLOSED';
+
 		SELECT @CCModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'CYCLECOUNT';
 
 		IF OBJECT_ID(N'tempdb..#tmpCycleCountStocklineDetails') IS NOT NULL
@@ -49,6 +56,7 @@ BEGIN
 		CREATE TABLE #tmpCycleCountStocklineDetails
 		(
 			[ID] BIGINT NOT NULL IDENTITY, 
+			[CycleCountDetailId] BIGINT NULL,
 			[StockLineId] BIGINT NULL,
 			[UnitCost] DECIMAL(18,2) NULL,
 			[CurrentStockQuantity] INT NULL,
@@ -57,8 +65,8 @@ BEGIN
 			[DifferenceAmount] DECIMAL(18,2) NULL			
 		)  
 
-		INSERT INTO #tmpCycleCountStocklineDetails ([StockLineId],[UnitCost],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],[DifferenceAmount])
-		SELECT [StockLineId],[UnitCost],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],[DifferenceAmount]
+		INSERT INTO #tmpCycleCountStocklineDetails ([CycleCountDetailId],[StockLineId],[UnitCost],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],[DifferenceAmount])
+		SELECT [CycleCountDetailId],[StockLineId],[UnitCost],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],[DifferenceAmount]
 		  FROM [dbo].[CycleCountDetail] WITH(NOLOCK)
 		 WHERE [MasterCompanyId] = @MasterCompanyId 
 		   AND [CycleCountId] = @CycleCountId  
@@ -68,7 +76,8 @@ BEGIN
 
 		WHILE @MinId <= @TotalRecord
 		BEGIN				
-			SELECT @StockLineId = [StockLineId],
+			SELECT @CycleCountDetailId = [CycleCountDetailId],
+			       @StockLineId = [StockLineId],
                    @UnitCost = ISNULL([UnitCost],0),
                    @CurrentStockQuantity = ISNULL([CurrentStockQuantity],0),
                    @CountedQuantity = ISNULL([CountedQuantity],0),
@@ -86,7 +95,15 @@ BEGIN
 				       [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId;
+				
+				-- StockLine History
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
+			    
+				-- Accounting Entry
+				IF(ISNULL(@DifferenceAmount,0) <> 0)
+				BEGIN
+					EXEC [dbo].[USP_PostCycleCountBatchDetails] @CycleCountId,@CycleCountDetailId,@StockLineId,@DifferenceAmount,@UpdatedBy,@MasterCompanyId
+				END
 			END
 			IF(@CurrentStockQuantity < @CountedQuantity)	
 			BEGIN 
@@ -98,11 +115,28 @@ BEGIN
 				       [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId;
+				
+				-- StockLine History
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
+				
+				-- Accounting Entry
+				IF(ISNULL(@DifferenceAmount,0) <> 0)
+				BEGIN
+					EXEC [dbo].[USP_PostCycleCountBatchDetails] @CycleCountId,@CycleCountDetailId,@StockLineId,@DifferenceAmount,@UpdatedBy,@MasterCompanyId		
+				END
 			END
 			SET @MinId = @MinId + 1
 		END	
-						
+
+		SELECT TOP 1 @JournalBatchHeaderId = [JournalBatchHeaderId]	FROM [dbo].[CycleCountBatchDetails] WITH(NOLOCK) WHERE [ReferenceId] = @CycleCountId AND [MasterCompanyId] = @MasterCompanyId;
+		
+		IF(ISNULL(@JournalBatchHeaderId,0) > 0)
+		BEGIN
+			SELECT @BatchName = [BatchName] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+			UPDATE [dbo].[CycleCount] SET [StatusId] = @CycleCountStatusId,[BatchName] = @BatchName, [PostedDate] = GETUTCDATE() WHERE [CycleCountId] = @CycleCountId;
+		END		
+		
 		COMMIT  TRANSACTION 			
 	END
 	END TRY  

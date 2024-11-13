@@ -193,25 +193,25 @@ BEGIN
 		)
 
 		INSERT INTO #tmpMultipleWOMStockline 
-		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
+		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleSubWOMStockline 
-		SELECT DISTINCT	WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
+		SELECT DISTINCT	WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[SubWorkOrderMaterials] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleWOMStocklineKit
-		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
+		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleSubWOMStocklineKit
-		SELECT DISTINCT WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), WOM.[QuantityReserved], WOM.[QuantityIssued]
+		SELECT DISTINCT WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[SubWorkOrderMaterialsKit] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
 		GROUP BY WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];

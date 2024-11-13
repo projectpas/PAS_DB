@@ -174,7 +174,7 @@ SET NOCOUNT ON
 					--MarkUpAmount = ISNULL(MarkUpAmount, 0),
 					MarginAmount = (((ISNULL(@SalesPriceExtended_S, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
 					TotalRevenue = ((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) + @Charges_S,
-					MarginPercentage = CASE WHEN @SalesPriceExtended_S > 0 AND (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) > 0 THEN ((((((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
+					MarginPercentage = CASE WHEN ISNULL(@SalesPriceExtended_S, 0) > 0 AND (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) > 0 THEN ((((((ISNULL(@SalesPriceExtended_S, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended,0)) * 100) / (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0))) ELSE 0 END,
 					TaxPercentage = @SalesTax,
 					TaxAmount = ((((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)
 					WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId

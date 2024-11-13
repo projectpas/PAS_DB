@@ -10,6 +10,7 @@
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
     1    09/24/2024   Vishal Suthar	 Created
+	2    11/13/2014   Abhishek Jirawla Modified to add Not only Stockline COst but also part cost in Quantity update
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')

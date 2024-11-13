@@ -225,7 +225,10 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',    
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',
-		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
+		CASE 
+            WHEN WQD.QuoteMethod = 1 THEN MAX(ISNULL(WQD.CommonFlatRate, 0))
+            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
+        END AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
@@ -287,7 +290,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY WO.WorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+     GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	 UPPER(WO.WorkOrderNum),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),
@@ -314,7 +317,10 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',     
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',  
-		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
+		CASE 
+            WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
+            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
+        END AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
@@ -376,7 +382,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY WO.WorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+     GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	UPPER(WO.WorkOrderNum),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),
@@ -403,7 +409,10 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',  
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',
-		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
+		CASE 
+            WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
+            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
+        END AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
@@ -466,7 +475,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-    GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+    GROUP BY SWO.SubWorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	UPPER(SWO.SubWorkOrderNo),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),
@@ -494,7 +503,10 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',   
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',  
-		MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0)) AS 'approvedamount',
+		CASE 
+            WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
+            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
+        END AS 'approvedamount',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
@@ -557,7 +569,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+     GROUP BY SWO.SubWorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 	UPPER(SWO.SubWorkOrderNo),
 	UPPER(C.Name),
 	UPPER(WOQ.QuoteNumber),

@@ -17,6 +17,7 @@
     1    12/08/2021   Vishal Suthar Modified the logic
     2    01/10/2024   Vishal Suthar Modified to make use of New SO Part Tables
     3    11/12/2024   Vishal Suthar Fixed issues with listing the proper stocklines for reservation
+    4    11/13/2024   Vishal Suthar Fixed issues with stockline after unreserve
      
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1269
 **************************************************************/
@@ -320,6 +321,23 @@ BEGIN
 			SET @ItemMasterId = NULL;	
 		END
 
+		;WITH SalesOrderPartsWithTotalQtyOrder AS (
+			SELECT 
+				SOP.SalesOrderPartId,
+				SOP.SalesOrderId,
+				SOP.ItemMasterId,
+				SOP.ConditionId,
+				SOP.QtyRequested,
+				SOP.QtyReserved,
+				SOP.LotId,
+				SOP.IsLotAssigned,
+				(SELECT ISNULL(SUM(Stk.QtyOrder), 0) 
+				 FROM DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) 
+				 WHERE Stk.SalesOrderPartId = SOP.SalesOrderPartId) AS TotalQtyOrder
+			FROM 
+				DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
+		)
+
 		SELECT DISTINCT 
 		so.SalesOrderId, 
 		im.ItemMasterId, 
@@ -359,11 +377,12 @@ BEGIN
 		SOP.LotId,
 		SOP.IsLotAssigned AS IsLotQty
 		FROM DBO.SalesOrder SO WITH (NOLOCK)
-		INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+		INNER JOIN SalesOrderPartsWithTotalQtyOrder SOP ON SO.SalesOrderId = SOP.SalesOrderId
+		--INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 		INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-		LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON (sl.StockLineId = Stk.StockLineId OR (Stk.SalesOrderPartId IS NULL AND SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))
+		LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON ((sl.StockLineId = Stk.StockLineId AND SOP.TotalQtyOrder = SOP.QtyRequested) OR (SOP.TotalQtyOrder < SOP.QtyRequested AND SL.ItemMasterId = SOP.ItemMasterId AND SL.ConditionId = SOP.ConditionId))
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 		LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderId = SO.SalesOrderId AND SOR.StockLineId = Stk.StockLineId
 		WHERE 
@@ -400,7 +419,8 @@ BEGIN
 		SOR.AltPartMasterPartId, 
 		SOR.EquPartMasterPartId,
 		SOP.LotId,
-		SOP.IsLotAssigned
+		SOP.IsLotAssigned,
+		SOP.TotalQtyOrder
 		HAVING 
 		(ISNULL(sop.QtyRequested, 0) - 
 		 ISNULL(sop.QtyReserved, 0) - 

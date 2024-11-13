@@ -1,11 +1,12 @@
-﻿-- EXEC [dbo].[GetPackagingLabel] 1103, 1
+﻿-- EXEC [dbo].[GetPackagingLabel] 1300, 1507
 CREATE   PROCEDURE [dbo].[GetPackagingLabel]
     @SalesOrderId INT,
     @SalesOrderPartId INT
 AS
 BEGIN
     SET NOCOUNT ON;
-
+	DECLARE @SalesOrderModuleId BIGINT;
+	SET @SalesOrderModuleId = (SELECT ModuleId FROM dbo.[Module] WHERE ModuleName = 'SalesOrder')
     SELECT TOP 1
         sopkt.SOPickTicketId soPickTicketId,
         ISNULL(spb.PackagingSlipNo, '') AS packagingSlipNo,
@@ -58,7 +59,7 @@ BEGIN
     LEFT JOIN Contact cont ON cust_cont.ContactId = cont.ContactId
     LEFT JOIN AllAddress posadd ON soq.SalesOrderId = posadd.ReffranceId 
         AND posadd.IsShippingAdd = 1 
-        AND posadd.ModuleId = 1 -- assuming SalesOrder module
+        AND posadd.ModuleId = @SalesOrderModuleId -- assuming SalesOrder module
     LEFT JOIN AllShipVia posv ON soq.SalesOrderId = posv.ReferenceId 
         AND posv.ModuleId = 1 -- assuming SalesOrder module
     LEFT JOIN SalesOrderPackaginSlipItems spi ON sopkt.SOPickTicketId = spi.SOPickTicketId

@@ -1,11 +1,11 @@
 ﻿/*************************************************************           
  ** File:   [DeleteSOQPartStocklineById]           
  ** Author:  Vishal Suthar
- ** Description: This stored procedure is used to delete Sales Order Quote Part Stockline
+ ** Description: This stored procedure is used to delete Sales Order Part Stockline
  ** Purpose:         
  ** Date:   11/13/2024      
           
- ** PARAMETERS: @SalesOrderQuoteStocklineId bigint
+ ** PARAMETERS: @SalesOrderStocklineId bigint
          
  ** RETURN VALUE:           
  **************************************************************           
@@ -13,40 +13,37 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    11/13/2024   Vishal Suthar     Created
+    1    11/14/2024   Vishal Suthar     Created
      
--- EXEC DeleteSOQPartStocklineById 425
+-- EXEC DeleteSOPartStocklineById 425
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[DeleteSOQPartStocklineById]
-	@SalesOrderQuoteStocklineId bigint
+CREATE     PROCEDURE [dbo].[DeleteSOPartStocklineById]
+	@SalesOrderStocklineId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
 	BEGIN TRY
-		DECLARE @SalesOrderQuoteId BIGINT = NULL;
-		DECLARE @SalesOrderQuotePartId BIGINT = NULL;
+		DECLARE @SalesOrderId BIGINT = NULL;
+		DECLARE @SalesOrderPartId BIGINT = NULL;
 		DECLARE @MasterCompanyId BIGINT = NULL;
 		DECLARE @CreatedBy VARCHAR(100) = NULL;
 
-		SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId, @CreatedBy = CreatedBy, @MasterCompanyId = MasterCompanyId FROM DBO.[SalesOrderQuoteStocklineV1] WITH (NOLOCK) WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
-		SELECT @SalesOrderQuoteId = SalesOrderQuoteId FROM DBO.[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
+		SELECT @SalesOrderPartId = SalesOrderPartId, @CreatedBy = CreatedBy, @MasterCompanyId = MasterCompanyId FROM DBO.[SalesOrderStocklineV1] WITH (NOLOCK) WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
+		SELECT @SalesOrderId = SalesOrderId FROM DBO.[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
 
-		DELETE FROM [dbo].[SalesOrderQuoteStocklineV1] WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
-		DELETE FROM [dbo].[SalesOrderQuoteStocklineCost]  WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
+		DELETE FROM [dbo].[SalesOrderStocklineV1] WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
+		DELETE FROM [dbo].[SalesOrderStocklineCost]  WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
-		EXEC [dbo].[USP_UpdateSOQPartCostDetails] @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;
+		EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
     END TRY    
 
 	BEGIN CATCH      
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'DeleteSOQPartStocklineById' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderQuoteStocklineId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'DeleteSOPartStocklineById' 
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderStocklineId, '') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

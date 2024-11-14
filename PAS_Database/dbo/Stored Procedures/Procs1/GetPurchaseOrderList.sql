@@ -17,6 +17,7 @@
     01  03-July-2023	Vishal Suthar		Removed script of "MULTIPLE" hover over      
     02  23-July-2024	Vishal Suthar		Removed Transaction from the SP
 	03	29-Oct-2024		Abhishek Jirawla	Adding extra data so that we can remove unnecessary data
+	04	14-Nov-2024		Vishal Suthar		Fixed the Quantity Received Issue
            
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
@@ -111,7 +112,7 @@ BEGIN
 					PO.ApprovedBy,
 					SUM(ISNULL(POP.QuantityOrdered,0)) AS QuantityOrdered,
 					SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityBackOrdered,
-					SUM(ISNULL(POP.QuantityBackOrdered,0)) - SUM(ISNULL(POP.QuantityOrdered,0)) AS QuantityReceived,
+					SUM(ISNULL(POP.QuantityOrdered,0)) - SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityReceived,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) End) as 'PartNumberType',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  					
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNumType', 
@@ -122,7 +123,7 @@ BEGIN
 					POP.SalesOrderNo AS 'SalesOrderNumber',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'--,
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
+				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId      
 				GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,

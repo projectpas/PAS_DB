@@ -21,6 +21,7 @@
 	5    09/20/2024   Devendra Shekh		List WO View Resolved
 	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
 	7    10/21/2024   Devendra Shekh		Modified (Optimization Changes)
+	8    11/14/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -56,11 +57,13 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @WorkOrderStatusType varchar(200)=null,  
 	 @WorkOrderType varchar(50)=null,  
 	 @TechName  varchar(50)=null,  
-	 @TechStation  varchar(50)=null,  
+	 @TechStation  varchar(50)=null, 
 	 @SerialNumber  varchar(50)=null,  
 	 @CustRef varchar(50)=null,
 	 @MSModuleID INT=12,
-	 @ManufacturerName varchar(50)=null
+	 @ManufacturerName varchar(50)=null,
+	 @IsSubWorkOrder bit= null
+
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -120,6 +123,11 @@ BEGIN
     BEGIN   
 		SET @IsActive = null  
     END
+
+	   IF @IsSubWorkOrder is null 
+    BEGIN   
+		SET @IsSubWorkOrder = 0  
+    END 
   
 	--DECLARE @EmpLegalEntiyId BIGINT = 0;
 	--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
@@ -181,10 +189,12 @@ BEGIN
 			--UPPER(STL.SerialNumber) AS SerialNumber,
 			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END AS SerialNumber,
 			UPPER(WPN.CustomerReference) AS CustomerReference,
-			UPPER(WPN.CustomerReference) AS CustomerReferenceType
+			UPPER(WPN.CustomerReference) AS CustomerReferenceType,
+			CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder SWO WHERE SWO.WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
        FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			LEFT JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) ON WO.WorkOrderId = SWO.WorkOrderId	AND @IsSubWorkOrder = 1
 			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
@@ -217,7 +227,9 @@ BEGIN
         (CreatedBy like '%' +@GlobalFilter+'%') OR  
         (UpdatedBy like '%' +@GlobalFilter+'%') OR  
         (SerialNumber like '%' +@GlobalFilter+'%') OR  
-        (CustomerReference like '%' +@GlobalFilter+'%')  
+        (CustomerReference like '%' +@GlobalFilter+'%') OR
+		(IsSubWorkOrder like '%' + @GlobalFilter +'%')
+
         ))  
         OR     
         (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
@@ -244,7 +256,9 @@ BEGIN
         (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
         (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND  
         (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND  
-        (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%')  
+        (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%') AND
+		(ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder = @IsSubWorkOrder) 
+
         ))  
   
         SELECT @Count = COUNT(CustomerId) from #TempResult     
@@ -352,12 +366,14 @@ BEGIN
 				WO.IsDeleted,
 				WO.WorkOrderType AS 'WorkOrderType',
 				LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
-				LWS.EstimatedCompletionDate AS EstimatedCompletionDate
+				LWS.EstimatedCompletionDate AS EstimatedCompletionDate,
+			    CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder WHERE WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			LEFT JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) ON WO.WorkOrderId = SWO.WorkOrderId	AND @IsSubWorkOrder = 1
 			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 			))
 			, WorkOrderPartCount AS (
@@ -392,6 +408,7 @@ BEGIN
 			  MAX(FORMAT(WPN.EstimatedShipDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedShipDate',
 			  WO.EstimatedCompletionDateType,
 			  WO.EstimatedCompletionDate,
+			  WO.IsSubWorkOrder,
 			  MAX(WPN.TechName)  as 'TechNameType',
 			  MAX(WPN.TechName)  as 'TechName',
 			  MAX(WPN.EmployeeStation)  as 'TechStationType',
@@ -413,7 +430,7 @@ BEGIN
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 				AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))
 		  GROUP BY	WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy, WO.UpdatedBy,
-					WO.IsActive,WO.IsDeleted,WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate,WOPC.PartCount
+					WO.IsActive,WO.IsDeleted,WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate, WO.IsSubWorkOrder,WOPC.PartCount
 
          SELECT DISTINCT WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted, WorkOrderType,
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartNumberType) End)  as 'PartNumberType',
@@ -438,6 +455,7 @@ BEGIN
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedShipDate) End)  as 'EstimatedShipDate',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedCompletionDateType) End)  as 'EstimatedCompletionDateType',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedCompletionDate) End)  as 'EstimatedCompletionDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(IsSubWorkOrder) End)  as 'IsSubWorkOrder',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechNameType) End)  as 'TechNameType',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechName) End)  as 'TechName',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechStationType) End)  as 'TechStationType',
@@ -447,14 +465,14 @@ BEGIN
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(SerialNumber) End)  as 'SerialNumber'
 		  INTO #finalTemp FROM #TempWOPartResult 
 		  GROUP BY	 WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted
-					,WorkOrderType, WorkOrderType, EstimatedCompletionDateType,  EstimatedCompletionDate, RowStatus
+					,WorkOrderType, WorkOrderType, EstimatedCompletionDateType,  EstimatedCompletionDate, IsSubWorkOrder, RowStatus
   																																			  
           ;WITH Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PartNumber) AS PartNos, UPPER(PartNumberType) AS PartNoType, UPPER(PartNumberType) AS PartNumberType, UPPER(PartDescription) AS PNDescription, UPPER(PartDescriptionType) AS PNDescriptionType, UPPER(ManufacturerName) AS ManufacturerName, UPPER(ManufacturerNameType) AS ManufacturerNameType,
               CustomerId, UPPER(CustomerName) AS CustomerName, UPPER(CustomerType) AS CustomerType, UPPER(WorkScopeDescription) AS WorkScope, UPPER(WorkScopeType) AS WorkScopeType,
               UPPER(PriorityDescription) AS Priority, UPPER(PriorityType) PriorityType, UPPER(WOStageDescription) AS Stage, UPPER(StageType) StageType, UPPER(WorkOrderStatus) WorkOrderStatus,
               UPPER(WorkOrderStatusType) WorkOrderStatusType, OpenDate, UPPER(CreatedBy) CreatedBy, UPPER(UpdatedBy) UpdatedBy, CreatedDate, UpdatedDate, CustomerRequestDate,   
               CustomerRequestDateType, PromisedDate, PromisedDateType, EstimatedShipDate, EstimatedShipDateType,   
-              EstimatedCompletionDate, EstimatedCompletionDateType, UPPER(TechName) TechName, UPPER(TechNameType) TechNameType, UPPER(TechStation) TechStation, UPPER(TechStationType) TechStationType, 
+              EstimatedCompletionDate, EstimatedCompletionDateType, IsSubWorkOrder, UPPER(TechName) TechName, UPPER(TechNameType) TechNameType, UPPER(TechStation) TechStation, UPPER(TechStationType) TechStationType, 
 			  UPPER(CustomerReference) CustomerReference, UPPER(CustomerReferenceType) CustomerReferenceType, SerialNumber
           FROM #finalTemp M   
           ),  
@@ -478,7 +496,8 @@ BEGIN
            (WorkOrderStatusType like '%'+@GlobalFilter+'%') OR  
            (UpdatedBy like '%' +@GlobalFilter+'%') OR  
            (SerialNumber like '%' +@GlobalFilter+'%') OR  
-           (CustomerReference like '%' + @GlobalFilter +'%')  
+           (CustomerReference like '%' + @GlobalFilter +'%') OR
+		   (IsSubWorkOrder like '%' + @GlobalFilter +'%')
            ))  
            OR     
            (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
@@ -505,7 +524,9 @@ BEGIN
            (IsNull(@WorkOrderStatusType,'') ='' OR WorkOrderStatusType like '%' + @WorkOrderStatusType+'%') AND  
            (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND  
 		   (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
-           (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%')  
+           (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%') AND  
+		   (ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder = @IsSubWorkOrder) 
+
            ))  
   
          SELECT @Count = COUNT(CustomerId) from #TempResult1     
@@ -580,8 +601,9 @@ BEGIN
          CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC
-		 ,CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC
+         CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC,
+		 CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC
+		 ,CASE WHEN (@SortOrder=-1 and @SortColumn='ISSUBWORKORDER')  THEN IsSubWorkOrder END DESC
   
          OFFSET @RecordFrom ROWS   
          FETCH NEXT @PageSize ROWS ONLY  
@@ -639,7 +661,9 @@ BEGIN
                 @Parameter28 = ' + ISNULL(@WorkOrderStatusType,'') + ',   
                 @Parameter29 = ' + ISNULL(@WorkOrderType,'') + ',   
                 @Parameter30 = ' + ISNULL(@TechName,'') + ',   
-                @Parameter31 = ' + ISNULL(CAST(@TechStation AS VARCHAR(10)) ,'') +''  
+                @Parameter31 = ' + ISNULL(CAST(@TechStation AS VARCHAR(10)) ,'') + ',
+				@Parameter32 = ' + ISNULL(CAST(@IsSubWorkOrder AS VARCHAR(100)) ,'') + ''   
+
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   
@@ -651,5 +675,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;  
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
               RETURN(1);  
-  END CATCH  
+  END CATCH  
 END

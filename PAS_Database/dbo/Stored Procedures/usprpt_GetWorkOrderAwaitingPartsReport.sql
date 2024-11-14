@@ -277,7 +277,7 @@ BEGIN
 						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
 					END
 				) AS approvedamount
-			FROM DBO.WorkOrderQuoteDetails WQD
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
 			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 		) AS ApprovedAmount
 		OUTER APPLY (
@@ -388,7 +388,7 @@ BEGIN
 						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
 					END
 				) AS approvedamount
-			FROM DBO.WorkOrderQuoteDetails WQD
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
 			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 		) AS ApprovedAmount
 		OUTER APPLY (
@@ -500,7 +500,7 @@ BEGIN
 						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
 					END
 				) AS approvedamount
-			FROM DBO.WorkOrderQuoteDetails WQD
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
 			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 		) AS ApprovedAmount
 		OUTER APPLY (
@@ -613,7 +613,7 @@ BEGIN
 						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
 					END
 				) AS approvedamount
-			FROM DBO.WorkOrderQuoteDetails WQD
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
 			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 		) AS ApprovedAmount
 		OUTER APPLY (

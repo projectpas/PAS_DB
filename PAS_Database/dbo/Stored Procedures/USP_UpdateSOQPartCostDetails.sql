@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/25/2024   Vishal Suthar Created
+	2   11/13/2014    Abhishek Jirawla  Resolved errors of divide by zero
      
  EXECUTE USP_UpdateSOQPartCostDetails 590, 551, 'ADMIN User', 1
 **************************************************************/ 
@@ -64,7 +65,6 @@ SET NOCOUNT ON
 				
 				IF((SELECT COUNT(1) FROM DBO.SalesOrderQuotePartCost SOQC WITH(NOLOCK) WHERE SOQC.SalesOrderQuoteId = @SalesOrderQuoteId AND SOQC.SalesOrderQuotePartId = @SalesOrderQuotePartId) > 0)
 				BEGIN
-					PRINT 'IF'
 					DECLARE @MasterLoopID AS INT;
 					DECLARE @SalesOrderQuoteStocklineId AS BIGINT;
 
@@ -112,11 +112,9 @@ SET NOCOUNT ON
 
 					IF EXISTS (SELECT TOP 1 * FROM [DBO].[SalesOrderQuoteStockLineCost] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId)
 					BEGIN
-						PRINT 'IF EXISTS'
 						SELECT @MasterLoopID = MAX(ID) FROM #SOQStocklineDetails;
 						WHILE (@MasterLoopID > 0)
 						BEGIN
-							PRINT '1'
 							DECLARE @SOQPartId BIGINT;
 							DECLARE @SOQStocklineId BIGINT;
 							DECLARE @PartQty INT = 0;
@@ -138,7 +136,7 @@ SET NOCOUNT ON
 							MarginPercentage = CASE WHEN (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) > 0 THEN ((((ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0)) * 100) / (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges)) ELSE 0 END
 							WHERE SalesOrderQuotePartId = @SOQPartId AND SalesOrderQuoteStocklineId = @SOQStocklineId;
 
-							PRINT '2'
+
 							SET @MasterLoopID = @MasterLoopID - 1;
 						END
 
@@ -151,12 +149,9 @@ SET NOCOUNT ON
 					END
 					ELSE
 					BEGIN
-						PRINT 'ELSE IF EXISTS'
 						DECLARE @QtyRequested AS INT;
 						SELECT @QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 
-						PRINT '@QtyRequested'
-						PRINT @QtyRequested
 
 						SELECT @SalesPriceExtended_S = (@QtyRequested * ISNULL(UnitSalesPrice, 0)),
 						@UnitCostExtended_S = (@QtyRequested * ISNULL(UnitCost, 0)),
@@ -169,11 +164,6 @@ SET NOCOUNT ON
 
 					SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrderQuote] WITH(NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 					
-					PRINT '@Freight_S'
-					PRINT @Freight_S
-					PRINT '@Charges_S'
-					PRINT @Charges_S
-
 					UPDATE DBO.SalesOrderQuotePartCost
 					SET 
 					UnitSalesPriceExtended = @SalesPriceExtended_S,
@@ -184,14 +174,13 @@ SET NOCOUNT ON
 					--MarkUpAmount = ISNULL(MarkUpAmount, 0),
 					MarginAmount = (((ISNULL(@SalesPriceExtended_S, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
 					TotalRevenue = ((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) + @Charges_S,
-					MarginPercentage = CASE WHEN @SalesPriceExtended_S > 0 THEN ((((((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
+					MarginPercentage = CASE WHEN ISNULL(@SalesPriceExtended_S, 0) > 0 AND (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) > 0 THEN ((((((ISNULL(@SalesPriceExtended_S, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended,0)) * 100) / (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0))) ELSE 0 END,
 					TaxPercentage = @SalesTax,
 					TaxAmount = ((((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)
 					WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 				END
 				ELSE
 				BEGIN
-					PRINT 'ELSE'
 					INSERT INTO dbo.SalesOrderQuotePartCost (
 							 [SalesOrderQuoteId]
 							,[SalesOrderQuotePartId]
@@ -245,6 +234,7 @@ SET NOCOUNT ON
 					FROM #SOQPartCostDetails SOQCD
 				END
 
+
 				IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderQuoteStocklineV1 SOQS WHERE SOQS.SalesOrderQuotePartId = @SalesOrderQuotePartId)
 				BEGIN
 					UPDATE DBO.SalesOrderQuotePartV1 
@@ -258,6 +248,7 @@ SET NOCOUNT ON
 				END
 
 				EXEC [DBO].[USP_UpdateSOQCostDetails] @SalesOrderQuoteId, @UpdatedBy, @MasterCompanyId;
+
 			END
 		COMMIT  TRANSACTION
 	END TRY    

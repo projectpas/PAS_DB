@@ -51,6 +51,7 @@
  35	  03/07/2024  Abhishek Jirawla		 added MS level for 'CKS'
  36	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
  37	  01/08/2024  Moin Bloch		     added IsReversedJE Flag
+ 38	  13/12/2024  Moin Bloch		     added Cycle Count Module
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -1431,7 +1432,6 @@ BEGIN
 			END 
 			IF(UPPER(@Module) = UPPER('RFD'))
 			BEGIN
-
 				DECLARE @RfdModuleId BIGINT = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerRefund')
 				DECLARE @RfdMsModuleId BIGINT = (SELECT ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerRefund')
 				--PRINT 'RFD'
@@ -1780,7 +1780,82 @@ BEGIN
 				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 				 ORDER BY DS.DisplayNumber ASC;  
 			END 
-
+			IF(UPPER(@Module) = UPPER('CYCLECOUNT'))        
+			BEGIN  						
+				DECLARE @StkManualManagementStructureModuleId BIGINT = 0;
+				SELECT @StkManualManagementStructureModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER([ModuleName])='STOCKLINE';
+				
+				SELECT JBD.[CommonJournalBatchDetailId]
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName] 
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]  
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GLA.[AllowManualJE]
+					  ,JBD.[LastMSLevel]  
+					  ,JBD.[AllMSlevels]  
+					  ,JBD.[IsManualEntry]  
+					  ,JBD.[DistributionSetupId]  
+					  ,JBD.[DistributionName]  
+					  ,LET.[CompanyName] AS LegalEntityName  	
+					  ,CCB.[ReferenceNumber] AS ReferenceName
+					  ,CCB.[StocklineNumber]
+					  ,CCB.[PartNumber]					 					  		  					  
+					  ,CCB.[SIte]  
+					  ,CCB.[Warehouse]  
+					  ,CCB.[Location]  
+					  ,CCB.[Bin]  
+					  ,CCB.[Shelf]  
+					  ,BTD.[JournalTypeNumber]
+					  ,BTD.[CurrentNumber]  
+					  ,BTS.[Name] AS 'Status'
+					  ,MSL.[Description] AS 'ManagementStructureName'
+					  ,UPPER(MSD.[Level1Name]) AS level1    
+					  ,UPPER(MSD.[Level2Name]) AS level2   
+					  ,UPPER(MSD.[Level3Name]) AS level3   
+					  ,UPPER(MSD.[Level4Name]) AS level4   
+					  ,UPPER(MSD.[Level5Name]) AS level5   
+					  ,UPPER(MSD.[Level6Name]) AS level6   
+					  ,UPPER(MSD.[Level7Name]) AS level7   
+					  ,UPPER(MSD.[Level8Name]) AS level8   
+					  ,UPPER(MSD.[Level9Name]) AS level9   
+					  ,UPPER(MSD.[Level10Name]) AS level10   
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					  ,CASE WHEN BTD.[IsReversedJE] = 1 THEN 1 ELSE 0 END AS IsReversedJE
+				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.[DistributionSetupId] = DS.[ID]  
+					INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId] 
+					INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]  
+					LEFT JOIN [dbo].[CycleCountBatchDetails] CCB WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = CCB.[CommonJournalBatchDetailId]  
+					LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @StkManualManagementStructureModuleId AND MSD.[ReferenceID] = CCB.[StockLineId] 
+					LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]   
+					LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.[GLAccountClassId]=GLA.[GLAccountTypeId] 
+					LEFT JOIN [dbo].[EntityStructureSetup] ESP WITH(NOLOCK) ON JBD.[ManagementStructureId] = ESP.[EntityStructureId]  
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ESP.[Level1Id] = MSL.[ID]  
+					LEFT JOIN [dbo].[LegalEntity] LET WITH(NOLOCK) ON msl.[LegalEntityId] = LET.[LegalEntityId]  
+					LEFT JOIN [dbo].[BatchStatus] BTS WITH(NOLOCK) ON BTD.[StatusId] = BTS.[Id]
+				 WHERE JBD.[JournalBatchDetailId] = @JournalBatchDetailId AND JBD.[IsDeleted] = @IsDeleted  
+				 ORDER BY DS.[DisplayNumber] ASC;  
+			END
     END TRY  
  BEGIN CATCH        
   --IF @@trancount > 0  

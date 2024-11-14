@@ -17,6 +17,7 @@
     1	07/04/2024	Abhishek Jirawla	Created
 	2	13/09/2024	AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate for DuplicateSalesOrderQuote
 	3	10/22/2024  AMIT GHEDIYA		Updated old table with new table.
+	4   11/13/2014  Abhishek Jirawla    Resolved error after adding new table details
    
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DuplicateSalesOrderQuote]
@@ -142,6 +143,7 @@ BEGIN
 		 ------- Start Part Data ------------
 		 IF EXISTS(SELECT 1 FROM [dbo].[SalesOrderQuotePartV1] WITH(NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId)
 		 BEGIN
+
 				INSERT INTO #tblSalesOrderQuotePartSingle(SalesOrderQuotePartId,SalesOrderQuoteId,MasterCompanyId)
 				SELECT SalesOrderQuotePartId,SalesOrderQuoteId,MasterCompanyId
 				FROM [dbo].[SalesOrderQuotePartV1] WITH(NOLOCK) 
@@ -156,6 +158,8 @@ BEGIN
 
 					SELECT @SalesOrderQuotePartId = [SalesOrderQuotePartId]
 					FROM #tblSalesOrderQuotePartSingle WITH(NOLOCK) WHERE [ID] = @ID;
+
+					SET @CurrentSOPartId = @SalesOrderQuotePartId
 
 					----Insert record in Part table --------
 					--INSERT INTO SalesOrderQuotePartV1(
@@ -219,10 +223,12 @@ BEGIN
 					/* Checking if part stockline exists or not */
 					IF EXISTS(SELECT 1 FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderQuotePartId = @SalesOrderQuotePartId)
 					BEGIN
+
 						DECLARE @CurrentSOQStocklineId BIGINT = NULL;
 
 						SELECT @CurrentSOQStocklineId = SalesOrderQuoteStocklineId FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK)
 						WHERE SOPSTK.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+
 
 						/* Transfer Part Stockline */
 							INSERT INTO DBO.SalesOrderQuoteStocklineV1([SalesOrderQuotePartId],

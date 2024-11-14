@@ -80,16 +80,16 @@ BEGIN
 			part.StatusName,
 			soq.CustomerReference AS 'CustomerReference'
 		FROM [dbo].[SalesOrderQuotePartV1Audit] part WITH(NOLOCK)
-			LEFT JOIN [dbo].[SalesOrderQuoteAudit] soq ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
-			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1Audit] soqs ON soqs.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-			LEFT JOIN [dbo].[StockLine] qs ON soqs.StockLineId = qs.StockLineId
-			LEFT JOIN [dbo].[SalesOrderQuotePartCostAudit] soqc ON soqc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-			LEFT JOIN [dbo].[SalesOrderQuoteStockLineCostAudit] soqsc ON soqsc.SalesOrderQuoteStocklineId = soqs.SalesOrderQuoteStocklineId
-			LEFT JOIN [dbo].[ItemMaster] im ON part.ItemMasterId = im.ItemMasterId
-			LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
-			LEFT JOIN [dbo].[UnitOfMeasure] um ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-			LEFT JOIN [dbo].[PurchaseOrder] po ON qs.PurchaseOrderId = po.PurchaseOrderId
-			LEFT JOIN [dbo].[RepairOrder] ro ON qs.RepairOrderId = ro.RepairOrderId	
+			LEFT JOIN [dbo].[SalesOrderQuoteAudit] soq WITH(NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
+			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1Audit] soqs WITH(NOLOCK) ON soqs.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+			LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON soqs.StockLineId = qs.StockLineId
+			LEFT JOIN [dbo].[SalesOrderQuotePartCostAudit] soqc WITH(NOLOCK) ON soqc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+			LEFT JOIN [dbo].[SalesOrderQuoteStockLineCostAudit] soqsc WITH(NOLOCK) ON soqsc.SalesOrderQuoteStocklineId = soqs.SalesOrderQuoteStocklineId
+			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
+			LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
+			LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
+			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId	
 		WHERE 
 			part.SalesOrderQuotePartId = @SalesOrderQuotePartId AND part.PartNumber IS NOT NULL
 		ORDER BY part.UpdatedDate DESC; 

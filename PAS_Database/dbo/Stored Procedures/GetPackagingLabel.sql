@@ -1,5 +1,22 @@
-﻿-- EXEC [dbo].[GetPackagingLabel] 1300, 1507
-CREATE   PROCEDURE [dbo].[GetPackagingLabel]
+﻿/*************************************************************               
+ ** File:   [GetPackagingLabel]               
+ ** Author:   
+ ** Description:         
+ ** Purpose:             
+ ** Date:   13/11/2024            
+              
+ ** RETURN VALUE:               
+      
+ **************************************************************               
+  ** Change History               
+ **************************************************************               
+ ** PR   Date         Author				Change	Description                
+ ** --   --------     -------   --------------------------------              
+    2    13/11/2024    SHREY CHANDEGARA      UPDATED	for @SalesOrderModuleId
+         
+-- EXEC [dbo].[GetPackagingLabel] 1300, 1507
+**************************************************************/  
+CREATE     PROCEDURE [dbo].[GetPackagingLabel]
     @SalesOrderId INT,
     @SalesOrderPartId INT
 AS

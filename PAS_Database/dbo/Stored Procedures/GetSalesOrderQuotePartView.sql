@@ -135,20 +135,20 @@ BEGIN
 		qs.TraceableToName,
 		qs.TagDate,
 		qs.TagType
-    FROM DBO.SalesOrderQuotePartV1 part
-    LEFT JOIN SalesOrderQuoteStocklineV1 stk ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-    LEFT JOIN SalesOrderQuotePartCost PS ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-    LEFT JOIN SalesOrderQuoteStockLineCost SC ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
-    LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
-    INNER JOIN ItemMaster itemMaster ON part.ItemMasterId = itemMaster.ItemMasterId
-    LEFT JOIN [Condition] cp ON part.ConditionId = cp.ConditionId
-    LEFT JOIN Manufacturer mf ON itemMaster.ManufacturerId = mf.ManufacturerId
-    LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-    LEFT JOIN PurchaseOrder po ON qs.PurchaseOrderId = po.PurchaseOrderId
-    LEFT JOIN RepairOrder ro ON qs.RepairOrderId = ro.RepairOrderId
-    LEFT JOIN Priority pri ON part.PriorityId = pri.PriorityId
-    LEFT JOIN SalesOrderQuote soq ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
-    LEFT JOIN SOPartStatus st ON part.StatusId = st.SOPartStatusId
+    FROM DBO.SalesOrderQuotePartV1 part  WITH (NOLOCK)
+    LEFT JOIN SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+    LEFT JOIN SalesOrderQuotePartCost PS WITH (NOLOCK) ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+    LEFT JOIN SalesOrderQuoteStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
+    LEFT JOIN StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+    INNER JOIN ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
+    LEFT JOIN [Condition] cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
+    LEFT JOIN Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
+    LEFT JOIN UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+    LEFT JOIN PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
+    LEFT JOIN RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+    LEFT JOIN Priority pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
+    LEFT JOIN SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
+    LEFT JOIN SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
     --ORDER BY part.ItemNo;
 	END TRY

@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
 	1    11-11-2024   Moin Bloch        Created
+	2    13-12-2024   Moin Bloch        Added Difference Amount New Field
 
    EXEC [GetCycleCountList] 
 **************************************************************/ 
@@ -24,7 +25,7 @@ CREATE   PROCEDURE [dbo].[GetCycleCountList]
 @CycleCountNumber VARCHAR(50) = NULL,
 @Status VARCHAR(50) = NULL,
 @EntryDate DATETIME = NULL,
-@AdjustedQuantity VARCHAR(50) = NULL,
+@DifferenceAmount VARCHAR(50) = NULL,
 @PostedDate DATETIME = NULL,
 @BatchName VARCHAR(50) = NULL,
 @RequestedBy VARCHAR(100) = NULL,
@@ -66,7 +67,10 @@ BEGIN
 		BEGIN
 			SET @IsDeleted=0
 		END
-		
+		IF(UPPER(@Status)='ALL')
+		BEGIN
+			SET @Status = NULL;
+		END		
 		IF @SortColumn IS NULL
 		BEGIN
 			SET @SortColumn = UPPER('CREATEDDATE')
@@ -85,7 +89,7 @@ BEGIN
 					CCC.[StatusId],
 					CCS.[Status],					
 					CCC.[EntryDate],
-					ISNULL(SUM(ABS(CCD.[DifferenceQuantity])),0) AS [AdjustedQuantity],
+					ISNULL(SUM(ABS(CCD.[DifferenceAmount])),0) AS [DifferenceAmount],
 					CCC.[PostedDate],
 					CCC.[BatchName],
 					CCC.[CreatedDate],					
@@ -109,7 +113,7 @@ BEGIN
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND (([CycleCountNumber] LIKE '%' +@GlobalFilter+'%' ) OR 					
 					([Status] LIKE '%' + @GlobalFilter+'%') OR
-					([AdjustedQuantity] LIKE '%' +@GlobalFilter+'%') OR
+					([DifferenceAmount] LIKE '%' +@GlobalFilter+'%') OR
 					([BatchName] LIKE '%' +@GlobalFilter+'%') OR
 					([RequestedBy] LIKE '%' +@GlobalFilter+'%') OR
 					([CountedQuantity] LIKE '%' +@GlobalFilter+'%') OR
@@ -119,7 +123,7 @@ BEGIN
 					(@GlobalFilter='' AND (ISNULL(@CycleCountNumber,'') ='' OR CycleCountNumber LIKE '%' + @CycleCountNumber+'%') AND 
 					(ISNULL(@Status,'') ='' OR [Status] LIKE '%' + @Status+'%') AND
 					(ISNULL(@EntryDate,'') ='' OR CAST([EntryDate] AS DATE) = CAST(@EntryDate AS DATE)) AND
-					(ISNULL(@AdjustedQuantity,'') ='' OR [AdjustedQuantity] LIKE '%' + @AdjustedQuantity+'%') AND
+					(IsNull(@DifferenceAmount,'') ='' OR CAST([DifferenceAmount] AS VARCHAR(50)) LIKE '%' + @DifferenceAmount+'%' ) AND     
 					(ISNULL(@PostedDate,'') ='' OR CAST([PostedDate] AS DATE) = CAST(@PostedDate AS DATE)) AND
 					(ISNULL(@BatchName,'') ='' OR [BatchName] LIKE '%' + @BatchName+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE) = CAST(@CreatedDate AS DATE)) AND
@@ -135,7 +139,7 @@ BEGIN
 				CASE WHEN (@SortOrder=1 AND @SortColumn='CYCLECOUNTNUMBER')  THEN [CycleCountNumber] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='STATUS')  THEN [Status] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='ENTRYDATE')  THEN [EntryDate] END ASC,
-				CASE WHEN (@SortOrder=1 AND @SortColumn='ADJUSTEDQUANTITY')  THEN [AdjustedQuantity] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='DIFFERENCEAMOUNT')  THEN [DifferenceAmount] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='POSTEDDATE')  THEN [PostedDate] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNAME')  THEN [BatchName] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='REQUESTEDBY')  THEN [RequestedBy] END ASC,
@@ -147,7 +151,7 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='CYCLECOUNTNUMBER')  THEN [CycleCountNumber] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS') THEN [Status] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='ENTRYDATE')  THEN [EntryDate] END DESC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='ADJUSTEDQUANTITY')  THEN [AdjustedQuantity] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='DIFFERENCEAMOUNT')  THEN [DifferenceAmount] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='POSTEDDATE')  THEN [PostedDate] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNAME')  THEN [BatchName] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='REQUESTEDBY')  THEN [RequestedBy] END DESC,

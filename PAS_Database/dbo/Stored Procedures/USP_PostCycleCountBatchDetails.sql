@@ -11,7 +11,8 @@
  **********************************************************************           
  ** PR   Date				 Author					Change Description            
  ** --   --------			-------				-----------------------
-	1    12/11/2024          Moin Bloch          Created    
+	1    12/11/2024          Moin Bloch          Created   
+	2    13/11/2024          Moin Bloch          Added IsReversedJE Flag
 	
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
@@ -301,7 +302,8 @@ BEGIN
 						[IsActive], 
 						[IsDeleted],
 						[AccountingPeriodId],
-						[AccountingPeriod])
+						[AccountingPeriod],
+						[IsReversedJE])
 			     VALUES(@JournalTypeNumber,
 				        @currentNo,
 						0, 
@@ -330,7 +332,9 @@ BEGIN
 						1, 
 						0,
 						@AccountingPeriodId,
-						@AccountingPeriod)
+						@AccountingPeriod,
+						CASE WHEN @TotalAmount > 0 THEN 0 ELSE 1 END
+						)
 		
 			SET @JournalBatchDetailId = SCOPE_IDENTITY()
 

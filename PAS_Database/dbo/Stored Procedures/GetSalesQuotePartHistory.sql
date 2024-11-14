@@ -24,7 +24,7 @@ BEGIN
  SET NOCOUNT ON;  
   BEGIN TRY
 		DECLARE @CustomerApprovalEnum INT;
-		SET @CustomerApprovalEnum = (SELECT ApprovalStatusId FROM dbo.[ApprovalStatus] WHERE Name='Approved')
+		SET @CustomerApprovalEnum = (SELECT ApprovalStatusId FROM dbo.[ApprovalStatus] WITH(NOLOCK) WHERE Name='Approved')
 		SELECT DISTINCT
 			part.AuditSalesOrderQuotePartId,
 			part.SalesOrderQuotePartId,

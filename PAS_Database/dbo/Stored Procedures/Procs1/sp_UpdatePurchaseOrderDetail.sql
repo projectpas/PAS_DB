@@ -17,8 +17,9 @@
  ** --   --------     -------			--------------------------------          
     1    10/19/2023   Vishal Suthar		Added history
 	2    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	3    11/14/2024	  Vishal Suthar		Fixed New table name in the Update statement
 	
- EXEC sp_UpdatePurchaseOrderDetail 214
+ EXEC sp_UpdatePurchaseOrderDetail 2985
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail]
 	@PurchaseOrderId  bigint
@@ -64,9 +65,8 @@ BEGIN
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.SubWorkOrderId > 0 
 
-		UPDATE dbo.SalesOrderPart
+		UPDATE dbo.SalesOrderPartV1
 		SET 
-		--Qty = POP.QuantityOrdered, 
 		PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.SalesOrderPartV1 SOP ON SOP.SalesOrderId = POP.SalesOrderId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId

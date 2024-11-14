@@ -41,8 +41,8 @@ BEGIN
     @Level9 VARCHAR(MAX) = NULL,    
     @Level10 VARCHAR(MAX) = NULL,    
     @IsDownload BIT = NULL,
-	@ReplaceProvisionId BIGINT = 0,
-	@ARConditionId BIGINT = 0
+	@ReplaceProvisionId BIGINT = 0
+	--@ARConditionId BIGINT = 0
 
 	DECLARE @Stage varchar(300) = NULL  
     DECLARE @CustomerId varchar(100) = NULL 
@@ -54,8 +54,6 @@ BEGIN
      SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END    
 
 	 SELECT @ReplaceProvisionId = ProvisionId FROM DBO.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'REPLACE'
-
-	 SELECT @ARConditionId = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE UPPER(Code) = 'ASREMOVE' AND MasterCompanyId = @mastercompanyid
 
      SELECT @Stage = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(500)')='Stage'     
      THEN filterby.value('(FieldValue/text())[1]','VARCHAR(500)') ELSE @Stage END,    
@@ -124,11 +122,15 @@ BEGIN
 			pn VARCHAR(500) NULL, 
 			pnDescription VARCHAR(500) NULL,
 			stagecode VARCHAR(100) NULL, 
+			condition VARCHAR(100) NULL,
+			manufacturer VARCHAR(500) NULL,
 			approvedamount DECIMAL(18, 2) NULL, 
 			openDate DATETIME2 NULL, 
 			requestDate DATETIME2 NULL, 
 			estimatedShipDate DATETIME2 NULL, 
 			quantityRequested INT NULL, 
+			quantityReserved INT NULL, 
+			quantityIssued INT NULL, 
 			quantityAvailable INT NULL, 
 			dateQuoteApproved DATETIME2 NULL,
 			level1 VARCHAR(500) NULL, 
@@ -195,25 +197,25 @@ BEGIN
 		INSERT INTO #tmpMultipleWOMStockline 
 		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId
 		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleSubWOMStockline 
 		SELECT DISTINCT	WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[SubWorkOrderMaterials] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId
 		GROUP BY WOM.[SubWorkOrderMaterialsId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleWOMStocklineKit
 		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId
 		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
 
 		INSERT INTO #tmpMultipleSubWOMStocklineKit
 		SELECT DISTINCT WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
 				FROM [dbo].[SubWorkOrderMaterialsKit] WOM WITH (NOLOCK) 
-		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId AND WOM.ConditionCodeId <> @ARConditionId
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId
 		GROUP BY WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
     
 	INSERT INTO #AwaitingPartsData
@@ -225,6 +227,8 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',    
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',
+		UPPER(CDTN.Code) AS 'condition',
+		UPPER(IM.ManufacturerName) 'manufacturer',
 		CASE 
             WHEN WQD.QuoteMethod = 1 THEN MAX(ISNULL(WQD.CommonFlatRate, 0))
             ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
@@ -232,7 +236,9 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
-		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
+		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		ISNULL(tmpWOM.QuantityReserved, 0) 'quantityReserved',
+		ISNULL(tmpWOM.QuantityIssued, 0) 'quantityIssued',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -261,7 +267,8 @@ BEGIN
 	    LEFT JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1 
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -297,6 +304,8 @@ BEGIN
 	UPPER(IM.partnumber),    
 	UPPER(IM.PartDescription),    
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
+	UPPER(CDTN.Code),
+	UPPER(IM.ManufacturerName),
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -317,6 +326,8 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',     
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',  
+		UPPER(CDTN.Code) AS 'condition',
+		UPPER(IM.ManufacturerName) 'manufacturer',
 		CASE 
             WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
             ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
@@ -324,7 +335,9 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
-		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
+		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		ISNULL(tmpWOM.QuantityReserved, 0) 'quantityReserved',
+		ISNULL(tmpWOM.QuantityIssued, 0) 'quantityIssued',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -353,7 +366,8 @@ BEGIN
 	    LEFT JOIN #tmpMultipleWOMStocklineKit tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.WorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
-		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1   
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId    
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -389,6 +403,8 @@ BEGIN
 	UPPER(IM.partnumber),    
 	UPPER(IM.PartDescription),    
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
+	UPPER(CDTN.Code),
+	UPPER(IM.ManufacturerName),
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -409,6 +425,8 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',  
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',
+		UPPER(CDTN.Code) AS 'condition',
+		UPPER(IM.ManufacturerName) 'manufacturer',
 		CASE 
             WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
             ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
@@ -416,7 +434,9 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
-		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
+		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		ISNULL(tmpWOM.QuantityReserved, 0) 'quantityReserved',
+		ISNULL(tmpWOM.QuantityIssued, 0) 'quantityIssued',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -446,7 +466,8 @@ BEGIN
 	    LEFT JOIN #tmpMultipleSubWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[SubWorkOrderId] = SWO.[SubWorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.SubWorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
-		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1     
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId  
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -482,6 +503,8 @@ BEGIN
 	UPPER(IM.partnumber),    
 	UPPER(IM.PartDescription),    
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
+	UPPER(CDTN.Code),
+	UPPER(IM.ManufacturerName),
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -503,6 +526,8 @@ BEGIN
 		UPPER(IM.partnumber) 'pn',    
 		UPPER(IM.PartDescription) 'pnDescription',   
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',  
+		UPPER(CDTN.Code) AS 'condition',
+		UPPER(IM.ManufacturerName) 'manufacturer',
 		CASE 
             WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
             ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
@@ -510,7 +535,9 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
-		(ISNULL(tmpWOM.Quantity, 0) - ISNULL(tmpWOM.QuantityReserved, 0) - ISNULL(tmpWOM.QuantityIssued, 0)) 'quantityRequested',
+		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
+		ISNULL(tmpWOM.QuantityReserved, 0) 'quantityReserved',
+		ISNULL(tmpWOM.QuantityIssued, 0) 'quantityIssued',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'dateQuoteApproved',
 		UPPER(MSD.Level1Name) AS level1,      
@@ -541,6 +568,7 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.SubWorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsKitId
 		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -576,6 +604,8 @@ BEGIN
 	UPPER(IM.partnumber),    
 	UPPER(IM.PartDescription),    
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
+	UPPER(CDTN.Code),
+	UPPER(IM.ManufacturerName),
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -592,35 +622,35 @@ BEGIN
     BEGIN     
 		SELECT @PageSize = COUNT(*)    
 		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityAvailable) > 0
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
 		ORDER BY WorkOrderId DESC    
     END    
 
 	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts INT = 0;
 
 	SELECT @TotalWorkOrder = COUNT(DISTINCT WorkOrderId) FROM #AwaitingPartsData FC
-	WHERE (quantityRequested - quantityAvailable) > 0;
+	WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0;
 
-	SELECT @TotalAwaitingParts = SUM(quantityRequested - quantityAvailable) FROM #AwaitingPartsData FC
-	WHERE (quantityRequested - quantityAvailable) > 0
+	SELECT @TotalAwaitingParts = SUM(quantityRequested - quantityReserved - quantityIssued - quantityAvailable) FROM #AwaitingPartsData FC
+	WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
 
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
 
 	IF @IsDownload = 1
 	BEGIN
-		SELECT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityAvailable
-			, dateQuoteApproved	,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, (quantityRequested - quantityAvailable) AS missingPieceParts
+		SELECT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, condition, manufacturer, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityReserved
+			, quantityIssued, quantityAvailable, dateQuoteApproved	,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) AS missingPieceParts
 		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityAvailable) > 0
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
 		ORDER BY WorkOrderId DESC;
 	END
 	ELSE
 	BEGIN
-		SELECT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityAvailable
-			, dateQuoteApproved	,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, (quantityRequested - quantityAvailable) AS missingPieceParts
+		SELECT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, condition, manufacturer, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityReserved
+			, quantityIssued, quantityAvailable, dateQuoteApproved	,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) AS missingPieceParts
 		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityAvailable) > 0
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
 		ORDER BY WorkOrderId DESC  
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
 	END

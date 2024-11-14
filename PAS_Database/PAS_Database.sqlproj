@@ -3273,6 +3273,7 @@
     <Build Include="dbo\Tables\CycleCountBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_PostCycleCountBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CycleCount_GetAccountingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteSOQPartStocklineById.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesQuotePartHistory.sql" />
   </ItemGroup>
   <ItemGroup>

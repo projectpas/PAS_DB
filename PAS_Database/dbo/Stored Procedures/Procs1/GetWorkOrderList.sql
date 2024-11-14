@@ -21,7 +21,7 @@
 	5    09/20/2024   Devendra Shekh		List WO View Resolved
 	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
 	7    10/21/2024   Devendra Shekh		Modified (Optimization Changes)
-	8    11/13/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
+	8    11/14/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -58,11 +58,12 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @WorkOrderType varchar(50)=null,  
 	 @TechName  varchar(50)=null,  
 	 @TechStation  varchar(50)=null, 
-	 @IsSubWorkOrder varchar(50) = NULL,  
 	 @SerialNumber  varchar(50)=null,  
 	 @CustRef varchar(50)=null,
 	 @MSModuleID INT=12,
-	 @ManufacturerName varchar(50)=null
+	 @ManufacturerName varchar(50)=null,
+	 @IsSubWorkOrder bit= null
+
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -123,21 +124,10 @@ BEGIN
 		SET @IsActive = null  
     END
 
-	IF OBJECT_ID('tempdb..#SubWOResult') IS NOT NULL
-		DROP TABLE #SubWOResult
-
-	CREATE TABLE #SubWOResult
-	(
-		[Id] BIGINT IDENTITY(1,1),
-		[WorkOrderId] BIGINT NULL,
-		[IsSubWorkOrder] varchar(50) NULL
-	)
-
-	INSERT INTO #SubWOResult([WorkOrderId], [IsSubWorkOrder])
-	SELECT WO.WorkOrderId, 'Yes' FROM
-	[dbo].[SubWorkOrder] SWO WITH(NOLOCK)
-	JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId
-	GROUP BY WO.WorkOrderId
+	   IF @IsSubWorkOrder is null 
+    BEGIN   
+		SET @IsSubWorkOrder = 0  
+    END 
   
 	--DECLARE @EmpLegalEntiyId BIGINT = 0;
 	--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
@@ -199,12 +189,12 @@ BEGIN
 			--UPPER(STL.SerialNumber) AS SerialNumber,
 			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END AS SerialNumber,
 			UPPER(WPN.CustomerReference) AS CustomerReference,
-			UPPER(WPN.CustomerReference) AS CustomerReferenceType
-			,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder
+			UPPER(WPN.CustomerReference) AS CustomerReferenceType,
+			CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder SWO WHERE SWO.WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
        FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
-			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
+			LEFT JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) ON WO.WorkOrderId = SWO.WorkOrderId	AND @IsSubWorkOrder = 1
 			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
@@ -267,7 +257,7 @@ BEGIN
         (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND  
         (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND  
         (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%') AND
-		(ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder LIKE '%' + @IsSubWorkOrder + '%') 
+		(ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder = @IsSubWorkOrder) 
 
         ))  
   
@@ -376,14 +366,14 @@ BEGIN
 				WO.IsDeleted,
 				WO.WorkOrderType AS 'WorkOrderType',
 				LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
-				LWS.EstimatedCompletionDate AS EstimatedCompletionDate
-				,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder
+				LWS.EstimatedCompletionDate AS EstimatedCompletionDate,
+			    CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder WHERE WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
-			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
+			LEFT JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) ON WO.WorkOrderId = SWO.WorkOrderId	AND @IsSubWorkOrder = 1
 			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 			))
 			, WorkOrderPartCount AS (
@@ -535,7 +525,7 @@ BEGIN
            (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND  
 		   (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
            (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%') AND  
-		   (ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder LIKE '%' + @IsSubWorkOrder + '%') 
+		   (ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder = @IsSubWorkOrder) 
 
            ))  
   

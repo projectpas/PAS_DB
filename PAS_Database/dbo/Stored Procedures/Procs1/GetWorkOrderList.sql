@@ -190,7 +190,7 @@ BEGIN
 			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END AS SerialNumber,
 			UPPER(WPN.CustomerReference) AS CustomerReference,
 			UPPER(WPN.CustomerReference) AS CustomerReferenceType,
-			CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder SWO WHERE SWO.WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
+			CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder SWO WITH(NOLOCK) WHERE SWO.WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
        FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
@@ -367,7 +367,7 @@ BEGIN
 				WO.WorkOrderType AS 'WorkOrderType',
 				LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
 				LWS.EstimatedCompletionDate AS EstimatedCompletionDate,
-			    CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder WHERE WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
+			    CASE WHEN ISNULL(SWO.SubWorkOrderId, 0) > 0 THEN 1 ELSE CASE WHEN (SELECT TOP 1 WorkOrderId FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ) > 0 THEN 1 ELSE 0 END END IsSubWorkOrder
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   

@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------              
     1    29-10-2024   Shrey Chandegara		Created    
+	2    14-11-2024   Rajesh Gami			Return StockLineId
 
  exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@ViewType=N'1',
 		@StockLineId=0,@PartNumber=NULL,@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,
@@ -107,7 +108,8 @@ BEGIN
           
      CREATE TABLE #tmptmpStockline     
      (      
-      ID BIGINT NOT NULL IDENTITY,       
+      ID BIGINT NOT NULL IDENTITY,
+	  StockLineId BIGINT NULL,
       PartNumber VARCHAR(100) NULL,
 	  PartDescription VARCHAR(MAX) NULL,
 	  Condition VARCHAR(100) NULL,
@@ -136,9 +138,10 @@ BEGIN
 		 BEGIN
 
 				--* Start: WorkOrderMaterialStockline For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					Sl.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -184,9 +187,10 @@ BEGIN
 				--* END: WorkOrderMaterialStockline For Reserve *--
 
 				--* Start: WorkOrderMaterialStocklineKit For Reserve *--					
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					sl.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -232,9 +236,10 @@ BEGIN
 				--* END: WorkOrderMaterialStocklineKit For Reserve *--
 
 				--* START: SubWorkOrderMaterialStockline For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					sl.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -279,9 +284,10 @@ BEGIN
 				--* END: SubWorkOrderMaterialStockline For Reserve *--
 
 				--* START: SubWorkOrderMaterialStocklineKit For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					sl.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -327,9 +333,10 @@ BEGIN
 
 
 				--* START: RepairOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 				SELECT
+					sl.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -371,9 +378,10 @@ BEGIN
 				--* END: RepairOrder For Reserve *--
 
 				--* START: ExchangeSalesOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -416,9 +424,10 @@ BEGIN
 				--* END: ExchangeSalesOrder For Reserve *--
 
 				--* START: RMA For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -464,9 +473,10 @@ BEGIN
 		 BEGIN
 
 				--* Start: WorkOrderMaterialStockline For Issued *--
-				 INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 						SELECT
+						SL.StockLineId,
 						SL.PartNumber,
 						SL.PNDescription,
 						SL.Condition,
@@ -512,9 +522,10 @@ BEGIN
 				--* END: WorkOrderMaterialStockline For Issued *--
 
 				--* START: WorkOrderMaterialStocklineKit For Issued *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -560,10 +571,11 @@ BEGIN
 				--* END: WorkOrderMaterialStocklineKit For Issued *--
 
 				--* START: SUBWorkOrderMaterialStockline For Issued *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -609,10 +621,11 @@ BEGIN
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
 				--* START: SUBWorkOrderMaterialStocklineKit For Issued *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -663,9 +676,10 @@ BEGIN
 		 BEGIN
 
 				 --* Start: WorkOrderMaterialStockline For ALL *--
-				 INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 						SELECT
+						SL.StockLineId,
 						SL.PartNumber,
 						SL.PNDescription,
 						SL.Condition,
@@ -712,9 +726,10 @@ BEGIN
 				--* END: WorkOrderMaterialStockline For ALL *--
 
 				--* Start: WorkOrderMaterialStocklineKit For ALL *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -761,10 +776,11 @@ BEGIN
 				--* End: WorkOrderMaterialStocklinekit For ALL *--
 
 				--* Start: SubWorkOrderMaterialStockline For ALL *--				
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -810,10 +826,11 @@ BEGIN
 				--* END: SubWorkOrderMaterialStockline For ALL *--				
 
 				--* Start: SubWorkOrderMaterialStocklineKIT For ALL *--				
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -859,9 +876,10 @@ BEGIN
 				--* END: SubWorkOrderMaterialStockline For ALL *--
 
 				--* START: RepairOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -903,9 +921,10 @@ BEGIN
 				--* END: RepairOrder For Reserve *--
 
 				--* START: ExchangeSalesOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,
@@ -948,9 +967,10 @@ BEGIN
 				--* END: ExchangeSalesOrder For Reserve *--
 
 				--* START: RMA For Reserve *--
-				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
+					SL.StockLineId,
 					SL.PartNumber,
 					SL.PNDescription,
 					SL.Condition,

@@ -3277,6 +3277,7 @@
     <Build Include="dbo\Stored Procedures\GetSalesQuotePartHistory.sql" />
     <Build Include="dbo\Stored Procedures\DeleteSOPartStocklineById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_Delete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderPartByPOId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

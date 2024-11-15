@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -14,6 +15,7 @@
 	2    14/10/2024   RAJESH GAMI			Implemented logic: IsKit and IsSubWO flag for the identify the WOMaterial is kit and from SUWO or not. 
 	3    16/10/2024   RAJESH GAMI			Implemented logic: IsKitType and IsSubWOType flag in the StocklineDraft
 	4	 11/04/2024	  Vishal Suthar			Modified to make use of new SO Part tables
+	5	 15/11/2024	  RAJESH GAMI			Handle the NULL value of WOMaterialID when its 0
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -94,7 +96,7 @@ BEGIN
 									--, SL.CurrencyId = PT.FunctionalCurrencyId,
 										SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
 										SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,
-										SL.WorkOrderMaterialsId = PT.WorkOrderMaterialsId,
+										SL.WorkOrderMaterialsId = CASE WHEN PT.WorkOrderMaterialsId = 0  THEN NULL ELSE PT.WorkOrderMaterialsId END,
 									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
 								FROM DBO.StockLineDraft SL
 								JOIN #tmpPoPartList PT ON SL.PurchaseOrderPartRecordId = PT.PurchaseOrderPartRecordId
@@ -138,7 +140,7 @@ BEGIN
 									PART.ExchangeSalesOrderId = TMP.ExchangeSalesOrderId,PART.ExchangeSalesOrderNo = TMP.ExchangeSalesOrderNo,
 									PART.ManufacturerPN = TMP.ManufacturerPN,PART.AssetModel = TMP.AssetModel,
 									PART.AssetClass = TMP.AssetClass,PART.IsLotAssigned = TMP.IsLotAssigned,
-									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, 
+									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId =  CASE WHEN TMP.WorkOrderMaterialsId = 0  THEN NULL ELSE TMP.WorkOrderMaterialsId END, 
 									--PART.IsKit = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsKit END, PART.IsSubWO = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsFromSubWorkOrder END ,
 									PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 									PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
@@ -576,7 +578,7 @@ BEGIN
 								   ,tmp.AssetClass
 								   ,@IsLotAssigned
 								   ,@LotId
-								   ,tmp.WorkOrderMaterialsId
+								   , CASE WHEN tmp.WorkOrderMaterialsId = 0  THEN NULL ELSE tmp.WorkOrderMaterialsId END
 								   ,tmp.VendorRFQPOPartRecordId
 								   ,tmp.TraceableTo
 								   ,tmp.TraceableToName
@@ -640,7 +642,7 @@ BEGIN
 										PART.ExchangeSalesOrderId = TMP.ExchangeSalesOrderId,PART.ExchangeSalesOrderNo = TMP.ExchangeSalesOrderNo,
 										PART.ManufacturerPN = TMP.ManufacturerPN,PART.AssetModel = TMP.AssetModel,
 										PART.AssetClass = TMP.AssetClass,PART.IsLotAssigned = @IsLotAssigned,
-										PART.LotId = @LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId,
+										PART.LotId = @LotId,PART.WorkOrderMaterialsId =  CASE WHEN TMP.WorkOrderMaterialsId = 0  THEN NULL ELSE TMP.WorkOrderMaterialsId END,
 										PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 										PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 										PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,

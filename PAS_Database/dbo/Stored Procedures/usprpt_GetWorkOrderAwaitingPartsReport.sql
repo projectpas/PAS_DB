@@ -219,7 +219,7 @@ BEGIN
 		GROUP BY WOM.[SubWorkOrderMaterialsKitId], WOM.[SubWorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
     
 	INSERT INTO #AwaitingPartsData
-	SELECT 0 AS TotalRecordsCount,    
+	SELECT DISTINCT 0 AS TotalRecordsCount,    
 		WO.WorkOrderId,  
 		UPPER(WO.WorkOrderNum) 'wonum',
 		UPPER(C.Name) 'customername',
@@ -229,10 +229,7 @@ BEGIN
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',
 		UPPER(CDTN.Code) AS 'condition',
 		UPPER(IM.ManufacturerName) 'manufacturer',
-		CASE 
-            WHEN WQD.QuoteMethod = 1 THEN MAX(ISNULL(WQD.CommonFlatRate, 0))
-            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
-        END AS 'approvedamount',
+		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
@@ -268,7 +265,21 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1 
-		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId    
+		OUTER APPLY (
+			SELECT 
+				MAX(
+					CASE  
+						WHEN WQD.QuoteMethod = 1 THEN ISNULL(WQD.CommonFlatRate, 0) 
+						ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
+						   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
+						   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 
+						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
+					END
+				) AS approvedamount
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
+			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
+		) AS ApprovedAmount
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -306,6 +317,7 @@ BEGIN
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
 	UPPER(CDTN.Code),
 	UPPER(IM.ManufacturerName),
+	ApprovedAmount.approvedamount,
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -318,7 +330,7 @@ BEGIN
 	 MSD.Level10Name
 
 	INSERT INTO #AwaitingPartsData
-	SELECT 0 AS TotalRecordsCount,    
+	SELECT DISTINCT 0 AS TotalRecordsCount,    
 		WO.WorkOrderId,  
 		UPPER(WO.WorkOrderNum) 'wonum',
 		UPPER(C.Name) 'customername',
@@ -328,10 +340,7 @@ BEGIN
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',  
 		UPPER(CDTN.Code) AS 'condition',
 		UPPER(IM.ManufacturerName) 'manufacturer',
-		CASE 
-            WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
-            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
-        END AS 'approvedamount',
+		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
@@ -369,13 +378,27 @@ BEGIN
 		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1   
 		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId    
 		OUTER APPLY (
-        SELECT 
-            WOS_From.Code,
-            WOS_From.Stage
-        FROM 
-            DBO.WorkOrderStage WOS_From WITH (NOLOCK) 
-        WHERE 
-            WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
+			SELECT 
+				MAX(
+					CASE  
+						WHEN WQD.QuoteMethod = 1 THEN ISNULL(WQD.CommonFlatRate, 0) 
+						ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
+						   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
+						   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 
+						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
+					END
+				) AS approvedamount
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
+			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
+		) AS ApprovedAmount
+		OUTER APPLY (
+			SELECT 
+				WOS_From.Code,
+				WOS_From.Stage
+			FROM 
+				DBO.WorkOrderStage WOS_From WITH (NOLOCK) 
+			WHERE 
+				WOS_From.WorkOrderStageId = WOS.WorkOrderStageId
 		) AS WOS_From
 	WHERE    
 		(@CustomerId IS NULL OR WO.CustomerId = @CustomerId)
@@ -405,6 +428,7 @@ BEGIN
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
 	UPPER(CDTN.Code),
 	UPPER(IM.ManufacturerName),
+	ApprovedAmount.approvedamount,
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -417,7 +441,7 @@ BEGIN
 	 MSD.Level10Name
 
  INSERT INTO #AwaitingPartsData
-	SELECT 0 AS TotalRecordsCount,    
+	SELECT DISTINCT 0 AS TotalRecordsCount,    
 		SWO.SubWorkOrderId,  
 		UPPER(SWO.SubWorkOrderNo) 'wonum',
 		UPPER(C.Name) 'customername',
@@ -427,10 +451,7 @@ BEGIN
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',
 		UPPER(CDTN.Code) AS 'condition',
 		UPPER(IM.ManufacturerName) 'manufacturer',
-		CASE 
-            WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
-            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
-        END AS 'approvedamount',
+		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
@@ -467,7 +488,21 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.SubWorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
 		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1     
-		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId  
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId      
+		OUTER APPLY (
+			SELECT 
+				MAX(
+					CASE  
+						WHEN WQD.QuoteMethod = 1 THEN ISNULL(WQD.CommonFlatRate, 0) 
+						ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
+						   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
+						   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 
+						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
+					END
+				) AS approvedamount
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
+			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
+		) AS ApprovedAmount
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -505,6 +540,7 @@ BEGIN
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
 	UPPER(CDTN.Code),
 	UPPER(IM.ManufacturerName),
+	ApprovedAmount.approvedamount,
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -518,7 +554,7 @@ BEGIN
 
 
 	INSERT INTO #AwaitingPartsData
-	SELECT 0 AS TotalRecordsCount,    
+	SELECT DISTINCT 0 AS TotalRecordsCount,    
 		SWO.SubWorkOrderId,  
 		UPPER(SWO.SubWorkOrderNo) 'wonum',
 		UPPER(C.Name) 'customername',
@@ -528,10 +564,7 @@ BEGIN
 		UPPER(WOS_From.Code + '-' + WOS_From.Stage) AS 'stagecode',  
 		UPPER(CDTN.Code) AS 'condition',
 		UPPER(IM.ManufacturerName) 'manufacturer',
-		CASE 
-            WHEN WQD.QuoteMethod = 1 THEN MAX(WQD.CommonFlatRate)
-            ELSE MAX(ISNULL(WQD.MaterialFlatBillingAmount, 0) + ISNULL(WQD.LaborFlatBillingAmount, 0) + ISNULL(WQD.ChargesFlatBillingAmount, 0) + ISNULL(WQD.FreightFlatBillingAmount, 0))
-        END AS 'approvedamount',
+		ApprovedAmount.approvedamount,
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) ELSE CAST((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))) AS DATETIME) END 'opendate',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',    
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
@@ -568,7 +601,21 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.SubWorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsKitId
 		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1       
-		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
+		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId    
+		OUTER APPLY (
+			SELECT 
+				MAX(
+					CASE  
+						WHEN WQD.QuoteMethod = 1 THEN ISNULL(WQD.CommonFlatRate, 0) 
+						ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
+						   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
+						   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 
+						   + ISNULL(WQD.FreightFlatBillingAmount, 0)
+					END
+				) AS approvedamount
+			FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) 
+			WHERE WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
+		) AS ApprovedAmount
 		OUTER APPLY (
         SELECT 
             WOS_From.Code,
@@ -606,6 +653,7 @@ BEGIN
 	UPPER(WOS_From.Code + '-' + WOS_From.Stage),
 	UPPER(CDTN.Code),
 	UPPER(IM.ManufacturerName),
+	ApprovedAmount.approvedamount,
 	 MSD.Level1Name,
 	 MSD.Level2Name,
 	 MSD.Level3Name,
@@ -639,7 +687,7 @@ BEGIN
 
 	IF @IsDownload = 1
 	BEGIN
-		SELECT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, condition, manufacturer, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityReserved
+		SELECT DISTINCT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, condition, manufacturer, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityReserved
 			, quantityIssued, quantityAvailable, dateQuoteApproved	,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) AS missingPieceParts
 		FROM #AwaitingPartsData FC  
 		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
@@ -647,7 +695,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		SELECT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, condition, manufacturer, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityReserved
+		SELECT DISTINCT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, pn, pnDescription,stagecode, condition, manufacturer, approvedamount, openDate, requestDate, estimatedShipDate, quantityRequested, quantityReserved
 			, quantityIssued, quantityAvailable, dateQuoteApproved	,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) AS missingPieceParts
 		FROM #AwaitingPartsData FC  
 		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0

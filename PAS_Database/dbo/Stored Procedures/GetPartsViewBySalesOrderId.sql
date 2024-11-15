@@ -108,28 +108,28 @@ BEGIN
 			so.FreightBilingMethodId freightBilingMethodId,
 			ISNULL(sbi.Freight, 0) AS freight,
 			ISNULL(sob.SOBillingInvoicingItemId, 0) AS sobillingInvoicingItemId
-		FROM DBO.SalesOrder so
-		INNER JOIN DBO.SalesOrderPartV1 part ON so.SalesOrderId = part.SalesOrderId
-		LEFT JOIN DBO.SalesOrderStocklineV1 stk ON stk.SalesOrderPartId = part.SalesOrderPartId
-		LEFT JOIN DBO.StockLine qs ON stk.StockLineId = qs.StockLineId
+		FROM DBO.SalesOrder so WITH(NOLOCK)
+		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
+		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId
+		LEFT JOIN DBO.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
 		LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-		INNER JOIN DBO.ItemMaster itemMaster ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN DBO.ItemMasterExportInfo imx ON part.ItemMasterId = imx.ItemMasterId
-		LEFT JOIN DBO.[Condition] cp ON part.ConditionId = cp.ConditionId
-		LEFT JOIN DBO.SalesOrderQuote q ON so.SalesOrderQuoteId = q.SalesOrderQuoteId
-		LEFT JOIN DBO.UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
-		LEFT JOIN DBO.SalesOrderReserveParts rPart ON part.SalesOrderPartId = rPart.SalesOrderPartId
-		LEFT JOIN DBO.UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-		LEFT JOIN DBO.PurchaseOrder po ON qs.PurchaseOrderId = po.PurchaseOrderId
-		LEFT JOIN DBO.RepairOrder ro ON qs.RepairOrderId = ro.RepairOrderId
-		LEFT JOIN DBO.CustomerFinancial cf ON so.CustomerId = cf.CustomerId
-		LEFT JOIN DBO.Currency cur ON part.CurrencyId = cur.CurrencyId
-		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st ON so.StatusId = st.Id
-		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob ON part.SalesOrderPartId = sob.SalesOrderPartId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
-		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.IsProforma = 0
-		LEFT JOIN DBO.SalesOrderFreight f ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
-		LEFT JOIN DBO.SalesOrderCharges ch ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
+		INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
+		LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON part.ItemMasterId = imx.ItemMasterId
+		LEFT JOIN DBO.[Condition] cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
+		LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON so.SalesOrderQuoteId = q.SalesOrderQuoteId
+		LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+		LEFT JOIN DBO.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
+		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
+		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON so.CustomerId = cf.CustomerId
+		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
+		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
+		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SalesOrderPartId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
+		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.IsProforma = 0
+		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
+		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
 	END
 COMMIT TRANSACTION

@@ -31,6 +31,7 @@
 	14   23/04/2024   Vishal Suthar	Modified to make use of new SO part table
 	15   07/11/2024   AMIT GHEDIYA	Modified for get InvoiceTypeId.
 	16   12/11/2024   AMIT GHEDIYA	Modified for get qtybilled.
+	17   15/11/2024   AMIT GHEDIYA	Modified for get standard bill amount without performa.
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1269,3,9
 **************************************************************/
@@ -403,8 +404,8 @@ BEGIN
 						sop.SalesOrderPartId 
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-						LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
-						LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId
+						LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId AND ISNULL(SOBII.IsProforma,0) = 0
+						LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
 						INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = SOP.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
 				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId
@@ -458,7 +459,6 @@ BEGIN
 				
 			END
 		END
-		
 			PRINT '3.0'
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,

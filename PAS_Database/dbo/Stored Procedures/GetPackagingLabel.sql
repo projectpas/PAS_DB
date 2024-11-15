@@ -65,29 +65,29 @@ BEGIN
         soq.UpdatedDate updatedDate,
         soq.ManagementStructureId managementStructureId,
         soq.CustomerReference customerReference
-    FROM SOPickTicket sopkt
-    JOIN SalesOrder soq ON sopkt.SalesOrderId = soq.SalesOrderId
-    LEFT JOIN SalesOrderPartV1 part ON soq.SalesOrderId = part.SalesOrderId
-    LEFT JOIN SalesOrderStockLineV1 stk ON part.SalesOrderPartId = stk.SalesOrderPartId
-    LEFT JOIN Customer cust ON soq.CustomerId = cust.CustomerId
-    LEFT JOIN Address cuad ON cust.AddressId = cuad.AddressId
-    LEFT JOIN Countries ccnty ON cuad.CountryId = ccnty.countries_id
-    LEFT JOIN CustomerContact cust_cont ON soq.CustomerContactId = cust_cont.CustomerContactId
-    LEFT JOIN Contact cont ON cust_cont.ContactId = cont.ContactId
-    LEFT JOIN AllAddress posadd ON soq.SalesOrderId = posadd.ReffranceId 
+    FROM [dbo].[SOPickTicket] sopkt WITH(NOLOCK)
+    JOIN [dbo].SalesOrder soq WITH(NOLOCK) ON sopkt.SalesOrderId = soq.SalesOrderId
+    LEFT JOIN [dbo].[SalesOrderPartV1] part WITH(NOLOCK) ON soq.SalesOrderId = part.SalesOrderId
+    LEFT JOIN [dbo].[SalesOrderStockLineV1] stk WITH(NOLOCK) ON part.SalesOrderPartId = stk.SalesOrderPartId
+    LEFT JOIN [dbo].[Customer] cust WITH(NOLOCK) ON soq.CustomerId = cust.CustomerId
+    LEFT JOIN [dbo].[Address] cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId
+    LEFT JOIN [dbo].[Countries] ccnty WITH(NOLOCK) ON cuad.CountryId = ccnty.countries_id
+    LEFT JOIN [dbo].[CustomerContact] cust_cont WITH(NOLOCK) ON soq.CustomerContactId = cust_cont.CustomerContactId
+    LEFT JOIN [dbo].[Contact] cont WITH(NOLOCK) ON cust_cont.ContactId = cont.ContactId
+    LEFT JOIN [dbo].[AllAddress] posadd WITH(NOLOCK) ON soq.SalesOrderId = posadd.ReffranceId 
         AND posadd.IsShippingAdd = 1 
         AND posadd.ModuleId = @SalesOrderModuleId -- assuming SalesOrder module
-    LEFT JOIN AllShipVia posv ON soq.SalesOrderId = posv.ReferenceId 
+    LEFT JOIN [dbo].[AllShipVia] posv WITH(NOLOCK) ON soq.SalesOrderId = posv.ReferenceId 
         AND posv.ModuleId = 1 -- assuming SalesOrder module
-    LEFT JOIN SalesOrderPackaginSlipItems spi ON sopkt.SOPickTicketId = spi.SOPickTicketId
-    LEFT JOIN SalesOrderPackaginSlipHeader spb ON spi.PackagingSlipId = spb.PackagingSlipId
-    LEFT JOIN SalesOrderShippingItem sosi ON sopkt.SOPickTicketId = sosi.SOPickTicketId
-    LEFT JOIN SalesOrderShipping sos ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId
-    LEFT JOIN SalesOrderBillingInvoicing sobi ON sos.SalesOrderId = sobi.SalesOrderId
-    LEFT JOIN Employee saemp ON soq.SalesPersonId = saemp.EmployeeId
-    LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
-    LEFT JOIN PurchaseOrder po ON qs.PurchaseOrderId = po.PurchaseOrderId
-    LEFT JOIN RepairOrder ro ON qs.RepairOrderId = ro.RepairOrderId
-    LEFT JOIN ShippingVia sh ON sos.ShipviaId = sh.ShippingViaId
+    LEFT JOIN [dbo].[SalesOrderPackaginSlipItems] spi WITH(NOLOCK) ON sopkt.SOPickTicketId = spi.SOPickTicketId
+    LEFT JOIN [dbo].[SalesOrderPackaginSlipHeader] spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
+    LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH(NOLOCK) ON sopkt.SOPickTicketId = sosi.SOPickTicketId
+    LEFT JOIN [dbo].[SalesOrderShipping] sos WITH(NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId
+    LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK) ON sos.SalesOrderId = sobi.SalesOrderId
+    LEFT JOIN [dbo].[Employee] saemp WITH(NOLOCK) ON soq.SalesPersonId = saemp.EmployeeId
+    LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
+    LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
+    LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+    LEFT JOIN [dbo].[ShippingVia] sh WITH(NOLOCK) ON sos.ShipviaId = sh.ShippingViaId
     WHERE sopkt.SalesOrderId = @SalesOrderId AND sopkt.SalesOrderPartId = @SalesOrderPartId;
 END;

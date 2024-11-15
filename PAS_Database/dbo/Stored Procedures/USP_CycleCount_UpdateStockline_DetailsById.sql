@@ -13,7 +13,8 @@
  ** PR   Date         Author       Change Description                
  ** --   --------     -------      --------------------------------              
     1    07/11/2024   Moin Bloch   Created    
-	2    12/11/2024   Moin Bloch   Added Acconting Batch SP and [CycleCountDetailId] In Temp Table    
+	2    12/11/2024   Moin Bloch   Added Acconting Batch SP and [CycleCountDetailId] In Temp Table 
+	3    14/11/2024   Moin Bloch   Added Clsoed Condition FOR UNIT COST 0 
          
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
@@ -135,7 +136,11 @@ BEGIN
 			SELECT @BatchName = [BatchName] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
 			UPDATE [dbo].[CycleCount] SET [StatusId] = @CycleCountStatusId,[BatchName] = @BatchName, [PostedDate] = GETUTCDATE() WHERE [CycleCountId] = @CycleCountId;
-		END		
+		END	
+		ELSE
+		BEGIN
+			UPDATE [dbo].[CycleCount] SET [StatusId] = @CycleCountStatusId,[PostedDate] = GETUTCDATE() WHERE [CycleCountId] = @CycleCountId;
+		END
 		
 		COMMIT  TRANSACTION 			
 	END

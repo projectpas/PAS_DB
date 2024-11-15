@@ -17,7 +17,17 @@
     1    08/10/2024   AMIT GHEDIYA		Created
 
 declare @p1 dbo.SalesOrderReserveIssueParts
-insert into @p1 values(NULL,1267,1437,181650,10,N'3628',N'SPRING',NULL,NULL,0,NULL,NULL,0,15,15,7,NULL,0,NULL,0,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,'2024-10-25 18:56:53.6040000',2,'2024-10-25 18:56:53.6040000',N'OEM',N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000038',N'CNTL-000881',NULL,N'MOOG INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-10-26 00:26:53.6005436','2024-10-26 00:26:53.6005438',1,0)
+insert into @p1 values(NULL,1325,1593,182323,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9162469',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000272',N'CNTL-000345',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9162452','2024-11-15 10:04:33.9162452',1,0)
+insert into @p1 values(NULL,1325,1593,182495,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9162501',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000282',N'CNTL-000480',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9162497','2024-11-15 10:04:33.9162497',1,0)
+insert into @p1 values(NULL,1325,1593,181901,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167376',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000256',N'CNTL-000277',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167364','2024-11-15 10:04:33.9167364',1,0)
+insert into @p1 values(NULL,1325,1593,181902,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167430',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000257',N'CNTL-000278',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167426','2024-11-15 10:04:33.9167426',1,0)
+insert into @p1 values(NULL,1325,1593,181903,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167453',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000258',N'CNTL-000279',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167450','2024-11-15 10:04:33.9167450',1,0)
+insert into @p1 values(NULL,1325,1593,181904,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167489',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000259',N'CNTL-000280',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167486','2024-11-15 10:04:33.9167486',1,0)
+insert into @p1 values(NULL,1325,1593,181905,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167679',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000260',N'CNTL-000281',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167673','2024-11-15 10:04:33.9167673',1,0)
+insert into @p1 values(NULL,1325,1593,181906,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167713',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000261',N'CNTL-000282',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167710','2024-11-15 10:04:33.9167710',1,0)
+insert into @p1 values(NULL,1325,1593,181907,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167744',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000262',N'CNTL-000283',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167741','2024-11-15 10:04:33.9167741',1,0)
+insert into @p1 values(NULL,1325,1593,181908,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167782',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000263',N'CNTL-000284',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167778','2024-11-15 10:04:33.9167778',1,0)
+insert into @p1 values(NULL,1325,1593,181909,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167815',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000264',N'CNTL-000285',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167812','2024-11-15 10:04:33.9167812',1,0)
 
 exec dbo.SalesOrderReserveUnReserveParts @tbl_SalesOrderReserveIssueParts=@p1
 **************************************************************/
@@ -198,8 +208,14 @@ BEGIN
 					  LEFT JOIN [DBO].[SalesOrderStocklineV1] SOSP WITH(NOLOCK) ON SOSP.SalesOrderPartId = SOP.SalesOrderPartId
 					  WHERE SOP.SalesOrderId = @SalesOrderId AND SOSP.StockLineId = @StockLineId)
 				BEGIN
+					DECLARE @QtyRequested BIGINT = NULL;
+					DECLARE @QtyAdded BIGINT = NULL;
+					DECLARE @QtyAfterReserve BIGINT = NULL;
+
 					--Get Part Data
-					SELECT @PartQty = SOP.QtyOrder, 
+					SELECT 
+						   @QtyRequested = SOP.QtyRequested,
+						   @PartQty = SOP.QtyOrder, 
 						   @PartUnitSalePrice = SOPC.UnitSalesPrice, 
 						   @PartUnitCost = SOPC.UnitCost,
 						   @PartMarginAmount = SOPC.MarginAmount,
@@ -213,47 +229,54 @@ BEGIN
 					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
 					AND SOP.ConditionId = @ConditionId;
 				
-					--Get Stockline UnitCost
-					SELECT @StocklineUnitCost = ISNULL(UnitCost,0) FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
+					SELECT @QtyAdded = ISNULL(SUM(SOPS.QtyOrder), 0) FROM [DBO].[SalesOrderStocklineV1] SOPS WITH(NOLOCK) WHERE SOPS.SalesOrderPartId = @PartSalesOrderPartId;
 
-					SET @PartUnitCostExtended = ISNULL(@StocklineUnitCost,0) * ISNULL(@PartQty,0);
-					SET @PartMarginAmount = ISNULL(@PartUnitSalePrice,0) - ISNULL(@PartUnitCost,0);
-					SET @PartMarginAmountExtended = ISNULL(@PartMarginAmount,0) * ISNULL(@PartQty,0);
-
-					IF(ISNULL(@PartUnitSalePrice,0) > 0)
+				    SET @QtyAfterReserve = @QtyAdded + @QtyToReserve;
+					
+					IF (@QtyAfterReserve <= @QtyRequested)
 					BEGIN
-						SET @PartMarginPercentage = (ISNULL(@PartMarginAmount,0) / ISNULL(@PartUnitSalePrice,0)) * 100
-					END
-					ELSE
-					BEGIN
-						SET @PartMarginPercentage = 0;
-					END
+						--Get Stockline UnitCost
+						SELECT @StocklineUnitCost = ISNULL(UnitCost,0) FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 
-					SET @PartSalesPriceExtended = ISNULL(@PartUnitSalePrice,0) * ISNULL(@PartQty,0);
+						SET @PartUnitCostExtended = ISNULL(@StocklineUnitCost,0) * ISNULL(@PartQty,0);
+						SET @PartMarginAmount = ISNULL(@PartUnitSalePrice,0) - ISNULL(@PartUnitCost,0);
+						SET @PartMarginAmountExtended = ISNULL(@PartMarginAmount,0) * ISNULL(@PartQty,0);
+
+						IF(ISNULL(@PartUnitSalePrice,0) > 0)
+						BEGIN
+							SET @PartMarginPercentage = (ISNULL(@PartMarginAmount,0) / ISNULL(@PartUnitSalePrice,0)) * 100
+						END
+						ELSE
+						BEGIN
+							SET @PartMarginPercentage = 0;
+						END
+
+						SET @PartSalesPriceExtended = ISNULL(@PartUnitSalePrice,0) * ISNULL(@PartQty,0);
 				
-					--Update SO Part While Create Stockline On Reserve
-					UPDATE [dbo].[SalesOrderPartV1]
-					SET QtyReserved = @QtyToReserve
-					WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @PartSalesOrderPartId;
+						--Update SO Part While Create Stockline On Reserve
+						UPDATE [dbo].[SalesOrderPartV1]
+						SET QtyReserved = @QtyToReserve
+						WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @PartSalesOrderPartId;
 
-					-- Added at Stockline Level
-					INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
-					SELECT @PartSalesOrderPartId, STK.StockLineId, @ConditionId, @QtyToReserve, @QtyToReserve, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
-					FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
+						-- Added at Stockline Level
+						INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+						SELECT @PartSalesOrderPartId, STK.StockLineId, @ConditionId, @QtyToReserve, @QtyToReserve, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+						FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
-					SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
+						SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
-					INSERT INTO [dbo].[SalesOrderStockLineCost] ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
-					[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
-					[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+						INSERT INTO [dbo].[SalesOrderStockLineCost] ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
+						[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
+						[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 				
-					SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, 0, 0, 0,
-					@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, 0, 0, 
-					@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
-					FROM [DBO].[StockLine] Stkl 
-					WHERE Stkl.StockLineId = @StockLineId;
+						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, 0, 0, 0,
+						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, 0, 0, 
+						@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+						FROM [DBO].[StockLine] Stkl 
+						WHERE Stkl.StockLineId = @StockLineId;
 
-					EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;
+					END
 				END
 				ELSE
 				BEGIN 
@@ -363,61 +386,69 @@ BEGIN
 			BEGIN
 				IF(ISNULL(@SalesOrderPartId,0) > 0)
 				BEGIN
-					--Get Part Data
-					SELECT @PartQty = SOP.QtyOrder 
-						FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
-						WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
-						AND SOP.ConditionId = @ConditionId;
+					DECLARE @ReservedQty BIGINT = 0;
 
-					--For Reserve
-					IF(@ReserveStatusId = @PartStatusId)
+					SELECT @ReservedQty = SOS.QtyReserved FROM DBO.SalesOrderStocklineV1 SOS WITH (NOLOCK) WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StockLineId = @StockLineId;
+
+					IF (ISNULL(@ReservedQty, 0) > 0)
 					BEGIN
-						SET @ReservePartQtyToReserve = ISNULL(@QtyToReserve,0);
-						SET @ReservePartTotalReserved = ISNULL(@QtyToReserve,0);
+						--Get Part Data
+						SELECT @PartQty = SOP.QtyOrder 
+							FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
+							WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
+							AND SOP.ConditionId = @ConditionId;
 
-						IF((ISNULL(@PartQty,0) >= 0) AND (@QtyToReserve = ISNULL(@PartQty,0)))
+						--For Reserve
+						IF(@ReserveStatusId = @PartStatusId)
 						BEGIN
-							--Update Part Status to fulfilled
-							UPDATE [DBO].[SalesOrderPartV1] SET StatusId = @SOPartStatusFulFill WHERE SalesOrderPartId = @SalesOrderPartId;
+							SET @ReservePartQtyToReserve = ISNULL(@QtyToReserve,0);
+							SET @ReservePartTotalReserved = ISNULL(@QtyToReserve,0);
+
+							IF((ISNULL(@PartQty,0) >= 0) AND (@QtyToReserve = ISNULL(@PartQty,0)))
+							BEGIN
+								--Update Part Status to fulfilled
+								UPDATE [DBO].[SalesOrderPartV1] SET StatusId = @SOPartStatusFulFill WHERE SalesOrderPartId = @SalesOrderPartId;
+							END
 						END
-					END
 
-					--For Unreserve
-					IF(@UnReserveStatusId = @PartStatusId)
-					BEGIN
-						SET @ReservePartQtyToReserve = ISNULL(@QtyToUnReserve,0);
-						SET @ReservePartTotalReserved = ISNULL(@QtyToUnReserve,0);
-
-						IF(ISNULL(@PartQty,0) >= 0)
+						--For Unreserve
+						IF(@UnReserveStatusId = @PartStatusId)
 						BEGIN
-							--Update Part Status to open
-							UPDATE [DBO].[SalesOrderPartV1] SET StatusId = @SOPartStatus WHERE SalesOrderPartId = @SalesOrderPartId;
+							SET @ReservePartQtyToReserve = ISNULL(@QtyToUnReserve,0);
+							SET @ReservePartTotalReserved = ISNULL(@QtyToUnReserve,0);
+
+							IF(ISNULL(@PartQty,0) >= 0)
+							BEGIN
+								--Update Part Status to open
+								UPDATE [DBO].[SalesOrderPartV1] SET StatusId = @SOPartStatus WHERE SalesOrderPartId = @SalesOrderPartId;
+							END
 						END
-					END
 
-					--Add Reserve Part into SalesOrderReserveParts
-					INSERT INTO [DBO].[SalesOrderReserveParts](SalesOrderId,StockLineId,ItemMasterId,PartStatusId,IsEquPart,EquPartMasterPartId,
-								   IsAltPart,AltPartMasterPartId,QtyToReserve,QtyToIssued,ReservedById,ReservedDate,
-								   IssuedById,IssuedDate,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,
-								   IsActive,IsDeleted,SalesOrderPartId,TotalReserved,TotalIssued,MasterCompanyId)
-					SELECT @SalesOrderId,@StockLineId,@ItemMasterId,@PartStatusId,0,NULL,
-						   0,NULL,@ReservePartQtyToReserve,0,@ReservedById,@ReservedDate,
-						   0,NULL,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),
-						   1,0,@SalesOrderPartId,@ReservePartTotalReserved,0,@MasterCompanyId;
 
-					IF(@ReserveStatusId = @PartStatusId)
-					BEGIN
-						UPDATE DBO.Stockline
-						SET QuantityAvailable = QuantityAvailable - @ReservePartQtyToReserve,
-						QuantityReserved = QuantityReserved + @ReservePartQtyToReserve
-						WHERE StockLineId = @StockLineId;
-					END
-					ELSE IF(@UnReserveStatusId = @PartStatusId)
-					BEGIN
-						UPDATE DBO.Stockline
-						SET QuantityAvailable = QuantityAvailable + @ReservePartQtyToReserve,
-						QuantityReserved = QuantityReserved - @ReservePartQtyToReserve
-						WHERE StockLineId = @StockLineId;
+						--Add Reserve Part into SalesOrderReserveParts
+						INSERT INTO [DBO].[SalesOrderReserveParts](SalesOrderId,StockLineId,ItemMasterId,PartStatusId,IsEquPart,EquPartMasterPartId,
+									   IsAltPart,AltPartMasterPartId,QtyToReserve,QtyToIssued,ReservedById,ReservedDate,
+									   IssuedById,IssuedDate,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,
+									   IsActive,IsDeleted,SalesOrderPartId,TotalReserved,TotalIssued,MasterCompanyId)
+						SELECT @SalesOrderId,@StockLineId,@ItemMasterId,@PartStatusId,0,NULL,
+							   0,NULL,@ReservePartQtyToReserve,0,@ReservedById,@ReservedDate,
+							   0,NULL,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),
+							   1,0,@SalesOrderPartId,@ReservePartTotalReserved,0,@MasterCompanyId;
+
+						IF(@ReserveStatusId = @PartStatusId)
+						BEGIN
+							UPDATE DBO.Stockline
+							SET QuantityAvailable = QuantityAvailable - @ReservePartQtyToReserve,
+							QuantityReserved = QuantityReserved + @ReservePartQtyToReserve
+							WHERE StockLineId = @StockLineId;
+						END
+						ELSE IF(@UnReserveStatusId = @PartStatusId)
+						BEGIN
+							UPDATE DBO.Stockline
+							SET QuantityAvailable = QuantityAvailable + @ReservePartQtyToReserve,
+							QuantityReserved = QuantityReserved - @ReservePartQtyToReserve
+							WHERE StockLineId = @StockLineId;
+						END
 					END
 				END
 			END

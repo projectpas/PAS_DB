@@ -13,8 +13,9 @@
  ** --   --------     -------			--------------------------------          
     1    09/26/2024   Vishal Suthar     Created
     2    11/11/2024   Vishal Suthar     Modified to fix Qty available and Qty OH
+    3    11/15/2024   Vishal Suthar     Modified to fix Qty shipped
      
--- EXEC [DBO].[GetSalesOrderPartView] 1283
+-- EXEC [DBO].[GetSalesOrderPartView] 1323
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT
@@ -138,8 +139,10 @@ BEGIN
 		ELSE
 			(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
 		END QuantityOnHand,
-		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
-		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
+		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
+		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
+		LEFT JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SOPickTicketId = sosi.SOPickTicketId
+		WHERE sos.SalesOrderId = @SalesOrderId AND sopt.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
 		(SELECT SUM(sobi.NoofPieces) FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) qtyInvoiced,
 		(SELECT TOP 1 sob.InvoiceDate FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId

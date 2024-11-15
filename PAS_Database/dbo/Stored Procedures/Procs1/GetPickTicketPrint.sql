@@ -20,8 +20,9 @@
 	4    09/25/2023	  Devendra SHekh		PICKTICKET issue resolved
 	5    11/08/2023   Amit Ghediya          pick ticket issue for multipele part resolved
 	6    10/15/2024   Vishal Suthar			Modified SP to get Pick ticket print data from new SO Part tables
+	7    11/15/2024   Vishal Suthar			Fixed issue with populating list of stockline in Pick Ticket Print
      
--- -- EXEC [dbo].[GetPickTicketPrint] 503, 747, 290
+-- -- EXEC [dbo].[GetPickTicketPrint] 1318, 1574, 867
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPickTicketPrint]
 	@SalesOrderId bigint,
@@ -73,10 +74,10 @@ BEGIN
 		WHEN MinQty > 0 THEN MinQty ELSE sopt.QtyRemaining END AS QtyRemaining
 		from SOPickTicket sopt WITH(NOLOCK)
 		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
-		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
-		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+		INNER JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
+		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
 		INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
+		INNER JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
 		INNER JOIN ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) ON co.ConditionId = sop.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId

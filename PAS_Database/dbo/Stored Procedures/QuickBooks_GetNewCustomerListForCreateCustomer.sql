@@ -12,10 +12,11 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    04-July-2024   Hemant Saliya	Created
+	2    18-NOV-2024    Devendra Shekh	Modified(Added fields to select)
      
- EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
+ EXECUTE [QuickBooks_GetNewCustomerListForCreateCustomer] 1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[QuickBooks_GetNewCustomerListForCreateCustomer]
+CREATE   PROCEDURE [dbo].[QuickBooks_GetNewCustomerListForCreateCustomer]
 	@IntegrationTypeId INT = NULL
 AS
 BEGIN
@@ -42,13 +43,15 @@ BEGIN
 					CON.Notes,
 					CON.Tag,
 					UPPER(AD.AddressId) AS AddressId,
-					UPPER(AD.Line1) + ' ' + UPPER(AD.Line2) + ' ' + UPPER(AD.Line3) AS AddressLine1,
+					UPPER(AD.Line1) AS AddressLine1,
+					UPPER(AD.Line2) AS AddressLine2,
 					UPPER(AD.City) AS City,
 					UPPER(AD.StateOrProvince) StateOrProvince,
 					AD.PostalCode,
 					AD.CountryId,
 					UPPER(CT.countries_name) Country,
-					C.UpdatedBy
+					C.UpdatedBy,
+					ISNULL(C.CustomerURL, '') AS CustomerURL
 			FROM dbo.Customer C WITH(NOLOCK) 
 				JOIN dbo.CustomerContact CO WITH(NOLOCK) ON C.CustomerId = CO.CustomerId AND CO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId

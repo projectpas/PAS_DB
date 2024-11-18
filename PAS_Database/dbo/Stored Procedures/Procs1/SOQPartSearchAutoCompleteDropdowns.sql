@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			-------------------------------          
     1	 06/13/2024  Vishal Suthar		Increased reasult set limit from 20 to 50
+	2	 11/18/2024  AMIT GHEDIYA		Updated serach with same text.
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -78,7 +79,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
@@ -102,7 +103,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
         END
 			
@@ -127,7 +128,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
         END
 
@@ -151,7 +152,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
 		END 
 
@@ -175,7 +176,7 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
 		END 
 

@@ -392,6 +392,13 @@ BEGIN
 
 			SELECT @InsertedReservePartId = SCOPE_IDENTITY();
 
+			UPDATE SOPSTK
+			SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
+			FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
+			INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
+			WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
+
 			SELECT @ReservedQty = QtyToReserve FROM DBO.SalesOrderReserveParts WITH (NOLOCK) WHERE SalesOrderReservePartId = @InsertedReservePartId;
 
 			UPDATE DBO.Stockline 

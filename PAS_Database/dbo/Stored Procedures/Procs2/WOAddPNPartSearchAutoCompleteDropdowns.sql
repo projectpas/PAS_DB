@@ -15,8 +15,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    17/11/2021   Hemant Saliya Created
-	2    20/03/2023  Amit Ghediya   Update Length of #tempTable label 50 to 256
+    1    17/11/2021   Hemant Saliya  Created
+	2    20/03/2023   Amit Ghediya   Update Length of #tempTable label 50 to 256
+	3	 18/11/2024   Amit Ghediya	 Updated serach with same text.
      
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
@@ -82,7 +83,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 		--FOR PMA
 		IF( @RestrictPMA <> 1	)
@@ -104,7 +105,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
         END
 		
@@ -128,7 +129,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.IsDeleted = 0
 			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 			AND im.MasterCompanyId = @MasterCompanyId
-			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
         END
 
@@ -156,7 +157,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.IsDeleted = 0
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
-		--	AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 		--END 
 
 		--IF( @IncludeDER = 1)
@@ -183,7 +184,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.IsDeleted = 0
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
-		--	AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 		--END 
 		
 		INSERT INTO #Result 

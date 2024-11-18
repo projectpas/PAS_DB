@@ -17,17 +17,8 @@
     1    08/10/2024   AMIT GHEDIYA		Created
 
 declare @p1 dbo.SalesOrderReserveIssueParts
-insert into @p1 values(NULL,1325,1593,182323,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9162469',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000272',N'CNTL-000345',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9162452','2024-11-15 10:04:33.9162452',1,0)
-insert into @p1 values(NULL,1325,1593,182495,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9162501',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000282',N'CNTL-000480',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9162497','2024-11-15 10:04:33.9162497',1,0)
-insert into @p1 values(NULL,1325,1593,181901,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167376',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000256',N'CNTL-000277',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167364','2024-11-15 10:04:33.9167364',1,0)
-insert into @p1 values(NULL,1325,1593,181902,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167430',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000257',N'CNTL-000278',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167426','2024-11-15 10:04:33.9167426',1,0)
-insert into @p1 values(NULL,1325,1593,181903,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167453',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000258',N'CNTL-000279',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167450','2024-11-15 10:04:33.9167450',1,0)
-insert into @p1 values(NULL,1325,1593,181904,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167489',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000259',N'CNTL-000280',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167486','2024-11-15 10:04:33.9167486',1,0)
-insert into @p1 values(NULL,1325,1593,181905,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167679',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000260',N'CNTL-000281',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167673','2024-11-15 10:04:33.9167673',1,0)
-insert into @p1 values(NULL,1325,1593,181906,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167713',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000261',N'CNTL-000282',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167710','2024-11-15 10:04:33.9167710',1,0)
-insert into @p1 values(NULL,1325,1593,181907,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167744',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000262',N'CNTL-000283',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167741','2024-11-15 10:04:33.9167741',1,0)
-insert into @p1 values(NULL,1325,1593,181908,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167782',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000263',N'CNTL-000284',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167778','2024-11-15 10:04:33.9167778',1,0)
-insert into @p1 values(NULL,1325,1593,181909,3,N'0856AE15',N'PITOT STATIC TUBE',NULL,NULL,0,NULL,NULL,0,1,1,9,N'AR',0,NULL,3,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-15 10:04:33.9167815',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000264',N'CNTL-000285',3,N'ROSEMOUNT AEROSPACE',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-15 10:04:33.9167812','2024-11-15 10:04:33.9167812',1,0)
+insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
+insert into @p1 values(NULL,1357,1629,161083,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,39,33,2,N'OH',0,NULL,50,3,NULL,0,NULL,33,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864063',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000003',N'CNTL-001277',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864060','2024-11-18 13:51:53.2864060',1,0)
 
 exec dbo.SalesOrderReserveUnReserveParts @tbl_SalesOrderReserveIssueParts=@p1
 **************************************************************/
@@ -198,7 +189,11 @@ BEGIN
 					@CustomerRequestDate AS Datetime2(7),
 					@PromisedDate AS Datetime2(7),
 					@EstimatedShipDate AS Datetime2(7),
-					@InsertedSalesOrderStocklineId BIGINT;
+					@InsertedSalesOrderStocklineId BIGINT,
+					@PartMarkUpPercentage DECIMAL(18,2) = 0,
+					@PartMarkUpAmount DECIMAL(18,2) = 0,
+					@PartDiscountPercentage DECIMAL(18,2) = 0,
+					@PartDiscountAmount DECIMAL(18,2) = 0;
 
 			--If Part Status is Reserve
 			IF(@ReserveStatusId = @PartStatusId)
@@ -222,8 +217,11 @@ BEGIN
 					       @PartSalesOrderPartId = SOP.SalesOrderPartId,
 					       @CustomerRequestDate = SOP.CustomerRequestDate,
 					       @PromisedDate = SOP.PromisedDate,
-					       @EstimatedShipDate = SOP.EstimatedShipDate
-					       --@PartSalesPriceExtended = SOPC.UnitSalesPriceExtended
+					       @EstimatedShipDate = SOP.EstimatedShipDate,
+					       @PartMarkUpPercentage = SOPC.MarkUpPercentage,
+					       @PartMarkUpAmount = SOPC.MarkUpAmount,
+					       @PartDiscountPercentage = SOPC.DiscountPercentage,
+					       @PartDiscountAmount = SOPC.DiscountAmount
 					FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					LEFT JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.SalesOrderId = SOP.SalesOrderId
 					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
@@ -269,8 +267,8 @@ BEGIN
 						[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
 						[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 				
-						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, 0, 0, 0,
-						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, 0, 0, 
+						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, @PartMarkUpPercentage, @PartMarkUpAmount, 0,
+						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, @PartDiscountPercentage, @PartDiscountAmount, 
 						@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 						FROM [DBO].[StockLine] Stkl 
 						WHERE Stkl.StockLineId = @StockLineId;
@@ -298,7 +296,8 @@ BEGIN
 						WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @PartSalesOrderPartId;
 
 						UPDATE [dbo].[SalesOrderStocklineV1]
-						SET QtyReserved = @QtyToReserve
+						SET QtyReserved = @QtyToReserve,
+						QtyOrder = @QtyToReserve
 						WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
 
 						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;

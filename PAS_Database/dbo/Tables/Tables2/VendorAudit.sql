@@ -52,6 +52,7 @@
     [QuickBooksReferenceId]   VARCHAR (256)   NULL,
     [IsUpdated]               BIT             NULL,
     [LastSyncDate]            DATETIME2 (7)   NULL,
+    [SyncToken]               VARCHAR (200)   NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );

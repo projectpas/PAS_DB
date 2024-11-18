@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    04-July-2024   Hemant Saliya	Created
+    2    12-Nov-2024   Devendra Shekh	Modified (Update AccountingIntegrationSettings LastRun, UpdatedDate)
      
  EXECUTE [QuickBooks_GetVendorListForUpdateVendor] 1
 **************************************************************/ 
@@ -35,19 +36,24 @@ BEGIN
 					CON.Prefix,
 					CON.Suffix,
 					CON.Email,
-					CON.WorkPhone AS CustomerPhone,
+					CON.WorkPhone AS VendorPhone,
 					V.VendorEmail As Email,
 					CON.ContactTitle,
 					CON.Fax, 
 					CON.Notes,
 					CON.Tag,
 					UPPER(AD.AddressId) AS AddressId,
-					UPPER(AD.Line1) + ' ' + UPPER(AD.Line2) + ' ' + UPPER(AD.Line3) AS AddressLine1,
+					UPPER(AD.Line1) AS AddressLine1,
+					UPPER(AD.Line2) AS AddressLine2,
 					UPPER(AD.City) AS City,
 					UPPER(AD.StateOrProvince) StateOrProvince,
 					AD.PostalCode,
 					AD.CountryId,
-					UPPER(CT.countries_name) Country
+					UPPER(CT.countries_name) Country,
+					ISNULL(V.VendorURL, '') AS VendorURL,
+					V.MasterCompanyId,
+					V.UpdatedBy,
+					ISNULL(V.SyncToken, '0') AS SyncToken
 			FROM dbo.Vendor V WITH(NOLOCK) 
 				JOIN dbo.VendorContact VO WITH(NOLOCK) ON V.VendorId = VO.VendorId AND VO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON VO.ContactId = CON.ContactId

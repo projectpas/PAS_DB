@@ -10,6 +10,7 @@
  ** PR   Date			  Author					Change Description            
  ** --   --------		 -------					--------------------------------          
     1    08/07/2024		 Devendra Shekh				Created
+    2    11/18/2024		 Devendra Shekh				Modified (handled null value for @ARConditionId)
      
 EXECUTE USP_GetWorkOrdMaterialsStocklineListForReserve 3847,0,0,3399,0
 
@@ -147,6 +148,7 @@ SET NOCOUNT ON
 				SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 				SELECT @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId;
 				SELECT @WOPartNOId = WorkOrderPartNoId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND MasterCompanyId = @MasterCompanyId;
+				SET @ARConditionId = ISNULL(@ARConditionId,0);
 
 				IF(@ItemMasterId = 0)
 				BEGIN

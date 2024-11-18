@@ -10,6 +10,7 @@
  ** PR   Date			  Author					Change Description            
  ** --   --------		 -------					--------------------------------          
     1    08/09/2024		 Devendra Shekh				Created
+	2    11/18/2024		 Devendra Shekh				Modified (handled null value for @ARConditionId)
      
 
 exec dbo.USP_GetSubWOMaterialStocklineListForManualReserve @PageNumber=1,@PageSize=20,@SortColumn=default,@SortOrder=1,@SubWOPartNoId=335,@ItemMasterId=0,@SubWorkOrderMaterialsId=0,@KitId=3399,@IncludeCustomerStock=0
@@ -148,6 +149,7 @@ SET NOCOUNT ON
 					JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) on SWOPN.SubWorkOrderId = SWO.SubWorkOrderId WHERE SWOPN.SubWOPartNoId = @subWOPartNoId;
 
 				SELECT @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId;
+				SET @ARConditionId = ISNULL(@ARConditionId,0);
 
 				IF(@ItemMasterId = 0)
 				BEGIN

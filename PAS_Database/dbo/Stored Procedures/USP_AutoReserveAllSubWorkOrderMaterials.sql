@@ -13,6 +13,7 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ** 2    06/27/2024		 HEMANT SALIYA			Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 3    08/05/2024       HEMANT SALIYA			Fixed MTI stk Reserve Qty was not updating
 ** 4    10/08/2024       RAJESH GAMI 	        Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
+** 5    11/18/2024		 Devendra Shekh			Modified (handled null value for @ARConditionId)
 
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 **************************************************************/ 
@@ -71,6 +72,7 @@ BEGIN
 					WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
 
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+					SET @ARConditionId = ISNULL(@ARConditionId,0);
 
 					DECLARE @count INT;
 					DECLARE @count1 INT;

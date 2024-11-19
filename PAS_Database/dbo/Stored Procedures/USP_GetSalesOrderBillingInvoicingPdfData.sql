@@ -153,7 +153,7 @@ BEGIN
 			bi.BillToUserType,
 			ShippingTerms = posv.ShippingTerms,
 			FunctionalCurrency = scur.Code,
-			SignEmpName = ISNULL(emps.FirstName,'') + ISNULL(emps.LastName,''),
+			SignEmpName = ISNULL(emps.FirstName,'') + ' ' + ISNULL(emps.LastName,''),
 			SignEmpTitle = ISNULL(jt.Description,''),
 			SignEmpDate = bi.SignEmpDate,
 			OriginCountry = originco.countries_name,

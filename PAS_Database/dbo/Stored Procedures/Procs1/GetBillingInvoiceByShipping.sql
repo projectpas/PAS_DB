@@ -64,7 +64,7 @@ SET NOCOUNT ON;
 					so.TypeId, sotype.[Name] as RevType, sosi.QtyShipped as NoofPieces,
 					sos.OriginCountryId, 
 					sos.ShipToCountryId, 
-					imei.ExportECCN + '/' + imei.HSCode AS HSECCN,
+					imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
 					sos.[Weight], 
 					sos.ShipSizeLength AS BillSizeLength,
 					sos.ShipSizeWidth AS BillSizeWidth,
@@ -93,7 +93,8 @@ SET NOCOUNT ON;
 					so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) as NoofPieces,
 					sobi.OriginCountryId AS OriginCountryId, 
 					sobi.ShipToCountryId AS ShipToCountryId, 
-					sobi.HSECCN AS HSECCN,
+					--sobi.HSECCN AS HSECCN,
+					imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
 					sobi.[Weight] AS [Weight], 
 					sobi.BillSizeLength AS BillSizeLength,
 					sobi.BillSizeWidth AS BillSizeWidth,
@@ -112,6 +113,8 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0
 				LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0
+				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
+				LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
 				WHERE sop.SalesOrderPartId = @SalesOrderPartId;
 			END
 		END

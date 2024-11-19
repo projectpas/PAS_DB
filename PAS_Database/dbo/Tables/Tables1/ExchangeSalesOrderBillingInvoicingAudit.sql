@@ -50,6 +50,10 @@
     [BillingId]                           BIGINT          DEFAULT ((0)) NOT NULL,
     [CreditMemoUsed]                      DECIMAL (18, 2) NULL,
     [RemainingAmount]                     DECIMAL (18, 2) NULL,
+    [QuickBooksReferenceId]               VARCHAR (200)   NULL,
+    [IsUpdated]                           BIT             NULL,
+    [LastSyncDate]                        DATETIME2 (7)   NULL,
+    [SyncToken]                           VARCHAR (200)   NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC)
 );
 

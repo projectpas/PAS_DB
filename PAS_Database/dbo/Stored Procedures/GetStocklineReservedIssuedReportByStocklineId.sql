@@ -13,6 +13,7 @@
  ** --   --------     -------			--------------------------------              
     1    07-Nov-2024   RAJESH GAMI		CREATED 
 	2    18-Nov-2024   RAJESH GAMI		Remove the partId condition from the SORervervation table join and some other required changes
+	3    19-Nov-2024   RAJESH GAMI		Implemented BulkAdjustments
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 182349,1,1
 **************************************************************/    
 CREATE  PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]

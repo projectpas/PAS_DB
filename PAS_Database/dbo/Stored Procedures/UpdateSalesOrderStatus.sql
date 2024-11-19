@@ -24,14 +24,17 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		DECLARE @SoPartDataCount BIGINT,
+		BEGIN TRANSACTION  
+			DECLARE @SoPartDataCount BIGINT,
 				@SoShippingCount BIGINT,
 				@SalesOrderShippingId BIGINT,
-				@SoShippingItemCount BIGINT;
+				@SoShippingItemCount BIGINT,
+				@SOBillingInvoicingId BIGINT,
+				@SoBillingItemCount BIGINT;
 
-		SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+			SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
 
-		IF(ISNULL(@IsFromShipping,0) > 0)
+			IF(ISNULL(@IsFromShipping,0) > 0)
 		BEGIN
 			IF(ISNULL(@SoPartDataCount,0) > 0)
 			BEGIN				
@@ -65,11 +68,22 @@ BEGIN
 		BEGIN
 			IF(ISNULL(@SoPartDataCount,0) > 0)
 			BEGIN
-				 SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderbilling] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+				 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+
+				 --Check for multiple billing
+				SELECT @SoBillingItemCount = COUNT([SOBillingInvoicingId]) FROM [DBO].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SOBillingInvoicingId;
+				IF(ISNULL(@SoBillingItemCount,0) = ISNULL(@SoPartDataCount,0))
+				BEGIN
+					 UPDATE [DBO].[SalesOrder]
+					 SET StatusId = @SalesOrderStatus
+					 WHERE SalesOrderId = @SalesOrderId;
+				END
 			END
 		END
 
-		SELECT [SalesOrderId] AS [value] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId
+			SELECT [SalesOrderId] AS [value] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId
+	
+		COMMIT TRANSACTION
 	END TRY 
 	BEGIN CATCH      
 		IF @@trancount > 0

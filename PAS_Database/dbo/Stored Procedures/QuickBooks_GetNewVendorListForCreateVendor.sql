@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    27-AUG-2024   Hemant Saliya	Created
+    2    18-NOV-2024   Devendra Shekh	Modified(Added fields to select)
      
  EXECUTE [QuickBooks_GetNewVendorListForCreateVendor] 1
 **************************************************************/ 
@@ -42,13 +43,15 @@ BEGIN
 					CON.Notes,
 					CON.Tag,
 					UPPER(AD.AddressId) AS AddressId,
-					UPPER(AD.Line1) + ' ' + UPPER(AD.Line2) + ' ' + UPPER(AD.Line3) AS AddressLine1,
+					UPPER(AD.Line1) AS AddressLine1,
+					UPPER(AD.Line2) AS AddressLine2,
 					UPPER(AD.City) AS City,
 					UPPER(AD.StateOrProvince) StateOrProvince,
 					AD.PostalCode,
 					AD.CountryId,
 					UPPER(CT.countries_name) Country,
-					V.UpdatedBy
+					V.UpdatedBy,
+					ISNULL(V.VendorURL, '') AS VendorURL
 			FROM dbo.Vendor V WITH(NOLOCK) 
 				JOIN dbo.VendorContact CO WITH(NOLOCK) ON V.VendorId = CO.VendorId AND CO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId

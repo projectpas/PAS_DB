@@ -1,0 +1,107 @@
+﻿/*************************************************************           
+ ** File:   [UpdateSalesOrderStatus]           
+ ** Author:  AMIT GHEDIYA
+ ** Description: This stored procedure is used to update Sales Order status Shipped/Invoiced
+ ** Purpose:         
+ ** Date:   19-11-2024
+ ** PARAMETERS: @SalesOrderId BIGINT
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    19-11-2024   AMIT GHEDIYA		Created
+
+-- EXEC [UpdateSalesOrderStatus] 1316,11,1
+************************************************************************/
+CREATE     PROCEDURE [dbo].[UpdateSalesOrderStatus]
+	@SalesOrderId BIGINT,
+	@SalesOrderStatus BIGINT,
+	@IsFromShipping BIT = 0
+AS
+BEGIN
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	SET NOCOUNT ON;
+	BEGIN TRY
+		BEGIN TRANSACTION  
+			DECLARE @SoPartDataCount BIGINT,
+				@SoShippingCount BIGINT,
+				@SalesOrderShippingId BIGINT,
+				@SoShippingItemCount BIGINT,
+				@SOBillingInvoicingId BIGINT,
+				@SoBillingItemCount BIGINT;
+
+			SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+
+			IF(ISNULL(@IsFromShipping,0) > 0)
+		BEGIN
+			IF(ISNULL(@SoPartDataCount,0) > 0)
+			BEGIN				
+				SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+
+				--Check for multiple shipping
+				SELECT @SoShippingItemCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] = @SalesOrderShippingId;
+				IF(ISNULL(@SoShippingItemCount,0) = ISNULL(@SoPartDataCount,0))
+				BEGIN
+					 UPDATE [DBO].[SalesOrder]
+					 SET StatusId = @SalesOrderStatus
+					 WHERE SalesOrderId = @SalesOrderId;
+				END
+				ELSE
+				BEGIN
+					SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+					IF(ISNULL(@SoShippingCount,0) > 0)
+					BEGIN
+						--Check is all shipped or not
+						IF(ISNULL(@SoPartDataCount,0) = ISNULL(@SoShippingCount,0))
+						BEGIN
+							UPDATE [DBO].[SalesOrder]
+							SET StatusId = @SalesOrderStatus
+							WHERE SalesOrderId = @SalesOrderId;
+						END
+					END
+				END
+			END
+		END
+		ELSE
+		BEGIN
+			IF(ISNULL(@SoPartDataCount,0) > 0)
+			BEGIN
+				 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+
+				 --Check for multiple billing
+				SELECT @SoBillingItemCount = COUNT([SOBillingInvoicingId]) FROM [DBO].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SOBillingInvoicingId;
+				IF(ISNULL(@SoBillingItemCount,0) = ISNULL(@SoPartDataCount,0))
+				BEGIN
+					 UPDATE [DBO].[SalesOrder]
+					 SET StatusId = @SalesOrderStatus
+					 WHERE SalesOrderId = @SalesOrderId;
+				END
+			END
+		END
+
+			SELECT [SalesOrderId] AS [value] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId
+	
+		COMMIT TRANSACTION
+	END TRY 
+	BEGIN CATCH      
+		IF @@trancount > 0
+		PRINT 'ROLLBACK'
+				ROLLBACK TRANSACTION;
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'UpdateSalesOrderStatus' 
+              , @ProcedureParameters VARCHAR(3000)  = '@SalesOrderId = '''+ CAST(ISNULL(@SalesOrderId, '') AS varchar(100))													
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+              exec spLogException 
+                       @DatabaseName           = @DatabaseName
+                     , @AdhocComments          = @AdhocComments
+                     , @ProcedureParameters	   = @ProcedureParameters
+                     , @ApplicationName        =  @ApplicationName
+                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+	END CATCH
+END

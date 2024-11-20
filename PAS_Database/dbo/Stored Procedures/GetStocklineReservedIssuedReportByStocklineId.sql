@@ -13,9 +13,10 @@
  ** --   --------     -------			--------------------------------              
     1    07-Nov-2024   RAJESH GAMI		CREATED 
 	2    18-Nov-2024   RAJESH GAMI		Remove the partId condition from the SORervervation table join and some other required changes
+	3    19-Nov-2024   RAJESH GAMI		Implemented BulkAdjustments
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 182349,1,1
 **************************************************************/    
-CREATE     PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]
+CREATE  PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]
 @StocklineId BIGINT,
 @DisplayType INT NULL,
 @MasterCompanyId INT NULL
@@ -24,7 +25,8 @@ BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
-	  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder',  @ROModule varchar(50) = 'RepairOrder',  @ExchangeModule varchar(50) = 'Exchange',  @RMAModule varchar(50) = 'RMA';
+	  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder',
+	  @ROModule varchar(50) = 'RepairOrder',  @ExchangeModule varchar(50) = 'Exchange',  @RMAModule varchar(50) = 'RMA',  @BulkAdjModule varchar(50) = 'BulkAdjustments';
       DECLARE @RecordFrom INT;
 	  DECLARE @Total int;
 	  DECLARE @Count INT;
@@ -36,7 +38,7 @@ BEGIN
 	  DECLARE @RMAShipToVendor INT;
 	  DECLARE @RMAReplaced INT;
 	  DECLARE @RMARefunded INT;
-	  DECLARE @RMACancel INT;
+	  DECLARE @RMACancel INT, @AdjPostedStatusId INT;
 	  SET @WOCloseStatusId = (SELECT Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE Description = 'Closed')
 	  SET @ROClosedStatusId = (SELECT ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
 	  SET @ExchClosedStatusId = (SELECT ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
@@ -46,7 +48,7 @@ BEGIN
 	  SET @RMAReplaced = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Replaced')
 	  SET @RMARefunded = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Refunded')
 	  SET @RMACancel = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Canceled')
-	  	  	
+	  SET @AdjPostedStatusId =(SELECT TOP 1 Id FROM StocklineAdjustmentstatus where [Name]='Posted')
 	BEGIN TRY 
 	BEGIN
 	 IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL      
@@ -364,8 +366,45 @@ BEGIN
 					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
 					AND ISNULL(ESO.IsDeleted,0) = 0 
 					AND ISNULL(SSTL.QtyReserved,0) > 0 
-			
 				--* END: SalesOrder For Reserve *--
+
+				--* START: Stockline Bulk Adjustment For Reserve *--
+				
+				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  ReservationDate,ReservedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+					SELECT
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					SSTL.NewQty,
+					0 ,
+					@BulkAdjModule AS Module,
+					ESO.BulkStkLineAdjNumber,				
+					SSTL.UpdatedDate  ReservationDate,
+					SSTL.UpdatedBy  as ReservedBy,
+					ISNULL(SL.Quantity,0) as Quantity,
+					ISNULL(SL.QuantityOnHand,0) as QuantityOnHand,
+					ISNULL(SL.QuantityAvailable,0) as QuantityAvailable,
+					SL.[Location] as [Location],
+					SL.SerialNumber SerialNumber,
+					'' as Comments,
+					ESO.BulkStkLineAdjId as ReferenceId,
+					SL.Manufacturer,
+					SSTL.UpdatedDate  ReservedIssuedDate,
+					SSTL.UpdatedBy as ReservedIssuedBy,
+					SL.QuantityReserved,SL.QuantityIssued
+				FROM dbo.[BulkStockLineAdjustmentDetails] SSTL WITH(NOLOCK)
+					INNER JOIN [dbo].[BulkStockLineAdjustment] ESO WITH(NOLOCK) ON SSTL.BulkStkLineAdjId = ESO.BulkStkLineAdjId					
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SSTL.StockLineId
+					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
+					AND ISNULL(ESO.IsDeleted,0) = 0 
+					AND ISNULL(SSTL.NewQty,0) > 0
+					AND ESO.StatusId != @AdjPostedStatusId
+				--* END: Stockline Bulk Adjustment For Reserve *--
 		 END
 		 IF(@DisplayType = 1)
 		 BEGIN

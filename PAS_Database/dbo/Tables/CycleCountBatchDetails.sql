@@ -21,6 +21,10 @@
     [ReferenceNumber]            VARCHAR (50)  NOT NULL,
     [ReferenceDetailId]          BIGINT        NOT NULL,
     [MasterCompanyId]            INT           NOT NULL,
+    [LedgerId]                   BIGINT        NULL,
+    [AccountingCalendarId]       BIGINT        NULL,
     CONSTRAINT [PK_CycleCountBatchDetails] PRIMARY KEY CLUSTERED ([CycleCountBatchDetailId] ASC)
 );
+
+
 

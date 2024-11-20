@@ -15,7 +15,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    4	11/04/2024	Vishal Suthar	Modified to make use of new SO Part tables
    5	11/12/2024	Vishal Suthar	Fixed Qty, Unit Price and Total issue
 
-EXEC RPT_GetSalesOrderPartsView 1283
+EXEC RPT_GetSalesOrderPartsView 1381
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
@@ -32,7 +32,7 @@ BEGIN
 
 		SET @moduleId = (SELECT ModuleId FROM dbo.module WHERE CodePrefix = 'SO');
 
-		SELECT
+		SELECT DISTINCT
 			sp.SalesOrderId,
 			sp.SalesOrderPartId,
 			q.SalesOrderQuoteId,

@@ -19,7 +19,7 @@
 	3    10/15/2024   Vishal Suthar Modified SP to get Pick ticket list from new SO Part tables
 	4    11/12/2024   Vishal Suthar Modified to fix the Qty Available
      
--- EXEC [dbo].[sp_GetPickTicketApproveList] 1292
+-- EXEC [dbo].[sp_GetPickTicketApproveList] 1384
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
@@ -34,9 +34,12 @@ BEGIN
 		;WITH CTE AS (select DISTINCT 0 AS SalesOrderPartId, sop.ItemMasterId, sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		(SELECT TOP 1 QtyRequested FROM SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS Qty,
 		'' AS SerialNumber, 
-		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN SalesOrderStocklineV1 sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
-		AND sll.ItemMasterId = sop.ItemMasterId 
-		Where sp.StockLineId = stk.StockLIneId) AS QuantityAvailable,
+		(SELECT SUM(QuantityAvailable) FROM DBO.StockLine sll WITH(NOLOCK) 
+		--INNER JOIN DBO.SalesOrderStocklineV1 sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
+		Where sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId
+		--sp.StockLineId = stk.StockLIneId 
+		--AND sll.ItemMasterId = sop.ItemMasterId
+		) AS QuantityAvailable,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber 
 		,(SELECT SUM(SP.QtyToShip) FROM DBO.SOPickTicket SP WITH(NOLOCK)
 		INNER JOIN SalesOrder S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId

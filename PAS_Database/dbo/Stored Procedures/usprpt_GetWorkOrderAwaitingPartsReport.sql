@@ -182,16 +182,16 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 		)
 
 		INSERT INTO #tmpMultipleWOMStockline 
-		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
+		SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[TotalReserved], 0), ISNULL(WOM.[TotalIssued], 0)
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId
-		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
+		GROUP BY WOM.[WorkOrderMaterialsId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[TotalReserved], WOM.[TotalIssued];
 
 		INSERT INTO #tmpMultipleWOMStocklineKit
-		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[QuantityReserved], 0), ISNULL(WOM.[QuantityIssued], 0)
+		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], SUM(ISNULL(WOM.[Quantity], 0)), ISNULL(WOM.[TotalReserved], 0), ISNULL(WOM.[TotalIssued], 0)
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) 
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.ProvisionId = @ReplaceProvisionId
-		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[QuantityReserved], WOM.[QuantityIssued];
+		GROUP BY WOM.[WorkOrderMaterialsKitId], WOM.[WorkOrderId], WOM.[ItemMasterId],WOM.[ConditionCodeId], WOM.[TotalReserved], WOM.[TotalIssued];
 
 	INSERT INTO #AwaitingPartsData
 	SELECT DISTINCT 0 AS TotalRecordsCount,

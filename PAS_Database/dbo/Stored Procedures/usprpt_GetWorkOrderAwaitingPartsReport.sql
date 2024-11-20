@@ -387,7 +387,7 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 				APD.WorkOrderId,
 				APD.ItemMasterId,
 				APD.ConditionId,
-				GREATEST(0, ISNULL(MAX(POP.QuantityBackOrdered), 0)) AS Backlog
+				ISNULL(MAX(POP.QuantityBackOrdered), 0) AS Backlog
 			FROM 
 				DBO.PurchaseOrderPart POP WITH (NOLOCK)
 			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
@@ -613,7 +613,7 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 				APD.WorkOrderId,
 				APD.ItemMasterId,
 				APD.ConditionId,
-				GREATEST(0, ISNULL(MAX(POP.QuantityBackOrdered), 0)) AS Backlog
+				ISNULL(MAX(POP.QuantityBackOrdered), 0) AS Backlog
 			FROM 
 				DBO.PurchaseOrderPart POP WITH (NOLOCK)
 			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0

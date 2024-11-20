@@ -81,21 +81,6 @@ BEGIN
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-
-			--;WITH TaxResult AS(
-			--	SELECT	WOB.BillingInvoicingId,
-			--			ISNULL(WOB.SalesTax, 0) AS SalesTax,
-			--			ISNULL(WOB.OtherTax, 0) AS OtherTax,
-			--			ISNULL(SP.PercentValue, 0) AS SalesTaxPercent,
-			--			ISNULL(OP.PercentValue, 0) AS OtherTaxPercent,
-			--			WOBI.NoofPieces
-			--	FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK) 
-			--	INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOB WITH(NOLOCK) ON WOB.BillingInvoicingId = WOBI.BillingInvoicingId
-			--	LEFT JOIN [dbo].[Percent] SP WITH(NOLOCK) ON SP.PercentId = WOBI.TaxRate
-			--	LEFT JOIN [dbo].[Percent] OP WITH(NOLOCK) ON OP.PercentId = WOBI.OtherTax
-			--	GROUP BY WOB.BillingInvoicingId, WOB.SalesTax, WOB.OtherTax, SP.PercentValue, OP.PercentValue, WOBI.NoofPieces
-			--)
-			--;WITH InvoiceResult AS(
 			--Inserting Work Order Invoice Data
 			INSERT INTO #InvoiceResults ([InvoiceId], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 			[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 

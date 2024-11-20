@@ -133,11 +133,10 @@ SET NOCOUNT ON
 							SET UnitSalesPriceExtended = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
 							--NetSaleAmount = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
-							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount--, --(ISNULL(UnitSalesPrice, 0) * @StockLineQty),
-							--MarginAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0),
-							--MarginPercentage = CASE WHEN (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) > 0 THEN ((((ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0)) * 100) / (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges)) ELSE 0 END
+							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount, --(ISNULL(UnitSalesPrice, 0) * @StockLineQty),
+							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
+							MarginPercentage = ((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
 							WHERE SalesOrderQuotePartId = @SOQPartId AND SalesOrderQuoteStocklineId = @SOQStocklineId;
-
 
 							SET @MasterLoopID = @MasterLoopID - 1;
 						END

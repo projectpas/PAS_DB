@@ -267,8 +267,8 @@ BEGIN
 						[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
 						[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 				
-						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, @PartMarkUpPercentage, @PartMarkUpAmount, 0,
-						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, @PartDiscountPercentage, @PartDiscountAmount, 
+						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, @PartMarkUpPercentage, (@PartMarkUpAmount / @QtyRequested), 0,
+						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, @PartDiscountPercentage, (@PartDiscountAmount / @QtyRequested), 
 						@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 						FROM [DBO].[StockLine] Stkl 
 						WHERE Stkl.StockLineId = @StockLineId;

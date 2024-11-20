@@ -133,7 +133,9 @@ SET NOCOUNT ON
 							UPDATE DBO.SalesOrderStockLineCost
 							SET UnitSalesPriceExtended = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
-							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount--, --(ISNULL(UnitSalesPrice, 0) * @StockLineQty),
+							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount,
+							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
+							MarginPercentage = ((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
 							WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							SET @MasterLoopID = @MasterLoopID - 1;

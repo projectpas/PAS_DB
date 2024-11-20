@@ -36,7 +36,11 @@
     [Notes]                      NVARCHAR (MAX)  NULL,
     [MasterCompanyId]            INT             NULL,
     [CreatedBy]                  VARCHAR (100)   NULL,
-    [IsNoQuote]                  BIT             NULL);
+    [IsNoQuote]                  BIT             NULL,
+    [IsLotAssigned]              BIT             NULL,
+    [LotId]                      BIGINT          NULL);
+
+
 
 
 

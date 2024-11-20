@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    21/10/2024   Moin Bloch    Created
 	2    06/11/2024   Moin Bloch    Added IsDeleted and IsActive Flag
+	3    18/11/2024   Moin Bloch    Added IsSerialized Field
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -64,7 +65,8 @@ BEGIN
 			   IM.[PartDescription],
 			   SL.[ControlNumber],
 			   SL.[IdNumber],
-			   SL.[SerialNumber],
+			   CASE WHEN SL.[isSerialized] = 1 THEN 1 ELSE 0 END [IsSerialized],
+			   SL.[SerialNumber],						   
 			   SL.[ManufacturerId],
 			   MF.[Name] [ManufacturerName],
 			   SL.[ConditionId],

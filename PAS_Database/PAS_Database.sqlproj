@@ -3278,6 +3278,10 @@
     <Build Include="dbo\Stored Procedures\DeleteSOPartStocklineById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_Delete.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderPartByPOId.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateSalesOrderStatus.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetInvoiceById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

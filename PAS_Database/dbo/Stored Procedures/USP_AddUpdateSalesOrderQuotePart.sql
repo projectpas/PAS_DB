@@ -227,8 +227,8 @@ BEGIN
 			SET @SalesPrice_U = ISNULL(@UnitSalesPrice, 0);
 			SET @MarkUpAmt_U = ISNULL(@MarkUpAmount, 0) * @QtyQuoted;
 			SET @DiscAmt_U = ISNULL(@DiscountAmount, 0) * @QtyQuoted;
-			SET @GrossAmt_U = (@SalesPrice_U + @MarkUpAmt_U) * @QtyQuoted;
-			SET @NetSalesAmt_U = @GrossAmt_U - (@DiscAmt_U * @QtyQuoted);
+			SET @GrossAmt_U = ((@SalesPrice_U * @QtyQuoted) + @MarkUpAmt_U);
+			SET @NetSalesAmt_U = @GrossAmt_U - (@DiscAmt_U);
 
 			PRINT '@MarkUpAmt_U'
 			PRINT @MarkUpAmt_U

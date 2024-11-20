@@ -46,8 +46,8 @@ BEGIN TRANSACTION
 	@POPendingStatus INT = 0,
 	@POFulFillingStatus INT = 0
 
-	DECLARE @Stage varchar(300) = NULL  
-	DECLARE @CustomerId varchar(100) = NULL 
+	DECLARE @Stage varchar(100) = NULL  
+	DECLARE @CustomerId varchar(30) = NULL 
 
 	DECLARE @ApprovedQuoteStatusId INT = 0
 	SELECT @ApprovedQuoteStatusId = WorkOrderQuoteStatusId FROM DBO.WorkOrderQuoteStatus  WITH (NOLOCK) WHERE Description = 'Approved';
@@ -118,18 +118,18 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 		(	
 			TotalRecordsCount BIGINT NULL, 
 			WorkOrderId BIGINT NULL, 
-			wonum VARCHAR(50) NULL, 
-			customername VARCHAR(500) NULL, 
-			woqnum VARCHAR(50) NULL, 
-			mpn VARCHAR(500) NULL, 
-			mpnDescription VARCHAR(500) NULL,
+			wonum VARCHAR(30) NULL, 
+			customername VARCHAR(100) NULL, 
+			woqnum VARCHAR(100) NULL, 
+			mpn VARCHAR(50) NULL, 
+			mpnDescription NVARCHAR(MAX) NULL,
 			itemMasterId BIGINT NULL,
-			pn VARCHAR(500) NULL, 
-			pnDescription VARCHAR(500) NULL,
+			pn VARCHAR(50) NULL, 
+			pnDescription NVARCHAR(MAX) NULL,
 			stagecode VARCHAR(100) NULL, 
 			conditionId BIGINT NULL,
-			condition VARCHAR(100) NULL,
-			manufacturer VARCHAR(500) NULL,
+			condition VARCHAR(256) NULL,
+			manufacturer VARCHAR(250) NULL,
 			uom VARCHAR(100) NULL,
 			approvedamount DECIMAL(18, 2) NULL, 
 			openDate DATETIME2 NULL, 
@@ -143,16 +143,16 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 			backlog INT NULL,
 			customerStock INT NULL,
 			customerApprovedDate DATETIME2 NULL,
-			level1 VARCHAR(500) NULL, 
-			level2 VARCHAR(500) NULL, 
-			level3 VARCHAR(500) NULL, 
-			level4 VARCHAR(500) NULL, 
-			level5 VARCHAR(500) NULL, 
-			level6 VARCHAR(500) NULL, 
-			level7 VARCHAR(500) NULL, 
-			level8 VARCHAR(500) NULL,
-			level9 VARCHAR(500) NULL, 
-			level10 VARCHAR(500) NULL, 
+			level1 VARCHAR(MAX) NULL, 
+			level2 VARCHAR(MAX) NULL, 
+			level3 VARCHAR(MAX) NULL, 
+			level4 VARCHAR(MAX) NULL, 
+			level5 VARCHAR(MAX) NULL, 
+			level6 VARCHAR(MAX) NULL, 
+			level7 VARCHAR(MAX) NULL, 
+			level8 VARCHAR(MAX) NULL,
+			level9 VARCHAR(MAX) NULL, 
+			level10 VARCHAR(MAX) NULL, 
 			masterCompanyId INT NULL,
 			isKitType BIT NULL
 		)

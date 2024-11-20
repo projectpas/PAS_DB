@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    23/10/2024   Moin Bloch    Created
+	2    18/11/2024   Moin Bloch    Added IsSerialized Field
 	     
     EXEC USP_CycleCountDetail_GetDetailsById 7,1
 ************************************************************************/    
@@ -32,6 +33,7 @@ BEGIN
 			  ,CC.[StockLineNumber]
 			  ,CC.[ControlNumber]
 			  ,CC.[IdNumber]
+			  ,CASE WHEN SL.[isSerialized] = 1 THEN 1 ELSE 0 END [IsSerialized]
 			  ,CC.[SerialNumber]
 			  ,CC.[ItemMasterId]
 			  ,CC.[PartNumber]
@@ -71,6 +73,7 @@ BEGIN
 			  ,MS.[LastMSLevel]
 			  ,MS.[AllMSlevels]
 		 FROM [dbo].[CycleCountDetail] CC WITH(NOLOCK)	
+		 INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = CC.[StockLineId]
 		 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 
 		  WHERE CC.[MasterCompanyId] = @MasterCompanyId 
 		    AND CC.[CycleCountId] = @CycleCountId

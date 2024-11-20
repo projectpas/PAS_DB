@@ -32,13 +32,13 @@ BEGIN
 				@SOBillingInvoicingId BIGINT,
 				@SoBillingItemCount BIGINT;
 
-			SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+			SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
 			IF(ISNULL(@IsFromShipping,0) > 0)
 		BEGIN
 			IF(ISNULL(@SoPartDataCount,0) > 0)
 			BEGIN				
-				SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+				SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
 				--Check for multiple shipping
 				SELECT @SoShippingItemCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] = @SalesOrderShippingId;
@@ -50,7 +50,7 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+					SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 					IF(ISNULL(@SoShippingCount,0) > 0)
 					BEGIN
 						--Check is all shipped or not
@@ -68,7 +68,7 @@ BEGIN
 		BEGIN
 			IF(ISNULL(@SoPartDataCount,0) > 0)
 			BEGIN
-				 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+				 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
 				 --Check for multiple billing
 				SELECT @SoBillingItemCount = COUNT([SOBillingInvoicingId]) FROM [DBO].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SOBillingInvoicingId;

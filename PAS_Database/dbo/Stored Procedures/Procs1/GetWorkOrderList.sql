@@ -22,6 +22,7 @@
 	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
 	7    10/21/2024   Devendra Shekh		Modified (Optimization Changes)
 	8    11/18/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
+	9    11/20/2024   Sahdev Saliya         SubWorkOrder Issue Resolved
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -138,6 +139,7 @@ BEGIN
 	SELECT WO.WorkOrderId, 'Yes' FROM
 	[dbo].[SubWorkOrder] SWO WITH(NOLOCK)
 	JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId
+	WHERE ISNULL(SWO.IsDeleted,0) = 0
 	GROUP BY WO.WorkOrderId
   
 	--DECLARE @EmpLegalEntiyId BIGINT = 0;

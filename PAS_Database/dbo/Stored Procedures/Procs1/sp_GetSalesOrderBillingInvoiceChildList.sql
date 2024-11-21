@@ -32,6 +32,7 @@
 	15   07/11/2024   AMIT GHEDIYA	Modified for get InvoiceTypeId.
 	16   12/11/2024   AMIT GHEDIYA	Modified for get qtybilled.
 	17   15/11/2024   AMIT GHEDIYA	Modified for get standard bill amount without performa.
+	18   20/11/2024   AMIT GHEDIYA	Modified for get Curr for billng data.
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1335,3,7
 **************************************************************/
@@ -328,7 +329,7 @@ BEGIN
 				LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
-				LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId  
+				LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId  
 				INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 				WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId )
 			END
@@ -383,7 +384,7 @@ BEGIN
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
-					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId  
+					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId  
 					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = @SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
 				WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId and SOP.ConditionId = @ConditionId
 
@@ -517,7 +518,7 @@ BEGIN
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
-					LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.CurrencyId  
+					LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = imt.PurchaseCurrencyId  
 					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 					)
 

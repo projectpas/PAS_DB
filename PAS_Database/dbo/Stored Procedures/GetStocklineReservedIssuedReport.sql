@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------              
     1    29-10-2024   Shrey Chandegara		Created    
 	2    14-11-2024   Rajesh Gami			Return StockLineId
+	3    21-11-2024   Shrey Chandegara	    Updated Because managementstructure filter is not working.
 
  exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@ViewType=N'1',
 		@StockLineId=0,@PartNumber=NULL,@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,
@@ -28,6 +29,7 @@ CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @SortColumn VARCHAR(50)=NULL,
 @SortOrder INT = NULL,
 @GlobalFilter varchar(50) = NULL,
+@strFilter VARCHAR(MAX) = NULL,
 @ViewType varchar(50) = NULL,
 @StockLineId BIGINT,
 @PartNumber NVARCHAR(50),
@@ -43,16 +45,16 @@ CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 --@ReservationDate DATETIME = NULL,
 --@IssueDate DATETIME = NULL,
 --@ReservedOrIssuedBy NVARCHAR(100),
-@level1 VARCHAR(500) = NULL,
-@level2 VARCHAR(500) = NULL,
-@level3 VARCHAR(500) = NULL,
-@level4 VARCHAR(500) = NULL,
-@level5 VARCHAR(500) = NULL,
-@level6 VARCHAR(500) = NULL,
-@level7 VARCHAR(500) = NULL,
-@level8 VARCHAR(500) = NULL,
-@level9 VARCHAR(500) = NULL,
-@level10 VARCHAR(500) = NULL,
+@level1Str VARCHAR(MAX) = NULL,
+@level2Str VARCHAR(MAX) = NULL,
+@level3Str VARCHAR(MAX) = NULL,
+@level4Str VARCHAR(MAX) = NULL,
+@level5Str VARCHAR(MAX) = NULL,
+@level6Str VARCHAR(MAX) = NULL,
+@level7Str VARCHAR(MAX) = NULL,
+@level8Str VARCHAR(MAX) = NULL,
+@level9Str VARCHAR(MAX) = NULL,
+@level10Str VARCHAR(MAX) = NULL,
 @Mastercompanyid INT
 AS
 BEGIN
@@ -93,6 +95,38 @@ BEGIN
 	  END	
 	
 	BEGIN TRY 
+
+		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #TEMPMSFilter
+		END
+
+		CREATE TABLE #TEMPMSFilter([ID] BIGINT  IDENTITY(1,1),[LevelIds] VARCHAR(MAX)); 
+
+		INSERT INTO #TEMPMSFilter(LevelIds)	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!');
+
+		DECLARE   
+		@level1 VARCHAR(MAX) = NULL,  
+		@level2 VARCHAR(MAX) = NULL,  
+		@level3 VARCHAR(MAX) = NULL,  
+		@level4 VARCHAR(MAX) = NULL,  
+		@Level5 VARCHAR(MAX) = NULL,  
+		@Level6 VARCHAR(MAX) = NULL,  
+		@Level7 VARCHAR(MAX) = NULL,  
+		@Level8 VARCHAR(MAX) = NULL,  
+		@Level9 VARCHAR(MAX) = NULL,  
+		@Level10 VARCHAR(MAX) = NULL 
+
+		SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
+		SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
+		SELECT @level3 = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
+		SELECT @level4 = LevelIds FROM #TEMPMSFilter WHERE ID = 4 
+		SELECT @level5 = LevelIds FROM #TEMPMSFilter WHERE ID = 5 
+		SELECT @level6 = LevelIds FROM #TEMPMSFilter WHERE ID = 6 
+		SELECT @level7 = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
+		SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
+		SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
+		SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10 
 
 
 	BEGIN
@@ -174,16 +208,26 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: WorkOrderMaterialStockline For Reserve *--
 
 				--* Start: WorkOrderMaterialStocklineKit For Reserve *--					
@@ -223,16 +267,26 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: WorkOrderMaterialStocklineKit For Reserve *--
 
 				--* START: SubWorkOrderMaterialStockline For Reserve *--
@@ -271,16 +325,26 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: SubWorkOrderMaterialStockline For Reserve *--
 
 				--* START: SubWorkOrderMaterialStocklineKit For Reserve *--
@@ -319,16 +383,26 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: SubWorkOrderMaterialStocklineKit For Reserve *--
 
 
@@ -365,16 +439,26 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: RepairOrder For Reserve *--
 
 				--* START: ExchangeSalesOrder For Reserve *--
@@ -411,16 +495,26 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
 					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 AND ISNULL(ESO.IsDeleted,0) = 0 AND ISNULL(ESR.QtyToReserve,0) > 0 AND (ISNULL(ESO.StatusId,0) != @ExchStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: ExchangeSalesOrder For Reserve *--
 
 				--* START: RMA For Reserve *--
@@ -455,16 +549,26 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE VRD.MasterCompanyId = @MasterCompanyId AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 AND ISNULL(VRD.Qty,0) > 0 AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: RMA For Reserve *--
 
 
@@ -509,16 +613,26 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 						--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 						WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND ISNULL(WMS.QtyIssued,0) > 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-							AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-							AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-							AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-							AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-							AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-							AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-							AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-							AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-							AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-							AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+						  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+						  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+						  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+						  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+						  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+						  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+						  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+						  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+						  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+						  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+						  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+						  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+						  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+						  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+						  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: WorkOrderMaterialStockline For Issued *--
 
 				--* START: WorkOrderMaterialStocklineKit For Issued *--
@@ -558,16 +672,26 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND ISNULL(WMS.QtyIssued,0) > 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+						  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+						  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+						  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+						  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+						  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+						  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+						  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+						  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+						  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+						  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+						  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+						  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+						  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+						  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+						  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: WorkOrderMaterialStocklineKit For Issued *--
 
 				--* START: SUBWorkOrderMaterialStockline For Issued *--
@@ -607,16 +731,26 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.QtyIssued,0) > 0  AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+						  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+						  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+						  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+						  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+						  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+						  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+						  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+						  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+						  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+						  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+						  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+						  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+						  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+						  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+						  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
@@ -657,16 +791,26 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.QtyIssued,0) > 0 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
@@ -713,16 +857,26 @@ BEGIN
 						--INNER JOIN [dbo].[Employee] EM   WITH(NOLOCK)ON EM.EmployeeId = WM.ReservedById
 						--INNER JOIN [dbo].[Employee] EMP  WITH(NOLOCK) ON EMP.EmployeeId = WM.IssuedById
 						WHERE   ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND WMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-							AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-							AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-							AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-							AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-							AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-							AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-							AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-							AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-							AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-							AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+						  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+						  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+						  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+						  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+						  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+						  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+						  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+						  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+						  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+						  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+						  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+						  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+						  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+						  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+						  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: WorkOrderMaterialStockline For ALL *--
 
 				--* Start: WorkOrderMaterialStocklineKit For ALL *--
@@ -763,16 +917,26 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM   WITH(NOLOCK)ON EM.EmployeeId = WM.ReservedById
 					--INNER JOIN [dbo].[Employee] EMP  WITH(NOLOCK) ON EMP.EmployeeId = WM.IssuedById
 					WHERE ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND WMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* End: WorkOrderMaterialStocklinekit For ALL *--
 
 				--* Start: SubWorkOrderMaterialStockline For ALL *--				
@@ -813,16 +977,26 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					--INNER JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = SWM.IssuedById
 					WHERE ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND SWMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: SubWorkOrderMaterialStockline For ALL *--				
 
 				--* Start: SubWorkOrderMaterialStocklineKIT For ALL *--				
@@ -863,16 +1037,26 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					--INNER JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = SWM.IssuedById
 					WHERE ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND SWMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: SubWorkOrderMaterialStockline For ALL *--
 
 				--* START: RepairOrder For Reserve *--
@@ -908,16 +1092,26 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0  AND ISNULL(ROP.QuantityReserved,0) > 0 AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: RepairOrder For Reserve *--
 
 				--* START: ExchangeSalesOrder For Reserve *--
@@ -954,16 +1148,26 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
 					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.QtyToReserve,0) > 0 AND ISNULL(ESR.IsDeleted,0) = 0 AND ISNULL(ESO.IsDeleted,0) = 0 AND (ISNULL(ESO.StatusId,0) != @ExchStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: ExchangeSalesOrder For Reserve *--
 
 				--* START: RMA For Reserve *--
@@ -998,16 +1202,26 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE VRD.MasterCompanyId = @MasterCompanyId AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 AND ISNULL(VRD.Qty,0) > 0 AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
-						AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-						AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-						AND  (ISNULL(@Level3,'') ='' OR SLM.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-						AND  (ISNULL(@Level4,'') ='' OR SLM.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-						AND  (ISNULL(@Level5,'') ='' OR SLM.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-						AND  (ISNULL(@Level6,'') ='' OR SLM.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-						AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-						AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-						AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-						AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: RMA For Reserve *--
 
 
@@ -1027,20 +1241,7 @@ BEGIN
 		 (ISNULL(@QuantityReserved,0) = 0 OR [QuantityReserved] = @QuantityReserved) AND
 		 (ISNULL(@QuantityIssued,0) = 0 OR [QuantityIssued] = @QuantityIssued) AND
 		 (ISNULL(@Module,'') ='' OR [Module] LIKE '%' + @Module+'%') AND
-		 (ISNULL(@ReferenceNumber,'') ='' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber+'%') AND
-		 --(ISNULL(@ReservationDate,'') ='' OR CAST([ReservationDate] AS DATE) = CAST(@ReservationDate AS DATE)) AND
-		 --(ISNULL(@IssueDate,'') ='' OR CAST([IssueDate] AS DATE) = CAST(@IssueDate AS DATE)) AND
-		 --(ISNULL(@ReservedOrIssuedBy,'') ='' OR [ReservedOrIssuedBy] LIKE '%' + @ReservedOrIssuedBy+'%') AND
-		 (ISNULL(@level1,'') ='' OR [level1] LIKE '%' + @level1 + '%') AND
-		 (ISNULL(@level2,'') ='' OR [level2] LIKE '%' + @level2 + '%') AND
-		 (ISNULL(@level3,'') ='' OR [level3] LIKE '%' + @level3 + '%') AND
-		 (ISNULL(@level4,'') ='' OR [level4] LIKE '%' + @level4 + '%') AND
-		 (ISNULL(@level5,'') ='' OR [level5] LIKE '%' + @level5 + '%') AND
-		 (ISNULL(@level6,'') ='' OR [level6] LIKE '%' + @level6 + '%') AND
-		 (ISNULL(@level7,'') ='' OR [level7] LIKE '%' + @level7 + '%') AND
-		 (ISNULL(@level8,'') ='' OR [level8] LIKE '%' + @level8 + '%') AND
-		 (ISNULL(@level9,'') ='' OR [level9] LIKE '%' + @level9 + '%') AND
-		 (ISNULL(@level10,'') ='' OR [level10] LIKE '%' + @level10 + '%')
+		 (ISNULL(@ReferenceNumber,'') ='' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber+'%') 
 		 )
 
 

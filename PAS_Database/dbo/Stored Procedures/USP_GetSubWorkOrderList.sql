@@ -16,6 +16,7 @@
 	4    01/16/2024   Hemant Saliya				Updated For Reopen Sub WO
 	5    01/16/2024   Devendra Shekh			delete disabled issue resolved
 	6    05/29/2024   Devendra Shekh			Stk Join changed to SWPT from SWO and adde ControlNumber to select
+	7    11/20/2024   Sahdev Saliya             Added New Field WorkOrderPartNumberId
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -52,7 +53,8 @@ CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderList]
 @UpdatedDate  DATETIME = NULL,
 @IsDeleted BIT = NULL,
 @WorkOrderId BIGINT = NULL,
-@MasterCompanyId BIGINT = NULL
+@MasterCompanyId BIGINT = NULL,
+@WorkOrderPartNumberId BIGINT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -221,7 +223,7 @@ BEGIN
 				
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
-					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	
+					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	AND SWO.WorkOrderPartNumberId = @WorkOrderPartNumberId
 			), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([SubWorkOrderNo] LIKE '%' +@GlobalFilter+'%') OR

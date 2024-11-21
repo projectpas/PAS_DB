@@ -3282,6 +3282,14 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetInvoiceById.sql" />
+    <Build Include="dbo\Tables\StockInventorySearchParams.sql" />
+    <Build Include="dbo\Tables\StockInventoryEmployeeMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_StockInventorySearchParams_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_StockInventoryEmployeeMappingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveStockInventorySearchParams.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RemoveStockInventorySearchParams_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStockInventorySearchData.sql" />
+    <Build Include="dbo\User Defined Types\StockInvenorySearchParamsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

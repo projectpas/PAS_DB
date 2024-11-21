@@ -14,6 +14,7 @@
 	1    12/11/2024          Moin Bloch          Created   
 	2    13/11/2024          Moin Bloch          Added IsReversedJE Flag
 	3    19/11/2024          Moin Bloch          Added @AccountingCalendarId,@LedgerId 
+	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise
 	
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
@@ -171,7 +172,7 @@ BEGIN
 					SELECT TOP 1 @currentNo = [CurrentNumber], @JournalTypeNumber = [JournalTypeNumber], @JournalBatchDetailId = [JournalBatchDetailId]	FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) 
 					 WHERE [ReferenceId] = @CycleCountId AND [ReferenceNumber] = @CycleCountNumber AND [ReferenceModule] = @ReferenceModule AND [MasterCompanyId] = @MasterCompanyId
 			END			
-			IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId] = @JournalTypeId AND [MasterCompanyId]=@MasterCompanyId AND CAST([EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND [StatusId]=@StatusId)
+			IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId] = @JournalTypeId AND [MasterCompanyId]=@MasterCompanyId AND [AccountingPeriodId] = @AccountingCalendarId AND CAST([EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND [StatusId]=@StatusId)
 			BEGIN
 				IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK))
 				BEGIN  
@@ -255,7 +256,8 @@ BEGIN
 			END
 			ELSE
 			BEGIN 
-				SELECT @JournalBatchHeaderId = [JournalBatchHeaderId],@CurrentPeriodId = ISNULL([AccountingPeriodId],0) FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId]= @JournalTypeId AND [StatusId]=@StatusId   
+				SELECT @JournalBatchHeaderId = [JournalBatchHeaderId],@CurrentPeriodId = ISNULL([AccountingPeriodId],0) FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [AccountingPeriodId] = @AccountingCalendarId AND [JournalTypeId]= @JournalTypeId AND CAST([EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND [StatusId]=@StatusId   
+				
 				SELECT @LineNumber = CASE WHEN [LineNumber] > 0 THEN CAST([LineNumber] AS BIGINT) + 1 ELSE  1 END   
 				  FROM [dbo].[BatchDetails] WITH(NOLOCK) 
 				 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId 
@@ -387,12 +389,12 @@ BEGIN
 					    ,[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[ItemMasterId]
 					    ,[PartNumber],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId]
 					    ,[Location],[BinId],[Bin],[ShelfId],[Shelf],[ReferenceId],[ReferenceNumber]
-					    ,[ReferenceDetailId],[MasterCompanyId])
+					    ,[ReferenceDetailId],[MasterCompanyId],[LedgerId],[AccountingCalendarId])
 			      VALUES(@JournalBatchHeaderId,@JournalBatchDetailId 
 				        ,@CommonBatchDetailId,@StockLineId,@StockLineNumber,@ItemMasterId
 					    ,@PartNumber,@SiteId,@Site,@WarehouseId,@Warehouse, @LocationId   
 					    ,@Location,@BinId,@Bin,@ShelfId,@Shelf,@CycleCountId,@CycleCountNumber
-					    ,@CycleCountDetailId,@MasterCompanyId);
+					    ,@CycleCountDetailId,@MasterCompanyId,@LedgerId,@AccountingCalendarId);
 			 
 			----- Inventory - Stock--------		  	 
 
@@ -436,12 +438,12 @@ BEGIN
 					    ,[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[ItemMasterId]
 					    ,[PartNumber],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId]
 					    ,[Location],[BinId],[Bin],[ShelfId],[Shelf],[ReferenceId],[ReferenceNumber]
-					    ,[ReferenceDetailId],[MasterCompanyId])
+					    ,[ReferenceDetailId],[MasterCompanyId],[LedgerId],[AccountingCalendarId])
 			      VALUES(@JournalBatchHeaderId,@JournalBatchDetailId 
 				        ,@CommonBatchDetailId,@StockLineId,@StockLineNumber,@ItemMasterId
 					    ,@PartNumber,@SiteId,@Site,@WarehouseId,@Warehouse, @LocationId   
 					    ,@Location,@BinId,@Bin,@ShelfId,@Shelf,@CycleCountId,@CycleCountNumber
-					    ,@CycleCountDetailId,@MasterCompanyId);
+					    ,@CycleCountDetailId,@MasterCompanyId,@LedgerId,@AccountingCalendarId);
 						
 			 -----Inventory - Stock--------
 

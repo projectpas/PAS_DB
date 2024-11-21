@@ -22,7 +22,7 @@
 	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
 	7    10/21/2024   Devendra Shekh		Modified (Optimization Changes)
 	8    11/18/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
-	9    11/20/2024   Sahdev Saliya         SubWorkOrder Issue Resolved
+	9    11/20/2024   Sahdev Saliya         SubWorkOrder Issue Resolved And Multipal WO Issue Resolved
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -132,15 +132,16 @@ BEGIN
 	(
 		[Id] BIGINT IDENTITY(1,1),
 		[WorkOrderId] BIGINT NULL,
-		[IsSubWorkOrder] varchar(50) NULL
+		[IsSubWorkOrder] varchar(50) NULL,
+		[WorkOrderPartNumberId] BIGINT NULL
 	)
 
-	INSERT INTO #SubWOResult([WorkOrderId], [IsSubWorkOrder])
-	SELECT WO.WorkOrderId, 'Yes' FROM
+	INSERT INTO #SubWOResult([WorkOrderId], [IsSubWorkOrder], [WorkOrderPartNumberId])
+	SELECT WO.WorkOrderId, 'Yes', SWO.WorkOrderPartNumberId FROM
 	[dbo].[SubWorkOrder] SWO WITH(NOLOCK)
 	JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId
 	WHERE ISNULL(SWO.IsDeleted,0) = 0
-	GROUP BY WO.WorkOrderId
+	GROUP BY WO.WorkOrderId,SWO.WorkOrderPartNumberId
   
 	--DECLARE @EmpLegalEntiyId BIGINT = 0;
 	--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
@@ -207,7 +208,7 @@ BEGIN
        FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
-			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
+			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
 			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
@@ -386,7 +387,7 @@ BEGIN
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
-			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
+			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
 			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 			))
 			, WorkOrderPartCount AS (

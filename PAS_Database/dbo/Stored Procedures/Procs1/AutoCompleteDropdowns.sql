@@ -18,6 +18,7 @@
     1    06/14/2024   Vishal Suthar		Added History
     2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
     3    10/03/2024   Devendra Shekh	Added case for BatchDetails
+	3    21/03/2024   BHARGAV SALIYA	Added case for Stockline
      
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1      
@@ -302,6 +303,15 @@ AS BEGIN
                      SELECT DISTINCT MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
                      FROM dbo.BatchDetails WITH(NOLOCK)
                      WHERE MasterCompanyId=@MasterCompanyId AND JournalBatchDetailId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') ) GROUP BY JournalTypeNumber
+            END
+			ELSE IF(@TableName='Stockline')BEGIN
+                     SELECT DISTINCT TOP 20 MAX(StocklineId) AS Value, StockLineNumber AS Label
+                     FROM dbo.Stockline WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(StockLineNumber LIKE '%'+@Parameter3+'%')) GROUP BY StockLineNumber
+                     UNION
+                     SELECT DISTINCT MAX(StocklineId) AS Value, StockLineNumber AS Label
+                     FROM dbo.Stockline WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND StocklineId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') ) GROUP BY StockLineNumber
             END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN

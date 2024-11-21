@@ -1,9 +1,9 @@
-﻿-- EXEC [DBO].[GetSalesOrderQuotePrintData] 766
+﻿-- EXEC [DBO].[GetSalesOrderQuotePrintData] 945
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePrintData]
     @SalesQuoteId INT
 AS
 BEGIN
-    SELECT 
+    SELECT DISTINCT
         0 AS ItemNo,
         so.CustomerId,
         ISNULL(cust.Name, '') AS ClientName,

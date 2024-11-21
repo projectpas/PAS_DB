@@ -35,7 +35,7 @@
 	18	 20/11/2024	  AMIT GHEDIYA  Modified for get Curr for billng data.
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
      
-  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1388,318,7
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1399,82050,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
@@ -409,8 +409,8 @@ BEGIN
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
-						((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(SOR.QtyToReserve, 0)) +   
-							((((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(SOR.QtyToReserve, 0)) +
+						((ISNULL(SOSC.NetSaleAmount, 0)) +   
+							((((ISNULL(SOSC.NetSaleAmount, 0)) +
 							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
 							) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
@@ -433,7 +433,7 @@ BEGIN
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
 						(ISNULL(SOSC.NetSaleAmount, 0) +   
-							((((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(SOR.QtyToReserve, 0)) +
+							((((ISNULL(SOSC.NetSaleAmount, 0)) +
 							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
 							) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
@@ -594,6 +594,13 @@ BEGIN
    COMMIT  TRANSACTION  
   END TRY      
   BEGIN CATCH        
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
     ROLLBACK TRAN;  

@@ -17,11 +17,9 @@
     1    29-10-2024   Shrey Chandegara		Created    
 	2    14-11-2024   Rajesh Gami			Return StockLineId
 	3    21-11-2024   Shrey Chandegara	    Updated Because managementstructure filter is not working.
+	4    22-11-2024   RAJESH GAMI           Optimize the SP due to performance issue
 
- exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@ViewType=N'1',
-		@StockLineId=0,@PartNumber=NULL,@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,
-		@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@ReservationDate=NULL,@IssueDate=NULL,@ReservedOrIssuedBy=NULL,
-		@level1=NULL,@level2=NULL,@level3=NULL,@level4=NULL,@level5=NULL,@level6=NULL,@level7=NULL,@level8=NULL,@level9=NULL,@level10=NULL,@MasterCompanyId=1    
+exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @PageNumber INT = NULL,
@@ -42,9 +40,6 @@ CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @QuantityIssued INT = NULL,
 @Module NVARCHAR(50),
 @ReferenceNumber NVARCHAR(50),
---@ReservationDate DATETIME = NULL,
---@IssueDate DATETIME = NULL,
---@ReservedOrIssuedBy NVARCHAR(100),
 @level1Str VARCHAR(MAX) = NULL,
 @level2Str VARCHAR(MAX) = NULL,
 @level3Str VARCHAR(MAX) = NULL,
@@ -154,9 +149,6 @@ BEGIN
 	  QuantityIssued INT NULL,
 	  Module VARCHAR(50) NULL,
 	  ReferenceNumber VARCHAR(50) NULL,
-	  --ReservationDate DATETIME2 NULL,
-	  --IssueDate DATETIME2 NULL,
-	  --ReservedORIssuedBy VARCHAR(100) NULL,
 	  level1 VARCHAR(MAX)  NULL,
 	  level2 VARCHAR(MAX)  NULL,
 	  level3 VARCHAR(MAX)  NULL,
@@ -168,6 +160,273 @@ BEGIN
 	  level9 VARCHAR(MAX)  NULL,
 	  level10 VARCHAR(MAX) NULL
      )    
+			
+		 IF(@ViewType = '1' OR @ViewType = '3')
+		 BEGIN
+				--* Start: WorkOrderPartNumber For ALL *--
+				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+						SELECT
+						SL.StockLineId,
+						SL.PartNumber,
+						SL.PNDescription,
+						SL.Condition,
+						SL.StockLineNumber,
+						SL.ControlNumber,
+						SL.IdNumber,
+						WOP.Quantity AS QtyReserved,
+						0,
+						'Workorder' AS Module,
+						WO.WorkOrderNum ,
+						UPPER(SLM.Level1Name) AS level1,  
+						UPPER(SLM.Level2Name) AS level2, 
+						UPPER(SLM.Level3Name) AS level3, 
+						UPPER(SLM.Level4Name) AS level4, 
+						UPPER(SLM.Level5Name) AS level5, 
+						UPPER(SLM.Level6Name) AS level6, 
+						UPPER(SLM.Level7Name) AS level7, 
+						UPPER(SLM.Level8Name) AS level8, 
+						UPPER(SLM.Level9Name) AS level9, 
+						UPPER(SLM.Level10Name) AS level10
+					FROM [dbo].[WorkOrderPartNumber] WOP   WITH(NOLOCK)
+						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+						WHERE ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WOP.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
+							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+						  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+						  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+						  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+						  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+						  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+						  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+						  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+						  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+						  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+						  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+						  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+						  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+						  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+						  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+						  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				--* END: WorkOrderPartNumber For ALL *--
+
+				--* START: RepairOrder For Reserve *--
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+					SELECT
+					SL.StockLineId,
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					ROP.QuantityReserved,
+					'' ,
+					'RepairOrder' AS Module,
+					RO.RepairOrderNumber,
+					UPPER(SLM.Level1Name) AS level1,  
+					UPPER(SLM.Level2Name) AS level2, 
+					UPPER(SLM.Level3Name) AS level3, 
+					UPPER(SLM.Level4Name) AS level4, 
+					UPPER(SLM.Level5Name) AS level5, 
+					UPPER(SLM.Level6Name) AS level6, 
+					UPPER(SLM.Level7Name) AS level7, 
+					UPPER(SLM.Level8Name) AS level8, 
+					UPPER(SLM.Level9Name) AS level9, 
+					UPPER(SLM.Level10Name) AS level10
+				FROM [dbo].[RepairOrder] RO  WITH(NOLOCK)
+					INNER JOIN [RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0  AND ISNULL(ROP.QuantityReserved,0) > 0 AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				--* END: RepairOrder For Reserve *--
+
+				--* START: ExchangeSalesOrder For Reserve *--
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+					SELECT
+					SL.StockLineId,
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					ESR.QtyToReserve,
+					'' ,
+					'ExchangeSalesOrder' AS Module,
+					ESO.ExchangeSalesOrderNumber,
+					UPPER(SLM.Level1Name) AS level1,  
+					UPPER(SLM.Level2Name) AS level2, 
+					UPPER(SLM.Level3Name) AS level3, 
+					UPPER(SLM.Level4Name) AS level4, 
+					UPPER(SLM.Level5Name) AS level5, 
+					UPPER(SLM.Level6Name) AS level6, 
+					UPPER(SLM.Level7Name) AS level7, 
+					UPPER(SLM.Level8Name) AS level8, 
+					UPPER(SLM.Level9Name) AS level9, 
+					UPPER(SLM.Level10Name) AS level10
+				FROM [dbo].[ExchangeSalesOrder] ESO  WITH(NOLOCK)
+					INNER JOIN [ExchangeSalesOrderReserveParts] ESR WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESR.ExchangeSalesOrderId
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ESR.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
+					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.QtyToReserve,0) > 0 AND ISNULL(ESR.IsDeleted,0) = 0 AND ISNULL(ESO.IsDeleted,0) = 0 AND (ISNULL(ESO.StatusId,0) != @ExchStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				--* END: ExchangeSalesOrder For Reserve *--
+
+				--* START: RMA For Reserve *--
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+					SELECT
+					SL.StockLineId,
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					VRD.Qty,
+					'' ,
+					'RMA' AS Module,
+					VRD.RMANum,
+					UPPER(SLM.Level1Name) AS level1,  
+					UPPER(SLM.Level2Name) AS level2, 
+					UPPER(SLM.Level3Name) AS level3, 
+					UPPER(SLM.Level4Name) AS level4, 
+					UPPER(SLM.Level5Name) AS level5, 
+					UPPER(SLM.Level6Name) AS level6, 
+					UPPER(SLM.Level7Name) AS level7, 
+					UPPER(SLM.Level8Name) AS level8, 
+					UPPER(SLM.Level9Name) AS level9, 
+					UPPER(SLM.Level10Name) AS level10
+				FROM [VendorRMADetail] VRD WITH(NOLOCK)
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					WHERE VRD.MasterCompanyId = @MasterCompanyId AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 AND ISNULL(VRD.Qty,0) > 0 AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				--* END: RMA For Reserve *--
+
+				--* START: ExchangeSalesOrder For Reserve *--
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+					SELECT
+					SL.StockLineId,
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					SSTL.QtyReserved,
+					'' ,
+					'SalesOrder' AS Module,
+					ESO.SalesOrderNumber,
+					UPPER(SLM.Level1Name) AS level1,  
+					UPPER(SLM.Level2Name) AS level2, 
+					UPPER(SLM.Level3Name) AS level3, 
+					UPPER(SLM.Level4Name) AS level4, 
+					UPPER(SLM.Level5Name) AS level5, 
+					UPPER(SLM.Level6Name) AS level6, 
+					UPPER(SLM.Level7Name) AS level7, 
+					UPPER(SLM.Level8Name) AS level8, 
+					UPPER(SLM.Level9Name) AS level9, 
+					UPPER(SLM.Level10Name) AS level10
+				FROM [dbo].[SalesOrderStocklineV1] SSTL  WITH(NOLOCK)
+					INNER JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SSTL.SalesOrderPartId = SOP.SalesOrderPartId
+					INNER JOIN [dbo].[SalesOrder] ESO WITH(NOLOCK) ON SOP.SalesOrderId = ESO.SalesOrderId					
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SSTL.StockLineId
+					INNER JOIN dbo.SalesOrderReserveParts SOR WITH(NOLOCK) ON SOR.SalesOrderId = ESO.SalesOrderId AND SOR.StockLineId = SSTL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON SOR.ReservedById = emp.EmployeeId
+					WHERE ESO.MasterCompanyId = @MasterCompanyId AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(SOP.IsActive,0) = 1 AND ISNULL(SSTL.QtyReserved,0) > 0 AND ISNULL(ESO.IsDeleted,0) = 0 AND ISNULL(SOP.IsDeleted,0) = 0
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				--* END: ExchangeSalesOrder For Reserve *--
+		 END
+
 		 IF(@ViewType = '1')
 		 BEGIN
 
@@ -186,9 +445,6 @@ BEGIN
 					WMS.QtyIssued,
 					'WorkOrderMaterial' AS Module,
 					WO.WorkOrderNum ,
-					--WM.ReservedDate ,
-					--WM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -206,7 +462,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -245,9 +500,6 @@ BEGIN
 					WMS.QtyIssued,
 					'WorkOrderMaterialKit' AS Module,
 					WO.WorkOrderNum ,
-					--WM.ReservedDate,
-					--WM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -265,7 +517,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
-					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -304,9 +555,6 @@ BEGIN
 					SWMS.QtyIssued,
 					'SubWorkOrderMaterial' AS Module,
 					SWO.SubWorkOrderNo ,
-					--SWM.ReservedDate ,
-					--SWM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -323,7 +571,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -362,9 +609,6 @@ BEGIN
 					SWMS.QtyIssued,
 					'SubWorkOrderMaterialKit' AS Module,
 					SWO.SubWorkOrderNo ,
-					--SWM.ReservedDate ,
-					--SWM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -406,172 +650,6 @@ BEGIN
 				--* END: SubWorkOrderMaterialStocklineKit For Reserve *--
 
 
-				--* START: RepairOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-				SELECT
-					sl.StockLineId,
-					SL.PartNumber,
-					SL.PNDescription,
-					SL.Condition,
-					SL.StockLineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					ROP.QuantityReserved,
-					'' ,
-					'RepairOrder' AS Module,
-					RO.RepairOrderNumber,
-					--ROP.CreatedDate,
-					--null ,				
-					--(ROP.CreatedBy), 
-					UPPER(SLM.Level1Name) AS level1,  
-					UPPER(SLM.Level2Name) AS level2, 
-					UPPER(SLM.Level3Name) AS level3, 
-					UPPER(SLM.Level4Name) AS level4, 
-					UPPER(SLM.Level5Name) AS level5, 
-					UPPER(SLM.Level6Name) AS level6, 
-					UPPER(SLM.Level7Name) AS level7, 
-					UPPER(SLM.Level8Name) AS level8, 
-					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
-				FROM [RepairOrderPart] ROP WITH(NOLOCK)
-					INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
-						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
-					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
-					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
-					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
-					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
-					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
-					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
-					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
-					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
-					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
-					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
-					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
-					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
-					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
-					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
-					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
-					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
-					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
-					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
-					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-				--* END: RepairOrder For Reserve *--
-
-				--* START: ExchangeSalesOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-					SELECT
-					SL.StockLineId,
-					SL.PartNumber,
-					SL.PNDescription,
-					SL.Condition,
-					SL.StockLineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					ESR.QtyToReserve,
-					'' ,
-					'ExchangeSalesOrder' AS Module,
-					ESO.ExchangeSalesOrderNumber,
-					--ESR.ReservedDate,
-					--null ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
-					UPPER(SLM.Level1Name) AS level1,  
-					UPPER(SLM.Level2Name) AS level2, 
-					UPPER(SLM.Level3Name) AS level3, 
-					UPPER(SLM.Level4Name) AS level4, 
-					UPPER(SLM.Level5Name) AS level5, 
-					UPPER(SLM.Level6Name) AS level6, 
-					UPPER(SLM.Level7Name) AS level7, 
-					UPPER(SLM.Level8Name) AS level8, 
-					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
-				FROM [ExchangeSalesOrderReserveParts] ESR WITH(NOLOCK)
-					INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESR.ExchangeSalesOrderId
-					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ESR.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
-					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 AND ISNULL(ESO.IsDeleted,0) = 0 AND ISNULL(ESR.QtyToReserve,0) > 0 AND (ISNULL(ESO.StatusId,0) != @ExchStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
-						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
-					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
-					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
-					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
-					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
-					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
-					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
-					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
-					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
-					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
-					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
-					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
-					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
-					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
-					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
-					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
-					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
-					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
-					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
-					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-				--* END: ExchangeSalesOrder For Reserve *--
-
-				--* START: RMA For Reserve *--
-				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-					SELECT
-					SL.StockLineId,
-					SL.PartNumber,
-					SL.PNDescription,
-					SL.Condition,
-					SL.StockLineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					VRD.Qty,
-					'' ,
-					'RMA' AS Module,
-					VRD.RMANum,
-					--VRD.CreatedDate,
-					--null ,				
-					--VRD.CreatedBy, 
-					UPPER(SLM.Level1Name) AS level1,  
-					UPPER(SLM.Level2Name) AS level2, 
-					UPPER(SLM.Level3Name) AS level3, 
-					UPPER(SLM.Level4Name) AS level4, 
-					UPPER(SLM.Level5Name) AS level5, 
-					UPPER(SLM.Level6Name) AS level6, 
-					UPPER(SLM.Level7Name) AS level7, 
-					UPPER(SLM.Level8Name) AS level8, 
-					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
-				FROM [VendorRMADetail] VRD WITH(NOLOCK)
-					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					WHERE VRD.MasterCompanyId = @MasterCompanyId AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 AND ISNULL(VRD.Qty,0) > 0 AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
-						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
-					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
-					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
-					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
-					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
-					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
-					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
-					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
-					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
-					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
-					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
-					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
-					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
-					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
-					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
-					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
-					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
-					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
-					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
-					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-				--* END: RMA For Reserve *--
-
-
 		 END
 		 IF(@ViewType = '2')
 		 BEGIN
@@ -591,9 +669,6 @@ BEGIN
 						WMS.QtyIssued,
 						'WorkOrderMaterial' AS Module,
 						WO.WorkOrderNum ,
-						--WM.ReservedDate ,
-						--WM.IssuedDate,				
-						--(EM.FirstName + ' '+ EM.LastName), 
 						UPPER(SLM.Level1Name) AS level1,  
 						UPPER(SLM.Level2Name) AS level2, 
 						UPPER(SLM.Level3Name) AS level3, 
@@ -650,9 +725,6 @@ BEGIN
 					WMS.QtyIssued,
 					'WorkOrderMaterialKit' AS Module,
 					WO.WorkOrderNum ,
-					--WM.ReservedDate,
-					--WM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -670,7 +742,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
-					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND ISNULL(WMS.QtyIssued,0) > 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -710,9 +781,6 @@ BEGIN
 					SWMS.QtyIssued,
 					'SubWorkOrderMaterial' AS Module,
 					SWO.SubWorkOrderNo ,
-					--SWM.ReservedDate ,
-					--SWM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -729,7 +797,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.QtyIssued,0) > 0  AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -770,9 +837,6 @@ BEGIN
 					SWMS.QtyIssued,
 					'SubWorkOrderMaterialKit' AS Module,
 					SWO.SubWorkOrderNo ,
-					--SWM.ReservedDate ,
-					--SWM.IssuedDate ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -789,7 +853,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.QtyIssued,0) > 0 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -818,7 +881,6 @@ BEGIN
 		 END
 		 IF(@ViewType = '3')
 		 BEGIN
-
 				 --* Start: WorkOrderMaterialStockline For ALL *--
 				 INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
@@ -834,9 +896,6 @@ BEGIN
 						WMS.QtyIssued,
 						'WorkOrderMaterial' AS Module,
 						WO.WorkOrderNum ,
-						--WM.ReservedDate ,
-						--WM.IssuedDate,				
-						--CASE WHEN WMS.QtyReserved > WMS.QtyIssued THEN (EM.FirstName + ' '+ EM.LastName) ELSE (EMP.FirstName + ' '+ EMP.LastName) END, 
 						UPPER(SLM.Level1Name) AS level1,  
 						UPPER(SLM.Level2Name) AS level2, 
 						UPPER(SLM.Level3Name) AS level3, 
@@ -854,8 +913,6 @@ BEGIN
 						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
 						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 						INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
-						--INNER JOIN [dbo].[Employee] EM   WITH(NOLOCK)ON EM.EmployeeId = WM.ReservedById
-						--INNER JOIN [dbo].[Employee] EMP  WITH(NOLOCK) ON EMP.EmployeeId = WM.IssuedById
 						WHERE   ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND WMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
 							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -894,9 +951,6 @@ BEGIN
 					WMS.QtyIssued,
 					'WorkOrderMaterialKit' AS Module,
 					WO.WorkOrderNum ,
-					--WM.ReservedDate,
-					--WM.IssuedDate ,				
-					--CASE WHEN WMS.QtyReserved > WMS.QtyIssued THEN (EM.FirstName + ' '+ EM.LastName) ELSE (EMP.FirstName + ' '+ EMP.LastName) END,  
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -914,8 +968,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
-					--INNER JOIN [dbo].[Employee] EM   WITH(NOLOCK)ON EM.EmployeeId = WM.ReservedById
-					--INNER JOIN [dbo].[Employee] EMP  WITH(NOLOCK) ON EMP.EmployeeId = WM.IssuedById
 					WHERE ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND WMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -955,9 +1007,6 @@ BEGIN
 					SWMS.QtyIssued,
 					'SubWorkOrderMaterial' AS Module,
 					SWO.SubWorkOrderNo ,
-					--SWM.ReservedDate ,
-					--SWM.IssuedDate ,				
-					--CASE WHEN SWMS.QtyReserved > SWMS.QtyIssued THEN (EM.FirstName + ' '+ EM.LastName) ELSE (EMP.FirstName + ' '+ EMP.LastName) END,   
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -974,8 +1023,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
-					--INNER JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = SWM.IssuedById
 					WHERE ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND SWMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -1015,9 +1062,6 @@ BEGIN
 					SWMS.QtyIssued,
 					'SubWorkOrderMaterialKit' AS Module,
 					SWO.SubWorkOrderNo ,
-					--SWM.ReservedDate ,
-					--SWM.IssuedDate ,				
-					--CASE WHEN SWMS.QtyReserved > SWMS.QtyIssued THEN (EM.FirstName + ' '+ EM.LastName) ELSE (EMP.FirstName + ' '+ EMP.LastName) END,   
 					UPPER(SLM.Level1Name) AS level1,  
 					UPPER(SLM.Level2Name) AS level2, 
 					UPPER(SLM.Level3Name) AS level3, 
@@ -1034,8 +1078,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
-					--INNER JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = SWM.IssuedById
 					WHERE ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  AND SWMS.MasterCompanyId = @MasterCompanyId AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -1058,172 +1100,6 @@ BEGIN
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: SubWorkOrderMaterialStockline For ALL *--
-
-				--* START: RepairOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-					SELECT
-					SL.StockLineId,
-					SL.PartNumber,
-					SL.PNDescription,
-					SL.Condition,
-					SL.StockLineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					ROP.QuantityReserved,
-					'' ,
-					'RepairOrder' AS Module,
-					RO.RepairOrderNumber,
-					--ROP.CreatedDate,
-					--null ,				
-					--(ROP.CreatedBy), 
-					UPPER(SLM.Level1Name) AS level1,  
-					UPPER(SLM.Level2Name) AS level2, 
-					UPPER(SLM.Level3Name) AS level3, 
-					UPPER(SLM.Level4Name) AS level4, 
-					UPPER(SLM.Level5Name) AS level5, 
-					UPPER(SLM.Level6Name) AS level6, 
-					UPPER(SLM.Level7Name) AS level7, 
-					UPPER(SLM.Level8Name) AS level8, 
-					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
-				FROM [RepairOrderPart] ROP WITH(NOLOCK)
-					INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0  AND ISNULL(ROP.QuantityReserved,0) > 0 AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
-						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
-					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
-					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
-					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
-					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
-					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
-					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
-					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
-					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
-					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
-					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
-					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
-					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
-					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
-					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
-					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
-					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
-					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
-					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
-					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-				--* END: RepairOrder For Reserve *--
-
-				--* START: ExchangeSalesOrder For Reserve *--
-				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-					SELECT
-					SL.StockLineId,
-					SL.PartNumber,
-					SL.PNDescription,
-					SL.Condition,
-					SL.StockLineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					ESR.QtyToReserve,
-					'' ,
-					'ExchangeSalesOrder' AS Module,
-					ESO.ExchangeSalesOrderNumber,
-					--ESR.ReservedDate,
-					--null ,				
-					--(EM.FirstName + ' '+ EM.LastName), 
-					UPPER(SLM.Level1Name) AS level1,  
-					UPPER(SLM.Level2Name) AS level2, 
-					UPPER(SLM.Level3Name) AS level3, 
-					UPPER(SLM.Level4Name) AS level4, 
-					UPPER(SLM.Level5Name) AS level5, 
-					UPPER(SLM.Level6Name) AS level6, 
-					UPPER(SLM.Level7Name) AS level7, 
-					UPPER(SLM.Level8Name) AS level8, 
-					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
-				FROM [ExchangeSalesOrderReserveParts] ESR WITH(NOLOCK)
-					INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESR.ExchangeSalesOrderId
-					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ESR.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
-					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.QtyToReserve,0) > 0 AND ISNULL(ESR.IsDeleted,0) = 0 AND ISNULL(ESO.IsDeleted,0) = 0 AND (ISNULL(ESO.StatusId,0) != @ExchStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
-						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
-					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
-					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
-					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
-					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
-					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
-					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
-					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
-					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
-					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
-					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
-					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
-					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
-					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
-					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
-					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
-					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
-					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
-					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
-					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-				--* END: ExchangeSalesOrder For Reserve *--
-
-				--* START: RMA For Reserve *--
-				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
-											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-					SELECT
-					SL.StockLineId,
-					SL.PartNumber,
-					SL.PNDescription,
-					SL.Condition,
-					SL.StockLineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					VRD.Qty,
-					'' ,
-					'RMA' AS Module,
-					VRD.RMANum,
-					--VRD.CreatedDate,
-					--null ,				
-					--VRD.CreatedBy, 
-					UPPER(SLM.Level1Name) AS level1,  
-					UPPER(SLM.Level2Name) AS level2, 
-					UPPER(SLM.Level3Name) AS level3, 
-					UPPER(SLM.Level4Name) AS level4, 
-					UPPER(SLM.Level5Name) AS level5, 
-					UPPER(SLM.Level6Name) AS level6, 
-					UPPER(SLM.Level7Name) AS level7, 
-					UPPER(SLM.Level8Name) AS level8, 
-					UPPER(SLM.Level9Name) AS level9, 
-					UPPER(SLM.Level10Name) AS level10
-				FROM [VendorRMADetail] VRD WITH(NOLOCK)
-					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					WHERE VRD.MasterCompanyId = @MasterCompanyId AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 AND ISNULL(VRD.Qty,0) > 0 AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
-						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
-					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
-					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
-					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
-					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
-					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
-					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
-					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
-					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
-					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
-					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
-					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
-					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
-					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
-					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
-					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
-					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
-					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
-					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
-					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-				--* END: RMA For Reserve *--
-
 
 		 END
 		  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
@@ -1272,12 +1148,6 @@ BEGIN
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'MODULE') THEN [Module] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'REFERENCENUMBER') THEN [ReferenceNumber] END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'REFERENCENUMBER') THEN [ReferenceNumber] END DESC,
-			--CASE WHEN (@SortOrder = 1 AND @SortColumn = 'RESERVATIONDATE') THEN [ReservationDate] END ASC,
-			--CASE WHEN (@SortOrder = -1 AND @SortColumn = 'RESERVATIONDATE') THEN [ReservationDate] END DESC,
-			--CASE WHEN (@SortOrder = 1 AND @SortColumn = 'ISSUEDATE') THEN [IssueDate] END ASC,
-			--CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ISSUEDATE') THEN [IssueDate] END DESC,
-			--CASE WHEN (@SortOrder = 1 AND @SortColumn = 'RESERVEDORISSUEDBY') THEN [ReservedORIssuedBy] END ASC,
-			--CASE WHEN (@SortOrder = -1 AND @SortColumn = 'RESERVEDORISSUEDBY') THEN [ReservedORIssuedBy] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LEVEL1') THEN [Level1] END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LEVEL1') THEN [Level1] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LEVEL2') THEN [Level2] END ASC,

@@ -12,7 +12,7 @@
     1    09/24/2024   Vishal Suthar	 Created
 	2    11/13/2014   Abhishek Jirawla  Modified to add Not only Stockline COst but also part cost in Quantity update
 	3    11/21/2014   RAJESH GAMI       Modified to implemented the statusid while update 
-	4    11/21/2014   Amit Ghediya		 Modified to add ECCN & Dimension (L,W,H)
+	4    11/21/2014   Amit Ghediya		 Modified to add ECCN & Dimension (L,W,H) add update time.
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -187,8 +187,8 @@ BEGIN
 			BEGIN
 				DECLARE @InsertedSalesOrderStocklineId BIGINT;
 
-				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
-				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes
+				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes,@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight
 				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
 				SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
@@ -257,7 +257,13 @@ BEGIN
 				PromisedDate = @PromisedDate,
 				EstimatedShipDate = @EstimatedShipDate,
 				Notes = @Notes,
-				StatusId = CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END
+				StatusId = CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END,
+				ECCN = @ECCN,
+				HSCODE = @HSCODE,
+				[Weight] = @Weight,
+				SizeLength = @SizeLength,
+				SizeWidth = @SizeWidth,
+				SizeHeight = @SizeHeight
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
 				DECLARE @GrossAmt_S AS decimal(18,4);

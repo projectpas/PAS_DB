@@ -34,7 +34,7 @@
 	17   15/11/2024   AMIT GHEDIYA	Modified for get standard bill amount without performa.
 	18	 20/11/2024	  AMIT GHEDIYA  Modified for get Curr for billng data.
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
-	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing.
+	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1399,82050,1
 **************************************************************/
@@ -224,7 +224,7 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) on soc.SalesOrderShippingId = sos.SalesOrderShippingId  
 			LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 			LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
-			LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId --so.CurrencyId  
+			LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
 			WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId  
 			GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 			sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, stk.StockLineId,  
@@ -401,12 +401,12 @@ BEGIN
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
 
-					SOP.ECCN AS ECCN,
-					SOP.HSCODE AS HSCODE,
-					SOP.[Weight] AS [Weight], 
-					SOP.SizeLength AS BillSizeLength,
-					SOP.SizeWidth AS BillSizeWidth,
-					SOP.SizeHeight AS BillSizeHeight
+					stk.ECCN AS ECCN,
+					stk.HSCODE AS HSCODE,
+					stk.[Weight] AS [Weight], 
+					stk.SizeLength AS BillSizeLength,
+					stk.SizeWidth AS BillSizeWidth,
+					stk.SizeHeight AS BillSizeHeight
 
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
@@ -418,7 +418,7 @@ BEGIN
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
-					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId  
+					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
 					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = @SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
 					INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
@@ -590,7 +590,7 @@ BEGIN
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
-					LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = imt.PurchaseCurrencyId  
+					LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.FunctionalCurrencyId 
 					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 					)
 

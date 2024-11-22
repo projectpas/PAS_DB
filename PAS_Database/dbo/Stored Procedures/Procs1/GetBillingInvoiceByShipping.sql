@@ -14,7 +14,7 @@
 	4    01/31/2024   AMIT GHEDIYA	Updated to Added IsPerforma for Billing
 	5	 03/29/2024	  Bhargav Saliya Get CreditTerms From SO instead of CreditTerms
 	6	 11/04/2024	  Vishal Suthar  Modified to make use of new SO Part tables
-	7	 11/08/2024	  AMIT GHEDIYA   Modified to get shipping weight & ShipSize etc.
+	7	 11/08/2024	  AMIT GHEDIYA   Modified to get shipping weight & ShipSize etc in item table.
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -33,11 +33,13 @@ SET NOCOUNT ON;
 					so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) as NoofPieces,
 					sobi.OriginCountryId AS OriginCountryId, 
 					sobi.ShipToCountryId AS ShipToCountryId, 
-					sobi.HSECCN AS HSECCN,
-					sobi.[Weight] AS [Weight], 
-					sobi.BillSizeLength AS BillSizeLength,
-					sobi.BillSizeWidth AS BillSizeWidth,
-					sobi.BillSizeHeight AS BillSizeHeight,
+					--sobi.HSECCN AS HSECCN,
+					sobii.ECCN AS ECCN,
+					sobii.HSCODE AS HSCODE,
+					sobii.[Weight] AS [Weight], 
+					sobii.SizeLength AS BillSizeLength,
+					sobii.SizeWidth AS BillSizeWidth,
+					sobii.SizeHeight AS BillSizeHeight,
 					sobi.SignEmpId AS SignEmpId,
 					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo
@@ -64,11 +66,13 @@ SET NOCOUNT ON;
 					so.TypeId, sotype.[Name] as RevType, sosi.QtyShipped as NoofPieces,
 					sos.OriginCountryId, 
 					sos.ShipToCountryId, 
-					imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
-					sos.[Weight], 
-					sos.ShipSizeLength AS BillSizeLength,
-					sos.ShipSizeWidth AS BillSizeWidth,
-					sos.ShipSizeHeight AS BillSizeHeight,
+					--imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
+					sop.ECCN AS ECCN,
+					sop.HSCODE AS HSCODE,
+					sop.[Weight], 
+					sop.SizeLength AS BillSizeLength,
+					sop.SizeWidth AS BillSizeWidth,
+					sop.SizeHeight AS BillSizeHeight,
 					emp.EmployeeId,
 					0 AS InvoiceNo
 				FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
@@ -94,11 +98,13 @@ SET NOCOUNT ON;
 					sobi.OriginCountryId AS OriginCountryId, 
 					sobi.ShipToCountryId AS ShipToCountryId, 
 					--sobi.HSECCN AS HSECCN,
-					imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
-					sobi.[Weight] AS [Weight], 
-					sobi.BillSizeLength AS BillSizeLength,
-					sobi.BillSizeWidth AS BillSizeWidth,
-					sobi.BillSizeHeight AS BillSizeHeight,
+					--imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
+					sop.ECCN AS ECCN,
+					sop.HSCODE AS HSCODE,
+					sop.[Weight] AS [Weight], 
+					sop.SizeLength AS BillSizeLength,
+					sop.SizeWidth AS BillSizeWidth,
+					sop.SizeHeight AS BillSizeHeight,
 					sobi.SignEmpId AS SignEmpId,
 					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo

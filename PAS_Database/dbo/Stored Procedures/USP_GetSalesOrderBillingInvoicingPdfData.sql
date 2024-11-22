@@ -18,7 +18,7 @@
 	3	 27/07/2024   Bhargav Saliya	Get/added ShippingTerms
 	4	 19/09/2024   AMIT GHEDIYA		Get Cur from header for pdf.
 	5    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-	6	 11/08/2024	  AMIT GHEDIYA		Modified to get shipping weight & ShipSize etc.
+	6	 11/08/2024	  AMIT GHEDIYA		Modified to get shipping weight & ShipSize etc from item table.
      
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
@@ -158,11 +158,13 @@ BEGIN
 			SignEmpDate = bi.SignEmpDate,
 			OriginCountry = originco.countries_name,
 			BillShipToCountry = shipingco.countries_name,
-			HSECCN = bi.HSECCN,
-			BillWeight = ISNULL(bi.[Weight],0),
-			BillSizeLength = ISNULL(bi.BillSizeLength,0),
-			BillSizeWidth = ISNULL(bi.BillSizeWidth,0),
-			BillSizeHeight = ISNULL(bi.BillSizeHeight,0)
+			--HSECCN = sabi.HSECCN,
+			ECCN = ISNULL(sabi.ECCN,''),
+			HSCODE = ISNULL(sabi.HSCODE,''),
+			BillWeight = ISNULL(sabi.[Weight],0),
+			BillSizeLength = ISNULL(sabi.SizeLength,0),
+			BillSizeWidth = ISNULL(sabi.SizeWidth,0),
+			BillSizeHeight = ISNULL(sabi.SizeHeight,0)
 		FROM [dbo].[SalesOrderBillingInvoicing] bi WITH(NOLOCK)
 		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.SalesOrderId = so.SalesOrderId
 		 LEFT JOIN  [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

@@ -35,8 +35,16 @@
     [SalesOrderQuotePartId] BIGINT          NULL,
     [LotId]                 BIGINT          NULL,
     [IsLotAssigned]         BIT             NULL,
+    [ECCN]                  VARCHAR (200)   NULL,
+    [HSCODE]                VARCHAR (200)   NULL,
+    [Weight]                DECIMAL (10, 2) NULL,
+    [SizeLength]            DECIMAL (10, 2) NULL,
+    [SizeWidth]             DECIMAL (10, 2) NULL,
+    [SizeHeight]            DECIMAL (10, 2) NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
+
+
 
 
 

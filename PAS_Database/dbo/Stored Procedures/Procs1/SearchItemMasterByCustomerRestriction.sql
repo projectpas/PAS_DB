@@ -17,6 +17,7 @@
     1    04-02-2020		Vishal Suthar	Created
 	2    05-10-2020		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
 	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
+	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
      
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
@@ -67,6 +68,12 @@ BEGIN
 					,imps.PP_UnitPurchasePrice AS UnitCost
 					,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
+					,ime.ExportECCN AS ECCN
+					,ime.HSCode AS HSCODE
+					,ime.ExportWeight AS [Weight]
+					,ime.ExportSizeLength AS SizeLength
+					,ime.ExportSizeWidth AS SizeWidth
+					,ime.ExportSizeHeight AS SizeHeight
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
@@ -76,6 +83,7 @@ BEGIN
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
+				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 				LEFT JOIN (SELECT partnumber, ItemMasterId FROM DBO.ItemMaster WITH (NOLOCK)) OEMPMA ON OEMPMA.ItemMasterId = im.IsOemPNId
 				LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
 							and imps.ConditionId = c.ConditionId
@@ -102,6 +110,12 @@ BEGIN
 					,imps.PP_UnitPurchasePrice
 					,imps.SP_CalSPByPP_UnitSalePrice
 					,imps.PP_FXRatePerc
+					,ime.ExportECCN
+					,ime.HSCode
+					,ime.ExportWeight
+					,ime.ExportSizeLength
+					,ime.ExportSizeWidth
+					,ime.ExportSizeHeight
 				ORDER BY 9 DESC
 			END
 		COMMIT  TRANSACTION

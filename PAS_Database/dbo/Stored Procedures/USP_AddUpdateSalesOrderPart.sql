@@ -11,7 +11,8 @@
  ** --   --------     -------		 --------------------------------
     1    09/24/2024   Vishal Suthar	 Created
 	2    11/13/2014   Abhishek Jirawla  Modified to add Not only Stockline COst but also part cost in Quantity update
-	2    11/21/2014   RAJESH GAMI       Modified to implemented the statusid while update 
+	3    11/21/2014   RAJESH GAMI       Modified to implemented the statusid while update 
+	4    11/21/2014   Amit Ghediya		 Modified to add ECCN & Dimension (L,W,H)
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -20,7 +21,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+CREATE     PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN
@@ -73,17 +74,25 @@ BEGIN
 		AltOrEqType varchar(25),
 		Notes nvarchar(max),
 		MasterCompanyId int,
-		CreatedBy varchar(100)
+		CreatedBy varchar(100),
+		ECCN varchar(200),
+		HSCODE varchar(200),
+		Weight decimal(18,4),
+		SizeLength decimal(18,4),
+		SizeWidth decimal(18,4),
+		SizeHeight decimal(18,4)
 	)
 
 	INSERT INTO #SOPartDetails (SalesOrderPartId,SalesOrderId,ItemMasterId,ConditionId,PriorityId,StocklineId,SalesOrderStocklineId,StatusId,
 	QtyRequested,QtyOrder,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
-	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy)
+	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,
+	ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 	SELECT SalesOrderPartId,SalesOrderId,ItemMasterId,ConditionId,PriorityId,StocklineId,SalesOrderStocklineId,StatusId,
 	QtyRequested,QtyOrder,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 	CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
-	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy 
+	MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,
+	ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight
 	FROM @tbl_SalesOrderPartList;
 
 	SELECT @SOPartLoopID = MAX(ID) FROM #SOPartDetails;
@@ -113,11 +122,19 @@ BEGIN
 		DECLARE @PromisedDate AS Datetime2(7);
 		DECLARE @EstimatedShipDate AS Datetime2(7);
 		DECLARE @SOPartStatus BIGINT;
+		DECLARE @ECCN AS VARCHAR(200);
+		DECLARE @HSCODE AS VARCHAR(200);
+		DECLARE @Weight AS decimal(18,4);
+		DECLARE @SizeLength AS decimal(18,4);
+		DECLARE @SizeWidth AS decimal(18,4);
+		DECLARE @SizeHeight AS decimal(18,4);
+
 		SELECT @SalesOrderPartId = SalesOrderPartId, @SalesOrderId = SalesOrderId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderStocklineId = SalesOrderStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyOrder = QtyOrder,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes, 
-		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId
+		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId,
+		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight
 		FROM #SOPartDetails WHERE ID = @SOPartLoopID;
 		
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
@@ -135,8 +152,8 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = CF.CustomerId
 				WHERE SO.SalesOrderId = @SalesOrderId;
 
-				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
-				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
+				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight
 				FROM #SOPartDetails WHERE ID = @SOPartLoopID;
 
 				SET @SalesOrderPartId = SCOPE_IDENTITY();
@@ -200,7 +217,13 @@ BEGIN
 			CustomerRequestDate = @CustomerRequestDate,
 			PromisedDate = @PromisedDate,
 			EstimatedShipDate = @EstimatedShipDate,
-			StatusId =  CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END
+			StatusId =  CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END,			
+			ECCN = @ECCN,
+			HSCODE = @HSCODE,
+			[Weight] = @Weight,
+			SizeLength = @SizeLength,
+			SizeWidth = @SizeWidth,
+			SizeHeight = @SizeHeight
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
 			-- Update Part Details

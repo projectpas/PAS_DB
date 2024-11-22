@@ -34,6 +34,7 @@
 	17   15/11/2024   AMIT GHEDIYA	Modified for get standard bill amount without performa.
 	18	 20/11/2024	  AMIT GHEDIYA  Modified for get Curr for billng data.
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
+	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing.
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1399,82050,1
 **************************************************************/
@@ -99,6 +100,12 @@ BEGIN
 			DepositAmount [DECIMAL](18,2) NULL,
 			IsAllowIncreaseVersionForBillItem [BIT] NULL,
 			[IsBilling] [bit] NULL,
+			ECCN [VARCHAR](200)  NULL,
+			HSCODE [VARCHAR](200)  NULL,
+			[Weight] [DECIMAL](18,2) NULL,
+			SizeLength [DECIMAL](18,2) NULL,
+			SizeWidth [DECIMAL](18,2) NULL,
+			SizeHeight [DECIMAL](18,2) NULL
 		);
 
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
@@ -107,7 +114,8 @@ BEGIN
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling )
+			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
+			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 		(
 			SELECT DISTINCT sosi.SalesOrderShippingId,   
 			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
@@ -194,7 +202,15 @@ BEGIN
 			0 AS IsProforma,
 			0 AS DepositAmount,
 			(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-			ISNULL(sobi.[IsBilling], 0) as [IsBilling]
+			ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+
+			sop.ECCN AS ECCN,
+			sop.HSCODE AS HSCODE,
+			sop.[Weight] AS [Weight], 
+			sop.SizeLength AS BillSizeLength,
+			sop.SizeWidth AS BillSizeWidth,
+			sop.SizeHeight AS BillSizeHeight
+
 			FROM DBO.SalesOrderShippingItem sosi WITH (NOLOCK)  
 			INNER JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  
 			INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) on sop.SalesOrderId = sos.SalesOrderId AND sop.SalesOrderPartId = sosi.SalesOrderPartId  
@@ -213,7 +229,8 @@ BEGIN
 			GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 			sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, stk.StockLineId,  
 			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOPC.UnitSalesPrice, sobi.InvoiceNo, sobi.InvoiceTypeId,
-			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.SOBillingInvoicingId, sobii.SOBillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling])
+			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.SOBillingInvoicingId, sobii.SOBillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling],
+			sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight)
 		END
 		ELSE
 		BEGIN
@@ -226,7 +243,8 @@ BEGIN
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-					TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling] )
+					TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 				(
 				SELECT DISTINCT 
 				(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
@@ -318,7 +336,15 @@ BEGIN
 				0 AS IsProforma,
 				0 AS DepositAmount,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-				ISNULL(sobi.[IsBilling], 0) as [IsBilling]
+				ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+
+				'' AS ECCN,
+				'' AS HSCODE,
+				0 AS [Weight], 
+				0 AS BillSizeLength,
+				0 AS BillSizeWidth,
+				0 AS BillSizeHeight
+
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -340,7 +366,8 @@ BEGIN
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 				SalesOrderShippingId,SOBillingInvoicingId , SOBillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-				SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling] )
+				SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
+				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 				SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobii.SOBillingInvoicingItemId,
@@ -372,7 +399,15 @@ BEGIN
 					0 AS IsProforma,
 					0 AS DepositAmount,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-					ISNULL(sobi.[IsBilling], 0) as [IsBilling]
+					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+
+					SOP.ECCN AS ECCN,
+					SOP.HSCODE AS HSCODE,
+					SOP.[Weight] AS [Weight], 
+					SOP.SizeLength AS BillSizeLength,
+					SOP.SizeWidth AS BillSizeWidth,
+					SOP.SizeHeight AS BillSizeHeight
+
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
@@ -507,7 +542,8 @@ BEGIN
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
-				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling] )
+				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
+				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 			(
 				SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
@@ -538,7 +574,13 @@ BEGIN
 					1 AS IsProforma,
 					ISNULL(sobi.DepositAmount,0) AS DepositAmount,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-					ISNULL(sobi.[IsBilling], 0) as [IsBilling]
+					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+					'' AS ECCN,
+					'' AS HSCODE,
+					0 AS [Weight], 
+					0 AS BillSizeLength,
+					0 AS BillSizeWidth,
+					0 AS BillSizeHeight
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 1
@@ -587,7 +629,13 @@ BEGIN
 					   IsProforma,
 					   DepositAmount,
 					   IsAllowIncreaseVersionForBillItem,
-					   [IsBilling]
+					   [IsBilling],
+					   ECCN,
+					   HSCODE,
+					   [Weight],
+					   SizeLength,
+					   SizeWidth,
+					   SizeHeight
 				FROM #SalesOrderBillingInvoiceChildList
 				ORDER BY partnumber, IsProforma DESC,InvoiceNo DESC, VersionNo DESC ;
    END  

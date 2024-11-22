@@ -17,7 +17,7 @@
 	2    05/03/2024   Moin Bloch		Updated changed join ItemMaster To [Stockline]
 	3    09/23/2024   Vishal Suthar		Modified for Old tables with new tables
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 766
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 944
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
 	@SalesOrderQuoteId bigint
@@ -98,7 +98,7 @@ BEGIN
 	)
 
 	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderQuoteId],[SalesOrderQuotePartId])
-			SELECT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
+			SELECT DISTINCT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
 			       CASE WHEN AAD.[SiteId] IS NOT NULL THEN AAD.[SiteId] ELSE CDS.CustomerDomensticShippingId END,
 				   SOQ.[CustomerId],
 				   SOQ.[SalesOrderQuoteId],

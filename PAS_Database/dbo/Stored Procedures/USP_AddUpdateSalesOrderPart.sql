@@ -7,11 +7,12 @@
 
  ** Change History
  **************************************************************
- ** PR   Date         Author  			Change Description
- ** --   --------     -------			--------------------------------
-    1    09/24/2024   Vishal Suthar		 Created
-	2    11/13/2014   Abhishek Jirawla	 Modified to add Not only Stockline COst but also part cost in Quantity update
-	3    11/21/2014   Amit Ghediya		 Modified to add ECCN & Dimension (L,W,H)
+ ** PR   Date         Author  		 Change Description
+ ** --   --------     -------		 --------------------------------
+    1    09/24/2024   Vishal Suthar	 Created
+	2    11/13/2014   Abhishek Jirawla  Modified to add Not only Stockline COst but also part cost in Quantity update
+	3    11/21/2014   RAJESH GAMI       Modified to implemented the statusid while update 
+	4    11/21/2014   Amit Ghediya		 Modified to add ECCN & Dimension (L,W,H)
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -120,6 +121,7 @@ BEGIN
 		DECLARE @CustomerRequestDate AS Datetime2(7);
 		DECLARE @PromisedDate AS Datetime2(7);
 		DECLARE @EstimatedShipDate AS Datetime2(7);
+		DECLARE @SOPartStatus BIGINT;
 		DECLARE @ECCN AS VARCHAR(200);
 		DECLARE @HSCODE AS VARCHAR(200);
 		DECLARE @Weight AS decimal(18,4);
@@ -131,13 +133,13 @@ BEGIN
 		@SalesOrderStocklineId = SalesOrderStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyOrder = QtyOrder,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes, 
-		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,
+		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId,
 		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight
 		FROM #SOPartDetails WHERE ID = @SOPartLoopID;
 		
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
-			DECLARE @SOPartStatus BIGINT;
+			
 			SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';
 
 			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId)
@@ -215,6 +217,7 @@ BEGIN
 			CustomerRequestDate = @CustomerRequestDate,
 			PromisedDate = @PromisedDate,
 			EstimatedShipDate = @EstimatedShipDate,
+			StatusId =  CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END,			
 			ECCN = @ECCN,
 			HSCODE = @HSCODE,
 			[Weight] = @Weight,
@@ -253,7 +256,8 @@ BEGIN
 				SET CustomerRequestDate = @CustomerRequestDate,
 				PromisedDate = @PromisedDate,
 				EstimatedShipDate = @EstimatedShipDate,
-				Notes = @Notes
+				Notes = @Notes,
+				StatusId = CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
 				DECLARE @GrossAmt_S AS decimal(18,4);

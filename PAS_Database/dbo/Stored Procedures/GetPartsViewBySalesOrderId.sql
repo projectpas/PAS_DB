@@ -17,7 +17,7 @@
     1    09/27/2024   Vishal Suthar Created
     2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
 
-EXEC [dbo].[GetPartsViewBySalesOrderId]  1103
+EXEC [dbo].[GetPartsViewBySalesOrderId]  1403
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
@@ -126,7 +126,7 @@ BEGIN
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON so.CustomerId = cf.CustomerId
 		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
-		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SalesOrderPartId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
+		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SalesOrderPartId AND stk.StockLineId = sob.StockLineId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
 		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.IsProforma = 0
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0

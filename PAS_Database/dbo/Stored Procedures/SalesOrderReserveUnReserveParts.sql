@@ -193,7 +193,14 @@ BEGIN
 					@PartMarkUpPercentage DECIMAL(18,2) = 0,
 					@PartMarkUpAmount DECIMAL(18,2) = 0,
 					@PartDiscountPercentage DECIMAL(18,2) = 0,
-					@PartDiscountAmount DECIMAL(18,2) = 0;
+					@PartDiscountAmount DECIMAL(18,2) = 0,
+
+					@ECCN AS varchar(200),
+					@HSCODE AS varchar(200),
+					@Weight AS decimal(18,4),
+					@SizeLength AS decimal(18,4),
+					@SizeWidth AS decimal(18,4),
+					@SizeHeight AS decimal(18,4)
 
 			--If Part Status is Reserve
 			IF(@ReserveStatusId = @PartStatusId)
@@ -221,7 +228,14 @@ BEGIN
 					       @PartMarkUpPercentage = SOPC.MarkUpPercentage,
 					       @PartMarkUpAmount = SOPC.MarkUpAmount,
 					       @PartDiscountPercentage = SOPC.DiscountPercentage,
-					       @PartDiscountAmount = SOPC.DiscountAmount
+					       @PartDiscountAmount = SOPC.DiscountAmount,
+
+						   @ECCN = SOP.ECCN,
+						   @HSCODE = SOP.HSCODE,
+						   @Weight = SOP.[Weight],
+						   @SizeLength = SOP.SizeLength,
+						   @SizeWidth = SOP.SizeWidth,
+						   @SizeHeight = SOP.SizeHeight
 					FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 					LEFT JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.SalesOrderId = SOP.SalesOrderId
 					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
@@ -257,8 +271,8 @@ BEGIN
 						WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @PartSalesOrderPartId;
 
 						-- Added at Stockline Level
-						INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
-						SELECT @PartSalesOrderPartId, STK.StockLineId, @ConditionId, @QtyToReserve, @QtyToReserve, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+						INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+						SELECT @PartSalesOrderPartId, STK.StockLineId, @ConditionId, @QtyToReserve, @QtyToReserve, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0,@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight
 						FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
 						SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();

@@ -15,6 +15,7 @@
 	2    06/11/2024   Moin Bloch    Added IsDeleted and IsActive Flag
 	3    18/11/2024   Moin Bloch    Added IsSerialized Field
 	4    21/11/2024   Moin Bloch    Updated  Restrict open CycleCount stocks
+	5    22/11/2024   Moin Bloch    Added QuantityIssued Field
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -80,6 +81,7 @@ BEGIN
 			   ISNULL(SL.[QuantityAvailable],0) [QuantityAvailable],
 			   SL.[QuantityOnHand],
 			   ISNULL(SL.[QuantityReserved],0) [QuantityReserved],
+			   ISNULL(SL.[QuantityIssued],0) [QuantityIssued],
 			   ISNULL(SL.[UnitCost],0) [UnitCost],
 			   IM.[PurchaseCurrencyId],
 			   CR.[Code] [CurrencyName],

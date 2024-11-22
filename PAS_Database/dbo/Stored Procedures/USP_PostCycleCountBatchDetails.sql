@@ -14,7 +14,7 @@
 	1    12/11/2024          Moin Bloch          Created   
 	2    13/11/2024          Moin Bloch          Added IsReversedJE Flag
 	3    19/11/2024          Moin Bloch          Added @AccountingCalendarId,@LedgerId 
-	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise
+	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise 
 	
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
@@ -486,15 +486,15 @@ BEGIN
 			   [UpdatedBy] = @UpdatedBy 
 		 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
-		 --AutoPost Batch
-		 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
-		 BEGIN
-			 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdatedBy;
-		 END
-		 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-		 BEGIN
-			 EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdatedBy,@AccountingCalendarId,@AccountingPeriod;
-		 END
+		 ----AutoPost Batch
+		 --IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+		 --BEGIN
+			-- EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdatedBy;
+		 --END
+		 --IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		 --BEGIN
+			-- EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdatedBy,@AccountingCalendarId,@AccountingPeriod;
+		 --END
 		 		 
 	END TRY
 	BEGIN CATCH

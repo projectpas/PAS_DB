@@ -16,6 +16,7 @@
 	2    12/11/2024   Moin Bloch   Added Acconting Batch SP and [CycleCountDetailId] In Temp Table 
 	3    14/11/2024   Moin Bloch   Added Clsoed Condition FOR UNIT COST 0 
 	4    19/11/2024   Moin Bloch   Added Paramiter LedgerId,AccountingCalendarId  
+	5    22/11/2024   Moin Bloch   Updated Changed logic of Qty
          
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
@@ -41,14 +42,22 @@ BEGIN
 		DECLARE @CountedQuantity INT = 0;
 		DECLARE @DifferenceQuantity INT = 0;
 		DECLARE @DifferenceAmount DECIMAL(18,2) = 0;
+		DECLARE @QuantityAvailable INT = 0;
+		DECLARE @QuantityReserved INT = 0;
 		DECLARE @DifferenceQty INT = 0;
 		DECLARE @CCModuleId INT;	
 		DECLARE	@ActionId INT;
 		DECLARE @CycleCountStatusId INT;
 		DECLARE @JournalBatchHeaderId BIGINT;
+		DECLARE @JournalBatchDetailId BIGINT;
+		DECLARE @DistributionMasterId BIGINT;  
+		DECLARE @AccountingPeriod VARCHAR(100);    
 		DECLARE @BatchName VARCHAR(200) = '';
+		DECLARE @IsAutoPost INT = 0;
 
 		SELECT @CycleCountStatusId = [CycleCountStatusId] FROM [dbo].[CycleCountStatus] WITH(NOLOCK) WHERE UPPER([Status]) = 'CLOSED';
+		
+		SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('CYCLECOUNTADJUSTMENT');						
 
 		SELECT @CCModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'CYCLECOUNT';
 
@@ -93,13 +102,22 @@ BEGIN
 			BEGIN 
 				SET @DifferenceQty = @CurrentStockQuantity - @CountedQuantity;				
 				SET @ActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE UPPER([Type]) = 'ADJUSTMENT-DECREASE-CYCLECOUNT');
+				
+				UPDATE [dbo].[Stockline]		
+				   SET [QuantityAvailable] = @CountedQuantity,              
+					   [Quantity] = ISNULL([Quantity],0) - @DifferenceQty   
+				 WHERE [StockLineId] = @StockLineId; 
+
+				 SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),
+					    @QuantityReserved =  ISNULL([QuantityReserved],0)
+				  FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+
 				UPDATE [dbo].[Stockline] 
-				   SET [QuantityOnHand] = @CountedQuantity,
-					   [QuantityAvailable] = [QuantityAvailable] - @DifferenceQty,	 
+				   SET [QuantityOnHand] = (@QuantityAvailable + @QuantityReserved),
 				       [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
-				 WHERE [StockLineId] = @StockLineId;
-				
+				 WHERE [StockLineId] = @StockLineId; 
+							
 				-- StockLine History
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
 			    
@@ -113,13 +131,22 @@ BEGIN
 			BEGIN 
 				SET @DifferenceQty = @CountedQuantity - @CurrentStockQuantity;
 				SET @ActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE UPPER([Type]) = 'ADJUSTMENT-INCREASE-CYCLECOUNT');
+				
+				UPDATE [dbo].[Stockline]		
+				   SET [QuantityAvailable] = @CountedQuantity, 
+					   [Quantity] = ISNULL([Quantity],0) + @DifferenceQty
+				 WHERE [StockLineId] = @StockLineId; 
+	     
+				SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),
+					   @QuantityReserved =  ISNULL([QuantityReserved],0)
+				  FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+        
 				UPDATE [dbo].[Stockline] 
-				   SET [QuantityOnHand] = @CountedQuantity,
-					   [QuantityAvailable] = [QuantityAvailable] + @DifferenceQty,	 
+				   SET [QuantityOnHand] = (@QuantityAvailable + @QuantityReserved),
 				       [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
-				 WHERE [StockLineId] = @StockLineId;
-				
+				 WHERE [StockLineId] = @StockLineId; 
+								
 				-- StockLine History
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
 				
@@ -132,7 +159,7 @@ BEGIN
 			SET @MinId = @MinId + 1
 		END	
 
-		SELECT TOP 1 @JournalBatchHeaderId = [JournalBatchHeaderId]	FROM [dbo].[CycleCountBatchDetails] WITH(NOLOCK) WHERE [ReferenceId] = @CycleCountId AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT TOP 1 @JournalBatchHeaderId = [JournalBatchHeaderId], @JournalBatchDetailId = [JournalBatchDetailId] FROM [dbo].[CycleCountBatchDetails] WITH(NOLOCK) WHERE [ReferenceId] = @CycleCountId AND [MasterCompanyId] = @MasterCompanyId;
 		
 		IF(ISNULL(@JournalBatchHeaderId,0) > 0)
 		BEGIN
@@ -144,7 +171,17 @@ BEGIN
 		BEGIN
 			UPDATE [dbo].[CycleCount] SET [StatusId] = @CycleCountStatusId,[PostedDate] = GETUTCDATE() WHERE [CycleCountId] = @CycleCountId;
 		END
+
+		SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0) FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('COGSCYCLECOUNT') AND [DistributionMasterId] = @DistributionMasterId;
+
+		SELECT @AccountingPeriod = [PeriodName] FROM [dbo].[AccountingCalendar] acc WITH(NOLOCK) WHERE acc.[AccountingCalendarId] = @AccountingCalendarId AND acc.[MasterCompanyId] = @MasterCompanyId  		
 		
+		--AutoPost Batch
+		IF(@IsAutoPost = 1)
+		BEGIN
+			EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdatedBy,@AccountingCalendarId,@AccountingPeriod;
+		END
+				
 		COMMIT  TRANSACTION 			
 	END
 	END TRY  
@@ -160,7 +197,7 @@ BEGIN
         DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_CycleCount_UpdateStockline_DetailsById' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL('', '') + ''													   
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@CycleCountId, '') AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

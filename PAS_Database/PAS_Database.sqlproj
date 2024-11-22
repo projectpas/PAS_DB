@@ -3290,6 +3290,7 @@
     <Build Include="dbo\Stored Procedures\USP_RemoveStockInventorySearchParams_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStockInventorySearchData.sql" />
     <Build Include="dbo\User Defined Types\StockInvenorySearchParamsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderPartViewByPOId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

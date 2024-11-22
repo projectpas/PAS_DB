@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    08/10/2024   AMIT GHEDIYA		Created
+	2   21 Nov 2024  RAJESH GAMI		Modified to implemented change the status to OPEN/FULFILLED while RESERVE UN-RESERVE
 
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
@@ -297,7 +298,9 @@ BEGIN
 
 						UPDATE [dbo].[SalesOrderStocklineV1]
 						SET QtyReserved = @QtyToReserve,
-						QtyOrder = @QtyToReserve
+						QtyOrder = @QtyToReserve,
+						StatusId = (CASE WHEN (@ReservePartTotalReserved = QtyOrder) THEN @SOPartStatusFulFill ELSE StatusId END )
+
 						WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
 
 						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;
@@ -360,7 +363,8 @@ BEGIN
 				UPDATE [DBO].[SalesOrderStocklineV1] 
 				SET UpdatedBy = @CreatedBy,
 					UpdatedDate = GETUTCDATE(),
-					QtyReserved = @ReservePartTotalReserved
+					QtyReserved = @ReservePartTotalReserved,
+					StatusId = (CASE WHEN (@ReservePartTotalReserved = QtyOrder) AND (@ReserveStatusId = @PartStatusId) THEN @SOPartStatusFulFill ELSE StatusId END )
 				WHERE SalesOrderPartId = @SalesOrderPartId 
 					AND StockLineId = @StockLineId
 
@@ -377,6 +381,13 @@ BEGIN
 					SET QuantityAvailable = QuantityAvailable + @QtyToUnReserve,
 					QuantityReserved = QuantityReserved - @QtyToUnReserve
 					WHERE StockLineId = @StockLineId;
+
+					UPDATE [DBO].[SalesOrderStocklineV1] 
+					SET UpdatedBy = @CreatedBy,
+						UpdatedDate = GETUTCDATE(),
+						StatusId = @SOPartStatus
+					WHERE SalesOrderPartId = @SalesOrderPartId 
+					AND StockLineId = @StockLineId AND ISNULL(QtyReserved,0) = 0
 				END
 
 				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
@@ -421,6 +432,12 @@ BEGIN
 								--Update Part Status to open
 								UPDATE [DBO].[SalesOrderPartV1] SET StatusId = @SOPartStatus WHERE SalesOrderPartId = @SalesOrderPartId;
 							END
+							UPDATE [DBO].[SalesOrderStocklineV1] 
+								SET UpdatedBy = @CreatedBy,
+									UpdatedDate = GETUTCDATE(),
+									StatusId = @SOPartStatus
+								WHERE SalesOrderPartId = @SalesOrderPartId 
+								AND StockLineId = @StockLineId AND ISNULL(QtyReserved,0) = 0
 						END
 
 
@@ -440,6 +457,14 @@ BEGIN
 							SET QuantityAvailable = QuantityAvailable - @ReservePartQtyToReserve,
 							QuantityReserved = QuantityReserved + @ReservePartQtyToReserve
 							WHERE StockLineId = @StockLineId;
+
+							UPDATE [DBO].[SalesOrderStocklineV1] 
+								SET UpdatedBy = @CreatedBy,
+									UpdatedDate = GETUTCDATE(),
+									StatusId = @SOPartStatusFulFill
+								WHERE SalesOrderPartId = @SalesOrderPartId 
+								AND StockLineId = @StockLineId AND ISNULL(QtyOrder,0) = ISNULL(QtyReserved,0)
+
 						END
 						ELSE IF(@UnReserveStatusId = @PartStatusId)
 						BEGIN

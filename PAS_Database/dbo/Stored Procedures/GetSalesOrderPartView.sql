@@ -152,12 +152,12 @@ BEGIN
 		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) invoiceNumber,
 		(SELECT TOP 1 sos.SOShippingNum FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) shipReference,
-		part.ECCN AS ECCN,
-		part.HSCODE AS HSCODE,
-		part.[Weight], 
-		part.SizeLength AS BillSizeLength,
-		part.SizeWidth AS BillSizeWidth,
-		part.SizeHeight AS BillSizeHeight
+		CASE WHEN Stk.ECCN IS NOT NULL THEN Stk.ECCN ELSE part.ECCN END ECCN,
+		CASE WHEN Stk.HSCODE IS NOT NULL THEN Stk.HSCODE ELSE part.HSCODE END HSCODE,
+		CASE WHEN Stk.[Weight] IS NOT NULL THEN Stk.[Weight] ELSE part.[Weight] END [Weight],
+		CASE WHEN Stk.SizeLength IS NOT NULL THEN Stk.SizeLength ELSE part.SizeLength END BillSizeLength,
+		CASE WHEN Stk.SizeWidth IS NOT NULL THEN Stk.SizeWidth ELSE part.SizeWidth END BillSizeWidth,
+		CASE WHEN Stk.SizeHeight IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END BillSizeHeight
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId

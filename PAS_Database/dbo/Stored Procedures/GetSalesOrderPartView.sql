@@ -15,6 +15,7 @@
     2    11/11/2024   Vishal Suthar     Modified to fix Qty available and Qty OH
     3    11/15/2024   Vishal Suthar     Modified to fix Qty shipped
 	4    11/21/2024   Amit Ghediya      Modified to WLH & weight
+	5    11/22/2024   RAJESH GAMI       Modified to StatusId getting based on the condition (STK and Part)
      
 -- EXEC [DBO].[GetSalesOrderPartView] 1323
 **************************************************************/
@@ -100,8 +101,8 @@ BEGIN
         part.EstimatedShipDate,
         ISNULL(part.PriorityId, @DefaultPriorityId) AS PriorityId,
         ISNULL(pri.Description, @DefaultPriorityName) AS PriorityName,
-        ISNULL(part.StatusId, @DefaultStatusId) AS StatusId,
-        ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = part.StatusId), @DefaultStatusName) AS StatusName,
+		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END StatusId,
+		ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = (CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END )), @DefaultStatusName) AS StatusName,
         ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
         CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.Notes ELSE part.Notes END Notes,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / stk.QtyOrder) ELSE (ISNULL(PS.MarkUpAmount, 0) / part.QtyOrder) END MarkupPerUnit,

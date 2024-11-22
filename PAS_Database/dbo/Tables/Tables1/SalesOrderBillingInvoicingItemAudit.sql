@@ -29,9 +29,17 @@
     [GrandTotal]                    DECIMAL (18, 2) NULL,
     [OtherTax]                      DECIMAL (18, 2) NULL,
     [SalesTax]                      DECIMAL (18, 2) NULL,
+    [ECCN]                          VARCHAR (200)   NULL,
+    [HSCODE]                        VARCHAR (200)   NULL,
+    [Weight]                        DECIMAL (10, 2) NULL,
+    [SizeLength]                    DECIMAL (10, 2) NULL,
+    [SizeWidth]                     DECIMAL (10, 2) NULL,
+    [SizeHeight]                    DECIMAL (10, 2) NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingItemAudit_SalesOrderBillingInvoicingItem] FOREIGN KEY ([SOBillingInvoicingItemId]) REFERENCES [dbo].[SalesOrderBillingInvoicingItem] ([SOBillingInvoicingItemId])
 );
+
+
 
 
 

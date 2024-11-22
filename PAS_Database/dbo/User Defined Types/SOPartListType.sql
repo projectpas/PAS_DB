@@ -34,5 +34,13 @@
     [AltOrEqType]           VARCHAR (25)    NULL,
     [Notes]                 NVARCHAR (MAX)  NULL,
     [MasterCompanyId]       INT             NULL,
-    [CreatedBy]             VARCHAR (100)   NULL);
+    [CreatedBy]             VARCHAR (100)   NULL,
+    [ECCN]                  VARCHAR (200)   NULL,
+    [HSCODE]                VARCHAR (200)   NULL,
+    [Weight]                DECIMAL (18, 4) NULL,
+    [SizeLength]            DECIMAL (18, 4) NULL,
+    [SizeWidth]             DECIMAL (18, 4) NULL,
+    [SizeHeight]            DECIMAL (18, 4) NULL);
+
+
 

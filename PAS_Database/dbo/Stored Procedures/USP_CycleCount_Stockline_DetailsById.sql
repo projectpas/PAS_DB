@@ -14,6 +14,7 @@
     1    21/10/2024   Moin Bloch    Created
 	2    06/11/2024   Moin Bloch    Added IsDeleted and IsActive Flag
 	3    18/11/2024   Moin Bloch    Added IsSerialized Field
+	4    21/11/2024   Moin Bloch    Updated  Restrict open CycleCount stocks
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -57,9 +58,12 @@ BEGIN
 		BEGIN
 			SET @BinId = NULL;
 		END
+
+		DECLARE @CycleCountStatusId INT;
+		SELECT @CycleCountStatusId = [CycleCountStatusId] FROM [dbo].[CycleCountStatus] WITH(NOLOCK) WHERE UPPER([Status]) = 'CLOSED';
 		
 		SELECT SL.[StockLineId],
-			   SL.[StockLineNumber],
+			   SL.[StockLineNumber],			   
 			   SL.[ItemMasterId],
 			   IM.[PartNumber],
 			   IM.[PartDescription],
@@ -75,6 +79,7 @@ BEGIN
 			   UM.[ShortName] [UnitOfMeasureName],
 			   ISNULL(SL.[QuantityAvailable],0) [QuantityAvailable],
 			   SL.[QuantityOnHand],
+			   ISNULL(SL.[QuantityReserved],0) [QuantityReserved],
 			   ISNULL(SL.[UnitCost],0) [UnitCost],
 			   IM.[PurchaseCurrencyId],
 			   CR.[Code] [CurrencyName],
@@ -92,7 +97,7 @@ BEGIN
 			   SL.[ManagementStructureId]
 		  FROM [dbo].[Stockline] SL WITH(NOLOCK)
 		  JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
-		  JOIN [dbo].[Site] SI WITH(NOLOCK) ON SL.[SiteId] = SI.[SiteId]			
+		  JOIN [dbo].[Site] SI WITH(NOLOCK) ON SL.[SiteId] = SI.[SiteId]			  
 		  LEFT JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId] 
 		  LEFT JOIN [dbo].[Condition] CO WITH(NOLOCK) ON SL.[ConditionId] = CO.[ConditionId] 
 		  LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON SL.[PurchaseUnitOfMeasureId] = UM.[UnitOfMeasureId]		       		 
@@ -101,7 +106,7 @@ BEGIN
 		  LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SL.[ShelfId] = SF.[ShelfId]
 		  LEFT JOIN [dbo].[Bin] BI WITH(NOLOCK) ON SL.[BinId] = BI.[BinId]
 		  LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON  IM.[PurchaseCurrencyId] = CR.[CurrencyId]
-		 WHERE SL.[IsParent] = 1 AND SL.[QuantityOnHand] > 0 AND SL.isDeleted = 0 AND SL.isActive = 1 AND
+		 WHERE SL.[IsParent] = 1 AND SL.[QuantityAvailable] > 0 AND SL.[isDeleted] = 0 AND SL.[isActive] = 1 AND
 			   (@MasterCompanyId IS NULL OR SL.[MasterCompanyId] = @MasterCompanyId) AND
 		       (@UnitCost IS NULL OR SL.[UnitCost] >= @UnitCost) AND
 		       (@IsCustomerStock IS NULL OR SL.[IsCustomerStock] = @IsCustomerStock) AND
@@ -109,8 +114,15 @@ BEGIN
                (@WarehouseId IS NULL OR SL.[WarehouseId] = @WarehouseId) AND
                (@LocationId IS NULL OR SL.[LocationId] = @LocationId) AND        
                (@ShelfId IS NULL OR SL.[ShelfId] = @ShelfId) AND
-               (@BinId IS NULL OR SL.[BinId] = @BinId) AND
-               (@ManagementStructureId IS NULL OR SL.[ManagementStructureId] = @ManagementStructureId) 		
+               (@BinId IS NULL OR SL.[BinId] = @BinId) AND			   
+               (@ManagementStructureId IS NULL OR SL.[ManagementStructureId] = @ManagementStructureId) AND
+			   NOT EXISTS ( 
+					SELECT TOP 1 [StockLineId]
+					FROM [dbo].[CycleCount] CC2 WITH(NOLOCK)
+					JOIN [dbo].[CycleCountDetail] CCD2 WITH(NOLOCK) ON CC2.[CycleCountId] = CCD2.[CycleCountId]
+					WHERE CCD2.[StockLineId] = SL.[StockLineId]
+					  AND CC2.[StatusId] <> @CycleCountStatusId
+			   )
 	END TRY  
 		BEGIN CATCH      
 			IF @@trancount > 0			

@@ -16,9 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2024   Vishal Suthar Created
      
- -- EXEC DBO.GetSalesOrderQuoteParts 766
+ -- EXEC DBO.GetSalesOrderQuoteParts 945
 **************************************************************/ 
-CREATE   PROCEDURE [DBO].[GetSalesOrderQuoteParts]
+CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteParts]
     @SalesQuoteId BIGINT
 AS
 BEGIN
@@ -128,7 +128,7 @@ BEGIN
 			qs.QuantityOnHand,
 			part.IsConvertedToSalesOrder,
 			0 AS ItemNo,
-			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN SOQSC.UnitSalesPrice ELSE SOQPC.UnitSalesPrice END UnitSalesPricePerUnit,
+			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN (SOQSC.NetSaleAmount / Stk.QtyQuoted) ELSE (SOQPC.NetSaleAmount / part.QtyQuoted) END UnitSalesPricePerUnit,
 			itemMaster.ItemClassificationName,
 			itemMaster.ItemGroup,
 			COALESCE(mf.Name, '') AS ManufacturerName,

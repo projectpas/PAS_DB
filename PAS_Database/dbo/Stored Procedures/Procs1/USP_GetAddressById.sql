@@ -26,6 +26,7 @@
 	2    06/29/2023   Amit Ghediya	Changes related to get Vendor Address of VendorRMA Bill/Ship Address.
 	3	 03/04/2024   Bhargav Saliya Resolved Ship-To address issue in Shipping (Single Part) 
 	4	 07/23/2024	  Bhargav Saliya Added ShippingTerms
+	5	 11/20/2024	  Abhishek Jirawla Adding IsDeleted 1 to SOQ
      
 exec dbo.USP_GetAddressById @Id=111,@AddressType=N'VendorRMA',@ModuleID=0
 **************************************************************/ 
@@ -170,8 +171,8 @@ BEGIN
 			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
 			LEFT JOIN [DBO].AllAddress SOQAS WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
 			LEFT JOIN [DBO].AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = SOQ.SalesOrderQuoteId and SOQSV.ModuleId = @ModuleID
-		WHERE SOQ.SalesOrderQuoteId = @Id
-		END
+		WHERE SOQ.SalesOrderQuoteId = @Id AND ISNULL(SOQA.IsDeleted, 0) = 0 AND ISNULL(SOQAS.IsDeleted, 0) = 0
+		 END
 
 		ELSE IF(@AddressType = 'SO')
 		BEGIN

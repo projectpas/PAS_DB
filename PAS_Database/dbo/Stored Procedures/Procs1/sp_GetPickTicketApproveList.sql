@@ -19,7 +19,7 @@
 	3    10/15/2024   Vishal Suthar Modified SP to get Pick ticket list from new SO Part tables
 	4    11/12/2024   Vishal Suthar Modified to fix the Qty Available
      
--- EXEC [dbo].[sp_GetPickTicketApproveList] 1384
+-- EXEC [dbo].[sp_GetPickTicketApproveList] 1372
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
@@ -48,22 +48,29 @@ BEGIN
 		((SELECT TOP 1 QtyRequested FROM SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) - SUM(ISNULL(sopt.QtyToShip,0))) as QtyToPick,
 		'' as [Status], 
 		sop.ConditionId, 
-		(SELECT ((SUM(sorpp.QtyToReserve) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) FROM SalesOrderPartV1 sopp WITH(NOLOCK) INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON 
+		(SELECT ((SUM(sorpp.QtyToReserve) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) 
+		FROM SalesOrderPartV1 sopp WITH(NOLOCK) 
+		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON 
 		sopp.SalesOrderId = sorpp.SalesOrderId AND
 		sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND 
 		sopp.ItemMasterId = imt.ItemMasterId AND
 		sopp.SalesOrderId = @SalesOrderId AND sopp.ConditionId = sop.ConditionId
-		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+		LEFT JOIN SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId
 		LEFT JOIN SalesOrderShipping ship WITH(NOLOCK) on ship.SalesOrderId = sopp.SalesOrderId 
 		LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId and ship_item.SalesOrderPartId = sopp.SalesOrderPartId
 		)
 		as ReadyToPick,
 		cr.[Name] as CustomerName,cr.CustomerCode,
 		
-		ISNULL((SELECT ((SUM(ISNULL(sorpp.QtyToReserve, 0)) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) FROM SalesOrderPartV1 sopp WITH(NOLOCK) 
-		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderId = @SalesOrderId
+		ISNULL((SELECT ((SUM(ISNULL(sorpp.QtyToReserve, 0)) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) 
+		FROM SalesOrderPartV1 sopp WITH(NOLOCK) 
+		LEFT JOIN SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sorpp.StockLineId = sos.StockLineId AND sorpp.SalesOrderId = @SalesOrderId
 		LEFT JOIN SalesOrderShipping ship WITH(NOLOCK) on ship.SalesOrderId = sopp.SalesOrderId 
 		LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId and ship_item.SalesOrderPartId = sopp.SalesOrderPartId
+		--LEFT JOIN SOPickTicket sopt_s WITH(NOLOCK) on sopt_s.SOPickTicketId = ship_item.SOPickTicketId
+		WHERE sopp.SalesOrderId = @SalesOrderId
 		), 0) as TotalReadyToPick
 
 		from dbo.SalesOrderPartV1 sop WITH(NOLOCK)
@@ -74,7 +81,7 @@ BEGIN
 		LEFT JOIN SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
 		INNER JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
-		INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
+		INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId AND sor.StockLineId = stk.StockLineId
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
 		where sop.SalesOrderId=@SalesOrderId AND ((sopt.SOPickTicketId IS NULL AND sor.QtyToReserve > 0) OR sopt.SOPickTicketId IS NOT NULL)
 		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,

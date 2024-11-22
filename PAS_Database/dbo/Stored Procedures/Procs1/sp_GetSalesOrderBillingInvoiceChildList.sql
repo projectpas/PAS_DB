@@ -154,7 +154,7 @@ BEGIN
 			sop.SalesOrderPartId, 
 			stk.SalesOrderStocklineId,
 			cond.Description as 'Condition',   
-			curr.Code as 'CurrencyCode',  
+			CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',  
 			CASE WHEN ISNULL(sobii.SOBillingInvoicingId, 0) > 0 THEN ISNULL(sobi.GrandTotal, 0) ELSE 
 			((ISNULL(SOPC.UnitSalesPrice, 0) * sosi.QtyShipped) +   
 			((((ISNULL(SOPC.UnitSalesPrice, 0) * sosi.QtyShipped) +
@@ -224,10 +224,11 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) on soc.SalesOrderShippingId = sos.SalesOrderShippingId  
 			LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 			LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
-			LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
+			LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId 
+			LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId 
 			WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId  
 			GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
-			sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, stk.StockLineId,  
+			sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code,currb.Code, stk.StockLineId,  
 			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOPC.UnitSalesPrice, sobi.InvoiceNo, sobi.InvoiceTypeId,
 			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.SOBillingInvoicingId, sobii.SOBillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling],
 			sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight)
@@ -280,7 +281,7 @@ BEGIN
 					AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) AS QtyBilled, 
 				0 AS ItemNo,  
 				sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description as 'Condition',   
-				curr.Code as 'CurrencyCode',  
+				CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 				--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) +   
 				CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOSC.NetSaleAmount, 0)) +   
 				((((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) +
@@ -338,12 +339,12 @@ BEGIN
 				(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 				ISNULL(sobi.[IsBilling], 0) as [IsBilling],
 
-				'' AS ECCN,
-				'' AS HSCODE,
-				0 AS [Weight], 
-				0 AS BillSizeLength,
-				0 AS BillSizeWidth,
-				0 AS BillSizeHeight
+				stk.ECCN AS ECCN,
+				stk.HSCODE AS HSCODE,
+				stk.[Weight] AS [Weight], 
+				stk.SizeLength AS BillSizeLength,
+				stk.SizeWidth AS BillSizeWidth,
+				stk.SizeHeight AS BillSizeHeight
 
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
@@ -357,6 +358,7 @@ BEGIN
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 				LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId  
+				LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId 
 				INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 				WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId )
 			END
@@ -389,7 +391,7 @@ BEGIN
 					sop.SalesOrderPartId, 
 					stk.SalesOrderStocklineId,
 					cond.Description as 'Condition',   
-					curr.Code as 'CurrencyCode',
+					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 					0 AS 'SmentNo',
 					--(ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
 					(ISNULL(SOSC.NetSaleAmount, 0)) AS TotalUnitCost,
@@ -419,6 +421,7 @@ BEGIN
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
+					LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId
 					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = @SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
 					INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
@@ -560,7 +563,7 @@ BEGIN
 						WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1) AS QtyBilled,  
 					0 AS ItemNo,  
 					sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description AS 'Condition',   
-					curr.Code as 'CurrencyCode',  
+					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 					sobi.GrandTotal as 'TotalSales',  
 					(SELECT a.InvoiceStatus FROM DBO.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
@@ -591,6 +594,7 @@ BEGIN
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.FunctionalCurrencyId 
+					LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId
 					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 					)
 

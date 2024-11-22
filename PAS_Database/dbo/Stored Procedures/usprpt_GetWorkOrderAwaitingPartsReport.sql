@@ -391,7 +391,6 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 			FROM 
 				DBO.PurchaseOrderPart POP WITH (NOLOCK)
 			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-			INNER JOIN DBO.Stockline STKPO WITH(NOLOCK) ON STKPO.PurchaseOrderId = PO.PurchaseOrderId AND STKPO.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STKPO.IsParent = 1 AND STKPO.IsDeleted = 0
 			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
 			INNER JOIN WorkOrderMaterials WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId
 			WHERE 
@@ -617,11 +616,10 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 			FROM 
 				DBO.PurchaseOrderPart POP WITH (NOLOCK)
 			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-			INNER JOIN DBO.Stockline STKPO WITH(NOLOCK) ON STKPO.PurchaseOrderId = PO.PurchaseOrderId AND STKPO.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STKPO.IsParent = 1 AND STKPO.IsDeleted = 0
 			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
-			INNER JOIN WorkOrderMaterials WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId
+			INNER JOIN WorkOrderMaterialsKit WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId
 			WHERE 
-				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 1)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND (POP.IsKit = 1))) AND APD.isKitType = 1
+				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 1)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND (POP.IsKit = 1))) AND APD.isKitType = 1
 			GROUP BY 
 				APD.WorkOrderId,
 				APD.ItemMasterId,

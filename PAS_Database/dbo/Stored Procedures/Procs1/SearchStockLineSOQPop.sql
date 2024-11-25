@@ -15,6 +15,7 @@
  ** PR   Date				Author			Change Description            
  ** --   --------			-------			-------------------          
     1    02-19-2024			Vishal Suthar	Added History
+	2    11-25-2024			Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
      
  EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 **************************************************************/ 
@@ -109,6 +110,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,CONVERT(BIT,0) AS PMA
 					,mf.Name as StkLineManufacturer
 					,imps.PP_FXRatePerc AS FixRate
+					,ime.ExportECCN AS ECCN
+					,ime.HSCode AS HSCODE
+					,ime.ExportWeight AS [Weight]
+					,ime.ExportSizeLength AS SizeLength
+					,ime.ExportSizeWidth AS SizeWidth
+					,ime.ExportSizeHeight AS SizeHeight
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
@@ -141,6 +148,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
 			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId AND lsm.IsUseMargin = 1
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
+			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
@@ -223,6 +231,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,CONVERT(BIT,0) AS PMA
 					,mf.Name as StkLineManufacturer
 					,imps.PP_FXRatePerc AS FixRate
+					,ime.ExportECCN AS ECCN
+					,ime.HSCode AS HSCODE
+					,ime.ExportWeight AS [Weight]
+					,ime.ExportSizeLength AS SizeLength
+					,ime.ExportSizeWidth AS SizeWidth
+					,ime.ExportSizeHeight AS SizeHeight
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
@@ -255,6 +269,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
 			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
+			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
 		END
 		COMMIT  TRANSACTION

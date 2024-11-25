@@ -112,10 +112,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,imps.PP_FXRatePerc AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
-					,ime.ExportWeight AS [Weight]
-					,ime.ExportSizeLength AS SizeLength
-					,ime.ExportSizeWidth AS SizeWidth
-					,ime.ExportSizeHeight AS SizeHeight
+					,ISNULL(ime.ExportWeight,0) AS [Weight]
+					,ISNULL(ime.ExportSizeLength,0) AS SizeLength
+					,ISNULL(ime.ExportSizeWidth,0) AS SizeWidth
+					,ISNULL(ime.ExportSizeHeight,0) AS SizeHeight
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
@@ -233,10 +233,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,imps.PP_FXRatePerc AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
-					,ime.ExportWeight AS [Weight]
-					,ime.ExportSizeLength AS SizeLength
-					,ime.ExportSizeWidth AS SizeWidth
-					,ime.ExportSizeHeight AS SizeHeight
+					,ISNULL(ime.ExportWeight,0) AS [Weight]
+					,ISNULL(ime.ExportSizeLength,0) AS SizeLength
+					,ISNULL(ime.ExportSizeWidth,0) AS SizeWidth
+					,ISNULL(ime.ExportSizeHeight,0) AS SizeHeight
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 

@@ -25,7 +25,8 @@ exec dbo.SalesOrderReserveUnReserveParts @tbl_SalesOrderReserveIssueParts=@p1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[SalesOrderReserveUnReserveParts] 
 (
-	@tbl_SalesOrderReserveIssueParts SalesOrderReserveIssueParts READONLY
+	@tbl_SalesOrderReserveIssueParts SalesOrderReserveIssueParts READONLY,
+	@afterShipping bit
 )
 AS
 BEGIN
@@ -392,7 +393,7 @@ BEGIN
 				ELSE IF(@UnReserveStatusId = @PartStatusId)
 				BEGIN
 					UPDATE DBO.Stockline
-					SET QuantityAvailable = QuantityAvailable + @QtyToUnReserve,
+					SET QuantityAvailable = CASE WHEN @afterShipping = 1 THEN QuantityAvailable ELSE QuantityAvailable + @QtyToUnReserve END, --QuantityAvailable + @QtyToUnReserve,
 					QuantityReserved = QuantityReserved - @QtyToUnReserve
 					WHERE StockLineId = @StockLineId;
 
@@ -483,7 +484,7 @@ BEGIN
 						ELSE IF(@UnReserveStatusId = @PartStatusId)
 						BEGIN
 							UPDATE DBO.Stockline
-							SET QuantityAvailable = QuantityAvailable + @ReservePartQtyToReserve,
+							SET QuantityAvailable = CASE WHEN @afterShipping = 1 THEN QuantityAvailable ELSE QuantityAvailable + @ReservePartQtyToReserve END,
 							QuantityReserved = QuantityReserved - @ReservePartQtyToReserve
 							WHERE StockLineId = @StockLineId;
 						END

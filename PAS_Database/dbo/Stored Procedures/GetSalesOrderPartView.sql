@@ -16,6 +16,7 @@
     3    11/15/2024   Vishal Suthar     Modified to fix Qty shipped
 	4    11/21/2024   Amit Ghediya      Modified to WLH & weight
 	5    11/22/2024   RAJESH GAMI       Modified to StatusId getting based on the condition (STK and Part)
+	6    11/24/2024   Amit Ghediya      Modified to eccn
      
 -- EXEC [DBO].[GetSalesOrderPartView] 1323
 **************************************************************/
@@ -93,7 +94,7 @@ BEGIN
             THEN 1 ELSE 0 
         END AS IsApproved,
         ISNULL(SO.SalesOrderQuoteId, '') AS CustomerReference,
-        ISNULL(imx.ExportECCN, '') AS ECCN,
+        --ISNULL(imx.ExportECCN, '') AS ECCN,
         ISNULL(imx.ITARNumber, '') AS ITAR,
         ISNULL(um.ShortName, '') AS UomName,
         part.CustomerRequestDate,

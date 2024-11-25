@@ -13,6 +13,7 @@
  ** -----------------------------------------------------------          
     1    23/10/2024   Moin Bloch    Created
 	2    18/11/2024   Moin Bloch    Added IsSerialized Field
+	3    25/11/2024   Moin Bloch    Added QuantityReserved Field	
 	     
     EXEC USP_CycleCountDetail_GetDetailsById 7,1
 ************************************************************************/    
@@ -62,6 +63,7 @@ BEGIN
 			  ,CC.[DifferenceQuantity]
 			  ,CC.[DifferenceAmount]
 			  ,CC.[IsCustomerStock]
+			  ,ISNULL(SL.[QuantityReserved],0) [QuantityReserved]			  
 			  ,CC.[ManagementStructureId]
 			  ,CC.[MasterCompanyId]
 			  ,CC.[CreatedBy]

@@ -17,6 +17,7 @@
 	3    14/11/2024   Moin Bloch   Added Clsoed Condition FOR UNIT COST 0 
 	4    19/11/2024   Moin Bloch   Added Paramiter LedgerId,AccountingCalendarId  
 	5    22/11/2024   Moin Bloch   Updated Changed logic of Qty
+	6    25/11/2024   Moin Bloch   Updated Changed logic of Qty Avail TO OH
          
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
@@ -103,21 +104,14 @@ BEGIN
 				SET @DifferenceQty = @CurrentStockQuantity - @CountedQuantity;				
 				SET @ActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE UPPER([Type]) = 'ADJUSTMENT-DECREASE-CYCLECOUNT');
 				
-				UPDATE [dbo].[Stockline]		
-				   SET [QuantityAvailable] = @CountedQuantity,              
-					   [Quantity] = ISNULL([Quantity],0) - @DifferenceQty   
-				 WHERE [StockLineId] = @StockLineId; 
-
-				 SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),
-					    @QuantityReserved =  ISNULL([QuantityReserved],0)
-				  FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
-
-				UPDATE [dbo].[Stockline] 
-				   SET [QuantityOnHand] = (@QuantityAvailable + @QuantityReserved),
-				       [UpdatedBy] = @UpdatedBy,
+				UPDATE [dbo].[Stockline]						  
+				   SET [QuantityOnHand] = @CountedQuantity,
+				       [QuantityAvailable] = ISNULL([QuantityAvailable],0) - @DifferenceQty,
+					   [Quantity] = ISNULL([Quantity],0) - @DifferenceQty,
+					   [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId; 
-							
+				 											
 				-- StockLine History
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
 			    
@@ -132,18 +126,11 @@ BEGIN
 				SET @DifferenceQty = @CountedQuantity - @CurrentStockQuantity;
 				SET @ActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE UPPER([Type]) = 'ADJUSTMENT-INCREASE-CYCLECOUNT');
 				
-				UPDATE [dbo].[Stockline]		
-				   SET [QuantityAvailable] = @CountedQuantity, 
-					   [Quantity] = ISNULL([Quantity],0) + @DifferenceQty
-				 WHERE [StockLineId] = @StockLineId; 
-	     
-				SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),
-					   @QuantityReserved =  ISNULL([QuantityReserved],0)
-				  FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
-        
-				UPDATE [dbo].[Stockline] 
-				   SET [QuantityOnHand] = (@QuantityAvailable + @QuantityReserved),
-				       [UpdatedBy] = @UpdatedBy,
+				UPDATE [dbo].[Stockline]						   
+				   SET [QuantityOnHand] = @CountedQuantity, 
+				       [QuantityAvailable] = ISNULL([QuantityAvailable],0) + @DifferenceQty,
+					   [Quantity] = ISNULL([Quantity],0) + @DifferenceQty,
+					   [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId; 
 								

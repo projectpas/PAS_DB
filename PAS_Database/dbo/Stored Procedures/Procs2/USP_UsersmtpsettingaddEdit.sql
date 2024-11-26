@@ -1,12 +1,31 @@
-﻿
-create    Procedure USP_UsersmtpsettingaddEdit
+﻿/*************************************************************
+ ** File:   [USP_UsersmtpsettingaddEdit]
+ ** Author:   Unknown 
+ ** Description: update smtp setting 
+ ** Purpose:   
+ ** Date:   Unknown
+
+ ** PARAMETERS:
+   
+ ** RETURN VALUE:
+ 
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** S NO   Date		Author				Change	Description 
+ ** --   ---------------  --------------------------------
+	1	Unknown
+	2	11/26/2024	Abhishek Jirawla	Added email update in the query
+**************************************************************/
+CREATE    Procedure [dbo].[USP_UsersmtpsettingaddEdit]
 @smtpsettingId  bigint=0,
 @EmployeeId bigint ,
 @smtpserver  varchar(256)='',
 @emailpassword varchar(56)='',
 @portno int=0,
 @emailtype int=0,
-@verifyemail bit=0
+@verifyemail bit=0,
+@Email VARCHAR(200) = NULL
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -16,13 +35,15 @@ BEGIN TRY
 BEGIN TRANSACTION
 if(@smtpsettingId>0)
 	begin
+		insert into UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
+		select EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate from Usersmtpsetting where smtpsettingId=@smtpsettingId
 
-	insert into UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
-	select EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate from Usersmtpsetting where smtpsettingId=@smtpsettingId
+		update Usersmtpsetting set EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno 
+		,emailtype=@emailtype ,verifyemail=case when @emailtype=1 then @verifyemail else verifyemail end ,UpdatedDate=getdate() where smtpsettingId=@smtpsettingId
 
-	update Usersmtpsetting set EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno 
-	,emailtype=@emailtype ,verifyemail=case when @emailtype=1 then @verifyemail else verifyemail end ,UpdatedDate=getdate() where smtpsettingId=@smtpsettingId
-	
+		UPDATE Employee
+		SET Email = @Email
+		WHERE EmployeeId = @EmployeeId	
 	end
 else
 	begin
@@ -30,6 +51,10 @@ else
 		values (@EmployeeId,@smtpserver,@emailpassword,@portno,@emailtype,
 		case when @emailtype=1 then @verifyemail else 1 end)
 		set @smtpsettingId=@@IDENTITY
+
+		UPDATE Employee
+		SET Email = @Email
+		WHERE EmployeeId = @EmployeeId	
 	end
 
 	select @smtpsettingId as smtpsettingId

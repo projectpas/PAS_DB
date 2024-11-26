@@ -17,6 +17,7 @@
     1    07/25/2024   Vishal Suthar Created
     2    11/11/2024   Vishal Suthar Fix the calculations for part cost and stockline cost
     3    11/13/2024   Vishal Suthar Fixed issue with unit price and unit cost calculation
+    4    11/26/2024   Vishal Suthar Fixed divide by zero error
      
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
@@ -135,7 +136,9 @@ SET NOCOUNT ON
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
 							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount,
 							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
-							MarginPercentage = ((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
+							MarginPercentage = CASE WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) > 0 THEN
+												((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
+												ELSE 0 END
 							WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							SET @MasterLoopID = @MasterLoopID - 1;
@@ -261,7 +264,7 @@ SET NOCOUNT ON
 		DECLARE @ErrorLogID int,
         @DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-        ,@AdhocComments varchar(150) = 'USP_UpdateSOQPartCostDetails',
+        ,@AdhocComments varchar(150) = 'USP_UpdateSOPartCostDetails',
         @ProcedureParameters varchar(3000) = '@SalesOrderId = ''' + CAST(ISNULL(@SalesOrderId, '') AS varchar(100))
         + '@Parameter2 = ''' + CAST(ISNULL(@SalesOrderPartId, '') AS varchar(100))
         + '@Parameter3 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))

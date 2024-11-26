@@ -27,6 +27,7 @@
 	11   10/14/2024   Vishal Suthar		Fixed issue with reserving and adding the wrong stockline under different WO material
 	12   10/29/2024   RAJESH GAMI		Restrict the AR condition to reserve
 	13   11/25/2024   RAJESH GAMI		Remove Nha_Tla_Alt_Equ_ItemMapping join (As discussed with Vishall Will implement it again with proper testing)
+	14   11/26/2024   RAJESH GAMI		Change NETSALES PRICE to UNITSALE PRICE and Call SO COST SP 
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
@@ -1503,8 +1504,8 @@ BEGIN
 								   SELECT TOP 1 @ReferenceId,
 												@SalesOrderPartIdToUpdate,
 												@InsertedSalesOrderStocklineId,
-												SOPC.NetSaleAmount,
-												(ISNULL(SOPC.NetSaleAmount,0) * ISNULL(@Qty,0)),
+												SOPC.UnitSalesPrice,
+												(ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(@Qty,0)),
 												@stkPurchaseOrderUnitCost,
 												(ISNULL(@stkPurchaseOrderUnitCost,0) * ISNULL(@Qty,0)),
 												0.00,0.00,0.00,0.00,(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
@@ -1546,6 +1547,7 @@ BEGIN
 										FROM DBO.Stockline Stk 
 										WHERE Stk.StockLineId = @StkStocklineId;
 									END
+									EXEC [dbo].[USP_UpdateSOPartCostDetails] @ReferenceId, @SalesOrderPartIdToUpdate, @UpdatedBy, @MasterCompanyId;
 								END
 								ELSE
 								BEGIN
@@ -1643,8 +1645,8 @@ BEGIN
 										SELECT TOP 1 @ReferenceId,
 													@InsertedSalesOrderPartId,
 													@InsertedSalesOrderStocklineId,
-													SOPC.NetSaleAmount,
-													(ISNULL(SOPC.NetSaleAmount,0) * ISNULL(@Qty,0)),
+													SOPC.UnitSalesPrice,
+													(ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(@Qty,0)),
 													@stkPurchaseOrderUnitCost,
 													(ISNULL(@stkPurchaseOrderUnitCost,0) * ISNULL(@Qty,0)),
 													0.00,0.00,0.00,0.00,(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
@@ -1680,6 +1682,7 @@ BEGIN
 											FROM DBO.Stockline Stk 
 											WHERE Stk.StockLineId = @StkStocklineId;
 										END
+										EXEC [dbo].[USP_UpdateSOPartCostDetails] @ReferenceId, @InsertedSalesOrderStocklineId, @UpdatedBy, @MasterCompanyId;
 									END
 								END
 								ELSE

@@ -35,24 +35,24 @@ BEGIN TRY
 BEGIN TRANSACTION
 if(@smtpsettingId>0)
 	begin
-		insert into UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
-		select EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate from Usersmtpsetting where smtpsettingId=@smtpsettingId
+		insert into DBO.UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
+		select EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate from DBO.Usersmtpsetting WITH (NOLOCK) where smtpsettingId=@smtpsettingId
 
-		update Usersmtpsetting set EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno 
+		update DBO.Usersmtpsetting set EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno 
 		,emailtype=@emailtype ,verifyemail=case when @emailtype=1 then @verifyemail else verifyemail end ,UpdatedDate=getdate() where smtpsettingId=@smtpsettingId
 
-		UPDATE Employee
+		UPDATE DBO.Employee
 		SET Email = @Email
 		WHERE EmployeeId = @EmployeeId	
 	end
 else
 	begin
-		insert into Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail)
+		insert into DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail)
 		values (@EmployeeId,@smtpserver,@emailpassword,@portno,@emailtype,
 		case when @emailtype=1 then @verifyemail else 1 end)
 		set @smtpsettingId=@@IDENTITY
 
-		UPDATE Employee
+		UPDATE DBO.Employee
 		SET Email = @Email
 		WHERE EmployeeId = @EmployeeId	
 	end

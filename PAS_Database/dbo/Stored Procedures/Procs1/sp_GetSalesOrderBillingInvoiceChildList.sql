@@ -36,7 +36,7 @@
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
 	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
      
-  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1440,3,111
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
@@ -571,17 +571,18 @@ BEGIN
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					'' AS SOShippingNum, 
-					sop.QtyOrder AS QtyToBill, 
+					stk.QtyOrder AS QtyToBill, 
 					so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 					sl.SerialNumber, cr.[Name] AS CustomerName,   
 					stk.StockLineId,  
-					(SELECT b.NoofPieces FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
+					ISNULL((SELECT ISNULL(b.NoofPieces, 0)
+						FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-						WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1) AS QtyBilled,  
+						WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1), 0) AS QtyBilled,  
 					0 AS ItemNo,  
 					sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description AS 'Condition',   
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-					sobi.GrandTotal as 'TotalSales',  
+					ISNULL(sobi.GrandTotal, 0) as 'TotalSales',  
 					(SELECT a.InvoiceStatus FROM DBO.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 						Where a.SalesOrderId = @SalesOrderId 

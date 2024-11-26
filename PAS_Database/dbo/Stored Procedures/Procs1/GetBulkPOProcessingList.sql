@@ -1,5 +1,4 @@
-﻿
-/***************************************************************************************************************************************             
+﻿/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
@@ -14,6 +13,7 @@
 	8    24/10/2024              RAJESH GAMI						Getting UNIT COST from the Purchase and sales based on WO Material ItemmasterId and ConditionId
 	9    29/10/2024              RAJESH GAMI						Restrict the AR condition
 	10   07/11/2024              RAJESH GAMI						Latet generated PO/RFQ on the top (Generated in last 10 mins)
+	11   26/11/2024              RAJESH GAMI						Set by default SORT BY OrderNo
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -121,7 +121,8 @@ BEGIN
 
 		IF @SortColumn IS NULL
 		BEGIN
-			SET @SortColumn = UPPER('CreatedDate')
+			SET @SortColumn = UPPER('OrderNo')
+			SET @SortOrder = 1
 		END 
 		ELSE
 		BEGIN 

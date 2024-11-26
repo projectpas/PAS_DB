@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -17,6 +18,7 @@
 	4    11/21/2024   Amit Ghediya      Modified to WLH & weight
 	5    11/22/2024   RAJESH GAMI       Modified to StatusId getting based on the condition (STK and Part)
 	6    11/24/2024   Amit Ghediya      Modified to eccn & update cond.
+	7    11/25/2024   RAJESH GAMI       Modified to change the condition for QtyAvailable and QtyOnHand (SC.SalesOrderStocklineId IS NOT NULL to Stk.SalesOrderStocklineId IS NOT NULL)
      
 -- EXEC [DBO].[GetSalesOrderPartView] 1323
 **************************************************************/
@@ -132,12 +134,12 @@ BEGIN
         itemMaster.ItemClassificationName AS ItemClassification,
         itemMaster.ItemGroup,
         rop.EstRecordDate AS roNextDlvrDate,
-		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN
+		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
 			(SELECT SUM(Stkl.QuantityAvailable) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
 		ELSE
 			(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
 		END QtyAvailable,
-		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN
+		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
 			(SELECT SUM(Stkl.QuantityOnHand) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
 		ELSE
 			(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 

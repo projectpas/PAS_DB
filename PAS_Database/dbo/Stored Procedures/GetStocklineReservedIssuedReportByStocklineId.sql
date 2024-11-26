@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [GetStocklineReservedIssuedReportByStocklineId]               
  ** Author: RAJESH GAMI 
  ** Description: Get Stockline Reserved/Issued Report By Stockline Id (Module wise)
@@ -14,8 +15,9 @@
     1    07-Nov-2024   RAJESH GAMI		CREATED 
 	2    18-Nov-2024   RAJESH GAMI		Remove the partId condition from the SORervervation table join and some other required changes
 	3    19-Nov-2024   RAJESH GAMI		Implemented BulkAdjustments
-	3    22-Nov-2024   RAJESH GAMI		handle Deleted condition in bulkadjustment
-	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 182349,1,1
+	4    22-Nov-2024   RAJESH GAMI		handle Deleted condition in bulkadjustment
+	5    22-Nov-2024   RAJESH GAMI		handle QtyAdjustment in bulkadjustment
+	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 **************************************************************/    
 CREATE  PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]
 @StocklineId BIGINT,
@@ -403,7 +405,7 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SSTL.StockLineId
 					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
 					AND ISNULL(ESO.IsDeleted,0) = 0 AND ISNULL(SSTL.IsDeleted,0) = 0
-					AND ISNULL(SSTL.NewQty,0) > 0
+					AND ISNULL(SSTL.NewQty,0) > 0 AND  ISNULL(SSTL.QtyAdjustment,0) > 0
 					AND ESO.StatusId != @AdjPostedStatusId
 				--* END: Stockline Bulk Adjustment For Reserve *--
 		 END

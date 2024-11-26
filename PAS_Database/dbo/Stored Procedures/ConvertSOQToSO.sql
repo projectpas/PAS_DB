@@ -18,6 +18,7 @@
     2    09/12/2024   Vishal Suthar		Fixed an issue with getting the credit term for matching
 	3    09/16/2024   AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate for ConvertSOQToSO
 	4    10/21/2024   AMIT GHEDIYA		Updated old table with new table.
+	5    11/26/2024   AMIT GHEDIYA		Updated for add HSCODE,ECCN etc to so part.
 
 declare @p13 bigint
 set @p13=NULL
@@ -254,14 +255,17 @@ BEGIN
 				[QtyReserved],
 				[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],
 				[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],
-				[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderQuotePartId])
+				[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderQuotePartId],
+				[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 			SELECT @SalesOrderId,
 				sop.[ItemMasterId],sop.[ConditionId],sop.[QtyRequested],sop.[QtyQuoted],sop.[CurrencyId],
 				0,
 				sop.[PriorityId],sop.[StatusId],sop.[FxRate],sop.[CustomerRequestDate],sop.[PromisedDate],
 				sop.[EstimatedShipDate],sop.[Notes],sop.[MasterCompanyId],sop.[CreatedBy],GETUTCDATE(),
-				sop.[UpdatedBy],GETUTCDATE(),sop.[IsActive],sop.[IsDeleted],sop.[SalesOrderQuotePartId]
+				sop.[UpdatedBy],GETUTCDATE(),sop.[IsActive],sop.[IsDeleted],sop.[SalesOrderQuotePartId],
+				ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight]
 			FROM DBO.SalesOrderQuotePartV1 sop WITH(NOLOCK)
+			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON ime.ItemMasterId = sop.ItemMasterId
 			WHERE sop.SalesOrderQuotePartId = @CurrentSOQPartId
 			AND ((@TransferStockline = 0) OR @TransferStockline = 1)
 			AND ISNULL(sop.IsNoQuote, 0) <> 1;
@@ -297,12 +301,16 @@ BEGIN
 				INSERT INTO DBO.SalesOrderStocklineV1([SalesOrderPartId],
 					[StockLineId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 					[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],
-					[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+					[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+					[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 				SELECT @CurrentSOPartId,
 					SOPSTK.[StockLineId],SOPSTK.[ConditionId],SOPSTK.[QtyQuoted],0,SOPSTK.[QtyAvailable],SOPSTK.[QtyOH],
-					SOPSTK.[CustomerRequestDate],SOPSTK.[PromisedDate],SOPSTK.[EstimatedShipDate],StatusId,SOPSTK.[MasterCompanyId],
-					SOPSTK.[CreatedBy],GETUTCDATE(),UpdatedBy,GETUTCDATE(),IsActive,IsDeleted
+					SOPSTK.[CustomerRequestDate],SOPSTK.[PromisedDate],SOPSTK.[EstimatedShipDate],SOPSTK.StatusId,SOPSTK.[MasterCompanyId],
+					SOPSTK.[CreatedBy],GETUTCDATE(),SOPSTK.UpdatedBy,GETUTCDATE(),SOPSTK.IsActive,SOPSTK.IsDeleted,
+					ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight]
 				FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK)
+				INNER JOIN DBO.SalesOrderQuotePartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderQuotePartId = SOPSTK.SalesOrderQuotePartId
+				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON ime.ItemMasterId = SOP.ItemMasterId
 				WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId;
 
 				SET @NewSOStocklineId = SCOPE_IDENTITY();

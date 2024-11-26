@@ -36,7 +36,7 @@
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
 	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
      
-  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1399,82050,1
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1440,3,111
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
@@ -417,7 +417,7 @@ BEGIN
 					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					0 AS IsProforma,
 					0 AS DepositAmount,
-					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
+					(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
 
 					stk.ECCN AS ECCN,

@@ -24,8 +24,8 @@ CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]
 	@StockLineNumber VARCHAR(100) NULL,
 	@SerialNumber VARCHAR(100) NULL,
 	@Condition VARCHAR(100) NULL,
-	@UnitCost DECIMAL(18,2) NULL,
-	@UnitSalesPrice DECIMAL(18,2) NULL,
+	@UnitCost VARCHAR(100) NULL,
+	@UnitSalesPrice VARCHAR(100) NULL,
 	@UnitOfMeasure VARCHAR(100) NULL,
 	@Currency VARCHAR(20) NULL,
 	@ControlNumber VARCHAR(100) NULL,
@@ -212,7 +212,7 @@ AS
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON  SLM.ModuleID = @ModuleID AND SLM.ReferenceID = S.StockLineId
 					INNER JOIN [DBO].[ItemMaster] IT WITH(NOLOCK) ON S.ItemMasterId = IT.ItemMasterId
 					LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON S.VendorId = V.VendorId
-					LEFT JOIN  [DBO].[Currency] C WITH(NOLOCK) ON IT.CurrencyId = C.CurrencyId
+					LEFT JOIN  [DBO].[Currency] C WITH(NOLOCK) ON IT.PurchaseCurrencyId = C.CurrencyId
 					LEFT JOIN  [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON S.PurchaseOrderId = po.PurchaseOrderId
 					LEFT JOIN  [DBO].[RepairOrder] RO WITH(NOLOCK) ON S.RepairOrderId = Ro.RepairOrderId
 					WHERE CAST(S.ReceivedDate AS date) BETWEEN CAST(@FromReceivedDate AS date) AND CAST(@ToReceivedDate AS date) AND S.MasterCompanyId = @MasterCompanyId 
@@ -269,71 +269,14 @@ AS
 		 (ISNULL(@ExpirationDate,'') ='' OR CAST([ExpirationDate] AS DATE) = CAST(@ExpirationDate AS DATE)))
 
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult); 
-		 select @Total as NumberOfItems, * from #finalResult
-
-		 --Select @Total = COUNT(StocklineId) from #finalResult 
-		 --SELECT *, @Total As NumberOfItems FROM #finalResult 
-		 ORDER BY 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='PartNumber')  THEN [PartNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN [PartDescription] END ASC, 
-		 CASE WHEN (@SortOrder=1  AND @SortColumn='IsOemPmaType')  THEN IsOemPmaType END ASC,
-		 CASE WHEN (@SortOrder=1 and @SortColumn='StockLineNumber')  THEN [StockLineNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='SerialNumber')  THEN [SerialNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='Condition')  THEN [Condition] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='UnitOfMeasure')  THEN [UnitOfMeasure] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN [Currency] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='PoRoNumber')  THEN [PoRoNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN [ControlNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN [LotNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='VendorName')  THEN [VendorName] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='ReceivedDate')  THEN [ReceivedDate] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='ReceiverNumber')  THEN [ReceiverNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='ExpirationDate')  THEN [ExpirationDate] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level1')  THEN [level1] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level2')  THEN [level2] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level3')  THEN [level3] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level4')  THEN [level4] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level5')  THEN [level5] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level6')  THEN [level6] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level7')  THEN [level7] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level8')  THEN [level8] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level9')  THEN [level9] END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='level10')  THEN [level10] END ASC, 
-
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumber')  THEN [PartNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN [PartDescription] END Desc, 
-		 CASE WHEN (@SortOrder=-1 AND @SortColumn='IsOemPmaType')  THEN IsOemPmaType END DESC,	
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='StockLineNumber')  THEN [StockLineNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='SerialNumber')  THEN [SerialNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='Condition')  THEN [Condition] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='UnitOfMeasure')  THEN [UnitOfMeasure] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN [Currency] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='PoRoNumber')  THEN [PoRoNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN [ControlNumber] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN [LotNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='VendorName')  THEN [VendorName] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='ReceivedDate')  THEN [ReceivedDate] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='ReceiverNumber')  THEN [ReceiverNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='ExpirationDate')  THEN [ExpirationDate] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level1')  THEN [level1] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level2')  THEN [level2] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level3')  THEN [level3] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level4')  THEN [level4] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level5')  THEN [level5] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level6')  THEN [level6] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level7')  THEN [level7] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level8')  THEN [level8] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level9')  THEN [level9] END Desc, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='level10')  THEN [level10] END Desc
-
+		 --select @Total as NumberOfItems, * from #finalResult
 
 		 IF(ISNULL(@IsDownload, 0) = 1)
 		BEGIN
 			SELECT COUNT(2) OVER () AS NumberOfItems, [StockLineId],[PartNumber],[PartDescription],[IsOemPmaType],[StockLineNumber],[SerialNumber],Condition,UnitCost,UnitSalesPrice,
 						 UnitOfMeasure,Currency,[PoRoNumber],[ControlNumber],[LotNumber],[VendorName],[ReceivedDate],[ReceiverNumber],[ExpirationDate],
 						 EmployeeName,level1,level2,level3,level4,level5,level6,level7,level8,level9,level10
-			FROM #TempStockInventoryDetails 
-			--INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId  
+			FROM #finalResult 
 			ORDER BY [StockLineId] DESC
 		END
 		ELSE
@@ -341,9 +284,60 @@ AS
 			SELECT COUNT(2) OVER () AS NumberOfItems, [StockLineId],[PartNumber],[PartDescription],[IsOemPmaType],[StockLineNumber],[SerialNumber],Condition,UnitCost,UnitSalesPrice,
 						 UnitOfMeasure,Currency,[PoRoNumber],[ControlNumber],[LotNumber],[VendorName],[ReceivedDate],[ReceiverNumber],[ExpirationDate],
 						 EmployeeName,level1,level2,level3,level4,level5,level6,level7,level8,level9,level10
-			FROM #TempStockInventoryDetails 
-			--INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId
-			ORDER BY [StockLineId] DESC
+			FROM #finalResult 
+			
+			ORDER BY 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='PartNumber')  THEN [PartNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN [PartDescription] END ASC, 
+			 CASE WHEN (@SortOrder=1  AND @SortColumn='IsOemPmaType')  THEN IsOemPmaType END ASC,
+			 CASE WHEN (@SortOrder=1 and @SortColumn='StockLineNumber')  THEN [StockLineNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='SerialNumber')  THEN [SerialNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='Condition')  THEN [Condition] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='UnitOfMeasure')  THEN [UnitOfMeasure] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN [Currency] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='PoRoNumber')  THEN [PoRoNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN [ControlNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN [LotNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='VendorName')  THEN [VendorName] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='ReceivedDate')  THEN [ReceivedDate] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='ReceiverNumber')  THEN [ReceiverNumber] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='ExpirationDate')  THEN [ExpirationDate] END ASC,  
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level1')  THEN [level1] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level2')  THEN [level2] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level3')  THEN [level3] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level4')  THEN [level4] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level5')  THEN [level5] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level6')  THEN [level6] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level7')  THEN [level7] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level8')  THEN [level8] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level9')  THEN [level9] END ASC, 
+			 CASE WHEN (@SortOrder=1 and @SortColumn='level10')  THEN [level10] END ASC, 
+
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumber')  THEN [PartNumber] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN [PartDescription] END Desc, 
+			 CASE WHEN (@SortOrder=-1 AND @SortColumn='IsOemPmaType')  THEN IsOemPmaType END DESC,	
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='StockLineNumber')  THEN [StockLineNumber] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='SerialNumber')  THEN [SerialNumber] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='Condition')  THEN [Condition] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='UnitOfMeasure')  THEN [UnitOfMeasure] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN [Currency] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='PoRoNumber')  THEN [PoRoNumber] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN [ControlNumber] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN [LotNumber] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='VendorName')  THEN [VendorName] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='ReceivedDate')  THEN [ReceivedDate] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='ReceiverNumber')  THEN [ReceiverNumber] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='ExpirationDate')  THEN [ExpirationDate] END Desc,  
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level1')  THEN [level1] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level2')  THEN [level2] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level3')  THEN [level3] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level4')  THEN [level4] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level5')  THEN [level5] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level6')  THEN [level6] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level7')  THEN [level7] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level8')  THEN [level8] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level9')  THEN [level9] END Desc, 
+			 CASE WHEN (@SortOrder=-1 and @SortColumn='level10')  THEN [level10] END Desc
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END

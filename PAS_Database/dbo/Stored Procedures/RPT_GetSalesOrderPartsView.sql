@@ -14,8 +14,9 @@ EXEC [RPT_GetSalesOrderPartsView]
    3    16/09/2024  AMIT GHEDIYA    Get Curr From Header data in print.
    4	11/04/2024	Vishal Suthar	Modified to make use of new SO Part tables
    5	11/12/2024	Vishal Suthar	Fixed Qty, Unit Price and Total issue
+   6	11/27/2024	Vishal Suthar	Fixed Qty Reserved issue
 
-EXEC RPT_GetSalesOrderPartsView 1381
+EXEC RPT_GetSalesOrderPartsView 1472
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
@@ -318,7 +319,7 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = sp.SalesOrderQuotePartId
 			LEFT JOIN dbo.SalesOrderQuote q WITH(NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
 			LEFT JOIN dbo.UnitOfMeasure iu WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
-			LEFT JOIN dbo.SalesOrderReserveParts rPart WITH(NOLOCK) ON sp.SalesOrderPartId = rPart.SalesOrderPartId
+			LEFT JOIN dbo.SalesOrderReserveParts rPart WITH(NOLOCK) ON sp.SalesOrderPartId = rPart.SalesOrderPartId AND rPart.StockLineId = stk.StockLineId
 			LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN dbo.PurchaseOrder po WITH(NOLOCK) ON sl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId

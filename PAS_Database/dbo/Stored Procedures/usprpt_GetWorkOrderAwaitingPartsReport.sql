@@ -382,24 +382,20 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 	 MSD.Level10Name
 
 	 UPDATE #AwaitingPartsData SET [backlog] = ISNULL(POPDATA.[Backlog], 0)
-	 FROM(
-			SELECT DISTINCT
-				APD.WorkOrderId,
-				APD.ItemMasterId,
-				APD.ConditionId,
-				ISNULL(POP.QuantityBackOrdered, 0) AS Backlog
-			FROM 
-				DBO.PurchaseOrderPart POP WITH (NOLOCK)
+		FROM(
+		SELECT 
+			APD.WorkOrderId, 
+			APD.ItemMasterId,
+			APD.ConditionId,
+			SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+		FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
 			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
-			INNER JOIN WorkOrderMaterials WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId AND POP.PurchaseOrderId = WOM.POId
-			WHERE 
-				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 0 OR POP.IsKit IS NULL)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND (POP.IsKit = 0 OR POP.IsKit IS NULL)))
-			--GROUP BY 
-			--	APD.WorkOrderId,
-			--	APD.ItemMasterId,
-			--	APD.ConditionId
-				--POP.QuantityOrdered
+			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+		WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId
+		GROUP BY 
+			APD.WorkOrderId, 
+			APD.ItemMasterId,
+			APD.ConditionId
 		) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 	INSERT INTO #AwaitingPartsData
@@ -605,27 +601,43 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 	 MSD.Level9Name,
 	 MSD.Level10Name
 
-
 	UPDATE #AwaitingPartsData SET [backlog] = ISNULL(POPDATA.[Backlog], 0)
-	 FROM(
-			SELECT DISTINCT
-				APD.WorkOrderId,
-				APD.ItemMasterId,
-				APD.ConditionId,
-				ISNULL(POP.QuantityBackOrdered, 0) AS Backlog
-			FROM 
-				DBO.PurchaseOrderPart POP WITH (NOLOCK)
-			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
-			INNER JOIN WorkOrderMaterialsKit WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId AND POP.PurchaseOrderId = WOM.POId
-			WHERE 
-				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 1)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND (POP.IsKit = 1))) AND APD.isKitType = 1
-			--GROUP BY 
-			--	APD.WorkOrderId,
-			--	APD.ItemMasterId,
-			--	APD.ConditionId
-				--POP.QuantityOrdered
-		) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
+	FROM(
+	SELECT 
+		APD.WorkOrderId, 
+		APD.ItemMasterId,
+		APD.ConditionId,
+		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
+		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId AND APD.isKitType = 1
+	GROUP BY 
+		APD.WorkOrderId, 
+		APD.ItemMasterId,
+		APD.ConditionId
+	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
+
+	--UPDATE #AwaitingPartsData SET [backlog] = ISNULL(POPDATA.[Backlog], 0)
+	-- FROM(
+	--		SELECT DISTINCT
+	--			APD.WorkOrderId,
+	--			APD.ItemMasterId,
+	--			APD.ConditionId,
+	--			SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog
+	--		FROM 
+	--			DBO.PurchaseOrderPart POP WITH (NOLOCK)
+	--		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
+	--		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
+	--		INNER JOIN WorkOrderMaterialsKit WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId AND POP.PurchaseOrderId = WOM.POId
+	--		WHERE 
+	--			((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 1)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND (POP.IsKit = 1))) AND APD.isKitType = 1
+	--		GROUP BY 
+	--			APD.WorkOrderId,
+	--			APD.ItemMasterId,
+	--			APD.ConditionId
+	--			--POP.QuantityOrdered
+	--	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 
 	IF ISNULL(@PageSize,0)=0

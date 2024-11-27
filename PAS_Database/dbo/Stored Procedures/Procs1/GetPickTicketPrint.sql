@@ -21,8 +21,9 @@
 	5    11/08/2023   Amit Ghediya          pick ticket issue for multipele part resolved
 	6    10/15/2024   Vishal Suthar			Modified SP to get Pick ticket print data from new SO Part tables
 	7    11/15/2024   Vishal Suthar			Fixed issue with populating list of stockline in Pick Ticket Print
+	8    11/26/2024   Vishal Suthar			Fixed issue with populating qty to pick and qty remaining
      
--- -- EXEC [dbo].[GetPickTicketPrint] 1318, 1574, 867
+-- -- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPickTicketPrint]
 	@SalesOrderId bigint,
@@ -41,26 +42,30 @@ BEGIN
 		SELECT @pickTicketNo = SOPickTicketNumber, @masterCompanyId = MasterCompanyId FROM DBO.SOPickTicket WITH (NOLOCK) WHERE SOPickTicketId = @SOPickTicketId;
 
 		;WITH TResrvePart as (
-		SELECT COUNT(SalesOrderReservePartId) as TotalResrvePart, sopp.SalesOrderId,  MIN(QtyRemaining)as MinQty, QtyToShip as NewTotalQtyToShip
+		SELECT COUNT(SalesOrderReservePartId) as TotalResrvePart, sopp.SalesOrderId--, MIN(QtyToShip) as NewTotalQtyToShip
 			FROM SalesOrderPartV1 sopp WITH(NOLOCK)
-			INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
-			LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-			WHERE sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo AND sopt.SalesOrderPartId = @SalesOrderPartId
-			group by sopp.SalesOrderId,QtyToShip)
+			LEFT JOIN SalesOrderStocklineV1 SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOPP.SalesOrderPartId
+			INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StockLineId = SOS.StockLineId
+			LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND SOPT.SalesOrderPartStocklineId = SOS.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+			WHERE SOPT.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo --AND sopt.SalesOrderPartId = @SalesOrderPartId
+			group by sopp.SalesOrderId--,QtyToShip
+			)
 		,cte as(
-				select SUM(QtyToShip)as TotalQtyToShip, SOPick.SalesOrderId, SOPick.SalesOrderPartId
+				select SUM(QtyToShip)as TotalQtyToShip, MIN(QtyRemaining) as MinQty, SOPick.SalesOrderId, SOPick.SalesOrderPartStocklineId
 				FROM DBO.SOPickTicket SOPick WITH(NOLOCK) 
-				JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
+				--JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
+				LEFT JOIN SalesOrderStocklineV1 SOS WITH(NOLOCK) ON SOS.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
 				WHERE SOPick.SalesOrderId = @SalesOrderId 
 				AND SOPickTicketNumber = @pickTicketNo
 				AND SOPick.SalesOrderPartId = @SalesOrderPartId
-				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
+				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartStocklineId
 		)
 		SELECT sopt.SOPickTicketId, sopt.CreatedDate as SOPickTicketDate, sopt.SalesOrderId, sl.StockLineNumber, 
-		sop.QtyOrder Qty, 
+		stk.QtyOrder Qty, 
 		--sopt.QtyToShip as QtyShipped, 
 		--cte.TotalQtyToShip as QtyShipped, 
-		TResrvePart.NewTotalQtyToShip as QtyToPick, 
+		--TResrvePart.NewTotalQtyToShip as QtyToPick, 
+		cte.TotalQtyToShip as QtyToPick, 
 		imt.partnumber as PartNumber, imt.PartDescription, sopt.SOPickTicketNumber,
 		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
 		so.SalesOrderNumber, uom.ShortName as UOM, s.[Name] as SiteName, w.[Name] as WarehouseName, l.[Name] as LocationName, sh.[Name] as ShelfName,
@@ -73,7 +78,7 @@ BEGIN
 		CASE WHEN MinQty = 0 AND TResrvePart.TotalResrvePart > 1 THEN 0 
 		WHEN MinQty > 0 THEN MinQty ELSE sopt.QtyRemaining END AS QtyRemaining
 		from SOPickTicket sopt WITH(NOLOCK)
-		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
+		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
 		INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

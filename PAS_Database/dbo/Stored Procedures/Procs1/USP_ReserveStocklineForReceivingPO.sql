@@ -28,6 +28,7 @@
 	12   10/29/2024   RAJESH GAMI		Restrict the AR condition to reserve
 	13   11/25/2024   RAJESH GAMI		Remove Nha_Tla_Alt_Equ_ItemMapping join (As discussed with Vishall Will implement it again with proper testing)
 	14   11/26/2024   RAJESH GAMI		Change NETSALES PRICE to UNITSALE PRICE and Call SO COST SP 
+	15	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
@@ -104,6 +105,13 @@ BEGIN
 			DECLARE @InsertedSalesOrderStocklineId BIGINT = 0;
 			DECLARE @QuantityReservedForPoPart INT = 0;
 			DECLARE @QuantityIssuedForPoPart INT = 0;
+
+			DECLARE @ECCN VARCHAR(200) = '';
+			DECLARE @HSCODE VARCHAR(200) = '';
+			DECLARE @Weight DECIMAL(18,2) = 0;
+			DECLARE @SizeLength DECIMAL(18,2) = 0;
+			DECLARE @SizeWidth DECIMAL(18,2) = 0;
+			DECLARE @SizeHeight DECIMAL(18,2) = 0;
 
 			SELECT @SelectedPurchaseOrderPartReferenceId = PurchaseOrderPartReferenceId, @SelectedPurchaseOrderPartId = [PurchaseOrderPartId] FROM #tmpPurchaseOrderPartReference WHERE ID = @LoopID;
 
@@ -1353,6 +1361,14 @@ BEGIN
 
 					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
 					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					SELECT @ECCN = ime.[HSCODE],
+						   @HSCODE = ime.[ExportECCN],
+						   @Weight = ime.[ExportWeight],
+						   @SizeLength = ime.[ExportSizeLength],
+						   @SizeWidth = ime.[ExportSizeWidth],
+					       @SizeHeight = ime.[ExportSizeHeight]
+					  FROM DBO.ItemMasterExportInfo ime WITH (NOLOCK) WHERE ime.ItemMasterId = @ItemMasterId;
 					
 					/*********DO NOT DELETE Commented code: As discussed with Vishal for now need to remove Nha_Tla_Alt_Equ_ItemMapping join, Due to reserve mismatch in SO side *********/
 					
@@ -1486,10 +1502,12 @@ BEGIN
 
 									INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 									[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+									[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 									SELECT @SalesOrderPartIdToUpdate, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
 									NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
-									@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+									@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+									@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight;
 									
 									SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
@@ -1606,11 +1624,13 @@ BEGIN
 										INSERT INTO DBO.SalesOrderPartV1 ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],
 										[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
 										[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[OldSalesOrderPartId],[PartNumber],
-										[PartDescription],[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId])
+										[PartDescription],[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId],
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 										SELECT TOP 1 [SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],@Qty,0,[CurrencyId],
 										[PriorityId],@soPartFulfilledStatusId,[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
 										[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsActive],[IsDeleted],NULL,NULL,
-										NULL,NULL,NULL,NULL,NULL,NULL
+										NULL,NULL,NULL,NULL,NULL,NULL,
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight
 										FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
 
 										SELECT @InsertedSalesOrderPartId = SCOPE_IDENTITY();
@@ -1628,10 +1648,12 @@ BEGIN
 
 										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
-										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 										SELECT @InsertedSalesOrderPartId, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
 										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
-										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight;
 
 										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 

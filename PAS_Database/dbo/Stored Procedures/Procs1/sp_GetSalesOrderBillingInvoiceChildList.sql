@@ -300,7 +300,7 @@ BEGIN
 				) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
-				ELSE sobi.GrandTotal END as 'TotalSales',  
+				ELSE sobii.PartCost END as 'TotalSales',  
 
 				(ISNULL(SOSC.UnitSalesPrice, 0) * ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
 				FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
@@ -538,7 +538,7 @@ BEGIN
 							) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
 							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
-						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
+						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
 						tmpSOBI.SOBillingInvoicingId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <BHARGAV SALIYA>  
 ** Create date: <20/11/2024>  [mm/dd/yyyy]
 ** Description: <Get The Stock/Inventory Search Data>  
@@ -9,6 +8,7 @@
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
 ** 1	20/11/2024		BHARGAV SALIYA			Created
+** 2	26/11/2024		BHARGAV SALIYA			Change The Filter Field Stockline Number To Control Number
 **************************************************************/
 -----------------------------------------------------------------------------
 CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
@@ -29,26 +29,26 @@ CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]
 	@UnitOfMeasure VARCHAR(100) NULL,
 	@Currency VARCHAR(20) NULL,
 	@ControlNumber VARCHAR(100) NULL,
-	@LotNumber VARCHAR(100) NULL,
+	@LotNumber VARCHAR(200) NULL,
 	@VendorName VARCHAR(100) NULL,
-	@ReceivedDate DATETIME2 NULL,
-	@ReceiverNumber VARCHAR(100) NULL,
-	@ExpirationDate VARCHAR(100) NULL,
-	@level1 VARCHAR(500) = NULL,
-	@level2 VARCHAR(500) = NULL,
-	@level3 VARCHAR(500) = NULL,
-	@level4 VARCHAR(500) = NULL,
-	@level5 VARCHAR(500) = NULL,
-	@level6 VARCHAR(500) = NULL,
-	@level7 VARCHAR(500) = NULL,
-	@level8 VARCHAR(500) = NULL,
-	@level9 VARCHAR(500) = NULL,
-	@level10 VARCHAR(500) = NULL,
+	@ReceivedDate datetime = NULL,
+	@ReceiverNumber VARCHAR(50) NULL,
+	@ExpirationDate datetime = NULL,
+	@level1 VARCHAR(100) = NULL,
+	@level2 VARCHAR(100) = NULL,
+	@level3 VARCHAR(100) = NULL,
+	@level4 VARCHAR(100) = NULL,
+	@level5 VARCHAR(100) = NULL,
+	@level6 VARCHAR(100) = NULL,
+	@level7 VARCHAR(100) = NULL,
+	@level8 VARCHAR(100) = NULL,
+	@level9 VARCHAR(100) = NULL,
+	@level10 VARCHAR(100) = NULL,
 	@MasterCompanyId BIGINT NULL,
 	@FromReceivedDate DATETIME2 = NULL,
 	@ToReceivedDate DATETIME2 = NULL,
-	@FromStockLineId VARCHAR(500) = NULL,
-	@ToStockLineId VARCHAR(500) = NULL,
+	@FromControlNumber VARCHAR(50) = NULL,
+	@ToControlNumber VARCHAR(50) = NULL,
 	@FromUnitCost DECIMAL(18,2) NULL,
 	@ToUnitCost DECIMAL(18,2) NULL,
 	@ItemMasterId BIGINT = NULL,
@@ -61,8 +61,9 @@ CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]
 	@LocationId BIGINT = NULL,
 	@ShelfId BIGINT = NULL,
 	@BinId BIGINT = NULL,
-	@PoRoRefrences VARCHAR(500) = NULL,
-	@PoRoNumber VARCHAR(500) = NULL
+	@PoRoRefrences VARCHAR(100) = NULL,
+	@PoRoNumber VARCHAR(100) = NULL,
+	@IsDownload BIT = NULL
 
 AS              
 	BEGIN              
@@ -142,14 +143,14 @@ AS
 			  Set @SortColumn = Upper(@SortColumn)  
 			 End 
 
-			 SET @FromStockLineId = (SELECT ISNULL([StockLineNumber], '') FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @FromStockLineId);
-			 SET @ToStockLineId = (SELECT ISNULL([StockLineNumber], '') FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @ToStockLineId);
+			 --SET @FromStockLineId = (SELECT ISNULL([StockLineNumber], '') FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @FromStockLineId);
+			 --SET @ToStockLineId = (SELECT ISNULL([StockLineNumber], '') FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @ToStockLineId);
 
-			 SET @FromStockLineId = SUBSTRING(@FromStockLineId, PATINDEX('%[0-9]%', @FromStockLineId), LEN(@FromStockLineId));
-			 SET @ToStockLineId = SUBSTRING(@ToStockLineId, PATINDEX('%[0-9]%', @ToStockLineId), LEN(@ToStockLineId));
+			 SET @FromControlNumber = SUBSTRING(@FromControlNumber, PATINDEX('%[0-9]%', @FromControlNumber), LEN(@FromControlNumber));
+			 SET @ToControlNumber = SUBSTRING(@ToControlNumber, PATINDEX('%[0-9]%', @ToControlNumber), LEN(@ToControlNumber));
 			 
-			 SET @FromStockLineId = CASE WHEN ISNULL(@FromStockLineId, '') = '' THEN '0' ELSE @FromStockLineId END;
-			 SET @ToStockLineId = CASE WHEN ISNULL(@ToStockLineId, '') = '' THEN '0' ELSE @ToStockLineId END;
+			 SET @FromControlNumber = CASE WHEN ISNULL(@FromControlNumber, '') = '' THEN '0' ELSE @FromControlNumber END;
+			 SET @ToControlNumber = CASE WHEN ISNULL(@ToControlNumber, '') = '' THEN '0' ELSE @ToControlNumber END;
 
 			 SELECT @SearchPartNumber = PartNumber FROM [dbo].[Stockline] WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
 			 SELECT @SearchVendorName = VendorName FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = @VendorId;
@@ -171,7 +172,12 @@ AS
 						 S.[StockLineId],
 						 S.[PartNumber],
 						 S.[PNDescription] AS [PartDescription],
-						 CASE WHEN ISNULL(S.OEM, 0) > 0 THEN 'OEM' ELSE 'PMA' END AS IsOemPmaType,
+						 --CASE WHEN ISNULL(S.OEM, 0) > 0 THEN 'OEM' ELSE 'PMA' END AS IsOemPmaType,
+						 IsOemPmaType = (CASE WHEN S.IsPma = 1 AND S.IsDER = 1 THEN 'PMA&DER'
+										 WHEN S.IsPma = 1 AND S.IsDER = 0 THEN 'PMA' 
+					                     WHEN S.IsPma = 0 AND S.IsDER = 1  THEN 'DER' 
+										 ELSE 'OEM'
+									END),  
 						 S.[StockLineNumber],
 						 S.[SerialNumber],
 						 S.Condition,
@@ -210,8 +216,8 @@ AS
 					LEFT JOIN  [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON S.PurchaseOrderId = po.PurchaseOrderId
 					LEFT JOIN  [DBO].[RepairOrder] RO WITH(NOLOCK) ON S.RepairOrderId = Ro.RepairOrderId
 					WHERE CAST(S.ReceivedDate AS date) BETWEEN CAST(@FromReceivedDate AS date) AND CAST(@ToReceivedDate AS date) AND S.MasterCompanyId = @MasterCompanyId 
-					AND ((ISNULL(@FromStockLineId, '') = '0' OR ISNULL(@ToStockLineId, '') = '0') OR 
-					SUBSTRING(S.[StockLineNumber], PATINDEX('%[0-9]%', S.[StockLineNumber]), LEN(S.[StockLineNumber])) BETWEEN CAST(@FromStockLineId AS numeric) AND CAST(@ToStockLineId AS numeric))
+					AND ((ISNULL(@FromControlNumber, '') = '0' OR ISNULL(@ToControlNumber, '') = '0') OR 
+					SUBSTRING(S.[ControlNumber], PATINDEX('%[0-9]%', S.[ControlNumber]), LEN(S.[ControlNumber])) BETWEEN CAST(@FromControlNumber AS numeric) AND CAST(@ToControlNumber AS numeric))
 					AND (ISNULL(CAST(@FromUnitCost AS INT), 0) = 0 OR ISNULL(CAST(@ToUnitCost AS INT), 0) = 0 OR (S.UnitCost BETWEEN CAST(@FromUnitCost AS INT) AND CAST(@ToUnitCost AS INT)))
 					AND (ISNULL(@FromUnitCost, 0) = 0 OR ISNULL(@ToUnitCost, 0) = 0 OR (S.UnitCost BETWEEN @FromUnitCost AND @ToUnitCost))
 					AND (ISNULL(@ItemMasterId , 0) = 0 OR UPPER(S.[PartNumber]) = UPPER(@SearchPartNumber)) 
@@ -246,11 +252,12 @@ AS
 		 WHERE (
 		 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
 		 (ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
-		 (ISNULL(@StockLineNumber,0) = 0 OR [StockLineNumber] = @StockLineNumber) AND
-		 (ISNULL(@SerialNumber,0) = 0 OR [SerialNumber] = @SerialNumber) AND
+		 (ISNULL(@IsOemPmaType,'') ='' OR IsOemPmaType LIKE '%' + @IsOemPmaType + '%') AND
+		 (ISNULL(@StockLineNumber,'') ='' OR [StockLineNumber] LIKE '%' + @StockLineNumber+'%') AND
+		 (ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber+'%') AND
 		 (ISNULL(@Condition,'') ='' OR [Condition] LIKE '%' + @Condition+'%') AND
-		 --(ISNULL(@UnitCost,'') ='' OR [UnitCost] LIKE '%' + @UnitCost+'%') AND
-		 --(ISNULL(@UnitSalesPrice,'') ='' OR [UnitSalesPrice] LIKE '%' + @UnitSalesPrice+'%') AND
+		 (ISNULL(@UnitCost,'') ='' OR [UnitCost] LIKE '%' + @UnitCost+'%') AND
+		 (ISNULL(@UnitSalesPrice,'') ='' OR [UnitSalesPrice] LIKE '%' + @UnitSalesPrice+'%') AND
 		 (ISNULL(@UnitOfMeasure,'') ='' OR [UnitOfMeasure] LIKE '%' + @UnitOfMeasure+'%') AND
 		 (ISNULL(@Currency,'') ='' OR [Currency] LIKE '%' + @Currency+'%') AND
 		 (ISNULL(@PoRoNumber,'') ='' OR [PoRoNumber] LIKE '%' + @PoRoNumber+'%') AND
@@ -268,7 +275,8 @@ AS
 		 --SELECT *, @Total As NumberOfItems FROM #finalResult 
 		 ORDER BY 
 		 CASE WHEN (@SortOrder=1 and @SortColumn='PartNumber')  THEN [PartNumber] END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN [PartDescription] END ASC,  
+		 CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN [PartDescription] END ASC, 
+		 CASE WHEN (@SortOrder=1  AND @SortColumn='IsOemPmaType')  THEN IsOemPmaType END ASC,
 		 CASE WHEN (@SortOrder=1 and @SortColumn='StockLineNumber')  THEN [StockLineNumber] END ASC,  
 		 CASE WHEN (@SortOrder=1 and @SortColumn='SerialNumber')  THEN [SerialNumber] END ASC,  
 		 CASE WHEN (@SortOrder=1 and @SortColumn='Condition')  THEN [Condition] END ASC,  
@@ -293,7 +301,8 @@ AS
 		 CASE WHEN (@SortOrder=1 and @SortColumn='level10')  THEN [level10] END ASC, 
 
 		 CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumber')  THEN [PartNumber] END Desc,  
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN [PartDescription] END Desc,  
+		 CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN [PartDescription] END Desc, 
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='IsOemPmaType')  THEN IsOemPmaType END DESC,	
 		 CASE WHEN (@SortOrder=-1 and @SortColumn='StockLineNumber')  THEN [StockLineNumber] END Desc,  
 		 CASE WHEN (@SortOrder=-1 and @SortColumn='SerialNumber')  THEN [SerialNumber] END Desc,  
 		 CASE WHEN (@SortOrder=-1 and @SortColumn='Condition')  THEN [Condition] END Desc,  
@@ -317,8 +326,30 @@ AS
 		 CASE WHEN (@SortOrder=-1 and @SortColumn='level9')  THEN [level9] END Desc, 
 		 CASE WHEN (@SortOrder=-1 and @SortColumn='level10')  THEN [level10] END Desc
 
-			OFFSET @RecordFrom ROWS   
+
+		 IF(ISNULL(@IsDownload, 0) = 1)
+		BEGIN
+			SELECT COUNT(2) OVER () AS NumberOfItems, [StockLineId],[PartNumber],[PartDescription],[IsOemPmaType],[StockLineNumber],[SerialNumber],Condition,UnitCost,UnitSalesPrice,
+						 UnitOfMeasure,Currency,[PoRoNumber],[ControlNumber],[LotNumber],[VendorName],[ReceivedDate],[ReceiverNumber],[ExpirationDate],
+						 EmployeeName,level1,level2,level3,level4,level5,level6,level7,level8,level9,level10
+			FROM #TempStockInventoryDetails 
+			--INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId  
+			ORDER BY [StockLineId] DESC
+		END
+		ELSE
+		BEGIN
+			SELECT COUNT(2) OVER () AS NumberOfItems, [StockLineId],[PartNumber],[PartDescription],[IsOemPmaType],[StockLineNumber],[SerialNumber],Condition,UnitCost,UnitSalesPrice,
+						 UnitOfMeasure,Currency,[PoRoNumber],[ControlNumber],[LotNumber],[VendorName],[ReceivedDate],[ReceiverNumber],[ExpirationDate],
+						 EmployeeName,level1,level2,level3,level4,level5,level6,level7,level8,level9,level10
+			FROM #TempStockInventoryDetails 
+			--INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId
+			ORDER BY [StockLineId] DESC
+			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
+		END
+
+			--OFFSET @RecordFrom ROWS   
+			--FETCH NEXT @PageSize ROWS ONLY
              
 	 END TRY                  
   BEGIN CATCH      

@@ -29,10 +29,11 @@
 	13   11/25/2024   RAJESH GAMI		Remove Nha_Tla_Alt_Equ_ItemMapping join (As discussed with Vishall Will implement it again with proper testing)
 	14   11/26/2024   RAJESH GAMI		Change NETSALES PRICE to UNITSALE PRICE and Call SO COST SP 
 	15	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
+	16   11/27/2024   RAJESH GAMI		In SO: SalesOrderStockLineCost table fixed the markup per/amount
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE      PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -1526,7 +1527,11 @@ BEGIN
 												(ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(@Qty,0)),
 												@stkPurchaseOrderUnitCost,
 												(ISNULL(@stkPurchaseOrderUnitCost,0) * ISNULL(@Qty,0)),
-												0.00,0.00,0.00,0.00,(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
+												SOPC.MarkUpPercentage,
+												(((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),
+												SOPC.DiscountPercentage,											
+												((ISNULL(SOPC.UnitSalesPrice,0) + ISNULL((((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),0)) * ISNULL(SOPC.DiscountPercentage,0) ) / 100.00,
+												(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
 												(CASE WHEN ISNULL(SOPC.UnitSalesPrice,0) > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOPC.UnitSalesPrice) * 100) ELSE 0 END),
 												ISNULL(SOPC.NetSaleAmount, 0),@stkMasterCompanyId,@UpdatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0
 												FROM dbo.SalesOrderStockLineV1 stk WITH (NOLOCK) LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) on stk.SalesOrderPartId =  SOPC.SalesOrderPartId
@@ -1671,7 +1676,11 @@ BEGIN
 													(ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(@Qty,0)),
 													@stkPurchaseOrderUnitCost,
 													(ISNULL(@stkPurchaseOrderUnitCost,0) * ISNULL(@Qty,0)),
-													0.00,0.00,0.00,0.00,(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
+													SOPC.MarkUpPercentage,
+													(((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),
+													SOPC.DiscountPercentage,											
+													((ISNULL(SOPC.UnitSalesPrice,0) + ISNULL((((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),0)) * ISNULL(SOPC.DiscountPercentage,0) ) / 100.00,
+													(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
 													(CASE WHEN ISNULL(SOPC.UnitSalesPrice,0) > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOPC.UnitSalesPrice) * 100) ELSE 0 END),
 													ISNULL(SOPC.NetSaleAmount, 0),@stkMasterCompanyId,@UpdatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0
 													FROM dbo.SalesOrderStockLineV1 stk WITH (NOLOCK) LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) on stk.SalesOrderPartId =  SOPC.SalesOrderPartId

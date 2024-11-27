@@ -3291,6 +3291,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetStockInventorySearchData.sql" />
     <Build Include="dbo\User Defined Types\StockInvenorySearchParamsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderPartViewByPOId.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingCashReceiptList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCashReceiptList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetCashReceiptDetailById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

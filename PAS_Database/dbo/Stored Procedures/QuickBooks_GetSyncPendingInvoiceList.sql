@@ -12,6 +12,7 @@
  ** PR   Date			Author					Change Description            
  ** --   --------		-------					--------------------------------          
     1   19-Nov-2024		Devendra Shekh			Created
+	2   28-Nov-2024		Devendra Shekh			Modified(Added [CreditTerms] to get TermQuickBooksReferenceId)
      
  EXECUTE [QuickBooks_GetSyncPendingInvoiceList] 1
 **************************************************************/ 
@@ -76,6 +77,7 @@ BEGIN
 			[ModuleName] VARCHAR(256) NULL,
 			[ModuleId] INT NULL,
 			[ReferenceModuleId] INT NULL,
+			[TermQuickBooksReferenceId] VARCHAR(200) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -84,10 +86,11 @@ BEGIN
 			--Inserting Work Order Invoice Data
 			INSERT INTO #InvoiceResults ([InvoiceId], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 			[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
-			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId])
+			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
+			[TermQuickBooksReferenceId])
 			SELECT	WOBI.BillingInvoicingId,
 					WOBII.WOBillingInvoicingItemId,
-					[Name] AS Customer,
+					C.[Name] AS Customer,
 					C.Email AS CustomerEmail,
 					COALESCE(billToAddress.Line1, '') AS BillLine1,
 					COALESCE(billToAddress.Line2, '') AS BillLine2,
@@ -110,7 +113,7 @@ BEGIN
 					(ISNULL(WOBI.OtherTax, 0) + ISNULL(WOBI.SalesTax, 0)) AS TotalTax,
 					ISNULL(WOBI.SubTotal, 0) AS SubTotal,
 					ISNULL(WOBI.GrandTotal, 0) AS GrandTotal,
-					ISNULL(WOBI.DepositAmount, 0) AS Deposit,
+					ISNULL(WOBI.ProformaDeposit, 0) AS Deposit,
 					ISNULL(WOBII.SubTotal, 0) AS UnitPrice,
 					COALESCE(shipToAddress.Line1, '') AS ShipLine1,
 					COALESCE(shipToAddress.Line2, '') AS ShipLine2,
@@ -123,7 +126,8 @@ BEGIN
 					WOBI.UpdatedBy,
 					@InvModuleName,
 					@InvModuleId,
-					@WOModuleId
+					@WOModuleId,
+					CT.QuickBooksReferenceId
 			FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
 				JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
@@ -133,16 +137,18 @@ BEGIN
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 			WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 
 			--)
 
 			--Inserting Sales Order Invoice Data
 			INSERT INTO #InvoiceResults ([InvoiceId], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 			[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
-			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId])
+			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
+			[TermQuickBooksReferenceId])
 			SELECT	SOBI.SOBillingInvoicingId,
 					SOBII.SOBillingInvoicingItemId,
-					[Name] AS Customer,
+					C.[Name] AS Customer,
 					C.Email AS CustomerEmail,
 					COALESCE(billToAddress.Line1, '') AS BillLine1,
 					COALESCE(billToAddress.Line2, '') AS BillLine2,
@@ -164,7 +170,7 @@ BEGIN
 					(ISNULL(SOBI.OtherTax, 0) + ISNULL(SOBI.SalesTax, 0)) AS TotalTax,
 					ISNULL(SOBI.SubTotal, 0) AS SubTotal,
 					ISNULL(SOBI.GrandTotal, 0) AS GrandTotal,
-					ISNULL(SOBI.DepositAmount, 0) AS Deposit,
+					ISNULL(SOBI.ProformaDeposit, 0) AS Deposit,
 					ISNULL(SOBII.UnitPrice, 0) AS UnitPrice,
 					COALESCE(shipToAddress.Line1, '') AS ShipLine1,
 					COALESCE(shipToAddress.Line2, '') AS ShipLine2,
@@ -177,7 +183,8 @@ BEGIN
 					SOBI.UpdatedBy,
 					@InvModuleName,
 					@InvModuleId,
-					@SOModuleId
+					@SOModuleId,
+					CT.QuickBooksReferenceId
 			FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 				JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
@@ -187,15 +194,17 @@ BEGIN
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 			WHERE ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 
 
 			--Inserting Exchange Sales Order Invoice Data
 			INSERT INTO #InvoiceResults ([InvoiceId], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 			[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
-			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId])
+			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
+			[TermQuickBooksReferenceId])
 			SELECT	SOBI.SOBillingInvoicingId,
 					SOBII.ExchangeSOBillingInvoicingItemId,
-					[Name] AS Customer,
+					C.[Name] AS Customer,
 					C.Email AS CustomerEmail,
 					COALESCE(billToAddress.Line1, '') AS BillLine1,
 					COALESCE(billToAddress.Line2, '') AS BillLine2,
@@ -230,7 +239,8 @@ BEGIN
 					SOBI.UpdatedBy,
 					@InvModuleName,
 					@InvModuleId,
-					@ExchModuleId
+					@ExchModuleId,
+					CT.QuickBooksReferenceId
 			FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 				JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
@@ -240,6 +250,7 @@ BEGIN
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 			WHERE ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 
 
 			SELECT * FROM #InvoiceResults

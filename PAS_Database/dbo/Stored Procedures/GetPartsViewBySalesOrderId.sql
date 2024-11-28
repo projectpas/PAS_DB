@@ -18,7 +18,7 @@
     2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
     3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
 
-EXEC [dbo].[GetPartsViewBySalesOrderId]  1403
+EXEC [dbo].[GetPartsViewBySalesOrderId]  760
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
@@ -97,6 +97,7 @@ BEGIN
 			part.Notes notes,
 			-- Handle VersionNumber logic with appropriate SQL
 			--dbo.GenerateVersionNumber(so.Version) AS VersionNumber,
+			so.VersionNumber AS versionNumber,
 			SOPC.MiscCharges AS misc,
 			CASE WHEN so.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOCC.ExtendedCost), 0) FROM DBO.SalesOrderCharges SOCC WHERE SOCC.SalesOrderPartId = part.SalesOrderPartId) END AS miscCost,
 			--(part.QtyOrder * part.UnitSalesPricePerUnit) + part.TaxAmount + ISNULL(SUM(ch.BillingAmount), 0) AS TotalSales,

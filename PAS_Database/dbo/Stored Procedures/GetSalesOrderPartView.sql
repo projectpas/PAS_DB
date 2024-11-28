@@ -20,7 +20,7 @@
 	6    11/24/2024   Amit Ghediya      Modified to eccn & update cond.
 	7    11/25/2024   RAJESH GAMI       Modified to change the condition for QtyAvailable and QtyOnHand (SC.SalesOrderStocklineId IS NOT NULL to Stk.SalesOrderStocklineId IS NOT NULL)
      
--- EXEC [DBO].[GetSalesOrderPartView] 1323
+-- EXEC [DBO].[GetSalesOrderPartView] 1475
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT
@@ -44,7 +44,7 @@ BEGIN
         Stk.StockLineId,
         ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
         part.FxRate,
-        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN Stk.QtyOrder ELSE part.QtyOrder END AS Qty,
+        CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.QtyOrder ELSE part.QtyOrder END AS Qty,
         part.QtyRequested,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPrice, 0) ELSE ISNULL(PS.UnitSalesPrice, 0) END AS UnitSalePrice,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,
@@ -63,7 +63,7 @@ BEGIN
         itemMaster.IsPma,
         itemMaster.IsDER,
         UPPER(ISNULL(itemMaster.ManufacturerName, '')) AS ManufacturerName,
-        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN 'S' ELSE 'I' END MethodType,
+        CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN 'S' ELSE 'I' END MethodType,
         '' AS Method,
         ISNULL(qs.IsSerialized, 0) AS IsSerialized,
         ISNULL(qs.SerialNumber, '') AS SerialNumber,
@@ -92,7 +92,7 @@ BEGIN
         ISNULL(iu.ShortName, '') AS UOM,
         ISNULL(Stk.QtyReserved, NULL) AS QtyReserved,
         CASE 
-            WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderApproval WHERE SalesOrderPartId = part.SalesOrderPartId AND IsDeleted = 0 AND CustomerStatusId = @ApprovedStatus) 
+            WHEN EXISTS (SELECT 1 FROM DBO.SalesOrderApproval WITH (NOLOCK) WHERE SalesOrderPartId = part.SalesOrderPartId AND IsDeleted = 0 AND CustomerStatusId = @ApprovedStatus) 
             THEN 1 ELSE 0 
         END AS IsApproved,
         ISNULL(SO.SalesOrderQuoteId, '') AS CustomerReference,

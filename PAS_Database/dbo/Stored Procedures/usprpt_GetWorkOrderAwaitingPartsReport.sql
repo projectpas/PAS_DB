@@ -644,17 +644,17 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 	BEGIN
 		SELECT @PageSize = COUNT(*)
 		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0 OR (backlog > 0 and quantityRequested - quantityReserved - quantityIssued - quantityAvailable - customerStock > 0)
 		ORDER BY WorkOrderId DESC
 	END
 
 	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts INT = 0;
 
 	SELECT @TotalWorkOrder = COUNT(DISTINCT WorkOrderId) FROM #AwaitingPartsData FC
-	WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0;
+	WHERE  (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0 OR (backlog > 0 and quantityRequested - quantityReserved - quantityIssued - quantityAvailable - customerStock > 0)
 
 	SELECT @TotalAwaitingParts = SUM(quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) FROM #AwaitingPartsData FC
-	WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0
+	WHERE  (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0 OR (backlog > 0 and quantityRequested - quantityReserved - quantityIssued - quantityAvailable - customerStock > 0)
 
 SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -664,9 +664,12 @@ SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumbe
 		SELECT DISTINCT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, mpn, mpnDescription, pn, pnDescription,stagecode, condition, manufacturer, uom, approvedamount, openDate, requestDate, estimatedShipDate 
 			, quantityRequested, quantityReserved, quantityIssued, (quantityRequested - quantityReserved - quantityIssued) AS quantityRemaining, quantityAvailable, backlog, customerStock, customerApprovedDate
 			, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-			, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) AS toBeOrdered
+			, CASE 
+				WHEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) >= 0 THEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock)
+				ELSE 0
+				END AS toBeOrdered
 		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0 OR (backlog > 0 and quantityRequested - quantityReserved - quantityIssued - quantityAvailable - customerStock > 0)
 		ORDER BY WorkOrderId DESC;
 	END
 	ELSE
@@ -674,9 +677,12 @@ SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumbe
 		SELECT DISTINCT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, mpn, mpnDescription, pn, pnDescription,stagecode, condition, manufacturer, uom, approvedamount, openDate, requestDate, estimatedShipDate
 			, quantityRequested, quantityReserved, quantityIssued, (quantityRequested - quantityReserved - quantityIssued) AS quantityRemaining, quantityAvailable, backlog, customerStock, customerApprovedDate
 			, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-			, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) AS toBeOrdered
+			, CASE 
+				WHEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) >= 0 THEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock)
+				ELSE 0
+				END AS toBeOrdered
 		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0 OR (backlog > 0 and quantityRequested - quantityReserved - quantityIssued - quantityAvailable - customerStock > 0)
 		ORDER BY WorkOrderId DESC  
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
 	END

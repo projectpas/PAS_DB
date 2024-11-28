@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/27/2024   Vishal Suthar Created
     2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
+    3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  1403
 **************************************************************/
@@ -106,8 +107,8 @@ BEGIN
 			so.TotalFreight totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
-			ISNULL(sbi.Freight, 0) AS freight,
-			ISNULL(sob.SOBillingInvoicingItemId, 0) AS sobillingInvoicingItemId
+			ISNULL(sob.Freight, 0) AS freight,
+			0 AS sobillingInvoicingItemId
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId
@@ -127,7 +128,7 @@ BEGIN
 		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
 		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SalesOrderPartId AND stk.StockLineId = sob.StockLineId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
-		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.IsProforma = 0
+		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.SalesOrderId = @SalesOrderId AND sbi.IsProforma = 0
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -27,6 +26,7 @@
 	10   13/09/2024 Rajesh Gami			Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
 	11   27/09/2024 Rajesh Gami			Add logic for ActionId = 16 /**** CLOSED SUB WORKORDER*****/
 	12   07/11/2024  Moin Bloch         Add logic for ActionId = 22,23 Cycle Count Adjustment
+	13   27/11/2024  Moin Bloch         Add logic for Delete Available Child Qty
 
 	EXEC USP_AddUpdateChildStockline 180043,23,6,'CycleCount','CC-000026','','','ADMIN User'
 **************************************************************/
@@ -445,9 +445,11 @@ BEGIN
 				)
   
 				INSERT INTO #childTableTtmp_Delete
-				SELECT STL.ChildStockLineId FROM DBO.ChildStockline STL WITH (NOLOCK)
-				WHERE STL.StockLineId = @StockLineId
-				ORDER BY STL.ChildStockLineId;
+				SELECT STL.[ChildStockLineId] FROM [dbo].[ChildStockline] STL WITH (NOLOCK)
+				WHERE STL.[StockLineId] = @StockLineId 
+				AND ISNULL(STL.[QtyReserved],0) = 0 
+				AND ISNULL(STL.[QuantityIssued],0) = 0
+				ORDER BY STL.[ChildStockLineId];
 
 				SELECT @MasterLoop_DeleteID = MAX(ID) FROM #childTableTtmp_Delete;  
 			
@@ -471,7 +473,10 @@ BEGIN
 					SET @MasterLoop_DeleteID = @MasterLoop_DeleteID - 1;
 				END
 				SET @QtyOnAction = @OriginalQtyOnAction
-				SET @ActionId = 3
+				IF(@ActionId <> 23)
+				BEGIN
+					SET @ActionId = 3
+				END
 			END
 
 			DECLARE @MasterLoop_UpdateID INT;

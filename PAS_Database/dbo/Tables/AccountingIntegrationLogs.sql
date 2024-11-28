@@ -12,6 +12,10 @@
     [UpdatedDate]                 DATETIME2 (7) NOT NULL,
     [IsActive]                    BIT           NOT NULL,
     [IsDeleted]                   BIT           NOT NULL,
+    [SubModuleName]               VARCHAR (200) NULL,
+    [SubReferenceId]              BIGINT        NULL,
     CONSTRAINT [PK_AccountingIntegrationLogs] PRIMARY KEY CLUSTERED ([AccountingIntegrationLogsId] ASC)
 );
+
+
 

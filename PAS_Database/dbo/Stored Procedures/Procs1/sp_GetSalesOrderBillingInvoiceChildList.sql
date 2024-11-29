@@ -35,6 +35,7 @@
 	18	 20/11/2024	  AMIT GHEDIYA  Modified for get Curr for billng data.
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
 	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
+	21	 28/11/2024	  Vishal Suthar Fixed the issue with duplicate entries when billing is after shipping
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
@@ -211,12 +212,13 @@ BEGIN
 			sop.SizeWidth AS BillSizeWidth,
 			sop.SizeHeight AS BillSizeHeight
 
-			FROM DBO.SalesOrderShippingItem sosi WITH (NOLOCK)  
-			INNER JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  
-			INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) on sop.SalesOrderId = sos.SalesOrderId AND sop.SalesOrderPartId = sosi.SalesOrderPartId  
+			FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
+			INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) on sop.SalesOrderId = sos.SalesOrderId --AND sop.SalesOrderPartId = sosi.SalesOrderPartId  
 			INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
+			INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) on SOPT.SalesOrderId = sos.SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+			INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId
 			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.ItemMasterId = sop.ItemMasterId AND ISNULL(sobii.IsProforma,0) = 0
 			LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  

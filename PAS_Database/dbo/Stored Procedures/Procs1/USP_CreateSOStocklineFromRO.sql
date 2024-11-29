@@ -590,7 +590,7 @@ BEGIN
 
 					  SELECT @SalesOrderStockLineId = SCOPE_IDENTITY()
 
-					  SELECT @StlQuantity = SOP.QtyOrder, @NewQtyRequested = QtyRequested FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
+					  SELECT @NewQtyRequested = QtyRequested FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
 
 					  SELECT @StlQuantity = SOP.QtyOrder FROM [dbo].[SalesOrderStocklineV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId AND StockLineId = @StocklineId;
 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -41,7 +40,7 @@ BEGIN
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
 			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
 
-			DECLARE @OrderPartStatusId INT = (SELECT POPartStatusId FROM dbo.POPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
+			DECLARE @OrderPartStatusId INT = (SELECT TOP 1 SOPartStatusId FROM dbo.SOPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
 			SELECT TOP 1 @ApproveStatusId = ApprovalStatusId,@ApproveStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1
 			
 
@@ -369,12 +368,16 @@ BEGIN
 						END -- END: Fulfill Status :IF
 						
 						EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordId,@ManagementStructureId,@MasterCompanyId,@userName,@userName,@ModuleId,3, 0
-						
+						PRINT '@SalesOrderId'
+						PRINT @SalesOrderId
 						IF(ISNULL(@SalesOrderId,0) > 0)
 						BEGIN --START: IF  SalesOrderPart
+							PRINT 'STEP SO'
 							SELECT TOP 1 @SalesOrderPartId = SalesOrderPartId FROM Dbo.SalesOrderPartV1 WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId
+								PRINT  @SalesOrderPartId
 							IF(ISNULL(@SalesOrderPartId,0) > 0 )
 							BEGIN
+							PRINT 'EXECUTE SO'
 								EXEC dbo.[SP_SaveSOPartStatusByPartId] @SalesOrderPartId, @OrderPartStatusId
 							END
 						END --END: IF SalesOrderPart

@@ -20,7 +20,7 @@
 	4    10/21/2024   AMIT GHEDIYA		Updated old table with new table.
 	5    11/26/2024   AMIT GHEDIYA		Updated for add HSCODE,ECCN etc to so part.
 	6    11/28/2024   Vishal Suthar		Updated for fixing an issue with converting part with multiple stocklines.
-
+	7    11/29/2024   Rajesh Gami		Changes the STATUSID changes for stockline level
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -52,7 +52,8 @@ BEGIN
    BEGIN
 	-- Fetch salesView
 	SELECT TOP 1 * INTO #salesView FROM DBO.SalesOrderQuote WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
-
+	DECLARE @SOPartStatusOpen Varchar(100) = (SELECT TOP 1 SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE Description = 'Open')
+	DECLARE @SOPartStatusFulfilled Varchar(100) = (SELECT TOP 1 SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE Description = 'Fulfilled')
 	DECLARE @totalrevenue DECIMAL(18, 2) = 0;
 	DECLARE @FunctionalCurrencyId BIGINT = 0;
     DECLARE @ReportCurrencyId BIGINT = 0;
@@ -377,6 +378,17 @@ BEGIN
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
 					INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
 					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
+
+					UPDATE SOPSTK
+					SET SOPSTK.StatusId = CASE WHEN (SOPSTK.QtyOrder = SOPSTK.QtyReserved) THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END
+					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
+					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
+					INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
+					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
+
+					Update DBO.SalesOrderPartV1 
+					SET StatusId = CASE WHEN QtyOrder = QtyReserved THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END
+					WHERE SalesOrderPartId = @CurrentSOPartId
 
 					SELECT @ReservedQty = QtyToReserve FROM DBO.SalesOrderReserveParts WITH (NOLOCK) WHERE SalesOrderReservePartId = @InsertedReservePartId;
 

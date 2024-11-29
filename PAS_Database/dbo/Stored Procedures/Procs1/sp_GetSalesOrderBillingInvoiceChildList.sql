@@ -295,13 +295,7 @@ BEGIN
 				sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description as 'Condition',   
 				CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 				--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) +   
-				CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOSC.NetSaleAmount, 0)) +   
-				((((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) +
-				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
-				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
-				) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
-				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
-				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
+				CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN (ISNULL(SOSC.NetSaleAmount, 0))
 				ELSE sobii.PartCost END as 'TotalSales',  
 
 				(ISNULL(SOSC.UnitSalesPrice, 0) * ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 

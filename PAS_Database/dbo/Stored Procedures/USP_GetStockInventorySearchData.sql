@@ -9,6 +9,7 @@
 ** --   --------		-------					--------------------------------
 ** 1	20/11/2024		BHARGAV SALIYA			Created
 ** 2	26/11/2024		BHARGAV SALIYA			Change The Filter Field Stockline Number To Control Number
+** 3    28-11-2024      BHARGAV SALIYA           Fixed ManagementStructure filter issue 
 **************************************************************/
 -----------------------------------------------------------------------------
 CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
@@ -34,16 +35,7 @@ CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]
 	@ReceivedDate datetime = NULL,
 	@ReceiverNumber VARCHAR(50) NULL,
 	@ExpirationDate datetime = NULL,
-	@level1 VARCHAR(100) = NULL,
-	@level2 VARCHAR(100) = NULL,
-	@level3 VARCHAR(100) = NULL,
-	@level4 VARCHAR(100) = NULL,
-	@level5 VARCHAR(100) = NULL,
-	@level6 VARCHAR(100) = NULL,
-	@level7 VARCHAR(100) = NULL,
-	@level8 VARCHAR(100) = NULL,
-	@level9 VARCHAR(100) = NULL,
-	@level10 VARCHAR(100) = NULL,
+	@strFilter VARCHAR(MAX) = NULL,
 	@MasterCompanyId BIGINT NULL,
 	@FromReceivedDate DATETIME2 = NULL,
 	@ToReceivedDate DATETIME2 = NULL,
@@ -63,7 +55,17 @@ CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]
 	@BinId BIGINT = NULL,
 	@PoRoRefrences VARCHAR(100) = NULL,
 	@PoRoNumber VARCHAR(100) = NULL,
-	@IsDownload BIT = NULL
+	@IsDownload BIT = NULL,
+	@level1Str VARCHAR(MAX) = NULL,
+	@level2Str VARCHAR(MAX) = NULL,
+	@level3Str VARCHAR(MAX) = NULL,
+	@level4Str VARCHAR(MAX) = NULL,
+	@level5Str VARCHAR(MAX) = NULL,
+	@level6Str VARCHAR(MAX) = NULL,
+	@level7Str VARCHAR(MAX) = NULL,
+	@level8Str VARCHAR(MAX) = NULL,
+	@level9Str VARCHAR(MAX) = NULL,
+	@level10Str VARCHAR(MAX) = NULL
 
 AS              
 	BEGIN              
@@ -85,6 +87,38 @@ AS
 			 DECLARE @SearchShelf VARCHAR(80) = '';
 			 DECLARE @SearchBin VARCHAR(80) = '';
 			 DECLARE @ModuleID INT = 2
+
+				IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
+				BEGIN    
+					DROP TABLE #TEMPMSFilter
+				END
+
+				CREATE TABLE #TEMPMSFilter([ID] BIGINT  IDENTITY(1,1),[LevelIds] VARCHAR(MAX)); 
+
+				INSERT INTO #TEMPMSFilter(LevelIds)	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!');
+
+				DECLARE   
+				@level1 VARCHAR(MAX) = NULL,  
+				@level2 VARCHAR(MAX) = NULL,  
+				@level3 VARCHAR(MAX) = NULL,  
+				@level4 VARCHAR(MAX) = NULL,  
+				@Level5 VARCHAR(MAX) = NULL,  
+				@Level6 VARCHAR(MAX) = NULL,  
+				@Level7 VARCHAR(MAX) = NULL,  
+				@Level8 VARCHAR(MAX) = NULL,  
+				@Level9 VARCHAR(MAX) = NULL,  
+				@Level10 VARCHAR(MAX) = NULL 
+
+				SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
+				SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
+				SELECT @level3 = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
+				SELECT @level4 = LevelIds FROM #TEMPMSFilter WHERE ID = 4 
+				SELECT @level5 = LevelIds FROM #TEMPMSFilter WHERE ID = 5 
+				SELECT @level6 = LevelIds FROM #TEMPMSFilter WHERE ID = 6 
+				SELECT @level7 = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
+				SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
+				SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
+				SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10 
 
 
 			   IF OBJECT_ID('tempdb..#TempJournalDetails') IS NOT NULL
@@ -150,19 +184,7 @@ AS
 			 SET @ToControlNumber = SUBSTRING(@ToControlNumber, PATINDEX('%[0-9]%', @ToControlNumber), LEN(@ToControlNumber));
 			 
 			 SET @FromControlNumber = CASE WHEN ISNULL(@FromControlNumber, '') = '' THEN '0' ELSE @FromControlNumber END;
-			 SET @ToControlNumber = CASE WHEN ISNULL(@ToControlNumber, '') = '' THEN '0' ELSE @ToControlNumber END;
-
-			 SELECT @SearchPartNumber = PartNumber FROM [dbo].[Stockline] WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
-			 SELECT @SearchVendorName = VendorName FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = @VendorId;
-			 SELECT @SearchCondition = Condition FROM [dbo].[Stockline] WITH(NOLOCK) WHERE ConditionId = @ConditionId;
-			 SELECT @SearchLotNum = LotNumber FROM [dbo].[Stockline] WITH(NOLOCK) WHERE LotId = @LotId;
-			 SELECT @TraceableToName = TraceableToName FROM [dbo].[Stockline] WITH(NOLOCK) WHERE TraceableTo = @TraceableTo;
-			 SELECT @SearchSite = [Site] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE SiteId = @SiteId;
-			 SELECT @SearchWarehouse = [Warehouse] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE WarehouseId = @WarehouseId;
-			 SELECT @SearchLocation = [Location] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE LocationId = @LocationId;
-			 SELECT @SearchShelf = [Shelf] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE ShelfId = @ShelfId;
-			 SELECT @SearchBin = [Bin] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE BinId = @BinId;
-			 
+			 SET @ToControlNumber = CASE WHEN ISNULL(@ToControlNumber, '') = '' THEN '0' ELSE @ToControlNumber END;			 
 
 				INSERT INTO #TempStockInventoryDetails([StockLineId],[PartNumber],[PartDescription],[IsOemPmaType],[StockLineNumber],[SerialNumber],Condition,UnitCost,UnitSalesPrice,
 						 UnitOfMeasure,Currency,[PoRoNumber],[ControlNumber],[LotNumber],[VendorName],[ReceivedDate],[ReceiverNumber],[ExpirationDate],
@@ -218,18 +240,18 @@ AS
 					WHERE CAST(S.ReceivedDate AS date) BETWEEN CAST(@FromReceivedDate AS date) AND CAST(@ToReceivedDate AS date) AND S.MasterCompanyId = @MasterCompanyId 
 					AND ((ISNULL(@FromControlNumber, '') = '0' OR ISNULL(@ToControlNumber, '') = '0') OR 
 					SUBSTRING(S.[ControlNumber], PATINDEX('%[0-9]%', S.[ControlNumber]), LEN(S.[ControlNumber])) BETWEEN CAST(@FromControlNumber AS numeric) AND CAST(@ToControlNumber AS numeric))
-					AND (ISNULL(CAST(@FromUnitCost AS INT), 0) = 0 OR ISNULL(CAST(@ToUnitCost AS INT), 0) = 0 OR (S.UnitCost BETWEEN CAST(@FromUnitCost AS INT) AND CAST(@ToUnitCost AS INT)))
+					AND (ISNULL(CAST(@FromUnitCost AS DECIMAL), 0) = 0 OR ISNULL(CAST(@ToUnitCost AS DECIMAL), 0) = 0 OR (S.UnitCost BETWEEN CAST(@FromUnitCost AS DECIMAL) AND CAST(@ToUnitCost AS DECIMAL)))
 					AND (ISNULL(@FromUnitCost, 0) = 0 OR ISNULL(@ToUnitCost, 0) = 0 OR (S.UnitCost BETWEEN @FromUnitCost AND @ToUnitCost))
-					AND (ISNULL(@ItemMasterId , 0) = 0 OR UPPER(S.[PartNumber]) = UPPER(@SearchPartNumber)) 
-					AND (ISNULL(@VendorId , 0) = 0 OR UPPER(V.[VendorName]) = UPPER(@SearchVendorName)) 
-					AND (ISNULL(@ConditionId , 0) = 0 OR UPPER([Condition]) = UPPER(@SearchCondition)) 
-					AND (ISNULL(@LotId , 0) = 0 OR UPPER([LotNumber]) = UPPER(@SearchLotNum)) 
-					AND (ISNULL(@TraceableTo , 0) = 0 OR UPPER([TraceableToName]) = UPPER(@TraceableToName)) 
-					AND (ISNULL(@SiteId , 0) = 0 OR UPPER([Site]) = UPPER(@SearchSite)) 
-					AND (ISNULL(@WarehouseId , 0) = 0 OR UPPER([Warehouse]) = UPPER(@SearchWarehouse)) 
-					AND (ISNULL(@LocationId , 0) = 0 OR UPPER([Location]) = UPPER(@SearchLocation)) 
-					AND (ISNULL(@ShelfId , 0) = 0 OR UPPER([Shelf]) = UPPER(@SearchShelf)) 
-					AND (ISNULL(@BinId , 0) = 0 OR UPPER([Bin]) = UPPER(@SearchBin)) 
+					AND (ISNULL(@ItemMasterId , 0) = 0 OR (IT.ItemMasterId) = @ItemMasterId) 
+					AND (ISNULL(@VendorId , 0) = 0 OR V.VendorId = @VendorId) 
+					AND (ISNULL(@ConditionId , 0) = 0 OR S.ConditionId = @ConditionId) 
+					AND (ISNULL(@LotId , 0) = 0 OR S.LotId = @LotId) 
+					AND (ISNULL(@TraceableTo , 0) = 0 OR S.TraceableTo = @TraceableTo) 
+					AND (ISNULL(@SiteId , 0) = 0 OR S.SiteId = @SiteId) 
+					AND (ISNULL(@WarehouseId , 0) = 0 OR S.WarehouseId = @WarehouseId) 
+					AND (ISNULL(@LocationId , 0) = 0 OR S.LocationId = @LocationId) 
+					AND (ISNULL(@ShelfId , 0) = 0 OR S.ShelfId = @ShelfId) 
+					AND (ISNULL(@BinId , 0) = 0 OR S.BinId = @BinId) 
 					AND (ISNULL(@PoRoRefrences,'') = '' OR (@PoRoRefrences = Po.PurchaseOrderNumber  OR @PoRoRefrences = RO.RepairOrderNumber)) 
 					AND  (ISNULL(@Level1,'') ='' OR SLM.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
 					AND  (ISNULL(@Level2,'') ='' OR SLM.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))    
@@ -240,8 +262,7 @@ AS
 					AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
 					AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 					AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
-					AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))
-					)      
+					AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))      
 					
 				SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 				SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -266,7 +287,18 @@ AS
 		 (ISNULL(@VendorName,'') ='' OR [VendorName] LIKE '%' + @VendorName+'%') AND
 		 (ISNULL(@ReceivedDate,'') ='' OR CAST([ReceivedDate] AS DATE) = CAST(@ReceivedDate AS DATE)) AND
 		 (ISNULL(@ReceiverNumber,'') ='' OR [ReceiverNumber]  LIKE '%' + @ReceiverNumber+'%') AND
-		 (ISNULL(@ExpirationDate,'') ='' OR CAST([ExpirationDate] AS DATE) = CAST(@ExpirationDate AS DATE)))
+		 (ISNULL(@ExpirationDate,'') ='' OR CAST([ExpirationDate] AS DATE) = CAST(@ExpirationDate AS DATE))AND
+		 (ISNULL(@level1Str,'') ='' OR [level1] LIKE '%' + @level1Str + '%') AND
+		 (ISNULL(@level2Str,'') ='' OR [level2] LIKE '%' + @level2Str + '%') AND
+		 (ISNULL(@level3Str,'') ='' OR [level3] LIKE '%' + @level3Str + '%')AND 
+		 (ISNULL(@level4Str,'') ='' OR [level4] LIKE '%' + @level4Str + '%')AND 
+		 (ISNULL(@level5Str,'') ='' OR [level5] LIKE '%' + @level5Str + '%')AND 
+		 (ISNULL(@level6Str,'') ='' OR [level6] LIKE '%' + @level6Str + '%')AND 
+		 (ISNULL(@level7Str,'') ='' OR [level7] LIKE '%' + @level7Str + '%')AND 
+		 (ISNULL(@level8Str,'') ='' OR [level8] LIKE '%' + @level8Str + '%')AND 
+		 (ISNULL(@level9Str,'') ='' OR [level9] LIKE '%' + @level9Str + '%')AND 
+		 (ISNULL(@level10Str,'') ='' OR [level10] LIKE '%' + @level10Str + '%') 
+		 )
 
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult); 
 		 --select @Total as NumberOfItems, * from #finalResult

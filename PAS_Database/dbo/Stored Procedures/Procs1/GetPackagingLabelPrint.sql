@@ -40,7 +40,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
 		LEFT JOIN DBO.SalesOrderShippingItem SSI WITH(NOLOCK) ON SSI.SOPickTicketId = sopt.SOPickTicketId
 		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
-		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId AND stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId

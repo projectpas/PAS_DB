@@ -51,14 +51,14 @@ BEGIN
 			group by sopp.SalesOrderId--,QtyToShip
 			)
 		,cte as(
-				select SUM(QtyToShip)as TotalQtyToShip, MIN(QtyRemaining) as MinQty, SOPick.SalesOrderId, SOPick.SalesOrderPartStocklineId
+				select (QtyToShip)as TotalQtyToShip, MIN(QtyRemaining) as MinQty, SOPick.SalesOrderId--, SOPick.SalesOrderPartStocklineId
 				FROM DBO.SOPickTicket SOPick WITH(NOLOCK) 
 				--JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
 				LEFT JOIN SalesOrderStocklineV1 SOS WITH(NOLOCK) ON SOS.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
 				WHERE SOPick.SalesOrderId = @SalesOrderId 
 				AND SOPickTicketNumber = @pickTicketNo
 				AND SOPick.SalesOrderPartId = @SalesOrderPartId
-				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartStocklineId
+				GROUP BY QtyToShip, SOPick.SalesOrderId--, SOPick.SalesOrderPartStocklineId
 		)
 		SELECT sopt.SOPickTicketId, sopt.CreatedDate as SOPickTicketDate, sopt.SalesOrderId, sl.StockLineNumber, 
 		stk.QtyOrder Qty, 
@@ -78,7 +78,7 @@ BEGIN
 		CASE WHEN MinQty = 0 AND TResrvePart.TotalResrvePart > 1 THEN 0 
 		WHEN MinQty > 0 THEN MinQty ELSE sopt.QtyRemaining END AS QtyRemaining
 		from SOPickTicket sopt WITH(NOLOCK)
-		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartStocklineId = sopt.SalesOrderPartStocklineId
+		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId --AND cte.SalesOrderPartStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
 		INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

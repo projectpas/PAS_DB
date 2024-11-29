@@ -60,7 +60,8 @@ BEGIN
 		ISNULL((SELECT ((SUM(ISNULL(sorpp.QtyToReserve, 0)) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) 
 		FROM DBO.SalesOrderPartV1 sopp WITH(NOLOCK) 
 		LEFT JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
-		INNER JOIN DBO.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sorpp.StockLineId = sos.StockLineId AND sorpp.SalesOrderId = @SalesOrderId
+		INNER JOIN DBO.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sorpp.StockLineId = sos.StockLineId AND sorpp.SalesOrderId = @SalesOrderId
+		LEFT JOIN DBO.SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId
 		LEFT JOIN DBO.SalesOrderShipping ship WITH(NOLOCK) on ship.SalesOrderId = sopp.SalesOrderId 
 		LEFT JOIN DBO.SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId and ship_item.SalesOrderPartId = sopp.SalesOrderPartId
 		WHERE sopp.SalesOrderId = @SalesOrderId AND sopp.ItemMasterId = sop.ItemMasterId AND sopp.ConditionId = sop.ConditionId
@@ -89,11 +90,11 @@ BEGIN
 		CASE WHEN SUM(ReadyToPick) < 0 THEN 0 ELSE SUM(ReadyToPick) END END)
 		AS ReadyToPick, 
 		cte.[Status], CustomerName, CustomerCode 
-		,CASE WHEN cte.TotalReadyToPick < 0 THEN 0 ELSE cte.TotalReadyToPick END AS TotalReadyToPick 
+		,CASE WHEN SUM(cte.TotalReadyToPick) < 0 THEN 0 ELSE SUM(cte.TotalReadyToPick) END AS TotalReadyToPick 
 		FROM CTE
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = cte.SalesOrderId AND sopt.SalesOrderPartId = cte.SalesOrderPartId
 		GROUP BY cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
-		SerialNumber, QuantityAvailable, cte.[Status], SalesOrderNumber, SalesOrderQuoteNumber, ConditionId, CustomerName, CustomerCode,cte.TotalReadyToPick 
+		SerialNumber, QuantityAvailable, cte.[Status], SalesOrderNumber, SalesOrderQuoteNumber, ConditionId, CustomerName, CustomerCode--,cte.TotalReadyToPick 
 	END
 	COMMIT  TRANSACTION
 

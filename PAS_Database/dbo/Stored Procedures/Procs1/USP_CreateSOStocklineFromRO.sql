@@ -20,6 +20,7 @@
 	4    08/18/2023   Devendra Shekh	added UnitSalesPricePerUnit for salesorder part insert
 	5    12/29/2023   Vishal Suthar		Fixed and issue with PN-6393 Requested Qty not increasing when RO stockline added into same part with condition
     6	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
+	7	 11/29/2024	  Abhishek Jirawla  Adding a condition where the QtyOrder is taken from Stockline
  EXECUTE USP_CreateSOStocklineFromRO 1780
 
 **************************************************************/
@@ -590,6 +591,8 @@ BEGIN
 					  SELECT @SalesOrderStockLineId = SCOPE_IDENTITY()
 
 					  SELECT @StlQuantity = SOP.QtyOrder, @NewQtyRequested = QtyRequested FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
+
+					  SELECT @StlQuantity = SOP.QtyOrder FROM [dbo].[SalesOrderStocklineV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId AND StockLineId = @StocklineId;
 
 					  UPDATE [dbo].[Stockline] SET [QuantityAvailable] = ISNULL(QuantityAvailable - @StlQuantity, 0), [QuantityReserved] = ISNULL(@StlQuantity, 0) WHERE StockLineId = @StocklineId
 

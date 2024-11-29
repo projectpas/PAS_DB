@@ -1,30 +1,22 @@
 ﻿ /*************************************************************           
- ** File:   [QuickBooks_SaveRequestParamsDetails]           
- ** Author:   Hemant Saliya
- ** Description: Save QuickBooks Params Detaiils for Logging
+ ** File:   [QuickBooks_GetSyncPendingCreditTermsList]           
+ ** Author:   Devendra Shekh
+ ** Description: Get Credit Terms List for Create to QuickBook
  ** Purpose:         
- ** Date:   15-July-2024        
+ ** Date:   27-Nov-2024      
          
  ** RETURN VALUE: 
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date			Author			Change Description            
- ** --   --------		-------			--------------------------------          
-    1    15-July-2024   Hemant Saliya	Created (Save QuickBooks Params Detaiils for Logging)
-    2    27-Nov-2024	Devendra Shekh	Modified (added new fields SubModuleName,SubReferenceId)
+ ** PR   Date				Author					Change Description            
+ ** --   --------			-------				--------------------------------          
+    1    27-Nov-2024		Devendra Shekh			Created
      
- EXECUTE [QuickBooks_SaveRequestParamsDetails] 1, 10, '150'
+ EXECUTE [QuickBooks_GetSyncPendingCreditTermsList] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_SaveRequestParamsDetails]
-@IntegrationTypeId INT = NULL,
-@ModuleId BIGINT = NULL,
-@ReferenceId BIGINT = NULL,
-@Payload VARCHAR(MAX),
-@MasterCompanyId INT,
-@UpdatedBy VARCHAR(200),
-@SubModuleName VARCHAR(200) = NULL,
-@SubReferenceId BIGINT = NULL
+CREATE   PROCEDURE [dbo].[QuickBooks_GetSyncPendingCreditTermsList]
+	@IntegrationTypeId INT = NULL
 AS
 BEGIN
 	
@@ -32,23 +24,35 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 
-		DECLARE @ModuleName VARCHAR(200);
-		SELECT @ModuleName = ModuleName FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = @ModuleId
-
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-			INSERT INTO AccountingIntegrationLogs(IntegrationId,ModuleId,ReferenceId,ModuleName,Payload,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,SubModuleName,SubReferenceId)	
-			VALUES (@IntegrationTypeId, @ModuleId, @ReferenceId, @ModuleName, @Payload, @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @SubModuleName, @SubReferenceId)
+			SELECT  CT.CreditTermsId,
+					CT.Name,
+					CT.Memo,
+					CT.PercentId,
+					TR.TaxRate as PercentValue,
+					CT.Days,
+					CT.NetDays,
+					CT.MasterCompanyId,
+					CT.UpdatedBy,
+					0 AS DiscountDays,
+					'STANDARD' AS [Type],
+					CT.IsActive,
+					CT.QuickBooksReferenceId,
+					CT.SyncToken
+			FROM [dbo].[CreditTerms] CT WITH(NOLOCK) 
+				LEFT JOIN [dbo].[TaxRate] TR WITH(NOLOCK) ON TR.TaxRateId = CT.PercentId
+				 
+			WHERE ISNULL(CT.QuickBooksReferenceId, 0) = 0 AND ISNULL(CT.IsUpdated, 0) = 1 
 		END
-
 	END TRY    
 	BEGIN CATCH      
 
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'QuickBooks_SaveRequestParamsDetails'
+			,@AdhocComments VARCHAR(150) = 'QuickBooks_GetSyncPendingCreditTermsList'
 			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

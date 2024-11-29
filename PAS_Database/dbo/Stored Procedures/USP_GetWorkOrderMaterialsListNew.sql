@@ -12,6 +12,7 @@
     1	07/26/2024		Devendra Shekh			Created
 	2	07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
 	3	09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
+	4	11/28/2024		RAJESH GAMI				Return the flags (IsFullyReserved - IsFullyIssued)
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -49,7 +50,7 @@ SET NOCOUNT ON
 				DECLARE @ForStockProvisionId INT;
 				DECLARE @exchangeProvision varchar(100) = (SELECT TOP 1 Description FROM dbo.Provision WITH(NOLOCK) where UPPER(StatusCode) = 'EXCHANGE')
 				DECLARE @CustomerID BIGINT, @IsTeardownWO bit = 0, @WoTypeId int = 0;
-				DECLARE @Count Int;  
+				DECLARE @Count Int, @TotalQty INT =0, @TotalReserved INT =0, @TotalIssued INT =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0; 
 				DECLARE @WOPartNoId BIGINT;
 
 				IF @Local_SortColumn IS NULL
@@ -259,7 +260,7 @@ SET NOCOUNT ON
 					[IsKitType] [bit] NULL,
 					[KitQty] [int] NULL,
 					[ExpectedSerialNumber] [varchar](250) NULL,
-					[IsExchangeTender] [bit] NULL,
+					[IsExchangeTender] [bit] NULL
 				)
 
 				CREATE TABLE #tmpStocklineKit
@@ -1322,8 +1323,15 @@ SET NOCOUNT ON
 				--	SELECT @Count = COUNT(1) from #finalMaterialListResult;
 				--ELSE
 					SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
-
-				SELECT *, @Count As NumberOfItems FROM #finalMaterialListResult
+					SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #finalMaterialListResult);
+					SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #finalMaterialListResult;
+					SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #finalMaterialListResult;
+					SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT) + CAST(ISNULL(@TotalReserved, 0) AS INT))) = 0  THEN 1 ELSE 0 END)
+					SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
+				SELECT *, @Count As NumberOfItems,
+				@IsFullyReserved AS IsFullyReserved,
+				@IsFullyIssued AS IsFullyIssued  
+				FROM #finalMaterialListResult
 				ORDER BY    
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC
 					,CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partNumber')  THEN partNumber END ASC,  

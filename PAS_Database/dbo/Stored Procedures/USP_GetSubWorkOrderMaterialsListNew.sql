@@ -12,6 +12,7 @@
     1    07/29/2024		Devendra Shekh			Created
     2    07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
 	3	 09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
+	4	11/28/2024		RAJESH GAMI				Return the flags (IsFullyReserved - IsFullyIssued)
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=316,@ShowPendingToIssue=0
@@ -39,7 +40,7 @@ SET NOCOUNT ON
 		DECLARE @ForStockProvisionId INT;
 		DECLARE @MasterCompanyId INT;
 		DECLARE @CustomerID BIGINT;
-		DECLARE @Count Int;  
+		DECLARE @Count Int, @TotalQty INT =0, @TotalReserved INT =0, @TotalIssued INT =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0;  
 		DECLARE @RecordFrom int;  
 
 		IF @SortColumn IS NULL
@@ -1182,8 +1183,14 @@ SET NOCOUNT ON
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
+		SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #finalMaterialListResult);
+		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #finalMaterialListResult;
+		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #finalMaterialListResult;
+		SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT) + CAST(ISNULL(@TotalReserved, 0) AS INT))) = 0  THEN 1 ELSE 0 END)
+		SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
 
-		SELECT *, @Count As NumberOfItems FROM #finalMaterialListResult
+		SELECT *, @Count As NumberOfItems,@IsFullyReserved AS IsFullyReserved,
+				@IsFullyIssued AS IsFullyIssued   FROM #finalMaterialListResult
 		ORDER BY    
 					CASE WHEN (@SortOrder=1 and @SortColumn='taskName')  THEN taskName END ASC
 					,CASE WHEN (@SortOrder=1 and @SortColumn='partNumber')  THEN partNumber END ASC,  

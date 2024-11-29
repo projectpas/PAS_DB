@@ -17,6 +17,7 @@ EXEC [usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
 ** 6    09/10/2024      RAJESH GAMI  	    Added new stockline history action (UnIssueUnReserve)
 ** 7    09/24/2024      HEMANT SALIYA	    Re-Calculate WOM Qty Res & Qty Issue
 ** 8    10/04/2024      RAJESH GAMI 	    Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
+** 9    11/28/2024		HEMANT SALIYA		Re-Calculate WOM Qty Res & Qty Issue
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
@@ -279,6 +280,18 @@ BEGIN
 						GROUP BY WOM.WorkOrderMaterialsId
 					) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
 					(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
+
+					--RE-CALCULATE WOM KIT QTY RES & QTY ISSUE					
+					UPDATE dbo.WorkOrderMaterialsKit 
+					SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+					FROM(
+						SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsKitId   
+						FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
+						JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
+						WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+						GROUP BY WOM.WorkOrderMaterialsKitId
+					) GropWOM WHERE GropWOM.WorkOrderMaterialsKitId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND 
+					(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterialsKit.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterialsKit.QuantityIssued,0))
 
 					DECLARE @countBoth INT = 1;
 

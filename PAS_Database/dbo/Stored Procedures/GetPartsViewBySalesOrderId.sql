@@ -17,8 +17,9 @@
     1    09/27/2024   Vishal Suthar Created
     2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
     3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
+    4    11/29/2024   Vishal Suthar Fixed an issue with Tax Amount Calculation
 
-EXEC [dbo].[GetPartsViewBySalesOrderId]  760
+EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
@@ -30,6 +31,61 @@ BEGIN
     BEGIN TRY
     BEGIN TRANSACTION
       BEGIN	
+		CREATE TABLE #ProcedureOutput (
+			SalesTax DECIMAL(18, 2),
+			OtherTax DECIMAL(18, 2),
+			TotalTax DECIMAL(18, 2)
+		);
+
+		CREATE TABLE #TempJoinData (
+			Param1 INT,
+			Param2 INT,
+			Param3 INT
+		);
+
+		-- Populate with data from the JOIN
+		INSERT INTO #TempJoinData (Param1, Param2, Param3)
+		SELECT so.SalesOrderId, part.SalesOrderPartId, so.CustomerId
+		FROM DBO.SalesOrder so WITH(NOLOCK)
+		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
+		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
+
+		-- Temporary table to hold tax amounts
+		CREATE TABLE #TempTaxAmount (
+			PartId INT,
+			SalesTaxPercentage DECIMAL(18, 2)
+		);
+
+		-- Cursor to iterate over the joined data
+		DECLARE @Param1 INT, @Param2 INT, @Param3 INT;
+		DECLARE @TaxAmount DECIMAL(18, 2);
+
+		DECLARE cur CURSOR FOR
+		SELECT Param1, Param2, Param3
+		FROM #TempJoinData;
+
+		OPEN cur;
+
+		FETCH NEXT FROM cur INTO @Param1, @Param2, @Param3;
+
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			-- Clear previous procedure output
+			DELETE FROM #ProcedureOutput;
+
+			INSERT INTO #ProcedureOutput (SalesTax, OtherTax, TotalTax)
+			EXEC dbo.USP_GetCustomerTax_Information_ProductSale_SO_Analysis @Param1, @Param2, @Param3;
+
+			-- Insert the tax amount into the temporary table
+			INSERT INTO #TempTaxAmount
+			SELECT @Param2, SalesTax FROM #ProcedureOutput;
+
+			FETCH NEXT FROM cur INTO @Param1, @Param2, @Param3;
+		END;
+
+		CLOSE cur;
+		DEALLOCATE cur;
+
 		SELECT DISTINCT
 			part.SalesOrderId salesOrderId,
 			part.SalesOrderPartId salesOrderPartId,
@@ -64,7 +120,7 @@ BEGIN
 			0 grossSalePrice,
 			so.OpenDate openDate,
 			-- Implement the custom function for tax calculation in SQL
-			0 AS taxPercentage,
+			t.SalesTaxPercentage AS taxPercentage,
 			'' AS taxType,
 			SOPC.TaxAmount AS taxAmount,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginAmount ELSE SOPC.MarginAmount END markupPerUnit,
@@ -132,12 +188,20 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.SalesOrderId = @SalesOrderId AND sbi.IsProforma = 0
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
+		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId
 		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
 	END
 COMMIT TRANSACTION
 
   END TRY
   BEGIN CATCH
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     IF @@trancount > 0
 		ROLLBACK TRAN;
 		DECLARE @ErrorLogID int

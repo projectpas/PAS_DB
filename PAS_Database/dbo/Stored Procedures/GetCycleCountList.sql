@@ -12,7 +12,8 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
 	1    11-11-2024   Moin Bloch        Created
-	2    13-12-2024   Moin Bloch        Added Difference Amount New Field
+	2    13-11-2024   Moin Bloch        Added Difference Amount New Field
+	3    28-11-2024   Moin Bloch        Added New Field
 
    EXEC [GetCycleCountList] 
 **************************************************************/ 
@@ -28,7 +29,11 @@ CREATE   PROCEDURE [dbo].[GetCycleCountList]
 @DifferenceAmount VARCHAR(50) = NULL,
 @PostedDate DATETIME = NULL,
 @BatchName VARCHAR(50) = NULL,
+@CountMethod VARCHAR(20) = NULL,
 @RequestedBy VARCHAR(100) = NULL,
+@CountedBy VARCHAR(50) = NULL,
+@ApprovedBy VARCHAR(50) = NULL,
+@CurrentStockQuantity VARCHAR(50) = NULL,
 @CountedQuantity VARCHAR(50) = NULL,
 @DifferenceQuantity VARCHAR(50) = NULL,
 @PartNumber VARCHAR(50) = NULL,
@@ -92,30 +97,42 @@ BEGIN
 					ISNULL(SUM(ABS(CCD.[DifferenceAmount])),0) AS [DifferenceAmount],
 					CCC.[PostedDate],
 					CCC.[BatchName],
+					CASE WHEN CCC.[CountMethodId] = 1 THEN 'Online' WHEN CCC.[CountMethodId] = 2 THEN 'Manual' ELSE '' END [CountMethod],
 					CCC.[CreatedDate],					
 					CCC.[UpdatedDate],
-					CCE.[FirstName] + ' ' + CCE.[LastName] AS [RequestedBy],							
-					ISNULL(SUM(CCD.[CountedQuantity]),0) AS [CountedQuantity],					
-					ISNULL(SUM(ABS(CCD.[DifferenceQuantity])),0) AS [DifferenceQuantity],
+					ISNULL(CCE.[FirstName],'') + ' ' + ISNULL(CCE.[LastName],'') AS [RequestedBy],
+					ISNULL(CEE.[FirstName],'') + ' ' + ISNULL(CEE.[LastName],'') AS [CountedBy],					
+					ISNULL(CEA.[FirstName],'') + ' ' + ISNULL(CEA.[LastName],'') AS [ApprovedBy],					
+					ISNULL(SUM(CCD.[CurrentStockQuantity]),0) AS [CurrentStockQuantity],			
+					ISNULL(SUM(CCD.[CountedQuantity]),0) [CountedQuantity],					
+					ISNULL(SUM(ABS(CCD.[DifferenceQuantity])),0) [DifferenceQuantity],
 					CCC.[IsActive],
 					CCC.[IsDeleted]										
 				FROM [dbo].[CycleCount] CCC WITH (NOLOCK)
-				     LEFT JOIN [dbo].[CycleCountDetail] CCD WITH (NOLOCK) ON CCC.[CycleCountId] = CCD.[CycleCountId]
-					INNER JOIN [dbo].[CycleCountStatus] CCS WITH (NOLOCK) ON CCC.[StatusId] = CCS.[CycleCountStatusId]
-					INNER JOIN [dbo].[Employee] CCE WITH (NOLOCK) ON CCC.[RequestedById] = CCE.[EmployeeId]
-					INNER JOIN [dbo].[ManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @MSModuleID AND MSD.[ReferenceID] = CCC.[CycleCountId]
-					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON CCC.[ManagementStructureId] = RMS.[EntityStructureId]
-					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId] AND EUR.[EmployeeId] = @EmployeeId
+				     LEFT JOIN [dbo].[CycleCountDetail] CCD WITH(NOLOCK) ON CCC.[CycleCountId] = CCD.[CycleCountId]
+					 LEFT JOIN [dbo].[CycleCountApproval] CCA WITH(NOLOCK) ON CCD.[CycleCountDetailId] = CCA.[CycleCountDetailId]
+					INNER JOIN [dbo].[CycleCountStatus] CCS WITH(NOLOCK) ON CCC.[StatusId] = CCS.[CycleCountStatusId]
+					INNER JOIN [dbo].[Employee] CCE WITH(NOLOCK) ON CCC.[RequestedById] = CCE.[EmployeeId]
+					 LEFT JOIN [dbo].[Employee] CEE WITH(NOLOCK) ON CCC.[CountedById] = CEE.[EmployeeId]
+					 LEFT JOIN [dbo].[Employee] CEA WITH(NOLOCK) ON CCA.[ApprovedById] = CEA.[EmployeeId]
+					INNER JOIN [dbo].[ManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @MSModuleID AND MSD.[ReferenceID] = CCC.[CycleCountId]
+					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CCC.[ManagementStructureId] = RMS.[EntityStructureId]
+					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.[RoleId] = RMS.[RoleId] AND EUR.[EmployeeId] = @EmployeeId
 				WHERE (CCC.[MasterCompanyId] = @MasterCompanyId AND CCC.[IsActive] = 1 AND CCC.[IsDeleted] = @IsDeleted)		
-				GROUP BY CCC.[CycleCountId],CCC.[CycleCountNumber],CCC.[StatusId],CCS.[Status],CCC.[EntryDate],CCC.[PostedDate],CCC.[BatchName],
-					CCC.[CreatedDate],CCC.[UpdatedDate],CCC.[IsActive],CCC.[IsDeleted],CCE.[FirstName],CCE.[LastName]
-				), ResultCount AS(SELECT COUNT(CycleCountId) AS totalItems FROM Result)
+				GROUP BY CCC.[CycleCountId],CCC.[CycleCountNumber],CCC.[StatusId],CCS.[Status],CCC.[EntryDate],CCC.[PostedDate],CCC.[BatchName],CCC.[CountMethodId],
+					CCC.[CreatedDate],CCC.[UpdatedDate],CCC.[IsActive],CCC.[IsDeleted],CCE.[FirstName],CCE.[LastName],CEE.[FirstName],CEE.[LastName],
+					CEA.[FirstName],CEA.[LastName]
+				), ResultCount AS(SELECT COUNT([CycleCountId]) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND (([CycleCountNumber] LIKE '%' +@GlobalFilter+'%' ) OR 					
 					([Status] LIKE '%' + @GlobalFilter+'%') OR
 					([DifferenceAmount] LIKE '%' +@GlobalFilter+'%') OR
 					([BatchName] LIKE '%' +@GlobalFilter+'%') OR
+					([CountMethod] LIKE '%' +@GlobalFilter+'%') OR					
 					([RequestedBy] LIKE '%' +@GlobalFilter+'%') OR
+					([CountedBy] LIKE '%' +@GlobalFilter+'%') OR
+					([ApprovedBy] LIKE '%' +@GlobalFilter+'%') OR
+					([CurrentStockQuantity] LIKE '%' +@GlobalFilter+'%') OR
 					([CountedQuantity] LIKE '%' +@GlobalFilter+'%') OR
 					([DifferenceQuantity] LIKE '%' +@GlobalFilter+'%') 										
 					))
@@ -126,13 +143,17 @@ BEGIN
 					(IsNull(@DifferenceAmount,'') ='' OR CAST([DifferenceAmount] AS VARCHAR(50)) LIKE '%' + @DifferenceAmount+'%' ) AND     
 					(ISNULL(@PostedDate,'') ='' OR CAST([PostedDate] AS DATE) = CAST(@PostedDate AS DATE)) AND
 					(ISNULL(@BatchName,'') ='' OR [BatchName] LIKE '%' + @BatchName+'%') AND
+					(ISNULL(@CountMethod,'') ='' OR [CountMethod] LIKE '%' + @CountMethod+'%') AND
+					(ISNULL(@CountedBy,'') ='' OR [CountedBy] LIKE '%' + @CountedBy+'%') AND
+					(ISNULL(@ApprovedBy,'') ='' OR [ApprovedBy] LIKE '%' + @ApprovedBy +'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE) = CAST(@CreatedDate AS DATE)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST([UpdatedDate] AS DATE) = CAST(@UpdatedDate AS DATE)) AND
 					(ISNULL(@RequestedBy,'') ='' OR [RequestedBy] LIKE '%' + @RequestedBy +'%') AND
+					(ISNULL(@CurrentStockQuantity,'') ='' OR [CurrentStockQuantity] LIKE '%' + @CurrentStockQuantity +'%') AND
 					(ISNULL(@CountedQuantity,'') ='' OR [CountedQuantity] LIKE '%' + @CountedQuantity +'%') AND
 					(ISNULL(@DifferenceQuantity,'') ='' OR [DifferenceQuantity] LIKE '%' + @DifferenceQuantity +'%')))
 
-				SELECT @Count = COUNT(CycleCountId) FROM #TempResult			
+				SELECT @Count = COUNT([CycleCountId]) FROM #TempResult			
 
 				SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
 			
@@ -142,11 +163,15 @@ BEGIN
 				CASE WHEN (@SortOrder=1 AND @SortColumn='DIFFERENCEAMOUNT')  THEN [DifferenceAmount] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='POSTEDDATE')  THEN [PostedDate] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNAME')  THEN [BatchName] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='COUNTMETHOD')  THEN [CountMethod] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='COUNTEDBY')  THEN [CountedBy] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='APPROVEDBY')  THEN [ApprovedBy] END ASC,				
 				CASE WHEN (@SortOrder=1 AND @SortColumn='REQUESTEDBY')  THEN [RequestedBy] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='CURRENTSTOCKQUANTITY')  THEN [CurrentStockQuantity] END ASC,				
 				CASE WHEN (@SortOrder=1 AND @SortColumn='COUNTEDQUANTITY')  THEN [CountedQuantity] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='DIFFERENCEQUANTITY')  THEN [DifferenceQuantity] END ASC,
-				CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN [UpdatedDate] END ASC,
 								   			 
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='CYCLECOUNTNUMBER')  THEN [CycleCountNumber] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS') THEN [Status] END DESC,
@@ -154,11 +179,15 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='DIFFERENCEAMOUNT')  THEN [DifferenceAmount] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='POSTEDDATE')  THEN [PostedDate] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNAME')  THEN [BatchName] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='COUNTMETHOD')  THEN [CountMethod] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='COUNTEDBY')  THEN [CountedBy] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='APPROVEDBY')  THEN [ApprovedBy] END DESC,				
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='REQUESTEDBY')  THEN [RequestedBy] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTSTOCKQUANTITY')  THEN [CurrentStockQuantity] END DESC,				
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='COUNTEDQUANTITY')  THEN [CountedQuantity] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='DIFFERENCEQUANTITY')  THEN [DifferenceQuantity] END DESC,			
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN [UpdatedDate] END DESC
 
 				OFFSET @RecordFrom ROWS 
 				FETCH NEXT @PageSize ROWS ONLY
@@ -173,10 +202,13 @@ BEGIN
 					CCS.[Status],
 					ITM.[partnumber] AS PartNumber,
 					ITM.[PartDescription],
+					CCC.[PostedDate],
+					CCC.[BatchName],
 					CCD.[ConditionName],
 					CCD.[SerialNumber],
 					CCD.[StockLineNumber],
 					CCD.[ControlNumber],
+					ISNULL(CCD.[CurrentStockQuantity],0) AS [CurrentStockQuantity],	
 					ISNULL(CCD.[CountedQuantity],0) AS [CountedQuantity],	
 					ISNULL(ABS(CCD.[DifferenceQuantity]),0) AS [DifferenceQuantity],
 					CCD.[Site],
@@ -201,10 +233,12 @@ BEGIN
 			WHERE ((@GlobalFilter <>'' AND (([CycleCountNumber] LIKE '%' +@GlobalFilter+'%' ) OR 					
 					([partnumber] LIKE '%' +@GlobalFilter+'%') OR
 					([PartDescription] LIKE '%' +@GlobalFilter+'%') OR
+					([BatchName] LIKE '%' +@GlobalFilter+'%') OR
 					([ConditionName] LIKE '%' +@GlobalFilter+'%') OR
 					([SerialNumber] LIKE '%' +@GlobalFilter+'%') OR
 					([StockLineNumber] LIKE '%' +@GlobalFilter+'%') OR
-					([ControlNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([ControlNumber] LIKE '%' +@GlobalFilter+'%') OR					
+					([CurrentStockQuantity] LIKE '%' +@GlobalFilter+'%') OR
 					([CountedQuantity] LIKE '%' +@GlobalFilter+'%') OR
 					([DifferenceQuantity] LIKE '%' +@GlobalFilter+'%') OR
 					([Site] LIKE '%' +@GlobalFilter+'%') OR
@@ -217,13 +251,17 @@ BEGIN
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@CycleCountNumber,'') ='' OR CycleCountNumber LIKE '%' + @CycleCountNumber+'%') AND 
 					(ISNULL(@PartNumber,'') ='' OR [partnumber] LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@Status,'') ='' OR [Status] LIKE '%' + @Status+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
 					(ISNULL(@ConditionName,'') ='' OR [ConditionName] LIKE '%' + @ConditionName+'%') AND
 					(ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber+'%') AND
 					(ISNULL(@StockLineNumber,'') ='' OR [StockLineNumber] LIKE '%' + @StockLineNumber+'%') AND
 					(ISNULL(@ControlNumber,'') ='' OR [ControlNumber] LIKE '%' + @ControlNumber+'%') AND
+					(ISNULL(@CurrentStockQuantity,'') ='' OR [CurrentStockQuantity] LIKE '%' + @CurrentStockQuantity +'%') AND
 					(ISNULL(@CountedQuantity,'') ='' OR [CountedQuantity] LIKE '%' + @CountedQuantity +'%') AND
 					(ISNULL(@DifferenceQuantity,'') ='' OR [DifferenceQuantity] LIKE '%' + @DifferenceQuantity +'%') AND
+					(ISNULL(@PostedDate,'') ='' OR CAST([PostedDate] AS DATE) = CAST(@PostedDate AS DATE)) AND
+					(ISNULL(@BatchName,'') ='' OR [BatchName] LIKE '%' + @BatchName+'%') AND
 					(ISNULL(@Site,'') ='' OR [Site] LIKE '%' + @Site+'%') AND
 					(ISNULL(@Warehouse,'') ='' OR [Warehouse] LIKE '%' + @Warehouse+'%') AND
 					(ISNULL(@Location,'') ='' OR [Location] LIKE '%' + @Location+'%') AND
@@ -241,9 +279,12 @@ BEGIN
 				CASE WHEN (@SortOrder=1 AND @SortColumn='CONDITIONNAME')  THEN [ConditionName] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='SERIALNUMBER')  THEN [SerialNumber] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='STOCKLINENUMBER')  THEN [StockLineNumber] END ASC,
-				CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN [ControlNumber] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN [ControlNumber] END ASC,				
+				CASE WHEN (@SortOrder=1 AND @SortColumn='CURRENTSTOCKQUANTITY') THEN [CurrentStockQuantity] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='COUNTEDQUANTITY')  THEN [CountedQuantity] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='DIFFERENCEQUANTITY')  THEN [DifferenceQuantity] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='POSTEDDATE')  THEN [PostedDate] END ASC,
+				CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNAME')  THEN [BatchName] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='SITE')  THEN [Site] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='WAREHOUSE')  THEN [Warehouse] END ASC,
 				CASE WHEN (@SortOrder=1 AND @SortColumn='LOCATION')  THEN [Location] END ASC,
@@ -259,8 +300,11 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBER')  THEN [SerialNumber] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='STOCKLINENUMBER')  THEN [StockLineNumber] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN [ControlNumber] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTSTOCKQUANTITY')  THEN [CurrentStockQuantity] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='COUNTEDQUANTITY')  THEN [CountedQuantity] END DESC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='DIFFERENCEQUANTITY')  THEN [DifferenceQuantity] END DESC,		
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='DIFFERENCEQUANTITY')  THEN [DifferenceQuantity] END DESC,	
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='POSTEDDATE')  THEN [PostedDate] END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNAME')  THEN [BatchName] END DESC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='SITE')  THEN [Site] END DESC,		
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='WAREHOUSE')  THEN [Warehouse] END DESC,		
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='LOCATION')  THEN [Location] END DESC,		

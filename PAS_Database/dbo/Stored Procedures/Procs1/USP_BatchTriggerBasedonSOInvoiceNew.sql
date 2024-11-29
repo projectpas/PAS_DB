@@ -26,33 +26,25 @@
 	12   19/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
 	13	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	14	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	15	 11/29/2024  Vishal Suthar  Modified the SP to make use of new SO tables
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
-@DistributionMasterId=12,
-@ReferenceId=515,
-@ReferencePartId=252,
-@ReferencePieceId=252,
-@InvoiceId=252,
-@StocklineId=0,
-@Qty=0,
-@Amount=0,
-@ModuleName=N'SO',
-@MasterCompanyId=1,
-@UpdateBy=N'ADMIN User'
+@DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
+@StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
-@DistributionMasterId BIGINT=NULL,
-@ReferenceId BIGINT=NULL,
-@ReferencePartId BIGINT=NULL,
-@ReferencePieceId BIGINT=NULL,
-@InvoiceId BIGINT=NULL,
-@StocklineId BIGINT=NULL,
-@Qty INT=0,
-@Amount DECIMAL(18,2),
-@ModuleName VARCHAR(200),
-@MasterCompanyId INT,
-@UpdateBy VARCHAR(200),
-@LegalEntityId BIGINT=NULL
+	@DistributionMasterId BIGINT = NULL,
+	@ReferenceId BIGINT = NULL,
+	@ReferencePartId BIGINT = NULL,
+	@ReferencePieceId BIGINT = NULL,
+	@InvoiceId BIGINT = NULL,
+	@StocklineId BIGINT = NULL,
+	@Qty INT = 0,
+	@Amount DECIMAL(18,2),
+	@ModuleName VARCHAR(200),
+	@MasterCompanyId INT,
+	@UpdateBy VARCHAR(200),
+	@LegalEntityId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -175,10 +167,11 @@ BEGIN
 			
 			SET @partId = @ReferencePartId;
 	       
-		    SELECT @ItemmasterId = ItemMasterId,
-			       @StockLineId = StockLineId
-			   FROM dbo.SalesOrderPart WITH(NOLOCK) 
-			   WHERE SalesOrderId=@ReferenceId and SalesOrderPartId=@partId
+		    SELECT @ItemmasterId = SOP.ItemMasterId,
+			       @StockLineId = STK.StockLineId
+			   FROM dbo.SalesOrderPartV1 SOP WITH(NOLOCK)
+			   LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+			   WHERE SOP.SalesOrderId = @ReferenceId and SOP.SalesOrderPartId = @partId
 	        
 			SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 	        
@@ -279,19 +272,21 @@ BEGIN
 
 					SET @TotalTax = (@SalesTax + @OtherTax);
 
-					SELECT @PartUnitSalesPrice = SUM(ISNULL(sop.UnitCostExtended,0)) 
+					SELECT @PartUnitSalesPrice = SUM(ISNULL(sosc.UnitCostExtended, 0))
 					FROM [dbo].[SalesOrderBillingInvoicing] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
-					INNER JOIN [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[SalesOrderStocklineV1] sop WITH(NOLOCK) ON soit.StockLineId = sop.StockLineId --soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[SalesOrderStockLineCost] sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
 					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0;
 
-					SELECT TOP 1 @StocklineId = sop.[StockLineId],
+					SELECT TOP 1 @StocklineId = stk.[StockLineId],
 					             @partId = sop.[ItemMasterId],
 								 @MPNName = itm.[partnumber]
 					FROM [dbo].[SalesOrderBillingInvoicing] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
-					INNER JOIN [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-					 LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
+					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
+					LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
 					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0;;
 
 					SELECT @LotId = SL.LotId,
@@ -556,8 +551,9 @@ BEGIN
 					SET @SalesOrderPartDetailsCursor = CURSOR FAST_FORWARD FOR	
 					SELECT STL.GLAccountId as PartGLAccountId FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
 					INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
-					INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-					INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+					INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
+					INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 					WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0
 					GROUP BY STL.GLAccountId
 
@@ -565,15 +561,19 @@ BEGIN
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor INTO @PartGLAccountId;
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
-						SELECT @PartUnitSalesPrices = SUM(ISNULL(sop.UnitCostExtended,0)) FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
+						SELECT @PartUnitSalesPrices = SUM(ISNULL(sosc.UnitCostExtended,0)) FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
 						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
-						INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+						--INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND sop.StockLineId = soit.StockLineId
 						INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+						INNER JOIN SalesOrderStockLineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
 						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
 
-						SELECT TOP 1 @STKId = STL.StockLineId FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
+						SELECT TOP 1 @STKId = STL.StockLineId 
+						FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
 						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
-						INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+						--INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = sop.StockLineId
 						INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
 						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
 
@@ -684,11 +684,13 @@ BEGIN
 									 AND MasterCompanyId = @MasterCompanyId;
 
 
-					SELECT @PartUnitSalesPrices = SUM(ISNULL(sop.UnitCostExtended,0)) 
+					SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCostExtended, 0)) 
 					FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
-					INNER JOIN [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
+					INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					WHERE soi.SalesOrderShippingId=@InvoiceId
 					
 					IF(@PartUnitSalesPrices > 0)
@@ -766,19 +768,22 @@ BEGIN
 					SELECT STL.GLAccountId as PartGLAccountId 
 					FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
-					INNER JOIN [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 					WHERE soi.[SalesOrderShippingId] = @InvoiceId GROUP BY STL.GLAccountId
 
 					OPEN @SalesOrderPartDetailsCursor1;
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor1 INTO @PartGLAccountId;
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
-						SELECT @PartUnitSalesPrices = SUM(ISNULL(sop.UnitCostExtended,0))
+						SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCostExtended, 0))
 						FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 						INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
-						INNER JOIN [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+						INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
+						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT TOP 1 @STKId = STL.StockLineId,
@@ -786,8 +791,10 @@ BEGIN
 								     @MPNName = itm.[partnumber]						
 						FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 						INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
-						INNER JOIN [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+						INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
+						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					     LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]
 						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
 

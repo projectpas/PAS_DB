@@ -182,8 +182,8 @@ BEGIN
 			UPPER(SOQ.statusname) 'quoteStatus',  
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.QuoteSentDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.QuoteSentDate, 107) END 'datesent', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate', 
-			ISNULL((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0)), 0) 'quoterevenue',
-			ISNULL((ISNULL(A.NetSaleAmount, 0) + ISNULL(A.BillingAmount, 0)), 0) 'sorevenue',
+			ISNULL((ISNULL(SOQPC.NetSaleAmount, 0)), 0) 'quoterevenue',
+			ISNULL((ISNULL(A.NetSaleAmount, 0)), 0) 'sorevenue',
 			FORMAT(ISNULL(SOQPC.UnitCostExtended, 0),'#,0.00') 'qtedirectcost',  
 			FORMAT(((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0))),'#,0.00') 'qtemarginamt',  
 		    FORMAT((((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0)))*100) /  
@@ -222,7 +222,7 @@ BEGIN
 			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.NetSaleAmount,SOBilling.InvoiceNo 
 			FROM DBO.SalesOrder SO WITH (NOLOCK)   
 			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
-			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SO.SalesOrderId = SOPC.SalesOrderId
+			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPC.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId FROM  DBO.SalesOrderBillingInvoicing SOBI
 			LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0

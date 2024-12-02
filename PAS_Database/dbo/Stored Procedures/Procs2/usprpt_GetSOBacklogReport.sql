@@ -140,7 +140,7 @@ BEGIN
 			CASE WHEN MIN(SOV.SalesOrderStocklineId) IS NOT NULL THEN SUM(ISNULL(SOV.QtyOrder, 0)) ELSE SUM(ISNULL(SOP.QtyOrder, 0)) END 'qty',
 			CASE WHEN MIN(SOV.SalesOrderStocklineId) IS NOT NULL THEN SUM(ISNULL(SOSC.NetSaleAmount, 0)) ELSE SUM(ISNULL(SOPC.NetSaleAmount, 0)) END
 			'extcost',
-			CASE WHEN MIN(SOV.SalesOrderStocklineId) IS NOT NULL THEN (SUM(ISNULL(SOSC.NetSaleAmount, 0)) / SUM(ISNULL(SOV.QtyOrder, 1))) ELSE (SUM(ISNULL(SOPC.NetSaleAmount, 0)) / SUM(ISNULL(SOP.QtyOrder, 1))) END
+			CASE WHEN MIN(SOV.SalesOrderStocklineId) IS NOT NULL THEN (CASE WHEN SUM(ISNULL(SOV.QtyOrder, 1)) > 0 THEN (SUM(ISNULL(SOSC.NetSaleAmount, 0)) / SUM(ISNULL(SOV.QtyOrder, 1))) ELSE 0 END) ELSE (CASE WHEN SUM(ISNULL(SOP.QtyOrder, 1)) > 0 THEN (SUM(ISNULL(SOPC.NetSaleAmount, 0)) / SUM(ISNULL(SOP.QtyOrder, 1))) ELSE 0 END) END
 			AS 'unitcost',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END 'custreqdate',

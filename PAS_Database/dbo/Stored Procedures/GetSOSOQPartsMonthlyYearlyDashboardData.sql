@@ -499,7 +499,7 @@ BEGIN
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					WHERE YEAR(SOQ.OpenDate) = @CurrentYear 
 					AND MONTH(SOQ.OpenDate) = @CurrentMonth 
-					AND SOQ.OpenDate <= @StartDate
+					AND CAST(SOQ.OpenDate AS DATE) <= CAST(@StartDate AS DATE)
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
 					GROUP BY 
 						IM.partnumber, 
@@ -594,7 +594,7 @@ BEGIN
 							LEFT OUTER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 						WHERE YEAR(SO.OpenDate) = @CurrentYear
 						AND MONTH(SO.OpenDate) = @CurrentMonth 
-						AND SO.OpenDate <= @StartDate
+						AND CAST(SO.OpenDate AS DATE) <= CAST(@StartDate AS DATE)
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 						GROUP BY
 							C.Name,
@@ -621,7 +621,7 @@ BEGIN
 					INNER JOIN SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				WHERE SOQ.OpenDate BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
+				WHERE CAST(SOQ.OpenDate AS DATE) BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0;
 
 				SELECT @soqYearlyCount = COUNT(SOQ.SalesOrderQuoteId)
@@ -635,7 +635,7 @@ BEGIN
 					INNER JOIN SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 					LEFT OUTER JOIN SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQC.SalesOrderQuotePartId
 					LEFT OUTER JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
-				WHERE SOQ.OpenDate BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
+				WHERE CAST(SOQ.OpenDate AS DATE) BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0;
 
 
@@ -647,7 +647,7 @@ BEGIN
 
 				SELECT @soYearlyCount = COUNT(SO.SalesOrderId)
 				FROM SalesOrder SO WITH (NOLOCK)
-				WHERE SO.OpenDate BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
+				WHERE CAST(SO.OpenDate AS DATE) BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0;
 
 				--SELECT @soYearlyAmount =  SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0) / (ISNULL(SOP.QtyOrder, 0))) ELSE 0 END) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOPC.TaxAmount,0))
@@ -656,7 +656,7 @@ BEGIN
 					INNER JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 					LEFT OUTER JOIN SalesOrderCharges SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId
 					LEFT OUTER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-				WHERE SO.OpenDate BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
+				WHERE CAST(SO.OpenDate AS DATE) BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
 					AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0;
 
 

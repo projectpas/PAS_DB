@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_SaveSOPartStatusByPartId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to save part status by part id
@@ -16,6 +15,7 @@
     1    15/12/2023  Rajesh Gami		Created
     2    19/12/2023  Rajesh Gami		changes by rajesh
 	3    11/04/2024	 Vishal Suthar		Modified to make use of new SO Part tables
+	3    11/04/2024	 Rajesh Gami		Modified : Implemented statusID logic in the SalesOrderStocklineV1
      
 ************************************************************************/
 
@@ -34,16 +34,17 @@ BEGIN
 			DECLARE @SOID BIGINT = (SELECT TOP 1 SalesOrderId FROM DBO.SalesOrderPartV1 WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId);
 			DECLARE @ClosedStatusId INT =(SELECT TOP 1 id FROM Dbo.MasterSalesOrderStatus  WITH(NOLOCK) WHERE Description = 'Closed')
 			DECLARE @IsSOClosed BIT = (CASE WHEN ISNULL((SELECT TOP 1 SalesOrderId FROM dbo.SalesOrder  WITH(NOLOCK) WHERE SalesOrderId = @SOID AND StatusId = @ClosedStatusId),0) > 0 THEN 1 ELSE 0 END)
-			print '@ClosedStatusId'
-			print @IsSOClosed
 			IF(@IsSOClosed = 1)
 			BEGIN
 				DECLARE @partCloseStatusId int = (SELECT SOPartStatusId FROM DBO.SOPartStatus  WITH(NOLOCK) WHERE Description = 'Closed')
 				UPDATE dbo.SalesOrderPartV1 set StatusId = @partCloseStatusId WHERE SalesOrderId = @SOID;
+				UPDATE dbo.SalesOrderStocklineV1 set StatusId = @partCloseStatusId WHERE SalesOrderPartId = @SalesOrderPartId;
 			END
 			ELSE
 			BEGIN
 				UPDATE dbo.SalesOrderPartV1 set StatusId = @StatusId WHERE SalesOrderPartId = @SalesOrderPartId;
+				UPDATE dbo.SalesOrderStocklineV1 set StatusId = @StatusId WHERE SalesOrderPartId = @SalesOrderPartId;
+
 			END
 		END
 	END	

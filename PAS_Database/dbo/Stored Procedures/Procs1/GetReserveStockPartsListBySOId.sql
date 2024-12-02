@@ -376,7 +376,7 @@ BEGIN
 		SOP.LotId,
 		SOP.IsLotAssigned AS IsLotQty
 		FROM DBO.SalesOrder SO WITH (NOLOCK)
-		INNER JOIN SalesOrderPartsWithTotalQtyOrder SOP ON SO.SalesOrderId = SOP.SalesOrderId
+		LEFT JOIN SalesOrderPartsWithTotalQtyOrder SOP ON SO.SalesOrderId = SOP.SalesOrderId
 		--INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
@@ -443,7 +443,7 @@ BEGIN
 		AltPartMasterPartId,
 		EquPartMasterPartId,
 		QtyToReserve,
-		CASE WHEN ISNULL(QuantityOnOrder, 0) < QtyToBeReserved THEN ISNULL(QuantityOnOrder, 0) ELSE QtyToBeReserved END QtyToBeReserved,
+		CASE WHEN (QuantityOnOrder IS NOT NULL AND ISNULL(QuantityOnOrder, 0) < QtyToBeReserved) THEN ISNULL(QuantityOnOrder, 0) ELSE QtyToBeReserved END QtyToBeReserved,
 		QuantityReserved,
 		QuantityAvailable, 
 		QuantityOnHand, 

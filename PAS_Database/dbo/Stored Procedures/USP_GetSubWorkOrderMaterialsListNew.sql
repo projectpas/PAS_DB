@@ -100,6 +100,9 @@ SET NOCOUNT ON
 		 	[SubWorkOrderMaterialsKitMappingId] [bigint] NULL,
 		 	[SubWOPartNoId] [bigint] NULL,
 		 	[IsKit] [bit] NULL,
+			[Quantity] [INT] NULL DEFAULT 0,
+			[QuantityIssued] [INT] NULL DEFAULT 0,
+			[QuantityReserved] [INT] NULL DEFAULT 0,
 		 )
 
 		 
@@ -313,8 +316,8 @@ SET NOCOUNT ON
 		IF (ISNULL(@ShowPendingToIssue, 0) = 1)
 		BEGIN
 			INSERT INTO #TMPWOMaterialParentListData
-			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
-			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
+			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
 			AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 ;
 
 			INSERT INTO #TMPWOMaterialParentListData
@@ -327,8 +330,8 @@ SET NOCOUNT ON
 		ELSE
 		BEGIN
 			INSERT INTO #TMPWOMaterialParentListData
-			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
-			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
+			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
 			AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0;
 
 			INSERT INTO #TMPWOMaterialParentListData
@@ -1183,9 +1186,9 @@ SET NOCOUNT ON
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
-		SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #finalMaterialListResult);
-		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #finalMaterialListResult;
-		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #finalMaterialListResult;
+		SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #TMPWOMaterialParentListData);
+		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #TMPWOMaterialParentListData;
+		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #TMPWOMaterialParentListData;
 		SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT) + CAST(ISNULL(@TotalReserved, 0) AS INT))) = 0  THEN 1 ELSE 0 END)
 		SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
 

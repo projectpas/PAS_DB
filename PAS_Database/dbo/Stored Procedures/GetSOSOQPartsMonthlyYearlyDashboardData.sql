@@ -19,7 +19,7 @@
 	4	 21-NOV-2024  Abhishek Jirawla		Price correction with the helpp of Vishal Sir and Happy Sir
 	5	 28-NOV-2024  Vishal Suthar			Handled divide by zero exception
 
-EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '09/19/2024', 10
+EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '11/29/2024', 10
 ************************************************************************/
 CREATE  PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -228,7 +228,8 @@ BEGIN
 					-- Total Sales Order Quote Amount------------------------------------------------------------------------------------------------------
 					DECLARE @CntsSOQAmt DECIMAL(18, 2) = 0;;
 					;WITH tmpSalesOrderQuoteAmt(Total, Mnth) as (
-					SELECT SUM((ISNULL(SOQPC.NetSaleAmount, 0) / (ISNULL(SOQP.QtyQuoted, 0))) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQPC.TaxAmount,0)), @Month
+					--SELECT SUM((ISNULL(SOQPC.NetSaleAmount, 0) / (ISNULL(SOQP.QtyQuoted, 0))) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQPC.TaxAmount,0)), @Month
+					SELECT SUM(ISNULL(SOQPC.NetSaleAmount, 0)), @Month
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId

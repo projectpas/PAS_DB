@@ -336,9 +336,8 @@ BEGIN
 				 WHERE Stk.SalesOrderPartId = SOP.SalesOrderPartId) AS TotalQtyOrder
 			FROM 
 				DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
-		)
-
-		SELECT DISTINCT 
+		),
+		FinalSalesOrderParts AS (SELECT DISTINCT 
 		so.SalesOrderId, 
 		im.ItemMasterId, 
 		sop.ConditionId, 
@@ -363,7 +362,7 @@ BEGIN
 		ISNULL(sop.QtyReserved, 0) AS QuantityReserved,
 		sl.QuantityAvailable, 
 		sl.QuantityOnHand, 
-		sl.QuantityOnOrder, 
+		Stk.QtyOrder QuantityOnOrder, 
 		sl.StockLineId,
 		sl.StockLineNumber, 
 		sl.ControlNumber,
@@ -402,7 +401,7 @@ BEGIN
 		im.ManufacturerName, 
 		sl.QuantityAvailable,
 		sl.QuantityOnHand, 
-		sl.QuantityOnOrder, 
+		Stk.QtyOrder, 
 		SOP.QtyRequested,
 		SOP.QtyReserved,
 		SOP.SalesOrderPartId,
@@ -425,7 +424,37 @@ BEGIN
 		(ISNULL(sop.QtyRequested, 0) - 
 		 ISNULL(sop.QtyReserved, 0) - 
 		 (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0;
+		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0)
+
+		SELECT SalesOrderId, 
+		ItemMasterId, 
+		ConditionId, 
+		Condition, 
+		SalesOrderPartId,
+		PartNumber, 
+		PartDescription,
+		ManufacturerName, 
+		Quantity,
+		ReservedById,
+		IssuedById,
+		PartStatusId,
+		IsAltPart,
+		IsEquPart,
+		AltPartMasterPartId,
+		EquPartMasterPartId,
+		QtyToReserve,
+		CASE WHEN ISNULL(QuantityOnOrder, 0) < QtyToBeReserved THEN ISNULL(QuantityOnOrder, 0) ELSE QtyToBeReserved END QtyToBeReserved,
+		QuantityReserved,
+		QuantityAvailable, 
+		QuantityOnHand, 
+		QuantityOnOrder, 
+		StockLineId,
+		StockLineNumber, 
+		ControlNumber,
+		StockType,
+		MasterCompanyId,
+		LotId,
+		IsLotQty FROM FinalSalesOrderParts;
 	END
 	COMMIT  TRANSACTION
 	END TRY    

@@ -63,6 +63,9 @@ BEGIN
 				@ReservePartTotalReserved INT = 0,
 				@ReservePartQtyReserved INT = 0;
 
+		DECLARE @AlreadyQtyOrder INT = 0;
+		DECLARE @AlreadyReservedQty INT = 0;
+
 		SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH(NOLOCK) WHERE [PartStatus] = 'Open';
 		SELECT @SOPartStatusFulFill = SOPartStatusId FROM [DBO].[SOPartStatus] WITH(NOLOCK) WHERE [PartStatus] = 'Fulfilled';
 
@@ -307,16 +310,20 @@ BEGIN
 						AND SOP.ConditionId = @ConditionId;
 
 						--Update SO Part While Create Stockline On Reserve
-						UPDATE [dbo].[SalesOrderPartV1]
-						SET QtyReserved = @QtyToReserve
-						WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @PartSalesOrderPartId;
+						--UPDATE [dbo].[SalesOrderPartV1]
+						--SET QtyReserved = @QtyToReserve
+						--WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @PartSalesOrderPartId;
 
-						UPDATE [dbo].[SalesOrderStocklineV1]
-						SET QtyReserved = @QtyToReserve,
-						QtyOrder = @QtyToReserve,
-						StatusId = (CASE WHEN (@ReservePartTotalReserved = QtyOrder) THEN @SOPartStatusFulFill ELSE StatusId END )
+						SELECT @AlreadyQtyOrder = ISNULL(STK.QtyOrder, 0), @AlreadyReservedQty = ISNULL(STK.QtyReserved, 0) FROM [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
 
-						WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
+						IF (@AlreadyReservedQty < @AlreadyQtyOrder)
+						BEGIN
+							UPDATE [dbo].[SalesOrderStocklineV1]
+							SET QtyReserved = @QtyToReserve,
+							--QtyOrder = @QtyToReserve,
+							StatusId = (CASE WHEN (@ReservePartTotalReserved = QtyOrder) THEN @SOPartStatusFulFill ELSE StatusId END )
+							WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
+						END
 
 						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;
 					END
@@ -380,8 +387,7 @@ BEGIN
 					UpdatedDate = GETUTCDATE(),
 					QtyReserved = @ReservePartTotalReserved,
 					StatusId = (CASE WHEN (@ReservePartTotalReserved = QtyOrder) AND (@ReserveStatusId = @PartStatusId) THEN @SOPartStatusFulFill ELSE StatusId END )
-				WHERE SalesOrderPartId = @SalesOrderPartId 
-					AND StockLineId = @StockLineId
+				WHERE SalesOrderPartId = @SalesOrderPartId AND StockLineId = @StockLineId
 
 				IF(@ReserveStatusId = @PartStatusId)
 				BEGIN

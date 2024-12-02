@@ -263,17 +263,13 @@ BEGIN
 				(CASE WHEN sobii.IsVersionIncrease = 1 then 
 					(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) 
 				else 
-					--(SELECT TOP 1 SOS.SOShippingNum 
-					--FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
-					--INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-					--INNER JOIN DBO.SalesOrderPartV1 SOPB WITH (NOLOCK) on SOPB.SalesOrderId = SOS.SalesOrderId AND SOPB.SalesOrderPartId = SOSI.SalesOrderPartId
-					--WHERE SOS.SalesOrderId = @SalesOrderId AND SOPB.ItemMasterId = @SalesOrderPartId AND SOPB.ConditionId = @ConditionId) end) 
 					(SELECT SOS.SOShippingNum 
 					FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 					INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 					INNER JOIN DBO.SOPickTicket SOPICK WITH (NOLOCK) on SOPICK.SOPickTicketId = SOSI.SOPickTicketId
 					INNER JOIN DBO.SalesOrderStocklineV1 SOSB WITH (NOLOCK) on SOSB.SalesOrderStocklineId = SOPICK.SalesOrderPartStocklineId
-					WHERE SOS.SalesOrderId = @SalesOrderId AND SOSB.SalesOrderStocklineId = STK.SalesOrderStocklineId) end)
+					WHERE SOS.SalesOrderId = @SalesOrderId AND SOSB.SalesOrderStocklineId = STK.SalesOrderStocklineId
+					AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) end)
 				AS SOShippingNum, 
 				
 				CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE (SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
@@ -281,7 +277,8 @@ BEGIN
 				INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
 				INNER JOIN DBO.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
-				WHERE SOS.SalesOrderId = @SalesOrderId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId) end  as QtyToBill,
+				WHERE SOS.SalesOrderId = @SalesOrderId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId
+				AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) end  as QtyToBill,
 				
 				so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 				sl.SerialNumber, cr.[Name] as CustomerName,   
@@ -290,25 +287,28 @@ BEGIN
 					INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 					WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND b.StockLineId = SOBII.StockLineId
 					AND a.SalesOrderId = @SalesOrderId
-					AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0), 0) AS QtyBilled, 
-				0 AS ItemNo,  
+					AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0), 0) AS QtyBilled,
+				0 AS ItemNo, 
 				sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description as 'Condition',   
 				CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 				--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) +   
-				CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN (ISNULL(SOSC.NetSaleAmount, 0))
+				CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * ((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
+				FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+				INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+				INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
+				INNER JOIN DBO.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
+				WHERE SOS.SalesOrderId = @SalesOrderId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId
+				AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId)))
 				ELSE sobii.PartCost END as 'TotalSales',  
 
-				(ISNULL(SOSC.NetSaleAmount, 0) * ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
+				((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * (ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
 				FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 				INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
 				INNER JOIN DBO.SalesOrderPartV1 SOPI WITH (NOLOCK) on SOPI.SalesOrderId = SOS.SalesOrderId AND SOPI.SalesOrderPartId = SOSI.SalesOrderPartId
-				WHERE SOS.SalesOrderId = @SalesOrderId 
-				--AND SOPI.ItemMasterId = @SalesOrderPartId 
-				--AND SOPI.ConditionId = @ConditionId 
-				--AND SOPI.SalesOrderPartId = sop.SalesOrderPartId
-				AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
-				), 0)) AS TotalUnitCost,
+				WHERE SOS.SalesOrderId = @SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+				--AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId
+				), 0) + ISNULL(SOR.QtyToReserve, 0))) AS TotalUnitCost,
 			
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 					JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON sof.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
@@ -357,11 +357,11 @@ BEGIN
 
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
-				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
+				--INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-				LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) on SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+				LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) on SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 				LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SOPickTicketId = SOPPick.SOPickTicketId
-				LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0 
+				INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0 
 				LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 0 AND sobi.SalesOrderId = @SalesOrderId
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
@@ -382,7 +382,7 @@ BEGIN
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					'' AS SOShippingNum,
-					SOR.QtyToReserve AS QtyToBill,
+					ISNULL(SOR.QtyToReserve, 0) AS QtyToBill,
 					so.SalesOrderNumber,
 					imt.partnumber, 
 					imt.ItemMasterId,
@@ -399,8 +399,14 @@ BEGIN
 					stk.SalesOrderStocklineId,
 					cond.Description as 'Condition',   
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-					(ISNULL(SOSC.NetSaleAmount, 0)) AS 'TotalSales',
-					(ISNULL(SOSC.NetSaleAmount, 0)) AS TotalUnitCost,
+					((ISNULL(SOSC.NetSaleAmount, 0) / STK.QtyOrder) * SOR.QtyToReserve) AS 'TotalSales',
+					((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * (ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
+					FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+					INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+					INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
+					INNER JOIN DBO.SalesOrderPartV1 SOPI WITH (NOLOCK) on SOPI.SalesOrderId = SOS.SalesOrderId AND SOPI.SalesOrderPartId = SOSI.SalesOrderPartId
+					WHERE SOS.SalesOrderId = @SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+					), 0) + ISNULL(SOR.QtyToReserve, 0))) AS TotalUnitCost,
 					0 AS TotalFreight,
 					0 AS TotalFlatFreight,
 					0 AS TotalCharges,
@@ -667,7 +673,7 @@ BEGIN
 					0 AS BillSizeHeight
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 1
+					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsProforma,0) = 1
 					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1 AND sobi.SalesOrderId = @SalesOrderId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  

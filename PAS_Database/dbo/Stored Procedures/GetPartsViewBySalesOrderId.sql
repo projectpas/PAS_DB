@@ -18,6 +18,7 @@
     2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
     3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
     4    11/29/2024   Vishal Suthar Fixed an issue with Tax Amount Calculation
+    5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
@@ -164,7 +165,15 @@ BEGIN
 			so.TotalFreight totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
-			ISNULL(sob.Freight, 0) AS freight,
+			CASE WHEN sob.SOBillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.Freight, 0) ELSE 
+				CASE 
+					WHEN so.FreightBilingMethodId = 3 THEN 0 
+					ELSE ISNULL((SELECT SUM(b.BillingAmount)
+								FROM SalesOrderFreight b
+								WHERE b.SalesOrderId = so.SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
+									AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
+					END
+				END AS freight,
 			0 AS sobillingInvoicingItemId
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId

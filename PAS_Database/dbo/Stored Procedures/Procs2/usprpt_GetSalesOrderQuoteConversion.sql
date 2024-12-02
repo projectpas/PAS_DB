@@ -15,7 +15,8 @@
  ** --   --------         -------          --------------------------------            
    1   16/08/2023       Ekta Chandegra     Convert text into uppercase   
    2   01/02/2024	    AMIT GHEDIYA	   added isperforma Flage for SO
-   3   10-OCT-2024      Abhishek Jirawla   Implemented the new tables for SalesOrderQuotePart related tables(Need to be revisited again)
+   3   10-OCT-2024      Abhishek Jirawla   Implemented the new tables for SalesOrderQuotePart related tables
+   4   02-DEC-2024      Vishal Suthar	   Fixed the join after adding the missing column
 
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -218,19 +219,20 @@ BEGIN
 		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
 		  OUTER APPLY(
-			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.NetSaleAmount,SOBilling.InvoiceNo from DBO.SalesOrder SO WITH (NOLOCK)   
-			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId --AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.NetSaleAmount,SOBilling.InvoiceNo 
+			FROM DBO.SalesOrder SO WITH (NOLOCK)   
+			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SO.SalesOrderId = SOPC.SalesOrderId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId FROM  DBO.SalesOrderBillingInvoicing SOBI
-				LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
-				WHERE ISNULL(SOBI.IsProforma,0) = 0
-				GROUP BY SalesOrderPartId,InvoiceNo) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
-			LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderCharges A2 WITH (NOLOCK) WHERE A2.[IsActive] = 1 
+			LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
+			WHERE ISNULL(SOBI.IsProforma,0) = 0
+			GROUP BY SalesOrderPartId,InvoiceNo) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM dbo.SalesOrderCharges A2 WITH (NOLOCK) WHERE A2.[IsActive] = 1 
 		    GROUP BY SalesOrderPartId) SOCharges ON SOCharges.SalesOrderPartId = SOP.SalesOrderPartId
 		 ) A
 		  LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
-		    GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
+		GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
       WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId) 
 		    AND CAST(SOQ.opendate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SOQ.MasterCompanyId = @mastercompanyid  
 			AND  SOQP.ItemMasterId = ISNULL(@partnumber,SOQP.ItemMasterId)

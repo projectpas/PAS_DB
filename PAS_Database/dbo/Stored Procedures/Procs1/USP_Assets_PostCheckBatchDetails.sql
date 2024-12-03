@@ -25,14 +25,12 @@
     9    12/07/2024   Amit Ghediya		Update new Distribution used. 
    10    22/07/2024   Amit Ghediya		Update new BatchCode & J-Type Code as per new distribution.
    11    19/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
+   12    29/11/2024   Abhishek Jirawla  Removing update of Asset Inventory Status from here. This Sp is only used to post batch details
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_Assets_PostCheckBatchDetails]
 (
 	@AssetInventoryId BIGINT,
-	@CashAmount DECIMAL(18,2),
-	@DepreciationAmount DECIMAL(18,2),
-	@InstallCost DECIMAL(18,2),
 	@Status VARCHAR(100),
 	@UpdateBy VARCHAR(100)
 )
@@ -121,21 +119,19 @@ BEGIN
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 
+		DECLARE @CashAmount DECIMAL(18,2), @DepreciationAmount DECIMAL(18,2), @InstallCost DECIMAL(18,2);
+
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @CodeTypeId = CodeTypeId FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE CodeType = 'JournalType';
 
-		SELECT @AssetInventoryStatusId = AssetInventoryStatusId FROM [DBO].[AssetInventoryStatus] WITH(NOLOCK) 
-		WHERE Status = @Status;
-
-		--Update Assets Status to Sold/WriteOff & Qty to 0
-		UPDATE [DBO].[AssetInventory] 
-		SET InventoryStatusId = @AssetInventoryStatusId , 
-			Qty = 0 ,
-			ReceivablesAmount = @CashAmount,
-			IsActive = 0,
-			StatusNote = 'Inventory is Sold'
-		WHERE AssetInventoryId = @AssetInventoryId;
+		SELECT @CashAmount = AI.ReceivablesAmount,
+			@InstallCost = ISNULL(SUM(UnitCost + Freight + Insurance + Taxes + InstallationCost),0),
+			@DepreciationAmount = ISNULL(ADH.AccumlatedDepr, 0)
+		FROM AssetInventory AI
+			LEFT JOIN [DBO].[AssetDepreciationHistory] ADH WITH(NOLOCK) ON AI.AssetInventoryId = ADH.AssetInventoryId 
+		WHERE AI.AssetInventoryId = @AssetInventoryId
+		GROUP BY AI.ReceivablesAmount, ADH.AccumlatedDepr
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -583,6 +579,7 @@ BEGIN
 			END
 		END
 
+		UPDATE AssetInventoryBillingInvoicing SET IsPosted = 1 WHERE AssetInventoryId = @AssetInventoryId
 		
 		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 

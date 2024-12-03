@@ -36,6 +36,7 @@
 	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
 	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
 	21	 28/11/2024	  Vishal Suthar Fixed the issue with duplicate entries when billing is after shipping
+	22	 03/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
@@ -194,7 +195,7 @@ BEGIN
 				AND socg.IsActive = 1 
 				AND socg.IsDeleted = 0) 
 			AS TotalCharges,
-			(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+			(SELECT ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 			WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
 			AS TotalFlatCharges,
 			(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
@@ -338,7 +339,7 @@ BEGIN
 					AND socg.IsDeleted = 0) 
 				AS TotalCharges,
 			
-				(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+				(SELECT ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 				WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
 				AS TotalFlatCharges,
 

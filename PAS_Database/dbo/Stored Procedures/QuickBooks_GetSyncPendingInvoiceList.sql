@@ -13,6 +13,7 @@
  ** --   --------		-------					--------------------------------          
     1   19-Nov-2024		Devendra Shekh			Created
 	2   28-Nov-2024		Devendra Shekh			Modified(Added [CreditTerms] to get TermQuickBooksReferenceId)
+	3   03-DEC-2024		Devendra Shekh			Modified(excluding Profoma Invoices)
      
  EXECUTE [QuickBooks_GetSyncPendingInvoiceList] 1
 **************************************************************/ 
@@ -138,7 +139,7 @@ BEGIN
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
-			WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 
+			WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 			--)
 
 			--Inserting Sales Order Invoice Data
@@ -195,7 +196,7 @@ BEGIN
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
-			WHERE ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 
+			WHERE ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsProforma, 0) = 0 
 
 			--Inserting Exchange Sales Order Invoice Data
 			INSERT INTO #InvoiceResults ([InvoiceId], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 

@@ -3295,6 +3295,9 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCashReceiptList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCashReceiptDetailById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateStockInventoryParam.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateCreditTermsList_1.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCreditTermsList_1.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermById_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

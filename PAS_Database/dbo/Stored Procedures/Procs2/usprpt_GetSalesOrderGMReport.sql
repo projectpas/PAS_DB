@@ -21,6 +21,7 @@
 	4	 01-JAN-2024   AMIT GHEDIYA		   added isperforma Flage for SO
 	5	 28-MARCH-2024 Ekta Chandegra	   IsDeleted and IsActive flag is added
 	6    10-OCT-2024   Abhishek Jirawla	   Implemented the new tables for SalesOrderQuotePart related tables
+	7    03-DEC-2024   Vishal Suthar	   Fixed issue with table joins
        
 EXECUTE   [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -201,12 +202,13 @@ BEGIN
   --      FORMAT (SOBI.shipdate, 'MM/dd/yyyy') 'shipdate',  
 
         ISNULL(SOPC.NetSaleAmount,0) 'Netsales',
-        UPPER(SOMS.misc) 'Misc',  
-        ISNULL(((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0)),0)  'rev',  
-        ISNULL(SOMS.productcost,0)  'directcost', 
-        ISNULL(((SOMS.productcost) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0), 0)),0) 'dcofrevperc',   
-		ISNULL(((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost),0) 'marginamt',  
-        ISNULL(((((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost) * 100) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0), 0)),0) 'marginrevperc', 
+        UPPER(SOPC.MiscCharges) 'Misc',  
+        --ISNULL(((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0)),0)  'rev',  
+        ISNULL(((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0)),0)  'rev',  
+        ISNULL(SOPC.UnitCostExtended,0)  'directcost', 
+        ISNULL(((SOPC.UnitCostExtended) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) 'dcofrevperc',   
+		ISNULL(((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOPC.UnitCostExtended),0) 'marginamt',  
+        ISNULL(((((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOPC.UnitCostExtended) * 100) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) 'marginrevperc', 
 		SOQ.salesorderquotenumber 'qtenum',  
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
@@ -231,7 +233,7 @@ BEGIN
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid  
         LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
-        LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK) ON SO.salesorderid = SOMS.salesorderid  
+        --LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK) ON SO.salesorderid = SOMS.salesorderid  
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 		LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid  
         LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid and stl.IsParent=1  
@@ -266,10 +268,10 @@ BEGIN
 			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END , 
 			  CASE  WHEN soq.statusid IN(2,4) THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END END ,  
 			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END , 
-			  SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.freight,SOBI.misccharges,SOBI.salestax,SOMS.productcost,
+			  SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.freight,SOBI.misccharges,SOBI.salestax,SOPC.MiscCharges, SOPC.UnitCostExtended,
 			  SOQ.salesorderquotenumber,
 			  SO.SalesPersonName,SO.CustomerServiceRepName,
-			  SOPC.NetSaleAmount,SOMS.misc,  
+			  SOPC.NetSaleAmount,  
 			  MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name,Charges.BillingAmount,SO.MasterCompanyId
 			  
 			  UNION ALL

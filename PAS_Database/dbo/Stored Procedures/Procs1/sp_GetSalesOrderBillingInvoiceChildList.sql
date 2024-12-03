@@ -177,7 +177,7 @@ BEGIN
 			((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * ISNULL(sosi.QtyShipped, 0)) AS TotalUnitCost,
 			(SELECT ISNULL(SUM(BillingAmount), 0) 
 				FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
-					JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON sof.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
+					--JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON sof.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
 			 WHERE sof.SalesOrderId = @SalesOrderId 			  
 				AND sof.ItemMasterId = sop.ItemMasterId 
 				AND sof.ConditionId = @ConditionId 
@@ -188,7 +188,7 @@ BEGIN
 				WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.FreightBilingMethodId = @FreightBilingMethodId)
 			 AS  TotalFlatFreight,
 			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
-				JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON socg.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
+				--JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON socg.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
 			WHERE socg.SalesOrderId = @SalesOrderId 				
 				AND socg.ItemMasterId = sop.ItemMasterId 
 				AND socg.ConditionId = @ConditionId 
@@ -318,8 +318,8 @@ BEGIN
 				--AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId
 				), 0) + ISNULL(SOR.QtyToReserve, 0))) AS TotalUnitCost,
 			
-				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
-					JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON sof.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
+				(SELECT ISNULL((BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
+					--JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON sof.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
 				 WHERE sof.SalesOrderId = @SalesOrderId 					
 					AND sof.ItemMasterId = sop.ItemMasterId 
 					AND sof.ConditionId = @ConditionId 
@@ -331,7 +331,7 @@ BEGIN
 				 AS  TotalFlatFreight,
 
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
-					JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON socg.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
+					--JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON socg.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
 				WHERE socg.SalesOrderId = @SalesOrderId 					
 					AND socg.ItemMasterId = sop.ItemMasterId 
 					AND socg.ConditionId = @ConditionId 

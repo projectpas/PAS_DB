@@ -20,6 +20,7 @@
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	8    05/02/2024   Hemant Saliya	 Updated For Adjustment Period
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
+	10   03/12/2024   Moin Bloch     Added CYCLE COUNT 
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -453,6 +454,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
+											WHEN UPPER(DM.DistributionCode) = 'CYCLECOUNTADJUSTMENT' THEN 'CYCLECOUNT'
 											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN 'BSADJ'
 											ELSE '' END,
@@ -484,6 +486,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN ''
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.VendorName
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'CYCLECOUNTADJUSTMENT' THEN CCBD.ReferenceNumber
 											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN ''
 											ELSE '' END,
@@ -522,6 +525,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN RFCM.CreditMemoHeaderId
+											WHEN UPPER(DM.DistributionCode) = 'CYCLECOUNTADJUSTMENT' THEN CCBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 													OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN BSAD.ReferenceId
 											ELSE '' END,
@@ -546,6 +550,7 @@ BEGIN
 			  LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CRBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] BSAD WITH (NOLOCK) ON tmp.JournalBatchDetailId = BSAD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CMBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[CycleCountBatchDetails] CCBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CCBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
 			  (
 				 SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK) 

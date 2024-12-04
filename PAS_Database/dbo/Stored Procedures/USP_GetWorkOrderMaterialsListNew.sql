@@ -14,6 +14,7 @@
 	2	07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
 	3	09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
 	4	11/28/2024		RAJESH GAMI				Return the flags (IsFullyReserved - IsFullyIssued) Update the code
+	5	12/04/2024		Devendra Shekh			Resolved WOM paging Issue for @ShowPendingToIssue 
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -377,7 +378,7 @@ SET NOCOUNT ON
 				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
 				ORDER BY tmp.WorkFlowWorkOrderId ASC
 				OFFSET @RecordFrom ROWS   
-				FETCH NEXT CASE WHEN ISNULL(@Local_ShowPendingToIssue, 0) = 1 THEN 50 ELSE @Local_PageSize END ROWS ONLY
+				FETCH NEXT @Local_PageSize ROWS ONLY
 				--Inserting Data For Parent Level- For Pagination : End
 
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)

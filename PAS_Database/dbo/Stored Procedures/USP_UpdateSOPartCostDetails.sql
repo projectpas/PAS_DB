@@ -154,16 +154,13 @@ SET NOCOUNT ON
 					END
 					ELSE
 					BEGIN
-						DECLARE @QtyRequested AS INT;
-						SELECT @QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
-
-						SELECT @SalesPriceExtended_S = (@QtyRequested * ISNULL(UnitSalesPrice, 0)),
-						@UnitCostExtended_S = (@QtyRequested * ISNULL(UnitCost, 0)),
-						@DiscountAmount_S = DiscountAmount
-						FROM [DBO].[SalesOrderPartCost] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
-
 						UPDATE DBO.SalesOrderPartV1
 						SET QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
+
+						UPDATE DBO.SalesOrderPartCost
+						SET NetSaleAmount = (ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount,
+						TotalRevenue = ((ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
+						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 
 					DECLARE @SalesTax AS [decimal](18, 4) = 0;

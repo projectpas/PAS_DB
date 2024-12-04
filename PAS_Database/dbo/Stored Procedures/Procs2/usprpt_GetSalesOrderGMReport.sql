@@ -206,7 +206,7 @@ BEGIN
         --ISNULL(((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0)),0)  'rev',  
         ISNULL(((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0)),0)  'rev',  
         ISNULL(SOPC.UnitCostExtended,0)  'directcost', 
-        ISNULL(((SOPC.UnitCostExtended) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) 'dcofrevperc',   
+        (ISNULL(((SOPC.UnitCostExtended) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) * 100) 'dcofrevperc',   
 		ISNULL(((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOPC.UnitCostExtended),0) 'marginamt',  
         ISNULL(((((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOPC.UnitCostExtended) * 100) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) 'marginrevperc', 
 		SOQ.salesorderquotenumber 'qtenum',  
@@ -390,7 +390,7 @@ BEGIN
 			  AS (SELECT masterCompanyId, 
 				FORMAT(SUM(rev),'#,0.00') TotalRevenue,
 				FORMAT(SUM(directcost),'#,0.00') TotalDirectCost,
-				FORMAT((SUM(directcost) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)),'#,0.00') TotalDCOfRevPerc,
+				FORMAT(((SUM(directcost) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)) * 100),'#,0.00') TotalDCOfRevPerc,
 				FORMAT(SUM(marginamt),'#,0.00') TotalMarginAmt,
 				--FORMAT(((((NetSales) +  ISNULL(Charges.BillingAmount, 0) -  directcost) * 100) / NULLIF((NetSales) +  ISNULL(Charges.BillingAmount, 0), 0)),'#,0.00')+'%' TotalMarginRevPerc
 				FORMAT((((SUM(NetSales) +  SUM(ChargesBillingAmt) -  SUM(directcost)) * 100) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)),'#,0.00') TotalMarginRevPerc

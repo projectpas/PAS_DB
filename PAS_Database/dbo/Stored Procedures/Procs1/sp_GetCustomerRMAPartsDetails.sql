@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetCustomerRMAPartsDetails]           
  ** Author:   Subhash Saliya
  ** Description: Get Customer RMAPartsDetails
@@ -22,6 +21,7 @@
 	8	 10/30/2024	  AMIT GHEDIYA	   handle flat rate from woq -> wo to cm.
 	9    11/05/2024   Vishal Suthar	   Modified to make use of new SO Part tables
 	10   12/04/2024   RAJESH GAMI	   Create RMA from SO :Duplicate stocklines comes in to grid
+	12   12/04/2024   AMIT GHEDIYA	   Create RMA from SO : UnitPrice & Amount wrong issue.
 
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -130,7 +130,7 @@ BEGIN
 						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], 
 						ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
 						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
-						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount,
+						(ISNULL(SOBII.NoofPieces, 1) * CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END) as Amount,
 						IsWorkOrder=0,SOBI.SalesOrderId AS [ReferenceId],
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
 						SOBII.SubTotal,

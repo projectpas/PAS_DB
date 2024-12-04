@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -19,6 +18,7 @@
 	5    11/22/2024   RAJESH GAMI       Modified to StatusId getting based on the condition (STK and Part)
 	6    11/24/2024   Amit Ghediya      Modified to eccn & update cond.
 	7    11/25/2024   RAJESH GAMI       Modified to change the condition for QtyAvailable and QtyOnHand (SC.SalesOrderStocklineId IS NOT NULL to Stk.SalesOrderStocklineId IS NOT NULL)
+	8    12/04/2024   RAJESH GAMI       Modified to Devide by 0 issue
      
 -- EXEC [DBO].[GetSalesOrderPartView] 1475
 **************************************************************/
@@ -50,7 +50,7 @@ BEGIN
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,
         0 SalesBeforeDiscount,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.DiscountPercentage, 0) ELSE ISNULL(PS.DiscountPercentage, 0) END Discount,
-        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (ISNULL(SC.DiscountAmount, 0) / stk.QtyOrder) ELSE (ISNULL(PS.DiscountAmount, 0) / part.QtyOrder) END DiscountAmount,
+        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(stk.QtyOrder,0)>0 THEN (ISNULL(SC.DiscountAmount, 0) / stk.QtyOrder) ELSE 0 END) ELSE (CASE WHEN ISNULL(part.QtyOrder,0) > 0 THEN (ISNULL(PS.DiscountAmount, 0) / part.QtyOrder) ELSE 0 END) END DiscountAmount,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS NetSales,
         part.MasterCompanyId,
         part.CreatedBy,
@@ -108,7 +108,7 @@ BEGIN
 		ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = (CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END )), @DefaultStatusName) AS StatusName,
         ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
         CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.Notes ELSE part.Notes END Notes,
-        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / stk.QtyOrder) ELSE (ISNULL(PS.MarkUpAmount, 0) / part.QtyOrder) END MarkupPerUnit,
+        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(stk.QtyOrder,0) >0 THEN (ISNULL(SC.MarkUpAmount, 0) / stk.QtyOrder) ELSE 0 END) ELSE(CASE WHEN ISNULL(part.QtyOrder,0) > 0 THEN (ISNULL(PS.MarkUpAmount, 0) / part.QtyOrder) ELSE 0 END)END MarkupPerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePricePerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePrice,
         0 AS TaxPercentage,
@@ -187,6 +187,9 @@ BEGIN
 
   END TRY
   BEGIN CATCH
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber, ERROR_STATE() AS ErrorState, ERROR_SEVERITY() AS ErrorSeverity, ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,ERROR_MESSAGE() AS ErrorMessage;
     DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME(),
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

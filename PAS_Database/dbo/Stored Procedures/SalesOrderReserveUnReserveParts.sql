@@ -15,7 +15,8 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    08/10/2024   AMIT GHEDIYA		Created
-	2   21 Nov 2024  RAJESH GAMI		Modified to implemented change the status to OPEN/FULFILLED while RESERVE UN-RESERVE
+	2    21 Nov 2024  RAJESH GAMI		Modified to implemented change the status to OPEN/FULFILLED while RESERVE UN-RESERVE
+	3    03 DEC 2024  Vishal Suthar		Fixed calculating markup and discount while adding stockline throught reservation
 
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
@@ -286,8 +287,8 @@ BEGIN
 						[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
 						[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 				
-						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, @PartMarkUpPercentage, (@PartMarkUpAmount / @QtyRequested), 0,
-						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, @PartDiscountPercentage, (@PartDiscountAmount / @QtyRequested), 
+						SELECT @SalesOrderId, @PartSalesOrderPartId, @InsertedSalesOrderStocklineId, @PartUnitSalePrice, @PartUnitCostExtended, @PartMarkUpPercentage, ((@PartMarkUpAmount / @QtyRequested) * @QtyToReserve), 0,
+						@PartUnitCost, @PartUnitCostExtended, @PartMarginAmount, @PartMarginPercentage, @PartDiscountPercentage, ((@PartDiscountAmount / @QtyRequested) * @QtyToReserve), 
 						@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 						FROM [DBO].[StockLine] Stkl 
 						WHERE Stkl.StockLineId = @StockLineId;

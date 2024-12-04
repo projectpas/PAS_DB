@@ -38,6 +38,8 @@
 	21	 28/11/2024	  Vishal Suthar Fixed the issue with duplicate entries when billing is after shipping
 	22	 03/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
     23   04/12/2024   Moin Bloch	Updated the SP to get Proforma TotalUnitCost.
+    24   04/12/2024   Vishal Suthar Fixed the issue with total sales amount calculation
+
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
@@ -540,37 +542,25 @@ BEGIN
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
-						((ISNULL(SOSC.NetSaleAmount, 0)) +   
-							((((ISNULL(SOSC.NetSaleAmount, 0)) +
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
-							) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
+						((ISNULL(SOSC.NetSaleAmount, 0)))
 						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
-						tmpSOBI.SOBillingInvoicingId
+						tmpSOBI.SOBillingInvoicingItemId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-						INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = SOP.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
+						--INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = SOP.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 						LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
 						LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
-						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
+						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
 				) tmpcash WHERE 
-				tmpcash.SOBillingInvoicingId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingId
+				tmpcash.SOBillingInvoicingItemId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingItemId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
-						(ISNULL(SOSC.NetSaleAmount, 0) +   
-							((((ISNULL(SOSC.NetSaleAmount, 0)) +
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
-							) * ISNULL(SOPC.TaxPercentage, 0)) / 100) +   
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = tmpSOBI.ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
-							(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = tmpSOBI.SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = tmpSOBI.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
-						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
+						(ISNULL(SOSC.NetSaleAmount, 0))
+						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
 						STK.SalesOrderStocklineId,
 						tmpSOBI.SOBillingInvoicingId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 

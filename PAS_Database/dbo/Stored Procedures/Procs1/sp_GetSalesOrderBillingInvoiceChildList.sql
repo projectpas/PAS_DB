@@ -629,7 +629,7 @@ BEGIN
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost)
+				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges)
 			(
 				SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
@@ -668,7 +668,27 @@ BEGIN
 					0 AS BillSizeLength,
 					0 AS BillSizeWidth,
 					0 AS BillSizeHeight,
-					ISNULL(ROUND((COALESCE(stk.QtyOrder, 0) * COALESCE(spc.NetSaleAmount, 0)),2),0) AS TotalUnitCost
+					--ISNULL(ROUND((COALESCE(stk.QtyOrder, 0) * COALESCE(spc.NetSaleAmount, 0)),2),0) AS TotalUnitCost
+					ISNULL(spc.NetSaleAmount,0) AS TotalUnitCost,
+					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
+						WHERE sof.SalesOrderId = @SalesOrderId 			  
+						AND sof.ItemMasterId = sop.ItemMasterId 
+						AND sof.ConditionId = @ConditionId 
+						AND sof.IsActive = 1 
+						AND sof.IsDeleted = 0)  AS TotalFreight,
+					(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+						WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.FreightBilingMethodId = @FreightBilingMethodId)
+					 AS  TotalFlatFreight,
+					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
+					WHERE socg.SalesOrderId = @SalesOrderId 				
+						AND socg.ItemMasterId = sop.ItemMasterId 
+						AND socg.ConditionId = @ConditionId 
+						AND socg.IsActive = 1 
+						AND socg.IsDeleted = 0) 
+					AS TotalCharges,
+					(SELECT ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+					WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
+					AS TotalFlatCharges
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId

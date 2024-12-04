@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [sp_GetCustomerRMAPartsDetails]           
  ** Author:   Subhash Saliya
  ** Description: Get Customer RMAPartsDetails
@@ -20,7 +21,7 @@
 	7    04/24/2024   Devendra Shekh   so duplicate record issue resolved
 	8	 10/30/2024	  AMIT GHEDIYA	   handle flat rate from woq -> wo to cm.
 	9    11/05/2024   Vishal Suthar	   Modified to make use of new SO Part tables
-	10   04/12/2024   AMIT GHEDIYA	   Modified join with part with StockLineId for CM from SO.
+	10   12/04/2024   RAJESH GAMI	   Create RMA from SO :Duplicate stocklines comes in to grid
 
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -170,11 +171,9 @@ BEGIN
 					FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
 						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
-						LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId AND STK.StocklineId = SOBII.StocklineId
+						LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId
 						LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-						--LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
-						--LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=STK.StockLineId AND ST.IsParent = 1
@@ -183,7 +182,6 @@ BEGIN
 				END
 				ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 				BEGIN
-					
 					INSERT INTO #TempBillinPartRecords(InvoiceId , InvoiceNo, BillingInvoicingItemId, InvoiceStatus, InvoiceDate, ReferenceNo, ItemMasterId, PartNumber, PartDescription, CustPartNumber, CustomerReference, SerialNumber, StocklineNumber, StocklineId, ControlNumber
 								,ControlId, Qty, PartsUnitCost, PartsRevenue, LaborRevenue, MiscRevenue, FreightRevenue, COGSParts, COGSLabor, COGSOverHeadCost, COGSInventory, COGSPartsUnitCost, UnitPrice, Amount, IsWorkOrder, ReferenceId
 								,RMAReasonId, RMAReason, RMAStatusId, RMAStatus, RMAValiddate, SubTotal, SalesTax, OtherTax, GrandTotal, InvoiceAmt, RMADeatilsId, RMAHeaderId, Notes, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate

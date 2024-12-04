@@ -37,10 +37,10 @@
 	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
 	21	 28/11/2024	  Vishal Suthar Fixed the issue with duplicate entries when billing is after shipping
 	22	 03/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
-     
+    23   04/12/2024   Moin Bloch	Updated the SP to get Proforma TotalUnitCost.
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
+CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
 @SalesOrderPartId bigint,  
 @ConditionId bigint  
@@ -639,7 +639,7 @@ BEGIN
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost)
 			(
 				SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
@@ -677,9 +677,11 @@ BEGIN
 					0 AS [Weight], 
 					0 AS BillSizeLength,
 					0 AS BillSizeWidth,
-					0 AS BillSizeHeight
+					0 AS BillSizeHeight,
+					ISNULL(ROUND((COALESCE(stk.QtyOrder, 0) * COALESCE(spc.NetSaleAmount, 0)),2),0) AS TotalUnitCost
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+					LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsProforma,0) = 1
 					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1 AND sobi.SalesOrderId = @SalesOrderId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  

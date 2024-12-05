@@ -13,6 +13,7 @@
     2    07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
 	3	 09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
 	4	11/28/2024		RAJESH GAMI				Return the flags (IsFullyReserved - IsFullyIssued)
+	5	12/05/2024		RAJESH GAMI				Resolved the issue for KIT in return the flags (IsFullyReserved - IsFullyIssued)
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=316,@ShowPendingToIssue=0
@@ -321,8 +322,8 @@ SET NOCOUNT ON
 			AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 ;
 
 			INSERT INTO #TMPWOMaterialParentListData
-			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
-			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
+			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
 			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
 			WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
 			AND ISNULL(WOMK.IsAltPart, 0) = 0 AND ISNULL(WOMK.IsEquPart, 0) = 0;
@@ -335,8 +336,8 @@ SET NOCOUNT ON
 			AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0;
 
 			INSERT INTO #TMPWOMaterialParentListData
-			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
-			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
+			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
 			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
 			WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
 			AND ISNULL(WOMK.IsAltPart, 0) = 0 AND ISNULL(WOMK.IsEquPart, 0) = 0;

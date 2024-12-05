@@ -39,6 +39,7 @@
 	22	 03/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
     23   04/12/2024   Moin Bloch	Updated the SP to get Proforma TotalUnitCost.
     24   04/12/2024   Vishal Suthar Fixed the issue with total sales amount calculation
+	25	 05/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
@@ -610,7 +611,7 @@ BEGIN
 				FROM( SELECT ISNULL(SO.TotalCharges,0) As TotalFlatCharges, SO.SalesOrderId
 						FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 						JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderId = SO.SalesOrderId
-						WHERE so.FreightBilingMethodId = @ChargesBilingMethodId
+						WHERE so.ChargesBilingMethodId = @ChargesBilingMethodId
 				) tmpcash WHERE tmpcash.SalesOrderId = #SalesOrderBillingInvoiceChildList.SalesOrderId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET InvoiceStatus = tmpcash.InvoiceStatus

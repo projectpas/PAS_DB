@@ -16,7 +16,8 @@
     1    03/06/2024		AMIT GHEDIYA	 Created  
 	2    13/06/2024		AMIT GHEDIYA	 Update for get only part which is reserve qty. 
 	3    11/05/2024		Vishal Suthar	 Modified to make use of new SO Part tables
-	3    07/11/2024		Devendra Shekh	 added PartDescription and ShortName to select
+	4    07/11/2024		Devendra Shekh	 added PartDescription and ShortName to select
+	5	 05-12-2024     Shrey Chandegara  add [Customer]
 
 -- exec GetSalesOrderPartsViewById 1273 
 ************************************************************************/   
@@ -61,9 +62,10 @@ BEGIN
 			[PartNumber] VARCHAR(MAX) NULL,
 			[PartDescription] VARCHAR(MAX) NULL,
 			[ShortName] VARCHAR(100) NULL,
+			[Customer] VARCHAR(150) NULL
 		)
 
-		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName])	
+		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber],[PartDescription],[ShortName],[Customer])	
 		SELECT 
 			rpart.QtyToReserve AS Qty,
 			UPPER(qs.StockLineNumber) AS StockLineNumber,
@@ -71,7 +73,8 @@ BEGIN
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
-			UPPER(uom.ShortName) AS ShortName
+			UPPER(uom.ShortName) AS ShortName,
+			UPPER(CU.Name) AS Customer
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -80,6 +83,8 @@ BEGIN
 				INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId 
 				AND rPart.QtyToReserve > 0 
 				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 
 		UNION 
@@ -91,7 +96,8 @@ BEGIN
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber,
 			UPPER(itemMaster.PartDescription) AS PartDescription,
-			UPPER(uom.ShortName) AS ShortName
+			UPPER(uom.ShortName) AS ShortName,
+			UPPER(CU.Name) AS Customer
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -100,12 +106,14 @@ BEGIN
 				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON part.SalesOrderPartId = sos.SalesOrderPartId
 				AND sos.IsActive = 1 AND sos.IsDeleted = 0
 				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 		
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
-				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName
+				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer
 		FROM #tmprShipDetails
-		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition,PartDescription,ShortName
+		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition,PartDescription,ShortName,Customer
   END    
   END TRY    
  BEGIN CATCH          

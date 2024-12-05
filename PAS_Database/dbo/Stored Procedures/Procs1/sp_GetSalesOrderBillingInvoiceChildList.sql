@@ -15,31 +15,32 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-	1    06/12/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
-	2    06/16/2023   Vishal Suthar Fixed issue with Invoice status
-	3    06/21/2023   Vishal Suthar Fixed issue with qty shipped
-	4    07/19/2023	  Satish Gohil	Fixed issue with wrong showing multiple invoice record 
-	5    12/29/2023	  Vishal Suthar	Fixed issue with Where condition when allow billing before shipping in not enabled
-	6    01/30/2024   AMIT GHEDIYA	Updated the SP to show billing data only when is Billing Invoiced
-	7    02/05/2024   AMIT GHEDIYA	Updated the SP to show Proforma invoice Data.
-	8    02/19/2024   AMIT GHEDIYA	Updated the SP to get Proforma DepositAmount.
-	9    22/02/2024   AMIT GHEDIYA	Updated the SP to get Proforma IsAllowIncreaseVersionForBillItem.
-	10   26/02/2024   Moin Bloch	Updated the SP to get TotalUnitCost,Freight,and Charges
-	11   01/03/2024   Devendra Shekh added [IsBilling] to select
-	12   20/03/2024   HEMANT SALIYA Convert to Temp Table for handle Duplicate Values
-	13   23/04/2024   Moin Bloch	Updated Invoice Status is not changed Issue PN-7651
-	14   23/04/2024   Vishal Suthar	Modified to make use of new SO part table
-	15   07/11/2024   AMIT GHEDIYA	Modified for get InvoiceTypeId.
-	16   12/11/2024   AMIT GHEDIYA	Modified for get qtybilled.
-	17   15/11/2024   AMIT GHEDIYA	Modified for get standard bill amount without performa.
-	18	 20/11/2024	  AMIT GHEDIYA  Modified for get Curr for billng data.
-	19	 20/11/2024	  Vishal Suthar Modified for fixing amount and qty related issues
-	20	 21/11/2024	  AMIT GHEDIYA  Modified for get WHL & Weight data for billing update.
-	21	 28/11/2024	  Vishal Suthar Fixed the issue with duplicate entries when billing is after shipping
-	22	 03/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
-    23   04/12/2024   Moin Bloch	Updated the SP to get Proforma TotalUnitCost.
-    24   04/12/2024   Vishal Suthar Fixed the issue with total sales amount calculation
-	25	 05/12/2024	  Abhishek Jirawla Fixed the issue with flat charges calculation
+	1    06/12/2023   Vishal Suthar		Updated the SP to handle invoice before shipping and versioning
+	2    06/16/2023   Vishal Suthar		Fixed issue with Invoice status
+	3    06/21/2023   Vishal Suthar		Fixed issue with qty shipped
+	4    07/19/2023	  Satish Gohil		Fixed issue with wrong showing multiple invoice record 
+	5    12/29/2023	  Vishal Suthar		Fixed issue with Where condition when allow billing before shipping in not enabled
+	6    01/30/2024   AMIT GHEDIYA		Updated the SP to show billing data only when is Billing Invoiced
+	7    02/05/2024   AMIT GHEDIYA		Updated the SP to show Proforma invoice Data.
+	8    02/19/2024   AMIT GHEDIYA		Updated the SP to get Proforma DepositAmount.
+	9    22/02/2024   AMIT GHEDIYA		Updated the SP to get Proforma IsAllowIncreaseVersionForBillItem.
+	10   26/02/2024   Moin Bloch		Updated the SP to get TotalUnitCost,Freight,and Charges
+	11   01/03/2024   Devendra Shekh	added [IsBilling] to select
+	12   20/03/2024   HEMANT SALIYA		Convert to Temp Table for handle Duplicate Values
+	13   23/04/2024   Moin Bloch		Updated Invoice Status is not changed Issue PN-7651
+	14   23/04/2024   Vishal Suthar		Modified to make use of new SO part table
+	15   07/11/2024   AMIT GHEDIYA		Modified for get InvoiceTypeId.
+	16   12/11/2024   AMIT GHEDIYA		Modified for get qtybilled.
+	17   15/11/2024   AMIT GHEDIYA		Modified for get standard bill amount without performa.
+	18	 20/11/2024	  AMIT GHEDIYA		Modified for get Curr for billng data.
+	19	 20/11/2024	  Vishal Suthar		Modified for fixing amount and qty related issues
+	20	 21/11/2024	  AMIT GHEDIYA		Modified for get WHL & Weight data for billing update.
+	21	 28/11/2024	  Vishal Suthar		Fixed the issue with duplicate entries when billing is after shipping
+	22	 03/12/2024	  Vishal Suthar		Fixed the issue with flat charges calculation
+    23   04/12/2024   Moin Bloch		Updated the SP to get Proforma TotalUnitCost.
+    24   04/12/2024   Vishal Suthar		Fixed the issue with total sales amount calculation
+	25	 05/12/2024	  Abhishek Jirawla	Fixed the issue with flat charges calculation
+	26   05/12/2024   Vishal Suthar		Fixed the issue with versioning and revised invoice
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
@@ -352,7 +353,7 @@ BEGIN
 					AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) AS InvoiceStatus,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.SalesOrderShippingId > 0 THEN 1 ELSE 0 END) else 1 end) AS 'SmentNo',
 				sobii.VersionNo, 
-				(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
+				(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 				CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 				0 AS IsProforma,
 				0 AS DepositAmount,
@@ -424,7 +425,7 @@ BEGIN
 					'' AS InvoiceStatus,
 					0 AS 'SmentNo',
 					sobii.VersionNo,
-					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
+					(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					0 AS IsProforma,
 					0 AS DepositAmount,
@@ -491,7 +492,7 @@ BEGIN
 					--(ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
 					(ISNULL(SOSC.NetSaleAmount, 0)) AS TotalUnitCost,
 					sobii.VersionNo,
-					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
+					(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					0 AS IsProforma,
 					0 AS DepositAmount,
@@ -657,7 +658,7 @@ BEGIN
 						AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1) AS InvoiceStatus,
 					0 AS 'SmentNo',
 					sobii.VersionNo, 
-					(CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsVersionIncrease,
+					(CASE WHEN sobi.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsVersionIncrease,
 					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					1 AS IsProforma,
 					ISNULL(sobi.DepositAmount,0) AS DepositAmount,

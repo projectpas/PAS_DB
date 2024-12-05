@@ -169,8 +169,8 @@ BEGIN
 				CASE 
 					WHEN so.FreightBilingMethodId = 3 THEN 0 
 					ELSE ISNULL((SELECT SUM(b.BillingAmount)
-								FROM SalesOrderFreight b
-								WHERE b.SalesOrderId = so.SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
+								FROM DBO.SalesOrderFreight b WITH (NOLOCK)
+								WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
 									AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
 					END
 				END AS freight,

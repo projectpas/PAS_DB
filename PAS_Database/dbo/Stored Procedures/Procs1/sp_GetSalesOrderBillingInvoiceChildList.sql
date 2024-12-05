@@ -577,7 +577,7 @@ BEGIN
 				AND tmpcash.SOBillingInvoicingId IS NULL
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFreight = tmpcash.TotalFreight
-				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId
+				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
 					FROM dbo.SalesOrderFreight SOF WITH (NOLOCK) 
 					JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOF.SalesOrderPartId
 					WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId 						
@@ -585,8 +585,8 @@ BEGIN
 						AND sof.ConditionId = tmpSOBI.ConditionId 
 						AND sof.IsActive = 1 
 						AND sof.IsDeleted = 0
-					GROUP BY tmpSOBI.SalesOrderPartId
-				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId
+					GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
+				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFlatFreight = tmpcash.TotalFreight
 				FROM( SELECT ISNULL(SO.TotalFreight,0) As TotalFreight, SO.SalesOrderId
@@ -596,7 +596,7 @@ BEGIN
 				) tmpcash WHERE tmpcash.SalesOrderId = #SalesOrderBillingInvoiceChildList.SalesOrderId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalCharges = tmpcash.TotalCharges
-				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId
+				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
 						FROM dbo.SalesOrderCharges SOC WITH (NOLOCK) 
 						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOC.SalesOrderPartId
 						WHERE SOC.SalesOrderId = tmpSOBI.SalesOrderId 						
@@ -604,8 +604,8 @@ BEGIN
 							AND SOC.ConditionId = tmpSOBI.ConditionId 
 							AND SOC.IsActive = 1 
 							AND SOC.IsDeleted = 0
-						GROUP BY tmpSOBI.SalesOrderPartId
-				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId
+						GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
+				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFlatCharges = tmpcash.TotalFlatCharges
 				FROM( SELECT ISNULL(SO.TotalCharges,0) As TotalFlatCharges, SO.SalesOrderId

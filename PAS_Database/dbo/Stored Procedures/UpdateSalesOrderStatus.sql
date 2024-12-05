@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    19-11-2024   AMIT GHEDIYA		Created
+    1    19-11-2024   AMIT GHEDIYA		Created 
+	2    05-12-2024   AMIT GHEDIYA		Updated logic for multiple stockline
 
 -- EXEC [UpdateSalesOrderStatus] 1316,11,1
 ************************************************************************/
@@ -35,51 +36,52 @@ BEGIN
 			SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
 			IF(ISNULL(@IsFromShipping,0) > 0)
-		BEGIN
-			IF(ISNULL(@SoPartDataCount,0) > 0)
-			BEGIN				
-				SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
-
-				--Check for multiple shipping
-				SELECT @SoShippingItemCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] = @SalesOrderShippingId;
-				IF(ISNULL(@SoShippingItemCount,0) = ISNULL(@SoPartDataCount,0))
-				BEGIN
-					 UPDATE [DBO].[SalesOrder]
-					 SET StatusId = @SalesOrderStatus
-					 WHERE SalesOrderId = @SalesOrderId;
-				END
-				ELSE
-				BEGIN
-					SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
-					IF(ISNULL(@SoShippingCount,0) > 0)
-					BEGIN
-						--Check is all shipped or not
-						IF(ISNULL(@SoPartDataCount,0) = ISNULL(@SoShippingCount,0))
-						BEGIN
-							UPDATE [DBO].[SalesOrder]
-							SET StatusId = @SalesOrderStatus
-							WHERE SalesOrderId = @SalesOrderId;
+			BEGIN
+				IF(ISNULL(@SoPartDataCount,0) > 0)
+				BEGIN				
+					SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+					
+					--Check for multiple shipping
+					SELECT @SoShippingItemCount = COUNT(DISTINCT [SalesOrderPartId]) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] = @SalesOrderShippingId;
+					IF(ISNULL(@SoShippingItemCount,0) = ISNULL(@SoPartDataCount,0))
+					BEGIN 
+						 UPDATE [DBO].[SalesOrder]
+						 SET StatusId = @SalesOrderStatus
+						 WHERE SalesOrderId = @SalesOrderId;
+					END
+					ELSE
+					BEGIN 
+						SELECT @SoShippingCount = COUNT([SalesOrderShippingId]) FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+						
+						IF(ISNULL(@SoShippingCount,0) > 0)
+						BEGIN 
+							--Check is all shipped or not
+							IF(ISNULL(@SoPartDataCount,0) = ISNULL(@SoShippingCount,0))
+							BEGIN 
+								UPDATE [DBO].[SalesOrder]
+								SET StatusId = @SalesOrderStatus
+								WHERE SalesOrderId = @SalesOrderId;
+							END
 						END
 					END
 				END
 			END
-		END
-		ELSE
-		BEGIN
-			IF(ISNULL(@SoPartDataCount,0) > 0)
+			ELSE
 			BEGIN
-				 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
-
-				 --Check for multiple billing
-				SELECT @SoBillingItemCount = COUNT([SOBillingInvoicingId]) FROM [DBO].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SOBillingInvoicingId;
-				IF(ISNULL(@SoBillingItemCount,0) = ISNULL(@SoPartDataCount,0))
+				IF(ISNULL(@SoPartDataCount,0) > 0)
 				BEGIN
-					 UPDATE [DBO].[SalesOrder]
-					 SET StatusId = @SalesOrderStatus
-					 WHERE SalesOrderId = @SalesOrderId;
+					 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+
+					 --Check for multiple billing
+					SELECT @SoBillingItemCount = COUNT([SOBillingInvoicingId]) FROM [DBO].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SOBillingInvoicingId;
+					IF(ISNULL(@SoBillingItemCount,0) = ISNULL(@SoPartDataCount,0))
+					BEGIN
+						 UPDATE [DBO].[SalesOrder]
+						 SET StatusId = @SalesOrderStatus
+						 WHERE SalesOrderId = @SalesOrderId;
+					END
 				END
 			END
-		END
 
 			SELECT [SalesOrderId] AS [value] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId
 	

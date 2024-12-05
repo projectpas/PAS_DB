@@ -20,6 +20,8 @@
 	7    04/24/2024   Devendra Shekh   so duplicate record issue resolved
 	8	 10/30/2024	  AMIT GHEDIYA	   handle flat rate from woq -> wo to cm.
 	9    11/05/2024   Vishal Suthar	   Modified to make use of new SO Part tables
+	10   12/04/2024   RAJESH GAMI	   Create RMA from SO :Duplicate stocklines comes in to grid
+	12   12/04-05/2024   AMIT GHEDIYA	   Create RMA/CM from SO : UnitPrice & Amount wrong issue.
 
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -118,7 +120,9 @@ BEGIN
 						SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber as ReferenceNo,
 						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 						SO.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
-						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.NoofPieces as Qty, SOBII.UnitPrice As [PartsUnitCost],
+						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.NoofPieces as Qty, 
+						--SOBII.UnitPrice As [PartsUnitCost],
+						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END As [PartsUnitCost],
 						(SOBII.PartCost * -1) As [PartsRevenue], 
 						0 AS [LaborRevenue], 
 						(SOBII.MiscCharges * -1) AS [MiscRevenue], 
@@ -128,7 +132,7 @@ BEGIN
 						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], 
 						ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
 						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
-						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount,
+						(ISNULL(SOBII.NoofPieces, 1) * CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END) as Amount,
 						IsWorkOrder=0,SOBI.SalesOrderId AS [ReferenceId],
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
 						SOBII.SubTotal,
@@ -169,11 +173,9 @@ BEGIN
 					FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
 						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
-						LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId
+						LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId
 						LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-						--LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
-						--LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=STK.StockLineId AND ST.IsParent = 1
@@ -182,7 +184,6 @@ BEGIN
 				END
 				ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 				BEGIN
-					
 					INSERT INTO #TempBillinPartRecords(InvoiceId , InvoiceNo, BillingInvoicingItemId, InvoiceStatus, InvoiceDate, ReferenceNo, ItemMasterId, PartNumber, PartDescription, CustPartNumber, CustomerReference, SerialNumber, StocklineNumber, StocklineId, ControlNumber
 								,ControlId, Qty, PartsUnitCost, PartsRevenue, LaborRevenue, MiscRevenue, FreightRevenue, COGSParts, COGSLabor, COGSOverHeadCost, COGSInventory, COGSPartsUnitCost, UnitPrice, Amount, IsWorkOrder, ReferenceId
 								,RMAReasonId, RMAReason, RMAStatusId, RMAStatus, RMAValiddate, SubTotal, SalesTax, OtherTax, GrandTotal, InvoiceAmt, RMADeatilsId, RMAHeaderId, Notes, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate

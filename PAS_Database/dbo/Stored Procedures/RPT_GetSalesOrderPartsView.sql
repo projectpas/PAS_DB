@@ -15,6 +15,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    4	11/04/2024	Vishal Suthar	Modified to make use of new SO Part tables
    5	11/12/2024	Vishal Suthar	Fixed Qty, Unit Price and Total issue
    6	11/27/2024	Vishal Suthar	Fixed Qty Reserved issue
+   7	12/04/2024	Vishal Suthar	Fixed an issue with fetching Notes from stockline
 
 EXEC RPT_GetSalesOrderPartsView 1472
 
@@ -144,7 +145,7 @@ BEGIN
 				  AND IsActive = 1
 				  AND IsDeleted = 0
 			), 0) AS QtyToShip,
-			ISNULL(REPLACE(REPLACE(ISNULL(sp.Notes,''), '<p>', ''),'</p>',''), '') AS Notes,
+			ISNULL(REPLACE(REPLACE(ISNULL(CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN stk.Notes ELSE sp.Notes END,''), '<p>', ''),'</p>',''), '') AS Notes,
 			ISNULL(REPLACE(REPLACE(ISNULL(so.Notes,''), '<p>', ''),'</p>',''), '') AS NotesHeader,
 			ISNULL(sopc.MarkUpAmount, 0) AS MarkupPerUnit,
 			--ISNULL(sopc.GrossSalePricePerUnit, 0) AS GrossSalePricePerUnit,

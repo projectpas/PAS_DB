@@ -17,8 +17,9 @@
 	2    02/21/2024   Moin Bloch    Flat SO Freigh AND Charge Amount Tax 
     3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
     4    11/11/2024	  Vishal Suthar	Modified to return proper Sub Total for Print PDF
+    5    12/05/2024	  Vishal Suthar	Fixed an issue with SO Print after shipping is completed
 
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 1283
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 817
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
@@ -100,12 +101,14 @@ BEGIN
 		[OtherTax]  DECIMAL(18,2) NULL
 	)
 	
-	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
-	                       SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
-	                         FROM [dbo].[SalesOrderShipping] SOS WITH(NOLOCK)  
-							 INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
-	                        WHERE [SalesOrderId] = @SalesOrderId;
+	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId],[SalesOrderStocklineId])	
+	                       SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId],SOPT.SalesOrderPartStocklineId
+	                       FROM [dbo].[SalesOrderShipping] SOS WITH(NOLOCK)  
+						   INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
+						   INNER JOIN [dbo].[SOPickTicket] SOPT WITH(NOLOCK) ON SOPT.[SOPickTicketId]  = SOSI.[SOPickTicketId]
+	                       WHERE SOS.[SalesOrderId] = @SalesOrderId;
 	
+
 	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId],[SalesOrderStocklineId])
 			SELECT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
 			       CASE WHEN AAD.[SiteId] IS NOT NULL THEN AAD.[SiteId] ELSE CDS.CustomerDomensticShippingId END,
@@ -120,8 +123,9 @@ BEGIN
 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
-	         WHERE SO.[SalesOrderId] = @SalesOrderId AND SOP.SalesOrderPartId NOT IN (SELECT SOSI.SalesOrderPartId FROM [dbo].[SalesOrderShipping] SOS WITH(NOLOCK)  
-							 INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
+	         WHERE SO.[SalesOrderId] = @SalesOrderId AND 
+							SOP.SalesOrderPartId NOT IN (SELECT SOSI.SalesOrderPartId FROM [dbo].[SalesOrderShipping] SOS WITH(NOLOCK)  
+							INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
 	                        WHERE [SalesOrderId] = @SalesOrderId);
 							
 	SELECT @FreightMethodId = SO.[FreightBilingMethodId],
@@ -205,7 +209,7 @@ BEGIN
 		SELECT @Total = (ISNULL(SOSC.NetSaleAmount, 0))
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
-			INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN [dbo].[SalesOrderStocklineCost] SOSC WITH(NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
 			WHERE [SOP].[SalesOrderId] = @SalesOrderId 
 			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId

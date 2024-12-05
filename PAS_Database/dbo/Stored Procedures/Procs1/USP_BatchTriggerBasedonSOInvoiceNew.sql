@@ -27,6 +27,7 @@
 	13	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	14	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	15	 11/29/2024  Vishal Suthar  Modified the SP to make use of new SO tables
+	16	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -687,8 +688,8 @@ BEGIN
 					SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCostExtended, 0)) 
 					FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
-					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN [dbo].[SOPickTicket] SOPT WITH(NOLOCK) ON SOPT.SOPickTicketId = soit.SOPickTicketId
+					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON STK.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
 					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 					INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					WHERE soi.SalesOrderShippingId=@InvoiceId

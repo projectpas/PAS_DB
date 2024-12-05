@@ -21,6 +21,8 @@
 	5    11/26/2024   AMIT GHEDIYA		Updated for add HSCODE,ECCN etc to so part.
 	6    11/28/2024   Vishal Suthar		Updated for fixing an issue with converting part with multiple stocklines.
 	7    11/29/2024   Rajesh Gami		Changes the STATUSID changes for stockline level
+	8    12/05/2024   Vishal Suthar		Removing temp table before using it which was giving exception
+
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -295,6 +297,12 @@ BEGIN
 		IF EXISTS(SELECT 1 FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId)
 		BEGIN
 			DECLARE @SOQStocklineLoopID AS INT;
+
+			IF OBJECT_ID(N'tempdb..#soqpsList') IS NOT NULL
+			BEGIN
+				DROP TABLE #soqpsList
+			END
+
 			CREATE TABLE #soqpsList
 			(
 				ID BIGINT NOT NULL IDENTITY,

@@ -39,7 +39,7 @@
 	22	 03/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
     23   04/12/2024   Moin Bloch	Updated the SP to get Proforma TotalUnitCost.
     24   04/12/2024   Vishal Suthar Fixed the issue with total sales amount calculation
-	25	 05/12/2024	  Vishal Suthar Fixed the issue with flat charges calculation
+	25	 05/12/2024	  Abhishek Jirawla Fixed the issue with flat charges calculation
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/

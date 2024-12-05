@@ -28,6 +28,7 @@
 	14	 11/04/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	15	 11/29/2024  Vishal Suthar  Modified the SP to make use of new SO tables
 	16	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
+	17	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -562,7 +563,7 @@ BEGIN
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor INTO @PartGLAccountId;
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
-						SELECT @PartUnitSalesPrices = SUM(ISNULL(sosc.UnitCostExtended,0)) FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
+						SELECT @PartUnitSalesPrices = SUM(ISNULL(sosc.UnitCost,0) * ISNULL(soit.NoofPieces,0)) FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
 						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
 						--INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND sop.StockLineId = soit.StockLineId
@@ -685,7 +686,7 @@ BEGIN
 									 AND MasterCompanyId = @MasterCompanyId;
 
 
-					SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCostExtended, 0)) 
+					SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCost, 0) * ISNULL(soit.QtyShipped, 0))
 					FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
 					INNER JOIN [dbo].[SOPickTicket] SOPT WITH(NOLOCK) ON SOPT.SOPickTicketId = soit.SOPickTicketId
@@ -778,11 +779,12 @@ BEGIN
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor1 INTO @PartGLAccountId;
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
-						SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCostExtended, 0))
+						SELECT @PartUnitSalesPrices = SUM(ISNULL(STKC.UnitCost, 0) * ISNULL(soit.QtyShipped, 0))
 						FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 						INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
+						INNER JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SOPickTicketId = soit.SOPickTicketId
 						INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
@@ -792,8 +794,9 @@ BEGIN
 								     @MPNName = itm.[partnumber]						
 						FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 						INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
+						INNER JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SOPickTicketId = soit.SOPickTicketId
 						INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					     LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]

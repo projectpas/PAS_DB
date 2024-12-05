@@ -480,7 +480,7 @@ BEGIN
 					sl.StockLineNumber,  
 					sl.SerialNumber, 
 					cr.[Name] as CustomerName,   
-					stk.StockLineId,
+					ISNULL(stk.StockLineId, 0) StockLineId,
 					0 AS ItemNo,  
 					sop.SalesOrderId, 
 					sop.SalesOrderPartId, 
@@ -577,7 +577,7 @@ BEGIN
 				AND tmpcash.SOBillingInvoicingId IS NULL
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFreight = tmpcash.TotalFreight
-				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
+				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
 					FROM dbo.SalesOrderFreight SOF WITH (NOLOCK) 
 					JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOF.SalesOrderPartId
 					WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId 						
@@ -596,7 +596,7 @@ BEGIN
 				) tmpcash WHERE tmpcash.SalesOrderId = #SalesOrderBillingInvoiceChildList.SalesOrderId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalCharges = tmpcash.TotalCharges
-				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
+				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
 						FROM dbo.SalesOrderCharges SOC WITH (NOLOCK) 
 						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOC.SalesOrderPartId
 						WHERE SOC.SalesOrderId = tmpSOBI.SalesOrderId 						

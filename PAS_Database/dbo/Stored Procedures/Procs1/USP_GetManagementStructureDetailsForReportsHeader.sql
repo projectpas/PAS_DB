@@ -18,6 +18,7 @@
     3    12/08/2024   Ekta Chandegra		Retrieve Address
     4    13/08/2024   Devendra Shekh		added Email to select
 	5    17/09/2024   RAJESH GAMI		    Added the SP for MERGEADDRESS instead of function
+	6    06-12-2024   Shrey Chandegara      Add field 'Company' because use company name in original form
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -93,6 +94,7 @@ SET NOCOUNT ON
 
 				(SELECT DISTINCT TOP 1
 					CompanyName = Upper(le.CompanyName),
+					Company = le.CompanyName,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,

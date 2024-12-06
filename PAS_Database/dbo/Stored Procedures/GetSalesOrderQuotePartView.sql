@@ -16,7 +16,7 @@
 	3    13-11-2024   Vishal Suthar		Fixed the QtyAvail and QtyOH
 	4    03-12-2024   AMIT GHEDIYA		Fixed Get Saved CurrId from part table.
      
--- EXEC [DBO].[GetSalesOrderQuotePartView] 897, 'USD'
+ EXEC [DBO].[GetSalesOrderQuotePartView] 482, 'USD'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
@@ -34,7 +34,7 @@ BEGIN
         stk.StockLineId,
         ISNULL(qs.StockLineNumber, '') AS stockLineNumber,
         part.FxRate,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE Part.QtyQuoted END AS QtyQuoted,
+        CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE (CASE WHEN stk.SalesOrderQuoteStocklineId IS NULL THEN 0 ELSE Part.QtyQuoted END) END AS QtyQuoted,
         ISNULL(part.QtyRequested, 0) AS QtyRequested,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPrice, 0) ELSE ISNULL(PS.UnitSalesPrice, 0) END UnitSalePrice,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,

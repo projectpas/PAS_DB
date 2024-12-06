@@ -670,8 +670,8 @@ BEGIN
 					0 AS BillSizeLength,
 					0 AS BillSizeWidth,
 					0 AS BillSizeHeight,
-					--ISNULL(ROUND((COALESCE(stk.QtyOrder, 0) * COALESCE(spc.NetSaleAmount, 0)),2),0) AS TotalUnitCost
-					ISNULL(spc.NetSaleAmount,0) AS TotalUnitCost,
+					--ISNULL(ROUND((COALESCE(stk.QtyOrder, 0) * COALESCE(spc.NetSaleAmount, 0)),2),0) AS TotalUnitCost					
+					CASE WHEN SOSC.[SalesOrderStocklineId] > 0 THEN ISNULL(SOSC.NetSaleAmount,0) ELSE ISNULL(spc.NetSaleAmount,0) END AS TotalUnitCost,
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 						WHERE sof.SalesOrderId = @SalesOrderId 			  
 						AND sof.ItemMasterId = sop.ItemMasterId 
@@ -694,6 +694,7 @@ BEGIN
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
+					LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsProforma,0) = 1
 					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1 AND sobi.SalesOrderId = @SalesOrderId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  

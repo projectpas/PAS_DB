@@ -16,6 +16,7 @@ EXEC [usp_ReserveIssueWorkOrderMaterialsStockline]
 ** 5    09/12/2024  RAJESH GAMI		 Implemented Stockline History for the IssueReserve
 ** 6    09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 7   10/04/2024   RAJESH GAMI 	 Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
+** 8   11/28/2024	HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -201,10 +202,21 @@ BEGIN
 							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId   
 							FROM dbo.WorkOrderMaterialsKit WOM 
 							JOIN dbo.WorkOrderMaterialStockLineKit WOMS ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
-							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+							WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
 							GROUP BY WOM.WorkOrderMaterialsKitId
-						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterialsKit.Quantity,0)			
-
+						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterialsKit.Quantity,0)		
+						
+						--RE-CALCULATE WOM KIT QTY RES & QTY ISSUE					
+						UPDATE dbo.WorkOrderMaterialsKit 
+						SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+						FROM(
+							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsKitId   
+							FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
+							JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
+							WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+							GROUP BY WOM.WorkOrderMaterialsKitId
+						) GropWOM WHERE GropWOM.WorkOrderMaterialsKitId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND 
+						(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterialsKit.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterialsKit.QuantityIssued,0))
 
 						DECLARE @countKitStockline INT = 1;
 
@@ -351,6 +363,7 @@ BEGIN
 							GROUP BY WOM.WorkOrderMaterialsId
 						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
 						(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
+
 
 
 						--FOR UPDATE TOTAL WORK ORDER COST

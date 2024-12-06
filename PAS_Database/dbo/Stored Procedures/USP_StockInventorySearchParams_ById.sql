@@ -8,6 +8,7 @@
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
 ** 1	20/11/2024		BHARGAV SALIYA			Created
+** 2	26/11/2024		BHARGAV SALIYA			Change The Filter Field Stockline Number To Control Number
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[USP_StockInventorySearchParams_ById]
@@ -26,8 +27,8 @@ BEGIN
 					UrlName,
 					FromReceivedDate,
 					ToReceivedDate,
-					ISNULL(FromStocklineId, '') AS 'FromStocklineId',
-					ISNULL(ToStocklineId, '') AS 'ToStocklineId',
+					ISNULL(FromControlNumber, '') AS 'FromControlNumber',
+					ISNULL(ToControlNumber, '') AS 'ToControlNumber',
 					ISNULL(FromUnitCost, '') AS 'FromUnitCost',
 					ISNULL(ToUnitCost, '') AS 'ToUnitCost',
 					ISNULL(ItemMasterId, 0) AS 'ItemMasterId',

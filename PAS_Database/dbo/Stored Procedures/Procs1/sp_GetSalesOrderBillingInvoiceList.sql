@@ -17,6 +17,7 @@
 	7    02/26/2024   Moin Bloch			Updated the SP Added CustomerId
 	8    10/17/2024   Vishal Suthar			Modified to make use of new SO Part tables
 	9    11/18/2024   AMIT GHEDIYA			Modified to for get condition
+   10    11/27/2024   AMIT GHEDIYA			Modified to for get soPartId for expand & collapse
 
 --   EXEC sp_GetSalesOrderBillingInvoiceList 20845
 **************************************************************/ 
@@ -204,6 +205,7 @@ BEGIN
 					   Condition,
 					   SalesOrderId,
 					   SalesOrderPartId,
+					   SOPartId,
 					   Status,
 					   ItemNo,
 					   CustomerId

@@ -17,6 +17,7 @@
     1    07/25/2024   Vishal Suthar Created
     2    11/11/2024   Vishal Suthar Fix the calculations for part cost and stockline cost
     3    11/13/2024   Vishal Suthar Fixed issue with unit price and unit cost calculation
+    4    11/26/2024   Vishal Suthar Fixed divide by zero error
      
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
@@ -135,7 +136,9 @@ SET NOCOUNT ON
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
 							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount,
 							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
-							MarginPercentage = ((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
+							MarginPercentage = CASE WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) > 0 THEN
+												((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
+												ELSE 0 END
 							WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							SET @MasterLoopID = @MasterLoopID - 1;
@@ -151,16 +154,13 @@ SET NOCOUNT ON
 					END
 					ELSE
 					BEGIN
-						DECLARE @QtyRequested AS INT;
-						SELECT @QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
-
-						SELECT @SalesPriceExtended_S = (@QtyRequested * ISNULL(UnitSalesPrice, 0)),
-						@UnitCostExtended_S = (@QtyRequested * ISNULL(UnitCost, 0)),
-						@DiscountAmount_S = DiscountAmount
-						FROM [DBO].[SalesOrderPartCost] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
-
 						UPDATE DBO.SalesOrderPartV1
 						SET QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
+
+						UPDATE DBO.SalesOrderPartCost
+						SET NetSaleAmount = (ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount,
+						TotalRevenue = ((ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
+						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 
 					DECLARE @SalesTax AS [decimal](18, 4) = 0;
@@ -261,7 +261,7 @@ SET NOCOUNT ON
 		DECLARE @ErrorLogID int,
         @DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-        ,@AdhocComments varchar(150) = 'USP_UpdateSOQPartCostDetails',
+        ,@AdhocComments varchar(150) = 'USP_UpdateSOPartCostDetails',
         @ProcedureParameters varchar(3000) = '@SalesOrderId = ''' + CAST(ISNULL(@SalesOrderId, '') AS varchar(100))
         + '@Parameter2 = ''' + CAST(ISNULL(@SalesOrderPartId, '') AS varchar(100))
         + '@Parameter3 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))

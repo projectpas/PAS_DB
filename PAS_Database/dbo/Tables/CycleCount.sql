@@ -10,6 +10,10 @@
     [ApproverId]            BIGINT        NULL,
     [ApprovedBy]            VARCHAR (100) NULL,
     [DateApproved]          DATETIME2 (7) NULL,
+    [PostedDate]            DATETIME2 (7) NULL,
+    [BatchName]             VARCHAR (50)  NULL,
+    [CountedById]           BIGINT        NULL,
+    [CountMethodId]         INT           NULL,
     [MasterCompanyId]       INT           NOT NULL,
     [CreatedBy]             VARCHAR (256) NOT NULL,
     [UpdatedBy]             VARCHAR (256) NOT NULL,
@@ -17,11 +21,11 @@
     [UpdatedDate]           DATETIME2 (7) CONSTRAINT [DF_CycleCount_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]              BIT           CONSTRAINT [DF_CycleCount_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT           CONSTRAINT [DF_CycleCount_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [PostedDate]            DATETIME2 (7) NULL,
-    [BatchName]             VARCHAR (50)  NULL,
     CONSTRAINT [PK_CycleCount] PRIMARY KEY CLUSTERED ([CycleCountId] ASC),
     CONSTRAINT [FK_CycleCount_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

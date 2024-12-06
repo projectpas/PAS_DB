@@ -29,6 +29,10 @@
     [BankAcctNum]                         VARCHAR (100)   NULL,
     [BankingId]                           BIGINT          NULL,
     [Type]                                VARCHAR (100)   NULL,
+    [QuickBooksReferenceId]               VARCHAR (200)   NULL,
+    [IsUpdated]                           BIT             NULL,
+    [LastSyncDate]                        DATETIME2 (7)   NULL,
+    [SyncToken]                           VARCHAR (200)   NULL,
     CONSTRAINT [PK_CustomerPaymentDetails] PRIMARY KEY CLUSTERED ([CustomerPaymentDetailsId] ASC)
 );
 

@@ -8,6 +8,7 @@
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
 ** 1	20/11/2024		BHARGAV SALIYA			Created
+** 2	26/11/2024		BHARGAV SALIYA			Change The Filter Field Stockline Number To Control Number
 **************************************************************/
 -----------------------------------------------------------------------------
 CREATE     PROCEDURE [dbo].[USP_SaveStockInventorySearchParams]
@@ -29,10 +30,10 @@ BEGIN
 				DECLARE @MasterCompanyId INT = 0;
 
 				INSERT INTO [dbo].[StockInventorySearchParams] 
-						(UrlName, FromReceivedDate, ToReceivedDate, FromStocklineId, ToStocklineId, FromUnitCost, ToUnitCost, ItemMasterId, VendorId,ConditionId,LotId,TraceableTo,SiteId,WarehouseId,LocationId,ShelfId,BinId,PoRoRefrences,
+						(UrlName, FromReceivedDate, ToReceivedDate, FromControlNumber, ToControlNumber, FromUnitCost, ToUnitCost, ItemMasterId, VendorId,ConditionId,LotId,TraceableTo,SiteId,WarehouseId,LocationId,ShelfId,BinId,PoRoRefrences,
 						Level1, Level2, Level3, Level4, Level5, Level6, Level7, Level8, Level9, Level10, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted) 
 
-				SELECT	UrlName, FromReceivedDate, ToReceivedDate, FromStocklineId, ToStocklineId, FromUnitCost, ToUnitCost, ItemMasterId, VendorId,ConditionId,LotId,TraceableTo,SiteId,WarehouseId,LocationId,ShelfId,BinId,PoRoRefrences,
+				SELECT	UrlName, FromReceivedDate, ToReceivedDate, FromControlNumber, ToControlNumber, FromUnitCost, ToUnitCost, ItemMasterId, VendorId,ConditionId,LotId,TraceableTo,SiteId,WarehouseId,LocationId,ShelfId,BinId,PoRoRefrences,
 						Level1, Level2, Level3, Level4, Level5, Level6, Level7, Level8, Level9, Level10, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
 				FROM @tblType_StockInvenorySearchParamsType WHERE ISNULL(StockInventorySearchParamsId, 0) = 0;
 
@@ -50,8 +51,8 @@ BEGIN
 					SET 
 						GLS.FromReceivedDate = t.FromReceivedDate,
 						GLS.ToReceivedDate = t.ToReceivedDate,
-						GLS.FromStocklineId = t.FromStocklineId,
-						GLS.ToStocklineId = t.ToStocklineId,
+						GLS.FromControlNumber = t.FromControlNumber,
+						GLS.ToControlNumber = t.ToControlNumber,
 						GLS.FromUnitCost = t.FromUnitCost,
 						GLS.ToUnitCost = t.ToUnitCost,
 						GLS.ItemMasterId = t.ItemMasterId,

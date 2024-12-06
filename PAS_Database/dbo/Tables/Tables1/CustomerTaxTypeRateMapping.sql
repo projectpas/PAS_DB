@@ -14,7 +14,7 @@
     [IsDeleted]                    BIT           CONSTRAINT [CustomerTaxTypeRateMapping_DC_Delete] DEFAULT ((0)) NOT NULL,
     [CustomerFinancialId]          BIGINT        NULL,
     [SiteId]                       BIGINT        NULL,
-    [SiteName]                     VARCHAR (50)  NULL,
+    [SiteName]                     VARCHAR (500) NULL,
     [ShipFromSiteId]               BIGINT        NULL,
     [ShipFromSiteName]             VARCHAR (50)  NULL,
     [IsRepair]                     BIT           NULL,
@@ -26,6 +26,8 @@
     CONSTRAINT [FK_CustomerTaxTypeRateMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CustomerIdTaxTypeRate] UNIQUE NONCLUSTERED ([CustomerId] ASC, [TaxRateId] ASC, [TaxTypeId] ASC, [SiteId] ASC, [ShipFromSiteId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

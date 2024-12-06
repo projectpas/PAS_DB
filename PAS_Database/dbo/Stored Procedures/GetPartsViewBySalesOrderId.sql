@@ -16,8 +16,11 @@
  ** --   --------     -------		--------------------------------          
     1    09/27/2024   Vishal Suthar Created
     2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
+    3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
+    4    11/29/2024   Vishal Suthar Fixed an issue with Tax Amount Calculation
+    5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
 
-EXEC [dbo].[GetPartsViewBySalesOrderId]  1403
+EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
@@ -29,6 +32,61 @@ BEGIN
     BEGIN TRY
     BEGIN TRANSACTION
       BEGIN	
+		CREATE TABLE #ProcedureOutput (
+			SalesTax DECIMAL(18, 2),
+			OtherTax DECIMAL(18, 2),
+			TotalTax DECIMAL(18, 2)
+		);
+
+		CREATE TABLE #TempJoinData (
+			Param1 INT,
+			Param2 INT,
+			Param3 INT
+		);
+
+		-- Populate with data from the JOIN
+		INSERT INTO #TempJoinData (Param1, Param2, Param3)
+		SELECT so.SalesOrderId, part.SalesOrderPartId, so.CustomerId
+		FROM DBO.SalesOrder so WITH(NOLOCK)
+		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
+		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
+
+		-- Temporary table to hold tax amounts
+		CREATE TABLE #TempTaxAmount (
+			PartId INT,
+			SalesTaxPercentage DECIMAL(18, 2)
+		);
+
+		-- Cursor to iterate over the joined data
+		DECLARE @Param1 INT, @Param2 INT, @Param3 INT;
+		DECLARE @TaxAmount DECIMAL(18, 2);
+
+		DECLARE cur CURSOR FOR
+		SELECT Param1, Param2, Param3
+		FROM #TempJoinData;
+
+		OPEN cur;
+
+		FETCH NEXT FROM cur INTO @Param1, @Param2, @Param3;
+
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			-- Clear previous procedure output
+			DELETE FROM #ProcedureOutput;
+
+			INSERT INTO #ProcedureOutput (SalesTax, OtherTax, TotalTax)
+			EXEC dbo.USP_GetCustomerTax_Information_ProductSale_SO_Analysis @Param1, @Param2, @Param3;
+
+			-- Insert the tax amount into the temporary table
+			INSERT INTO #TempTaxAmount
+			SELECT @Param2, SalesTax FROM #ProcedureOutput;
+
+			FETCH NEXT FROM cur INTO @Param1, @Param2, @Param3;
+		END;
+
+		CLOSE cur;
+		DEALLOCATE cur;
+
 		SELECT DISTINCT
 			part.SalesOrderId salesOrderId,
 			part.SalesOrderPartId salesOrderPartId,
@@ -63,7 +121,7 @@ BEGIN
 			0 grossSalePrice,
 			so.OpenDate openDate,
 			-- Implement the custom function for tax calculation in SQL
-			0 AS taxPercentage,
+			t.SalesTaxPercentage AS taxPercentage,
 			'' AS taxType,
 			SOPC.TaxAmount AS taxAmount,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginAmount ELSE SOPC.MarginAmount END markupPerUnit,
@@ -96,6 +154,7 @@ BEGIN
 			part.Notes notes,
 			-- Handle VersionNumber logic with appropriate SQL
 			--dbo.GenerateVersionNumber(so.Version) AS VersionNumber,
+			so.VersionNumber AS versionNumber,
 			SOPC.MiscCharges AS misc,
 			CASE WHEN so.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOCC.ExtendedCost), 0) FROM DBO.SalesOrderCharges SOCC WHERE SOCC.SalesOrderPartId = part.SalesOrderPartId) END AS miscCost,
 			--(part.QtyOrder * part.UnitSalesPricePerUnit) + part.TaxAmount + ISNULL(SUM(ch.BillingAmount), 0) AS TotalSales,
@@ -106,8 +165,16 @@ BEGIN
 			so.TotalFreight totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
-			ISNULL(sbi.Freight, 0) AS freight,
-			ISNULL(sob.SOBillingInvoicingItemId, 0) AS sobillingInvoicingItemId
+			CASE WHEN sob.SOBillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.Freight, 0) ELSE 
+				CASE 
+					WHEN so.FreightBilingMethodId = 3 THEN 0 
+					ELSE ISNULL((SELECT SUM(b.BillingAmount)
+								FROM DBO.SalesOrderFreight b WITH (NOLOCK)
+								WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
+									AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
+					END
+				END AS freight,
+			0 AS sobillingInvoicingItemId
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId
@@ -127,15 +194,23 @@ BEGIN
 		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
 		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SalesOrderPartId AND stk.StockLineId = sob.StockLineId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
-		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.IsProforma = 0
+		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.SalesOrderId = @SalesOrderId AND sbi.IsProforma = 0
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
+		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId
 		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
 	END
 COMMIT TRANSACTION
 
   END TRY
   BEGIN CATCH
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     IF @@trancount > 0
 		ROLLBACK TRAN;
 		DECLARE @ErrorLogID int

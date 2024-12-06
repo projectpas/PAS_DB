@@ -19,7 +19,8 @@
 	3    06/12/2023   Amit Ghediya		Select a conditionId from STK for REVISED PART & Add into SOStk from RO.
 	4    08/18/2023   Devendra Shekh	added UnitSalesPricePerUnit for salesorder part insert
 	5    12/29/2023   Vishal Suthar		Fixed and issue with PN-6393 Requested Qty not increasing when RO stockline added into same part with condition
-     
+    6	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
+	7	 11/29/2024	  Abhishek Jirawla  Adding a condition where the QtyOrder is taken from Stockline
  EXECUTE USP_CreateSOStocklineFromRO 1780
 
 **************************************************************/
@@ -188,7 +189,8 @@ BEGIN
 					INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],
 					[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
 					[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[OldSalesOrderPartId],[PartNumber],[PartDescription],
-					[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId],[LotId],[IsLotAssigned])
+					[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId],[LotId],[IsLotAssigned],
+					[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 					SELECT DISTINCT
                       ROS.SalesOrderId,
                       SL.ItemMasterId,
@@ -229,12 +231,19 @@ BEGIN
 					  NULL,
 					  NULL,
 					  NULL,
-					  NULL
+					  NULL,
+					  ime.[ExportECCN],
+					  ime.[HSCODE],
+					  ime.[ExportWeight],
+					  ime.[ExportSizeLength],
+					  ime.[ExportSizeWidth],
+					  ime.[ExportSizeHeight]
                     FROM #ROStockLineRevisedPart ROS WITH (NOLOCK)
                     JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
                     JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
                     JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOPS.StockLineId = ROS.OldStockLineId
                     JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
+					LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH (NOLOCK) ON ime.ItemMasterId = IM.ItemMasterId
 					AND SL.IsParent = 1 AND SOP.SalesOrderId = @SalesOrderId
                     WHERE SL.StockLineId = @StocklineId;
 
@@ -478,17 +487,18 @@ BEGIN
 					  NULL,
 					  NULL,
 					  'Created from RO',
-					  NULL,
-					  NULL,
-					  NULL,
-					  NULL,
-					  NULL,
-					  NULL
+					  ime.[ExportECCN],
+					  ime.[HSCODE],
+					  ime.[ExportWeight],
+					  ime.[ExportSizeLength],
+					  ime.[ExportSizeWidth],
+					  ime.[ExportSizeHeight]
 						FROM #ROStockLineSamePart ROS WITH (NOLOCK)
 						JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 						JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
 						JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOPS.StockLineId = ROS.OldStockLineId
 						JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId AND SOP.SalesOrderId = @SalesOrderId
+						LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH (NOLOCK) ON ime.ItemMasterId = IM.ItemMasterId
 						WHERE SOP.SalesOrderId = @SalesOrderId AND SL.StockLineId = @StocklineId
 						AND SL.StockLineId NOT IN (
 							SELECT SOPS.StockLineId 
@@ -580,7 +590,9 @@ BEGIN
 
 					  SELECT @SalesOrderStockLineId = SCOPE_IDENTITY()
 
-					  SELECT @StlQuantity = SOP.QtyOrder, @NewQtyRequested = QtyRequested FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
+					  SELECT @NewQtyRequested = QtyRequested FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
+
+					  SELECT @StlQuantity = SOP.QtyOrder FROM [dbo].[SalesOrderStocklineV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId AND StockLineId = @StocklineId;
 
 					  UPDATE [dbo].[Stockline] SET [QuantityAvailable] = ISNULL(QuantityAvailable - @StlQuantity, 0), [QuantityReserved] = ISNULL(@StlQuantity, 0) WHERE StockLineId = @StocklineId
 

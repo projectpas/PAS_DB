@@ -20,6 +20,7 @@
 	2    10/04/2021   Hemant Saliya Update Sub WO Pick Ticket Deletion based On Reservation 
 	3    12/18/2023   Hemant Saliya Added Kit Part for Sub WO Cost Calc
 	4    01/18/2024   Hemant Saliya Updated for Update Materilas Qty
+ ** 5    11/28/2024	  HEMANT SALIYA	Re-Calculate WOM Qty Res & Qty Issue
      
  EXECUTE USP_UpdateSubWOMaterialsCost 161
 **************************************************************/ 
@@ -133,8 +134,31 @@ SET NOCOUNT ON
 					JOIN dbo.SubWorkOrderMaterialStockLineKit WOMS ON WOMS.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId 
 					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 					GROUP BY WOM.SubWorkOrderMaterialsKitId
-				) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterialsKit.SubWorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.SubWorkOrderMaterialsKit.Quantity,0)			
-						
+				) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterialsKit.SubWorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.SubWorkOrderMaterialsKit.Quantity,0)	
+				
+				--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+				UPDATE dbo.SubWorkOrderMaterials 
+				SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved, Memo = 'RE-CALCULATE WOM QTY RES & QTY ISSUE'
+				FROM(
+					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.SubWorkOrderMaterialsId   
+					FROM dbo.SubWorkOrderMaterials WOM WITH(NOLOCK)
+					JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId 
+					WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+					GROUP BY WOM.SubWorkOrderMaterialsId
+				) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterials.SubWorkOrderMaterialsId AND 
+				(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.SubWorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.SubWorkOrderMaterials.QuantityIssued,0))
+				
+				--RE-CALCULATE WOM KIT QTY RES & QTY ISSUE					
+				UPDATE dbo.SubWorkOrderMaterialsKit 
+				SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved, Memo = 'RE-CALCULATE WOM KIT QTY RES & QTY ISSUE'
+				FROM(
+					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.SubWorkOrderMaterialsKitId   
+					FROM dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK)
+					JOIN dbo.SubWorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) ON WOMS.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId 
+					WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+					GROUP BY WOM.SubWorkOrderMaterialsKitId
+				) GropWOM WHERE GropWOM.SubWorkOrderMaterialsKitId = dbo.SubWorkOrderMaterialsKit.SubWorkOrderMaterialsKitId AND 
+				(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.SubWorkOrderMaterialsKit.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.SubWorkOrderMaterialsKit.QuantityIssued,0))
 
 				IF OBJECT_ID(N'tempdb..#tmpWOMaterials') IS NOT NULL
 				BEGIN

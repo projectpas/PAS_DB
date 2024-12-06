@@ -14,6 +14,7 @@
     1    16/10/2024   Moin Bloch    Created
 	2    24/10/2024   Moin Bloch    Added RequestedById
 	3    29/10/2024   Moin Bloch    Added ApproverId,ApprovedBy,DateApproved
+    4    28/10/2024   Moin Bloch    Added @CountedById,@CountMethodId
 
   EXEC [dbo].[USP_CycleCount_DetailsById] 1,1
 ************************************************************************/
@@ -25,26 +26,30 @@ BEGIN
 	SET NOCOUNT ON;	
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED		    
 	BEGIN TRY
-		SELECT [CycleCountId]
-			  ,[CycleCountNumber]
-			  ,[EntryDate]
-			  ,[EntryTime]
-			  ,[StatusId]
-			  ,[ManagementStructureId]
-			  ,CASE WHEN [IsEnforce] = 1 THEN 1 ELSE 0 END IsEnforce
-			  ,[RequestedById]			  
-              ,[ApproverId]
-			  ,[ApprovedBy]
-			  ,[DateApproved]
-			  ,[MasterCompanyId]
-			  ,[CreatedBy]
-			  ,[UpdatedBy]	
-			  ,[CreatedDate]
-			  ,[UpdatedDate]
-			  ,[IsActive]
-			  ,[IsDeleted]
-		  FROM [dbo].[CycleCount] WITH(NOLOCK) 
-		 WHERE [CycleCountId] = @CycleCountId AND [MasterCompanyId] = @MasterCompanyId;	
+		SELECT CC.[CycleCountId]
+			  ,CC.[CycleCountNumber]
+			  ,CC.[EntryDate]
+			  ,CC.[EntryTime]
+			  ,CC.[StatusId]
+			  ,CC.[ManagementStructureId]
+			  ,CASE WHEN CC.[IsEnforce] = 1 THEN 1 ELSE 0 END IsEnforce
+			  ,CC.[RequestedById]			  
+              ,CC.[ApproverId]
+			  ,CC.[ApprovedBy]
+			  ,CC.[DateApproved]			  
+              ,CC.[CountedById]
+			  ,ISNULL(EP.[FirstName],'') + ' ' + ISNULL(EP.[LastName],'') AS CountedBy
+			  ,CC.[CountMethodId]
+			  ,CC.[MasterCompanyId]
+			  ,CC.[CreatedBy]
+			  ,CC.[UpdatedBy]	
+			  ,CC.[CreatedDate]
+			  ,CC.[UpdatedDate]
+			  ,CC.[IsActive]
+			  ,CC.[IsDeleted]
+		  FROM [dbo].[CycleCount] CC WITH(NOLOCK) 
+	 LEFT JOIN [dbo].[Employee] EP ON CC.[CountedById] = EP.[EmployeeId]
+		 WHERE [CycleCountId] = @CycleCountId AND CC.[MasterCompanyId] = @MasterCompanyId;	
 	END TRY  
 		BEGIN CATCH      
 			IF @@trancount > 0			

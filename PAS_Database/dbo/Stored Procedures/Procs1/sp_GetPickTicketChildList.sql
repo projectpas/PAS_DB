@@ -32,7 +32,7 @@ BEGIN
 	BEGIN
 
 		SELECT DISTINCT sopt.SOPickTicketNumber, sopt.QtyToShip, sl.SerialNumber, sl.StockLineNumber, CAST(sopt.CreatedDate AS DATE) as PickedDate,
-		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, sopt.SOPickTicketId, sopt.SalesOrderId, sopt.SalesOrderPartId,
+		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, sopt.SOPickTicketId, sopt.SalesOrderId, sopt.SalesOrderPartId, stk.SalesOrderStocklineId,
 		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, CAST(sopt.ConfirmedDate AS DATE) AS ConfirmedDate, 
 		sl.StockLineId, sopt.IsConfirmed 
 		FROM DBO.SOPickTicket sopt WITH(NOLOCK)

@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    16/10/2024   Moin Bloch    Created
 	2    24/10/2024   Moin Bloch    Added RequestedById
+	3    28/10/2024   Moin Bloch    Added @CountedById,@CountMethodId
 
   EXEC [dbo].[USP_CycleCount_AddUpdate] 1,'2024-10-15','19:36',1,1,1,2,1,'ADMIN User','ADMIN User'    
 ************************************************************************/
@@ -24,6 +25,8 @@ CREATE   PROCEDURE [dbo].[USP_CycleCount_AddUpdate]
 @ManagementStructureId BIGINT,  
 @IsEnforce BIT,
 @RequestedById BIGINT,
+@CountedById BIGINT,
+@CountMethodId INT,
 @MasterCompanyId INT,
 @CreatedBy VARCHAR(200),
 @UpdatedBy VARCHAR(200)
@@ -65,6 +68,8 @@ BEGIN
 									[ManagementStructureId], 
 								    [IsEnforce],
 									[RequestedById],
+									[CountedById],
+									[CountMethodId],
 									[MasterCompanyId],
 									[CreatedBy],
 									[UpdatedBy],
@@ -79,6 +84,8 @@ BEGIN
 									 @ManagementStructureId,
 							         @IsEnforce,
 									 @RequestedById,
+									 @CountedById,
+									 @CountMethodId,
 									 @MasterCompanyId,
 									 @CreatedBy,
 									 @UpdatedBy,
@@ -100,6 +107,8 @@ BEGIN
 							   [EntryTime] = @EntryTime, 
 							   [StatusId] = @StatusId, 
 							   [ManagementStructureId] = @ManagementStructureId, 
+							   [CountedById] = @CountedById,
+							   [CountMethodId] = @CountMethodId,
 							   [UpdatedBy] = @UpdatedBy, 
 							   [UpdatedDate] = GETUTCDATE() 							
                          WHERE [CycleCountId] = @CycleCountId;	

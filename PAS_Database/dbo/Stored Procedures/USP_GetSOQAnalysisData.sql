@@ -17,7 +17,7 @@
     1    09/19/2024   Vishal Suthar		Created
     2    10/17/2024   Vishal Suthar		Modified to make use of new SOQ Part tables
 
-EXEC [dbo].[USP_GetSOQAnalysisData] 766
+EXEC [dbo].[USP_GetSOQAnalysisData] 954
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSOQAnalysisData] 
 (
@@ -92,9 +92,14 @@ BEGIN
 				ISNULL(ro.RepairOrderNumber, '') AS roNumber,
 				part.Notes AS notes,
 				soq.VersionNumber AS versionNumber,
-				SOQPC.Freight AS freight,
+				(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteFreight WITH (NOLOCK) Where SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = part.SalesOrderQuotePartId) AS freight,
 				CASE WHEN soq.FreightBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOQFF.Amount), 0) FROM DBO.SalesOrderQuoteFreight SOQFF WHERE SOQFF.SalesOrderQuotePartId = part.SalesOrderQuotePartId) END AS freightCost,
-				SOQPC.MiscCharges AS misc,
+				(SELECT COALESCE(SUM(BillingAmount), 0)
+				FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE 
+					SalesOrderQuoteId = @SalesOrderQuoteId
+					AND IsActive = 1
+					AND IsDeleted = 0
+					AND SalesOrderQuotePartId = part.SalesOrderQuotePartId) AS misc,
 				CASE WHEN soq.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOQCC.ExtendedCost), 0) FROM DBO.SalesOrderQuoteCharges SOQCC WHERE SOQCC.SalesOrderQuotePartId = part.SalesOrderQuotePartId) END AS miscCost,
 				CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN SOQSC.UnitSalesPrice ELSE SOQPC.UnitSalesPrice END unitSalesPricePerUnit,
 				soq.TotalCharges AS totalCharges,

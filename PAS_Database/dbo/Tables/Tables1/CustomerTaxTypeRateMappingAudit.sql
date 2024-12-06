@@ -15,7 +15,7 @@
     [IsDeleted]                         BIT           NOT NULL,
     [CustomerFinancialId]               BIGINT        NULL,
     [SiteId]                            BIGINT        NULL,
-    [SiteName]                          VARCHAR (50)  NULL,
+    [SiteName]                          VARCHAR (500) NULL,
     [ShipFromSiteId]                    BIGINT        NULL,
     [ShipFromSiteName]                  VARCHAR (50)  NULL,
     [IsRepair]                          BIT           NULL,
@@ -25,6 +25,8 @@
     CONSTRAINT [PK_CustomerTaxTypeRateMappingAudit] PRIMARY KEY CLUSTERED ([AuditCustomerTaxTypeRateMappingId] ASC),
     CONSTRAINT [FK_CustomerTaxTypeRateMappingAudit_CustomerTaxTypeRateMapping] FOREIGN KEY ([CustomerTaxTypeRateMappingId]) REFERENCES [dbo].[CustomerTaxTypeRateMapping] ([CustomerTaxTypeRateMappingId])
 );
+
+
 
 
 

@@ -103,7 +103,7 @@ BEGIN TRANSACTION
 	THEN convert(bit, filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @IsDownload END
 
 
-FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
+	FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
 
 		IF OBJECT_ID(N'tempdb..#AwaitingPartsData') IS NOT NULL
 			DROP TABLE #AwaitingPartsData	
@@ -259,7 +259,7 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 			FROM 
 				DBO.Stockline WITH(NOLOCK)
 			WHERE 
-				IsCustomerStock = 0 AND IsParent = 1
+				ISNULL(IsCustomerStock, 0) = 0 AND ISNULL(IsParent, 0) = 1
 			GROUP BY 
 				ItemMasterId, ConditionId
 		) AS STK ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId
@@ -271,32 +271,11 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 			FROM 
 				DBO.Stockline WITH(NOLOCK)
 			WHERE 
-				IsCustomerStock = 1 AND IsParent = 1
+				ISNULL(IsCustomerStock, 0) = 1 AND ISNULL(IsParent, 0) = 1
 			GROUP BY 
 				ItemMasterId, ConditionId
 		) AS STKCS ON tmpWOM.ItemMasterId = STKCS.ItemMasterId AND tmpWOM.ConditionId = STKCS.ConditionId
 		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
-		--OUTER APPLY(
-		--	SELECT CASE WHEN ISNULL(SUM(PDATA.Backlog), 0) < 0 
-		--		THEN 0 
-		--		ELSE ISNULL(SUM(PDATA.Backlog), 0)
-		--		END AS Backlog
-		--	FROM 
-		--	WorkOrder
-		--		Outer Apply(
-		--			SELECT 
-		--				(ISNULL(POP.QuantityOrdered, 0)) - SUM(ISNULL(STKPO.Quantity, 0)) AS Backlog
-		--			FROM 
-		--				DBO.PurchaseOrderPart POP WITH (NOLOCK)
-		--			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-		--			INNER JOIN DBO.Stockline STKPO WITH(NOLOCK) ON STKPO.PurchaseOrderId = PO.PurchaseOrderId AND STKPO.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STKPO.IsParent = 1 AND STKPO.IsDeleted = 0
-		--			WHERE PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND
-		--				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 0 OR POP.IsKit IS NULL)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND (POP.IsKit = 0 OR POP.IsKit IS NULL)))
-		--			GROUP BY 
-		--				POP.QuantityOrdered
-		--		) AS PData
-		--	WHERE WorkOrderId = WO.WorkOrderId
-		--) AS POPDATA
 		OUTER APPLY (
 			SELECT 
 				UPPER(IMWOPN.partnumber) AS mpn,
@@ -307,7 +286,6 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 			INNER JOIN DBO.ItemMaster IMWOPN WITH (NOLOCK) ON WOPN.ItemMasterId = IMWOPN.ItemMasterId
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID = WOWF.WorkOrderPartNoId
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
-			--LEFT JOIN DBO.WorkOrderStage WOS_From WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS_From.WorkOrderStageId
 			WHERE WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 		) AS MPNData
 		OUTER APPLY (
@@ -352,55 +330,50 @@ FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
-	STK.QuantityAvailable,
-	STKCS.QuantityAvailable,
-	--POPData.Backlog,
-	 UPPER(WO.WorkOrderNum),
-	UPPER(C.Name),
-	UPPER(WOQ.QuoteNumber),
-	IMWOM.ItemMasterId,
-	UPPER(IMWOM.partnumber),
-	UPPER(IMWOM.PartDescription),
-	MPNData.mpn,
-    MPNData.mpnDescription,
-	MPNData.conditionId,
-    MPNData.condition,
-	tmpWOM.WorkOrderMaterialsId,
-	UPPER(IMWOM.ManufacturerName),
+	GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+		STK.QuantityAvailable,
+		STKCS.QuantityAvailable,
+		UPPER(WO.WorkOrderNum),
+		UPPER(C.Name),
+		UPPER(WOQ.QuoteNumber),
+		IMWOM.ItemMasterId,
+		UPPER(IMWOM.partnumber),
+		UPPER(IMWOM.PartDescription),
+		MPNData.mpn,
+		MPNData.mpnDescription,
+		MPNData.conditionId,
+		MPNData.condition,
+		tmpWOM.WorkOrderMaterialsId,
+		UPPER(IMWOM.ManufacturerName),
 		UPPER(UOM.ShortName),
-	ApprovedAmount.approvedamount,
-	 MSD.Level1Name,
-	 MSD.Level2Name,
-	 MSD.Level3Name,
-	 MSD.Level4Name,
-	 MSD.Level5Name,
-	 MSD.Level6Name,
-	 MSD.Level7Name,
-	 MSD.Level8Name,
-	 MSD.Level9Name,
-	 MSD.Level10Name
+		ApprovedAmount.approvedamount,
+		MSD.Level1Name,
+		MSD.Level2Name,
+		MSD.Level3Name,
+		MSD.Level4Name,
+		MSD.Level5Name,
+		MSD.Level6Name,
+		MSD.Level7Name,
+		MSD.Level8Name,
+		MSD.Level9Name,
+		MSD.Level10Name
 
-	 UPDATE #AwaitingPartsData SET [backlog] = ISNULL(POPDATA.[Backlog], 0)
-	 FROM(
-			SELECT DISTINCT
-				APD.WorkOrderId,
-				APD.ItemMasterId,
-				APD.ConditionId,
-				ISNULL(POP.QuantityBackOrdered, 0) AS Backlog
-			FROM 
-				DBO.PurchaseOrderPart POP WITH (NOLOCK)
-			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
-			INNER JOIN WorkOrderMaterials WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId AND POP.PurchaseOrderId = WOM.POId
-			WHERE 
-				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 0 OR POP.IsKit IS NULL)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND (POP.IsKit = 0 OR POP.IsKit IS NULL)))
-			--GROUP BY 
-			--	APD.WorkOrderId,
-			--	APD.ItemMasterId,
-			--	APD.ConditionId
-				--POP.QuantityOrdered
-		) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
+	UPDATE #AwaitingPartsData SET [backlog] = ISNULL(POPDATA.[Backlog], 0)
+	FROM(
+	SELECT 
+		APD.WorkOrderId, 
+		APD.ItemMasterId,
+		APD.ConditionId,
+		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
+		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId
+	GROUP BY 
+		APD.WorkOrderId, 
+		APD.ItemMasterId,
+		APD.ConditionId
+	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 	INSERT INTO #AwaitingPartsData
 	SELECT DISTINCT 0 AS TotalRecordsCount,
@@ -468,7 +441,7 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 			FROM 
 				DBO.Stockline WITH (NOLOCK)
 			WHERE 
-				IsCustomerStock = 0 AND IsParent = 1
+				ISNULL(IsCustomerStock, 0) = 0 AND ISNULL(IsParent, 0) = 1
 			GROUP BY 
 				ItemMasterId, ConditionId
 		) AS STK ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId
@@ -480,48 +453,11 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 			FROM 
 				DBO.Stockline WITH (NOLOCK)
 			WHERE 
-				IsCustomerStock = 1 AND IsParent = 1
+				ISNULL(IsCustomerStock, 0) = 1 AND ISNULL(IsParent, 0) = 1
 			GROUP BY 
 				ItemMasterId, ConditionId
 		) AS STKCS ON tmpWOM.ItemMasterId = STKCS.ItemMasterId AND tmpWOM.ConditionId = STKCS.ConditionId
 		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
-		--OUTER APPLY(
-		--		SELECT 
-		--		CASE 
-		--			WHEN SUM(ISNULL(PDATA.Backlog, 0)) < 0 THEN 0
-		--			ELSE SUM(ISNULL(PDATA.Backlog, 0)) 
-		--		END AS Backlog
-		--	FROM (
-		--		SELECT 
-		--			(ISNULL(POP.QuantityOrdered, 0)) - SUM(ISNULL(STKPO.Quantity, 0)) AS Backlog
-		--		FROM 
-		--			DBO.PurchaseOrderPart POP WITH (NOLOCK)
-		--		INNER JOIN DBO.PurchaseOrder PO WITH (NOLOCK) 
-		--			ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-		--		INNER JOIN DBO.Stockline STKPO WITH (NOLOCK) 
-		--			ON STKPO.PurchaseOrderId = PO.PurchaseOrderId 
-		--			AND STKPO.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId 
-		--			AND STKPO.IsParent = 1
-		--			AND STKPO.isDeleted = 0
-		--		WHERE 
-		--			PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) 
-		--			AND (
-		--				(POP.ItemMasterId = WOM.ItemMasterId 
-		--				 AND POP.ConditionId = WOM.ConditionCodeId 
-		--				 AND (POP.IsKit = 1)) 
-		--				OR 
-		--				(POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId 
-		--				 AND (POP.IsKit = 1))
-		--			)
-		--		GROUP BY 
-		--			POP.QuantityOrdered
-		--	) AS PDATA
-		--	--WHERE EXISTS (
-		--	--	SELECT 1
-		--	--	FROM WorkOrder WOM
-		--	--	WHERE WOM.WorkOrderId = WO.WorkOrderId
-		--	--)
-		--) AS POPDATA
 		OUTER APPLY (
 			SELECT 
 				UPPER(IMWOPN.partnumber) AS mpn,
@@ -576,85 +512,85 @@ GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReser
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
-	STK.QuantityAvailable,
-	STKCS.QuantityAvailable,
-	--POPData.Backlog,
-	UPPER(WO.WorkOrderNum),
-	UPPER(C.Name),
-	UPPER(WOQ.QuoteNumber),
-	IMWOM.ItemMasterId,
-	UPPER(IMWOM.partnumber),
-	UPPER(IMWOM.PartDescription),
-	MPNData.mpn,
-    MPNData.mpnDescription,
-	MPNData.conditionId,
-    MPNData.condition,
-	tmpWOM.WorkOrderMaterialsId,
-	UPPER(IMWOM.ManufacturerName),
+	GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+		STK.QuantityAvailable,
+		STKCS.QuantityAvailable,
+		UPPER(WO.WorkOrderNum),
+		UPPER(C.Name),
+		UPPER(WOQ.QuoteNumber),
+		IMWOM.ItemMasterId,
+		UPPER(IMWOM.partnumber),
+		UPPER(IMWOM.PartDescription),
+		MPNData.mpn,
+		MPNData.mpnDescription,
+		MPNData.conditionId,
+		MPNData.condition,
+		tmpWOM.WorkOrderMaterialsId,
+		UPPER(IMWOM.ManufacturerName),
 		UPPER(UOM.ShortName),
-	ApprovedAmount.approvedamount,
-	 MSD.Level1Name,
-	 MSD.Level2Name,
-	 MSD.Level3Name,
-	 MSD.Level4Name,
-	 MSD.Level5Name,
-	 MSD.Level6Name,
-	 MSD.Level7Name,
-	 MSD.Level8Name,
-	 MSD.Level9Name,
-	 MSD.Level10Name
-
+		ApprovedAmount.approvedamount,
+		MSD.Level1Name,
+		MSD.Level2Name,
+		MSD.Level3Name,
+		MSD.Level4Name,
+		MSD.Level5Name,
+		MSD.Level6Name,
+		MSD.Level7Name,
+		MSD.Level8Name,
+		MSD.Level9Name,
+		MSD.Level10Name
 
 	UPDATE #AwaitingPartsData SET [backlog] = ISNULL(POPDATA.[Backlog], 0)
-	 FROM(
-			SELECT DISTINCT
-				APD.WorkOrderId,
-				APD.ItemMasterId,
-				APD.ConditionId,
-				ISNULL(POP.QuantityBackOrdered, 0) AS Backlog
-			FROM 
-				DBO.PurchaseOrderPart POP WITH (NOLOCK)
-			INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
-			INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId 
-			INNER JOIN WorkOrderMaterialsKit WOM WITH(NOLOCK) ON APD.WorkOrderId = WOM.WorkOrderId AND POP.PurchaseOrderId = WOM.POId
-			WHERE 
-				((POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId AND (POP.IsKit = 1)) OR (POP.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND (POP.IsKit = 1))) AND APD.isKitType = 1
-			--GROUP BY 
-			--	APD.WorkOrderId,
-			--	APD.ItemMasterId,
-			--	APD.ConditionId
-				--POP.QuantityOrdered
-		) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
+	FROM(
+	SELECT 
+		APD.WorkOrderId, 
+		APD.ItemMasterId,
+		APD.ConditionId,
+		SUM(ISNULL(POP.QuantityBackOrdered, 0)) AS Backlog 
+	FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
+		INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.StatusId IN (@POOpenStatus, @POPendingStatus, @POFulFillingStatus) AND PO.IsDeleted = 0
+		INNER JOIN #AwaitingPartsData APD WITH(NOLOCK) ON APD.WorkOrderId = POP.WorkOrderId
+	WHERE POP.WorkOrderId IS NOT NULL AND APD.WorkOrderId = POP.WorkOrderId AND APD.ItemMasterId = POP.ItemMasterId AND APD.ConditionId = POP.ConditionId AND APD.isKitType = 1
+	GROUP BY 
+		APD.WorkOrderId, 
+		APD.ItemMasterId,
+		APD.ConditionId
+	) POPDATA WHERE POPDATA.WorkOrderId = #AwaitingPartsData.WorkOrderId AND POPDATA.ItemMasterId = #AwaitingPartsData.ItemMasterId AND POPDATA.ConditionId = #AwaitingPartsData.ConditionId
 
 
 	IF ISNULL(@PageSize,0)=0
 	BEGIN
 		SELECT @PageSize = COUNT(*)
-		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable) > 0
+		FROM #AwaitingPartsData FC   WITH (NOLOCK)
+		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0 OR (backlog > 0 and quantityRequested - quantityReserved - quantityIssued - quantityAvailable - customerStock > 0)
 		ORDER BY WorkOrderId DESC
 	END
 
 	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts INT = 0;
 
-	SELECT @TotalWorkOrder = COUNT(DISTINCT WorkOrderId) FROM #AwaitingPartsData FC
-	WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0;
+	SELECT @TotalWorkOrder = COUNT(DISTINCT WorkOrderId) FROM #AwaitingPartsData FC WITH (NOLOCK)
+	WHERE  (ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) > 0 OR 
+		(ISNULL(backlog, 0) > 0 and ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(customerStock, 0) > 0)
 
-	SELECT @TotalAwaitingParts = SUM(quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) FROM #AwaitingPartsData FC
-	WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0
+	SELECT @TotalAwaitingParts = SUM(ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) FROM #AwaitingPartsData FC WITH (NOLOCK)
+	WHERE  (ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) > 0 OR 
+		(ISNULL(backlog, 0) > 0 and ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(customerStock, 0) > 0)
 
-SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
-SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
+	SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
+	SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
 	IF @IsDownload = 1
 	BEGIN
 		SELECT DISTINCT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, mpn, mpnDescription, pn, pnDescription,stagecode, condition, manufacturer, uom, approvedamount, openDate, requestDate, estimatedShipDate 
 			, quantityRequested, quantityReserved, quantityIssued, (quantityRequested - quantityReserved - quantityIssued) AS quantityRemaining, quantityAvailable, backlog, customerStock, customerApprovedDate
 			, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-			, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) AS toBeOrdered
-		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0
+			, CASE 
+				WHEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) >= 0 THEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock)
+				ELSE 0
+				END AS toBeOrdered
+		FROM #AwaitingPartsData FC   WITH (NOLOCK)
+		WHERE (ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) > 0 OR 
+			(ISNULL(backlog, 0) > 0 and ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(customerStock, 0) > 0)
 		ORDER BY WorkOrderId DESC;
 	END
 	ELSE
@@ -662,47 +598,51 @@ SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumbe
 		SELECT DISTINCT COUNT(2) OVER () AS TotalRecordsCount, @TotalWorkOrder AS WorkOrderTotal, @TotalAwaitingParts AS AwaitingPartsTotal, WorkOrderId, wonum, customername, woqnum, mpn, mpnDescription, pn, pnDescription,stagecode, condition, manufacturer, uom, approvedamount, openDate, requestDate, estimatedShipDate
 			, quantityRequested, quantityReserved, quantityIssued, (quantityRequested - quantityReserved - quantityIssued) AS quantityRemaining, quantityAvailable, backlog, customerStock, customerApprovedDate
 			, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-			, (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) AS toBeOrdered
-		FROM #AwaitingPartsData FC  
-		WHERE (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) > 0
+			, CASE 
+				WHEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock) >= 0 THEN (quantityRequested - quantityReserved - quantityIssued - quantityAvailable - backlog - customerStock)
+				ELSE 0
+				END AS toBeOrdered
+		FROM #AwaitingPartsData FC   WITH (NOLOCK)
+		WHERE (ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) > 0 OR 
+			(ISNULL(backlog, 0) > 0 and ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(customerStock, 0) > 0)
 		ORDER BY WorkOrderId DESC  
-		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
+		OFFSET((ISNULL(@PageNumber, 0)-1) * ISNULL(@pageSize, 0)) ROWS FETCH NEXT ISNULL(@pageSize, 0) ROWS ONLY;
 	END
 
 
-COMMIT TRANSACTION
-  END TRY
+	COMMIT TRANSACTION
+	END TRY
 
-  BEGIN CATCH
-  ROLLBACK TRANSACTION
+	BEGIN CATCH
+	ROLLBACK TRANSACTION
 DECLARE @ErrorLogID int,
-  @DatabaseName varchar(100) = DB_NAME()
-  -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-  ,
-  @AdhocComments varchar(150) = '[usprpt_GetWorkOrderAwaitingPartsReport]',
-  @ProcedureParameters varchar(3000) = 
-  '@Parameter3 = ''' + CAST(ISNULL(@level1, '') AS varchar(100)) +
-  '@Parameter4 = ''' + CAST(ISNULL(@level2, '') AS varchar(100)) +
-  '@Parameter5 = ''' + CAST(ISNULL(@level3, '') AS varchar(100)) +
-  '@Parameter6 = ''' + CAST(ISNULL(@level4, '') AS varchar(100)) +
-  '@Parameter7 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)),   
+	@DatabaseName varchar(100) = DB_NAME()
+	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+	,
+	@AdhocComments varchar(150) = '[usprpt_GetWorkOrderAwaitingPartsReport]',
+	@ProcedureParameters varchar(3000) = 
+	'@Parameter3 = ''' + CAST(ISNULL(@level1, '') AS varchar(100)) +
+	'@Parameter4 = ''' + CAST(ISNULL(@level2, '') AS varchar(100)) +
+	'@Parameter5 = ''' + CAST(ISNULL(@level3, '') AS varchar(100)) +
+	'@Parameter6 = ''' + CAST(ISNULL(@level4, '') AS varchar(100)) +
+	'@Parameter7 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)),   
   
-  @ApplicationName varchar(100) = 'PAS'
+	@ApplicationName varchar(100) = 'PAS'
 
-  -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-EXEC Splogexception @DatabaseName = @DatabaseName,
-@AdhocComments = @AdhocComments,
-@ProcedureParameters = @ProcedureParameters,
-@ApplicationName = @ApplicationName,
-@ErrorLogID = @ErrorLogID OUTPUT;
+	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+	EXEC Splogexception @DatabaseName = @DatabaseName,
+		@AdhocComments = @AdhocComments,
+		@ProcedureParameters = @ProcedureParameters,
+		@ApplicationName = @ApplicationName,
+		@ErrorLogID = @ErrorLogID OUTPUT;
 
-RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+	RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
 
-RETURN (1);
-  END CATCH
+	RETURN (1);
+	END CATCH
 
-  IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
-  BEGIN
-DROP TABLE #managmetnstrcture
-  END
+	IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
+	BEGIN
+		DROP TABLE #managmetnstrcture
+	END
 END

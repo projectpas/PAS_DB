@@ -14,6 +14,7 @@
     1    09/06/2024   Vishal Suthar     Created
 	2    12-11-2024   Shrey Chandegara  Updated because TraceableToName,tagdate,tagtype not bind. 
 	3    13-11-2024   Vishal Suthar		Fixed the QtyAvail and QtyOH
+	4    03-12-2024   AMIT GHEDIYA		Fixed Get Saved CurrId from part table.
      
 -- EXEC [DBO].[GetSalesOrderQuotePartView] 897, 'USD'
 **************************************************************/
@@ -64,7 +65,7 @@ BEGIN
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginAmount, 0) ELSE ISNULL(PS.MarginAmount, 0) END MarginAmount,
         ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginAmount, 0) ELSE ISNULL(PS.MarginAmount, 0) END) * stk.QtyQuoted), 0) MarginAmountExtended,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginPercentage, 0) ELSE ISNULL(PS.MarginPercentage, 0) END MarginPercentage,
-        @CurrencyDisplayName AS CurrencyDescription,
+        --@CurrencyDisplayName AS CurrencyDescription,
         ISNULL(cp.ConditionId, 0) AS ConditionId,
         ISNULL(cp.Description, '') AS ConditionDescription,
         ISNULL(qs.IdNumber, '') AS IdNumber,
@@ -134,7 +135,9 @@ BEGIN
         part.IsNoQuote,
 		qs.TraceableToName,
 		qs.TagDate,
-		qs.TagType
+		qs.TagType,
+		ISNULL(fcu.Code, '') AS CurrencyDescription,
+        part.CurrencyId
     FROM DBO.SalesOrderQuotePartV1 part  WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost PS WITH (NOLOCK) ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId
@@ -149,6 +152,7 @@ BEGIN
     LEFT JOIN DBO.Priority pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     LEFT JOIN DBO.SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
     LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
+	LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
     --ORDER BY part.ItemNo;
 	END TRY

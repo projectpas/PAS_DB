@@ -19,6 +19,7 @@
 	6    11/24/2024   Amit Ghediya      Modified to eccn & update cond.
 	7    11/25/2024   RAJESH GAMI       Modified to change the condition for QtyAvailable and QtyOnHand (SC.SalesOrderStocklineId IS NOT NULL to Stk.SalesOrderStocklineId IS NOT NULL)
 	8    12/04/2024   RAJESH GAMI       Modified to Devide by 0 issue
+	9    12/06/2024   Amit Ghediya      Modified to update cond.
      
 -- EXEC [DBO].[GetSalesOrderPartView] 1475
 **************************************************************/
@@ -172,7 +173,8 @@ BEGIN
     LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
     LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
     LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
-    LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SO.SalesOrderQuoteId = q.SalesOrderQuoteId
+	LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+    LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     --LEFT JOIN DBO.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId AND part.SalesOrderId = rPart.SalesOrderId
     LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId

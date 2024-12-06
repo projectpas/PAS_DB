@@ -33,15 +33,15 @@ BEGIN
 			   ISNULL(sobii.[NoofPieces],0) NoofPieces,
 			   ISNULL(SOSC.[NetSaleAmount],0) / ISNULL(sobii.[NoofPieces],0) UnitPrice,
 			   stk.[StockLineId]
-		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
-		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsProforma,0) = 1
-		LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1 AND sobi.SalesOrderId = @SalesOrderId
-		WHERE sop.SalesOrderId = @SalesOrderId 
-		  AND sop.SalesOrderPartId = @SalesOrderPartId
-		  AND stk.StockLineId = @StocklineId
+		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
+		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.[SalesOrderPartId] = sop.[SalesOrderPartId]
+		LEFT JOIN [dbo].[SalesOrderPartCost] spc WITH (NOLOCK) ON spc.[SalesOrderPartId] = sop.[SalesOrderPartId]
+		LEFT JOIN [dbo].[SalesOrderStockLineCost] SOSC WITH (NOLOCK) ON SOSC.[SalesOrderStocklineId] = stk.[SalesOrderStocklineId]
+		LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.[SalesOrderPartId] = sop.[SalesOrderPartId] AND (sobii.[StockLineId] = stk.[StockLineId] OR ISNULL(sobii.[StockLineId], 0) = 0) AND ISNULL(sobii.[IsProforma],0) = 1 AND ISNULL(sobii.[IsVersionIncrease],0) = 0
+		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON sobi.[SOBillingInvoicingId] = sobii.[SOBillingInvoicingId]  AND ISNULL(sobi.[IsProforma],0) = 1 AND sobi.[SalesOrderId] = @SalesOrderId AND ISNULL(sobi.[IsVersionIncrease],0) = 0
+		WHERE sop.[SalesOrderId] = @SalesOrderId 
+		  AND sop.[SalesOrderPartId] = @SalesOrderPartId
+		  AND stk.[StockLineId] = @StocklineId
 	END	
 	ELSE
 	BEGIN
@@ -49,13 +49,13 @@ BEGIN
 			   ISNULL(sobii.[NoofPieces],0) NoofPieces,
 			   ISNULL(spc.[NetSaleAmount],0) / ISNULL(sobii.[NoofPieces],0) UnitPrice,
 			   NULL [StockLineId]
-		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
-		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsProforma,0) = 1
-		LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1 AND sobi.SalesOrderId = @SalesOrderId
-		WHERE sop.SalesOrderId = @SalesOrderId 
-		  AND sop.SalesOrderPartId = @SalesOrderPartId
+		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
+		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.[SalesOrderPartId] = sop.[SalesOrderPartId]
+		LEFT JOIN [dbo].[SalesOrderPartCost] spc WITH (NOLOCK) ON spc.[SalesOrderPartId] = sop.[SalesOrderPartId]
+		LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.[SalesOrderPartId] = sop.[SalesOrderPartId] AND (sobii.[StockLineId] = stk.[StockLineId] OR ISNULL(sobii.[StockLineId], 0) = 0) AND ISNULL(sobii.[IsProforma],0) = 1 AND ISNULL(sobii.[IsVersionIncrease],0) = 0
+		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON sobi.[SOBillingInvoicingId] = sobii.[SOBillingInvoicingId]  AND ISNULL(sobi.[IsProforma],0) = 1 AND sobi.[SalesOrderId] = @SalesOrderId AND ISNULL(sobi.[IsVersionIncrease],0) = 0
+		WHERE sop.[SalesOrderId] = @SalesOrderId 
+		  AND sop.[SalesOrderPartId] = @SalesOrderPartId
 	END
 
   END TRY      
@@ -63,7 +63,7 @@ BEGIN
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetSalesOrderProformaAmountDetails'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''  
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100))
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
               exec spLogException   

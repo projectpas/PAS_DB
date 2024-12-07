@@ -20,6 +20,7 @@
 	4    17-MAY-2024		Vishal Suthar		Modified Unit Cost, Ext. Cost to Unit Price and Ext. Price
 	5    10-OCT-2024		Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	6    01-DEC-2024		Vishal Suthar		Fixed amount and qty issues in the report
+	7    12-DEC-2024		Vishal Suthar		Fixed an issue with dates printed with 01-01-0001 even when it is NULL
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
@@ -208,7 +209,10 @@ BEGIN
 			  SELECT COUNT(2) OVER () AS TotalRecordsCount, sonum, quotenum, status, pn, pndescription, customer, custref, qty,
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
 					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
-					opendate, custreqdate, shipdate, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
+					opendate, 
+					CASE WHEN custreqdate = '01/01/0001' THEN NULL ELSE custreqdate END AS custreqdate, 
+					CASE WHEN shipdate = '01/01/0001' THEN NULL ELSE shipdate END AS shipdate, 
+					level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
 					WC.TotalUnitCost,
 					WC.TotalExtCost
 				FROM FinalCTE FC

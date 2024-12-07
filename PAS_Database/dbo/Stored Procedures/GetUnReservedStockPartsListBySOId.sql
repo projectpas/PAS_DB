@@ -15,6 +15,7 @@
  ** PR   Date			 Author				Change Description            
  ** --   --------		 -------			--------------------------------          
      1    10/10/2024	AMIT GHEDIYA		Created
+     2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
 
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1103
 **************************************************************/
@@ -33,7 +34,7 @@ BEGIN
 			SET @ItemMasterId = NULL;	
 		END
 
-		SELECT DISTINCT
+		;WITH UnreserveList AS (SELECT DISTINCT
 			   sopi.SalesOrderReservePartId,
 			   sop.SalesOrderPartId,
 			   so.SalesOrderId,
@@ -71,7 +72,12 @@ BEGIN
 			   stl.StockLineNumber,
 			   stl.ControlNumber,
 			   stl.MasterCompanyId,
-			   im.ManufacturerName
+			   im.ManufacturerName,
+			   ISNULL((SELECT ISNULL(sobii.NoofPieces, 0) 
+			   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
+			   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+			   WHERE sobi.SalesOrderId = @SalesOrderId
+			   AND sobii.StockLineId = stl.StockLineId), 0) AS NoofPieces
 		FROM [DBO].[SalesOrder] so WITH(NOLOCK)
 		JOIN [DBO].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
@@ -81,11 +87,54 @@ BEGIN
 		LEFT JOIN [DBO].[Condition] condi WITH(NOLOCK) ON sop.ConditionId = condi.ConditionId
 		WHERE so.IsDeleted = 0 
 		AND sop.IsDeleted = 0
-		AND sopi.TotalReserved > 0
+		AND (sopi.TotalReserved > 0)
 		AND so.SalesOrderId = @SalesOrderId
-		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId);
+		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId))
+
+		SELECT SalesOrderReservePartId,
+			   SalesOrderPartId,
+			   SalesOrderId,
+			   ItemMasterId,
+			   ConditionId,
+			   [Description],
+			   PartNumber,
+			   PartDescription,
+			   QtyOrder,
+			   ReservedById,
+			   IssuedById,
+			   ReservedDate,
+			   IssuedDate,
+			   IsAltPart,
+			   IsEquPart,
+			   AltPartMasterPartId,
+			   EquPartMasterPartId,
+			   QtyToUnReserve,
+			   QtyToReserve,
+			   TotalReserved,
+			   PartStatusId,
+			   StockType,
+			   QuantityAvailable,
+			   QuantityOnHand,
+			   QuantityOnOrder,
+			   StockLineId,
+			   QuantityIssued,
+			   QuantityReserved,
+			   QuantityToReceive,
+			   StockLineNumber,
+			   ControlNumber,
+			   MasterCompanyId,
+			   ManufacturerName
+			   FROM UnreserveList
+			   WHERE NoofPieces = 0;
   END TRY
   BEGIN CATCH
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     IF @@trancount > 0
 		ROLLBACK TRAN;
 		DECLARE @ErrorLogID int

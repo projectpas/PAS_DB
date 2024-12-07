@@ -22,9 +22,10 @@
 	4    01/29/2024		Hemant Saliya		Resolved Error 
 	5 	 22/03/2024     Moin Bloch          Added New Field @EvidenceId
 	6 	 18/07/2024     Moin Bloch          Added @LocationId Field
+	7    12/07/2024		Hemant Saliya		Convert Serial NUmber to Varchar
 	
 
-exec USP_TenderStockLineForSubAssembly @WorkOrderId=4185,@WorkFlowWorkOrderId=3646,@WorkOrderMaterialsId=16481
+exec USP_TenderStockLineForSubAssembly @WorkOrderId=3809,@WorkFlowWorkOrderId=3280,@WorkOrderMaterialsId=15917
 **************************************************************/
  --Select * from WorkOrderMaterials where WorkOrderId =  4185
 CREATE   PROCEDURE [dbo].[USP_TenderStockLineForSubAssembly]
@@ -39,7 +40,6 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-
 				DECLARE @WOPartNoId BIGINT = 0,
 				@IsMaterialStocklineCreate BIT = 1,  
 				@IsCustomerStock BIT = 0,  
@@ -90,7 +90,7 @@ BEGIN
 				@QuantityIssued BIGINT = 0,
 				@QtyToTender BIGINT = 0,
 				@ARConditionId BIGINT = 0,
-				@CurrentSerialNumber BIGINT = 0,
+				@CurrentSerialNumber VARCHAR(50),
 				@MaterialItemMasterId BIGINT = 0,
 				@MaterialIsSerialized BIT = 0,
 				@WorkOrderPartNoId BIGINT;
@@ -141,7 +141,7 @@ BEGIN
 						CodeSufix VARCHAR(50) NULL,
 						StartsFrom BIGINT NULL,
 				)
-				
+
 				SET @TearDownWO = (SELECT Id FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] = 'Teardown');
 				SET @CodeTypeId = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WHERE [CodeType] = 'Receiver Number Tender stockline');
 				SET @ObtainFromTypeId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
@@ -181,7 +181,6 @@ BEGIN
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
 
 				/*****************Quntity for Part : END*******************/
-				
 				SELECT @ProvisionId = ProvisionId, @Quantity = ISNULL(Quantity, 0), @ConditionId = ConditionCodeId, @PartQtyToTurnIn = ISNULL(QtyToTurnIn, 0), @MaterialItemMasterId = ISNULL(ItemMasterId, 0)
 				FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
@@ -196,7 +195,7 @@ BEGIN
 				FROM [dbo].[Customer] C WITH(NOLOCK) 
 				LEFT JOIN [dbo].[CustomerAffiliation] CAF WITH(NOLOCK) ON c.CustomerAffiliationId = CAF.CustomerAffiliationId
 				WHERE C.CustomerId = @CustomerId;
-				
+
 				SELECT @ObtainFrom = CustomerId, @SelectedCustomerAffiliation = ISNULL(CustomerAffiliationId, 0), @ObtainFromName = [Name] FROM #tempCustomer
 
 				IF(ISNULL(@SelectedCustomerAffiliation, 0) = (SELECT CustomerAffiliationId FROM CustomerAffiliation WHERE [Description] = 'External'))
@@ -223,7 +222,7 @@ BEGIN
 
 				SELECT @UnitOfMeasureId = PurchaseUnitOfMeasureId, @IsSerialized = IsSerialized,
 					   @ManufacturerId = ManufacturerId, @ReceivedDate = GETDATE(), @SiteId = SiteId, @WarehouseId = WarehouseId, @LocationId= LocationId, @ShelfId = ShelfId, @BinId = BinId FROM itemData
-
+		
 				IF(@WOTypeId = @TearDownWO)
 				BEGIN
 					SET @IsSerialized = 1;
@@ -252,7 +251,7 @@ BEGIN
 
 				DECLARE @TOTALQTY BIGINT = 0;
 				SET @TOTALQTY = @Quantity
-
+		
 				WHILE(@TOTALQTY > 0)
 				BEGIN
 
@@ -277,25 +276,26 @@ BEGIN
 
 					SELECT @ItemMasterId = [ItemMasterId], @ManagementStructureId = ManagementStructureId, @CurrentSerialNumber = CurrentSerialNumber 
 					FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
-
-					SET @CurrentSerialNumber = CASE WHEN @CurrentSerialNumber IS NULL THEN 1 ELSE @CurrentSerialNumber + 1 END
-
+				
+					SET @CurrentSerialNumber = CASE WHEN @CurrentSerialNumber IS NULL THEN '1' ELSE @CurrentSerialNumber END
+		
 					IF(@MaterialItemMasterId > 0)
 					BEGIN
 						IF(@MaterialIsSerialized = 1 AND @WOTypeId = @TearDownWO)
 						BEGIN
-							SET @SerialNumber = @WorkOrderNumber + '-' + CAST(@CurrentSerialNumber AS VARCHAR);
+							SET @SerialNumber = @WorkOrderNumber + '-' + @CurrentSerialNumber;
 						END
 						ELSE
 						BEGIN
 							SET @SerialNumber = '';
 						END
+				
 					END
 					ELSE
 					BEGIN
-						SET @SerialNumber = @WorkOrderNumber + '-' + CAST((@CurrentSerialNumber) AS VARCHAR);
+						SET @SerialNumber = @WorkOrderNumber + '-' + @CurrentSerialNumber;
 					END
-
+				
 					IF(ISNULL(@IsSerialized, 0) = 0)
 						SET @SerialNumber = '';
 					
@@ -306,17 +306,18 @@ BEGIN
 						@TraceableToTypeId, @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate,
 						@ReceiverNumber, @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @MasterCompanyId, @UpdatedBy,
 						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId, @EvidenceId
-					
+			
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 					
 					IF OBJECT_ID(N'tempdb..#tmpWOCodePrefixesNew') IS NOT NULL
 					BEGIN
 						TRUNCATE TABLE #tmpWOCodePrefixesNew;
 					END
-
+			
 					SET @TOTALQTY = @TOTALQTY - 1
 				END
 			END
+		
 		COMMIT  TRANSACTION
 
 		END TRY    

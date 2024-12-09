@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1    09/19/2024   Vishal Suthar		Created
     2    10/17/2024   Vishal Suthar		Modified to make use of new SOQ Part tables
+    3    12/09/2024   Vishal Suthar		Fixed an issue with qty in analysis
 
 EXEC [dbo].[USP_GetSOQAnalysisData] 954
 **************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 				stk.StockLineId stockLineId,
 				qs.StockLineNumber AS stockLineNumber,
 				part.FxRate fxRate,
-				CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE part.QtyQuoted END qtyQuoted,
+				CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE (CASE WHEN part.QtyQuoted = 0 THEN part.QtyRequested ELSE part.QtyQuoted END) END qtyQuoted,
 				CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN SOQSC.UnitSalesPrice ELSE SOQPC.UnitSalesPrice END AS unitSalePrice,
 				CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN SOQSC.MarkUpPercentage ELSE SOQPC.MarkUpPercentage END markUpPercentage,
 				0 AS salesBeforeDiscount,

@@ -16,8 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2024   Vishal Suthar Created
     2    12/03/2024   Vishal Suthar Handled null values
+    3    12/09/2024   Vishal Suthar Fix for qty issue when stockline is not added
      
- -- EXEC DBO.GetSalesOrderQuoteParts 945
+ -- EXEC DBO.GetSalesOrderQuoteParts 789
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteParts]
     @SalesQuoteId BIGINT
@@ -33,7 +34,7 @@ BEGIN
 			Stk.StockLineId,
 			qs.StockLineNumber,
 			part.FxRate,
-			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE part.QtyQuoted END QtyQuoted,
+			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(stk.QtyQuoted, 0) ELSE (CASE WHEN part.QtyQuoted = 0 THEN part.QtyRequested ELSE part.QtyQuoted END) END QtyQuoted,
 			ISNULL(part.QtyRequested, 0) AS QtyRequested,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.UnitSalesPrice, 0) ELSE ISNULL(SOQPC.UnitSalesPrice, 0) END UnitSalePrice,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.MarkUpPercentage, 0) ELSE ISNULL(SOQPC.MarkUpPercentage, 0) END MarkUpPercentage,
@@ -129,7 +130,7 @@ BEGIN
 			qs.QuantityOnHand,
 			part.IsConvertedToSalesOrder,
 			0 AS ItemNo,
-			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SOQSC.NetSaleAmount, 0) / ISNULL(Stk.QtyQuoted, 1)) ELSE (ISNULL(SOQPC.NetSaleAmount, 0) / ISNULL(part.QtyQuoted, 1)) END UnitSalesPricePerUnit,
+			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SOQSC.NetSaleAmount, 0) / ISNULL(Stk.QtyQuoted, 1)) ELSE (ISNULL(SOQPC.NetSaleAmount, 0) / ISNULL(CASE WHEN part.QtyQuoted > 0 THEN part.QtyQuoted ELSE part.QtyRequested END, 1)) END UnitSalesPricePerUnit,
 			itemMaster.ItemClassificationName,
 			itemMaster.ItemGroup,
 			COALESCE(mf.Name, '') AS ManufacturerName,

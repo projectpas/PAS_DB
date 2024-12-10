@@ -17,7 +17,7 @@
     [NBVAfterDepreciation]  DECIMAL (18, 2) NULL,
     [LastDeprRunPeriod]     VARCHAR (30)    NULL,
     [AccountingCalenderId]  BIGINT          NULL,
-    [MasterCompanyId]       BIGINT          NOT NULL,
+    [MasterCompanyId]       INT             NOT NULL,
     [CreatedBy]             VARCHAR (30)    NOT NULL,
     [CreatedDate]           DATETIME        NOT NULL,
     [UpdatedBy]             VARCHAR (30)    NOT NULL,
@@ -27,6 +27,8 @@
     [DepreciationStartDate] DATETIME        NULL,
     CONSTRAINT [PK_ID] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
+
+
 
 
 

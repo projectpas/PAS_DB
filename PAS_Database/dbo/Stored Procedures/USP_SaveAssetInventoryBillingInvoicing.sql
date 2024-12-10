@@ -14,10 +14,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18/04/2024   Abhishek Jirawla     Created
+	2    03/12/2024   Abhishek Jirawla     Added IsPosted Column
      
 -- EXEC USP_GetAssetInventoryBillingInvoicingPdfData 2
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SaveAssetInventoryBillingInvoicing]  
+CREATE   PROCEDURE [dbo].[USP_SaveAssetInventoryBillingInvoicing]
 	@AssetInventoryId BIGINT,
 	@InvoiceNumber VARCHAR(50),
 	@CustomerId BIGINT,
@@ -64,7 +65,7 @@ BEGIN
 		[BillToCustomerId],	[BillToSiteId],	[BillToAttention],	[ShipToCustomerId],	[ShipToSiteId],	[ShipToAttention],	[IsPartialInvoice],	[CurrencyId],[AvailableCredit],
 		[MasterCompanyId],	[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[InvoiceStatus],	[InvoiceFilePath],[GrandTotal],	[Level1],[Level2],
 		[Level3],[Level4],[SubTotal],[TaxRate],	[SalesTax],[OtherTax],[MiscCharges],[Freight],[RemainingAmount],[PostedDate],[Notes],[SalesTotal],	[CreditMemoUsed],
-		[VersionNo],[IsVersionIncrease],[IsProforma],[IsBilling],[DepositAmount],[UsedDeposit],	[BillToUserType],[ShipToUserType],[ProformaDeposit]
+		[VersionNo],[IsVersionIncrease],[IsProforma],[IsBilling],[DepositAmount],[UsedDeposit],	[BillToUserType],[ShipToUserType],[ProformaDeposit],[IsPosted]
 	)
 	VALUES
 	(
@@ -72,7 +73,7 @@ BEGIN
 		@BillToCustomerId,@BillToSiteId,@BillToAttention,	@ShipToCustomerId,@ShipToSiteId,@ShipToAttention,0,@CurrencyId,0,
 		@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@InvoiceStatus,'',@SalesTotal,@Level1,@Level2,
 		@Level3,@Level4,@SalesTotal,0,	0,0,0,0,0,GETUTCDATE(),@Remarks,@SalesTotal,0,
-		'',0,0,0,0,0,1,1,0
+		'',0,0,0,0,0,1,1,0,0
 	)
 
 	SET @ASBillingInvoicingId = SCOPE_IDENTITY()

@@ -3297,6 +3297,9 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateStockInventoryParam.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderQuotePartsView.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderProformaAmountDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Assets_AddAssetSaleorwriteoff.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDetailsByInventoryID.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDataforInventoryOnEdit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

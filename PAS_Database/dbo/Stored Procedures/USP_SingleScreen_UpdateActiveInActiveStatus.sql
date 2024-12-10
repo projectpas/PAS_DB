@@ -10,6 +10,7 @@
 ** PR   Date         Author  		Change Description              
 ** --   --------     -------		--------------------------------            
    1    05/17/2022   Dipak Karena	Created  
+   2    12/10/2024   Hemant Saliya	Updated For Updated Date   
        
 **************************************************************/
 --EXEC  USP_SingleScreen_UpdateActiveInActiveStatus 10, 0, 'assetlocation'
@@ -42,7 +43,7 @@ BEGIN
   
 	EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
 
-    SET @Query = 'UPDATE [' + @PageName + '] SET IsActive =' + CAST(@Status AS VARCHAR) + ' WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
+	SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(), IsActive =' + CAST(@Status AS VARCHAR) + ' WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
   
     EXEC (@Query)  
   END TRY  

@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [sp_GetPickTicketApproveList]           
+ ** File:   [GetPickTicketPrint]           
  ** Author:    
  ** Description: This stored procedure is used to retrieve pickticket data for pdf
  ** Purpose:         
@@ -23,8 +23,9 @@
 	7    11/15/2024   Vishal Suthar			Fixed issue with populating list of stockline in Pick Ticket Print
 	8    11/26/2024   Vishal Suthar			Fixed issue with populating qty to pick and qty remaining
 	9    12/05/2024   Vishal Suthar			Fixed issue with printing and picked qty issue
+	10   12/10/2024	  Moin Bloch		    Modified fixed dublicate Pickticket issue
      
--- -- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
+-- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPickTicketPrint]
 	@SalesOrderId bigint,
@@ -36,71 +37,89 @@ BEGIN
 	SET NOCOUNT ON;
 
 	BEGIN TRY
-	BEGIN TRANSACTION
-	BEGIN
+	--BEGIN TRANSACTION
+	--BEGIN
 		DECLARE @pickTicketNo VARCHAR(50), @masterCompanyId BIGINT
 
-		SELECT @pickTicketNo = SOPickTicketNumber, @masterCompanyId = MasterCompanyId FROM DBO.SOPickTicket WITH (NOLOCK) WHERE SOPickTicketId = @SOPickTicketId;
+		SELECT @pickTicketNo = [SOPickTicketNumber], @masterCompanyId = [MasterCompanyId] FROM [dbo].[SOPickTicket] WITH (NOLOCK) WHERE [SOPickTicketId] = @SOPickTicketId;
 
-		;WITH TResrvePart as (
-		SELECT COUNT(SalesOrderReservePartId) as TotalResrvePart, sopp.SalesOrderId--, MIN(QtyToShip) as NewTotalQtyToShip
-			FROM SalesOrderPartV1 sopp WITH(NOLOCK)
-			LEFT JOIN SalesOrderStocklineV1 SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOPP.SalesOrderPartId
-			INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StockLineId = SOS.StockLineId
-			LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND SOPT.SalesOrderPartStocklineId = SOS.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-			WHERE SOPT.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo --AND sopt.SalesOrderPartId = @SalesOrderPartId
-			group by sopp.SalesOrderId--,QtyToShip
+		;WITH TResrvePart AS (
+			SELECT COUNT([SalesOrderReservePartId]) AS TotalResrvePart, 
+			       sopp.[SalesOrderId]--, MIN(QtyToShip) as NewTotalQtyToShip
+				FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK)
+				 LEFT JOIN [dbo].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOPP.SalesOrderPartId
+				INNER JOIN [dbo].[SalesOrderReserveParts] sorpp WITH(NOLOCK) ON sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StockLineId = SOS.StockLineId
+				 LEFT JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND SOPT.SalesOrderPartStocklineId = SOS.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+				WHERE SOPT.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo --AND sopt.SalesOrderPartId = @SalesOrderPartId
+				group by sopp.SalesOrderId--,QtyToShip
 			)
-		,cte as(
-				select (QtyToShip)as TotalQtyToShip, MIN(QtyRemaining) as MinQty, SOPick.SalesOrderId, SOPick.SalesOrderPartId
-				FROM DBO.SOPickTicket SOPick WITH(NOLOCK) 
+	 ,cte AS(
+			SELECT ISNULL(SUM([QtyToShip]),0) AS TotalQtyToShip, 
+			          MIN([QtyRemaining]) AS MinQty, 
+					  SOPick.[SalesOrderId],
+					  SOPick.[SalesOrderPartId]
+				FROM [dbo].[SOPickTicket] SOPick WITH(NOLOCK) 
 				--JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
-				LEFT JOIN SalesOrderStocklineV1 SOS WITH(NOLOCK) ON SOS.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
+				LEFT JOIN [dbo].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
 				WHERE SOPick.SalesOrderId = @SalesOrderId 
 				AND SOPickTicketNumber = @pickTicketNo
 				--AND SOPick.SalesOrderPartId = @SalesOrderPartId
-				GROUP BY QtyToShip, SOPick.SalesOrderId, SOPick.SalesOrderPartId
-		)
-		SELECT sopt.SOPickTicketId, sopt.CreatedDate as SOPickTicketDate, sopt.SalesOrderId, sl.StockLineNumber, 
-		stk.QtyOrder Qty, 
-		--sopt.QtyToShip as QtyShipped, 
-		--cte.TotalQtyToShip as QtyShipped, 
-		--TResrvePart.NewTotalQtyToShip as QtyToPick, 
-		cte.TotalQtyToShip as QtyToPick, 
-		imt.partnumber as PartNumber, imt.PartDescription, sopt.SOPickTicketNumber,
-		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
-		so.SalesOrderNumber, uom.ShortName as UOM, s.[Name] as SiteName, w.[Name] as WarehouseName, l.[Name] as LocationName, sh.[Name] as ShelfName,
-		bn.[Name] as BinName, p.[Description] as PriorityName, po.PurchaseOrderNumber as PONumber,
-		sl.QuantityOnHand, sl.QuantityAvailable as QtyAvailable, sop.Notes, 
-		--(sop.QtyRequested - cte.TotalQtyToShip) as QtyToPick 
-		--QtyToShip as QtyToPick,
-		QtyToShip as QtyShipped,
-		--sopt.QtyRemaining
-		CASE WHEN MinQty = 0 AND TResrvePart.TotalResrvePart > 1 THEN 0 
-		WHEN MinQty > 0 THEN MinQty ELSE sopt.QtyRemaining END AS QtyRemaining
-		from SOPickTicket sopt WITH(NOLOCK)
+				--GROUP BY QtyToShip, SOPick.SalesOrderId, SOPick.SalesOrderPartId
+				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
+		     )		
+		SELECT sopt.[SOPickTicketId], 
+		       sopt.[CreatedDate] AS SOPickTicketDate, 
+			   sopt.[SalesOrderId], 
+			     sl.[StockLineNumber], 
+			    stk.[QtyOrder] Qty, 		
+			 --cte.TotalQtyToShip as QtyToPick, 		
+			   CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN cte.[TotalQtyToShip] + 0 
+			   WHEN [MinQty] > 0 THEN cte.[TotalQtyToShip] + [MinQty] ELSE cte.[TotalQtyToShip] + sopt.[QtyRemaining] END AS [QtyToPick],
+			   imt.[partnumber] AS PartNumber, 
+			   imt.[PartDescription], 
+			  sopt.[SOPickTicketNumber],
+			    sl.[SerialNumber], 
+			    sl.[ControlNumber], 
+			    sl.[IdNumber], 
+			    co.[Description] AS ConditionDescription,
+			    so.[SalesOrderNumber], 
+			   uom.[ShortName] AS UOM, 
+			     s.[Name] AS SiteName, 
+			     w.[Name] AS WarehouseName, 
+			     l.[Name] AS LocationName, 
+			    sh.[Name] AS ShelfName,
+			    bn.[Name] AS BinName, 
+			     p.[Description] AS PriorityName, 
+			    po.[PurchaseOrderNumber] AS PONumber,
+			    sl.[QuantityOnHand], 
+			    sl.[QuantityAvailable] AS QtyAvailable, 
+			   sop.[Notes], 		
+			  sopt.[QtyToShip] AS QtyShipped,			
+			  CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN 0 WHEN [MinQty] > 0 THEN [MinQty] ELSE sopt.[QtyRemaining] END AS QtyRemaining
+		FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
 		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
-		INNER JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
-		INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		INNER JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
-		INNER JOIN ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN Condition co WITH(NOLOCK) ON co.ConditionId = sop.ConditionId
-		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
-		LEFT JOIN [Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
-		LEFT JOIN Warehouse w WITH(NOLOCK) ON w.WarehouseId = sl.WarehouseId
-		LEFT JOIN [Location] l WITH(NOLOCK) ON l.LocationId = sl.LocationId
-		LEFT JOIN Shelf sh WITH(NOLOCK) ON sh.ShelfId = sl.ShelfId
-		LEFT JOIN Bin bn WITH(NOLOCK) ON bn.BinId = sl.BinId
-		LEFT JOIN [Priority] p WITH(NOLOCK) ON p.PriorityId = sop.PriorityId
-		LEFT JOIN PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId
-		LEFT JOIN TResrvePart WITH(NOLOCK) ON TResrvePart.SalesOrderId = sopt.SalesOrderId
+		INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
+		INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
+		INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		INNER JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
+		INNER JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
+		 LEFT JOIN [dbo].[Condition] co WITH(NOLOCK) ON co.ConditionId = sop.ConditionId
+		 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
+		 LEFT JOIN [dbo].[Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
+		 LEFT JOIN [dbo].[Warehouse] w WITH(NOLOCK) ON w.WarehouseId = sl.WarehouseId
+		 LEFT JOIN [dbo].[Location] l WITH(NOLOCK) ON l.LocationId = sl.LocationId
+		 LEFT JOIN [dbo].[Shelf] sh WITH(NOLOCK) ON sh.ShelfId = sl.ShelfId
+		 LEFT JOIN [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
+		 LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) ON p.PriorityId = sop.PriorityId
+		 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId
+		 LEFT JOIN TResrvePart WITH(NOLOCK) ON TResrvePart.SalesOrderId = sopt.SalesOrderId
 		WHERE 
 		so.SalesOrderId = @SalesOrderId
 		--sopt.SOPickTicketId = @SOPickTicketId;
-		AND sopt.SOPickTicketNumber = @pickTicketNo;
-	END
-	COMMIT  TRANSACTION
+		AND sopt.SOPickTicketNumber = @pickTicketNo
+		ORDER BY sopt.SOPickTicketId ASC
+	--END
+	--COMMIT  TRANSACTION
 
 	END TRY    
 	BEGIN CATCH      
@@ -110,17 +129,17 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetPickTicketPrint' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''',
-														@Parameter2 = ' + ISNULL(@SalesOrderPartId,'') + ', 
-														@Parameter3 = ' + ISNULL(@SOPickTicketId,'') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100)) + ''',
+													 @Parameter2 = ' + CAST(ISNULL(@SalesOrderPartId,'') AS VARCHAR(100)) + ', 
+													 @Parameter3 = ' + CAST(ISNULL(@SOPickTicketId,'') AS VARCHAR(100)) + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 
-                    @DatabaseName           = @DatabaseName
-                    , @AdhocComments          = @AdhocComments
-                    , @ProcedureParameters = @ProcedureParameters
-                    , @ApplicationName        =  @ApplicationName
-                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+                    @DatabaseName = @DatabaseName
+                  , @AdhocComments = @AdhocComments
+                  , @ProcedureParameters = @ProcedureParameters
+                  , @ApplicationName = @ApplicationName
+                  , @ErrorLogID = @ErrorLogID OUTPUT ;
             RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
             RETURN(1);
 	END CATCH

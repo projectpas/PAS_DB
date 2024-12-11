@@ -15,6 +15,7 @@
 	5	 03/29/2024	  Bhargav Saliya Get CreditTerms From SO instead of CreditTerms
 	6	 11/04/2024	  Vishal Suthar  Modified to make use of new SO Part tables
 	7	 11/08/2024	  AMIT GHEDIYA   Modified to get shipping weight & ShipSize etc in item table.
+	8    12/10/2024	  BHARGAV SALIA   Get SalesTotal,Freight,MiscCharges,SubTotal,SalesTax,OtherTax,GrandTotal for the standerd proforma view
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -42,7 +43,14 @@ SET NOCOUNT ON;
 					sobii.SizeHeight AS BillSizeHeight,
 					sobi.SignEmpId AS SignEmpId,
 					sobi.SignEmpDate AS SignEmpDate,
-					sobi.InvoiceNo
+					sobi.InvoiceNo,
+					sobi.SalesTotal,
+					sobi.Freight,
+					sobi.MiscCharges,
+					sobi.SubTotal,
+					sobi.SalesTax,
+					sobi.OtherTax,
+					sobi.GrandTotal
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

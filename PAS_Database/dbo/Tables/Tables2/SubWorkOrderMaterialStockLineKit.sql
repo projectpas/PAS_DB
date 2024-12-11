@@ -28,6 +28,10 @@
     [Figure]                     NVARCHAR (50)   NULL,
     [Item]                       NVARCHAR (50)   NULL,
     [ReferenceNumber]            VARCHAR (100)   NULL,
+    [ReservedById]               BIGINT          NULL,
+    [ReservedDate]               DATETIME2 (7)   NULL,
+    [IssuedById]                 BIGINT          NULL,
+    [IssuedDate]                 DATETIME2 (7)   NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialStockLineKit] PRIMARY KEY CLUSTERED ([SWOMStockLineKitId] ASC),
     CONSTRAINT [FK_SubWorkOrderMaterialStockLineKit_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SubWorkOrderMaterialStockLineKit_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -39,4 +43,34 @@
 );
 
 
+GO
+/*************************************************************             
+** File:   [Trg_SubWorkOrderMaterialStockLineKitAudit]             
+** Author: Devendra Shekh
+** Description: Trigger to insert Data for SubWorkOrderMaterialStockLineKitAudit based on changes of SubWorkOrderMaterialStockLineKit
+** Date: 22-NOV-2024
 
+**************************************************************             
+** Change History             
+**************************************************************             
+** PR   Date				Author					Change Description              
+** --   --------			-------				-------------------------------            
+	1   22-NOV-2024			Devendra Shekh			Created
+**************************************************************/  
+CREATE   TRIGGER [dbo].[Trg_SubWorkOrderMaterialStockLineKitAudit]
+
+   ON  [dbo].[SubWorkOrderMaterialStockLineKit]
+
+   AFTER INSERT,DELETE,UPDATE
+
+AS
+
+BEGIN
+
+	INSERT INTO SubWorkOrderMaterialStockLineKitAudit
+
+	SELECT * FROM INSERTED
+
+	SET NOCOUNT ON;
+
+END

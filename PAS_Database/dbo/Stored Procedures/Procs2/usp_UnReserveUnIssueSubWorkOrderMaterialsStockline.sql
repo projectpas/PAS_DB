@@ -15,6 +15,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 4    08/05/2024  HEMANT SALIYA	Fixed MTI stk Reserve Qty was not updating
 ** 5    09/12/2024  RAJESH GAMI 	Add new Stk History Action (UnIssueUnReserve)
 ** 6    10/08/2024  RAJESH GAMI 	Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
+** 7    11/22/2024	Devendra Shekh	Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine AND SubWorkOrderMaterialStockLineKit)
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveUnIssueSubWorkOrderMaterialsStockline]
@@ -171,6 +172,8 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
+							IssuedById = tmpRSL.UpdatedById, 
+							IssuedDate = GETUTCDATE(), 
 							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber
 						FROM dbo.SubWorkOrderMaterialStockLineKit WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId 
@@ -226,6 +229,8 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
+							IssuedById = tmpRSL.UpdatedById, 
+							IssuedDate = GETUTCDATE(), 
 							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber
 						FROM dbo.SubWorkOrderMaterialStockLine WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) = 0

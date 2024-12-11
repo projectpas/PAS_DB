@@ -18,6 +18,7 @@ EXEC [usp_UnIssueWorkOrderMaterialsStockline]
 ** 7    07/22/2024		Devendra Shekh	    Modified For Same JE Changes
 ** 6    09/24/2024      HEMANT SALIYA	    Re-Calculate WOM Qty Res & Qty Issue
 ** 7    10/04/2024      RAJESH GAMI 	    Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
+** 8    11/22/2024		Devendra Shekh		Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -197,6 +198,8 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETUTCDATE(),
+							IssuedById = tmpRSL.UpdatedById, 
+							IssuedDate = GETUTCDATE(), 
 							UpdatedBy = ReservedBy,ReferenceNumber= @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLineKit WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
@@ -244,6 +247,8 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETUTCDATE(),
+							IssuedById = tmpRSL.UpdatedById, 
+							IssuedDate = GETUTCDATE(), 
 							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLine WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) = 0

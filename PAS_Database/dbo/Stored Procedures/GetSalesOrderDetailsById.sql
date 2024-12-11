@@ -62,7 +62,7 @@ BEGIN
         soq.CustomerHold,
         soq.DepositAmount,
         ISNULL((SELECT TOP 1 ARBalance
-                FROM CustomerCreditTermsHistory
+                FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) 
                 WHERE CustomerId = soq.CustomerId
                 ORDER BY CustomerCreditTermsHistoryId DESC), 0) AS BalanceDue,
         custfc.CurrencyId,
@@ -117,8 +117,8 @@ BEGIN
         soq.QtyToBeQuoted,
         ISNULL(cont.Email, '') AS CustomerContactEmail,
         (SELECT SUM(ta.TaxRate)
-         FROM CustomerTaxTypeRateMapping cta
-         JOIN TaxRate ta ON cta.TaxRateId = ta.TaxRateId
+         FROM [dbo].[CustomerTaxTypeRateMapping] cta WITH(NOLOCK)
+         LEFT JOIN [dbo].[TaxRate] ta WITH(NOLOCK) ON cta.TaxRateId = ta.TaxRateId
          WHERE cta.CustomerId = soq.CustomerId) AS TaxRate,
         CONCAT(soq.SalesOrderNumber, '|', CAST(soq.Version AS VARCHAR(10))) AS BarCodePath,
         soq.ContractReference,

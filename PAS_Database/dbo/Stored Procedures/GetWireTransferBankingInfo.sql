@@ -30,7 +30,7 @@ BEGIN
 
 		-- Retrieve MasterCompanyId from EntityStructureSetup table
 		SET @MasterCompanyId = (SELECT MasterCompanyId
-								FROM EntityStructureSetup
+								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
 								WHERE EntityStructureId = @ManagementStructId);
 
 		-- Check if MasterCompanyId is equal to the value for @MTI_MasterComapnyId

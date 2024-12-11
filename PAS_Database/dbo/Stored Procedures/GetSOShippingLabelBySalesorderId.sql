@@ -24,7 +24,7 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				SELECT 
+				SELECT TOP 1
 					sos.ServiceClass,
 					so.CustomerReference AS CustomerRef,
 					so.SalesOrderNumber,

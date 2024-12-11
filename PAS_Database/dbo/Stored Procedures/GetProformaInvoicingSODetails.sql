@@ -46,9 +46,9 @@ SET NOCOUNT ON;
 					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
 					   sobi.GrandTotal,
 					   sobi.Notes,
-					   sobi.SubTotal,
-					   sobi.SalesTax,
-					   sobi.OtherTax
+					   ISNULL(sobi.SubTotal,0) AS SubTotal,
+					   ISNULL(sobi.SalesTax,0) AS SalesTax,
+					   ISNULL(sobi.OtherTax,0) AS OtherTax
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

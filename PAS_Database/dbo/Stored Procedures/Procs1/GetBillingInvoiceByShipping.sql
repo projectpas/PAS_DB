@@ -44,13 +44,13 @@ SET NOCOUNT ON;
 					sobi.SignEmpId AS SignEmpId,
 					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo,
-					sobi.SalesTotal,
-					sobi.Freight,
-					sobi.MiscCharges,
-					sobi.SubTotal,
-					sobi.SalesTax,
-					sobi.OtherTax,
-					sobi.GrandTotal
+					ISNULL(sobi.SalesTotal,0) AS SalesTotal,
+					ISNULL(sobi.Freight,0) AS Freight,
+					ISNULL(sobi.MiscCharges,0) AS MiscCharges,
+					ISNULL(sobi.SubTotal,0) AS SubTotal,
+					ISNULL(sobi.SalesTax,0) AS SalesTax,
+					ISNULL(sobi.OtherTax,0) AS OtherTax,
+					ISNULL(sobi.GrandTotal,0) AS GrandTotal
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

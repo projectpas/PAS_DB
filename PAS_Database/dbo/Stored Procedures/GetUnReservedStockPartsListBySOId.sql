@@ -17,7 +17,7 @@
      1    10/10/2024	AMIT GHEDIYA		Created
      2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
 
-EXEC [dbo].[GetUnReservedStockPartsListBySOId]  587
+EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1103
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
     @SalesOrderId INT,
@@ -73,7 +73,7 @@ BEGIN
 			   stl.ControlNumber,
 			   stl.MasterCompanyId,
 			   im.ManufacturerName,
-			   ISNULL((SELECT TOP 1 ISNULL(sobii.NoofPieces, 0) 
+			   ISNULL((SELECT ISNULL(sobii.NoofPieces, 0) 
 			   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 			   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 			   WHERE sobi.SalesOrderId = @SalesOrderId

@@ -3301,6 +3301,7 @@
     <Build Include="dbo\Stored Procedures\GetSOShippingLabelBySalesorderId.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetDetailsByInventoryID.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetDataforInventoryOnEdit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Assets_AddAssetSaleorwriteoff.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

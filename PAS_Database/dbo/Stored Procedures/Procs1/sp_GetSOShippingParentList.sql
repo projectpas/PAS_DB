@@ -16,6 +16,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
 	1	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
+	1	12/02/2024		AMIT GHEDIYA		Modified for get soPartid for expand & collapse
      
  -- [dbo].[sp_GetSOShippingParentList] 1269
 **************************************************************/
@@ -29,7 +30,7 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId, sop.ConditionId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
+		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId,sop.SalesOrderPartId AS SOPartId, sop.ConditionId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
 		SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
 		SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
 		sop.SalesOrderId,
@@ -47,7 +48,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
 					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
-		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId, sop.SalesOrderId, sop.ConditionId
+		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId
 	END
 	COMMIT  TRANSACTION
 

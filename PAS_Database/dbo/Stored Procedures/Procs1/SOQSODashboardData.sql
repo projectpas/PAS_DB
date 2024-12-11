@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SOQSODashboardData]
  ** Author: Deep Patel
  ** Description: This stored procedure is used to Get SOQSO Dashboard Details
@@ -134,7 +135,7 @@ BEGIN
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
-				,ISNULL(SUM(SPC.NetSaleAmount),0)as 'EstCost',
+				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0) as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
@@ -245,7 +246,7 @@ BEGIN
 				 Result AS(
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
-				SO.SalesOrderNumber ,ISNULL(SUM(SPC.NetSaleAmount),0)as 'EstCost',
+				SO.SalesOrderNumber ,ISNULL(SUM(SPC.UnitCostExtended),0)  + ISNULL(B.Charges,0) as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
@@ -366,7 +367,7 @@ BEGIN
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
-				,ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
@@ -487,7 +488,7 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
-				,ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
 				,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
@@ -610,7 +611,7 @@ BEGIN
 				SO.SalesOrderNumber
 				--,ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost'
 				--,ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				,ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
 				,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
@@ -722,7 +723,7 @@ BEGIN
 				SO.SalesOrderNumber,
 				--ISNULL(SUM(SP.NetSales),0)as 'EstRevenue',ISNULL(SUM(SP.NetSales),0) as 'EstCost',
 				--ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(SUM(B.Charges),0)  as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(SUM(B.Charges),0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate',
 				SP.ConditionId,SP.ItemMasterId
@@ -853,7 +854,7 @@ BEGIN
 				SO.SalesOrderNumber,
 				--ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost',
 				--ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
@@ -979,7 +980,7 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,
-				ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
 				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)

@@ -3298,6 +3298,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderQuotePartsView.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderProformaAmountDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOShippingLabelBySalesorderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

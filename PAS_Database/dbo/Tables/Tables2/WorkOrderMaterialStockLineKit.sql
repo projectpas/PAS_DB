@@ -29,6 +29,10 @@
     [Item]                            NVARCHAR (50)   NULL,
     [RepairOrderPartRecordId]         BIGINT          NULL,
     [ReferenceNumber]                 VARCHAR (100)   NULL,
+    [ReservedById]                    BIGINT          NULL,
+    [ReservedDate]                    DATETIME2 (7)   NULL,
+    [IssuedById]                      BIGINT          NULL,
+    [IssuedDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineKit] PRIMARY KEY CLUSTERED ([WorkOrderMaterialStockLineKitId] ASC)
 );
 

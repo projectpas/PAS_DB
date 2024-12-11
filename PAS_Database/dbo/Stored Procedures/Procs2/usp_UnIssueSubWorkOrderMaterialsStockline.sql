@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <02/07/2022>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -14,6 +13,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 2    07/18/2023  VISHAL SUTHAR    Added new stockline history
 ** 3    12/20/2023  HEMANT SALIYA    Added KIT in SWO Issue
 ** 4    10/08/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
+** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
 
 declare @p1 dbo.SubWOMaterialsStocklineType
 insert into @p1 values(3801,187,161,79,161326,20751,7,1,10,2,N'NE',N'PART9',N'A COCKPIT OR FLIGHT DECK IS THE AREA, USUALLY NEAR THE FRONT OF AN AIRCRAFT OR SPACECRAFT, FROM WHICH A PILOT CONTROLS THE AIRCRAFT. THE COCKPIT OF AN AIRCRAFT CONTAINS FLIGHT INSTRUMENTS ON AN INSTRUMENT PANEL, AND THE CONTROLS THAT ENABLE THE PILOT TO FLY THE AIRCRAFT',1,0,0,0,0,1,N'CNTL-001540',N'ID_NUM-000010',N'STL000004',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -191,6 +191,8 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETUTCDATE(),
+							IssuedById = tmpRSL.UpdatedById, 
+							IssuedDate = GETUTCDATE(), 
 							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber
 						FROM dbo.SubWorkOrderMaterialStockLineKit WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId 
@@ -237,6 +239,8 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
+							IssuedById = tmpRSL.UpdatedById, 
+							IssuedDate = GETUTCDATE(), 
 							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber
 						FROM dbo.SubWorkOrderMaterialStockLine WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) = 0

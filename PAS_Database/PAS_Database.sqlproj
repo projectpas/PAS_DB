@@ -3301,6 +3301,7 @@
     <Build Include="dbo\Stored Procedures\GetSOShippingLabelBySalesorderId.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePartStockLineDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetLockBoxBankingInfo.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

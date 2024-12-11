@@ -18,6 +18,7 @@
 	2    08/08/2023   Amit Ghediya    updated Get data which have qty available.
 	3    08/09/2023   Amit Ghediya    updated for filter.
 	4	 04/17/2024	  Abhishek Jirawla Adding Distinct in to get seperate results and added condition to return only available assets, Added sold by and sold date information
+	5    03/12/2024   Abhishek Jirawla Added IsPosted Column
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
 **************************************************************/
@@ -166,7 +167,8 @@ BEGIN
 								MSD.LastMSLevel,	
 								MSD.AllMSlevels,asm.statusNote,
 								awo.WorkOrderNum,
-								aibi.ASBillingInvoicingId
+								aibi.ASBillingInvoicingId,
+								ISNULL(aibi.IsPosted, 0) AS IsPosted
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus

@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
- ** File:   [USP_GetSavedAccountReceivableParams_ById]           
+ ** File:   [GetSOShippingLabelBySalesorderId]           
  ** Author:    Shrey Chandegara
- ** Description:  Get Saved General Ledger Params ById
+ ** Description:  Get data for SalesOrder shipping lable
  ** Purpose:         
  ** Date:   23-SEP-2024
  **************************************************************           
@@ -32,7 +32,7 @@ BEGIN
 					sos.Weight,
 					uom.ShortName AS UOM,
 					uomn.ShortName AS UOMDimention,
-					CASE WHEN ISNULL(sos.AirwayBill,'') = '' OR sos.AirwayBill = '' THEN '' ELSE  sos.AirwayBill END AS ShippingLabelBarcode,
+					CASE WHEN ISNULL(sos.AirwayBill,'') = '' THEN '' ELSE  sos.AirwayBill END AS ShippingLabelBarcode,
 					sos.OriginName AS OriginCompanyName,
 					sos.OriginAddress1,
 					sos.OriginCity,

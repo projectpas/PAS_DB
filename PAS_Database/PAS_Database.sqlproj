@@ -3305,6 +3305,7 @@
     <Build Include="dbo\Stored Procedures\GetLockBoxBankingInfo.sql" />
     <Build Include="dbo\Stored Procedures\GetWireTransferBankingInfo.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderPickTicketBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\CalculateInvoiceItemDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

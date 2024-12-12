@@ -3300,6 +3300,14 @@
     <Build Include="dbo\Stored Procedures\USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter.sql" />
     <Build Include="dbo\Stored Procedures\GetSOShippingLabelBySalesorderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerPartsLIstData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Assets_AddAssetSaleorwriteoff.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePartStockLineDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetLockBoxBankingInfo.sql" />
+    <Build Include="dbo\Stored Procedures\GetWireTransferBankingInfo.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderPickTicketBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\CalculateInvoiceItemDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerRowById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

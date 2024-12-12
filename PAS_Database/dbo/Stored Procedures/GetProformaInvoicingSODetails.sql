@@ -12,6 +12,7 @@
 	2    04/01/2024   Bhargav Saliya  CreditTerms Changes
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	4    11/12/2024	  AMIT GHEDIYA		Modified to get invoiceNo 
+	5    12/11/2024	  BHARGAV SALIA     Get SubTotal,SalesTax and OtherTax for the proforma view
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetProformaInvoicingSODetails]
 	@SalesOrderPartId BIGINT,
@@ -44,7 +45,10 @@ SET NOCOUNT ON;
 					   sotype.[Name] AS RevType, 
 					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
 					   sobi.GrandTotal,
-					   sobi.Notes
+					   sobi.Notes,
+					   ISNULL(sobi.SubTotal,0) AS SubTotal,
+					   ISNULL(sobi.SalesTax,0) AS SalesTax,
+					   ISNULL(sobi.OtherTax,0) AS OtherTax
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

@@ -101,7 +101,10 @@
     [RequestedQtyFromWO]        INT             NULL,
     [ModuleId]                  INT             NULL,
     [IsFromSubWorkOrder]        BIT             DEFAULT ((0)) NULL,
-    [IsKit]                     BIT             DEFAULT ((0)) NULL);
+    [IsKit]                     BIT             DEFAULT ((0)) NULL,
+    [IsModified]                BIT             DEFAULT ((0)) NULL);
+
+
 
 
 

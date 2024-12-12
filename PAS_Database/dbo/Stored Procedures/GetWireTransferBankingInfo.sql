@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    10/12/2024		EKTA CHANDEGRA	 Created  
+    2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
 
  EXEC GetWireTransferBankingInfo 1 
 ************************************************************************/  
@@ -38,11 +39,25 @@ BEGIN
 		BEGIN
 			-- Query for @MTI_MasterComapnyId
 			SELECT TOP 1
-				 ISNULL(inter.BankName,'') AS BankName,
-				 ISNULL(inter.BeneficiaryBank,'') AS BeneficiaryBank,
-				 ISNULL(inter.BeneficiaryBankAccount,'') AS BeneficiaryBankAccount,
-				 ISNULL(inter.ABA,'') AS ABA,
-				 ISNULL(inter.SwiftCode,'') AS SwiftCode
+			(
+				 CASE WHEN inter.BankName IS NOT NULL THEN 
+                '<label style="text-transform: uppercase;">' + inter.BankName + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
+					'<label style="text-transform: uppercase;">' + inter.BeneficiaryBank + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
+					'Account #: <label style="text-transform: uppercase;">' + inter.BeneficiaryBankAccount + '</label>' 
+				ELSE '' END +
+				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN ', ' ELSE '' END + 
+				'<br />' +
+				CASE WHEN inter.ABA IS NOT NULL THEN 
+					'Routing #: <label style="text-transform: uppercase;">' + inter.ABA + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
+					'Swift Code: <label style="text-transform: uppercase;">' + inter.SwiftCode + '</label>' 
+				ELSE '' END
+			) AS chequeTo
 			FROM 
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
@@ -53,24 +68,49 @@ BEGIN
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 				INNER JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 			WHERE 
-				ess.IsActive = 1 
-				AND ess.IsDeleted = 0 
+				ISNULL(ess.IsActive,0) = 1
+				AND ISNULL(ess.IsDeleted,0) = 0
 				AND ess.EntityStructureId = @ManagementStructId;
 		END
     ELSE
 		BEGIN
 			-- Query for other companies
 			SELECT TOP 1
-				ISNULL(inter.BankName,'') AS BankName,
-				ad.Line1,
-				ad.City,
-				ad.StateOrProvince,
-				ad.PostalCode,
-				co.countries_name,
-				ISNULL(inter.BeneficiaryBank,'') AS BeneficiaryBank,
-				ISNULL(inter.BeneficiaryBankAccount,'') AS BeneficiaryBankAccount,
-				ISNULL(inter.ABA,'') AS ABA,
-				ISNULL(inter.SwiftCode,'') AS SwiftCode
+			(
+				 CASE WHEN inter.BankName IS NOT NULL THEN 
+                '<label style="text-transform: uppercase;">' + inter.BankName + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN ad.Line1 IS NOT NULL THEN 
+					'<label style="text-transform: uppercase;">' + ad.Line1 + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN ad.City IS NOT NULL THEN 
+					'<label style="text-transform: uppercase;">' + UPPER(ad.City) + '</label>' 
+				ELSE '' END +
+				',<br />' + 
+				CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
+					'<label style="text-transform: uppercase;">' + ad.StateOrProvince + '</label>' 
+				ELSE '' END +
+				',' +
+				CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + 
+				'<br />' +
+				CASE WHEN co.countries_name IS NOT NULL THEN 
+					'<label style="text-transform: uppercase;">' + co.countries_name + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
+					'Account Name: <label style="text-transform: uppercase;">' + inter.BeneficiaryBank + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
+					'Acct #: <label style="text-transform: uppercase;">' + inter.BeneficiaryBankAccount + '</label>' 
+				ELSE '' END +
+				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN ', ' ELSE '' END + 
+				'<br />' +
+				CASE WHEN inter.ABA IS NOT NULL THEN 
+					'ABA #: <label style="text-transform: uppercase;">' + inter.ABA + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
+					'Swift Code: <label style="text-transform: uppercase;">' + inter.SwiftCode + '</label>' 
+				ELSE '' END
+			) AS chequeTo
 			FROM 
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
@@ -80,8 +120,8 @@ BEGIN
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 				INNER JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 			WHERE 
-				ess.IsActive = 1 
-				AND ess.IsDeleted = 0 
+				ISNULL(ess.IsActive,0) = 1
+				AND ISNULL(ess.IsDeleted,0) = 0
 				AND ess.EntityStructureId = @ManagementStructId;
 		END
 	END TRY

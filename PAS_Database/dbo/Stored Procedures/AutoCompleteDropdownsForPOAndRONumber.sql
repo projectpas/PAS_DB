@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    11-01-2024   Moin Bloch     Created
+	2    12-03-2024   RAJESH GAMI    Modified to return ReferenceModuleName and IsPurchaseOrder 
      
 --  EXEC [AutoCompleteDropdownsForPOAndRONumber] 'PO-00001','10','108',1
 
@@ -28,7 +29,7 @@ BEGIN
 	 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
      SET NOCOUNT ON
 	 BEGIN TRY
-		 DECLARE @POModuleId INT = 0,@ROModuleId INT = 0,@POOpenStatusId INT = 1,@ROOpenStatusId INT = 1;
+		 DECLARE @POModuleId INT = 0,@ROModuleId INT = 0,@POOpenStatusId INT = 1,@ROOpenStatusId INT = 1,@POModuleName Varchar(50) = 'Purchase Order',@ROModuleName Varchar(50) = 'Repair Order';
 
 		 SELECT @POModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'PurchaseOrder';
 		 SELECT @ROModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'RepairOrder';
@@ -43,7 +44,9 @@ BEGIN
 		SELECT DISTINCT TOP 20 
 		       PO.[PurchaseOrderId] AS [value],
                PO.[PurchaseOrderNumber] AS [label],
-			   @POModuleId AS ModuleId
+			   @POModuleId AS ModuleId,
+			   1 as IsPurchaseOrder,
+			   @POModuleName AS ReferenceModuleName
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK) 
         JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.[PurchaseOrderId] = POP.[PurchaseOrderId] 
 	    WHERE PO.[MasterCompanyId] = @MasterCompanyId 
@@ -56,7 +59,9 @@ BEGIN
 		SELECT DISTINCT  
 			   PO.[PurchaseOrderId] AS [value],
                PO.[PurchaseOrderNumber] AS [label],
-			   @POModuleId AS ModuleId
+			   @POModuleId AS ModuleId,
+			   1 as IsPurchaseOrder,
+			   @POModuleName AS ReferenceModuleName
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK) 
         JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.[PurchaseOrderId] = POP.[PurchaseOrderId] 
 		WHERE PO.[MasterCompanyId] = @MasterCompanyId 
@@ -68,7 +73,9 @@ BEGIN
 		SELECT DISTINCT TOP 20 
 			   RO.[RepairOrderId] AS [value],
                RO.[RepairOrderNumber] AS [label],
-			   @ROModuleId AS ModuleId
+			   @ROModuleId AS ModuleId,
+			   0 as IsPurchaseOrder,
+			   @ROModuleName AS ReferenceModuleName
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
           JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId] 			
 		 WHERE RO.[MasterCompanyId] = @MasterCompanyId 
@@ -81,7 +88,9 @@ BEGIN
 		SELECT DISTINCT  
 			   RO.RepairOrderId AS [value],
                RO.RepairOrderNumber AS [label],
-			   @ROModuleId AS ModuleId
+			   @ROModuleId AS ModuleId,
+			   0 as IsPurchaseOrder,
+			   @ROModuleName AS ReferenceModuleName
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
           JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
 		 WHERE RO.[MasterCompanyId] = @MasterCompanyId  

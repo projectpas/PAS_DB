@@ -1,5 +1,22 @@
-﻿-- EXEC [dbo].[GetMenuPermission] '27,1'
-CREATE Procedure [dbo].[GetMenuPermission] 
+﻿/*************************************************************           
+ ** File:   [AddUpdateReceiveCustomerPiecePart]           
+ ** Author:  
+ ** Description: This stored procedure is used to get role permissions
+ ** Purpose:         
+ ** Date:         
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date			Author					Change Description            
+ ** -----------------------------------------------------------          
+    1					Unknown					Created
+	2    07/11/2024		Devendra Shekh			added ImgClass to select
+	     
+-- EXEC [dbo].[GetMenuPermission] '27,1'
+************************************************************************/ 
+CREATE   Procedure [dbo].[GetMenuPermission] 
 	@RoleId varchar(max),
 	@IsPermissionData bit = 0
 AS
@@ -31,7 +48,10 @@ Begin
 			 IsReport bit null,
 			 ShowAsTopMenu bit null,
 			 NewModuleIcon varchar(200) null,
-			 NewMenuName varchar(1000) null
+			 NewMenuName varchar(1000) null,
+			 ImgClass varchar(1000) null,
+			 IsMobileMenu bit null,
+			 MobileMenuName varchar(250) null,
 			)
 
 
@@ -55,7 +75,7 @@ Begin
 
 				--SELECT distinct MenuName+'.'+PermissionName as Name,M.IsPage,M.DisplayOrder,M.ModuleCode,M.Id,M.ModuleIcon,M.RouterLink,M.ParentId,M.IsMenu FROM MenuSettings1
 				--Inner Join dbo.ModuleHierarchyMaster M on MenuSettings1.ParentID=M.Id and M.ParentId is null
-				SELECT distinct M.PermissionConstant + '.' + P.PermissionName as Name, M.IsPage, M.DisplayOrder, M.ModuleCode, M.Id, M.ModuleIcon, M.RouterLink, M.ParentId, M.IsMenu,DisplayOrder,M.IsReport,M.ShowAsTopMenu
+				SELECT distinct M.PermissionConstant + '.' + P.PermissionName as Name, M.IsPage, M.DisplayOrder, M.ModuleCode, M.Id, M.ModuleIcon, M.RouterLink, M.ParentId, M.IsMenu,DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					Inner Join dbo.PermissionMaster P WITH (NOLOCK) on R.PermissionID = P.PermissionID
@@ -64,16 +84,16 @@ Begin
 			End
 			Else
 			Begin
-				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName)
+				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName,ImgClass,IsMobileMenu,MobileMenuName)
 				AS
 				(
 					SELECT M.ID,M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, R.PermissionID, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,
-					M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName
+					M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					WHERE R.UserRoleId in (Select * from [dbo].[SplitString](@RoleId, ','))
 					UNION ALL 
-					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName
+					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK) 
 					INNER JOIN MenuSettings1 M1 ON M1.ParentID = M.ID
 				)
@@ -86,7 +106,7 @@ Begin
 				SELECT id FROM #TempTable T WHERE CreateMenu = 1  
 						 AND (SELECT count(id) FROM #TempTable where ISNULL(ModuleId, 0) = T.ModuleId AND  PermissionID = 1) > 0)
 
-				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName
+				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName,ImgClass,IsMobileMenu,MobileMenuName
 				FROM  #TempTable Order By DisplayOrder
 			End
 

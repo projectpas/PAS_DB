@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+﻿/*********************  
 ** File:   [USP_SingleScreen_UpdateActiveInActiveStatus]             
 ** Author:   Dipak Karena  
 ** Description: This stored procedure is used to update active- inactive status for single screen pages
@@ -6,19 +6,21 @@
 ** Date:   05/17/2022  
             
 ** Change History             
-**************************************************************             
+**********************             
 ** PR   Date         Author  		Change Description              
 ** --   --------     -------		--------------------------------            
    1    05/17/2022   Dipak Karena	Created  
-   2    12/10/2024   Hemant Saliya	Updated For Updated Date   
+   2    12/10/2024   Hemant Saliya	Updated For Updated Date 
+   3    12/10/2024   Ayushi Patel	Updated For Updated By 
        
-**************************************************************/
+**********************/
 --EXEC  USP_SingleScreen_UpdateActiveInActiveStatus 10, 0, 'assetlocation'
 CREATE     PROCEDURE [dbo].[USP_SingleScreen_UpdateActiveInActiveStatus]   
  @ID INT = NULL,  
  @Status BIT = NULL,  
  @PageName VARCHAR(100) = NULL,  
- @PrimaryKey VARCHAR(100) = NULL  
+ @PrimaryKey VARCHAR(100) = NULL,
+ @CurrentUser VARCHAR(100) = NULL
 AS  
 BEGIN  
   SET NOCOUNT ON;  
@@ -43,7 +45,7 @@ BEGIN
   
 	EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
 
-	SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(), IsActive =' + CAST(@Status AS VARCHAR) + ' WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
+	SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(),UpdatedBy = ''' + @CurrentUser + ''', IsActive =' + CAST(@Status AS VARCHAR) + ' WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
   
     EXEC (@Query)  
   END TRY  

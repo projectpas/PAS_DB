@@ -155,12 +155,13 @@ SET NOCOUNT ON
 					END
 					ELSE
 					BEGIN
-						UPDATE DBO.SalesOrderPartV1
-						SET QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
+						SELECT @PartQty = QtyOrder FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
 
 						UPDATE DBO.SalesOrderPartCost
-						SET NetSaleAmount = (ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount,
-						TotalRevenue = ((ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
+						SET UnitSalesPriceExtended = ISNULL(UnitSalesPrice, 0) * @PartQty,
+						UnitCostExtended = ISNULL(UnitCost, 0) * @PartQty,
+						NetSaleAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount,
+						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 
@@ -172,7 +173,6 @@ SET NOCOUNT ON
 					MiscCharges = ISNULL(@Charges_S, 0),
 					MarkUpAmount = ISNULL(MarkUpAmount, 0),
 					MarginAmount = (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
-					--TotalRevenue = ((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S,
 					MarginPercentage = CASE WHEN (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) > 0 THEN ((((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
 					TaxPercentage = @SalesTax,
 					TaxAmount = ((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)

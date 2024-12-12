@@ -54,8 +54,11 @@
     [BillToUserType]       INT             NULL,
     [ShipToUserType]       INT             NULL,
     [ProformaDeposit]      DECIMAL (18, 2) NULL,
+    [IsPosted]             BIT             CONSTRAINT [DF_AssetInventoryBillingInvoicing_IsPosted] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_AssetInventoryBillingInvoicing] PRIMARY KEY CLUSTERED ([ASBillingInvoicingId] ASC),
     CONSTRAINT [FK_AssetInventoryBillingInvoicing_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId]),
     CONSTRAINT [FK_AssetInventoryBillingInvoicing_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

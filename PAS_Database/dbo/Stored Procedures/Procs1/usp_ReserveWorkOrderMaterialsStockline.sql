@@ -16,6 +16,7 @@ EXEC [usp_ReserveWorkOrderMaterialsStockline]
 ** 5    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
 ** 6    09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 7    11/28/2024	HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
+** 8    11/22/2024	Devendra Shekh	 Modified (added fiels  ReservedById, ReservedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -190,10 +191,12 @@ BEGIN
 									TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 									TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 									TARGET.UpdatedDate = GETDATE(),
+									TARGET.ReservedById = SOURCE.ReservedById,
+									TARGET.ReservedDate = GETUTCDATE(),
 									TARGET.UpdatedBy = SOURCE.ReservedBy
 							WHEN NOT MATCHED BY TARGET 
-								THEN INSERT (StocklineId, WorkOrderMaterialskitId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, AltPartMasterPartId, EquPartMasterPartId, IsAltPart, IsEquPart)
-								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActReserved, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActReserved, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.AltPartMasterPartId, SOURCE.EquPartMasterPartId, SOURCE.IsAltPart, SOURCE.IsEquPart);
+								THEN INSERT (StocklineId, WorkOrderMaterialskitId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, AltPartMasterPartId, EquPartMasterPartId, IsAltPart, IsEquPart, ReservedById, ReservedDate)
+								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActReserved, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActReserved, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.AltPartMasterPartId, SOURCE.EquPartMasterPartId, SOURCE.IsAltPart, SOURCE.IsEquPart, SOURCE.ReservedById, GETUTCDATE());
 						END
 
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
@@ -328,10 +331,12 @@ BEGIN
 									TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 									TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 									TARGET.UpdatedDate = GETDATE(),
+									TARGET.ReservedById = SOURCE.ReservedById,
+									TARGET.ReservedDate = GETUTCDATE(),
 									TARGET.UpdatedBy = SOURCE.ReservedBy
 							WHEN NOT MATCHED BY TARGET 
-								THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, AltPartMasterPartId, EquPartMasterPartId, IsAltPart, IsEquPart) 
-								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.AltPartMasterPartId, SOURCE.EquPartMasterPartId, SOURCE.IsAltPart, SOURCE.IsEquPart);
+								THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, AltPartMasterPartId, EquPartMasterPartId, IsAltPart, IsEquPart, ReservedById, ReservedDate) 
+								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.AltPartMasterPartId, SOURCE.EquPartMasterPartId, SOURCE.IsAltPart, SOURCE.IsEquPart, SOURCE.ReservedById, GETUTCDATE());
 						END
 
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY

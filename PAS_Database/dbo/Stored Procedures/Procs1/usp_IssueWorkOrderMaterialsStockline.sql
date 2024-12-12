@@ -19,6 +19,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 8    07/18/2024		Devendra Shekh	  Modified For Same JE Changes
 ** 9    09/23/2024		HEMANT SALIYA	  Re-Calculate WOM Qty Res & Qty Issue
 ** 10   10/04/2024      RAJESH GAMI 	  Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
+** 11	11/22/2024		Devendra Shekh	 Modified (added fiels  IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -308,10 +309,12 @@ BEGIN
 								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.UpdatedDate = GETUTCDATE(),
+								TARGET.IssuedById = SOURCE.UpdatedById,
+								TARGET.IssuedDate = GETUTCDATE(),
 								TARGET.UpdatedBy = SOURCE.ReservedBy, TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						WHEN NOT MATCHED BY TARGET 
-							THEN INSERT (StocklineId, WorkOrderMaterialsKitId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsKitId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
+							THEN INSERT (StocklineId, WorkOrderMaterialsKitId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber, IssuedById, IssuedDate) 
+							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsKitId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber, SOURCE.UpdatedById, GETUTCDATE());
 					END
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
@@ -361,10 +364,12 @@ BEGIN
 								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.UpdatedDate = GETUTCDATE(),
+								TARGET.IssuedById = SOURCE.UpdatedById,
+								TARGET.IssuedDate = GETUTCDATE(),
 								TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber =  @MaterialRefNo + ' - '+@WONumber
 						WHEN NOT MATCHED BY TARGET 
-							THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
+							THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber, IssuedById, IssuedDate) 
+							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber, SOURCE.UpdatedById, GETUTCDATE());
 					END
 
 					PRINT 'Hem-4'

@@ -3307,6 +3307,17 @@
     <Build Include="dbo\Views\View_VendorProformaInvoiceHeaderStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorProformaInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdate_VendorProformaInvoiceHeader.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDetailsByInventoryID.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDataforInventoryOnEdit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerPartsLIstData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Assets_AddAssetSaleorwriteoff.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePartStockLineDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetLockBoxBankingInfo.sql" />
+    <Build Include="dbo\Stored Procedures\GetWireTransferBankingInfo.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderPickTicketBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\CalculateInvoiceItemDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerRowById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -3314,5 +3325,6 @@
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_49.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_50.dacpac" />
   </ItemGroup>
 </Project>

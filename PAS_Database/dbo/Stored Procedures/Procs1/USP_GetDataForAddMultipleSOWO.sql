@@ -17,7 +17,8 @@
 	3    12/06/2023   Vishal Suthar			Modified to see work order from material KIT
 	4    13/12/2023   Devendra Shekh		added kit details for subwo
 	5    13/08/2023   Vishal Suthar			Modified to allow Alt and Equ parts to map
-    6    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables         
+    6    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables  
+	7	 12/05/2024	  Ayushi Patel			Added missing brackets in where clouse 
 
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
@@ -80,8 +81,8 @@ BEGIN
 			LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
-			WHERE SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId 
-			OR ((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId)
+			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId 
+			OR ((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
 			AND SO.StatusId != @CloseSOStatusId 
 			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
 			ORDER BY SO.SalesOrderId DESC      

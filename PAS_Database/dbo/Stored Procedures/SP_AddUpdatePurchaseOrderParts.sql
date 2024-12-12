@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+
+
+
+/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -15,8 +19,9 @@
 	3    16/10/2024   RAJESH GAMI			Implemented logic: IsKitType and IsSubWOType flag in the StocklineDraft
 	4	 11/04/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 	5	 15/11/2024	  RAJESH GAMI			Handle the NULL value of WOMaterialID when its 0
+	6	 12/12/2024	  AYUSHI PATEL			change the status of approval process based on isModified
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE        PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -33,16 +38,18 @@ BEGIN
 			DECLARE @TotalPartsCount int = 0,@TotalSplitPartsCount int = 0, @PartLoopId int = 1, @SplitPartLoopId int = 0,@ManagementStructureId BIGINT,@ManagementStructureIdSplit BIGINT;
 			DECLARE @ModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE LOWER(ModuleName) ='popart' AND ISNULL(IsDeleted,0) = 0)
 			DECLARE @NewPartId BIGINT = 0, @PurchaseOrderPartRecordId BIGINT, @IsDeletedPart BIT = 0,@PurchaseOrderId BIGINT,@PurchaseOrderNumber VARCHAR(100),@EmployeeID BIGINT;
-			DECLARE @IsLotAssigned BIT =0, @LotId BIGINT, @StatusId INT, @FulfillStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'fulfilling');
+			DECLARE @IsLotAssigned BIT =0, @LotId BIGINT, @StatusId INT, @FulfillStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'fulfilling'),
+			@OpenStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'open'),
+			@OpenStatus VARCHAR = (SELECT TOP 1 Memo FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'open');
 			DECLARE @ApproveProcessId INT = (SELECT TOP 1 ApprovalProcessId FROM DBO.ApprovalProcess WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1)
-			DECLARE @ApproveStatusId INT, @ApproveStatus VARCHAR(100),@SalesOrderId BIGINT,@ConditionId BIGINT
+			DECLARE @ApproveStatusId INT, @ApproveStatus VARCHAR(100),@SalesOrderId BIGINT,@ConditionId BIGINT,@PendingStatusId INT, @PendingStatus VARCHAR(100);
 			DECLARE @ItemMasterId BIGINT,@SalesOrderPartId BIGINT,@ExchProvisionId INT
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
 			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
-
-			DECLARE @OrderPartStatusId INT = (SELECT TOP 1 SOPartStatusId FROM dbo.SOPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
+			DECLARE @IsModified BIT = 0
+			DECLARE @OrderPartStatusId INT = (SELECT POPartStatusId FROM dbo.POPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
 			SELECT TOP 1 @ApproveStatusId = ApprovalStatusId,@ApproveStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1
-			
+			SELECT TOP 1 @PendingStatusId = ApprovalStatusId,@PendingStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'pending' AND ISNULL(IsActive,0) = 1
 
 			IF OBJECT_ID(N'tempdb..#tmpPoPartList') IS NOT NULL    
 			BEGIN    
@@ -74,7 +81,8 @@ BEGIN
 			BEGIN -->>>>> Start: While Loop Main
 					SELECT @PurchaseOrderPartRecordId= PurchaseOrderPartRecordId,@IsDeletedPart = IsDeleted,@EmployeeID =EmployeeID, @SalesOrderId = SalesOrderId, 
 							@ConditionId = ConditionId,@ItemMasterId =ItemMasterId, @WorkOrderMaterialsId = WorkOrderMaterialsId,@EstDeliveryDate =EstDeliveryDate,
-							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder
+							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder,
+							@IsModified = IsModified
 							FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId;
 					IF(@PurchaseOrderPartRecordId > 0)  -->>>>> Start:1 @PurchaseOrderPartRecordId > 0
 					BEGIN						
@@ -88,7 +96,19 @@ BEGIN
 						END -->>>>> END:2 IF @IsDeletedPart = 1
 						ELSE 
 						BEGIN
-							UPDATE SL
+							IF(@IsModified = 1)
+							BEGIN
+								if exists (select PurchaseOrderApprovalId from DBO.PurchaseOrderApproval WITH (NOLOCK) WHERE PurchaseOrderPartId = @PurchaseOrderPartRecordId AND StatusId = @ApproveStatusId)
+								BEGIN
+									DELETE DBO.PurchaseOrderApproval WHERE PurchaseOrderPartId = @PurchaseOrderPartRecordId;
+								END
+								if exists (select PurchaseOrderId from DBO.PurchaseOrder WITH (NOLOCK) WHERE StatusId = @FulfillStatusId AND PurchaseOrderId = @PurchaseOrderId)
+								BEGIN
+									UPDATE DBO.PurchaseOrder SET Status = @OpenStatus , StatusId = @OpenStatusId where PurchaseOrderId = @PurchaseOrderId
+								END
+							END
+
+							UPDATE SL							
 								SET SL.ItemMasterId = PT.ItemMasterId,SL.PurchaseOrderUnitCost = PT.UnitCost,SL.PurchaseOrderExtendedCost = PT.UnitCost,SL.UnitOfMeasureId = PT.UOMId,
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
 									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
@@ -368,16 +388,12 @@ BEGIN
 						END -- END: Fulfill Status :IF
 						
 						EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordId,@ManagementStructureId,@MasterCompanyId,@userName,@userName,@ModuleId,3, 0
-						PRINT '@SalesOrderId'
-						PRINT @SalesOrderId
+						
 						IF(ISNULL(@SalesOrderId,0) > 0)
 						BEGIN --START: IF  SalesOrderPart
-							PRINT 'STEP SO'
 							SELECT TOP 1 @SalesOrderPartId = SalesOrderPartId FROM Dbo.SalesOrderPartV1 WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId
-								PRINT  @SalesOrderPartId
 							IF(ISNULL(@SalesOrderPartId,0) > 0 )
 							BEGIN
-							PRINT 'EXECUTE SO'
 								EXEC dbo.[SP_SaveSOPartStatusByPartId] @SalesOrderPartId, @OrderPartStatusId
 							END
 						END --END: IF SalesOrderPart

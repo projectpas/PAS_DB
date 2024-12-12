@@ -3299,6 +3299,8 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderProformaAmountDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter.sql" />
     <Build Include="dbo\Stored Procedures\GetSOShippingLabelBySalesorderId.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDetailsByInventoryID.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDataforInventoryOnEdit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerPartsLIstData.sql" />
     <Build Include="dbo\Stored Procedures\USP_Assets_AddAssetSaleorwriteoff.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderDetailsById.sql" />

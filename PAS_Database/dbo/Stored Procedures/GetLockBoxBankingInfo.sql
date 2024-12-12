@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    09/12/2024		EKTA CHANDEGRA	 Created  
+    2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
 
  EXEC GetLockBoxBankingInfo 1 
 ************************************************************************/  
@@ -25,12 +26,40 @@ BEGIN
     SET NOCOUNT ON;
 	BEGIN TRY
 		SELECT TOP 1
-		UPPER(lockbox.BankName) AS BankName,
-		UPPER(ad.Line1) AS Line1,
-		UPPER(ad.City) AS City,
-		UPPER(ad.StateOrProvince) AS StateOrProvince,
-		UPPER(ad.PostalCode) AS PostalCode,
-		UPPER(co.countries_name) AS countries_name
+        (
+            CASE
+                WHEN lockbox.BankName IS NOT NULL THEN
+                    '<label style="text-transform: uppercase;">' + lockbox.BankName + '</label><br />'
+                ELSE ''
+            END +
+            CASE
+                WHEN ad.Line1 IS NOT NULL THEN
+                    '<label style="text-transform: uppercase;">' + ad.Line1 + '</label><br />'
+                ELSE ''
+            END +
+            CASE
+                WHEN ad.City IS NOT NULL THEN
+                    '<label style="text-transform: uppercase;">' + ad.City + '</label>'
+                ELSE ''
+            END +
+            ',' + '<br />' +
+            CASE
+                WHEN ad.StateOrProvince IS NOT NULL THEN
+                    '<label style="text-transform: uppercase;">' + ad.StateOrProvince + '</label>'
+                ELSE ''
+            END +
+            ',' +
+            CASE
+                WHEN ad.PostalCode IS NOT NULL THEN
+                    ad.PostalCode
+                ELSE ''
+            END + '<br/>' +
+            CASE
+                WHEN co.countries_name IS NOT NULL THEN
+                    '<label style="text-transform: uppercase;">' + co.countries_name + '</label>'
+                ELSE ''
+            END
+        ) AS chequeTo
 
 		FROM [dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 		LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
@@ -38,8 +67,8 @@ BEGIN
 		LEFT JOIN [dbo].[LegalEntityBankingLockBox] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId
 		LEFT JOIN [dbo].[Address] ad WITH(NOLOCK) ON lockbox.AddressId = ad.AddressId
 		LEFT JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
-		WHERE ess.IsActive = 1
-		AND ess.IsDeleted = 0
+		WHERE ISNULL(ess.IsActive,0) = 1
+		AND ISNULL(ess.IsDeleted,0) = 0
 		AND ess.EntityStructureId = @managementStructId
 	END TRY
 	BEGIN CATCH

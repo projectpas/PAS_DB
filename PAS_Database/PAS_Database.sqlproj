@@ -3310,6 +3310,7 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderPickTicketBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\CalculateInvoiceItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerRowById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderBillingInvoicingData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

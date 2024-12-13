@@ -3320,6 +3320,7 @@
     <Build Include="dbo\Stored Procedures\GetCustomerRowById.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderBillingInvoicingData.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderPartsView.sql" />
+    <Build Include="dbo\Stored Procedures\GetQuoteTotalCost.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

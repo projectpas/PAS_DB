@@ -15,6 +15,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 4    02/08/2024  Shrey Chandegara Updated for status (add case condition in status)
 ** 5    07/29/2024  HEMANT SALIYA    Updated For Get Part Number, Serial NUmber and Condition from Work Order Part table
 ** 6    10/02/2024  AMIT GHEDIYA     Updated For Get EASA UK Dualreleaselanguage message.
+** 7    12/12/2024  Moin Bloch       Updated (Added formTypeId)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1,0
 **************************************************************/ 
@@ -23,7 +24,8 @@ CREATE   PROC [dbo].[GetWorkorderReleaseFromData]
 @WorkorderId bigint,  
 @workOrderPartNumberId bigint,  
 @IsEasaLicense bit = 0 ,
-@IsEasaUKLicense bit = 0
+@IsEasaUKLicense bit = 0,
+@formTypeId int
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -38,6 +40,10 @@ BEGIN
 		DECLARE @UkCountryISOCode VARCHAR(100) = 'GB';
 		DECLARE @USCountryISOCode VARCHAR(100) = 'US';
 		DECLARE @CountryId BIGINT = 0;		
+		 
+		DECLARE @FAA INT = 1;  
+		DECLARE @FAAEASA INT = 2;  
+		DECLARE @FAAEASAUK INT = 3;  
 
 		SET @MSModuleId = 12 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
@@ -49,12 +55,12 @@ BEGIN
 		WHERE CTT.[MasterCompanyId] = @MasterCompanyId AND UPPER(CTT.[TearDownCode]) = UPPER('MODIFICATIONSERVICE');
 	   
 	    --GET Country code id
-		IF(ISNULL(@IsEasaUKLicense, 0) = 1)
+		IF(ISNULL(@IsEasaUKLicense, 0) = 1 AND @formTypeId = @FAAEASAUK)
 		BEGIN
 			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
 		END
 
-		IF(ISNULL(@IsEasaLicense, 0) = 1)
+		IF(ISNULL(@IsEasaLicense, 0) = 1 AND @formTypeId = @FAAEASA)
 		BEGIN
 			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @USCountryISOCode AND MasterCompanyId = @MasterCompanyId;	
 		END
@@ -99,11 +105,11 @@ BEGIN
 								+ '<p>' +'Revision No: ' + ISNULL(CONVERT(VARCHAR(20),pub.RevisionNum),'-') + '</p>'  
 								+ '<p>' +'Revision Date: ' + ISNULL(CONVERT(VARCHAR(100),pub.revisionDate,103),'-') + '</p> <p style="height:15px"></p>'  	 
 						ELSE  '<p>' + ('Unit ' + ISNULL(UPPER(wosc.conditionName),'-')) + ' I/A/W CMM ATA: ' + ISNULL(UPPER(pub.PublicationId),0) + ' REV: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-')  + ' DATED: ' + UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) +'</p>'   
-								+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
+								+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
 								+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
 						END ELSE '' END)   	  
-					+ (CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</p>') ELSE ''  END)        
-					+ (CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</p>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</p>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</p>') ELSE ''  END)        
 					+ '</div>') Remarks,  
 					Upper(le.EASALicense) AS EASALicense  
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
@@ -128,7 +134,6 @@ BEGIN
   BEGIN CATCH        
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
-    ROLLBACK TRAN;  
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetWorkorderReleaseFromData'   

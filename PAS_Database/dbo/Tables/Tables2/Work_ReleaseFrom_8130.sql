@@ -40,8 +40,11 @@
     [PDFPath]             VARCHAR (MAX) NULL,
     [IsEASALicense]       BIT           NULL,
     [EmployeeId]          BIGINT        NULL,
+    [FormTypeId]          INT           NULL,
     CONSTRAINT [PK_Work_ReleaseFrom_8130] PRIMARY KEY CLUSTERED ([ReleaseFromId] ASC)
 );
+
+
 
 
 GO

@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1    07/07/2023   Vishal Suthar		Created
 	2	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
+	3	 12/12/2024	  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetailsForStageChange]
@@ -50,7 +51,7 @@ BEGIN
 		DECLARE @AllToolsAreCheckOut INT = 0;
 		DECLARE @IsShippingCompleled INT = 0;
 		DECLARE @IsBillingCompleled INT = 0;
-		DECLARE @InventoryStatusID INT;
+		DECLARE @AvailableStatusID INT;
 		DECLARE @ProvisionId INT = 1; -- FOR REPLACE
 		DECLARE @RepairProvisionId INT; -- FOR REPAIR
 
@@ -111,7 +112,7 @@ BEGIN
 
 		SELECT @TaskStatusID = TaskStatusId FROM dbo.TaskStatus WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyID AND UPPER(StatusCode) = 'COMPLETED'
 
-		SELECT @InventoryStatusID = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
+		SELECT @AvailableStatusID = AssetAvailableStatusId FROM dbo.AssetAvailableStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
 
 		SELECT @IsShippingCompleled = count(WorkOrderShippingId) FROM dbo.WorkOrderShippingItem WITH (NOLOCK) WHERE WorkOrderPartNumId = @workOrderPartNoId
 		SELECT @IsBillingCompleled = count(wobi.BillingInvoicingId) FROM DBO.WorkOrderBillingInvoicing wobi 
@@ -135,7 +136,7 @@ BEGIN
 		BEGIN 
 			SELECT @AllToolsAreCheckOut = COUNT(COCI.CheckInCheckOutWorkOrderAssetId)
 			FROM dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) 
-			WHERE COCI.workOrderPartNoId = @workOrderPartNoId and COCI.IsDeleted= 0 AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
+			WHERE COCI.workOrderPartNoId = @workOrderPartNoId and COCI.IsDeleted= 0 AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @AvailableStatusID
 		END
 		ELSE
 		BEGIN

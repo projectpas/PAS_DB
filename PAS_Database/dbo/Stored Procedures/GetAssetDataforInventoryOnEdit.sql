@@ -20,8 +20,9 @@
 --  EXEC [GetAssetDataforInventoryOnEdit] 221
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetAssetDataforInventoryOnEdit]
-    @AssetRecordId BIGINT
+CREATE     PROCEDURE [dbo].[GetAssetDataforInventoryOnEdit]
+    @AssetRecordId BIGINT,
+	@AssetInventoryId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -43,7 +44,6 @@ BEGIN
             a.CreatedBy,
             a.CreatedDate,
             a.EntryDate,
-            a.IsActive,
             a.IsDeleted,
             a.IsDepreciable,
             a.IsIntangible,
@@ -175,7 +175,6 @@ BEGIN
 			ISNULL(mgla.AccountCode + '-' + mgla.AccountName, '') AS GLAccountName,
 			ISNULL(wgla.AccountCode + '-' + wgla.AccountName, '') AS warrantyGlAccountName,
 			ISNULL(ingla.AccountCode + '-' + ingla.AccountName, '') AS InspectionGlaAccountName,
-			asset.IsActive,
 			asset.IsDeleted,
 			asset.IsDepreciable,
 			asset.IsIntangible,
@@ -215,7 +214,7 @@ BEGIN
 			asset.BinId,
 			ISNULL(assbin.Name, '') AS BinName
 		FROM DBO.Asset asset WITH (NOLOCK)
-			LEFT JOIN DBO.AssetInventory ascal WITH (NOLOCK) ON asset.AssetRecordId = ascal.AssetRecordId
+			LEFT JOIN DBO.AssetInventory ascal WITH (NOLOCK) ON asset.AssetRecordId = ascal.AssetRecordId 
 			LEFT JOIN DBO.AssetCalibration ascali WITH (NOLOCK) ON asset.AssetRecordId = ascali.AssetRecordId
 			LEFT JOIN DBO.AssetMaintenance asmai WITH (NOLOCK) ON asset.AssetRecordId = asmai.AssetRecordId
 			LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON asset.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
@@ -242,6 +241,6 @@ BEGIN
 			LEFT JOIN DBO.GLAccount wgla WITH (NOLOCK) ON asmai.WarrantyGLAccountId = wgla.GLAccountId
 			LEFT JOIN DBO.GLAccount mgla WITH (NOLOCK) ON asmai.MaintenanceGLAccountId = mgla.GLAccountId
 			LEFT JOIN DBO.Currency c WITH (NOLOCK) ON c.CurrencyId = ascal.CalibrationCurrencyId OR c.CurrencyId = ascal.CertificationCurrencyId OR c.CurrencyId = ascal.InspectionCurrencyId OR c.CurrencyId = ascal.VerificationCurrencyId
-		WHERE asset.AssetRecordId = @assetRecordId;
+		WHERE asset.AssetRecordId = @assetRecordId and ascal.AssetInventoryId = @AssetInventoryId;
     END
 END

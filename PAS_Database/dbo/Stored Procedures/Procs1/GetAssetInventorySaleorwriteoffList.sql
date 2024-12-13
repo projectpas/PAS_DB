@@ -19,6 +19,7 @@
 	3    08/09/2023   Amit Ghediya    updated for filter.
 	4	 04/17/2024	  Abhishek Jirawla Adding Distinct in to get seperate results and added condition to return only available assets, Added sold by and sold date information
 	5    03/12/2024   Abhishek Jirawla Added IsPosted Column
+	6    12-12-2024   ABHISHEK JIRAWLA Change made for Asset Inventory Status and Asset Available Status
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
 **************************************************************/
@@ -92,13 +93,13 @@ BEGIN
 			SET @SortColumn = Upper(@SortColumn)
 		END
 
-		SELECT @CheckIntoWOInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'CHECKED IN TO WO'
+		SELECT @CheckIntoWOInventoryStatusId = AssetAvailableStatusId FROM AssetAvailableStatus WITH (NOLOCK) WHERE Status = 'CHECKED IN TO WO'
 
 		SELECT @WrittenOffInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Written Off'
 
 		SELECT @SoldInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Sold'
 
-		SELECT @AvailableInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Available'
+		SELECT @AvailableInventoryStatusId = AssetAvailableStatusId FROM AssetAvailableStatus WITH (NOLOCK) WHERE Status = 'Available'
 
 		IF @StatusID = @AvailableInventoryStatusId
 		BEGIN 
@@ -143,7 +144,7 @@ BEGIN
 								InventoryNumber = asm.InventoryNumber,
 								EntryDate = asm.EntryDate,
 								AssetStatus = (SELECT TOP 1 [Name] FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId),
-								InventoryStatus = (SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId),
+								InventoryStatus = COALESCE((SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId), (SELECT TOP 1 [Status] FROM [dbo].[AssetAvailableStatus]  WITH(NOLOCK) WHERE AssetAvailableStatusId = asm.InventoryStatusId), ''),
 								asm.InventoryStatusId AS InventoryStatusId,
 								asm.level1 AS CompanyName,
 								asm.level2 AS BuName,

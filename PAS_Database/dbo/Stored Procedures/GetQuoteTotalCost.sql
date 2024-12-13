@@ -69,7 +69,7 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'GetQuoteTotalCost'     
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@soqId, '') 
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@soqId, '') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
             exec spLogException     

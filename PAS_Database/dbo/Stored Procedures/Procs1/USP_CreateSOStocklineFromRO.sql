@@ -457,7 +457,7 @@ BEGIN
 					DECLARE @RepairOrderNumber VARCHAR(100) = NULL;
 
 					--Get SalesOrderNumber for RefrenceNumber
-					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WHERE [SalesOrderId] = @SalesOrderId;	
+					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId;	
 
 					--Get RepairOrderNumber for RefrenceNumber
 					SELECT TOP 1 @RepairOrderNumber = RepairOrderNumber FROM #ROStockLineSamePart;

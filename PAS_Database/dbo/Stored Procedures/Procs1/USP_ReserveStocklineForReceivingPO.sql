@@ -1378,7 +1378,7 @@ BEGIN
 					  FROM DBO.ItemMasterExportInfo ime WITH (NOLOCK) WHERE ime.ItemMasterId = @ItemMasterId;
 
 					--Get SalesOrderNumber for RefrenceNumber
-					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WHERE [SalesOrderId] = @ReferenceId;
+					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
 
 					--Set RefrenceNumber
 					SET @RefNumber = @StkAutoReserveRefNumber + @PONumber +' To ' + @SalesOrderNumber;

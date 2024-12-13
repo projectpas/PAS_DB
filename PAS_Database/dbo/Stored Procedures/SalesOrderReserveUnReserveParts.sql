@@ -217,7 +217,7 @@ BEGIN
 					@SizeHeight AS decimal(18,4)
 
 			--Get SalesOrderNumber for RefrenceNumber
-			SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WHERE [SalesOrderId] = @SalesOrderId;			
+			SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId;			
 			
 			--Set RefrenceNumber
 			IF(@autoReserve = 1)

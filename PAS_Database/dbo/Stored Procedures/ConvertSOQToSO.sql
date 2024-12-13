@@ -23,6 +23,7 @@
 	7    11/29/2024   Rajesh Gami		Changes the STATUSID changes for stockline level
 	8    12/05/2024   Vishal Suthar		Removing temp table before using it which was giving exception
 	9    12/09/2024   Moin Bloch		Updated for fixing an issue with converting part Qty
+	10   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
 	
 declare @p13 bigint
 set @p13=NULL
@@ -32,7 +33,7 @@ exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @Emplo
 select @p13, @p14
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[ConvertSOQToSO]
+CREATE    PROCEDURE [dbo].[ConvertSOQToSO]
 	@SalesOrderQuoteId bigint = 0,
 	@EmployeeId bigint = 0,
 	@EmployeeName VARCHAR(200) = NULL,
@@ -61,11 +62,15 @@ BEGIN
 	DECLARE @FunctionalCurrencyId BIGINT = 0;
     DECLARE @ReportCurrencyId BIGINT = 0;
     DECLARE @ForeignExchangeRate BIGINT = 0;
+	DECLARE @SalesOrderQuoteNumber VARCHAR(100) = NULL;
+	DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
+	DECLARE @RefNumber VARCHAR(100) = '';
 
 	--From SOQSO Header
 	SELECT @FunctionalCurrencyId = SOQ.[FunctionalCurrencyId],
 		   @ReportCurrencyId = SOQ.[ReportCurrencyId],
-		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate]
+		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate],
+		   @SalesOrderQuoteNumber = SOQ.[SalesOrderQuoteNumber]
     FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	-- Main query
@@ -365,6 +370,9 @@ BEGIN
 					DECLARE @StocklineId BIGINT = NULL;
 					DECLARE @ReservedQty INT = NULL;
 
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @SalesOrderQuoteNumber + ' To ' + @SalesOrderNumber;
+
 					INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],
 					[AltPartMasterPartId],[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],
 					[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
@@ -405,6 +413,11 @@ BEGIN
 					SET QuantityAvailable = QuantityAvailable - @ReservedQty,
 					QuantityReserved = QuantityReserved + @ReservedQty
 					WHERE StockLineId = @StocklineId;
+
+					--Add RefrenceNumber for SOQ TO SO
+					UPDATE [DBO].[SalesOrderStocklineV1] 
+					SET ReferenceNumber = @RefNumber
+					WHERE SalesOrderPartId = @CurrentSOPartId AND StockLineId = @StockLineId
 
 					EXEC USP_AddUpdateStocklineHistory @StocklineId, @SOModuleId, @SalesOrderId, @SOQModuleId, @SalesOrderQuoteId, 2, @ReservedQty, @EmployeeName;
 				END

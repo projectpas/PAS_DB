@@ -3319,6 +3319,8 @@
     <Build Include="dbo\Stored Procedures\CalculateInvoiceItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerRowById.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderBillingInvoicingData.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderPartsView.sql" />
+    <Build Include="dbo\Stored Procedures\GetQuoteTotalCost.sql" />
     <Build Include="dbo\Tables\AssetAvailableStatusAudit.sql" />
     <Build Include="dbo\Tables\AssetAvailableStatus.sql" />
   </ItemGroup>

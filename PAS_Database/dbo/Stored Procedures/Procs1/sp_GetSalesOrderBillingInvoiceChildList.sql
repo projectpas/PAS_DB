@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [sp_GetSalesOrderBillingInvoiceChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve Invoice child listing data
@@ -41,7 +42,7 @@
     24   04/12/2024   Vishal Suthar		Fixed the issue with total sales amount calculation
 	25	 05/12/2024	  Abhishek Jirawla	Fixed the issue with flat charges calculation
 	26   05/12/2024   Vishal Suthar		Fixed the issue with versioning and revised invoice
-
+	27   10/12/2024   RAJESH GAMI		Fixed the issue with TotalUnitCost : Commented -- + ISNULL(SOR.QtyToReserve, 0) as discussed with Vishal due to multyply the amount
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
@@ -313,14 +314,17 @@ BEGIN
 				AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId)))
 				ELSE sobii.PartCost END as 'TotalSales',  
 
-				((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * (ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
+				((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * 
+				(ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
 				FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 				INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
 				INNER JOIN DBO.SalesOrderPartV1 SOPI WITH (NOLOCK) on SOPI.SalesOrderId = SOS.SalesOrderId AND SOPI.SalesOrderPartId = SOSI.SalesOrderPartId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 				--AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId
-				), 0) + ISNULL(SOR.QtyToReserve, 0))) AS TotalUnitCost,
+				), 0) 
+				-- + ISNULL(SOR.QtyToReserve, 0)
+				)) AS TotalUnitCost,
 			
 				(SELECT ISNULL((BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 					--JOIN dbo.SalesOrderPartV1 SOPI WITH (NOLOCK) ON sof.SalesOrderPartId = SOPI.SalesOrderPartId AND SOPI.SalesOrderPartId = SOP.SalesOrderPartId
@@ -578,7 +582,7 @@ BEGIN
 				AND tmpcash.SOBillingInvoicingId IS NULL
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFreight = tmpcash.TotalFreight
-				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
+				FROM( SELECT ISNULL((BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId--, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
 					FROM dbo.SalesOrderFreight SOF WITH (NOLOCK) 
 					JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOF.SalesOrderPartId
 					WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId 						
@@ -586,8 +590,8 @@ BEGIN
 						AND sof.ConditionId = tmpSOBI.ConditionId 
 						AND sof.IsActive = 1 
 						AND sof.IsDeleted = 0
-					GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
-				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
+					--GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
+				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId --AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFlatFreight = tmpcash.TotalFreight
 				FROM( SELECT ISNULL(SO.TotalFreight,0) As TotalFreight, SO.SalesOrderId
@@ -597,16 +601,16 @@ BEGIN
 				) tmpcash WHERE tmpcash.SalesOrderId = #SalesOrderBillingInvoiceChildList.SalesOrderId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalCharges = tmpcash.TotalCharges
-				FROM( SELECT ISNULL(SUM(BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
+				FROM( SELECT ISNULL((BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId--, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
 						FROM dbo.SalesOrderCharges SOC WITH (NOLOCK) 
 						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOC.SalesOrderPartId
-						WHERE SOC.SalesOrderId = tmpSOBI.SalesOrderId 						
+						WHERE SOC.SalesOrderId = @SalesOrderId 						
 							AND SOC.ItemMasterId = tmpSOBI.ItemMasterId 
 							AND SOC.ConditionId = tmpSOBI.ConditionId 
 							AND SOC.IsActive = 1 
 							AND SOC.IsDeleted = 0
-						GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
-				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
+						--GROUP BY tmpSOBI.SalesOrderPartId--, tmpSOBI.StockLineId
+				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId --AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFlatCharges = tmpcash.TotalFlatCharges
 				FROM( SELECT ISNULL(SO.TotalCharges,0) As TotalFlatCharges, SO.SalesOrderId

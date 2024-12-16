@@ -16,6 +16,9 @@
     [ShowAsTopMenu]      BIT             DEFAULT ((0)) NULL,
     [NewModuleIcon]      VARCHAR (100)   NULL,
     [NewMenuName]        NVARCHAR (1000) NULL,
+    [ImgClass]           VARCHAR (100)   NULL,
+    [IsMobileMenu]       BIT             NULL,
+    [MobileMenuName]     VARCHAR (250)   NULL,
     CONSTRAINT [tmp_ms_xx_constraint_PK__ModuleHi__3214EC072ABE11CD1] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
 

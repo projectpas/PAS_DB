@@ -31,6 +31,7 @@
 	15	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
 	16   11/27/2024   RAJESH GAMI		In SO: SalesOrderStockLineCost table fixed the markup per/amount
 	17   12/06/2024   Vishal Suthar		PN-10575 Fixed issue of reserving and adding more qty than requested
+	18   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
@@ -164,6 +165,9 @@ BEGIN
 				DECLARE @WOMSQtyReserved BIGINT = 0;
 				DECLARE @WOMSQtyIssued BIGINT = 0, @WOMSQuantity BIGINT = 0;
 				DECLARE @ExchangePOProvisionId BIGINT = 0;
+				DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
+				DECLARE @RefNumber VARCHAR(100) = '';
+				DECLARE @SalesOrderNumber VARCHAR(50) = NULL;
 
 				SELECT @ExchangePOProvisionId = PRO.ProvisionId FROM DBO.Provision PRO WITH (NOLOCK) WHERE PRO.StatusCode = 'EXCHANGE' AND IsActive = 1 AND IsDeleted = 0;
 
@@ -1360,6 +1364,7 @@ BEGIN
 					SET @ConditionId = 0;
 					SET @Requisitioner = 0;
 					SET @PONumber = '';
+					SET @RefNumber = '';
 
 					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
 					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
@@ -1371,6 +1376,12 @@ BEGIN
 						   @SizeWidth = ime.[ExportSizeWidth],
 					       @SizeHeight = ime.[ExportSizeHeight]
 					  FROM DBO.ItemMasterExportInfo ime WITH (NOLOCK) WHERE ime.ItemMasterId = @ItemMasterId;
+
+					--Get SalesOrderNumber for RefrenceNumber
+					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
+
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @PONumber +' To ' + @SalesOrderNumber;
 					
 					/*********DO NOT DELETE Commented code: As discussed with Vishal for now need to remove Nha_Tla_Alt_Equ_ItemMapping join, Due to reserve mismatch in SO side *********/
 					
@@ -1513,11 +1524,13 @@ BEGIN
 										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
-										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
+										[ReferenceNumber])
 										SELECT @SalesOrderPartIdToUpdate, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
 										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
 										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
-										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight;
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,
+										@RefNumber;
 									
 										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
@@ -1663,11 +1676,13 @@ BEGIN
 										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
-										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
+										[ReferenceNumber])
 										SELECT @InsertedSalesOrderPartId, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
 										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
 										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
-										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight;
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,
+										@RefNumber;
 
 										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 

@@ -18,6 +18,7 @@
 	5    06/27/2024  Abhishek Jirawla   Returning Capital for export
 	6    07/16/2024  Devendra Shekh		Added lastDeprRunPeriod to List
 	7    08/05/2024  Devendra Shekh		Added lastDeprDate to List
+	8	 12/11/2024  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
 	
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -94,6 +95,9 @@ BEGIN
 		DECLARE @ResidualPercentage DECIMAL(18,2);
 		DECLARE @LastDateOfSelectedAccountingPeriod Date = NULL;
 		DECLARE @CurrentDateAccountingPeriod VARCHAR(200) = NULL;
+		DECLARE @AvailableAssetAvailableStatusId BIGINT = 0;
+
+		SELECT @AvailableAssetAvailableStatusId = AssetAvailableStatusId FROM [dbo].[AssetAvailableStatus] WITH (NOLOCK) WHERE UPPER([Status]) = 'AVAILABLE' 
 
 		SELECT TOP 1  @AssetStatusid = [AssetStatusid] FROM [dbo].[AssetStatus] WITH (NOLOCK)  WHERE UPPER([name]) ='DEPRECIATING' AND [MasterCompanyId] = @MasterCompanyId
 		
@@ -242,7 +246,7 @@ BEGIN
 																-- AND (B.NetBookValue IS NOT NULL AND B.NetBookValue > ASM.ResidualPercentage)
 																-- AND (B.NetBookValue IS NULL OR ISNULL(B.NetBookValue,0) > ASM.ResidualPercentage)
 																AND (asm.IsDeleted = @IsDeleted) 
-																AND (asm.InventoryStatusId = 1) 
+																AND (asm.InventoryStatusId = @AvailableAssetAvailableStatusId) 
 																AND (asm.IsTangible = 1) 
 																AND (asm.IsDepreciable = 1) 
 																AND (asm.AssetStatusId = @AssetStatusid) 			     

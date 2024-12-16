@@ -17,6 +17,8 @@
  ** --   --------     -------		--------------------------------          
     1    19/05/2023   Moin Bloch    Added WorkOrderNum Parameter To get WorkOrderNum  for check in status
 	2    11/06/2024   Abhishek Jirawla Returning data in upper case
+	3    05/12/2024   Abhishek Jirawla Adding cost, accumalated depreciation and net book value
+	4	 12/12/2024	  Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
      
 --  EXEC [GetAssetInventoryList] 
 **************************************************************/
@@ -70,7 +72,9 @@ BEGIN
 		DECLARE @ModuleID VARCHAR(500) ='42,43'
 		DECLARE @IsActive BIT = 1
 		DECLARE @Count INT;
-		DECLARE @AssetInventoryCheckInStatus INT = 4; 
+		DECLARE @AssetInventoryCheckInStatus BIGINT = 0; 
+		SELECT @AssetInventoryCheckInStatus = AssetAvailableStatusId FROM AssetAvailableStatus WHERE (Status = 'CHECKED IN TO WO' OR Status = 'Unavailable - In Use')
+
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -119,7 +123,7 @@ BEGIN
 								UPPER(asm.InventoryNumber) AS InventoryNumber,
 								UPPER(asm.EntryDate) AS EntryDate,
 								UPPER((SELECT TOP 1 [Name] FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId)) AS AssetStatus,
-								UPPER((SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId)) AS InventoryStatus,
+								UPPER(COALESCE((SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId), (SELECT TOP 1 [Status] FROM [dbo].[AssetAvailableStatus]  WITH(NOLOCK) WHERE AssetAvailableStatusId = asm.InventoryStatusId), '')) AS InventoryStatus,
 								UPPER(asm.InventoryStatusId) AS InventoryStatusId,
 								UPPER(asm.level1) AS CompanyName,
 								UPPER(asm.level2) AS BuName,
@@ -141,7 +145,10 @@ BEGIN
 								UPPER(MSD.LastMSLevel) AS LastMSLevel,	
 								UPPER(MSD.AllMSlevels) AS AllMSlevels,
 								UPPER(asm.statusNote) AS statusNote, 
-								UPPER(awo.WorkOrderNum) AS WorkOrderNum
+								UPPER(awo.WorkOrderNum) AS WorkOrderNum,
+								ISNULL(SUM(asm.UnitCost + asm.Freight + asm.Insurance + asm.Taxes + asm.InstallationCost),0) AS cost,
+								ISNULL(ADH.AccumlatedDepr, 0) AS accumlatedDepreciation,
+								ISNULL(ADH.NetBookValue, ISNULL(SUM(asm.UnitCost + asm.Freight + asm.Insurance + asm.Taxes + asm.InstallationCost), 0)) AS netBookValue
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus
@@ -154,9 +161,55 @@ BEGIN
 								LEFT JOIN  [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
 								LEFT JOIN  [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								LEFT JOIN  [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+								LEFT JOIN  [dbo].[AssetDepreciationHistory] ADH  WITH (NOLOCK) ON asm.AssetInventoryId = ADH.AssetInventoryId
+									AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE IsActive = 1 AND IsDelete = 0 AND AssetInventoryId = ADH.AssetInventoryId)
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
-							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
+							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
+																--AND ((@IsActive = 1 AND asm.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableInUseAssetStatusId, @UnAvailableOutForCalibrationAssetStatusId, @ActiveAssetStatusId)) 
+																--	OR (@IsActive = 0 AND asm.InventoryStatusId NOT IN (@AvailableAssetStatusId, @UnAvailableInUseAssetStatusId, @UnAvailableOutForCalibrationAssetStatusId, @ActiveAssetStatusId)) 
+																--	OR (@IsActive IS NULL)))
+																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
+							GROUP BY asm.AssetRecordId,
+								asm.AssetInventoryId,
+								UPPER(asm.Name),
+								UPPER(asm.AssetId),
+								UPPER(maf.Name),
+								asm.AlternateAssetRecordId,
+								asm.AssetStatusId,
+								asm.InventoryStatusId,
+								UPPER(asm.SerialNo),
+								UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'ELSE 'No' END),
+								UPPER(CASE WHEN asm.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END),
+								UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'ELSE 'Intangible' END),
+								UPPER(ISNULL((CASE WHEN ISNULL(asm.IsTangible,0) = 1 and ISNULL(asm.IsDepreciable, 0) = 1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  ELSE 'No'  END),'No')),
+								UPPER(CASE WHEN ISNULL(asty.AssetAttributeTypeName,'') != '' THEN asty.AssetAttributeTypeName ELSE ISNULL(asti.AssetIntangibleName,'') END), --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
+								UPPER(asm.InventoryNumber),
+								UPPER(asm.EntryDate),
+								UPPER(asm.InventoryStatusId),
+								UPPER(asm.level1),
+								UPPER(asm.level2),
+								UPPER(asm.level3),
+								UPPER(asm.level4),
+								UPPER(asm.MasterCompanyId),
+								asm.CreatedDate,
+								asm.UpdatedDate,
+								UPPER(asm.CreatedBy),
+								UPPER(asm.UpdatedBy),
+								asm.IsActive,
+								asm.IsDeleted,
+								UPPER(ast.ManufacturerPN),
+								UPPER(ast.Model),
+								UPPER(asm.StklineNumber),
+								UPPER(asm.ControlNumber),
+								ISNULL(cal.CalibrationDefaultVendorId,0),	
+								UPPER(V.VendorName),	
+								UPPER(MSD.LastMSLevel),	
+								UPPER(MSD.AllMSlevels),
+								UPPER(asm.statusNote), 
+								UPPER(awo.WorkOrderNum),
+								ADH.AccumlatedDepr,
+								ADH.NetBookValue
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (
@@ -230,6 +283,9 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,					
 					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='Cost')  THEN Cost END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='AccumlatedDepreciation')  THEN AccumlatedDepreciation END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='NetBookValue')  THEN NetBookValue END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETID')  THEN AssetId END Desc,
@@ -249,6 +305,9 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNum')  THEN WorkOrderNum END DESC,		
 					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='Cost')  THEN Cost END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='AccumlatedDepreciation')  THEN AccumlatedDepreciation END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='NetBookValue')  THEN NetBookValue END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

@@ -15,6 +15,7 @@
  ** PR   Date         Author    Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/08/2021   Vishal Suthar Created
+	2    09/12/2024   Moin Bloch    Alter set QtyRequested When stk line is null
 
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
@@ -233,7 +234,8 @@ BEGIN
 			sqp.InternalStatusId AS InternalStatusId,
 			CASE WHEN sqp.CustomerStatusId IS null THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
 			1 AS IsInternalApprove,
-			soqp.QtyQuoted Qty,
+			--soqp.QtyQuoted Qty,
+			CASE WHEN ISNULL(soqp.QtyQuoted,0) > 0 THEN soqp.[QtyQuoted] ELSE ISNULL(soqp.[QtyRequested],0) END AS Qty,
 			soqpc.UnitSalesPrice UnitSalePrice,
 			soqpc.MarkUpPercentage,
 			0 SalesBeforeDiscount,

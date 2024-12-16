@@ -22,7 +22,9 @@
 	6    11/28/2024   Vishal Suthar		Updated for fixing an issue with converting part with multiple stocklines.
 	7    11/29/2024   Rajesh Gami		Changes the STATUSID changes for stockline level
 	8    12/05/2024   Vishal Suthar		Removing temp table before using it which was giving exception
-
+	9    12/09/2024   Moin Bloch		Updated for fixing an issue with converting part Qty
+	10   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
+	
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -31,7 +33,7 @@ exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @Emplo
 select @p13, @p14
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[ConvertSOQToSO]
+CREATE    PROCEDURE [dbo].[ConvertSOQToSO]
 	@SalesOrderQuoteId bigint = 0,
 	@EmployeeId bigint = 0,
 	@EmployeeName VARCHAR(200) = NULL,
@@ -54,17 +56,21 @@ BEGIN
    BEGIN
 	-- Fetch salesView
 	SELECT TOP 1 * INTO #salesView FROM DBO.SalesOrderQuote WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
-	DECLARE @SOPartStatusOpen Varchar(100) = (SELECT TOP 1 SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE Description = 'Open')
-	DECLARE @SOPartStatusFulfilled Varchar(100) = (SELECT TOP 1 SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE Description = 'Fulfilled')
+	DECLARE @SOPartStatusOpen Varchar(100) = (SELECT TOP 1 SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE [Description] = 'Open')
+	DECLARE @SOPartStatusFulfilled Varchar(100) = (SELECT TOP 1 SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE [Description] = 'Fulfilled')
 	DECLARE @totalrevenue DECIMAL(18, 2) = 0;
 	DECLARE @FunctionalCurrencyId BIGINT = 0;
     DECLARE @ReportCurrencyId BIGINT = 0;
     DECLARE @ForeignExchangeRate BIGINT = 0;
+	DECLARE @SalesOrderQuoteNumber VARCHAR(100) = NULL;
+	DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
+	DECLARE @RefNumber VARCHAR(100) = '';
 
 	--From SOQSO Header
 	SELECT @FunctionalCurrencyId = SOQ.[FunctionalCurrencyId],
 		   @ReportCurrencyId = SOQ.[ReportCurrencyId],
-		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate]
+		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate],
+		   @SalesOrderQuoteNumber = SOQ.[SalesOrderQuoteNumber]
     FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	-- Main query
@@ -262,7 +268,7 @@ BEGIN
 			[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderQuotePartId],
 			[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
 		SELECT @SalesOrderId,
-			sop.[ItemMasterId],sop.[ConditionId],sop.[QtyRequested],sop.[QtyQuoted],sop.[CurrencyId],
+			sop.[ItemMasterId],sop.[ConditionId],sop.[QtyRequested],sop.[QtyRequested],sop.[CurrencyId],
 			0,
 			sop.[PriorityId],sop.[StatusId],sop.[FxRate],sop.[CustomerRequestDate],sop.[PromisedDate],
 			sop.[EstimatedShipDate],sop.[Notes],sop.[MasterCompanyId],sop.[CreatedBy],GETUTCDATE(),
@@ -351,7 +357,7 @@ BEGIN
 						SOSCO.[UnitCost],SOSCO.[UnitCostExtended],SOSCO.[MarkUpPercentage],SOSCO.[MarkUpAmount],SOSCO.[DiscountPercentage],
 						SOSCO.[DiscountAmount],SOSCO.[MarginAmount],SOSCO.[MarginPercentage],SOSCO.[NetSaleAmount],SOSCO.[MasterCompanyId],
 						SOSCO.[CreatedBy],GETUTCDATE(),SOSCO.[UpdatedBy],GETUTCDATE(),SOSCO.[IsActive],SOSCO.[IsDeleted]
-				FROM DBO.SalesOrderQuoteStockLineCost SOSCO
+				FROM DBO.SalesOrderQuoteStockLineCost SOSCO WITH(NOLOCK)
 				WHERE SOSCO.SalesOrderQuoteStocklineId = @CurrentSOQStocklineId
 				AND SOSCO.SalesOrderQuoteId = @SalesOrderQuoteId
 				--AND SOSCO.SalesOrderQuotePartId = @CurrentSOQPartId
@@ -364,6 +370,9 @@ BEGIN
 					DECLARE @StocklineId BIGINT = NULL;
 					DECLARE @ReservedQty INT = NULL;
 
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @SalesOrderQuoteNumber + ' To ' + @SalesOrderNumber;
+
 					INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],
 					[AltPartMasterPartId],[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],
 					[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
@@ -372,26 +381,26 @@ BEGIN
 					GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
-					INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
+					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
 					WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId;
 					--SOP.SalesOrderPartId = @CurrentSOPartId;
 
 					SELECT @InsertedReservePartId = SCOPE_IDENTITY();
 
-					SELECT @StocklineId = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
+					SELECT @StocklineId = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderStocklineId = @NewSOStocklineId; --SOPSTK.SalesOrderPartId = @CurrentSOPartId;
 
 					UPDATE SOPSTK
 					SET SOPSTK.QtyReserved = CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
-					INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
+					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
 					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
 
 					UPDATE SOPSTK
 					SET SOPSTK.StatusId = CASE WHEN (SOPSTK.QtyOrder = SOPSTK.QtyReserved) THEN @SOPartStatusFulfilled ELSE @SOPartStatusOpen END
 					FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
 					INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
-					INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
+					INNER JOIN DBO.Stockline Stk WITH(NOLOCK) ON SOPSTK.StockLineId = Stk.StockLineId
 					WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId AND SOPSTK.StockLineId = @StocklineId;
 
 					Update DBO.SalesOrderPartV1 
@@ -404,6 +413,11 @@ BEGIN
 					SET QuantityAvailable = QuantityAvailable - @ReservedQty,
 					QuantityReserved = QuantityReserved + @ReservedQty
 					WHERE StockLineId = @StocklineId;
+
+					--Add RefrenceNumber for SOQ TO SO
+					UPDATE [DBO].[SalesOrderStocklineV1] 
+					SET ReferenceNumber = @RefNumber
+					WHERE SalesOrderPartId = @CurrentSOPartId AND StockLineId = @StockLineId
 
 					EXEC USP_AddUpdateStocklineHistory @StocklineId, @SOModuleId, @SalesOrderId, @SOQModuleId, @SalesOrderQuoteId, 2, @ReservedQty, @EmployeeName;
 				END

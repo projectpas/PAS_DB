@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -20,6 +21,7 @@
 	7    11/25/2024   RAJESH GAMI       Modified to change the condition for QtyAvailable and QtyOnHand (SC.SalesOrderStocklineId IS NOT NULL to Stk.SalesOrderStocklineId IS NOT NULL)
 	8    12/04/2024   RAJESH GAMI       Modified to Devide by 0 issue
 	9    12/06/2024   Amit Ghediya      Modified to update cond.
+	10   12/07/2014   Moin Bloch		Modified to add AltOrEqType
      
 -- EXEC [DBO].[GetSalesOrderPartView] 1475
 **************************************************************/
@@ -115,7 +117,7 @@ BEGIN
         0 AS TaxPercentage,
         '' TaxType,
         ISNULL(PS.TaxAmount, 0) AS TaxAmount,
-        '' AS AltOrEqType,
+        ISNULL(part.AltOrEqType,'') AltOrEqType,		
         ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight WHERE SalesOrderId = part.SalesOrderId AND ItemMasterId = part.ItemMasterId AND ConditionId = part.ConditionId AND IsActive = 1 AND IsDeleted = 0), 0) AS Freight,
         ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges WHERE SalesOrderId = part.SalesOrderId AND ItemMasterId = part.ItemMasterId AND ConditionId = part.ConditionId AND IsActive = 1 AND IsDeleted = 0), 0) AS Misc,
         CASE 

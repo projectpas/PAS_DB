@@ -15,8 +15,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/20/2024   Vishal Suthar Created
+    2    12/13/2024   Vishal Suthar Fixed an alias for Credit Terms
      
- -- EXEC DBO.GetSalesOrderQuoteById 873
+ -- EXEC DBO.GetSalesOrderQuoteById 804
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetSalesOrderQuoteById]
     @SalesOrderQuoteId INT
@@ -61,6 +62,7 @@ BEGIN
 			soq.CreditLimit,
 			soq.CreditLimitName,
 			soq.CreditTermName,
+			soq.CreditTermName CreditTerms,
 			soq.EmployeeName,
 			soq.RestrictPMA,
 			soq.RestrictDER,

@@ -3,6 +3,26 @@
 -- Create date: <30-1-2024>
 -- Description:	<AssetAttributeTypeForSSRS,,>
 -- =============================================
+/*************************************************************           
+ ** File:   [InventoryStatusForSSRS]           
+ ** Author:   Ayesha Sultana
+ ** Description: This SP to get all the inventory statuses
+ ** Purpose:         
+ ** Date:   10-JAN-2024    
+          
+ ** PARAMETERS:           
+   
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date         Author  			Change Description            
+ ** --   --------		-------				--------------------------------          
+	1	 10-01-2024		Ayesha Sultana		Created
+	2    12-12-2024     ABHISHEK JIRAWLA    Change made for Asset Inventory Status and Asset Available Status
+     
+**************************************************************/
 CREATE   PROCEDURE [dbo].[InventoryStatusForSSRS]	
 AS
 BEGIN
@@ -11,7 +31,11 @@ BEGIN
 	BEGIN TRY
 			SELECT AIS.AssetInventoryStatusId, AIS.[Status], AIS.MasterCompanyId
 			FROM AssetInventoryStatus AIS WITH (NOLOCK)
-			WHERE AIS.IsActive = 1 AND AIS.IsDeleted = 0;	
+			WHERE AIS.IsActive = 1 AND AIS.IsDeleted = 0
+			UNION ALL
+			SELECT AAS.AssetAvailableStatusId AS AssetInventoryStatusId, AAS.[Status], AAS.MasterCompanyId
+			FROM AssetAvailableStatus AAS WITH (NOLOCK)
+			WHERE AAS.IsActive = 1 AND AAS.IsDeleted = 0;
 	END TRY
 	BEGIN CATCH
     ROLLBACK TRANSACTION

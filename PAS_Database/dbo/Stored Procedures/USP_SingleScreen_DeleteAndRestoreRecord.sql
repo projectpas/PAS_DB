@@ -10,14 +10,15 @@
  ** PR   Date         Author  		Change Description              
  ** --   --------     -------		--------------------------------            
     1    04/04/2024   Vishal Suthar	Created  
-
+	2    12/11/2024   Ayushi Patel	Updated For Updated By , Updated Date 
 **************************************************************/
 -- EXEC  USP_SingleScreen_DeleteAndRestoreRecord 10, 'assetlocation'
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_DeleteAndRestoreRecord]  
  @ID INT = NULL,  
  @Status BIT = NULL,  
  @PageName VARCHAR(100) = NULL,  
- @PrimaryKey VARCHAR(100) = NULL  
+ @PrimaryKey VARCHAR(100) = NULL,
+ @CurrentUser VARCHAR(100) = NULL 
 AS  
 BEGIN  
   SET NOCOUNT ON;  
@@ -43,7 +44,7 @@ BEGIN
  
 	EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
 
-    SET @Query = 'UPDATE [' + @PageName + '] SET IsDeleted  =' + CAST(@Status AS VARCHAR) + '  WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
+    SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(), UpdatedBy = ''' + @CurrentUser + ''', IsDeleted  =' + CAST(@Status AS VARCHAR) + '  WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
     EXEC (@Query)  
   END TRY  
   BEGIN CATCH  

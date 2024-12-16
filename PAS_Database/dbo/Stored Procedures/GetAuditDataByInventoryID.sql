@@ -15,10 +15,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/13/2024   Abhishek Jirawla Created
+	2	 12/11/2024   Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
      
 --EXEC [GetAuditDataByInventoryID] 521
 **************************************************************/
-CREATE   PROCEDURE GetAuditDataByInventoryID
+CREATE   PROCEDURE [dbo].[GetAuditDataByInventoryID]
     @AssetInventoryId BIGINT
 AS
 BEGIN
@@ -37,7 +38,7 @@ BEGIN
 		SELECT
 			a.InventoryNumber,
 			a.InventoryStatusId,
-			ins.Status AS InventoryStatus,
+			COALESCE(ins.Status, ans.Status, '') AS InventoryStatus,
 			a.AssetId,
 			a.AssetInventoryId,
 			a.AssetRecordId,
@@ -81,11 +82,12 @@ BEGIN
 			a.BinName,
 			(CASE WHEN AMSD.AllMSlevels IS NULL THEN '' ELSE AMSD.AllMSlevels END) AS AllMSlevels,
 			(CASE WHEN AMSD.LastMSLevel IS NULL THEN '' ELSE AMSD.LastMSLevel END) AS LastMSLevel
-	   FROM AssetInventoryAudit a  WITH(NOLOCK)
-			LEFT JOIN AssetIntangibleType aity WITH(NOLOCK) ON a.AssetIntangibleTypeId = aity.AssetIntangibleTypeId
-			LEFT JOIN AssetIntangibleAttributeType asty WITH(NOLOCK) ON a.AssetIntangibleTypeId = asty.AssetIntangibleTypeId
-			LEFT JOIN AssetManagementStructureDetailsAudit AMSD WITH(NOLOCK) ON a.AssetInventoryId = AMSD.ReferenceID AND AMSD.ModuleID = @ManagementStructureModuleId
-			LEFT JOIN AssetInventoryStatus ins WITH(NOLOCK) ON a.InventoryStatusId = ins.AssetInventoryStatusId
+	   FROM [dbo].AssetInventoryAudit a  WITH(NOLOCK)
+			LEFT JOIN [dbo].AssetIntangibleType aity WITH(NOLOCK) ON a.AssetIntangibleTypeId = aity.AssetIntangibleTypeId
+			LEFT JOIN [dbo].AssetIntangibleAttributeType asty WITH(NOLOCK) ON a.AssetIntangibleTypeId = asty.AssetIntangibleTypeId
+			LEFT JOIN [dbo].AssetManagementStructureDetailsAudit AMSD WITH(NOLOCK) ON a.AssetInventoryId = AMSD.ReferenceID AND AMSD.ModuleID = @ManagementStructureModuleId
+			LEFT JOIN [dbo].AssetInventoryStatus ins WITH(NOLOCK) ON a.InventoryStatusId = ins.AssetInventoryStatusId
+			LEFT JOIN [dbo].AssetAvailableStatus ans WITH(NOLOCK) ON a.InventoryStatusId = ans.AssetAvailableStatusId
 		WHERE a.AssetInventoryId = @AssetInventoryId
 		ORDER BY a.UpdatedDate DESC;
 	END
@@ -94,7 +96,7 @@ BEGIN
 		SELECT
 			a.InventoryNumber,
 			a.InventoryStatusId,
-			ins.Status AS InventoryStatus,
+			COALESCE(ins.Status, ans.Status, '') AS InventoryStatus,
 			a.AssetId,
 			a.AssetInventoryId,
 			a.AssetRecordId,
@@ -254,35 +256,36 @@ BEGIN
 			a.BinName,
 			(CASE WHEN AMSD.AllMSlevels IS NULL THEN '' ELSE AMSD.AllMSlevels END) AS AllMSlevels,
 			(CASE WHEN AMSD.LastMSLevel IS NULL THEN '' ELSE AMSD.LastMSLevel END) AS LastMSLevel
-	   FROM AssetInventoryAudit a  WITH(NOLOCK)
-			LEFT JOIN Manufacturer manu WITH(NOLOCK) ON a.ManufacturerId = manu.ManufacturerId
-			LEFT JOIN TangibleClass at WITH(NOLOCK) ON a.TangibleClassId = at.TangibleClassId
-			LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId
-			LEFT JOIN Currency curr WITH(NOLOCK) ON a.CurrencyId = curr.CurrencyId
-			LEFT JOIN AssetAcquisitionType aacq WITH(NOLOCK) ON a.AssetAcquisitionTypeId = aacq.AssetAcquisitionTypeId
-			LEFT JOIN AssetAttributeType asty WITH(NOLOCK) ON a.AssetAttributeTypeId = asty.AssetAttributeTypeId
-			LEFT JOIN GLAccount caGL WITH(NOLOCK) ON a.CalibrationGlAccountId = caGL.GLAccountId
-			LEFT JOIN GLAccount ceGL WITH(NOLOCK) ON a.CertificationGlAccountId = ceGL.GLAccountId
-			LEFT JOIN GLAccount iaGL WITH(NOLOCK) ON a.InspectionGlaAccountId = iaGL.GLAccountId
-			LEFT JOIN GLAccount vgla WITH(NOLOCK) ON a.VerificationGlAccountId = vgla.GLAccountId
-			LEFT JOIN GLAccount wgla WITH(NOLOCK) ON a.WarrantyGLAccountId = wgla.GLAccountId
-			LEFT JOIN GLAccount mgla WITH(NOLOCK) ON a.MaintenanceGLAccountId = mgla.GLAccountId
-			LEFT JOIN AssetLocation alo WITH(NOLOCK) ON a.AssetLocationId = alo.AssetLocationId
-			LEFT JOIN AssetWarrantyStatus wsta WITH(NOLOCK) ON a.WarrantyStatusId = wsta.AssetWarrantyStatusId
-			LEFT JOIN Vendor cave WITH(NOLOCK) ON a.CalibrationDefaultVendorId = cave.VendorId
-			LEFT JOIN Vendor ceve WITH(NOLOCK) ON a.CertificationDefaultVendorId = ceve.VendorId
-			LEFT JOIN Vendor ive WITH(NOLOCK) ON a.InspectionDefaultVendorId = ive.VendorId
-			LEFT JOIN Vendor vve WITH(NOLOCK) ON a.VerificationDefaultVendorId = vve.VendorId
-			LEFT JOIN Vendor dve WITH(NOLOCK) ON a.MaintenanceDefaultVendorId = dve.VendorId
-			LEFT JOIN Vendor wve WITH(NOLOCK) ON a.WarrantyDefaultVendorId = wve.VendorId
-			LEFT JOIN Currency cacu WITH(NOLOCK) ON a.CalibrationCurrencyId = cacu.CurrencyId
-			LEFT JOIN Currency cecu WITH(NOLOCK) ON a.CertificationCurrencyId = cecu.CurrencyId
-			LEFT JOIN Currency icu WITH(NOLOCK) ON a.InspectionCurrencyId = icu.CurrencyId
-			LEFT JOIN Currency vcu WITH(NOLOCK) ON a.VerificationCurrencyId = vcu.CurrencyId
-			LEFT JOIN Module wcs WITH(NOLOCK) ON a.WarrantyCompanySelectId = wcs.ModuleId
-			LEFT JOIN Vendor wven WITH(NOLOCK) ON a.WarrantyCompanyId = wven.VendorId
-			LEFT JOIN AssetManagementStructureDetailsAudit AMSD WITH(NOLOCK) ON a.AssetInventoryId = AMSD.ReferenceID AND AMSD.ModuleID = @ManagementStructureModuleId
-			LEFT JOIN AssetInventoryStatus ins WITH(NOLOCK) ON a.InventoryStatusId = ins.AssetInventoryStatusId
+	   FROM [dbo].AssetInventoryAudit a  WITH(NOLOCK)
+			LEFT JOIN [dbo].Manufacturer manu WITH(NOLOCK) ON a.ManufacturerId = manu.ManufacturerId
+			LEFT JOIN [dbo].TangibleClass at WITH(NOLOCK) ON a.TangibleClassId = at.TangibleClassId
+			LEFT JOIN [dbo].UnitOfMeasure uom WITH(NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId
+			LEFT JOIN [dbo].Currency curr WITH(NOLOCK) ON a.CurrencyId = curr.CurrencyId
+			LEFT JOIN [dbo].AssetAcquisitionType aacq WITH(NOLOCK) ON a.AssetAcquisitionTypeId = aacq.AssetAcquisitionTypeId
+			LEFT JOIN [dbo].AssetAttributeType asty WITH(NOLOCK) ON a.AssetAttributeTypeId = asty.AssetAttributeTypeId
+			LEFT JOIN [dbo].GLAccount caGL WITH(NOLOCK) ON a.CalibrationGlAccountId = caGL.GLAccountId
+			LEFT JOIN [dbo].GLAccount ceGL WITH(NOLOCK) ON a.CertificationGlAccountId = ceGL.GLAccountId
+			LEFT JOIN [dbo].GLAccount iaGL WITH(NOLOCK) ON a.InspectionGlaAccountId = iaGL.GLAccountId
+			LEFT JOIN [dbo].GLAccount vgla WITH(NOLOCK) ON a.VerificationGlAccountId = vgla.GLAccountId
+			LEFT JOIN [dbo].GLAccount wgla WITH(NOLOCK) ON a.WarrantyGLAccountId = wgla.GLAccountId
+			LEFT JOIN [dbo].GLAccount mgla WITH(NOLOCK) ON a.MaintenanceGLAccountId = mgla.GLAccountId
+			LEFT JOIN [dbo].AssetLocation alo WITH(NOLOCK) ON a.AssetLocationId = alo.AssetLocationId
+			LEFT JOIN [dbo].AssetWarrantyStatus wsta WITH(NOLOCK) ON a.WarrantyStatusId = wsta.AssetWarrantyStatusId
+			LEFT JOIN [dbo].Vendor cave WITH(NOLOCK) ON a.CalibrationDefaultVendorId = cave.VendorId
+			LEFT JOIN [dbo].Vendor ceve WITH(NOLOCK) ON a.CertificationDefaultVendorId = ceve.VendorId
+			LEFT JOIN [dbo].Vendor ive WITH(NOLOCK) ON a.InspectionDefaultVendorId = ive.VendorId
+			LEFT JOIN [dbo].Vendor vve WITH(NOLOCK) ON a.VerificationDefaultVendorId = vve.VendorId
+			LEFT JOIN [dbo].Vendor dve WITH(NOLOCK) ON a.MaintenanceDefaultVendorId = dve.VendorId
+			LEFT JOIN [dbo].Vendor wve WITH(NOLOCK) ON a.WarrantyDefaultVendorId = wve.VendorId
+			LEFT JOIN [dbo].Currency cacu WITH(NOLOCK) ON a.CalibrationCurrencyId = cacu.CurrencyId
+			LEFT JOIN [dbo].Currency cecu WITH(NOLOCK) ON a.CertificationCurrencyId = cecu.CurrencyId
+			LEFT JOIN [dbo].Currency icu WITH(NOLOCK) ON a.InspectionCurrencyId = icu.CurrencyId
+			LEFT JOIN [dbo].Currency vcu WITH(NOLOCK) ON a.VerificationCurrencyId = vcu.CurrencyId
+			LEFT JOIN [dbo].Module wcs WITH(NOLOCK) ON a.WarrantyCompanySelectId = wcs.ModuleId
+			LEFT JOIN [dbo].Vendor wven WITH(NOLOCK) ON a.WarrantyCompanyId = wven.VendorId
+			LEFT JOIN [dbo].AssetManagementStructureDetailsAudit AMSD WITH(NOLOCK) ON a.AssetInventoryId = AMSD.ReferenceID AND AMSD.ModuleID = @ManagementStructureModuleId
+			LEFT JOIN [dbo].AssetInventoryStatus ins WITH(NOLOCK) ON a.InventoryStatusId = ins.AssetInventoryStatusId
+			LEFT JOIN [dbo].AssetAvailableStatus ans WITH(NOLOCK) ON a.InventoryStatusId = ans.AssetAvailableStatusId
 		WHERE a.AssetInventoryId = @AssetInventoryId
 		ORDER BY a.UpdatedDate DESC;
 	END

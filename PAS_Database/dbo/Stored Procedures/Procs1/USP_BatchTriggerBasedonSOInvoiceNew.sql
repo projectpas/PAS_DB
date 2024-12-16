@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoiceNew]
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to enter acounting entry for SO
@@ -29,6 +30,7 @@
 	15	 11/29/2024  Vishal Suthar  Modified the SP to make use of new SO tables
 	16	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
 	17	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
+	18	 12/06/2024  Moin Bloch     Fixed Duplicate amount issue 
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -164,7 +166,7 @@ BEGIN
 			SELECT @CustomerTypeId = c.CustomerAffiliationId,
 			       @CustomerTypeName = caf.[Description] 
 			  FROM dbo.Customer c WITH(NOLOCK) 
-			 INNER JOIN dbo.CustomerAffiliation caf WITH(NOLOCK) on c.CustomerAffiliationId = caf.CustomerAffiliationId 
+			 INNER JOIN dbo.CustomerAffiliation caf WITH(NOLOCK) ON c.CustomerAffiliationId = caf.CustomerAffiliationId 
 			 WHERE c.CustomerId=@CustomerId;
 			
 			SET @partId = @ReferencePartId;
@@ -199,7 +201,7 @@ BEGIN
 			SET @ReferencePartId=@partId	
 			SELECT @InvoiceNo=InvoiceNo  FROM 
 			       dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
-			WHERE SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0;
+			WHERE SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0
 
 			IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 			BEGIN
@@ -270,26 +272,26 @@ BEGIN
 						   @InvoiceDate = [InvoiceDate],
 						   @LocalCurrencyCode = ISNULL(CL.Code, @LocalCurrencyCode),
 						   @ForeignCurrencyCode = ISNULL(CL.Code, @ForeignCurrencyCode)
-					 FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) LEFT JOIN [DBO].[Currency] CL WITH(NOLOCK) ON CL.CurrencyId = SOBI.CurrencyId WHERE SOBI.SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0;;
+					 FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) LEFT JOIN [DBO].[Currency] CL WITH(NOLOCK) ON CL.CurrencyId = SOBI.CurrencyId WHERE SOBI.SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0 AND ISNULL([IsVersionIncrease],0) = 0
 
 					SET @TotalTax = (@SalesTax + @OtherTax);
 
 					SELECT @PartUnitSalesPrice = SUM(ISNULL(sosc.UnitCostExtended, 0))
 					FROM [dbo].[SalesOrderBillingInvoicing] soi WITH(NOLOCK)
-					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
+					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.[IsVersionIncrease],0) = 0
 					INNER JOIN [dbo].[SalesOrderStocklineV1] sop WITH(NOLOCK) ON soit.StockLineId = sop.StockLineId --soit.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStockLineCost] sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
-					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0;
+					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 
 					SELECT TOP 1 @StocklineId = stk.[StockLineId],
 					             @partId = sop.[ItemMasterId],
 								 @MPNName = itm.[partnumber]
 					FROM [dbo].[SalesOrderBillingInvoicing] soi WITH(NOLOCK)
-					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
+					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.[IsVersionIncrease],0) = 0
 					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
 					LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
-					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0;;
+					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 
 					SELECT @LotId = SL.LotId,
 						   @LotNumber = LO.[LotNumber],						  
@@ -551,33 +553,33 @@ BEGIN
 					----GL Account wise COGS-Parts and Inventory-Parts Entry----
 					DECLARE @SalesOrderPartDetailsCursor AS CURSOR;
 					SET @SalesOrderPartDetailsCursor = CURSOR FAST_FORWARD FOR	
-					SELECT STL.GLAccountId as PartGLAccountId FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
-					INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
-					INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-					INNER JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
-					INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
-					WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0
+					SELECT STL.GLAccountId as PartGLAccountId FROM dbo.SalesOrderBillingInvoicing soi WITH(NOLOCK)
+					INNER JOIN dbo.SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.IsVersionIncrease,0) = 0
+					INNER JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
+					INNER JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
+					INNER JOIN dbo.Stockline STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
+					WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 					GROUP BY STL.GLAccountId
 
 					OPEN @SalesOrderPartDetailsCursor;
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor INTO @PartGLAccountId;
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
-						SELECT @PartUnitSalesPrices = SUM(ISNULL(sosc.UnitCost,0) * ISNULL(soit.NoofPieces,0)) FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
-						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
+						SELECT @PartUnitSalesPrices = SUM(ISNULL(sosc.UnitCost,0) * ISNULL(soit.NoofPieces,0)) FROM dbo.SalesOrderBillingInvoicing soi WITH(NOLOCK)
+						INNER JOIN dbo.SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.IsVersionIncrease,0) = 0
 						--INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
-						INNER JOIN SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND sop.StockLineId = soit.StockLineId
-						INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
-						INNER JOIN SalesOrderStockLineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
-						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
+						INNER JOIN dbo.SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND sop.StockLineId = soit.StockLineId
+						INNER JOIN dbo.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
+						INNER JOIN dbo.SalesOrderStockLineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
+						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT TOP 1 @STKId = STL.StockLineId 
 						FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
-						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0
+						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.IsVersionIncrease,0) = 0
 						--INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = sop.StockLineId
 						INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
-						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
+						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 						INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@STKId;

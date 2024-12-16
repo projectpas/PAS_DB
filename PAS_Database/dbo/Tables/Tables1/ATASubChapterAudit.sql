@@ -13,7 +13,9 @@
     [IsDeleted]            BIT            NOT NULL,
     [ATAChapterId]         BIGINT         NOT NULL,
     [ATAChapterCategoryId] INT            NOT NULL,
-    [ATAChapterName]       VARCHAR (256)  NOT NULL,
-    [ATAChapterCategory]   VARCHAR (256)  NOT NULL
+    [ATAChapterName]       VARCHAR (256)  NULL,
+    [ATAChapterCategory]   VARCHAR (256)  NULL
 );
+
+
 

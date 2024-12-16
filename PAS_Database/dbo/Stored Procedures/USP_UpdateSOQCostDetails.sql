@@ -15,8 +15,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/25/2024   Vishal Suthar Created
+    2    12/12/2024   Vishal Suthar Fixed issue with calculating sub total when we have deleted Parts
      
- EXECUTE USP_UpdateSOQCostDetails 766, 'Admin User', 1
+ EXECUTE USP_UpdateSOQCostDetails 980, 'Admin User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOQCostDetails]
 (
@@ -47,13 +48,14 @@ SET NOCOUNT ON
 
 				DECLARE @MasterLoopID AS INT;
 				DECLARE @SalesOrderQuotePartId AS BIGINT;
-				DECLARE @NetSaleAmount_S AS [decimal](18, 4);
+				DECLARE @NetSaleAmount_S AS [decimal](18, 4) = 0;
 				DECLARE @Freight_S AS [decimal](18, 4);
 				DECLARE @Charges_S AS [decimal](18, 4);
 
 				INSERT INTO #SOQPartCostDetails ([SalesOrderQuoteId], [SalesOrderQuotePartId], [NetSaleAmount], [Charges], [Freights])
 				SELECT [SalesOrderQuoteId], [SalesOrderQuotePartId], [NetSaleAmount], [MiscCharges], [Freight]
-				FROM [DBO].[SalesOrderQuotePartCost] WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
+				FROM [DBO].[SalesOrderQuotePartCost] WITH (NOLOCK) WHERE SalesOrderQuotePartId IN (SELECT SalesOrderQuotePartId FROM SalesOrderQuotePartV1 WHERE SalesOrderQuoteId = @SalesOrderQuoteId);
+				--SalesOrderQuoteId = @SalesOrderQuoteId;
 
 				DECLARE @IsFlatRateAdded_Charges BIT = 0;
 				DECLARE @IsFlatRateAdded_Freight BIT = 0;

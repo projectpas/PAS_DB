@@ -17,6 +17,7 @@
 	5    01/16/2024   Devendra Shekh			delete disabled issue resolved
 	6    05/29/2024   Devendra Shekh			Stk Join changed to SWPT from SWO and adde ControlNumber to select
 	7    11/20/2024   Sahdev Saliya             Added New Field WorkOrderPartNumberId
+	8    12/12/2024   Moin Bloch                Updated For Getting Top 1 SubReleaseFromId due to error
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -169,7 +170,7 @@ BEGIN
 
 			UPDATE #tempSubWO
 			SET SubReleaseFromId =	CASE WHEN @Is8130 = 1 
-									THEN (SELECT SubReleaseFromId FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId) ELSE 0 END
+									THEN (SELECT TOP 1 [SubReleaseFromId] FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId) ELSE 0 END
 			WHERE SubWorkOrderId = @TmpSubWOId
 
 			SET @TotalRec = @TotalRec - 1	

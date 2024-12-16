@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/03/2022   Vishal Suthar Added Inventory Status
 	2    08/01/2022   Subhash saliya add pdf download coloum
+	3	 12/12/2024	  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetToolDashboardList]
@@ -59,6 +60,10 @@ BEGIN
 		DECLARE @ModuleID varchar(500) ='40,41'
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;		
 		
+		DECLARE @AvailableAssetStatusId BIGINT = 0, @UnAvailableAssetStatusId BIGINT = 0;
+		SELECT @AvailableAssetStatusId = AssetAvailableStatusId FROM AssetAvailableStatus WHERE UPPER(Status) = 'AVAILABLE'
+		SELECT @UnAvailableAssetStatusId = AssetAvailableStatusId FROM AssetAvailableStatus WHERE UPPER(Status) = 'Unavailable'
+
 		IF @SortColumn is null
 		Begin
 			Set @SortColumn=Upper('lastCalDate')
@@ -155,7 +160,7 @@ BEGIN
 											asts.YellowIndicator as YellowIndicator, 
 											asts.GreenIndicator as GreenIndicator, 
 											AsI.InventoryStatusId,
-											InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
+											InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), '')
 										FROM dbo.Asset asm WITH(NOLOCK)
 											INNER JOIN dbo.AssetInventory As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
 											LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId										
@@ -174,10 +179,12 @@ BEGIN
 											left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
 											left join dbo.AssetToolSettings  As asts WITH(NOLOCK) on asts.MasterCompanyId=asm.MasterCompanyId
 											OUTER APPLY (SELECT top 1 LastCalibrationDate, NextCalibrationDate, CalibrationDate FROM CalibrationManagment WITH (NOLOCK) WHERE AssetInventoryId = AsI.AssetInventoryId AND CalibrationTypeId = 1 ORDER BY  CalibrationId desc) T
-										where ((asm.IsDeleted = 0)  AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
-											and  asm.MasterCompanyId = @MasterCompanyId 
+										where ((asm.IsDeleted = 0)  
+											AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
+											AND  asm.MasterCompanyId = @MasterCompanyId 
 											AND (@IsActive is null or isnull(AsI.IsActive, 1) = @IsActive))										
-											and AsI.InventoryStatusId in (1, 3)
+											--and AsI.InventoryStatusId in (1, 3)
+											AND AsI.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableAssetStatusId)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult5 from  Result
 								WHERE (
@@ -341,7 +348,7 @@ BEGIN
 										asts.YellowIndicator as YellowIndicator, 
 										asts.GreenIndicator as GreenIndicator,
 										AsI.InventoryStatusId,
-										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WITH (NOLOCK) WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
+										InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), '')
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
 										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId AND clm.CalibrationTypeId = 1									
@@ -360,10 +367,10 @@ BEGIN
 										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
 										OUTER APPLY (SELECT top 1 LastCalibrationDate, NextCalibrationDate, CalibrationDate FROM CalibrationManagment WITH (NOLOCK) WHERE AssetInventoryId = AsI.AssetInventoryId AND CalibrationTypeId = 1 ORDER BY  CalibrationId desc) T
-										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive)
+										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive IS NULL OR isnull(asm.IsActive,1) = @IsActive)
 										AND  asm.MasterCompanyId=@MasterCompanyId and (Assc.CalibrationRequired =1)
 										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
-										and AsI.InventoryStatusId in (1,3)
+										AND AsI.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableAssetStatusId)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult from  Result
 								WHERE (
@@ -525,7 +532,7 @@ BEGIN
 										asts.YellowIndicator as YellowIndicator, 
 										asts.GreenIndicator as GreenIndicator, 
 										AsI.InventoryStatusId,
-										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WITH (NOLOCK) WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
+										InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), '')
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
 										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId AND clm.CalibrationTypeId = 2									
@@ -545,10 +552,10 @@ BEGIN
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
 										OUTER APPLY (SELECT top 1 LastCalibrationDate, NextCalibrationDate, CalibrationDate FROM dbo.CalibrationManagment WITH(NOLOCK) WHERE AssetInventoryId = AsI.AssetInventoryId AND CalibrationTypeId = 2 ORDER BY  CalibrationId desc) T
 										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND  
-										(@IsActive is null or isnull(asm.IsActive,1) = @IsActive) 
+										(@IsActive IS NULL OR isnull(asm.IsActive,1) = @IsActive) 
 										and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CertificationRequired =1)
 										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
-										and AsI.InventoryStatusId in (1,3)
+										AND AsI.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableAssetStatusId)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 							Select * INTO #TempResult1 from  Result
 								WHERE (
@@ -712,7 +719,7 @@ BEGIN
 										asts.YellowIndicator as YellowIndicator, 
 										asts.GreenIndicator as GreenIndicator, 
 										AsI.InventoryStatusId,
-										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WITH (NOLOCK) WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
+										InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), '')
 									FROM dbo.Asset asm WITH(NOLOCK)									
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
 										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId AND clm.CalibrationTypeId = 3										
@@ -732,10 +739,10 @@ BEGIN
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
 										OUTER APPLY (SELECT top 1 LastCalibrationDate, NextCalibrationDate, CalibrationDate FROM dbo.CalibrationManagment WITH(NOLOCK) WHERE AssetInventoryId = AsI.AssetInventoryId AND CalibrationTypeId = 3 ORDER BY  CalibrationId desc) T
 										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
-										AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) 
-										and  asm.MasterCompanyId=@MasterCompanyId and (Assc.InspectionRequired =1)
-										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
-										and AsI.InventoryStatusId in (1,3)
+										AND (@IsActive IS NULL OR Isnull(asm.IsActive,1) = @IsActive) 
+										AND  asm.MasterCompanyId=@MasterCompanyId and (Assc.InspectionRequired =1)
+										AND (@IsActive IS NULL OR isnull(AsI.IsActive,1) = @IsActive))										
+										AND AsI.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableAssetStatusId)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult2 from  Result
 								WHERE (
@@ -900,7 +907,7 @@ BEGIN
 										asts.YellowIndicator as YellowIndicator, 
 										asts.GreenIndicator as GreenIndicator,
 										AsI.InventoryStatusId,
-										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WITH (NOLOCK) WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
+										InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), '')
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
 										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId AND clm.CalibrationTypeId = 4										
@@ -920,10 +927,10 @@ BEGIN
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
 										OUTER APPLY (SELECT top 1 LastCalibrationDate, NextCalibrationDate, CalibrationDate FROM dbo.CalibrationManagment WITH(NOLOCK) WHERE AssetInventoryId = AsI.AssetInventoryId AND CalibrationTypeId = 4 ORDER BY  CalibrationId desc) T
 										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
-										AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) 
-										and  asm.MasterCompanyId=@MasterCompanyId and (Assc.VerificationRequired =1)
-										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
-										and AsI.InventoryStatusId in (1,3)
+										AND (@IsActive IS NULL OR isnull(asm.IsActive,1) = @IsActive) 
+										AND  asm.MasterCompanyId=@MasterCompanyId AND (Assc.VerificationRequired =1)
+										AND (@IsActive IS NULL OR isnull(AsI.IsActive,1) = @IsActive))										
+										AND AsI.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableAssetStatusId)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult3 from  Result
 								WHERE (

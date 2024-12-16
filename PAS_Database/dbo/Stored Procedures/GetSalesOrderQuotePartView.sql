@@ -15,8 +15,9 @@
 	2    12-11-2024   Shrey Chandegara  Updated because TraceableToName,tagdate,tagtype not bind. 
 	3    13-11-2024   Vishal Suthar		Fixed the QtyAvail and QtyOH
 	4    03-12-2024   AMIT GHEDIYA		Fixed Get Saved CurrId from part table.
+	5    12-12-2024   Vishal Suthar		Fixed Qty Quoted when no stockline is added
      
--- EXEC [DBO].[GetSalesOrderQuotePartView] 897, 'USD'
+ EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
@@ -34,13 +35,13 @@ BEGIN
         stk.StockLineId,
         ISNULL(qs.StockLineNumber, '') AS stockLineNumber,
         part.FxRate,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE Part.QtyQuoted END AS QtyQuoted,
+        CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE (CASE WHEN ISNULL(Part.QtyQuoted, 0) > 0 THEN ISNULL(Part.QtyQuoted, 0) ELSE ISNULL(Part.QtyRequested, 0) END) END AS QtyQuoted,
         ISNULL(part.QtyRequested, 0) AS QtyRequested,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPrice, 0) ELSE ISNULL(PS.UnitSalesPrice, 0) END UnitSalePrice,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountAmount, 0) ELSE ISNULL(PS.DiscountAmount, 0) END SalesBeforeDiscount,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountPercentage, 0) ELSE ISNULL(PS.DiscountPercentage, 0) END Discount,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.DiscountAmount, 0) / stk.QtyQuoted) ELSE (ISNULL(PS.DiscountAmount, 0) / part.QtyQuoted) END DiscountAmount,
+        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.DiscountAmount, 0) / (CASE WHEN ISNULL(stk.QtyQuoted, 0) > 0 THEN stk.QtyQuoted ELSE 1 END)) ELSE (ISNULL(PS.DiscountAmount, 0) / CASE WHEN ISNULL(part.QtyQuoted, 0) > 0 THEN part.QtyQuoted ELSE 1 END) END DiscountAmount,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END NetSales,
         part.MasterCompanyId,
         part.CreatedBy,
@@ -88,7 +89,7 @@ BEGIN
         ISNULL(st.Description, 'Open') AS StatusName,
         soq.CustomerReference CustomerReference,
         CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.Notes ELSE part.Notes END AS Notes,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / stk.QtyQuoted) ELSE (ISNULL(PS.MarkUpAmount, 0) / part.QtyQuoted) END MarkupPerUnit,
+        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / CASE WHEN ISNULL(stk.QtyQuoted, 0) > 0 THEN stk.QtyQuoted ELSE 1 END) ELSE (ISNULL(PS.MarkUpAmount, 0) / CASE WHEN ISNULL(part.QtyQuoted, 0) > 0 THEN part.QtyQuoted ELSE 1 END) END MarkupPerUnit,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePricePerUnit,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePrice,
         TaxPercentage = 0,--dbo.GetCustomerTaxBaseOnPartDetail(part.SalesOrderQuoteId, part.SalesOrderQuotePartId, soq.CustomerId), 
@@ -154,10 +155,17 @@ BEGIN
     LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
 	LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-    --ORDER BY part.ItemNo;
+    ORDER BY part.CreatedDate;
 	END TRY
 
 	BEGIN CATCH
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME(),
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

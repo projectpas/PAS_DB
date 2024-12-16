@@ -3324,6 +3324,7 @@
     <Build Include="dbo\Tables\AssetAvailableStatusAudit.sql" />
     <Build Include="dbo\Tables\AssetAvailableStatus.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteCharges.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteChargesAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

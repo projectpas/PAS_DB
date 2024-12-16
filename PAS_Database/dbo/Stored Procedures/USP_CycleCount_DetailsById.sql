@@ -14,9 +14,11 @@
     1    16/10/2024   Moin Bloch    Created
 	2    24/10/2024   Moin Bloch    Added RequestedById
 	3    29/10/2024   Moin Bloch    Added ApproverId,ApprovedBy,DateApproved
-    4    28/10/2024   Moin Bloch    Added @CountedById,@CountMethodId
+	4    28/10/2024   Moin Bloch    Added @CountedById,@CountMethodId
+	5	 22/11/2024   Bhargav Saliya Get Status From The [CycleCountStatus] Table
 
   EXEC [dbo].[USP_CycleCount_DetailsById] 1,1
+  exec [USP_CycleCount_DetailsById] 63,1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CycleCount_DetailsById]
 @CycleCountId BIGINT,
@@ -36,8 +38,8 @@ BEGIN
 			  ,CC.[RequestedById]			  
               ,CC.[ApproverId]
 			  ,CC.[ApprovedBy]
-			  ,CC.[DateApproved]			  
-              ,CC.[CountedById]
+			  ,CC.[DateApproved]
+			  ,CC.[CountedById]
 			  ,ISNULL(EP.[FirstName],'') + ' ' + ISNULL(EP.[LastName],'') AS CountedBy
 			  ,CC.[CountMethodId]
 			  ,CC.[MasterCompanyId]
@@ -47,9 +49,13 @@ BEGIN
 			  ,CC.[UpdatedDate]
 			  ,CC.[IsActive]
 			  ,CC.[IsDeleted]
+			  ,CCS.[Status]
+			  ,GETUTCDATE() AS [CurrentTime]
+			  ,(EP.FirstName +' '+ EP.LastName) AS [EmployeeName]
 		  FROM [dbo].[CycleCount] CC WITH(NOLOCK) 
-	 LEFT JOIN [dbo].[Employee] EP ON CC.[CountedById] = EP.[EmployeeId]
-		 WHERE [CycleCountId] = @CycleCountId AND CC.[MasterCompanyId] = @MasterCompanyId;	
+		  LEFT JOIN [dbo].CycleCountStatus CCS WITH(NOLOCK) ON CCS.CycleCountStatusId = CC.StatusId
+		  LEFT JOIN [dbo].Employee EP WITH(NOLOCK) ON CC.[CountedById] = EP.[EmployeeId]
+		 WHERE CC.[CycleCountId] = @CycleCountId AND CC.[MasterCompanyId] = @MasterCompanyId;	
 	END TRY  
 		BEGIN CATCH      
 			IF @@trancount > 0			

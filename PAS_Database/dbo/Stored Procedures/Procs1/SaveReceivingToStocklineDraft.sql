@@ -25,10 +25,11 @@
     9    11-July-2024 RAJESH GAMI       Add the tracebletype,traceble to, tagdate,tagtype and other required parent detail into stocklineDraft when part is splitted.     
 	10   26-09-2024   Abhishek Jirawla  Add Traceable to name in insert of stockline draft
 	11   15-10-2024   RAJESH GAMI       Add IsSubWOType and their values (WOMaterialsId, IsSubWOType , IsKitType)
-	11   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
+	12   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
+	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
-CREATE   PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
+CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
  @PurchaseOrderId bigint = 0,    
  @UserName VARCHAR(100)    
 AS    
@@ -384,7 +385,10 @@ BEGIN
 	  DECLARE @CalibrationDefaultVendorId BIGINT,  @CalibrationDays INT = 0, @CalibrationGlAccountId INT = 0, @CalibrationMemo NVARCHAR(MAX),
 		@CertificationDefaultVendorId BIGINT, @CertificationFrequencyDays INT, @CertificationGlAccountId  BIGINT, @CertificationMemo NVARCHAR(MAX),
 		@InspectionDefaultVendorId BIGINT, @InspectionFrequencyDays INT, @InspectionGlAccountId  BIGINT, @InspectionMemo NVARCHAR(MAX),
-		@VerificationDefaultVendorId BIGINT, @VerificationFrequencyDays INT, @VerificationGlAccountId  BIGINT, @VerificationMemo NVARCHAR(MAX);
+		@VerificationDefaultVendorId BIGINT, @VerificationFrequencyDays INT, @VerificationGlAccountId  BIGINT, @VerificationMemo NVARCHAR(MAX),
+		@AssetAvailableStatusId BIGINT;
+
+	  SELECT @AssetAvailableStatusId = AssetAvailableStatusId FROM AssetAvailableStatus WHERE Status = 'Available';
 
 	  SELECT @CalibrationDefaultVendorId = ISNULL(AC.CalibrationDefaultVendorId, 0), @CalibrationDays = ISNULL(AC.CalibrationFrequencyDays, 0), @CalibrationGlAccountId = ISNULL(AC.CalibrationGlAccountId, 0), @CalibrationMemo = ISNULL(AC.CalibrationMemo, 0),
 		@CertificationDefaultVendorId = ISNULL(AC.CertificationDefaultVendorId, 0), @CertificationFrequencyDays = ISNULL(AC.CertificationFrequencyDays, 0), @CertificationGlAccountId = ISNULL(AC.CertificationGlAccountId, 0), @CertificationMemo = ISNULL(AC.CertificationMemo, 0),
@@ -405,7 +409,8 @@ BEGIN
 		@TotalCost = ISNULL(AI.TotalCost, 0),
 		@DepreciationStartDate = ISNULL(AI.DepreciationStartDate, '')
 	  FROM DBO.AssetInventory AI WITH (NOLOCK)
-	  WHERE AI.AssetRecordId = @ItemMasterId AND AI.InventoryStatusId = (SELECT AssetInventoryStatusId FROM AssetInventoryStatus WHERE Status = 'Available');
+	  WHERE AI.AssetRecordId = @ItemMasterId AND AI.InventoryStatusId = @AssetAvailableStatusId;
+
 
 	  DECLARE @WarrantyCompany VARCHAR(100), @WarrantyGLAccountId BIGINT, @WarrantyDefaultVendorId BIGINT
 	  SELECT @WarrantyCompany = ISNULL(AM.WarrantyCompany, ''), @WarrantyGLAccountId = ISNULL(AM.WarrantyGLAccountId, 0), @WarrantyDefaultVendorId = ISNULL(AM.WarrantyDefaultVendorId, 0)
@@ -443,7 +448,7 @@ BEGIN
       NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
       NULL, A.[MasterPartId], GETUTCDATE(), @InstallationCost, @Freight, @Insurance, @Taxes, @TotalCost, @WarrantyDefaultVendorId, @WarrantyGLAccountId, A.[IsDepreciable], A.[IsNonDepreciable],    
       A.[IsAmortizable], A.[IsNonAmortizable], '', 0, @AssetLife, 0, @WarrantyCompany, 0, NULL, 0,    
-      1, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
+      @AssetAvailableStatusId, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
       A.SiteId, A.WarehouseId, A.AssetLocationId, A.ShelfId, A.BinId, @POPartGLAccountId, @POPartGLAccountName, NULL, NULL, NULL, NULL, NULL, @IsParent_Asset, 0, 1,    
       NULL, NULL, @CalibrationDefaultVendorId, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END, @DepreciationStartDate

@@ -13,7 +13,8 @@
     1    26-10-2023   Ayesha Sultana		Created
     2    17-11-2023   Devendra SHekh		changes for status update
     3    13-12-2023   Devendra SHekh		changes for status update
-    3    08-01-2024   Devendra SHekh		added [AssetInventoryLog]
+    4    08-01-2024   Devendra SHekh		added [AssetInventoryLog]
+	5    12-12-2024   ABHISHEK JIRAWLA      Change made for Asset Inventory Status and Asset Available Status
 
 	EXEC [UpdateAssetCalibrationStatusActiveList]
 
@@ -66,7 +67,7 @@ BEGIN
 								AIN.[DepreciationFrequencyId], AIN.[CreatedDate], AIN.[EntryDate]
 				FROM dbo.AssetInventory AIN WITH(NOLOCK)
 					JOIN dbo.CalibrationManagment CM WITH(NOLOCK) ON AIN.AssetInventoryId = CM.AssetInventoryId
-					WHERE AIN.InventoryStatusId = (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'Available') AND AIN.CalibrationRequired=1
+					WHERE AIN.InventoryStatusId = (SELECT [AssetAvailableStatusId] FROM [dbo].[AssetAvailableStatus] WITH(NOLOCK) WHERE [Status] = 'Available') AND AIN.CalibrationRequired=1
 
 				--select * from #tmpAssetInventory
 				INSERT INTO [dbo].[AssetInventoryLog]([Description], [SuccessLog], [CreatedDate], [UpdatedDate])

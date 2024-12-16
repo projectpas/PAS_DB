@@ -16,10 +16,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/12/2024   Abhishek Jirawla Created
+	2    12-12-2024   ABHISHEK JIRAWLA Change made for Asset Inventory Status and Asset Available Status
      
 --  EXEC [GetAssetDetailsByInventoryID] 658
 **************************************************************/
-CREATE   PROCEDURE GetAssetDetailsByInventoryID
+CREATE     PROCEDURE [dbo].[GetAssetDetailsByInventoryID]
     @AssetInventoryId BIGINT
 AS
 BEGIN
@@ -31,14 +32,14 @@ BEGIN
 
 	SELECT @AssetInventoryTangibleManagementStructureModuleId = ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'AssetInventoryTangible'
 
-	SELECT @CheckInInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'CHECKED IN TO WO'
+	SELECT @CheckInInventoryStatusId = AssetAvailableStatusId FROM AssetAvailableStatus WITH (NOLOCK) WHERE Status = 'CHECKED IN TO WO'
 
 	IF EXISTS(SELECT TOP 1 * FROM DBO.AssetInventory WITH (NOLOCK) WHERE AssetInventoryId = @AssetInventoryId AND IsIntangible = 1)
 	BEGIN
 		SELECT 
 			ISNULL(asset.InventoryNumber, '') AS InventoryNumber,
 			ISNULL(asset.InventoryStatusId, 0) AS InventoryStatusId,
-			ISNULL(ins.Status, '') AS InventoryStatus,
+			COALESCE(ins.Status, ans.Status, '') AS InventoryStatus,
 			ISNULL(asset.AssetId, 0) AS AssetId,
 			ISNULL(asset.AssetInventoryId, 0) AS AssetInventoryId,
 			ISNULL(asset.AssetRecordId, 0) AS AssetRecordId,
@@ -115,6 +116,7 @@ BEGIN
 			ON asset.AssetInventoryId = AMSD.ReferenceID 
 			AND AMSD.ModuleID = @AssetInventoryInTangibleManagementStructureModuleId -- ManagementStructureModuleEnum.AssetInventoryInTangible
 		LEFT JOIN DBO.AssetInventoryStatus ins WITH (NOLOCK) ON asset.InventoryStatusId = ins.AssetInventoryStatusId
+		LEFT JOIN DBO.AssetAvailableStatus ans WITH (NOLOCK) ON asset.InventoryStatusId = ans.AssetAvailableStatusId
 		WHERE asset.AssetInventoryId = @AssetInventoryId;
 
 	END
@@ -124,7 +126,7 @@ BEGIN
 		SELECT 
 			asset.InventoryNumber,
 			asset.InventoryStatusId,
-			ISNULL(ins.Status, '') AS InventoryStatus,
+			COALESCE(ins.Status, ans.Status, '') AS InventoryStatus,
 			asset.AssetId,
 			asset.AssetInventoryId,
 			asset.AssetRecordId,
@@ -351,6 +353,7 @@ BEGIN
 		LEFT JOIN DBO.Vendor wven WITH (NOLOCK) ON asset.WarrantyCompanyId = wven.VendorId
 		LEFT JOIN DBO.AssetManagementStructureDetails AMSD WITH (NOLOCK) ON asset.AssetInventoryId = AMSD.ReferenceID AND AMSD.ModuleID = @AssetInventoryTangibleManagementStructureModuleId
 		LEFT JOIN DBO.AssetInventoryStatus ins WITH (NOLOCK) ON asset.InventoryStatusId = ins.AssetInventoryStatusId
+		LEFT JOIN DBO.AssetAvailableStatus ans WITH (NOLOCK) ON asset.InventoryStatusId = ans.AssetAvailableStatusId
 		LEFT JOIN  [dbo].[AssetDepreciationHistory] ADH  WITH (NOLOCK) ON asset.AssetInventoryId = ADH.AssetInventoryId
 			AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory  WITH (NOLOCK) WHERE IsActive = 1 AND IsDelete = 0 AND AssetInventoryId = ADH.AssetInventoryId)
 		WHERE asset.AssetInventoryId = @AssetInventoryId;

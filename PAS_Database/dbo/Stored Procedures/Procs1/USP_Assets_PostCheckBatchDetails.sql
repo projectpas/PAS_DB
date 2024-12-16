@@ -162,8 +162,7 @@ BEGIN
 				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'CASHARTRADEAROTHERSALE' AND MasterCompanyId = @MasterCompanyId;
 
 			SELECT @DeprExpenseGLAccountId= DeprExpenseGLAccountId,@AdDepsGLAccountId= AdDepsGLAccountId,
-			@AssetSaleGLAccountId=AssetSaleGLAccountId, @AssetWriteOffGLAccountId=AssetWriteOffGLAccountId, @AssetWriteDownGLAccountId=AssetWriteDownGLAccountId,
-			@AcquiredGLAccountId = AcquiredGLAccountId
+			@AssetSaleGLAccountId=AssetSaleGLAccountId, @AssetWriteOffGLAccountId=AssetWriteOffGLAccountId, @AssetWriteDownGLAccountId=AssetWriteDownGLAccountId
 			FROM DBO.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@AssetInventoryId;
 
 			SET @Desc = 'Inventory Num -' + @AssetInventoryName;
@@ -455,8 +454,8 @@ BEGIN
 					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'LOSSGAINONWRITEOFFSALE' AND MasterCompanyId = @MasterCompanyId
 
-					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetWriteOffGLAccountId
-					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetWriteOffGLAccountId;
+					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetWriteDownGLAccountId
+					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetWriteDownGLAccountId;
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -492,8 +491,8 @@ BEGIN
 					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'LOSSGAINONWRITEOFFSALE' AND MasterCompanyId = @MasterCompanyId
 
-					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetWriteOffGLAccountId
-					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetWriteOffGLAccountId;
+					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetWriteDownGLAccountId
+					FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AssetWriteDownGLAccountId;
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -523,9 +522,6 @@ BEGIN
 						NULL,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StocktypeAsset,@CommonBatchDetailId)
 				END
 			END
-			-----Loss/(Gain) On Write Off--------
-
-			-----Loss/(Gain) On Sale--------
 
 			IF(@SoldStatus = @Status)
 			BEGIN
@@ -612,8 +608,8 @@ BEGIN
 				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
 				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'ASSETINSTALLEDCOSTSALE'  AND MasterCompanyId = @MasterCompanyId
 
-				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId
-				FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AcquiredGLAccountId
+				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AdDepsGLAccountId
+				FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AdDepsGLAccountId
 
 				INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

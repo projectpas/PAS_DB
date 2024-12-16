@@ -16,7 +16,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    12/30/2020   Hemant Saliya Created
+    1    12/30/2020   Hemant Saliya		Created
+	2    12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
      
 -- EXEC [UpdateAssetCalibrationStatus] 
 **************************************************************/
@@ -31,9 +32,11 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN  
 
-			DECLARE @UpdatedInventoryStatusId BIGINT;
+			DECLARE @UpdatedUnAvailableStatusId BIGINT;
+			DECLARE @AvailableStatusId BIGINT;
 
-			SELECT @UpdatedInventoryStatusId = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH(NOLOCK) WHERE UPPER([Status]) = 'UNAVAILABLE' AND IsActive = 1 AND IsDeleted = 0;
+			SELECT @UpdatedUnAvailableStatusId = AssetAvailableStatusId FROM dbo.AssetAvailableStatus WITH(NOLOCK) WHERE UPPER([Status]) = 'UNAVAILABLE' AND IsActive = 1 AND IsDeleted = 0;
+			SELECT @AvailableStatusId = AssetAvailableStatusId FROM dbo.AssetAvailableStatus WITH(NOLOCK) WHERE UPPER([Status]) = 'AVAILABLE' AND IsActive = 1 AND IsDeleted = 0;
 
 			IF OBJECT_ID(N'tempdb..#tmpCalibrationRequired') IS NOT NULL
 			BEGIN
@@ -60,10 +63,10 @@ BEGIN
 			FROM dbo.AssetCalibration AC WITH(NOLOCK) 
 				JOIN dbo.CalibrationManagment CM WITH(NOLOCK) ON AC.AssetRecordId = CM.AssetRecordId
 				JOIN dbo.AssetInventory AIN WITH(NOLOCK) ON AIN.AssetRecordId = CM.AssetRecordId
-			WHERE AC.CalibrationRequired = 1 AND DATEDIFF(DAY, CalibrationDate, GETDATE()) >= AC.CalibrationFrequencyDays AND AIN.InventoryStatusId = 1
+			WHERE AC.CalibrationRequired = 1 AND DATEDIFF(DAY, CalibrationDate, GETDATE()) >= AC.CalibrationFrequencyDays AND AIN.InventoryStatusId = @AvailableStatusId
 
 			UPDATE AIN
-				SET InventoryStatusId = @UpdatedInventoryStatusId
+				SET InventoryStatusId = @UpdatedUnAvailableStatusId
 			FROM dbo.AssetInventory AIN WITH(NOLOCK)
 			JOIN #tmpCalibrationRequired tmpCS ON AIN.AssetInventoryId = tmpCS.AssetInventoryId
 

@@ -18,6 +18,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    03/16/2021    Subhash Saliya Created
+	2    12/16/2024    Sahdev Saliya  Commented Update GlAccountName
 
      
 --EXEC [UpdateWorkOrderQuoteTable] 'WorkOrderQuoteMaterial', 284
@@ -98,8 +99,8 @@ BEGIN
 							 WOQC.TaskName = T.Description,
 							 WOQC.BillingName = (case when WOQC.BillingMethodId = 1 then 'T&M'  when  WOQC.BillingMethodId = 2 then 'Actual' else '' End),
 							 WOQC.MarkUp = p.PercentValue,
-							 WOQC.ChargeType = c.ChargeType,
-							 WOQC.GlAccountName=gl.AccountName
+							 WOQC.ChargeType = c.ChargeType
+							 --WOQC.GlAccountName=gl.AccountName
 						 FROM [dbo].[WorkOrderQuoteCharges] WOQC WITH(NOLOCK)
 							 LEFT JOIN dbo.Vendor v WITH(NOLOCK) ON v.VendorId = WOQC.VendorId
 							 INNER JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = WOQC.TaskId

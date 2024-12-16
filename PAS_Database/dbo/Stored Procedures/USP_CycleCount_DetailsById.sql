@@ -51,7 +51,7 @@ BEGIN
 			  ,CC.[IsDeleted]
 			  ,CCS.[Status]
 			  ,GETUTCDATE() AS [CurrentTime]
-			  ,(EP.FirstName +' '+ EP.LastName) AS [EmployeeName]
+			  ,(ISNULL(EP.FirstName,'') +' '+ ISNULL(EP.LastName,'')) AS [EmployeeName]
 		  FROM [dbo].[CycleCount] CC WITH(NOLOCK) 
 		  LEFT JOIN [dbo].CycleCountStatus CCS WITH(NOLOCK) ON CCS.CycleCountStatusId = CC.StatusId
 		  LEFT JOIN [dbo].Employee EP WITH(NOLOCK) ON CC.[CountedById] = EP.[EmployeeId]

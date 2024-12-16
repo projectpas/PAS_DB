@@ -46,10 +46,10 @@ BEGIN
 			  ,CC.[CountedQuantity]
 			  ,CC.[DifferenceQuantity]
 			  ,CC.[DifferenceAmount]
-			  ,SL.[QuantityAvailable]
-			  ,SL.[QuantityOnHand] 
-			  ,SL.[QuantityReserved] 
-			  ,SL.[QuantityIssued] 
+			  ,ISNULL(SL.[QuantityAvailable],0) [QuantityAvailable]
+			  ,ISNULL(SL.[QuantityOnHand],0) [QuantityOnHand]
+			  ,ISNULL(SL.[QuantityReserved],0)  [QuantityReserved]
+			  ,ISNULL(SL.[QuantityIssued],0) [QuantityIssued]
 		 FROM [dbo].[CycleCountDetail] CC WITH(NOLOCK)	
 		 INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = CC.[StockLineId]
 		  WHERE CC.[MasterCompanyId] = @MasterCompanyId 

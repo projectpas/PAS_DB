@@ -105,8 +105,11 @@
     [TagDate]                    DATETIME2 (7)   NULL,
     [WorkOrderMaterialsId]       BIGINT          NULL,
     [IsKitType]                  BIT             NULL,
+    [ReferenceNumber]            VARCHAR (100)   NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
+
+
 
 
 

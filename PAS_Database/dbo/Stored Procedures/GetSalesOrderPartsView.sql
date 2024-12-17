@@ -14,7 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    12/12/2024		EKTA CHANDEGRA	 Created  
-    2    16/12/2024		EKTA CHANDEGRA	 Add IsNull for UnitSalesPricePerUnit   
+    2    16/12/2024		EKTA CHANDEGRA	 Handled divided by zero exception for UnitSalesPricePerUnit   
 
  EXEC GetSalesOrderPartsView 1555 , 0
 ************************************************************************/ 
@@ -93,7 +93,12 @@ BEGIN
 			qs.IdNumber,
 			part.POId,
 			part.PONextDlvrDate,
-			ISNULL(sopc.NetSaleAmount / part.QtyOrder,0) AS UnitSalesPricePerUnit
+			CASE
+				WHEN ISNULL(part.QtyOrder,0) > 0 
+				THEN (ISNULL(sopc.NetSaleAmount,0) / part.QtyOrder)
+				ELSE 0 
+			END AS UnitSalesPricePerUnit
+			
 		FROM [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		LEFT JOIN [dbo].[SalesOrderStockLineV1] sops WITH(NOLOCK) ON part.SalesOrderPartId = sops.SalesOrderPartId
 		LEFT JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON part.SalesOrderPartId = sopc.SalesOrderPartId

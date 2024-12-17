@@ -20,7 +20,7 @@
 	3    07/09/2024   Abhishek Jirawla	Added Batchnumber to the script
 	4    07/14/2024   Hemant  Saliya    Updated for Condition Is not populating in 8130
 	5    12/12/2024   Moin Bloch        Updated For Get FormTypeId
-
+	6    12/16/2024   Moin Bloch        Updated For Get FormType Name
      
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
@@ -89,6 +89,7 @@ BEGIN
 					  ,@ManagementStructureId AS  ManagementStructureId 
 					  ,wro.[EmployeeId]
 					  ,wro.[FormTypeId]
+					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  

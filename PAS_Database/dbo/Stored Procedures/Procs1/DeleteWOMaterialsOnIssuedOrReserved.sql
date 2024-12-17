@@ -13,6 +13,7 @@
 ** 1    26/7/2023   Ayesha Sultana   Delete WO Materials & its Stockline if not issued/ reserved & no WO Provision
 ** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 ** 3    29/10/2024  RAJESH GAMI      Un Mapped WO if there is no other material link with the same workorder in the Same PO (Updated)
+** 4    29/10/2024  Devendra Shekh   Modified (Handling Kit Material Delete)
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
@@ -25,6 +26,7 @@ BEGIN
 		BEGIN TRY
 			BEGIN TRANSACTION
 			DECLARE @WorkOrderId BIGINT = (SELECT top 1 WorkOrderId FROM DBO.WorkOrderWorkFlow WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
+			DECLARE @WOPartNoId BIGINT = (SELECT top 1 WorkOrderPartNoId FROM DBO.WorkOrderWorkFlow WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
 			DECLARE @PoID BIGINT = 0, @LooPId INT = 1, @TotalCount INT = 0
 			IF OBJECT_ID(N'tempdb..##TempWOtbl') IS NOT NULL
 				BEGIN
@@ -35,23 +37,41 @@ BEGIN
 					DROP TABLE #TempPOtbl
 				END
 			CREATE TABLE #TempPOtbl(Id [int] IDENTITY(1,1),POID BIGINT NULL)
-			CREATE TABLE #TempWOtbl(WorkOrderMaterialsId BIGINT)
+			CREATE TABLE #TempWOtbl(WorkOrderMaterialsId BIGINT, IsKit BIT)
 
-			INSERT INTO #TempWOtbl (WorkOrderMaterialsId)
+			INSERT INTO #TempWOtbl (WorkOrderMaterialsId, IsKit)
 
-			SELECT DISTINCT WOM.WorkOrderMaterialsId
+			SELECT DISTINCT WOM.WorkOrderMaterialsId, 0
 
-			FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+			FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)		
 
 			WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 					AND (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)) = 0 
-					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM Provision WHERE Description = 'SUB WORK ORDER') ;
-			
-			INSERT INTO #TempPOtbl(POID) SELECT POId FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) WHERE WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM  #TempWOtbl) AND ISNULL(POId,0) > 0
+					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM Provision WHERE Description = 'SUB WORK ORDER');
 
-			UPDATE dbo.Stockline SET WorkOrderMaterialsId = NULL FROM dbo.Stockline S JOIN #TempWOtbl tmpWOM ON S.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
-			DELETE WOMS FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #TempWOtbl tmpWOM ON WOMS.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
-			DELETE WOM FROM dbo.WorkOrderMaterials WOM JOIN #TempWOtbl tmpWOM ON WOM.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId;
+			--Inserting KIT Data
+			INSERT INTO #TempWOtbl (WorkOrderMaterialsId, IsKit)
+			SELECT DISTINCT WOM.WorkOrderMaterialsKitId, 1
+			FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
+			WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
+					AND (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)) = 0 
+					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM Provision WHERE Description = 'SUB WORK ORDER');
+			
+			INSERT INTO #TempPOtbl(POID) SELECT POId FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) WHERE WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM  #TempWOtbl WHERE IsKit = 0) AND ISNULL(POId,0) > 0
+			INSERT INTO #TempPOtbl(POID) SELECT POId FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) WHERE WorkOrderMaterialsKitId IN (SELECT WorkOrderMaterialsId FROM  #TempWOtbl WHERE IsKit = 1) AND ISNULL(POId,0) > 0
+
+			UPDATE dbo.Stockline SET WorkOrderMaterialsId = NULL FROM dbo.Stockline S JOIN #TempWOtbl tmpWOM ON S.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 0;
+			DELETE WOMS FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #TempWOtbl tmpWOM ON WOMS.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 0;
+			DELETE WOM FROM dbo.WorkOrderMaterials WOM JOIN #TempWOtbl tmpWOM ON WOM.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 0;
+
+			UPDATE dbo.Stockline SET WorkOrderMaterialsKitId = NULL FROM dbo.Stockline S JOIN #TempWOtbl tmpWOM ON S.WorkOrderMaterialsKitId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 1;
+			DELETE WOMS FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #TempWOtbl tmpWOM ON WOMS.WorkOrderMaterialsKitId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 1;
+			DELETE WOM FROM dbo.WorkOrderMaterialsKit WOM JOIN #TempWOtbl tmpWOM ON WOM.WorkOrderMaterialsKitId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 1;
+
+			IF NOT EXISTS(SELECT * FROM [dbo].[WorkOrderMaterialsKit] WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId)
+			BEGIN
+				DELETE FROM [dbo].[WorkOrderMaterialsKitMapping] WHERE [WOPartNoId] = @WOPartNoId;
+			END
 
 			UPDATE P    
 				    SET WorkOrderMaterialsId = NULL, 
@@ -59,7 +79,7 @@ BEGIN
 						   UpdatedDate = GETUTCDATE()
 					FROM DBO.PurchaseOrderPart P
 					  INNER JOIN #TempWOtbl tmp ON P.WorkOrderMaterialsId = tmp.WorkOrderMaterialsId
-					  WHERE P.WorkOrderMaterialsId  = tmp.WorkOrderMaterialsId AND ISNULL(IsKit,0) = 0 AND ISNULL(IsSubWO,0) = 0
+					  WHERE P.WorkOrderMaterialsId  = tmp.WorkOrderMaterialsId AND ISNULL(IsSubWO,0) = 0 --AND ISNULL(IsKit,0) = 0 
 			/****** Unmapped the Workorder if there is no other material link with the same workorder in the PurchaseOrder Part ********/
 			SET @TotalCount = (SELECT COUNT(1) FROM #TempPOtbl)
 			IF(@TotalCount>0)

@@ -83,7 +83,7 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.CustomerRequestDate  AS ReceivedDate
-					  ,wop.[islocked]
+					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
 					  ,@ManagementStructureId AS  ManagementStructureId 

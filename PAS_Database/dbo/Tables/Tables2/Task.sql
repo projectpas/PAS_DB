@@ -11,8 +11,12 @@
     [IsDeleted]       BIT            CONSTRAINT [DF_Task_IsDeleted] DEFAULT ((0)) NULL,
     [Sequence]        BIGINT         NOT NULL,
     [IsTravelerTask]  BIT            NULL,
+    [Descrepancy]     NVARCHAR (MAX) NULL,
+    [Resolution]      NVARCHAR (MAX) NULL,
     PRIMARY KEY CLUSTERED ([TaskId] ASC)
 );
+
+
 
 
 GO

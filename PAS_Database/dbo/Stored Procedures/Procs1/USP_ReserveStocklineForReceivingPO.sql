@@ -1758,9 +1758,16 @@ BEGIN
 					SET @ConditionId = 0;
 					SET @Requisitioner = 0;
 					SET @PONumber = '';
+					SET @RefNumber = '';
 
 					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
 					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					--Get ExchangeSalesOrderNumber for RefrenceNumber
+					SELECT @SalesOrderNumber = [ExchangeSalesOrderNumber] FROM [DBO].[ExchangeSalesOrder] WITH(NOLOCK) WHERE [ExchangeSalesOrderId] = @ReferenceId;
+
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @PONumber +' To ' + @SalesOrderNumber;
 
 					IF EXISTS (SELECT TOP 1 1 FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId)
 					BEGIN
@@ -1850,10 +1857,10 @@ BEGIN
 
 									INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
 									[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber])
 									SELECT @ReferenceId, @ExchangeSalesOrderPartIdToUpdate, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
 									NULL, NULL, NULL, NULL, 0, 0, 0, 0, @stkMasterCompanyId, @UpdatedBy,
-									@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+									@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@RefNumber;
 
 									SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
 									SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;

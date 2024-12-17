@@ -75,6 +75,23 @@ BEGIN
 		DECLARE @AssetInventoryCheckInStatus BIGINT = 0; 
 		SELECT @AssetInventoryCheckInStatus = AssetAvailableStatusId FROM AssetAvailableStatus WHERE (Status = 'CHECKED IN TO WO' OR Status = 'Unavailable - In Use')
 
+		IF OBJECT_ID(N'tempdb..#tmpAssetUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpAssetUserRole
+		END
+
+		SELECT * INTO #tmpAssetUserRole FROM (SELECT DISTINCT
+							MSD.ReferenceID,
+							RMS.EntityStructureId,
+							MSD.LastMSLevel,
+							MSD.AllMSlevels
+						FROM dbo.AssetManagementStructureDetails MSD WITH (NOLOCK)
+						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) 
+							ON MSD.EntityMsId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) 
+							ON EUR.RoleId = RMS.RoleId
+						WHERE MSD.ModuleID  IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND EUR.EmployeeId = @EmployeeId) AS assetUserRole
+
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -142,13 +159,13 @@ BEGIN
 								UPPER(asm.ControlNumber) AS ControlNumber,
 								ISNULL(cal.CalibrationDefaultVendorId,0) AS VendorId,	
 								UPPER(V.VendorName) AS VendorName,	
-								UPPER(MSD.LastMSLevel) AS LastMSLevel,	
-								UPPER(MSD.AllMSlevels) AS AllMSlevels,
+								UPPER(DR.LastMSLevel) AS LastMSLevel,	
+								UPPER(DR.AllMSlevels) AS AllMSlevels,
 								UPPER(asm.statusNote) AS statusNote, 
 								UPPER(awo.WorkOrderNum) AS WorkOrderNum,
-								ISNULL(SUM(asm.UnitCost + asm.Freight + asm.Insurance + asm.Taxes + asm.InstallationCost),0) AS cost,
+								ISNULL(SUM(ISNULL(asm.UnitCost, 0) + ISNULL(asm.Freight, 0) + ISNULL(asm.Insurance, 0) + ISNULL(asm.Taxes, 0) + ISNULL(asm.InstallationCost, 0)),0) AS cost,
 								ISNULL(ADH.AccumlatedDepr, 0) AS accumlatedDepreciation,
-								ISNULL(ADH.NetBookValue, ISNULL(SUM(asm.UnitCost + asm.Freight + asm.Insurance + asm.Taxes + asm.InstallationCost), 0)) AS netBookValue
+								ISNULL(ADH.NetBookValue, ISNULL(SUM(ISNULL(asm.UnitCost, 0) + ISNULL(asm.Freight, 0) + ISNULL(asm.Insurance, 0) + ISNULL(asm.Taxes, 0) + ISNULL(asm.InstallationCost, 0)),0)) AS netBookValue
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus
@@ -158,18 +175,16 @@ BEGIN
 								LEFT JOIN  [dbo].[Manufacturer]  AS maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
 								LEFT JOIN  [dbo].[AssetCalibration] as cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1	
 								LEFT JOIN  [dbo].[Vendor] AS V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId	
-								LEFT JOIN  [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
-								LEFT JOIN  [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
-								LEFT JOIN  [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+								--LEFT JOIN  [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
+								--LEFT JOIN  [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
+								--LEFT JOIN  [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+								INNER JOIN #tmpAssetUserRole DR ON DR.ReferenceID = asm.AssetInventoryId
 								LEFT JOIN  [dbo].[AssetDepreciationHistory] ADH  WITH (NOLOCK) ON asm.AssetInventoryId = ADH.AssetInventoryId
 									AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE IsActive = 1 AND IsDelete = 0 AND AssetInventoryId = ADH.AssetInventoryId)
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
-																--AND ((@IsActive = 1 AND asm.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableInUseAssetStatusId, @UnAvailableOutForCalibrationAssetStatusId, @ActiveAssetStatusId)) 
-																--	OR (@IsActive = 0 AND asm.InventoryStatusId NOT IN (@AvailableAssetStatusId, @UnAvailableInUseAssetStatusId, @UnAvailableOutForCalibrationAssetStatusId, @ActiveAssetStatusId)) 
-																--	OR (@IsActive IS NULL)))
 																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
-																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
+																--AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 							GROUP BY asm.AssetRecordId,
 								asm.AssetInventoryId,
 								UPPER(asm.Name),
@@ -204,8 +219,8 @@ BEGIN
 								UPPER(asm.ControlNumber),
 								ISNULL(cal.CalibrationDefaultVendorId,0),	
 								UPPER(V.VendorName),	
-								UPPER(MSD.LastMSLevel),	
-								UPPER(MSD.AllMSlevels),
+								UPPER(DR.LastMSLevel),	
+								UPPER(DR.AllMSlevels),
 								UPPER(asm.statusNote), 
 								UPPER(awo.WorkOrderNum),
 								ADH.AccumlatedDepr,

@@ -14,6 +14,7 @@
 	3	 09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
 	4	11/28/2024		RAJESH GAMI				Return the flags (IsFullyReserved - IsFullyIssued)
 	5	12/05/2024		RAJESH GAMI				Resolved the issue for KIT in return the flags (IsFullyReserved - IsFullyIssued)
+	6	12/12/2024		Devendra Shekh			Resolved Records Count Issue
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=316,@ShowPendingToIssue=0
@@ -67,6 +68,11 @@ SET NOCOUNT ON
 		 BEGIN  
 		 DROP TABLE #tmpWOMStockline  
 		 END  
+
+		 IF OBJECT_ID(N'tempdb..#TMPWOMaterialParentQtySum') IS NOT NULL
+		 BEGIN
+		 DROP TABLE #TMPWOMaterialParentQtySum
+		 END
   
 		 CREATE TABLE #tmpStockline  
 		  (  
@@ -101,6 +107,15 @@ SET NOCOUNT ON
 		 	[SubWorkOrderMaterialsKitMappingId] [bigint] NULL,
 		 	[SubWOPartNoId] [bigint] NULL,
 		 	[IsKit] [bit] NULL,
+		 )
+
+		 CREATE TABLE #TMPWOMaterialParentQtySum
+		 (
+			[ParentID] BIGINT NOT NULL IDENTITY, 						 
+			[SubWorkOrderMaterialsId] [bigint] NULL,
+			[SubWorkOrderMaterialsKitMappingId] [bigint] NULL,
+			[SubWOPartNoId] [bigint] NULL,
+			[IsKit] [bit] NULL,
 			[Quantity] [INT] NULL DEFAULT 0,
 			[QuantityIssued] [INT] NULL DEFAULT 0,
 			[QuantityReserved] [INT] NULL DEFAULT 0,
@@ -317,11 +332,41 @@ SET NOCOUNT ON
 		IF (ISNULL(@ShowPendingToIssue, 0) = 1)
 		BEGIN
 			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
+			AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 ;
+
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
+			WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+			AND ISNULL(WOMK.IsAltPart, 0) = 0 AND ISNULL(WOMK.IsEquPart, 0) = 0;
+		END
+		ELSE
+		BEGIN
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
+			AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0;
+
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
+			WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+			AND ISNULL(WOMK.IsAltPart, 0) = 0 AND ISNULL(WOMK.IsEquPart, 0) = 0;
+		END
+
+		--Added to Calculate Qty
+		IF (ISNULL(@ShowPendingToIssue, 0) = 1)
+		BEGIN
+			INSERT INTO #TMPWOMaterialParentQtySum
 			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
 			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
 			AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 ;
 
-			INSERT INTO #TMPWOMaterialParentListData
+			INSERT INTO #TMPWOMaterialParentQtySum
 			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
 			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
 			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
@@ -330,12 +375,12 @@ SET NOCOUNT ON
 		END
 		ELSE
 		BEGIN
-			INSERT INTO #TMPWOMaterialParentListData
+			INSERT INTO #TMPWOMaterialParentQtySum
 			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
 			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0,Quantity,QuantityIssued,QuantityReserved FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
 			AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0;
 
-			INSERT INTO #TMPWOMaterialParentListData
+			INSERT INTO #TMPWOMaterialParentQtySum
 			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit],Quantity,QuantityIssued,QuantityReserved)
 			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1,Quantity,QuantityIssued,QuantityReserved FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
 			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
@@ -1187,9 +1232,9 @@ SET NOCOUNT ON
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
-		SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #TMPWOMaterialParentListData);
-		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #TMPWOMaterialParentListData;
-		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #TMPWOMaterialParentListData;
+		SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #TMPWOMaterialParentQtySum);
+		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #TMPWOMaterialParentQtySum;
+		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #TMPWOMaterialParentQtySum;
 		SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT) + CAST(ISNULL(@TotalReserved, 0) AS INT))) = 0  THEN 1 ELSE 0 END)
 		SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
 

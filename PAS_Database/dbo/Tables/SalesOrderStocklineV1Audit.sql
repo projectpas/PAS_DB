@@ -29,8 +29,11 @@
     [SizeLength]                 DECIMAL (10, 2) NULL,
     [SizeWidth]                  DECIMAL (10, 2) NULL,
     [SizeHeight]                 DECIMAL (10, 2) NULL,
+    [ReferenceNumber]            VARCHAR (100)   NULL,
     CONSTRAINT [PK_SalesOrderStocklineV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderStocklineId] ASC)
 );
+
+
 
 
 

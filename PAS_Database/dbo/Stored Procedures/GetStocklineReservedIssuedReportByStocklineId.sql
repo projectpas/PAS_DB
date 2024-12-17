@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [GetStocklineReservedIssuedReportByStocklineId]               
  ** Author: RAJESH GAMI 
  ** Description: Get Stockline Reserved/Issued Report By Stockline Id (Module wise)
@@ -17,7 +16,9 @@
 	3    19-Nov-2024   RAJESH GAMI		Implemented BulkAdjustments
 	4    22-Nov-2024   RAJESH GAMI		handle Deleted condition in bulkadjustment
 	5    22-Nov-2024   RAJESH GAMI		handle QtyAdjustment in bulkadjustment
+	6    16-12-2024    RAJESH GAMI       Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
+
 **************************************************************/    
 CREATE  PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]
 @StocklineId BIGINT,
@@ -159,6 +160,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId AND ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsClosed,0) = 0 AND ISNULL(WOP.IsFinishGood,0) = 0
+					AND ISNULL(WOP.RepairOrderId,0) = 0
 						 --AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 						 --AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 				--* END: WorkOrderPartNumber For Reserve *--

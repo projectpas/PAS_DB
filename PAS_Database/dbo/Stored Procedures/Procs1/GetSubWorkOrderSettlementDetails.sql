@@ -19,6 +19,7 @@
     1    06/02/2020   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 12/21/2023	  Hemant Saliya  Added KIT IN SUB WO
+	4    12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
      
 EXEC [GetSubWorkOrderSettlementDetails] 3802,188,162
 **************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 				DECLARE @MasterCompanyID INT;
 				DECLARE @IsLaborCompleled INT = 0;
 				DECLARE @AllToolsAreCheckOut INT = 0;
-				DECLARE @InventoryStatusID INT;
+				DECLARE @AvailableStatusID INT;
 				DECLARE @QtyTendered INT =0;	
 				DECLARE @qtyrequested INT =0;
 
@@ -110,7 +111,7 @@ BEGIN
 
 				SELECT @TaskStatusID = TaskStatusId FROM dbo.TaskStatus WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyID AND UPPER(StatusCode) = 'COMPLETED'
 
-				SELECT @InventoryStatusID = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
+				SELECT @AvailableStatusID = AssetAvailableStatusID FROM dbo.AssetAvailableStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
 				
 				IF(EXISTS (SELECT 1 FROM dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId and IsDeleted= 0))
 				BEGIN 
@@ -128,7 +129,7 @@ BEGIN
 				BEGIN 
 					SELECT @AllToolsAreCheckOut = COUNT(COCI.SubWOCheckInCheckOutWorkOrderAssetId)
 					FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) 
-					WHERE COCI.SubWOPartNoId = @SubWOPartNoId  and COCI.IsDeleted= 0 AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
+					WHERE COCI.SubWOPartNoId = @SubWOPartNoId  and COCI.IsDeleted= 0 AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @AvailableStatusID
 				END
 				ELSE
 				BEGIN

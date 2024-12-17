@@ -14,6 +14,8 @@
 	3    11/21/2014   RAJESH GAMI       Modified to implemented the statusid while update 
 	4    11/21/2014   Amit Ghediya		Modified to add ECCN & Dimension (L,W,H) add update time.
 	5    12/07/2014   Moin Bloch		Modified to add AltOrEqType
+	6    12-12-2024   Vishal Suthar		Modified query that updates QtyOrder to Part Cost when No stockline is there
+	7    16-12-2024   Shrey Chandegara Updated for @PriorityId in  not update proper
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -129,13 +131,14 @@ BEGIN
 		DECLARE @SizeLength AS decimal(18,4);
 		DECLARE @SizeWidth AS decimal(18,4);
 		DECLARE @SizeHeight AS decimal(18,4);
+		DECLARE @PriorityId BIGINT = 0;
 
 		SELECT @SalesOrderPartId = SalesOrderPartId, @SalesOrderId = SalesOrderId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderStocklineId = SalesOrderStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyOrder = QtyOrder,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes, 
 		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId,
-		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight
+		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight,@PriorityId = PriorityId
 		FROM #SOPartDetails WHERE ID = @SOPartLoopID;
 		
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
@@ -224,7 +227,8 @@ BEGIN
 			[Weight] = @Weight,
 			SizeLength = @SizeLength,
 			SizeWidth = @SizeWidth,
-			SizeHeight = @SizeHeight
+			SizeHeight = @SizeHeight,
+			PriorityId = @PriorityId
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
 			-- Update Part Details
@@ -314,8 +318,8 @@ BEGIN
 				)
 
 				UPDATE SOP
-				SET SOP.QtyRequested = @QtyRequested
-					--SOP.QtyOrder = QS.TotalQtyQuoted
+				SET SOP.QtyRequested = @QtyRequested,
+					SOP.QtyOrder = CASE WHEN QS.TotalQtyQuoted > 0 THEN QS.TotalQtyQuoted ELSE SOP.QtyOrder END
 				FROM [DBO].[SalesOrderPartV1] SOP
 					INNER JOIN QuotedSumsNoStockline QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;

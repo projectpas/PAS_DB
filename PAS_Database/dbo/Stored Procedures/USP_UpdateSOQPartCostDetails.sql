@@ -12,10 +12,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/25/2024   Vishal Suthar Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    07/25/2024   Vishal Suthar		Created
 	2   11/13/2014    Abhishek Jirawla  Resolved errors of divide by zero
+	3   12/12/2014    Vishal Suthar		Resolved issue with price calculation
      
  EXECUTE USP_UpdateSOQPartCostDetails 590, 551, 'ADMIN User', 1
 **************************************************************/ 
@@ -153,9 +154,13 @@ SET NOCOUNT ON
 					END
 					ELSE
 					BEGIN
+						SELECT @PartQty = QtyQuoted FROM [DBO].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
+
 						UPDATE DBO.SalesOrderQuotePartCost
-						SET NetSaleAmount = (ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount,
-						TotalRevenue = ((ISNULL(UnitSalesPriceExtended, 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
+						SET UnitSalesPriceExtended = ISNULL(UnitSalesPrice, 0) * @PartQty,
+						UnitCostExtended = ISNULL(UnitCost, 0) * @PartQty,
+						NetSaleAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount,
+						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
 						WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 					END
 

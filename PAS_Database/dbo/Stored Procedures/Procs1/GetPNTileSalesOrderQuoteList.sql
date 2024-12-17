@@ -1,5 +1,4 @@
-﻿/****** Object:  StoredProcedure [dbo].[GetPNTileSalesOrderQuoteList]    Script Date: 12/6/2023 3:30:21 PM ******/
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetPNTileSalesOrderQuoteList]           
  ** Author:  
  ** Description: This stored procedure is used get list of sales order quote history date for dashboard
@@ -17,6 +16,7 @@
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023   Jevik Raiyani         Added @StatusValue
 	3    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
+	4    12/12/2024	  Vishal Suthar			Fixed an issue with SOQ History Unit Price and Unit Price Extended
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
@@ -82,10 +82,10 @@ BEGIN
 		            SOD.[SalesOrderNumber],
 					SOQ.[OpenDate],
 					SOQ.[CustomerReference],
-					ISNULL(SOPC.[UnitSalesPrice],0) AS [UnitSalesPrice],
-					ISNULL(SOPC.[UnitCost],0) AS [UnitCost],
+					(ISNULL(SPC.NetSaleAmount, 0) / ISNULL(SP.[QtyRequested], 1)) AS [UnitSalesPrice],
+					ISNULL(SPC.[UnitCost],0) AS [UnitCost],
 					ISNULL(SP.[QtyRequested],0) AS [Qty],
-					ISNULL(SOPC.[UnitCostExtended],0) AS [UnitCostExtended],
+					ISNULL(SPC.[UnitCostExtended],0) AS [UnitCostExtended],
 					CO.[Description] AS [ConditionName],
 					SP.ConditionId,
 					SOQ.[SalesPersonName],
@@ -105,6 +105,7 @@ BEGIN
 			   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			    LEFT JOIN [dbo].[SalesOrderQuotePartV1] SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0
+			    LEFT JOIN [dbo].[SalesOrderQuotePartCost] SPC WITH (NOLOCK) ON SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 			    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
 				LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 		 	    LEFT JOIN [dbo].[SalesOrder] SOD WITH (NOLOCK) on SOD.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SOD.SalesOrderQuoteId IS NOT NULL

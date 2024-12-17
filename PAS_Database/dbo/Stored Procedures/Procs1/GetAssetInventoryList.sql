@@ -18,6 +18,7 @@
     1    19/05/2023   Moin Bloch    Added WorkOrderNum Parameter To get WorkOrderNum  for check in status
 	2    11/06/2024   Abhishek Jirawla Returning data in upper case
 	3    05/12/2024   Abhishek Jirawla Adding cost, accumalated depreciation and net book value
+	4	 12/12/2024	  Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
      
 --  EXEC [GetAssetInventoryList] 
 **************************************************************/
@@ -71,7 +72,9 @@ BEGIN
 		DECLARE @ModuleID VARCHAR(500) ='42,43'
 		DECLARE @IsActive BIT = 1
 		DECLARE @Count INT;
-		DECLARE @AssetInventoryCheckInStatus INT = 4; 
+		DECLARE @AssetInventoryCheckInStatus BIGINT = 0; 
+		SELECT @AssetInventoryCheckInStatus = AssetAvailableStatusId FROM AssetAvailableStatus WHERE (Status = 'CHECKED IN TO WO' OR Status = 'Unavailable - In Use')
+
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -120,7 +123,7 @@ BEGIN
 								UPPER(asm.InventoryNumber) AS InventoryNumber,
 								UPPER(asm.EntryDate) AS EntryDate,
 								UPPER((SELECT TOP 1 [Name] FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId)) AS AssetStatus,
-								UPPER((SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId)) AS InventoryStatus,
+								UPPER(COALESCE((SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId), (SELECT TOP 1 [Status] FROM [dbo].[AssetAvailableStatus]  WITH(NOLOCK) WHERE AssetAvailableStatusId = asm.InventoryStatusId), '')) AS InventoryStatus,
 								UPPER(asm.InventoryStatusId) AS InventoryStatusId,
 								UPPER(asm.level1) AS CompanyName,
 								UPPER(asm.level2) AS BuName,
@@ -161,7 +164,11 @@ BEGIN
 								LEFT JOIN  [dbo].[AssetDepreciationHistory] ADH  WITH (NOLOCK) ON asm.AssetInventoryId = ADH.AssetInventoryId
 									AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE IsActive = 1 AND IsDelete = 0 AND AssetInventoryId = ADH.AssetInventoryId)
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
-							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
+							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
+																--AND ((@IsActive = 1 AND asm.InventoryStatusId IN (@AvailableAssetStatusId, @UnAvailableInUseAssetStatusId, @UnAvailableOutForCalibrationAssetStatusId, @ActiveAssetStatusId)) 
+																--	OR (@IsActive = 0 AND asm.InventoryStatusId NOT IN (@AvailableAssetStatusId, @UnAvailableInUseAssetStatusId, @UnAvailableOutForCalibrationAssetStatusId, @ActiveAssetStatusId)) 
+																--	OR (@IsActive IS NULL)))
+																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 							GROUP BY asm.AssetRecordId,
 								asm.AssetInventoryId,

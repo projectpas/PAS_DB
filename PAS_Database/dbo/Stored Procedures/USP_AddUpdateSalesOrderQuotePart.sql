@@ -12,6 +12,7 @@
     1    07/25/2024   Vishal Suthar		 Created
 	2    12-11-2024   Shrey Chandegara	 Updated for IsNOQuote
 	3    19-11-2024   AMIT GHEDIYA		 Added LOT Id
+	4    12-12-2024   Vishal Suthar		 Modified query that updates QtyQuoted to Part Cost when No stockline is there
 
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
@@ -265,9 +266,10 @@ BEGIN
 				WHERE SOS.SalesOrderQuotePartId IS NOT NULL
 				GROUP BY SOP.SalesOrderQuotePartId
 			)
+
 			UPDATE SOP
 			SET SOP.QtyRequested = @QtyRequested,
-				SOP.QtyQuoted = QS.TotalQtyQuoted
+				SOP.QtyQuoted = CASE WHEN QS.TotalQtyQuoted > 0 THEN QS.TotalQtyQuoted ELSE SOP.QtyQuoted END
 			FROM [DBO].[SalesOrderQuotePartV1] SOP
 			INNER JOIN QuotedSums QS ON SOP.SalesOrderQuotePartId = QS.SalesOrderQuotePartId
 			WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;

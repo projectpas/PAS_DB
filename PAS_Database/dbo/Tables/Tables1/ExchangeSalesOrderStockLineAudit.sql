@@ -24,6 +24,9 @@
     [UpdatedDate]              DATETIME2 (7)   NOT NULL,
     [IsActive]                 BIT             NOT NULL,
     [IsDeleted]                BIT             NOT NULL,
+    [ReferenceNumber]          VARCHAR (100)   NULL,
     CONSTRAINT [PK_ExchangeSalesOrderStockLineAudit] PRIMARY KEY CLUSTERED ([SOStockLineAuditId] ASC)
 );
+
+
 

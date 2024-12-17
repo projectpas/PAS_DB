@@ -13,7 +13,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 2    12/21/2023  Devendra Shekh   sub print form issue resolved
 ** 3    20/02/2024  Shrey Chandegara  Updated for Technum is getting wrong.
 
-EXEC GetSubWorkOrderPrintPdfData 181,155
+EXEC GetSubWorkOrderPrintPdfData 573,559
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSubWorkOrderPrintPdfData]              
@@ -70,7 +70,8 @@ AS
 				wop.ACTailNum as ACTailNum,              
 				'' as TSN,              
 				'' as CSN,    
-				FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
+				--FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
+				CAST(CONVERT(VARCHAR(30), wop.ReceivedDate, 101) AS DATE) AS Recd_Date,
 				wop.ReceivedDate,
 				woq.CreatedDate as Qte_Date,              
 				woq.ApprovedDate as Qte_Appvd_Date,              

@@ -12,9 +12,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/25/2024   Vishal Suthar Created
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			--------------------------------          
+    1    07/25/2024		Vishal Suthar		Created
+    2    12/12/2014		Vishal Suthar		Resolved issue with price calculation
      
  EXECUTE USP_UpdateSOCostDetails 766, 'Admin User', 1
 **************************************************************/ 
@@ -53,7 +54,8 @@ SET NOCOUNT ON
 
 				INSERT INTO #SOPartCostDetails ([SalesOrderId], [SalesOrderPartId], [NetSaleAmount], [Charges], [Freights])
 				SELECT [SalesOrderId], [SalesOrderPartId], [NetSaleAmount], [MiscCharges], [Freight]
-				FROM [DBO].[SalesOrderPartCost] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId;
+				FROM [DBO].[SalesOrderPartCost] WITH (NOLOCK) WHERE SalesOrderPartId IN (SELECT SalesOrderPartId FROM SalesOrderPartV1 WHERE SalesOrderId = @SalesOrderId)
+				--SalesOrderId = @SalesOrderId;
 
 				DECLARE @IsFlatRateAdded_Charges BIT = 0;
 				DECLARE @IsFlatRateAdded_Freight BIT = 0;

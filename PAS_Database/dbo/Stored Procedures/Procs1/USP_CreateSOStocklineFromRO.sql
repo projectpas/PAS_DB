@@ -20,7 +20,8 @@
 	4    08/18/2023   Devendra Shekh	added UnitSalesPricePerUnit for salesorder part insert
 	5    12/29/2023   Vishal Suthar		Fixed and issue with PN-6393 Requested Qty not increasing when RO stockline added into same part with condition
     6	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
-	7	 11/29/2024	  Abhishek Jirawla  Adding a condition where the QtyOrder is taken from Stockline
+	7	 11/29/2024	  Abhishek Jirawla  Adding a condition where the QtyOrder is taken from Stockline.
+	8    12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
  EXECUTE USP_CreateSOStocklineFromRO 1780
 
 **************************************************************/
@@ -52,6 +53,9 @@ BEGIN
 		DECLARE @RepairOrderPartId BIGINT;
 		DECLARE @StlQuantity BIGINT;
 		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
+		DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
+		DECLARE @RefNumber VARCHAR(100) = '';
+
         IF OBJECT_ID(N'tempdb..#ROStockLineSamePart') IS NOT NULL
         BEGIN
           DROP TABLE #ROStockLineSamePart
@@ -449,6 +453,17 @@ BEGIN
 					DECLARE @NewSalesOrderStocklineId BIGINT = 0;
 					DECLARE @UnitCost DECIMAL(20, 2) = 0;
 					DECLARE @NewQtyRequested INT = 0;
+					DECLARE @SalesOrderNumber VARCHAR(100) = NULL;
+					DECLARE @RepairOrderNumber VARCHAR(100) = NULL;
+
+					--Get SalesOrderNumber for RefrenceNumber
+					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId;	
+
+					--Get RepairOrderNumber for RefrenceNumber
+					SELECT TOP 1 @RepairOrderNumber = RepairOrderNumber FROM #ROStockLineSamePart;
+
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @RepairOrderNumber + ' To ' + @SalesOrderNumber;
 
 					SELECT @ExSalesOrderPartId = SOP.SalesOrderPartId,
 					@ExSalesOrderStocklineId = SOS.SalesOrderStocklineId
@@ -460,7 +475,7 @@ BEGIN
 
 					INSERT INTO DBO.SalesOrderStocklineV1 (SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 					CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-					IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight)
+					IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber)
 					SELECT DISTINCT
 					  @ExSalesOrderPartId,
                       @StockLineId,
@@ -492,7 +507,8 @@ BEGIN
 					  ime.[ExportWeight],
 					  ime.[ExportSizeLength],
 					  ime.[ExportSizeWidth],
-					  ime.[ExportSizeHeight]
+					  ime.[ExportSizeHeight],
+					  @RefNumber
 						FROM #ROStockLineSamePart ROS WITH (NOLOCK)
 						JOIN #StockLine SL ON SL.StockLineId = ROS.StocklineId
 						JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
@@ -670,10 +686,10 @@ BEGIN
 							
 							INSERT INTO DBO.SalesOrderStocklineV1 (SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 							CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-							IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight)
+							IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,ReferenceNumber)
 							SELECT SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 							CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
-							IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight
+							IsDeleted,StocklineNumber,ConditionName,StatusName,Notes,ECCN,HSCODE,Weight,SizeLength,SizeWidth,SizeHeight,@RefNumber
 							FROM [dbo].SalesOrderStocklineV1 WITH(NOLOCK) WHERE SalesOrderStocklineId = @ExSalesOrderStocklineId;
 
 							SELECT @SalesOrderStockLineId = SCOPE_IDENTITY();

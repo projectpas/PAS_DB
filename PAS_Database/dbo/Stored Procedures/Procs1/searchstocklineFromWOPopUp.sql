@@ -12,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
 	1    20/09/2023   Hemnat Saliya  Created
 	2    06/11/2023   Hemnat Saliya  Updated For Allow all customer stock.
+	3	 25/11/2024	  Divyesh Kathiriya Add New Field "IsCustomerStock" 
 
 ************************************************************************
 EXEC [searchstocklineFromWOPopUp] '12',8,108,1,'0'
@@ -118,6 +119,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						,sl.CertifiedBy
 						,sl.CertifiedDate
 						,sl.Memo
+						,ISNULL(sl.IsCustomerStock,0) as IsCustomerStock
 						,'Stock Line' AS Method
 						,'S' AS MethodType
 						,CONVERT(BIT,0) AS PMA
@@ -223,6 +225,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						,sl.CertifiedBy
 						,sl.CertifiedDate
 						,sl.Memo
+						,ISNULL(sl.IsCustomerStock,0) as IsCustomerStock
 						,'Stock Line' AS Method
 						,'S' AS MethodType
 						,CONVERT(BIT,0) AS PMA

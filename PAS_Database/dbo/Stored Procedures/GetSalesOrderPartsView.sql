@@ -96,7 +96,7 @@ BEGIN
 			CASE
 				WHEN ISNULL(part.QtyOrder,0) > 0 
 				THEN (ISNULL(sopc.NetSaleAmount,0) / part.QtyOrder)
-				ELSE 0 
+				ELSE ISNULL(sopc.NetSaleAmount,0)
 			END AS UnitSalesPricePerUnit
 			
 		FROM [dbo].[SalesOrderPartV1] part WITH(NOLOCK)

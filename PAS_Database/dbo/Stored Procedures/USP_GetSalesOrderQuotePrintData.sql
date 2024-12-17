@@ -42,21 +42,21 @@ BEGIN
 			FORMAT(so.OpenDate, 'MM/dd/yyyy') AS OrderDate,
 			FORMAT(sop.EstimatedShipDate, 'MM/dd/yyyy') AS ShipDate,
 			CASE 
-				WHEN ((SELECT FreightBilingMethodId FROM [dbo].SalesOrder WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0) = 3) THEN
-					CAST(ISNULL((SELECT TotalFreight FROM [dbo].SalesOrder WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
+				WHEN ((SELECT FreightBilingMethodId FROM [dbo].SalesOrder WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0) = 3) THEN
+					CAST(ISNULL((SELECT TotalFreight FROM [dbo].SalesOrder WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
 
-				WHEN (select BillingAmount FROM [dbo].SalesOrderFreight WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0) = NULL THEN 0
+				WHEN (select BillingAmount FROM [dbo].SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0) = NULL THEN 0
 				ELSE
-					CAST(ISNULL((select BillingAmount FROM [dbo].SalesOrderFreight WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
+					CAST(ISNULL((select BillingAmount FROM [dbo].SalesOrderFreight WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
 			END AS Freight,
 
 			CASE 
-				WHEN ((SELECT ChargesBilingMethodId FROM [dbo].SalesOrder WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0) = 3) THEN
-					CAST(ISNULL((SELECT TotalCharges FROM [dbo].SalesOrder WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
+				WHEN ((SELECT ChargesBilingMethodId FROM [dbo].SalesOrder WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0) = 3) THEN
+					CAST(ISNULL((SELECT TotalCharges FROM [dbo].SalesOrder WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
 
-				WHEN (select BillingAmount from [dbo].SalesOrderCharges where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0) = NULL THEN 0
+				WHEN (select BillingAmount from [dbo].SalesOrderCharges WITH (NOLOCK) where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0) = NULL THEN 0
 				ELSE
-					CAST(ISNULL((select BillingAmount FROM [dbo].SalesOrderCharges WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
+					CAST(ISNULL((select BillingAmount FROM [dbo].SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND IsActive = 1 AND IsDeleted = 0), 0) AS DECIMAL(18, 2))
 			END AS MiscCharges,	
 			ISNULL(partc.TaxPercentage, 0) AS TaxRate,
 			ISNULL((partc.TaxPercentage * sop.QtyRequested * partc.UnitSalesPrice) / 100, 0) AS Tax,

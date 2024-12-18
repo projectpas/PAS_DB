@@ -58,6 +58,9 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryList]
 @MasterCompanyId int = 0,
 @ManufacturerPN varchar(50) = null,
 @Model varchar(50) = null,
+@Cost varchar(50) = null,
+@AccumlatedDepreciation  varchar(50) = null,
+@NetBookValue  varchar(50) = null,
 @StklineNumber varchar(50) = null,
 @ControlNumber varchar(50) = null,
 @EmployeeId bigint=1,
@@ -242,6 +245,9 @@ BEGIN
 								(WorkOrderNum LIKE '%' +@GlobalFilter+'%') OR								
 								(AssetStatus LIKE '%' +@GlobalFilter+'%') OR
 								(InventoryStatus LIKE '%' +@GlobalFilter+'%') OR
+								(Cost LIKE '%' +@GlobalFilter+'%') OR
+								(accumlatedDepreciation LIKE '%' +@GlobalFilter+'%') OR
+								(netBookValue LIKE '%' +@GlobalFilter+'%') OR
 								(CompanyName LIKE '%' +@GlobalFilter+'%') OR
 								(BuName LIKE '%'+@GlobalFilter+'%') OR
 								(DivName LIKE '%' +@GlobalFilter+'%') OR
@@ -261,7 +267,10 @@ BEGIN
 								(ISNULL(@AssetClass,'') ='' OR AssetClass LIKE '%' + @AssetClass+'%') AND
 								(ISNULL(@InventoryNumber,'') ='' OR InventoryNumber LIKE '%' + @InventoryNumber+'%') AND
 								(ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE '%' + @WorkOrderNum+'%') AND			
-								(ISNULL(@InventoryStatus,'') ='' OR InventoryStatus LIKE '%' + @InventoryStatus+'%') AND													
+								(ISNULL(@InventoryStatus,'') ='' OR InventoryStatus LIKE '%' + @InventoryStatus+'%') AND	
+								(ISNULL(@Cost,'') ='' OR CAST(cost AS VARCHAR(50)) LIKE '%' + @Cost+'%') AND
+								(ISNULL(@AccumlatedDepreciation,'') ='' OR CAST(accumlatedDepreciation AS VARCHAR(50)) LIKE '%' + @AccumlatedDepreciation +'%') AND
+								(ISNULL(@NetBookValue,'') ='' OR CAST(netBookValue AS VARCHAR(50)) like '%' + @NetBookValue +'%') AND												
 								(ISNULL(@CompanyName,'') ='' OR CompanyName LIKE '%' + @CompanyName+'%') AND
 								(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName+'%') AND
 								(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName+'%') AND
@@ -330,7 +339,7 @@ BEGIN
 			--COMMIT  TRANSACTION
 
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH     
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
                     ROLLBACK TRAN;
@@ -377,5 +386,5 @@ BEGIN
                      , @ErrorLogID              = @ErrorLogID OUTPUT ;
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
-        END CATCH  
+			END CATCH
 END

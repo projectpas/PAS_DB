@@ -19,6 +19,7 @@
 	5    13/08/2023   Vishal Suthar			Modified to allow Alt and Equ parts to map
     6    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables  
 	7	 12/05/2024	  Ayushi Patel			Added missing brackets in where clouse 
+	8	 12/17/2024	  Ayushi Patel			Added cancel so condition in where clouse
 
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
@@ -36,6 +37,7 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 		DECLARE @CloseSOStatusId int;
+		DECLARE @CancelSOStatusId int;
         IF(@viewType = 'woview')      
         BEGIN      
 			SELECT DISTINCT      
@@ -64,6 +66,7 @@ BEGIN
 		ELSE IF(@viewType = 'soview')      
         BEGIN      
 		SET @CloseSOStatusId = (SELECT TOP 1 ID FROM DBO.MasterSalesOrderStatus where Name ='Closed' AND IsActive = 1 AND IsDeleted = 0)
+		SET @CancelSOStatusId = (SELECT TOP 1 ID FROM DBO.MasterSalesOrderStatus where Name ='Cancelled' AND IsActive = 1 AND IsDeleted = 0)
 			SELECT DISTINCT      
 				IM.partnumber AS 'PartNumber',      
 				C.Code AS 'Condition',      
@@ -83,7 +86,7 @@ BEGIN
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId 
 			OR ((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
-			AND SO.StatusId != @CloseSOStatusId 
+			AND SO.StatusId != @CloseSOStatusId AND SO.StatusId != @CancelSOStatusId 
 			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
 			ORDER BY SO.SalesOrderId DESC      
 		END      
@@ -120,6 +123,7 @@ BEGIN
 		ELSE IF(@viewType = 'loadso')      
 		BEGIN
 		SET @CloseSOStatusId = (SELECT TOP 1 ID FROM DBO.MasterSalesOrderStatus where Name ='Closed' AND IsActive = 1 AND IsDeleted = 0)
+		SET @CancelSOStatusId = (SELECT TOP 1 ID FROM DBO.MasterSalesOrderStatus where Name ='Cancelled' AND IsActive = 1 AND IsDeleted = 0)
 			SELECT DISTINCT      
                 IM.partnumber AS 'PartNumber',      
 				C.Code AS 'Condition',      
@@ -139,7 +143,7 @@ BEGIN
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId OR
 			((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
-			AND SO.StatusId != @CloseSOStatusId    
+			AND SO.StatusId != @CloseSOStatusId  AND SO.StatusId != @CancelSOStatusId  
 			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
 			ORDER BY SO.SalesOrderId DESC;
 		END      

@@ -1,24 +1,26 @@
 ﻿/*************************************************************               
- ** File:   [sp_SubworkOrderUpdate8130fromdata]               
+ ** File:   [Update8130LockUnlockDetails]               
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to update 8130 form islock data 
  ** Purpose:             
- ** Date:   05/23/2023        
+ ** Date:   17/12/2024        
  ** PARAMETERS:               
  ** RETURN VALUE:             
  **************************************************************               
   ** Change History               
  **************************************************************               
  ** PR   Date         Author       Change Description                
- ** --   --------     -------  --------------------------------              
-    1                 Unknown       Created 
-	2    17-12-2024   Moin Bloch    Update 8130 Lock / Unlock data 
+ ** --   --------     -------  --------------------------------               
+	1    17-12-2024   Moin Bloch   Created
     
--- EXEC [dbo].[sp_SubworkOrderUpdate8130fromdata] 573,559    
+-- EXEC [dbo].[Update8130LockUnlockDetails] 573,559    
 **************************************************************/ 
-CREATE Procedure [dbo].[sp_SubworkOrderUpdate8130fromdata]
-@SubWorkOrderId bigint,
-@SubWOPartNoId bigint
+CREATE   PROCEDURE [dbo].[Update8130LockUnlockDetails]
+@WorkorderId BIGINT,
+@WorkOrderPartNoId BIGINT,
+@SubWorkOrderId BIGINT,
+@SubWOPartNoId BIGINT,
+@IsWorkOrder BIT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -26,50 +28,16 @@ BEGIN
 
 	BEGIN TRY
 	BEGIN TRANSACTION
-	
-	IF OBJECT_ID(N'tempdb..#SWO8130Detail') IS NOT NULL
+
+	IF(@IsWorkOrder=1)
 	BEGIN
-		DROP TABLE #SWO8130Detail
-	END
-
-	CREATE TABLE #SWO8130Detail
-	(
-		[ID] BIGINT NOT NULL IDENTITY,		
-	    [FormTypeId] INT NULL,
-		[IsLocked] BIT NULL
-	)
-
-	INSERT INTO #SWO8130Detail ([FormTypeId],[IsLocked])
-	SELECT [FormTypeId],[IsLocked] FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] WITH(NOLOCK)
-	WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId  
-		
-	DECLARE @TotCount AS INT;
-	DECLARE @Count INT = 0;
-	DECLARE @LoopID AS INT;
-	SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #SWO8130Detail;
-
-	WHILE (@LoopID <= @TotCount)
-	BEGIN		
-		DECLARE @IsLocked BIT = 0
-		
-		SELECT @IsLocked = [IsLocked] FROM #SWO8130Detail WHERE [ID] = @LoopID;
-		IF(@IsLocked = 1)
-		BEGIN
-			SET @Count = @Count + 1;
-		END		
-		
-		SET @LoopID = @LoopID + 1;
-	END		
-	IF(@TotCount = @Count)
-	BEGIN
-		UPDATE [SubWorkOrderPartNumber] SET [IsLocked] = 1 WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
+		UPDATE [Work_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId;  
 	END
 	ELSE
-	BEGIN
-		UPDATE [SubWorkOrderPartNumber] SET [IsLocked] = 0 WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
-	END		
-	--UPDATE [SubWorkOrder_ReleaseFrom_8130] SET IsClosed = 1 WHERE SubWorkOrderId = @SubWorkOrderId AND SubWOPartNoId = @SubWOPartNoId  
-			
+	BEGIN		
+		UPDATE [SubWorkOrder_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
+	END
+	
 	COMMIT  TRANSACTION
 
 	END TRY    

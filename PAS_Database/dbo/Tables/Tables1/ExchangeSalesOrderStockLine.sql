@@ -23,6 +23,7 @@
     [UpdatedDate]              DATETIME2 (7)   CONSTRAINT [DF_ExchangeSalesOrderStockLine_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                 BIT             CONSTRAINT [DF_ExchangeSalesOrderStockLine_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                BIT             CONSTRAINT [DF_ExchangeSalesOrderStockLine_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [ReferenceNumber]          VARCHAR (100)   NULL,
     CONSTRAINT [PK_ExchangeSalesOrderStockLine] PRIMARY KEY CLUSTERED ([SOStockLineId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderStockLine_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_ExchangeSalesOrderStockLine_ExchangeSalesOrder] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
@@ -31,6 +32,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderStockLine_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ExchangeSalesOrderStockLine_Stockline] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

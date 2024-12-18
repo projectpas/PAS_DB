@@ -23,6 +23,7 @@
 	11	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
 	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	14	 16/12/2024   Abhishek Jirawla Updated @Amount in Asset at the time of PO Recieving (It should only give unit price and not extended price)
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -596,7 +597,7 @@ BEGIN
 							SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
 							SET @UnitPrice = @Amount;
-							SET @Amount = (@Qty * @Amount);
+							--SET @Amount = (@Qty * @Amount);
 
 							SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
@@ -623,13 +624,13 @@ BEGIN
 								SET @IsAutoPostForAll = 0;
 							END
 
-							IF(ISNULL(@Amount,0) > 0)
+							IF(ISNULL(@UnitPrice,0) > 0)
 							BEGIN
 								-----Fixed Asset--------
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 								VALUES
-									(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@PurchaseOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceId,@ASSETReferenceModule)
+									(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,1,@UnitPrice,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@PurchaseOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceId,@ASSETReferenceModule)
 
 								SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -658,8 +659,8 @@ BEGIN
 								VALUES
 									(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
-									CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
+									CASE WHEN @CrDrType = 1 THEN @UnitPrice ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE @UnitPrice END,
 									@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@PurchaseOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceId,@ASSETReferenceModule)
 
 								SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()

@@ -16,7 +16,8 @@
 	3    19-Nov-2024   RAJESH GAMI		Implemented BulkAdjustments
 	4    22-Nov-2024   RAJESH GAMI		handle Deleted condition in bulkadjustment
 	5    22-Nov-2024   RAJESH GAMI		handle QtyAdjustment in bulkadjustment
-	6    16-12-2024    RAJESH GAMI       Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
+	6    16-12-2024    RAJESH GAMI      Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
+	7    18-12-2024    RAJESH GAMI		Skip the record if WO,RO,SO,Exch deleted
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
@@ -207,13 +208,13 @@ BEGIN
 					SL.Manufacturer,
 					ROP.CreatedDate  ReservedIssuedDate,
 					ROP.CreatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued	
-				FROM dbo.[RepairOrderPart] ROP WITH(NOLOCK)
+			   FROM dbo.[RepairOrderPart] ROP WITH(NOLOCK)
 					INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId 
 					AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
-					AND ISNULL(ROP.IsDeleted,0) = 0 
+					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
 					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
 					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
 						
@@ -266,7 +267,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
 					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ESR.StockLineId = @StocklineId 
-					--AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 
+					AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 
 					AND ISNULL(ESO.IsDeleted,0) = 0 
 					AND ISNULL(ESR.QtyToReserve,0) > 0 
 					AND (ISNULL(ESO.StatusId,0) != @ExchClosedStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
@@ -370,7 +371,7 @@ BEGIN
 					LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON SOR.ReservedById = emp.EmployeeId
 					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
 					AND ISNULL(ESO.IsDeleted,0) = 0 
-					AND ISNULL(SSTL.QtyReserved,0) > 0 
+					AND ISNULL(SSTL.QtyReserved,0) > 0 AND ISNULL(SOP.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(SOP.IsDeleted,0) = 0
 				--* END: SalesOrder For Reserve *--
 
 				--* START: Stockline Bulk Adjustment For Reserve *--
@@ -461,7 +462,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId AND ISNULL(WMS.QtyReserved,0) > 0 
-						 --AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+						 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 						 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 			
 				--* END: WorkOrderMaterialStockline For Reserve *--
@@ -515,7 +516,7 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId 
 					AND ISNULL(WMS.QtyReserved,0) > 0 
-					--AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+					AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 						
 				--* END: WorkOrderMaterialStocklineKit For Reserve *--
@@ -571,8 +572,8 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId  AND SWMS.StockLineId = @StocklineId 
 					AND ISNULL(SWMS.QtyReserved,0) > 0 
-					--AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 
-					--AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 
+					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 
+					AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 
 					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 						
 				--* END: SubWorkOrderMaterialStockline For Reserve *--
@@ -627,8 +628,8 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId 
 					AND ISNULL(SWMS.QtyReserved,0) > 0 
-					--AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 
-					--AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 
+					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 
+					AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 
 					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 					
 				--* END: SubWorkOrderMaterialStocklineKit For Reserve *--
@@ -685,7 +686,7 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 						--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 						WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId
-						--AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+						AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 						AND ISNULL(WMS.QtyIssued,0) > 0 
 						AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 							
@@ -739,7 +740,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId AND ISNULL(WMS.QtyIssued,0) > 0 
-					--AND ISNULL(WO.IsActive,0) = 1  AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+					AND ISNULL(WO.IsActive,0) = 1  AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 						
 				--* END: WorkOrderMaterialStocklineKit For Issued *--
@@ -794,8 +795,8 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId  AND ISNULL(SWMS.QtyIssued,0) > 0  
-					--AND ISNULL(SWO.IsActive,0) = 1 
-					--AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
+					AND ISNULL(SWO.IsActive,0) = 1 
+					AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
 					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
@@ -849,7 +850,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId AND ISNULL(SWMS.QtyIssued,0) > 0 
-					--AND ISNULL(SWMS.IsActive,0) = 1AND ISNULL(SWMS.IsDeleted,0) = 0  AND ISNULL(SWO.IsActive,0) = 1  
+					AND ISNULL(SWMS.IsActive,0) = 1AND ISNULL(SWMS.IsDeleted,0) = 0  AND ISNULL(SWO.IsActive,0) = 1  
 					AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
@@ -904,7 +905,7 @@ BEGIN
 						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 						INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 						WHERE (ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0)  AND WMS.StockLineId = @StocklineId
-						--AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+						AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 						AND WMS.MasterCompanyId = @MasterCompanyId 
 						AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 				
@@ -957,7 +958,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					WHERE (ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0)  AND WMS.StockLineId = @StocklineId
-					--AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+					AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 					AND WMS.MasterCompanyId = @MasterCompanyId 
 					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 				
@@ -1012,7 +1013,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					WHERE (ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0)  AND SWMS.StockLineId = @StocklineId
-					--AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
+					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
 					AND SWMS.MasterCompanyId = @MasterCompanyId 
 					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 				
@@ -1067,7 +1068,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					WHERE (ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0)  AND SWMS.StockLineId = @StocklineId
-					--AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
+					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
 					AND SWMS.MasterCompanyId = @MasterCompanyId 
 					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 					

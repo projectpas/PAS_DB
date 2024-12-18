@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [GetStocklineReservedIssuedReport]               
  ** Author: Shrey Chandegara    
  ** Description:  
@@ -20,6 +19,7 @@
 	3    21-11-2024   Shrey Chandegara	    Updated Because managementstructure filter is not working.
 	4    22-11-2024   RAJESH GAMI           Optimize the SP due to performance issue
 	5    16-12-2024   RAJESH GAMI           Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
+	6    18-12-2024   RAJESH GAMI			handle QtyAdjustment in bulkadjustment
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
@@ -69,7 +69,7 @@ BEGIN
 	  DECLARE @RMAShipToVendor INT;
 	  DECLARE @RMAReplaced INT;
 	  DECLARE @RMARefunded INT;
-	  DECLARE @RMACancel INT;
+	  DECLARE @RMACancel INT, @AdjPostedStatusId INT,  @BulkAdjModule varchar(50) = 'BulkAdjustments';
 	  SET @WOStatusId = (SELECT  Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE Description = 'Closed')
 	  SET @ROStatusId = (SELECT  ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
 	  SET @ExchStatusId = (SELECT  ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
@@ -79,6 +79,7 @@ BEGIN
 	  SET @RMAReplaced = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Replaced')
 	  SET @RMARefunded = (SELECT  VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Refunded')
 	  SET @RMACancel = (SELECT  VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Canceled')
+	  SET @AdjPostedStatusId =(SELECT TOP 1 Id FROM StocklineAdjustmentstatus where [Name]='Posted')
 
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 	  IF @SortColumn IS NULL
@@ -245,7 +246,7 @@ BEGIN
 					INNER JOIN [RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
-					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0  AND ISNULL(ROP.QuantityReserved,0) > 0 AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
+					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsParent,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0  AND ISNULL(ROP.QuantityReserved,0) > 0 AND ISNULL(RO.StatusId,0) != @ROStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
 					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
@@ -426,6 +427,65 @@ BEGIN
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: ExchangeSalesOrder For Reserve *--
+				--* START: Stockline Bulk Adjustment For Reserve *--		
+				
+				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
+					SELECT
+					SL.StockLineId,
+					SL.PartNumber,
+					SL.PNDescription,
+					SL.Condition,
+					SL.StockLineNumber,
+					SL.ControlNumber,
+					SL.IdNumber,
+					SSTL.NewQty QtyReserved,
+					'' ,
+					'SalesOrder' AS Module,
+					ESO.BulkStkLineAdjNumber,
+					UPPER(SLM.Level1Name) AS level1,  
+					UPPER(SLM.Level2Name) AS level2, 
+					UPPER(SLM.Level3Name) AS level3, 
+					UPPER(SLM.Level4Name) AS level4, 
+					UPPER(SLM.Level5Name) AS level5, 
+					UPPER(SLM.Level6Name) AS level6, 
+					UPPER(SLM.Level7Name) AS level7, 
+					UPPER(SLM.Level8Name) AS level8, 
+					UPPER(SLM.Level9Name) AS level9, 
+					UPPER(SLM.Level10Name) AS level10
+				FROM dbo.[BulkStockLineAdjustmentDetails] SSTL WITH(NOLOCK)
+					INNER JOIN [dbo].[BulkStockLineAdjustment] ESO WITH(NOLOCK) ON SSTL.BulkStkLineAdjId = ESO.BulkStkLineAdjId					
+					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SSTL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
+					AND ISNULL(ESO.IsDeleted,0) = 0 AND ISNULL(SSTL.IsDeleted,0) = 0
+					AND ISNULL(SSTL.NewQty,0) > 0 AND  ISNULL(SSTL.QtyAdjustment,0) > 0
+					AND ESO.StatusId != @AdjPostedStatusId
+						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
+					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
+					  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
+					  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND
+					  (ISNULL(@level5Str,'') ='' OR [level5Name] LIKE '%' + @level5Str + '%') AND
+					  (ISNULL(@level6Str,'') ='' OR [level6Name] LIKE '%' + @level6Str + '%') AND
+					  (ISNULL(@level7Str,'') ='' OR [level7Name] LIKE '%' + @level7Str + '%') AND
+					  (ISNULL(@level8Str,'') ='' OR [level8Name] LIKE '%' + @level8Str + '%') AND
+					  (ISNULL(@level9Str,'') ='' OR [level9Name] LIKE '%' + @level9Str + '%') AND
+					  (ISNULL(@level10Str,'') ='' OR [level10Name] LIKE '%' + @level10Str + '%') AND
+					  (ISNULL(@Level1,'') ='' OR [Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND      
+					  (ISNULL(@Level2,'') ='' OR [Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,','))) AND      
+					  (ISNULL(@Level3,'') ='' OR [Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,','))) AND     
+					  (ISNULL(@Level4,'') ='' OR [Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,','))) AND     
+					  (ISNULL(@Level5,'') ='' OR [Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND     
+					  (ISNULL(@Level6,'') ='' OR [Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,','))) AND     
+					  (ISNULL(@Level7,'') ='' OR [Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,','))) AND     
+					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
+					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
+					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+
+
+				
+				--* END: Stockline Bulk Adjustment For Reserve *--
+				
 		 END
 
 		 IF(@ViewType = '1')

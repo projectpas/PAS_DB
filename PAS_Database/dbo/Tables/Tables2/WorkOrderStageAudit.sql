@@ -25,8 +25,11 @@
     [IncludeInTAT]          BIT            NULL,
     [QuoteDays]             BIT            NULL,
     [ShippedDays]           BIT            NULL,
+    [ApprovedDays]          BIT            NULL,
     CONSTRAINT [PK_WorkOrderStageAudit] PRIMARY KEY CLUSTERED ([WorkOrderStageAuditId] ASC)
 );
+
+
 
 
 

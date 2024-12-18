@@ -74,16 +74,16 @@ BEGIN
 
 			    -- Work Order Form Type Mapping
 			    CASE 
-			        WHEN wos.WorkOrderFormTypeId IS NULL THEN '' 
 			        WHEN wos.WorkOrderFormTypeId = 1 THEN 'Work Order Form'
-			        ELSE 'TearDown Form'
+					WHEN wos.WorkOrderFormTypeId = 2 THEN 'TearDown Form'
+			        ELSE ''
 			    END AS WorkOrderFormType,
 
 			    -- Work Order Always/OnDemand Mapping
 			    CASE 
-			        WHEN wos.IsWoAlwaysOrOndemandId IS NULL THEN '' 
 			        WHEN wos.IsWoAlwaysOrOndemandId = 1 THEN 'Always'
-			        ELSE 'OnDemand'
+					WHEN wos.IsWoAlwaysOrOndemandId = 2 THEN 'OnDemand'
+			        ELSE ''
 			    END AS IsWoAlwaysOrOndemand
 			FROM [DBO].WorkOrderSettingsAudit wos WITH(NOLOCK)
 			LEFT JOIN [DBO].WorkOrderType wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id

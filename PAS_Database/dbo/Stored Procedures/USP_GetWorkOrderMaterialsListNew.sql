@@ -16,6 +16,7 @@
 	5	12/04/2024		Devendra Shekh			Resolved WOM paging Issue for @ShowPendingToIssue 
 	6	12/05/2024		RAJESH GAMI				Resolved the issue for KIT in return the flags (IsFullyReserved - IsFullyIssued)
 	7	12/12/2024		Devendra Shekh			Resolved Records Count Issue
+	8	12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -55,6 +56,7 @@ SET NOCOUNT ON
 				DECLARE @CustomerID BIGINT, @IsTeardownWO bit = 0, @WoTypeId int = 0;
 				DECLARE @Count Int, @TotalQty INT =0, @TotalReserved INT =0, @TotalIssued INT =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0; 
 				DECLARE @WOPartNoId BIGINT;
+				DECLARE @TotalExtendedCost DECIMAL(13,2);
 
 				IF @Local_SortColumn IS NULL
 				BEGIN  
@@ -378,6 +380,21 @@ SET NOCOUNT ON
 					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
 					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0);
+
+					--Calculating Total Extended Cost For Material list
+					SELECT @TotalExtendedCost = SUM(AmtResult.ExtendedCost) FROM 
+					(
+						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLIneId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
+
+						UNION
+
+						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLIneId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOMK.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
+						WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+					) AS AmtResult
 				END
 				ELSE
 				BEGIN
@@ -389,6 +406,21 @@ SET NOCOUNT ON
 					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
 					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
 					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+
+					--Calculating Total Extended Cost For Material list
+					SELECT @TotalExtendedCost = SUM(AmtResult.ExtendedCost) FROM 
+					(
+						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLIneId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
+
+						UNION
+
+						SELECT SUM(CASE WHEN ISNULL(MSTL.StockLIneId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOMK.ExtendedCost, 0) END) AS ExtendedCost FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
+						WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId
+					) AS AmtResult
 				END
 
 				--Added to Calculate Qty
@@ -1378,7 +1410,8 @@ SET NOCOUNT ON
 					SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
 				SELECT *, @Count As NumberOfItems,
 				@IsFullyReserved AS IsFullyReserved,
-				@IsFullyIssued AS IsFullyIssued  
+				@IsFullyIssued AS IsFullyIssued,
+				ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost
 				FROM #finalMaterialListResult
 				ORDER BY    
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC

@@ -3337,6 +3337,8 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetQuickBookCreditTermsById.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsUpdateSyncePendingList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsSyncPendingList.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteCharges.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteChargesHistory.sql" />
     <Build Include="dbo\Stored Procedures\Update8130LockUnlockDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderQuotePrintData.sql" />
   </ItemGroup>

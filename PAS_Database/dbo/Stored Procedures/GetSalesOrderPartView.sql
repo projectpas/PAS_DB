@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -22,8 +21,9 @@
 	8    12/04/2024   RAJESH GAMI       Modified to Devide by 0 issue
 	9    12/06/2024   Amit Ghediya      Modified to update cond.
 	10   12/07/2014   Moin Bloch		Modified to add AltOrEqType
+	11   18-12-2024   Shrey Chandegara  Modified to priorityid
      
--- EXEC [DBO].[GetSalesOrderPartView] 1475
+-- EXEC [DBO].[GetSalesOrderPartView] 1603
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT
@@ -105,8 +105,8 @@ BEGIN
         part.CustomerRequestDate,
         part.PromisedDate,
         part.EstimatedShipDate,
-        ISNULL(part.PriorityId, @DefaultPriorityId) AS PriorityId,
-        ISNULL(pri.Description, @DefaultPriorityName) AS PriorityName,
+		CASE WHEN Stk.PriorityId IS NOT NULL THEN Stk.PriorityId ELSE ISNULL(part.PriorityId, @DefaultPriorityId) END AS PriorityId,
+		CASE WHEN Stk.PriorityId IS NOT NULL THEN prit.Description ELSE ISNULL(pri.Description, @DefaultPriorityName) END AS PriorityName,
 		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END StatusId,
 		ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = (CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END )), @DefaultStatusName) AS StatusName,
         ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
@@ -183,6 +183,7 @@ BEGIN
     LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
+    LEFT JOIN DBO.[Priority] prit WITH (NOLOCK) ON prit.PriorityId = Stk.PriorityId
     LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
     WHERE part.SalesOrderId = @SalesOrderId

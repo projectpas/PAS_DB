@@ -3318,6 +3318,10 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderPickTicketBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\CalculateInvoiceItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerRowById.sql" />
+    <Build Include="dbo\Tables\InventoryGLSettingAudit.sql" />
+    <Build Include="dbo\Tables\InventoryGLSetting.sql" />
+    <Build Include="dbo\Views\vw_InventoryGLSettingAudit.sql" />
+    <Build Include="dbo\Views\vw_InventoryGLSetting.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderBillingInvoicingData.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderPartsView.sql" />
     <Build Include="dbo\Stored Procedures\GetQuoteTotalCost.sql" />
@@ -3337,6 +3341,11 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorProforma_HeaderStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveProformaInvoicePartsDetails.sql" />
     <Build Include="dbo\User Defined Types\VendorProformaInvoicePartDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteCharges.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteChargesHistory.sql" />
+    <Build Include="dbo\Stored Procedures\Update8130LockUnlockDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesOrderQuotePrintData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

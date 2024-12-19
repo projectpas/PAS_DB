@@ -191,8 +191,8 @@ BEGIN
 			BEGIN
 				DECLARE @InsertedSalesOrderStocklineId BIGINT;
 
-				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
-				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes,@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight
+				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[PriorityId])
+				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes,@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,@PriorityId
 				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
 				SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
@@ -231,6 +231,10 @@ BEGIN
 			PriorityId = @PriorityId
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
+			UPDATE [DBO].[SalesOrderPartV1]
+			SET  PriorityId = @PriorityId
+			WHERE SalesOrderPartId = @SalesOrderPartId AND ItemMasterId = @ItemMasterId;
+
 			-- Update Part Details
 			DECLARE @QtyQuoted_U AS INT = 0;
 
@@ -268,7 +272,8 @@ BEGIN
 				[Weight] = @Weight,
 				SizeLength = @SizeLength,
 				SizeWidth = @SizeWidth,
-				SizeHeight = @SizeHeight
+				SizeHeight = @SizeHeight,
+				PriorityId = @PriorityId
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
 				DECLARE @GrossAmt_S AS decimal(18,4);
@@ -336,13 +341,6 @@ BEGIN
 	COMMIT  TRANSACTION
   END TRY
   BEGIN CATCH
-  SELECT
-    ERROR_NUMBER() AS ErrorNumber,
-    ERROR_STATE() AS ErrorState,
-    ERROR_SEVERITY() AS ErrorSeverity,
-    ERROR_PROCEDURE() AS ErrorProcedure,
-    ERROR_LINE() AS ErrorLine,
-    ERROR_MESSAGE() AS ErrorMessage;
 	IF @@trancount > 0
 		PRINT 'ROLLBACK'
 		ROLLBACK TRAN;

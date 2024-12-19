@@ -18,8 +18,9 @@
     3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
     4    11/11/2024	  Vishal Suthar	Modified to return proper Sub Total for Print PDF
     5    12/05/2024	  Vishal Suthar	Fixed an issue with SO Print after shipping is completed
+    6    12/19/2024	  Vishal Suthar	If only part level record is there then Sub Total not coming in SO Print
 
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 817
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 608
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
@@ -206,14 +207,27 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		SELECT @Total = (ISNULL(SOSC.NetSaleAmount, 0))
-			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
-			LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
-			LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-			LEFT JOIN [dbo].[SalesOrderStocklineCost] SOSC WITH(NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
-			WHERE [SOP].[SalesOrderId] = @SalesOrderId 
-			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId
-			  AND [STK].SalesOrderStocklineId = @SalesOrderStocklineId;
+		IF (@SalesOrderStocklineId IS NOT NULL)
+		BEGIN
+			SELECT @Total = (ISNULL(SOSC.NetSaleAmount, 0))
+				FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
+				LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderStocklineCost] SOSC WITH(NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
+				WHERE [SOP].[SalesOrderId] = @SalesOrderId 
+				  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId
+				  AND [STK].SalesOrderStocklineId = @SalesOrderStocklineId;
+		END
+		ELSE
+		BEGIN
+			SELECT @Total = (ISNULL(SOPC.NetSaleAmount, 0))
+				FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
+				LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderStocklineCost] SOSC WITH(NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
+				WHERE [SOP].[SalesOrderId] = @SalesOrderId 
+				  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;
+		END
 			  
 	    SET @SubTotal += ISNULL(@Total,0);
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)

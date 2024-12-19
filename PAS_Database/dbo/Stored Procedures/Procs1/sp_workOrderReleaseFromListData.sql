@@ -19,7 +19,6 @@
 	6    12/11/2024   Moin Bloch     Updated For Get FormTypeId
 	7    12/13/2024   Moin Bloch     Removed Static Value
 	8    12/16/2024   Moin Bloch     Updated For Get FormType Name
-     
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
 
@@ -89,7 +88,7 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
-					  ,wop.[islocked]
+					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
 					  ,wop.[ManagementStructureId]
@@ -154,7 +153,7 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
-					  ,wop.[islocked]
+					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
 					  ,wop.[ManagementStructureId]

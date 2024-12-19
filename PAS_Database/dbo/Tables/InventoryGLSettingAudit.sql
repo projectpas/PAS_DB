@@ -1,6 +1,7 @@
 ﻿CREATE TABLE [dbo].[InventoryGLSettingAudit] (
     [InventoryGLSettingAuditId]       BIGINT        IDENTITY (1, 1) NOT NULL,
     [InventoryGLSettingId]            BIGINT        NOT NULL,
+    [StockInventoryName]              VARCHAR (150) NOT NULL,
     [InventoryGLAccId]                BIGINT        NOT NULL,
     [GoodsReceivedNotInvoicesGLAccId] BIGINT        NOT NULL,
     [WorkInProgressGLAccId]           BIGINT        NOT NULL,
@@ -20,7 +21,10 @@
     [UpdatedBy]                       VARCHAR (256) NOT NULL,
     [CreatedDate]                     DATETIME      NOT NULL,
     [UpdatedDate]                     DATETIME      NOT NULL,
+    [Memo]                            VARCHAR (MAX) NULL,
     [IsActive]                        BIT           NOT NULL,
     [IsDeleted]                       BIT           NOT NULL
 );
+
+
 

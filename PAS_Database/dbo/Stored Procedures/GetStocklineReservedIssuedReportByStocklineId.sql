@@ -18,6 +18,7 @@
 	5    22-Nov-2024   RAJESH GAMI		handle QtyAdjustment in bulkadjustment
 	6    16-12-2024    RAJESH GAMI      Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
 	7    18-12-2024    RAJESH GAMI		Skip the record if WO,RO,SO,Exch deleted
+	8    19-12-2024    RAJESH GAMI		Add MastercompanyId in the managementstructure JOIN
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
@@ -158,7 +159,7 @@ BEGIN
 				FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WOP.MasterCompanyId = SLM.MasterCompanyId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId AND ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsClosed,0) = 0 AND ISNULL(WOP.IsFinishGood,0) = 0
 					AND ISNULL(WOP.RepairOrderId,0) = 0
@@ -211,7 +212,7 @@ BEGIN
 			   FROM dbo.[RepairOrderPart] ROP WITH(NOLOCK)
 					INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND ROP.MasterCompanyId = SLM.MasterCompanyId
 					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId 
 					AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
@@ -264,7 +265,7 @@ BEGIN
 				FROM dbo.[ExchangeSalesOrderReserveParts] ESR WITH(NOLOCK)
 					INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESR.ExchangeSalesOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ESR.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND ESR.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = ESR.ReservedById
 					WHERE ESR.MasterCompanyId = @MasterCompanyId AND ESR.StockLineId = @StocklineId 
 					AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 
@@ -315,7 +316,7 @@ BEGIN
 					VRD.UpdatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
 				FROM dbo.[VendorRMADetail] VRD WITH(NOLOCK)
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = VRD.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND VRD.MasterCompanyId = SLM.MasterCompanyId
 					WHERE VRD.MasterCompanyId = @MasterCompanyId AND VRD.StockLineId = @StocklineId 
 					AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 
 					AND ISNULL(VRD.Qty,0) > 0 
@@ -367,7 +368,7 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrder] ESO WITH(NOLOCK) ON SOP.SalesOrderId = ESO.SalesOrderId					
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SSTL.StockLineId
 					INNER JOIN dbo.SalesOrderReserveParts SOR WITH(NOLOCK) ON SOR.SalesOrderId = ESO.SalesOrderId AND SOR.StockLineId = SSTL.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SSTL.MasterCompanyId = SLM.MasterCompanyId
 					LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON SOR.ReservedById = emp.EmployeeId
 					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
 					AND ISNULL(ESO.IsDeleted,0) = 0 
@@ -458,7 +459,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.ID = WF.WorkOrderPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId AND ISNULL(WMS.QtyReserved,0) > 0 
@@ -511,7 +512,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)  ON WOP.ID = WF.WorkOrderPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId 
@@ -567,7 +568,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrderMaterials] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsId = SWMS.SubWorkOrderMaterialsId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId  AND SWMS.StockLineId = @StocklineId 
@@ -623,7 +624,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrderMaterialsKit] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsKitId = SWMS.SubWorkOrderMaterialsKitId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId 
@@ -682,7 +683,7 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK) ON WOP.ID = WF.WorkOrderPartNoId
 						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
-						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 						--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 						WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId
@@ -736,7 +737,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK) ON WOP.ID = WF.WorkOrderPartNoId
 					INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId AND ISNULL(WMS.QtyIssued,0) > 0 
@@ -791,7 +792,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrderMaterials] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsId = SWMS.SubWorkOrderMaterialsId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId  AND ISNULL(SWMS.QtyIssued,0) > 0  
@@ -846,7 +847,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrderMaterialsKit] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsKitId = SWMS.SubWorkOrderMaterialsKitId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId AND ISNULL(SWMS.QtyIssued,0) > 0 
@@ -902,7 +903,7 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK) ON WOP.ID = WF.WorkOrderPartNoId
 						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
-						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 						INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 						WHERE (ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0)  AND WMS.StockLineId = @StocklineId
 						AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
@@ -955,7 +956,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WF  WITH(NOLOCK) ON WF.WorkFlowWorkOrderId = WM.WorkFlowWorkOrderId
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK) ON WOP.ID = WF.WorkOrderPartNoId
 					INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
 					WHERE (ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0)  AND WMS.StockLineId = @StocklineId
 					AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
@@ -1010,7 +1011,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrderMaterials] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsId = SWMS.SubWorkOrderMaterialsId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					WHERE (ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0)  AND SWMS.StockLineId = @StocklineId
 					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
@@ -1065,7 +1066,7 @@ BEGIN
 					INNER JOIN [dbo].[SubWorkOrderMaterialsKit] SWM WITH(NOLOCK) ON SWM.SubWorkOrderMaterialsKitId = SWMS.SubWorkOrderMaterialsKitId
 					INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK) ON SWOP.SubWOPartNoId = SWM.SubWOPartNoId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
-					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId
+					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
 					WHERE (ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0)  AND SWMS.StockLineId = @StocklineId
 					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  

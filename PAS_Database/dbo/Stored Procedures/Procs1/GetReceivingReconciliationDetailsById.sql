@@ -15,8 +15,9 @@
 	4    18/12/2023   Moin Bloch    Added Order By
 	5    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
     6    03/01/2024   Moin Bloch    Added IsSerialized Field
+    7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
 	
---  EXEC GetReceivingReconciliationDetailsById 220
+--  EXEC GetReceivingReconciliationDetailsById 321
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
@@ -57,6 +58,8 @@ BEGIN
 					 ,JBD.[GlAccountId]
 					 ,[Type]
 					 ,[StockType]
+					 ,ISNULL([QtyVariance], 0) AS [QtyVariance]
+					 ,ISNULL([PriceVariance], 0) AS [PriceVariance]
 					 --,[RemainingRRQty]
 					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN UPPER(SLI.RRQty) 
 						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN UPPER(NSI.RRQty) 

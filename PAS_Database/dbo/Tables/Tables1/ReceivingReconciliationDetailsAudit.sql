@@ -35,6 +35,8 @@
     [TaxAdjustment]                        DECIMAL (18, 2) NULL,
     [FreightAdjustmentPerUnit]             DECIMAL (18, 2) NULL,
     [TaxAdjustmentPerUnit]                 DECIMAL (18, 2) NULL,
+    [QtyVariance]                          DECIMAL (9, 2)  NULL,
+    [PriceVariance]                        DECIMAL (9, 2)  NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetailsAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationDetailId] ASC)
 );
 

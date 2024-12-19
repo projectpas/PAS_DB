@@ -1,5 +1,6 @@
 ﻿CREATE TABLE [dbo].[InventoryGLSetting] (
     [InventoryGLSettingId]            BIGINT        IDENTITY (1, 1) NOT NULL,
+    [StockInventoryName]              VARCHAR (150) NOT NULL,
     [InventoryGLAccId]                BIGINT        NOT NULL,
     [GoodsReceivedNotInvoicesGLAccId] BIGINT        NOT NULL,
     [WorkInProgressGLAccId]           BIGINT        NOT NULL,
@@ -19,9 +20,12 @@
     [UpdatedBy]                       VARCHAR (256) NOT NULL,
     [CreatedDate]                     DATETIME      NOT NULL,
     [UpdatedDate]                     DATETIME      NOT NULL,
+    [Memo]                            VARCHAR (MAX) NULL,
     [IsActive]                        BIT           DEFAULT ((1)) NOT NULL,
     [IsDeleted]                       BIT           DEFAULT ((0)) NOT NULL
 );
+
+
 
 
 GO
@@ -39,6 +43,7 @@ BEGIN
         INSERT INTO [dbo].[InventoryGLSettingAudit]
         (
             InventoryGLSettingId,
+			StockInventoryName,
             InventoryGLAccId,
             GoodsReceivedNotInvoicesGLAccId,
             WorkInProgressGLAccId,
@@ -58,11 +63,13 @@ BEGIN
             UpdatedBy,
             CreatedDate,
             UpdatedDate,
+			Memo,
             IsActive,
             IsDeleted
         )
         SELECT
             InventoryGLSettingId,
+			StockInventoryName,
             InventoryGLAccId,
             GoodsReceivedNotInvoicesGLAccId,
             WorkInProgressGLAccId,
@@ -82,6 +89,7 @@ BEGIN
             UpdatedBy,
             CreatedDate,
             GETUTCDATE(),
+			Memo,
             IsActive,
             IsDeleted
         FROM inserted;

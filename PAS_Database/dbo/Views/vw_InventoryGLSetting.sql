@@ -1,9 +1,11 @@
 ﻿
 
 
-CREATE       VIEW [dbo].[vw_InventoryGLSetting]
+
+CREATE         VIEW [dbo].[vw_InventoryGLSetting]
 AS
 SELECT IGS.InventoryGLSettingId,
+IGS.StockInventoryName,
 IGS.InventoryGLAccId,
 GLInv.AccountName AS InventoryGLAccName,
 IGS.GoodsReceivedNotInvoicesGLAccId,
@@ -32,7 +34,7 @@ IGS.RevenueSoGLAccId,
 GLMisc.AccountName AS RevenueSoGLAccName,
 IGS.RevenueMiscGLAccId,
 GLGoods.AccountName AS RevenueMiscGLAccName,
-IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate, IGS.IsActive, IGS.IsDeleted
+IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate,IGS.Memo, IGS.IsActive, IGS.IsDeleted
 FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)  
  LEFT JOIN [DBO].[GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 
  LEFT JOIN [DBO].[GLAccount] GLGoods WITH (NOLOCK) ON IGS.GoodsReceivedNotInvoicesGLAccId = GLGoods.GLAccountId

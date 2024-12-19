@@ -3333,6 +3333,10 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetQuickBookCreditTermsById.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsUpdateSyncePendingList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsSyncPendingList.sql" />
+    <Build Include="dbo\Tables\VendorProformaInvoiceApproval.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateVendorProforma_HeaderStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveProformaInvoicePartsDetails.sql" />
+    <Build Include="dbo\User Defined Types\VendorProformaInvoicePartDetailsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

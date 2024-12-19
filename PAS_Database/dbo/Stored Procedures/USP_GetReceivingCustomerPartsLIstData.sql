@@ -9,6 +9,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09-Dec-2024   BHARGAV SALIYA    Created
+    2    18-Dec-2024   BHARGAV SALIYA    Add Dash Board Filte '@TopNumberDetails'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetReceivingCustomerPartsLIstData] 
 	@PageNumber int,
@@ -19,7 +20,8 @@ CREATE   PROCEDURE [dbo].[USP_GetReceivingCustomerPartsLIstData]
 	@PartNumber varchar(100) = null,
 	@RecevingParts varchar(50) = null,
 	@MasterCompanyId int = null,
-	@StartDate datetime = null
+	@StartDate datetime = null,
+	@TopNumberDetails INT = NULL
 
 AS
 BEGIN
@@ -50,7 +52,15 @@ BEGIN
 				IF OBJECT_ID('tempdb..#tmpTop10CustomerReceivedWOPart') IS NOT NULL
 				DROP TABLE #tmpTop10CustomerReceivedWOPart;
 
-
+				CREATE TABLE #finalResult
+				(
+					[RecordId] [bigint] IDENTITY(1,1),
+					[CustomerId] [bigint] NULL,
+					[CustomerName] [varchar](100) NULL,
+					[PartNumber] [varchar](100) NULL,
+					[MastercompanyId] [int] NULL,
+					[RecevingParts] [int] NULL,
+				);
 
 				CREATE TABLE #tmpTop10CustomerReceivedWOPart
 				(
@@ -75,23 +85,40 @@ BEGIN
 					  GROUP BY C.CustomerId,C.[Name],C.MasterCompanyId
 
 
-				SELECT * INTO #finalResult
-				FROM #tmpTop10CustomerReceivedWOPart
-				WHERE (
-				(ISNULL(@Customer,'') ='' OR [CustomerName] LIKE '%' + @Customer+'%') AND
-				(ISNULL(@RecevingParts,'') ='' OR [RecevingParts] LIKE '%' + @RecevingParts+'%') 
-				)
+				IF(ISNULL(@TopNumberDetails,0) > 0)
+				BEGIN
+					insert INTO #finalResult([CustomerId], [CustomerName], [MastercompanyId],[RecevingParts])
+					select [CustomerId], [CustomerName], [MastercompanyId],[RecevingParts]
+					FROM #tmpTop10CustomerReceivedWOPart
+					WHERE (
+					(ISNULL(@Customer,'') ='' OR [CustomerName] LIKE '%' + @Customer+'%') AND
+					(ISNULL(@RecevingParts,'') ='' OR [RecevingParts] LIKE '%' + @RecevingParts+'%') 
+					) 
+					ORDER BY [CustomerId] 
+					OFFSET 0 ROWS 
+					FETCH FIRST @TopNumberDetails ROWS ONLY
+				END
+				ELSE
+				BEGIN
+					insert  INTO #finalResult([CustomerId], [CustomerName], [MastercompanyId],[RecevingParts])
+					select [CustomerId], [CustomerName], [MastercompanyId],[RecevingParts]
+					FROM #tmpTop10CustomerReceivedWOPart
+					WHERE (
+					(ISNULL(@Customer,'') ='' OR [CustomerName] LIKE '%' + @Customer+'%') AND
+					(ISNULL(@RecevingParts,'') ='' OR [RecevingParts] LIKE '%' + @RecevingParts+'%') 
+					)
+				END
 
 				SELECT COUNT(2) OVER () AS NumberOfItems, [CustomerId], [CustomerName], [MastercompanyId],[RecevingParts]
 			    FROM #finalResult 
 			    ORDER BY 
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
+					CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
 					CASE WHEN (@SortOrder=1  AND @SortColumn='RecevingParts')  THEN RecevingParts END ASC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='RecevingParts')  THEN RecevingParts END DESC
 
 			    OFFSET @RecordFrom ROWS 
-			    FETCH NEXT @PageSize ROWS ONLY
+			    FETCH FIRST @TopNumberDetails ROWS ONLY
 			
 			END
 		COMMIT TRANSACTION

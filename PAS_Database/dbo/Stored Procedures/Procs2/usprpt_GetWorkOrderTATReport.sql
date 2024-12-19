@@ -18,6 +18,7 @@
  2 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone      
  3 01/31/2024   Devendra Shekh	added isperforma Flage for WO 
  4 03/29/2024   Ekta Chandegra	IsDeleted and IsActive flag is added
+ 5 12-12-2024   Shrey Chandegara  Modify Due to change calculation of quotedays ,approvedays,shipdays and tatdays and add another filter
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
@@ -39,7 +40,7 @@ BEGIN
   @customername VARCHAR(40) = NULL,  
   @Fromdate DATETIME,  
   @Todate DATETIME,  
-  @tagtype VARCHAR(50) = NULL,  
+  @itemMasterId VARCHAR(50) = NULL,  
   @level1 VARCHAR(MAX) = NULL,  
   @level2 VARCHAR(MAX) = NULL,  
   @level3 VARCHAR(MAX) = NULL,  
@@ -55,14 +56,14 @@ BEGIN
   DECLARE @ModuleID INT = 12; -- MS Module ID  
   SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END  
   
-  SELECT @Fromdate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date'   
+  SELECT @Fromdate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Shipped Date'   
    THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Fromdate END,  
   
-   @Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date'   
+   @Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Shipped Date'   
    THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,  
   
-   @tagtype=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Tag Type'   
-   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @tagtype END,  
+   @itemMasterId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)'   
+   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @itemMasterId END,  
   
    @customername=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)'   
    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @customername END,  
@@ -98,6 +99,60 @@ BEGIN
    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end  
   
     FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
+
+
+	IF OBJECT_ID(N'tempdb..#tmpTop10TATData') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmpTop10TATData
+	END
+
+	IF OBJECT_ID(N'tempdb..#Result') IS NOT NULL
+	BEGIN
+		DROP TABLE #Result
+	END
+
+	CREATE TABLE #tmpTop10TATData (
+		ID bigint NOT NULL IDENTITY,						
+		WorkOrderPartId BIGINT  NULL,
+		DaysCount DECIMAL(18,2) NULL,
+		QuoteDays BIT NULL,
+		ApprovedDays BIT NULL,
+		ShippedDays BIT NULL,
+		IncludeInTAT BIT NULL
+	)
+
+	;WITH TimeSums AS (
+	SELECT 
+			SUM(WT.Days) AS TotalDays, 
+			SUM(WT.Hours) AS TotalHours, 
+			SUM(WT.Mins) AS TotalMinutes,
+			WOP.ID,
+			WS.QuoteDays,
+			WS.ApprovedDays,
+			WS.ShippedDays,
+			WS.IncludeInTAT
+	FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
+		INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+		INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID 
+		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WT.OldStageId --AND ISNULL(WS.QuoteDays,0) = 1 
+	WHERE CAST(WOP.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+			AND WO.customerid=ISNULL(@customername,WO.customerid)  
+			AND WO.mastercompanyid = @mastercompanyid  
+			AND WO.IsDeleted = 0 AND WO.IsActive = 1
+			GROUP BY WOP.ID,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT)
+
+	INSERT INTO #tmpTop10TATData (WorkOrderPartId,DaysCount,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT)
+	SELECT
+		ID,
+		SUM(TotalDays + (TotalHours / 24.0) + (TotalMinutes / 1440.0)) AS totaldays,
+		QuoteDays,
+		ApprovedDays,
+		ShippedDays,
+		IncludeInTAT
+	FROM TimeSums
+	GROUP BY ID,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT
+
+
   
   IF ISNULL(@PageSize,0)=0  
   BEGIN   
@@ -119,8 +174,8 @@ BEGIN
   WHERE CAST(WOPN.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
     AND WO.customerid=ISNULL(@customername,WO.customerid)  
     AND WO.mastercompanyid = @mastercompanyid 
-	AND WO.IsDeleted = 0 AND WO.IsActive = 1
-    AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
+    --AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
     AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
@@ -146,10 +201,18 @@ BEGIN
    UPPER(CN.Description) 'condition',  
    UPPER(WO.WorkOrderNum) 'wonum',  
    WOBI.InvoiceNo 'invoicenum',  
-   DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'quotedays',  
+   DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'quotedays',
+   0 AS 'quotedaysavg',
+   --CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END AS 'quotedays',
    DATEDIFF(DAY, WOQ.sentDate, WOQ.approveddate) 'approveddays',  
-   DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) 'estshipdays',  
+   0 AS 'approveddaysavg',
+   --CASE WHEN  TP2.DaysCount >= 1 THEN TP2.DaysCount ELSE 0 END AS 'approveddays',  
+   DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) 'estshipdays', 
+   0 AS 'estshipdaysavg',
+   --CASE WHEN  TP3.DaysCount >= 1 THEN TP3.DaysCount ELSE 0 END AS 'estshipdays',  
    DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) + DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'tat',  
+   0 AS 'tatavg',
+   --CASE WHEN  TP4.DaysCount >= 1 THEN TP4.DaysCount ELSE 0 END AS 'tat',  
   
    CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
    CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
@@ -160,10 +223,14 @@ BEGIN
      
    UPPER(E.FirstName + ' ' + E.LastName) 'techname',  
    UPPER(MSD.Level1Name) AS level1,      UPPER(MSD.Level2Name) AS level2,     UPPER(MSD.Level3Name) AS level3,     UPPER(MSD.Level4Name) AS level4,     UPPER(MSD.Level5Name) AS level5,     UPPER(MSD.Level6Name) AS level6,     UPPER(MSD.Level7Name) AS level7,     UPPER(MSD.Level8Name) AS level8,     UPPER(MSD.Level9Name) AS level9,     UPPER(MSD.Level10Name) AS level10  ,
-   TZ.TimeZoneName AS 'TIMEZONE_NAME'
+   TZ.TimeZoneName AS 'TIMEZONE_NAME',
+    WOPN.ID ,
+    WOPN.mastercompanyid 
+
+   INTO #Result
   FROM DBO.WorkOrder WO WITH (NOLOCK)  
    INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
-   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
+   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
    INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
    LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
    LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
@@ -182,8 +249,8 @@ BEGIN
   WHERE CAST(WOPN.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
     AND WO.customerid=ISNULL(@customername,WO.customerid)  
     AND WO.mastercompanyid = @mastercompanyid  
-	AND WO.IsDeleted = 0 AND WO.IsActive = 1
-    AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
+    --AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
     AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
@@ -194,7 +261,45 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-  ORDER BY CAST(WO.OpenDate AS DATE)  
+ 
+ 
+ UPDATE WOPN 
+ set WOPN.quotedays =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
+ from #Result WOPN
+ LEFT JOIN #tmpTop10TATData TP ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.QuoteDays,0) = 1
+
+  UPDATE WOPN 
+ set WOPN.approveddays =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
+ from #Result WOPN
+ LEFT JOIN #tmpTop10TATData TP WITH(NOLOCK) ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.ApprovedDays,0) = 1
+
+  UPDATE WOPN 
+ set WOPN.estshipdays =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
+ from #Result WOPN
+ LEFT JOIN #tmpTop10TATData TP WITH(NOLOCK) ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.ShippedDays,0) = 1
+
+  UPDATE WOPN 
+ set WOPN.tat =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
+ from #Result WOPN
+ LEFT JOIN #tmpTop10TATData TP WITH(NOLOCK) ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.IncludeInTAT,0) = 1
+
+ ;with AvgDaysTotal as (
+	select 
+	SUM(quotedays) as quotedaysavg,
+	SUM(approveddays) as approveddaysavg,
+	SUM(estshipdays) as estshipdaysavg,
+	SUM(tat) as tatavg,
+	MasterCompanyid
+	from #Result group by MasterCompanyid
+ )
+
+ UPDATE WOPN 
+ set WOPN.quotedaysavg =  tt.quotedaysavg,WOPN.approveddaysavg = tt.approveddaysavg,WOPN.estshipdaysavg = tt.estshipdaysavg,WOPN.tatavg = tt.tatavg
+ from #Result WOPN
+ left join AvgDaysTotal tt on tt.MasterCompanyid = WOPN.MasterCompanyId
+ 
+ select * from #Result
+ ORDER BY CAST(OpenDate AS DATE)  
    OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
   
     COMMIT TRANSACTION  

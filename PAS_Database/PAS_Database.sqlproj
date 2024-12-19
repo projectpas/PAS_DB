@@ -3342,6 +3342,7 @@
     <Build Include="dbo\Stored Procedures\Update8130LockUnlockDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderQuotePrintData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsAudit.sql" />
+    <Build Include="dbo\Stored Procedures\CheckStocklineForDelete.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

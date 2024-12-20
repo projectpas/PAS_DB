@@ -13,13 +13,15 @@
  ** --   --------     -------  --------------------------------              
     1                 Unknown       Created 
 	2    17-12-2024   Moin Bloch    Update 8130 Lock / Unlock data 
+	3    19-12-2024   Moin Bloch    Update for 8130 form islock data 
     
 -- EXEC [dbo].[sp_Update8130fromdata] 4656,4219  
    EXEC [dbo].[sp_Update8130fromdata] 4655,4218
 **************************************************************/   
 CREATE Procedure [dbo].[sp_Update8130fromdata]
-@WorkorderId bigint,
-@workOrderPartNoId bigint
+@WorkorderId BIGINT,
+@workOrderPartNoId BIGINT,
+@isFromSettlement BIT=0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -27,49 +29,62 @@ BEGIN
 
 	BEGIN TRY
 	BEGIN TRANSACTION
+
+	DECLARE @WorkOrderSettlementId INT = 0;
+	SELECT @WorkOrderSettlementId = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Release Certs (e.g. 8130) Reviewed';
 	
-	IF OBJECT_ID(N'tempdb..#8130Detail') IS NOT NULL
+	IF(ISNULL(@isFromSettlement,0) = 0)
 	BEGIN
-		DROP TABLE #8130Detail
-	END
-
-	CREATE TABLE #8130Detail
-	(
-		[ID] BIGINT NOT NULL IDENTITY,		
-	    [FormTypeId] INT NULL,
-		[IsLocked] BIT NULL
-	)
-
-	INSERT INTO #8130Detail ([FormTypeId],[IsLocked])
-	SELECT [FormTypeId],[IsLocked] FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK)
-	WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId  
-		
-	DECLARE @TotCount AS INT;
-	DECLARE @Count INT = 0;
-	DECLARE @LoopID AS INT;
-	SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #8130Detail;
-
-	WHILE (@LoopID <= @TotCount)
-	BEGIN		
-		DECLARE @IsLocked BIT = 0
-		
-		SELECT @IsLocked = [IsLocked] FROM #8130Detail WHERE [ID] = @LoopID;
-		IF(@IsLocked = 1)
+		IF OBJECT_ID(N'tempdb..#8130Detail') IS NOT NULL
 		BEGIN
-			SET @Count = @Count + 1;
-		END		
+			DROP TABLE #8130Detail
+		END
+
+		CREATE TABLE #8130Detail
+		(
+			[ID] BIGINT NOT NULL IDENTITY,		
+			[FormTypeId] INT NULL,
+			[IsLocked] BIT NULL
+		)
+
+		INSERT INTO #8130Detail ([FormTypeId],[IsLocked])
+		SELECT [FormTypeId],[IsLocked] FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK)
+		WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId  
 		
-		SET @LoopID = @LoopID + 1;
-	END		
-	IF(@TotCount = @Count)
-	BEGIN
-		UPDATE [WorkOrderPartNumber] SET [IsLocked] = 1 WHERE [WorkOrderId] = @WorkorderId AND [ID] = @workOrderPartNoId;  
+		DECLARE @TotCount AS INT;
+		DECLARE @Count INT = 0;
+		DECLARE @LoopID AS INT;
+		SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #8130Detail;
+
+		WHILE (@LoopID <= @TotCount)
+		BEGIN		
+			DECLARE @IsLocked BIT = 0
+		
+			SELECT @IsLocked = [IsLocked] FROM #8130Detail WHERE [ID] = @LoopID;
+			IF(@IsLocked = 1)
+			BEGIN
+				SET @Count = @Count + 1;
+			END		
+		
+			SET @LoopID = @LoopID + 1;
+		END		
+		IF(@TotCount = @Count)
+		BEGIN
+			UPDATE [WorkOrderPartNumber] SET [IsLocked] = 1 WHERE [WorkOrderId] = @WorkorderId AND [ID] = @workOrderPartNoId;  
+			UPDATE [WorkOrderSettlementDetails] SET [IsMastervalue] = 1 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [WorkOrderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId; 
+		END
+		ELSE
+		BEGIN
+			UPDATE [WorkOrderPartNumber] SET [IsLocked] = 0 WHERE [WorkOrderId] = @WorkorderId AND [ID] = @workOrderPartNoId;  
+			UPDATE [WorkOrderSettlementDetails] SET [IsMastervalue] = 0 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [WorkOrderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId; 
+		END	
 	END
 	ELSE
 	BEGIN
-		UPDATE [WorkOrderPartNumber] SET [IsLocked] = 0 WHERE [WorkOrderId] = @WorkorderId AND [ID] = @workOrderPartNoId;  
-	END	
-	--	UPDATE [Work_ReleaseFrom_8130] SET IsClosed = 1 WHERE WorkOrderId = @WorkorderId AND workOrderPartNoId = @workOrderPartNoId  
+		UPDATE [dbo].[Work_ReleaseFrom_8130] SET [IsLocked] = 1 WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId;  
+		UPDATE [dbo].[WorkOrderPartNumber] SET [IsLocked] = 1 WHERE [WorkOrderId] = @WorkorderId AND [ID] = @workOrderPartNoId;  
+		UPDATE [dbo].[WorkOrderSettlementDetails] SET [IsMastervalue] = 1 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [WorkOrderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId; 		
+	END
 			
 	COMMIT  TRANSACTION
 

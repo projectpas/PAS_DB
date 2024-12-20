@@ -12,6 +12,7 @@
  ** PR   Date         Author       Change Description                
  ** --   --------     -------  --------------------------------               
 	1    17-12-2024   Moin Bloch   Created
+	2    19-12-2024   Moin Bloch   Update for 8130 form islock data 
     
 -- EXEC [dbo].[Update8130LockUnlockDetails] 573,559    
 **************************************************************/ 
@@ -28,14 +29,19 @@ BEGIN
 
 	BEGIN TRY
 	BEGIN TRANSACTION
+	
+	DECLARE @WorkOrderSettlementId INT = 0;
+	SELECT @WorkOrderSettlementId = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Release Certs (e.g. 8130) Reviewed';
 
 	IF(@IsWorkOrder=1)
 	BEGIN
-		UPDATE [Work_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId;  
+		UPDATE [dbo].[Work_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId;  
+		UPDATE [dbo].[WorkOrderSettlementDetails] SET [IsMastervalue] = 0 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [WorkOrderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId; 
 	END
 	ELSE
 	BEGIN		
-		UPDATE [SubWorkOrder_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
+		UPDATE [dbo].[SubWorkOrder_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
+		UPDATE [dbo].[SubWorkOrderSettlementDetails] SET [IsMastervalue] = 0 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;
 	END
 	
 	COMMIT  TRANSACTION

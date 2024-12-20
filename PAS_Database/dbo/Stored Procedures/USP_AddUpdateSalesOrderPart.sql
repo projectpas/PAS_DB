@@ -295,6 +295,13 @@ BEGIN
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
 
+			DECLARE @IsQtyRequestedModified BIT;
+			DECLARE @ExistingQtyReq INT;
+
+			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+
+			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
+
 			;WITH QuotedSums AS (
 				SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
 				FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
@@ -327,6 +334,14 @@ BEGIN
 					SOP.QtyOrder = CASE WHEN QS.TotalQtyQuoted > 0 THEN QS.TotalQtyQuoted ELSE SOP.QtyOrder END
 				FROM [DBO].[SalesOrderPartV1] SOP
 					INNER JOIN QuotedSumsNoStockline QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
+				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+			END
+
+			IF NOT EXISTS (SELECT TOP 1 1 FROM [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
+			BEGIN
+				UPDATE SOP
+				SET SOP.QtyOrder = CASE WHEN @IsQtyRequestedModified = 1 THEN @QtyRequested ELSE @QtyOrder END
+				FROM [DBO].[SalesOrderPartV1] SOP
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			END
 		END

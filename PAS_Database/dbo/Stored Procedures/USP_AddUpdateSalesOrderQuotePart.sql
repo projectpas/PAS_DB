@@ -208,7 +208,7 @@ BEGIN
 			DECLARE @IsQtyRequestedModified BIT;
 			DECLARE @ExistingQtyReq INT;
 
-			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderQuotePartV1] SOP WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
 
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
 

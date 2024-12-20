@@ -76,7 +76,7 @@ BEGIN
 			   ISNULL((SELECT ISNULL(sobii.NoofPieces, 0) 
 			   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 			   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-			   WHERE sobi.SalesOrderId = @SalesOrderId AND sobi.IsProforma = 0
+			   WHERE sobi.SalesOrderId = @SalesOrderId AND ISNULL(sobi.IsProforma, 0) = 0
 			   AND sobii.StockLineId = stl.StockLineId), 0) AS NoofPieces
 		FROM [DBO].[SalesOrder] so WITH(NOLOCK)
 		JOIN [DBO].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

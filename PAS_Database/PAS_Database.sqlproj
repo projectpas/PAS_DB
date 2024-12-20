@@ -3348,6 +3348,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsAudit.sql" />
     <Build Include="dbo\Tables\VendorProformaInvoiceSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\VendorProformaInvoiceSettingMaster.sql" />
+    <Build Include="dbo\Stored Procedures\CheckStocklineForDelete.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

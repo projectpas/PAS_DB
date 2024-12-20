@@ -63,8 +63,8 @@ BEGIN
 		DECLARE @LastDeprRunPeriod VARCHAR(30)
 		DECLARE @FullyDepreciatedStatusId BIGINT; 
 
-		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciationHistory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId)
-		SELECT @ResidualPercentage = ResidualPercentage FROM AssetInventory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId 
+		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM DBO.AssetDepreciationHistory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM DBO.AssetDepreciationHistory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId)
+		SELECT @ResidualPercentage = ResidualPercentage FROM DBO.AssetInventory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId 
 
 		SELECT @ReduceResidualPerc = ISNULL(ISNULL(@ResidualPercentage,0) / ISNULL(@Hundred,0),0);				
 		SELECT @AfterReduceResidual = ISNULL(ISNULL(@InstalledCost,0) - (ISNULL(@InstalledCost,0) * ISNULL(@ReduceResidualPerc,0)),0);
@@ -73,7 +73,7 @@ BEGIN
 		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));												-- @InstalledCost - @AccumlatedDepr;
 		SELECT @NBVAfterDepreciation = (ISNULL(ISNULL(@NetBookValue,0) - ISNULL(@DepreciationAmount,0),0));										-- @NetBookValue - @DepreciationAmount;
 		
-		SELECT @LastDeprRunPeriod = PeriodName FROM AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @SelectedAccountingPeriodId 
+		SELECT @LastDeprRunPeriod = PeriodName FROM DBO.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @SelectedAccountingPeriodId 
 		SET @DepreciationStartDate = GETUTCDATE();
 
 		IF(@AfterReduceResidual = @AccumlatedDepr)
@@ -103,10 +103,10 @@ BEGIN
 		IF @AccumlatedDepr <= @AfterReduceResidual
 		BEGIN
 
-			IF NOT EXISTS(SELECT * FROM [AssetDepreciationHistory] WHERE AssetInventoryId = @AssetInventoryId and AccountingCalenderId = @SelectedAccountingPeriodId)
+			IF NOT EXISTS(SELECT * FROM DBO.[AssetDepreciationHistory] WITH(NOLOCK) WHERE AssetInventoryId = @AssetInventoryId and AccountingCalenderId = @SelectedAccountingPeriodId)
 			BEGIN
 
-				INSERT INTO [AssetDepreciationHistory]
+				INSERT INTO DBO.[AssetDepreciationHistory]
 
 				([SerialNo],[StklineNumber],[InServiceDate],[DepriciableStatus],[CURRENCY],[DepriciableLife],[DepreciationMethod],[DepreciationFrequency],[AssetId]
 				,[AssetInventoryId],[InstalledCost],[DepreciationAmount],[AccumlatedDepr],[NetBookValue],[NBVAfterDepreciation],[LastDeprRunPeriod],[AccountingCalenderId],

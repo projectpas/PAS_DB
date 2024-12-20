@@ -3337,11 +3337,17 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetQuickBookCreditTermsById.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsUpdateSyncePendingList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditTermsSyncPendingList.sql" />
+    <Build Include="dbo\Tables\VendorProformaInvoiceApproval.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateVendorProforma_HeaderStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveProformaInvoicePartsDetails.sql" />
+    <Build Include="dbo\User Defined Types\VendorProformaInvoicePartDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteCharges.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteChargesHistory.sql" />
     <Build Include="dbo\Stored Procedures\Update8130LockUnlockDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderQuotePrintData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsAudit.sql" />
+    <Build Include="dbo\Tables\VendorProformaInvoiceSettingMasterAudit.sql" />
+    <Build Include="dbo\Tables\VendorProformaInvoiceSettingMaster.sql" />
     <Build Include="dbo\Stored Procedures\CheckStocklineForDelete.sql" />
   </ItemGroup>
   <ItemGroup>

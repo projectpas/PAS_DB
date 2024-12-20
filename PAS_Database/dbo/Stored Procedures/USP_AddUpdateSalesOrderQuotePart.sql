@@ -205,7 +205,13 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			PRINT 'IN ELSE'
+			DECLARE @IsQtyRequestedModified BIT;
+			DECLARE @ExistingQtyReq INT;
+
+			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderQuotePartV1] SOP WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+
+			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
+
 			UPDATE [DBO].[SalesOrderQuotePartV1]
 			SET 
 			CustomerRequestDate = @CustomerRequestDate,
@@ -273,6 +279,14 @@ BEGIN
 			FROM [DBO].[SalesOrderQuotePartV1] SOP
 			INNER JOIN QuotedSums QS ON SOP.SalesOrderQuotePartId = QS.SalesOrderQuotePartId
 			WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+
+			IF NOT EXISTS (SELECT TOP 1 1 FROM [DBO].[SalesOrderQuoteStocklineV1] SOS WITH (NOLOCK) WHERE SOS.SalesOrderQuotePartId = @SalesOrderQuotePartId)
+			BEGIN
+				UPDATE SOP
+				SET SOP.QtyQuoted = CASE WHEN @IsQtyRequestedModified = 1 THEN @QtyRequested ELSE @QtyQuoted END
+				FROM [DBO].[SalesOrderQuotePartV1] SOP
+				WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			END
 		END
 
 		SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;

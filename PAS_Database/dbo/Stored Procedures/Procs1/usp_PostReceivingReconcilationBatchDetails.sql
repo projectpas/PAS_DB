@@ -29,6 +29,7 @@
 	17   20/09/2024	  AMIT GHEDIYA		  Added for AutoPost Batch
 	18	 09/10/2024	  Devendra Shekh	  Added new fields for [CommonBatchDetails]
 	19	 04/11/2024   Devendra Shekh     Added ReferenceModule For [CommonBatchDetails]
+	20	 18/12/2024   Devendra Shekh      Modify (Handling Qty/Unit Cost Adjustment Separately For Accounting Entry) And Changed QuantityAvailable to QuantityOnHand
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -340,6 +341,9 @@ BEGIN
 						DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) =0;
 						DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) =0;
 
+						DECLARE @QtyVariance DECIMAL(18,2) = 0;
+						DECLARE @PriceVariance DECIMAL(18,2) = 0;
+
 						SELECT @POROUnitPrice = ISNULL([POUnitCost], 0), 
 						       @ReceivedQty = ISNULL([InvoicedQty], 0), 
 						       @RRUnitPrice = ISNULL([InvoicedUnitCost], 0),
@@ -352,7 +356,9 @@ BEGIN
 							   @FreightAdjustment = [FreightAdjustment],	
 							   @TaxAdjustment = [TaxAdjustment],
 							   @FreightAdjustmentPerUnit = [FreightAdjustmentPerUnit],	
-							   @TaxAdjustmentPerUnit = [TaxAdjustmentPerUnit]
+							   @TaxAdjustmentPerUnit = [TaxAdjustmentPerUnit],
+							   @QtyVariance = ISNULL([QtyVariance], 0),
+							   @PriceVariance = ISNULL([PriceVariance], 0)
 						FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK)
 					   WHERE [ReceivingReconciliationDetailId] = @ReceivingReconciliationDetailId;
 					   				
@@ -387,7 +393,7 @@ BEGIN
 										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StocklineNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse]
 										,@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
 										@VendorId=VendorId,@POStocklineUnitPrice=ISNULL(PurchaseOrderUnitCost,0),@ROStocklineUnitPrice=ISNULL(RepairOrderUnitCost,0),
-										@StocklineQtyAvail=ISNULL(QuantityAvailable,0)
+										@StocklineQtyAvail=ISNULL(QuantityOnHand,0)
 								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
 												  
 								--SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK)  WHERE StockLineId=@StocklineId
@@ -850,7 +856,7 @@ BEGIN
 									------- VAR - Cost/Qty - COGS ------
 																		
 									SET @Amount= ISNULL(((@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)) * (@RRUnitPrice - @POROUnitPrice)), 0);
-									SET @APTotalPrice = (@APTotalPrice + @Amount);
+									--SET @APTotalPrice = (@APTotalPrice + @Amount);
 																								
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
@@ -861,16 +867,64 @@ BEGIN
 									FROM dbo.DistributionSetup WITH(NOLOCK)
 									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOVARCOGS') 
 									  AND DistributionMasterId=@DistributionMasterId 
-									  AND MasterCompanyId = @MasterCompanyId;
+									  AND MasterCompanyId = @MasterCompanyId;									
 
-									IF(ISNULL(@Amount,0) > 0)
-									BEGIN
+									--IF(ISNULL(@Amount,0) > 0)
+									--BEGIN
+									--	INSERT INTO [dbo].[CommonBatchDetails]
+									--		(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+									--		[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
+									--	VALUES
+									--		(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+									--		1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+															 
+									--	SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+									--	-----  Accounting MS Entry  -----
+
+									--	EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+
+									--	INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
+									--		Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+									--	VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
+									--		'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+									--END
+									
+									--IF(ISNULL(@Amount,0) < 0)
+									--BEGIN
+									--	INSERT INTO [dbo].[CommonBatchDetails]
+									--		(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+									--		[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
+									--	VALUES
+									--		(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+									--		0,0,ABS(@Amount),@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+															 
+									--	SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+									--	-----  Accounting MS Entry  -----
+
+									--	EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+
+									--	INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
+									--		Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+									--	VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
+									--		'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId ,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+									--END
+
+									IF(ABS(@QtyVariance) > 0)
+									BEGIN	
+										SET @APTotalPrice = (@APTotalPrice + (@QtyVariance));
+											
 										INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 										VALUES
 											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
-											1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+											CASE WHEN @QtyVariance > 0 THEN 1 ELSE 0 END,
+											CASE WHEN @QtyVariance > 0 THEN ABS(@QtyVariance) ELSE 0 END,
+											CASE WHEN @QtyVariance > 0 THEN 0 ELSE ABS(@QtyVariance) END,
+											--1,ABS(@QtyVariance),0,
+											@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 															 
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
@@ -884,14 +938,31 @@ BEGIN
 											'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
-									IF(ISNULL(@Amount,0) < 0)
-									BEGIN
+									IF(ABS(@PriceVariance) > 0)
+									BEGIN	
+										SET @APTotalPrice = (@APTotalPrice + (@PriceVariance));
+
+										SELECT TOP 1 @DistributionSetupId=ID, 
+									            @DistributionName=Name, 
+												@JournalTypeId=JournalTypeId, 
+												@GlAccountId=GlAccountId, 
+												@GlAccountNumber=GlAccountNumber, 
+												@GlAccountName=GlAccountName
+										FROM dbo.DistributionSetup WITH(NOLOCK)
+										WHERE UPPER(DistributionSetupCode)=UPPER('RECPOVARCOGSUNITCOST') 
+											AND DistributionMasterId=@DistributionMasterId 
+											AND MasterCompanyId = @MasterCompanyId;
+											
 										INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 										VALUES
 											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
-											0,0,ABS(@Amount),@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+											CASE WHEN @PriceVariance > 0 THEN 1 ELSE 0 END,
+											CASE WHEN @PriceVariance > 0 THEN ABS(@PriceVariance) ELSE 0 END,
+											CASE WHEN @PriceVariance > 0 THEN 0 ELSE ABS(@PriceVariance) END,
+											--1,ABS(@PriceVariance),0,
+											@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 															 
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
@@ -902,7 +973,7 @@ BEGIN
 										INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
 											Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
 										VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-											'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId ,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+											'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									------- VAR - Cost/Qty - COGS -------
@@ -1012,7 +1083,7 @@ BEGIN
 								SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
 								@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StocklineNumber
 								,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
-								@VendorId=VendorId,@StocklineQtyAvail=ISNULL(QuantityAvailable,0),@POStocklineUnitPrice=ISNULL(PurchaseOrderUnitCost,0),@ROStocklineUnitPrice=ISNULL(RepairOrderUnitCost,0)  
+								@VendorId=VendorId,@StocklineQtyAvail=ISNULL(QuantityOnHand,0),@POStocklineUnitPrice=ISNULL(PurchaseOrderUnitCost,0),@ROStocklineUnitPrice=ISNULL(RepairOrderUnitCost,0)  
 								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
 															  
 								SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
@@ -1414,7 +1485,7 @@ BEGIN
 
 									------- VAR - Cost/Qty - COGS ------
 									SET @Amount=((@RRUnitPrice - @POROUnitPrice) * (@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)));									
-									SET @APTotalPrice = @APTotalPrice + @Amount
+									--SET @APTotalPrice = @APTotalPrice + @Amount
 									
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
@@ -1426,16 +1497,63 @@ BEGIN
 									        FROM dbo.DistributionSetup WITH(NOLOCK)
 									       WHERE UPPER(DistributionSetupCode)=UPPER('RECROVARCOGS') 
 										   AND DistributionMasterId=@DistributionMasterId 
-										   AND MasterCompanyId = @MasterCompanyId
-								
-									IF(ISNULL(@Amount,0) > 0)
-									BEGIN 
+										   AND MasterCompanyId = @MasterCompanyId								
+
+									--IF(ISNULL(@Amount,0) > 0)
+									--BEGIN 
+									--	INSERT INTO [dbo].[CommonBatchDetails]
+									--		(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+									--		[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
+									--	VALUES
+									--		(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+									--		1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+																  
+									--	SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+									--	-----  Accounting MS Entry  -----
+
+									--	EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+
+									--	INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
+									--		Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+									--	VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
+									--		'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+									--END
+									--IF(ISNULL(@Amount,0) < 0)
+									--BEGIN 
+									--	INSERT INTO [dbo].[CommonBatchDetails]
+									--		(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+									--		[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
+									--	VALUES
+									--		(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+									--		1,0,ABS(@Amount),@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+																  
+									--	SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+									--	-----  Accounting MS Entry  -----
+
+									--	EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+
+									--	INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
+									--		Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+									--	VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
+									--		'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
+									--END
+
+									IF(ABS(@QtyVariance) > 0)
+									BEGIN
+										SET @APTotalPrice = @APTotalPrice + (@QtyVariance);
+
 										INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 										VALUES
 											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
-											1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+											CASE WHEN @QtyVariance > 0 THEN 1 ELSE 0 END,
+											CASE WHEN @QtyVariance > 0 THEN ABS(@QtyVariance) ELSE 0 END,
+											CASE WHEN @QtyVariance > 0 THEN 0 ELSE ABS(@QtyVariance) END,
+											--1,ABS(@QtyVariance),0,
+											@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 																  
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
@@ -1448,14 +1566,33 @@ BEGIN
 										VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
 											'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
-									IF(ISNULL(@Amount,0) < 0)
-									BEGIN 
+
+									IF(ABS(@PriceVariance) > 0)
+									BEGIN
+										SET @APTotalPrice = @APTotalPrice + (@PriceVariance);
+
+										SELECT TOP 1 @DistributionSetupId=ID, 
+									            @DistributionName=Name, 
+												@JournalTypeId=JournalTypeId, 
+												@GlAccountId=GlAccountId, 
+												@GlAccountNumber=GlAccountNumber, 
+												@GlAccountName=GlAccountName,
+												@CrDrType=CRDRType
+										FROM dbo.DistributionSetup WITH(NOLOCK)
+										WHERE UPPER(DistributionSetupCode)=UPPER('RECROVARCOGSUNITCOST') 
+											AND DistributionMasterId=@DistributionMasterId 
+											AND MasterCompanyId = @MasterCompanyId;
+
 										INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 										VALUES
 											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
-											1,0,ABS(@Amount),@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
+											CASE WHEN @PriceVariance > 0 THEN 1 ELSE 0 END,
+											CASE WHEN @PriceVariance > 0 THEN ABS(@PriceVariance) ELSE 0 END,
+											CASE WHEN @PriceVariance > 0 THEN 0 ELSE ABS(@PriceVariance) END,
+											--1,ABS(@PriceVariance),0,
+											@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 																  
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
@@ -1468,6 +1605,7 @@ BEGIN
 										VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
 											'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
+									
 									------- VAR - Cost/Qty - COGS ------
 
 									 ------- Goods Received Not Invoiced (GRNI)------

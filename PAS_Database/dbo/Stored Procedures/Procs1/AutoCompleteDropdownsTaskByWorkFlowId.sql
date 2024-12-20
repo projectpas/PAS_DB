@@ -15,7 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Hemant Saliya Created
-     
+    2    12/29/2024   Ayushi Patel  Order By Sequence Id
 --EXEC [AutoCompleteDropdownsTaskByWorkFlowId] '',1,20,10169,1
 **************************************************************/
 
@@ -75,7 +75,7 @@ BEGIN
 		FROM dbo.Task T WITH(NOLOCK)
 				JOIN #tmpTaskIds tmpT ON T.TaskId = tmpT.TaskId
 		WHERE T.MasterCompanyId = @MasterCompanyId  
-		ORDER BY Label
+		ORDER BY T.Sequence
 
 		IF OBJECT_ID(N'tempdb..#tmpTaskIds') IS NOT NULL
 		BEGIN

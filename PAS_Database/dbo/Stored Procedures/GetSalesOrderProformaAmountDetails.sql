@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    05/12/2024   Moin Bloch    Created	
+	2    19/12/2024   AMIT GHEDIYA  Get QTY based on selection. 	
 
   EXEC [dbo].[GetSalesOrderProformaAmountDetails] 1260,12,0
   EXEC [dbo].[GetSalesOrderProformaAmountDetails] 1260,10,177272
@@ -31,8 +32,9 @@ BEGIN
 	BEGIN
 		SELECT ISNULL(SOSC.[NetSaleAmount],0) NetSaleAmount,
 			   ISNULL(sobii.[NoofPieces],0) NoofPieces,
-			   ISNULL(SOSC.[NetSaleAmount],0) / ISNULL(sobii.[NoofPieces],0) UnitPrice,
-			   stk.[StockLineId]
+			   ISNULL(SOSC.[NetSaleAmount],0) / ISNULL(stk.[QtyOrder],0) UnitPrice,
+			   stk.[StockLineId],
+			   ISNULL(stk.[QtyOrder],0) QTYOnBACKOrder
 		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
 		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.[SalesOrderPartId] = sop.[SalesOrderPartId]
 		LEFT JOIN [dbo].[SalesOrderPartCost] spc WITH (NOLOCK) ON spc.[SalesOrderPartId] = sop.[SalesOrderPartId]
@@ -45,10 +47,11 @@ BEGIN
 	END	
 	ELSE
 	BEGIN
-		SELECT ISNULL(spc.[NetSaleAmount],0) NetSaleAmount,
+		SELECT ISNULL(spc.[NetSaleAmount],0)  NetSaleAmount,
 			   ISNULL(sobii.[NoofPieces],0) NoofPieces,
-			   ISNULL(spc.[NetSaleAmount],0) / ISNULL(sobii.[NoofPieces],0) UnitPrice,
-			   NULL [StockLineId]
+			   ISNULL(spc.[NetSaleAmount],0) / ISNULL(sop.[QtyRequested],0) UnitPrice,
+			   NULL [StockLineId],
+			   ISNULL(sop.[QtyRequested],0) QTYOnBACKOrder
 		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
 		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.[SalesOrderPartId] = sop.[SalesOrderPartId]
 		LEFT JOIN [dbo].[SalesOrderPartCost] spc WITH (NOLOCK) ON spc.[SalesOrderPartId] = sop.[SalesOrderPartId]

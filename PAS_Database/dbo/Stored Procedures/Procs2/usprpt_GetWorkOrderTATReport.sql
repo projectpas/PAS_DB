@@ -134,8 +134,10 @@ BEGIN
 	FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
 		INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 		INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID 
+		LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOP.ID
+		LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId
 		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WT.OldStageId --AND ISNULL(WS.QuoteDays,0) = 1 
-	WHERE CAST(WOP.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+	WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
 			AND WO.customerid=ISNULL(@customername,WO.customerid)  
 			AND WO.mastercompanyid = @mastercompanyid  
 			AND WO.IsDeleted = 0 AND WO.IsActive = 1
@@ -171,7 +173,7 @@ BEGIN
    LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
    LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
    LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
-  WHERE CAST(WOPN.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)  
     AND WO.customerid=ISNULL(@customername,WO.customerid)  
     AND WO.mastercompanyid = @mastercompanyid 
 	AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
@@ -246,11 +248,10 @@ BEGIN
    LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
    LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
    LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
-  WHERE CAST(WOPN.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
     AND WO.customerid=ISNULL(@customername,WO.customerid)  
     AND WO.mastercompanyid = @mastercompanyid  
 	AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
-    --AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
     AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  

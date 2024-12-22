@@ -3349,6 +3349,7 @@
     <Build Include="dbo\Tables\VendorProformaInvoiceSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\VendorProformaInvoiceSettingMaster.sql" />
     <Build Include="dbo\Stored Procedures\CheckStocklineForDelete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCycleCountSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorProformaInvoiceDetails.sql" />
   </ItemGroup>
   <ItemGroup>

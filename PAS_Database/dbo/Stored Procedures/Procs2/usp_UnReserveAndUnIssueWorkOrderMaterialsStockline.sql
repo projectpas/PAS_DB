@@ -19,6 +19,7 @@ EXEC [usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
 ** 8    10/04/2024      RAJESH GAMI 	    Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
 ** 9    11/28/2024		HEMANT SALIYA		Re-Calculate WOM Qty Res & Qty Issue
 ** 10    11/22/2024		Devendra Shekh		Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
+** 11    12/20/2024		Devendra Shekh		ExtendedCost Calculation issue Resolved
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
@@ -195,6 +196,11 @@ BEGIN
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 
+					--FOR UPDATED WORKORDER MATERIALS STOCKLINE EXTENDEDCOST
+					UPDATE dbo.WorkOrderMaterialStockLineKit 
+					SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0)
+					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) > 0
+
 					DECLARE @countKitStockline INT = 1;
 
 					--FOR FOR UPDATED STOCKLINE QTY
@@ -250,6 +256,11 @@ BEGIN
 					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0 
+
+					--FOR UPDATED WORKORDER MATERIALS STOCKLINE EXTENDEDCOST
+					UPDATE dbo.WorkOrderMaterialStockLine 
+					SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0)
+					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) = 0 
 
 					DECLARE @countStockline INT = 1;
 

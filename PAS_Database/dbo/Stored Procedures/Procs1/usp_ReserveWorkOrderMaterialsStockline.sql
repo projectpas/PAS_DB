@@ -17,6 +17,7 @@ EXEC [usp_ReserveWorkOrderMaterialsStockline]
 ** 6    09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 7    11/28/2024	HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 8    11/22/2024	Devendra Shekh	 Modified (added fiels  ReservedById, ReservedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
+** 9    12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -201,9 +202,14 @@ BEGIN
 
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 						UPDATE dbo.WorkOrderMaterialStockLineKit 
-						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
+						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)
 						FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 						WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
+
+						--FOR UPDATED WORKORDER MATERIALS STOCKLINE EXTENDEDCOST
+						UPDATE dbo.WorkOrderMaterialStockLineKit 
+						SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0)
+						FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 
 						--FOR UPDATED WORKORDER MATERIALS QTY
 						UPDATE dbo.WorkOrderMaterialsKit 
@@ -336,7 +342,7 @@ BEGIN
 									TARGET.UpdatedBy = SOURCE.ReservedBy
 							WHEN NOT MATCHED BY TARGET 
 								THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, AltPartMasterPartId, EquPartMasterPartId, IsAltPart, IsEquPart, ReservedById, ReservedDate) 
-								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.AltPartMasterPartId, SOURCE.EquPartMasterPartId, SOURCE.IsAltPart, SOURCE.IsEquPart, SOURCE.ReservedById, GETUTCDATE());
+								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActReserved, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActReserved, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.AltPartMasterPartId, SOURCE.EquPartMasterPartId, SOURCE.IsAltPart, SOURCE.IsEquPart, SOURCE.ReservedById, GETUTCDATE());
 						END
 
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
@@ -344,6 +350,11 @@ BEGIN
 						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
 						FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 						WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
+
+						--FOR UPDATED WORKORDER MATERIALS STOCKLINE EXTENDEDCOST
+						UPDATE dbo.WorkOrderMaterialStockLine 
+						SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0)
+						FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 
 						--FOR UPDATED WORKORDER MATERIALS QTY
 						UPDATE dbo.WorkOrderMaterials 

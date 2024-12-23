@@ -1,14 +1,15 @@
 ﻿
-CREATE     VIEW [dbo].[vw_TaskAudit] 
+
+CREATE      VIEW [dbo].[vw_TaskAudit] 
 AS
 	SELECT TA.TaskAuditId AS PkID, 
 	TaskId AS ID, 
 	[Description] AS 'Task', 
-	IsTravelerTask as 'Traveler Task',
-	[Sequence] AS 'Sequence No',
+	IsTravelerTask as 'Traveler Task',	
 	Memo AS 'Memo',
 	Descrepancy AS 'Descrepancy',
 	Resolution AS 'Resolution',
+	[Sequence] AS 'Sequence No',
 	TA.CreatedDate AS 'Created Date', 
 	TA.UpdatedDate AS 'Updated Date', 
 	TA.IsActive as 'Active ?',

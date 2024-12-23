@@ -36,7 +36,7 @@ BEGIN
 	END
 	IF(@ModuleId = @SOModuleId)
 	BEGIN
-		SELECT @QtyReserved = SUM([QtyReserved]) FROM [dbo].[SalesOrderPartV1] WHERE [SalesOrderId] = @ReferenceId;
+		SELECT @QtyReserved = SUM([QtyReserved]) FROM [dbo].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
 		IF(@QtyReserved > 0)
 		BEGIN
 			SELECT @ReferenceId AS ReferenceId

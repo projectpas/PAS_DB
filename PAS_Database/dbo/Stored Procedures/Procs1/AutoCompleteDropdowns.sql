@@ -248,21 +248,21 @@ AS BEGIN
             END
             ELSE IF(@TableName='Task')BEGIN
                      IF(@Parameter4=1)BEGIN
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, Descrepancy, Resolution
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
                          UNION
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, Descrepancy, Resolution
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Sequence asc
                      END
                      ELSE BEGIN
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, Descrepancy, Resolution
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND Description LIKE '%'+@Parameter3+'%'
                          UNION
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, Descrepancy, Resolution
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Sequence asc

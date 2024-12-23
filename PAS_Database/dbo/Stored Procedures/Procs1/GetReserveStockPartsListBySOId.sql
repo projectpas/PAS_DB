@@ -136,12 +136,7 @@ BEGIN
 		SOR.EquPartMasterPartId,
 		SOP.LotId,
 		SOP.IsLotAssigned,
-		SOP.TotalQtyOrder
-		HAVING 
-		(ISNULL(sop.QtyRequested, 0) - 
-		 ISNULL(sop.QtyReserved, 0) - 
-		 (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0)
+		SOP.TotalQtyOrder)
 
 		,FinalReserveList AS(
 		SELECT DISTINCT SalesOrderId, 
@@ -195,7 +190,9 @@ BEGIN
 		AltPartMasterPartId,
 		EquPartMasterPartId,
 		QtyToReserve,
-		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END QtyToBeReserved,
+		CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
+		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END
+		END QtyToBeReserved,
 		QuantityReserved,
 		TotalReserved,
 		QuantityAvailable, 
@@ -207,8 +204,11 @@ BEGIN
 		StockType,
 		MasterCompanyId,
 		LotId,
-		IsLotQty FROM FinalReserveList WHERE 
-		(CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END) > 0;
+		IsLotQty FROM FinalReserveList 
+		WHERE 
+		(CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
+		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END
+		END) > 0;
 	END
 	COMMIT  TRANSACTION
 	END TRY    

@@ -262,7 +262,8 @@ BEGIN
 			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) -- Added at Stockline Level
 			BEGIN
 				UPDATE [DBO].[SalesOrderStocklineV1]
-				SET CustomerRequestDate = @CustomerRequestDate,
+				SET QtyOrder = @QtyOrder,
+				CustomerRequestDate = @CustomerRequestDate,
 				PromisedDate = @PromisedDate,
 				EstimatedShipDate = @EstimatedShipDate,
 				Notes = @Notes,

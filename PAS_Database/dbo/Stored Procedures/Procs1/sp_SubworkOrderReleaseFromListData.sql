@@ -21,6 +21,7 @@
 	4    07/14/2024   Hemant  Saliya    Updated for Condition Is not populating in 8130
 	5    12/12/2024   Moin Bloch        Updated For Get FormTypeId
 	6    12/16/2024   Moin Bloch        Updated For Get FormType Name
+	7    12/23/2024   Moin Bloch        Updated For Get Batchnumber from SubWorkOrderPartNumber
      
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
@@ -55,7 +56,15 @@ BEGIN
 					  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS [Description]
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' THEN UPPER(wro.[Batchnumber]) ELSE CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END END AS Batchnumber
+					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' AND UPPER(wro.[Batchnumber]) != 'NA' --ISNULL(UPPER(wro.[Batchnumber]), '') != ''
+					        THEN UPPER(wro.[Batchnumber]) 
+							ELSE 
+								CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 
+								THEN UPPER(wop.RevisedSerialNumber) 
+									ELSE 
+										UPPER(wro.[Batchnumber]) 
+									END 
+					   END AS Batchnumber
 					  ,wosc.conditionName AS [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]

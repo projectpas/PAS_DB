@@ -72,7 +72,7 @@ BEGIN
 		   [PurchaseOrderNumber] VARCHAR(50) NULL,  
 		   [PartNumber] VARCHAR(250) NULL,  
 		   [PartDescription] NVARCHAR(MAX) NULL,
-		   [PurchaseOrderPartRecordId] VARCHAR(250) NULL,   
+		   [PurchaseOrderPartRecordId] VARCHAR(50) NULL,   
 		   [CreatedDate] DATETIME2(7) NULL, 
 		   [Type] INT NULL,
 		   [IsSelected] BIT NULL,			
@@ -83,9 +83,9 @@ BEGIN
 			;WITH Result AS(		
 				SELECT DISTINCT po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartNumber END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartDescription END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(partData.MaxPurchaseOrderPartRecordId AS VARCHAR(50)) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
@@ -107,18 +107,18 @@ BEGIN
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
 								po.[CreatedDate],
-								partdata.[PurchaseOrderPartRecordCount],
-								partdata.[MaxPartNumber],
-								partdata.[MaxPartDescription],
-								partdata.[MaxPurchaseOrderPartRecordId]
+								partData.[PurchaseOrderPartRecordCount],
+								partData.[MaxPartNumber],
+								partData.[MaxPartDescription],
+								partData.[MaxPurchaseOrderPartRecordId]
 
 				UNION
 
 				SELECT DISTINCT po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartNumber END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartDescription END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(partData.MaxPurchaseOrderPartRecordId AS VARCHAR(50)) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
@@ -139,18 +139,18 @@ BEGIN
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
 								po.[CreatedDate],
-								partdata.[PurchaseOrderPartRecordCount],
-								partdata.[MaxPartNumber],
-								partdata.[MaxPartDescription],
-								partdata.[MaxPurchaseOrderPartRecordId]
+								partData.[PurchaseOrderPartRecordCount],
+								partData.[MaxPartNumber],
+								partData.[MaxPartDescription],
+								partData.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 		
 				SELECT DISTINCT po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartNumber END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartDescription END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(partData.MaxPurchaseOrderPartRecordId AS VARCHAR(50)) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
@@ -171,18 +171,18 @@ BEGIN
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
 								po.[CreatedDate],
-								partdata.[PurchaseOrderPartRecordCount],
-								partdata.[MaxPartNumber],
-								partdata.[MaxPartDescription],
-								partdata.[MaxPurchaseOrderPartRecordId]
+								partData.[PurchaseOrderPartRecordCount],
+								partData.[MaxPartNumber],
+								partData.[MaxPartDescription],
+								partData.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 		
 				SELECT DISTINCT po.PurchaseOrderId,
 								po.PurchaseOrderNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartNumber END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartDescription END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(partData.MaxPurchaseOrderPartRecordId AS VARCHAR(50)) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
@@ -203,18 +203,18 @@ BEGIN
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
 								po.[CreatedDate],
-								partdata.[PurchaseOrderPartRecordCount],
-								partdata.[MaxPartNumber],
-								partdata.[MaxPartDescription],
-								partdata.[MaxPurchaseOrderPartRecordId]
+								partData.[PurchaseOrderPartRecordCount],
+								partData.[MaxPartNumber],
+								partData.[MaxPartDescription],
+								partData.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 		
 				SELECT DISTINCT po.RepairOrderId AS 'PurchaseOrderId',
 								po.RepairOrderNumber AS 'PurchaseOrderNumber',
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.RepairOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartNumber END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartDescription END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(partData.MaxPurchaseOrderPartRecordId AS VARCHAR(50)) END) AS PurchaseOrderPartRecordId,
 								po.CreatedDate,
 								2 AS 'Type',		
 								0 AS IsSelected 
@@ -235,18 +235,18 @@ BEGIN
 							GROUP BY po.[RepairOrderId],
 								po.[RepairOrderNumber],
 								po.[CreatedDate],
-								partdata.[PurchaseOrderPartRecordCount],
-								partdata.[MaxPartNumber],
-								partdata.[MaxPartDescription],
-								partdata.[MaxPurchaseOrderPartRecordId]
+								partData.[PurchaseOrderPartRecordCount],
+								partData.[MaxPartNumber],
+								partData.[MaxPartDescription],
+								partData.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 
 				SELECT DISTINCT po.RepairOrderId AS 'PurchaseOrderId',
 								po.RepairOrderNumber AS 'PurchaseOrderNumber',
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.RepairOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartNumber END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse partData.MaxPartDescription END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(partData.MaxPurchaseOrderPartRecordId AS VARCHAR(50)) END) AS PurchaseOrderPartRecordId,
 								po.CreatedDate,
 								2 AS 'Type',		
 								0 AS IsSelected 
@@ -267,10 +267,10 @@ BEGIN
 							GROUP BY po.[RepairOrderId],
 								po.[RepairOrderNumber],
 								po.[CreatedDate],
-								partdata.[PurchaseOrderPartRecordCount],
-								partdata.[MaxPartNumber],
-								partdata.[MaxPartDescription],
-								partdata.[MaxPurchaseOrderPartRecordId]
+								partData.[PurchaseOrderPartRecordCount],
+								partData.[MaxPartNumber],
+								partData.[MaxPartDescription],
+								partData.[MaxPurchaseOrderPartRecordId]
 
 			), ResultCount AS(SELECT COUNT(PurchaseOrderId) AS totalItems FROM Result)
 

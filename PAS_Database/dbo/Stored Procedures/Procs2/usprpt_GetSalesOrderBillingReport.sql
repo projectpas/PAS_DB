@@ -18,9 +18,10 @@
     2   16-JUNE-203   Devendra Shekh    made changes to do total   
     3   11-JULY-2023  AYESHA SULTANA    CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
 	4   19-JULY-2023  SHREY CHANDEGARA  Changes for revenue Issue
-	5	01-FEB-2024	  AMIT GHEDIYA	added isperforma Flage for SO
-	6	28-MARCH-2024    Ekta Chandegra	IsDeleted and IsActive flag is added
+	5	01-FEB-2024	  AMIT GHEDIYA		added isperforma Flage for SO
+	6	28-MAR-2024	  Ekta Chandegra	IsDeleted and IsActive flag is added
 	7   10-OCT-2024   Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
+	8   24-DEC-2024   Vishal Suthar 	Fixed report calculations
        
 --EXECUTE   [dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -165,7 +166,7 @@ select
    ;WITH rptCTE (TotalRecordsCount, customername, customercode, pn, pndescription, condition, sonum, wonum, invoicenum,   
      receiveddate, opendate, invoicedate, quotedate, quoteapprovaldate, shipdate, revenue, level1, level2, level3, level4, level5, level6, level7, level8,  
      level9, level10, salesperson, csr, masterCompanyId) AS (  
-      SELECT COUNT(1) OVER () AS TotalRecordsCount,      
+      SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,      
         UPPER(C.NAME) 'customername',    
         UPPER(C.customercode) 'customercode',    
         UPPER(IM.partnumber) 'pn',    
@@ -180,7 +181,15 @@ select
   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate',   
   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END 'quoteapprovaldate',   
   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate',   
-  (isnull(SOBI.GrandTotal,0)) as 'revenue',    
+  --(isnull(SOBIII.GrandTotal,0)) as 'revenue', 
+  (SELECT ISNULL(SUM(SOBII.GrandTotal), 0)
+ FROM dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK)
+ INNER JOIN dbo.SalesOrderStocklineV1 SOSV1 WITH (NOLOCK) 
+     ON SOBII.StockLineId = SOSV1.StockLineId AND SOBII.SOBillingInvoicingId = SOBIII.SOBillingInvoicingId
+ WHERE SOBII.IsVersionIncrease = 0 
+   AND SOBII.IsProforma = 0
+   AND SOSV1.SalesOrderPartId = SOP.SalesOrderPartId
+) AS Revenue,
   UPPER(MSD.Level1Name) AS level1,    
   UPPER(MSD.Level2Name) AS level2,   
   UPPER(MSD.Level3Name) AS level3,   
@@ -197,11 +206,11 @@ select
       FROM dbo.salesorder SO WITH (NOLOCK)    
   INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
   LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-  --LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid  
-		LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-		LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
-        LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid    
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0   
+		INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+		LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid    
+        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0  
+        LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease,0) = 0 AND ISNULL(SOBIII.IsProforma,0) = 0  
+		LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOBIII.StockLineId = SOV.StockLineId --SOP.SalesOrderPartId = SOV.SalesOrderPartId
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid    
   LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid    
         LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid and stl.IsParent=1    

@@ -12,16 +12,17 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    22-April-2022  Mahesh Sorathiya   Created 
-    2    20-JUNE-2023  Devendra Shekh      made changes to do the total 
-    3    11-JULY-2023  AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY
-    3    20-JULY-2023  AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY - revenue amount changes
-	4	 01-JAN-2024   AMIT GHEDIYA		   added isperforma Flage for SO
-	5	 28-MARCH-2024 Ekta Chandegra	   IsDeleted and IsActive flag is added
-	6    10-OCT-2024   Abhishek Jirawla	   Implemented the new tables for SalesOrderQuotePart related tables
-	7    03-DEC-2024   Vishal Suthar	   Fixed issue with table joins
+ ** S NO   Date            Author			Change Description              
+ ** --   --------         -------			--------------------------------            
+    1    22-April-2022  Mahesh Sorathiya	Created 
+    2    20-JUNE-2023	Devendra Shekh      made changes to do the total 
+    3    11-JULY-2023	AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY
+    3    20-JULY-2023	AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY - revenue amount changes
+	4	 01-JAN-2024	AMIT GHEDIYA		added isperforma Flage for SO
+	5	 28-MAR-2024	Ekta Chandegra		IsDeleted and IsActive flag is added
+	6    10-OCT-2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
+	7    03-DEC-2024	Vishal Suthar		Fixed issue with table joins
+	8    24-DEC-2024	Vishal Suthar 		Fixed report calculations
        
 EXECUTE   [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -201,14 +202,14 @@ BEGIN
 		--FORMAT (SOQ.OpenDate, 'MM/dd/yyyy') 'qtedate',  
   --      FORMAT (SOBI.shipdate, 'MM/dd/yyyy') 'shipdate',  
 
-        ISNULL(SOPC.NetSaleAmount,0) 'Netsales',
+        ISNULL(SUM(SOSC.NetSaleAmount),0) 'Netsales',
         UPPER(SOPC.MiscCharges) 'Misc',  
-        --ISNULL(((SOPC.NetSaleAmount) +  ISNULL(Charges.BillingAmount, 0)),0)  'rev',  
-        ISNULL(((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0)),0)  'rev',  
-        ISNULL(SOPC.UnitCostExtended,0)  'directcost', 
-        (ISNULL(((SOPC.UnitCostExtended) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) * 100) 'dcofrevperc',   
-		ISNULL(((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOPC.UnitCostExtended),0) 'marginamt',  
-        ISNULL(((((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOPC.UnitCostExtended) * 100) / NULLIF((SOPC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) 'marginrevperc', 
+        ISNULL((SUM(SOSC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0)),0)  'rev',  
+        --ISNULL(((SOSC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0)),0)  'rev',  
+        ISNULL(SOSC.UnitCostExtended,0)  'directcost', 
+        (ISNULL(((SOSC.UnitCostExtended) / NULLIF(SUM(SOSC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) * 100) 'dcofrevperc',   
+		ISNULL((SUM(SOSC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOSC.UnitCostExtended),0) 'marginamt',  
+        ISNULL((((SUM(SOSC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0) -  SOSC.UnitCostExtended) * 100) / NULLIF(SUM(SOSC.NetSaleAmount) +  ISNULL(SOPC.MiscCharges, 0), 0)),0) 'marginrevperc', 
 		SOQ.salesorderquotenumber 'qtenum',  
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
@@ -227,13 +228,14 @@ BEGIN
       FROM dbo.salesorder SO WITH (NOLOCK) 
 	    --LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid
 		LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-		LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid  
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
-        --LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK) ON SO.salesorderid = SOMS.salesorderid  
+        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0
+        LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0
+		LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOV.StockLineId = SOBII.StockLineId AND SOV.SalesOrderPartId = SOP.SalesOrderPartId
+		INNER JOIN DBO.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = SOV.SalesOrderStocklineId
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 		LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid  
         LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid and stl.IsParent=1  
@@ -256,12 +258,6 @@ BEGIN
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 	 GROUP BY 
 			  C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,
-			  --FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
-			  --FORMAT (SO.opendate, 'MM/dd/yyyy'),
-			  --FORMAT (SOQ.OpenDate, 'MM/dd/yyyy'),
-			  --FORMAT (SOBI.shipdate, 'MM/dd/yyyy'),
-			  --CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END,
-			  --FORMAT (SOBI.invoicedate, 'MM/dd/yyyy'),
 			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END, 
 			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.opendate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SO.opendate, 107) END , 
 			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.invoicedate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.invoicedate, 107) END , 
@@ -271,7 +267,9 @@ BEGIN
 			  SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.freight,SOBI.misccharges,SOBI.salestax,SOPC.MiscCharges, SOPC.UnitCostExtended,
 			  SOQ.salesorderquotenumber,
 			  SO.SalesPersonName,SO.CustomerServiceRepName,
-			  SOPC.NetSaleAmount,  
+			  --SOPC.NetSaleAmount,  
+			  --SOSC.NetSaleAmount,  
+			  SOSC.UnitCostExtended,
 			  MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name,Charges.BillingAmount,SO.MasterCompanyId
 			  
 			  UNION ALL
@@ -408,7 +406,7 @@ BEGIN
 					WC.TotalRevenue, WC.TotalDirectCost, WC.TotalDCOfRevPerc, WC.TotalMarginAmt, WC.TotalMarginRevPerc
 				FROM FinalCTE FC
 					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-	  ORDER BY custcode
+	  ORDER BY invdate DESC
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
    
   END TRY  

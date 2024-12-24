@@ -61,7 +61,7 @@ BEGIN
 		BEGIN
 			SET @ReferenceNumber = NULL
 		END
-		print 'herhe'
+
 		IF OBJECT_ID(N'tempdb..#UpdatedTempTable') IS NOT NULL      
 		BEGIN      
 		  DROP TABLE #UpdatedTempTable      
@@ -77,121 +77,205 @@ BEGIN
 		   [Type] INT NULL,
 		   [IsSelected] BIT NULL,			
 		)
-				print 'herhe2'
+				
 		IF @ViewType = 'poview'
 		BEGIN
 			;WITH Result AS(		
 				SELECT DISTINCT po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								LEFT JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
-								LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId  AND stk.IsParent=1 AND stk.RRQty > 0 --AND (pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId)
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId  AND stk.IsParent=1 AND stk.RRQty > 0 --AND (pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId)
+								OUTER APPLY (
+									SELECT 
+										COUNT(PurchaseOrderPartRecordId) AS PurchaseOrderPartRecordCount,
+										MAX(PartNumber) AS MaxPartNumber,
+										MAX(PartDescription) AS MaxPartDescription,
+										MAX(PurchaseOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
+									FROM [dbo].[PurchaseOrderPart] pop WITH(NOLOCK)
+									WHERE pop.PurchaseOrderId = po.PurchaseOrderId 
+									  AND pop.isParent = 1
+								) AS partData
 							WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 							AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId =stk.PurchaseOrderPartRecordId ),0) = 0
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								po.[CreatedDate]
+								po.[CreatedDate],
+								partdata.[PurchaseOrderPartRecordCount],
+								partdata.[MaxPartNumber],
+								partdata.[MaxPartDescription],
+								partdata.[MaxPurchaseOrderPartRecordId]
 
 				UNION
 
 				SELECT DISTINCT po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
 							FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								LEFT JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ItemType='Stock'
-								LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND (pop.ParentId = stk.PurchaseOrderPartRecordId) and stk.IsParent=1 AND stk.RRQty > 0
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND (pop.ParentId = stk.PurchaseOrderPartRecordId) and stk.IsParent=1 AND stk.RRQty > 0
+								OUTER APPLY (
+									SELECT 
+										COUNT(PurchaseOrderPartRecordId) AS PurchaseOrderPartRecordCount,
+										MAX(PartNumber) AS MaxPartNumber,
+										MAX(PartDescription) AS MaxPartDescription,
+										MAX(PurchaseOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
+									FROM [dbo].[PurchaseOrderPart] pop WITH(NOLOCK)
+									WHERE pop.PurchaseOrderId = po.PurchaseOrderId 
+									  AND pop.isParent = 1
+								) AS partData
 							WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								po.[CreatedDate]
+								po.[CreatedDate],
+								partdata.[PurchaseOrderPartRecordCount],
+								partdata.[MaxPartNumber],
+								partdata.[MaxPartDescription],
+								partdata.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 		
 				SELECT DISTINCT po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
 							FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								LEFT JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
-								LEFT JOIN [dbo].[NonStockInventory] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[NonStockInventory] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0
+								OUTER APPLY (
+									SELECT 
+										COUNT(PurchaseOrderPartRecordId) AS PurchaseOrderPartRecordCount,
+										MAX(PartNumber) AS MaxPartNumber,
+										MAX(PartDescription) AS MaxPartDescription,
+										MAX(PurchaseOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
+									FROM [dbo].[PurchaseOrderPart] pop WITH(NOLOCK)
+									WHERE pop.PurchaseOrderId = po.PurchaseOrderId 
+									  AND pop.isParent = 1
+								) AS partData
 							WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @NonStockTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								po.[CreatedDate]
+								po.[CreatedDate],
+								partdata.[PurchaseOrderPartRecordCount],
+								partdata.[MaxPartNumber],
+								partdata.[MaxPartDescription],
+								partdata.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 		
 				SELECT DISTINCT po.PurchaseOrderId,
 								po.PurchaseOrderNumber,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.PurchaseOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
 								po.[CreatedDate],
 								1 AS 'Type',		
 								0 AS IsSelected
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
-								LEFT JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
-								LEFT JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.RRQty > 0
+								INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.RRQty > 0
+								OUTER APPLY (
+									SELECT 
+										COUNT(PurchaseOrderPartRecordId) AS PurchaseOrderPartRecordCount,
+										MAX(PartNumber) AS MaxPartNumber,
+										MAX(PartDescription) AS MaxPartDescription,
+										MAX(PurchaseOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
+									FROM [dbo].[PurchaseOrderPart] pop WITH(NOLOCK)
+									WHERE pop.PurchaseOrderId = po.PurchaseOrderId 
+									  AND pop.isParent = 1
+								) AS partData
 							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
-								po.[CreatedDate]
+								po.[CreatedDate],
+								partdata.[PurchaseOrderPartRecordCount],
+								partdata.[MaxPartNumber],
+								partdata.[MaxPartDescription],
+								partdata.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 		
 				SELECT DISTINCT po.RepairOrderId AS 'PurchaseOrderId',
 								po.RepairOrderNumber AS 'PurchaseOrderNumber',
-								(CASE WHEN COUNT(POP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN COUNT(POP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN COUNT(POP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse CAST(MAX(POP.RepairOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.RepairOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
 								po.CreatedDate,
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
 								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
+								OUTER APPLY (
+									SELECT 
+										COUNT(RepairOrderPartRecordId) AS PurchaseOrderPartRecordCount,
+										MAX(PartNumber) AS MaxPartNumber,
+										MAX(PartDescription) AS MaxPartDescription,
+										MAX(RepairOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
+									FROM [dbo].[RepairOrderPart] pop WITH(NOLOCK)
+									WHERE pop.RepairOrderId = po.RepairOrderId 
+									  AND pop.isParent = 1
+								) AS partData
 							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[RepairOrderId],
 								po.[RepairOrderNumber],
-								po.[CreatedDate]
+								po.[CreatedDate],
+								partdata.[PurchaseOrderPartRecordCount],
+								partdata.[MaxPartNumber],
+								partdata.[MaxPartDescription],
+								partdata.[MaxPurchaseOrderPartRecordId]
 		
 				UNION
 
 				SELECT DISTINCT po.RepairOrderId AS 'PurchaseOrderId',
 								po.RepairOrderNumber AS 'PurchaseOrderNumber',
-								(CASE WHEN COUNT(POP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
-								(CASE WHEN COUNT(POP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
-								(CASE WHEN COUNT(POP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse CAST(MAX(POP.RepairOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartNumber) END) AS PartNumber,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse MAX(POP.PartDescription) END) AS PartDescription,
+								(CASE WHEN partData.PurchaseOrderPartRecordCount > 1 Then 'Multiple' ELse CAST(MAX(POP.RepairOrderPartRecordId) AS VARCHAR) END) AS PurchaseOrderPartRecordId,
 								po.CreatedDate,
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
 								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
 								INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId AND stk.RRQty > 0
+								OUTER APPLY (
+									SELECT 
+										COUNT(RepairOrderPartRecordId) AS PurchaseOrderPartRecordCount,
+										MAX(PartNumber) AS MaxPartNumber,
+										MAX(PartDescription) AS MaxPartDescription,
+										MAX(RepairOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
+									FROM [dbo].[RepairOrderPart] pop WITH(NOLOCK)
+									WHERE pop.RepairOrderId = po.RepairOrderId 
+									  AND pop.isParent = 1
+								) AS partData
 							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[RepairOrderId],
 								po.[RepairOrderNumber],
-								po.[CreatedDate]
+								po.[CreatedDate],
+								partdata.[PurchaseOrderPartRecordCount],
+								partdata.[MaxPartNumber],
+								partdata.[MaxPartDescription],
+								partdata.[MaxPurchaseOrderPartRecordId]
 
 			), ResultCount AS(SELECT COUNT(PurchaseOrderId) AS totalItems FROM Result)
 
 			INSERT INTO #UpdatedTempTable SELECT * FROM Result;
-					print 'herhe'
+
 			UPDATE tmp
 			SET tmp.[IsSelected] = 1
 			FROM #UpdatedTempTable tmp 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [VendorReadyToPayList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used VendorReadyToPayList 
@@ -35,6 +36,7 @@
 	18   04/04/2024   Devendra Shekh    discount removed from credit memo and suspense record
 	19   08/04/2023   Devendra Shekh	added conditon for amount for SelectedforPayment
 	20   08/07/2024   Abhishek Jirawla	Removed Miscellaneous flag from CustomerCreditPaymentDetails select
+	21   23/12/2024   AMIT GHEDIYA      Update to get for IsEnable for next vendor payment.
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -122,6 +124,7 @@ BEGIN
 		[IsCreditCardPayment] BIT NULL,
 		[IsCreditMemo] BIT NULL,
 		[SelectedforPayment] INT NULL,
+		[IsEnable] BIT NULL,
 		[IsCustomerCreditMemo] BIT NULL,
 		[CreditMemoHeaderId] BIGINT NOT NULL,
 		[VendorReadyToPayDetailsTypeId] INT NULL,
@@ -183,7 +186,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate]) --as (
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate]) --as (
 
     SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
@@ -232,6 +235,8 @@ BEGIN
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
+					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
+						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 					IsCustomerCreditMemo = 0,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 1,
@@ -270,7 +275,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 	    SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -314,6 +319,8 @@ BEGIN
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
+					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
+						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 					IsCustomerCreditMemo = 1,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 2,
@@ -351,7 +358,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 		SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -396,6 +403,8 @@ BEGIN
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
+					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
+						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 					IsCustomerCreditMemo = 0,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 3,
@@ -436,7 +445,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 		SELECT	DISTINCT CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.VendorPaymentDetailsId END AS VendorPaymentDetailsId,
 				CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.ReadyToPayId END AS ReadyToPayId,  
 				DATEADD(Day, ISNULL(ctm.NetDays,0), CCPD.ProcessedDate) AS [DueDate],  
@@ -481,6 +490,8 @@ BEGIN
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
+				IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
+						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 				IsCustomerCreditMemo = 0,
 				ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 				VendorReadyToPayDetailsTypeId = 4,

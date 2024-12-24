@@ -3351,6 +3351,10 @@
     <Build Include="dbo\Stored Procedures\CheckStocklineForDelete.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCycleCountSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorProformaInvoiceDetails.sql" />
+    <Build Include="dbo\Tables\VendorProformaInvoiceBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostVendorProforma_BatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddVendorPaymentDetailsForVendorProformaById.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorProformaAccountintDetailsById.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskDetailsAudit.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskList.sql" />

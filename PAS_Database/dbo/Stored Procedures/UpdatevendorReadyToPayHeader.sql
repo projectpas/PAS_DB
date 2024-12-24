@@ -15,10 +15,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------		-------------------------------- 
 	1    21/03/2024   AMIT GHEDIYA		Created
+	2    20/12/2024   AMIT GHEDIYA		Update for set @StartNums to start with 0.
      
 -- EXEC UpdatevendorReadyToPayHeader 120,115
 **************************************************************/
-CREATE    PROCEDURE [dbo].[UpdatevendorReadyToPayHeader]  
+CREATE      PROCEDURE [dbo].[UpdatevendorReadyToPayHeader]  
 	@ReadyToPayId BIGINT,
 	@PrintCheck_Wire_Num VARCHAR(100),
 	@PrintingId BIGINT,
@@ -35,11 +36,12 @@ BEGIN
 
 	IF(@PrintingId > 0)
 	BEGIN
+		 SET @StartNums = 0;
 		 SELECT @StartNums = StartNum FROM [DBO].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
 	END
 
 	--Update PrintCheckSetup
-	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNums + 1 
+	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNums + 1
 	WHERE PrintingId = @PrintingId;
 
 	--update checknumber in VendorReadyToPayHeader table

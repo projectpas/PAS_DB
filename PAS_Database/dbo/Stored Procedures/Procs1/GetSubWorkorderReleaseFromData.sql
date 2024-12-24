@@ -1,5 +1,4 @@
-﻿
-/*************************************************************       
+﻿/*************************************************************       
 ** Author:  <Hemant Saliya>      
 ** Create date: <01/23/2023>      
 ** Description: <Get Work order Release Form Data>      
@@ -16,6 +15,7 @@ EXEC [GetSubWorkorderReleaseFromData]
    4    02/01/2024  Devendra Shekh   added conditino for customer refernce
    5    10/02/2024  AMIT GHEDIYA     Updated For Get EASA UK Dualreleaselanguage message.
    6    12/12/2024  Moin Bloch       Updated (Added formTypeId)
+   7    23/12/2024  Moin Bloch       Updated (changed CustomerRequestDate AS ReceivedDate)
     
 EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
     
@@ -96,7 +96,7 @@ BEGIN
 			  0 AS CFR,    
 			  0 Otherregulation,    
 			  1 AS is8130from ,    
-			  wopn.ReceivedDate AS ReceivedDate,    
+			  wopn.CustomerRequestDate AS ReceivedDate,    
 			  @ManagementStructureId AS ManagementStructureId,    
 			  ('<div style = "position:relative; height:180px; font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:13px">'
 			     + (CASE WHEN wop.CMMId is not null and wop.CMMId >0 THEN       

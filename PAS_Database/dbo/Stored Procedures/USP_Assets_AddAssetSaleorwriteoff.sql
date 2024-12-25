@@ -24,7 +24,7 @@ CREATE   PROCEDURE [dbo].[USP_Assets_AddAssetSaleorwriteoff]
 AS
 BEGIN 
 	BEGIN TRY
-		DECLARE @AssetInventoryStatusId BIGINT;
+		DECLARE @AssetInventoryStatusId BIGINT, @AssetInventorySoldStatus VARCHAR(100) = 'SOLD';
 		SELECT @AssetInventoryStatusId = AssetInventoryStatusId FROM [DBO].[AssetInventoryStatus] WITH(NOLOCK) 
 		WHERE Status = @Status;
 
@@ -34,7 +34,7 @@ BEGIN
 			Qty = 0 ,
 			ReceivablesAmount = @CashAmount,
 			IsActive = 0,
-			StatusNote = CASE WHEN UPPER(@Status) = 'SOLD' THEN 'Inventory is Sold' ELSE '' END
+			StatusNote = CASE WHEN UPPER(@Status) = UPPER(@AssetInventorySoldStatus) THEN 'Inventory is Sold' ELSE '' END
 		WHERE AssetInventoryId = @AssetInventoryId;
 
 		

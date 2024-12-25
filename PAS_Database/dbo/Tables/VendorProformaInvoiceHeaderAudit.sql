@@ -33,6 +33,9 @@
     [ReferenceModuleId]            INT           NULL,
     [ReferenceModuleName]          VARCHAR (150) NULL,
     [IsPurchaseOrder]              BIT           NOT NULL,
+    [ControlNumber]                VARCHAR (150) NULL,
     CONSTRAINT [PK_VendorProformaInvoiceHeaderAudit] PRIMARY KEY CLUSTERED ([VendorProformaInvoiceAuditId] ASC)
 );
+
+
 

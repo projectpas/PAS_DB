@@ -1,4 +1,5 @@
-﻿/****************************************************************************************     
+﻿
+/****************************************************************************************     
 ** Author:  <RAJESH GAMI>    
 ** Create date: <17-Dec-2024>    
 ** Description: <Get Vendor Proforma Invoice Edit Data By VendorProformaInvoiceId for edit>    
@@ -10,8 +11,9 @@ EXEC [USP_GetVendorProformaInvoiceEditData_ById]
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    17-Dec-2024		RAJESH GAMI		    CREATED
+** 2    25-Dec-2024		RAJESH GAMI		    Get ControlNumber
 
-exec dbo.USP_GetVendorProformaInvoiceEditData_ById 1,1
+exec dbo.USP_GetVendorProformaInvoiceEditData_ById 10,1
 *****************************************************************************************/   
 
 CREATE     PROCEDURE [dbo].[USP_GetVendorProformaInvoiceEditData_ById]
@@ -54,7 +56,8 @@ BEGIN
 						ISNULL(NPH.[AccountingCalendarId], 0) AS [AccountingCalendarId],
 						ISNULL(NPH.[CurrencyId], 0) AS [CurrencyId],
 						NPH.[ReferenceId],
-						NPH.[ReferenceModuleId]
+						NPH.[ReferenceModuleId],
+						NPH.[ControlNumber]
 				FROM [dbo].[VendorProformaInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[VendorProformaInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.VendorProformaInvoiceHeaderStatusId = NPH.StatusId
 				 LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId

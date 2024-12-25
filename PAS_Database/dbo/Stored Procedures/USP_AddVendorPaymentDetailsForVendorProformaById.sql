@@ -10,6 +10,7 @@
  ** PR   Date          Author			Change Description              
  ** --   --------      -------			------------------------------ 
 	1    23-Dec-2024   Rajesh Gami		CREATED
+	1    24-Dec-2024   Rajesh Gami		Added VendorProformaInvoiceId into the VendorPaymentDetails
 
 EXEC [dbo].[USP_AddVendorPaymentDetailsForVendorProformaById] 5
 ************************************************************************/
@@ -26,7 +27,7 @@ BEGIN
 				       ([ReadyToPayId], [DueDate], [VendorId], [VendorName], [PaymentMethodId], [PaymentMethodName], [ReceivingReconciliationId], [InvoiceNum], [CurrencyId], [CurrencyName],
 						[FXRate], [OriginalAmount], [PaymentMade], [AmountDue], [DaysPastDue], [DiscountDate], [DiscountAvailable], [DiscountToken], [OriginalTotal], [RRTotal], [InvoiceTotal],
 						[DIfferenceAmount], [TotalAdjustAmount], [StatusId], [Status], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],
-						[NonPOInvoiceId])
+						[VendorProformaInvoiceId])
 			     SELECT 0, GETUTCDATE(),  [VendorId], [VendorName], 0, NULL, 0, VPH.VendorProformaInvoiceNo, VPH.[CurrencyId], CU.[Code],
 						0, part.ExtendedPrice, 0, 0, 0, NULL, 0, 0, part.ExtendedPrice, 0, part.ExtendedPrice,
 						0, 0,  [StatusId], NPHS.[Description], VPH.[MasterCompanyId], VPH.[CreatedBy], VPH.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), VPH.[IsActive], VPH.[IsDeleted], part.ExtendedPrice,

@@ -34,7 +34,7 @@ BEGIN
 			Qty = 0 ,
 			ReceivablesAmount = @CashAmount,
 			IsActive = 0,
-			StatusNote = 'Inventory is Sold'
+			StatusNote = CASE WHEN UPPER(@Status) = 'SOLD' THEN 'Inventory is Sold' ELSE '' END
 		WHERE AssetInventoryId = @AssetInventoryId;
 
 		

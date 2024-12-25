@@ -96,7 +96,8 @@ BEGIN
 			  0 AS CFR,    
 			  0 Otherregulation,    
 			  1 AS is8130from ,    
-			  wopn.CustomerRequestDate AS ReceivedDate,    
+			  --wopn.CustomerRequestDate AS ReceivedDate,    
+			  wopn.ReceivedDate,
 			  @ManagementStructureId AS ManagementStructureId,    
 			  ('<div style = "position:relative; height:180px; font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:13px">'
 			     + (CASE WHEN wop.CMMId is not null and wop.CMMId >0 THEN       

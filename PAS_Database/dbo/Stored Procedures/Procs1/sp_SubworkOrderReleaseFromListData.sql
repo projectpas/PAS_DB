@@ -91,7 +91,8 @@ BEGIN
 					  ,wro.[OrganizationAddress]
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
-					  ,wop.CustomerRequestDate  AS ReceivedDate
+					  --,wop.CustomerRequestDate  AS ReceivedDate
+					  ,wopn.ReceivedDate
 					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
@@ -101,6 +102,7 @@ BEGIN
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
+					  LEFT JOIN [dbo].[SubWorkOrder] swo  WITH(NOLOCK) ON swo.SubWorkOrderId = wop.SubWorkOrderId   
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
 				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
@@ -108,6 +110,7 @@ BEGIN
 					  LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9
 					  LEFT JOIN [dbo].[Condition] c WITH(NOLOCK) ON c.ConditionId = wop.RevisedConditionId 
 					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
+				      LEFT JOIN [dbo].[WorkOrderPartNumber] wopn  WITH(NOLOCK) ON wopn.ID = swo.WorkOrderPartNumberId 
 				WHERE wro.SubWorkOrderId=@SubWorkOrderId AND wro.SubWOPartNoId =@SubWOPartNoId  
 		
 		END TRY    

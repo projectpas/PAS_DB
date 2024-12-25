@@ -15,7 +15,7 @@
  ** PR   Date				 Author					Change Description            
  ** --   --------			-------				--------------------------------          
     1    23-DEC-2024		 Rajesh Gami			Created	
-
+	2    24-DEC-2024		 Rajesh Gami			Added DistributionSetup Logic	
 	 exec USP_PostVendorProforma_BatchDetails 6,'admin'
 **********************/
 
@@ -70,8 +70,8 @@ BEGIN
 		DECLARE @BatchDetailCount BIGINT = 0;
 		DECLARE @CRDRType BIGINT = 0;
 		DECLARE @VendorId BIGINT;
-		DECLARE @TotalNonPOPart BIGINT
-		DECLARE @NonPOPartStart BIGINT = 1
+		DECLARE @TotalVendorProformaPart BIGINT
+		DECLARE @VendorProformaPartStart BIGINT = 1
 		DECLARE @PartMemo VARCHAR(500)
 		DECLARE @PartGlAccId BIGINT
 		DECLARE @ReferenceNum VARCHAR(100)= '';
@@ -82,7 +82,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
-		DECLARE @ReferenceModule VARCHAR(100) = 'VendorProformaInvoice';
+		DECLARE @ReferenceModule VARCHAR(100) = 'VendorProformaInvoice', @ModuleName VARCHAR(100) = 'Vendor Proforma Invoice', @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -111,9 +111,9 @@ BEGIN
 
 		SELECT @PartAmtSum = SUM(ExtendedPrice) FROM #tmpVendorProformaPartDetails
 
-		SET @TotalNonPOPart = (SELECT COUNT(ID) FROM #tmpVendorProformaPartDetails)
+		SET @TotalVendorProformaPart = (SELECT COUNT(ID) FROM #tmpVendorProformaPartDetails)
 
-		WHILE @NonPOPartStart <= @TotalNonPOPart
+		WHILE @VendorProformaPartStart <= @TotalVendorProformaPart
 		BEGIN
 
 			IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -132,9 +132,9 @@ BEGIN
 				StartsFROM BIGINT NULL,
 			)   
 
-			SELECT @CheckAmount = ExtendedPrice, @PartMemo = Memo, @PartGlAccId = GlAccountId FROM #tmpVendorProformaPartDetails WHERE [ID] = @NonPOPartStart
+			SELECT @CheckAmount = ExtendedPrice, @PartMemo = Memo, @PartGlAccId = GlAccountId FROM #tmpVendorProformaPartDetails WHERE [ID] = @VendorProformaPartStart
 			SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy,@InvoiceDate = [InvoiceDate]  FROM dbo.VendorProformaInvoiceHeader WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
-			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('VendorProformaInvoice')	
+			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER(@DistributionCodeName)	
 
 			DECLARE @IsRestrict BIT;
 			DECLARE @IsAccountByPass BIT;
@@ -150,7 +150,7 @@ BEGIN
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 				SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
-				SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'VendorProformaInvoice'
+				SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = @ReferenceModule
 
 				SELECT @VendorName = NPH.VendorName, @VendorId = NPH.VendorId, @ManagementStructureId = ManagementStructureId FROM dbo.VendorProformaInvoiceHeader NPH WITH(NOLOCK) WHERE NPH.VendorProformaInvoiceId =  @VendorProformaInvoiceId
 				SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM dbo.NonPOInvoiceManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @VendorProformaInvoiceId
@@ -254,7 +254,7 @@ BEGIN
 					[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
 					[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId], [AccountingPeriod])
 					VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @InvoiceDate, GETUTCDATE(), 
-					@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, 'Vendor Proforma Invoice', 
+					@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, @ModuleName, 
 					NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 
 					SET @BatchDetailCount = @BatchDetailCount + 1
@@ -263,9 +263,9 @@ BEGIN
 
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
-				 --SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
-				 --FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE') 
-				 --AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
+				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
+				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCode) 
+				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
 				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
 
@@ -280,7 +280,7 @@ BEGIN
 					CASE WHEN @CheckAmount > 0 THEN 1 ELSE 0 END,
 					CASE WHEN @CheckAmount > 0 THEN @CheckAmount ELSE 0 END,
 					CASE WHEN @CheckAmount > 0 THEN 0 ELSE ABS(@CheckAmount) END,
-					@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,@ReferenceModule,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorProformaInvoiceId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -296,12 +296,12 @@ BEGIN
 
 				-----Account Payable--------
 
-				IF @NonPOPartStart = @TotalNonPOPart
+				IF @VendorProformaPartStart = @TotalVendorProformaPart
 				BEGIN
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 						@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE')
-						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
+						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCode)
+						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -314,7 +314,7 @@ BEGIN
 							CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
 							CASE WHEN @CRDRType = 1 THEN @PartAmtSum ELSE 0 END,
 							CASE WHEN @CRDRType = 1 THEN 0 ELSE @PartAmtSum END,
-							@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+							@ManagementStructureId ,@ReferenceModule,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorProformaInvoiceId,@ReferenceModule)
 
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -354,7 +354,7 @@ BEGIN
 				END
 			END
 
-			SET @NonPOPartStart = @NonPOPartStart + 1
+			SET @VendorProformaPartStart = @VendorProformaPartStart + 1
 
 		END
 

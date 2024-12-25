@@ -11,8 +11,9 @@
 ** PR   Date			Author				Change Description  
 ** --   --------		-------				--------------------------------
 ** 1    20-Nov-2024		RAJESH GAMI		    CREATED
+   2    24-Dec-2024		Ayushi Patel		Return functional and report currency
 
---EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 2671 ,NULL,NULL
+--EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
 
 CREATE         PROCEDURE [dbo].[USP_GetPurchaseOrderPartViewByPOId]
@@ -474,7 +475,9 @@ BEGIN
 								DiscountPercentValue,
 								ExtendedCost,
 								FunctionalCurrencyId,
+								FunctionalCurrency,
 								ReportCurrencyId,
+								ReportCurrency,
 								ForeignExchangeRate,
 								WorkOrderId,
 								SubWorkOrderId,
@@ -541,7 +544,7 @@ BEGIN
 									 UOMId, @UnitOfMeasure UnitOfMeasure,
 									 NeedByDate,EstDeliveryDate,
 									 ConditionId, Condition,QuantityOrdered,QuantityBackOrdered,QuantityRejected,LT.UnitCost,VendorListPrice,
-									 DiscountAmount,DiscountPercent,DiscountPercentValue,LT.ExtendedCost,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate,
+									 DiscountAmount,DiscountPercent,DiscountPercentValue,LT.ExtendedCost,FunctionalCurrencyId,fc.Code AS FunctionalCurrency,ReportCurrencyId,rc.Code AS ReportCurrency,ForeignExchangeRate,
 									 LT.WorkOrderId,SubWorkOrderId,RepairOrderId,SalesOrderId,ManagementStructureId,LT.Memo,LT.MasterCompanyId,lt.CreatedBy,lt.CreatedDate,
 									 lt.UpdatedBy, lt.UpdatedDate,lt.IsActive,lt.DiscountPerUnit,AltEquiPartNumberId,PriorityId,StockType,
 									 @StockLineCount StockLineCount, @DraftedStockLineCount DraftedStockLineCount,ExchangeSalesOrderId,ItemTypeId,ManufacturerPN,
@@ -552,6 +555,8 @@ BEGIN
 
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId
+									 LEFT JOIN Currency fc on fc.CurrencyId = FunctionalCurrencyId
+									 LEFT JOIN Currency rc on rc.CurrencyId = ReportCurrencyId
 									 WHERE ISNULL(LT.IsParent,0) = 1
 						END -->> END:  @isParentPart = 1 If
 						ELSE
@@ -590,7 +595,9 @@ BEGIN
 								DiscountPercentValue,
 								ExtendedCost,
 								FunctionalCurrencyId,
+								FunctionalCurrency,
 								ReportCurrencyId,
+								ReportCurrency,
 								ForeignExchangeRate,
 								WorkOrderId,
 								SubWorkOrderId,
@@ -644,7 +651,7 @@ BEGIN
 									 UOMId, @UnitOfMeasure UnitOfMeasure,
 									 NeedByDate,EstDeliveryDate,
 									 ConditionId, Condition,QuantityOrdered,QuantityBackOrdered,QuantityRejected,LT.UnitCost,VendorListPrice,
-									 DiscountAmount,DiscountPercent,DiscountPercentValue,LT.ExtendedCost,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate,
+									 DiscountAmount,DiscountPercent,DiscountPercentValue,LT.ExtendedCost,FunctionalCurrencyId,fc.Code AS FunctionalCurrency,ReportCurrencyId,rc.Code AS ReportCurrency,ForeignExchangeRate,
 									 LT.WorkOrderId,SubWorkOrderId,RepairOrderId,SalesOrderId,ManagementStructureId,LT.Memo,LT.MasterCompanyId,lt.CreatedBy,lt.CreatedDate,
 									 lt.UpdatedBy, lt.UpdatedDate,lt.IsActive,lt.DiscountPerUnit,AltEquiPartNumberId,PriorityId,StockType,
 									 @StockLineCount StockLineCount, @DraftedStockLineCount DraftedStockLineCount,
@@ -652,6 +659,8 @@ BEGIN
 									 POPartSplitAddress2,POPartSplitAddress1,POPartSplitUserTypeId,POPartSplitUserType,POPartSplitUserId,POPartSplitUser,POPartSplitSiteId,POPartSplitSiteName,POPartSplitCountryName
 									 ,[Priority]
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
+									 LEFT JOIN Currency fc on fc.CurrencyId = FunctionalCurrencyId
+									 LEFT JOIN Currency rc on rc.CurrencyId = ReportCurrencyId
 						END
 
 						SET @PartLoopId +=1

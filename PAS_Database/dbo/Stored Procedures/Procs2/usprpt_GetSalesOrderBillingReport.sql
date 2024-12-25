@@ -207,10 +207,11 @@ select
   INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
   LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
 		INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+		LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 		LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid    
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0  
-        LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease,0) = 0 AND ISNULL(SOBIII.IsProforma,0) = 0  
-		LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOBIII.StockLineId = SOV.StockLineId --SOP.SalesOrderPartId = SOV.SalesOrderPartId
+        --LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease,0) = 0 AND ISNULL(SOBIII.IsProforma,0) = 0  
+        LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.StockLineId = SOV.StockLineId AND ISNULL(SOBIII.IsVersionIncrease,0) = 0 AND ISNULL(SOBIII.IsProforma,0) = 0  
+		LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND SOBI.SOBillingInvoicingId = SOBIII.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0  
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid    
   LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid    
         LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid and stl.IsParent=1    

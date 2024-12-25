@@ -14,8 +14,12 @@
     [IsTravelerTask]  BIT            NULL,
     [Descrepancy]     NVARCHAR (MAX) NULL,
     [Resolution]      NVARCHAR (MAX) NULL,
-    PRIMARY KEY CLUSTERED ([TaskAuditId] ASC)
+    [StandardHours]   INT            NULL,
+    [StandardMinute]  INT            NULL,
+    CONSTRAINT [PK__TaskAudi__5C947BB6D445DC6F] PRIMARY KEY CLUSTERED ([TaskAuditId] ASC)
 );
+
+
 
 
 

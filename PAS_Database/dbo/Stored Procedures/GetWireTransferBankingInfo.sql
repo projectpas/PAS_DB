@@ -15,6 +15,7 @@
  ** --   --------		-------			--------------------------------            
     1    10/12/2024		EKTA CHANDEGRA	 Created  
     2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
+    3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
 
  EXEC GetWireTransferBankingInfo 1 
 ************************************************************************/  
@@ -62,7 +63,7 @@ BEGIN
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId
+				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
 				LEFT JOIN [dbo].[InternationalWirePayment] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
 				LEFT JOIN [dbo].[ACH] ach WITH(NOLOCK) ON le.LegalEntityId = ach.LegalEntityId AND ach.IsPrimay = 1
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
@@ -115,7 +116,7 @@ BEGIN
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON  msl.LegalEntityId = le.LegalEntityId
-				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId
+				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
 				LEFT JOIN [dbo].[InternationalWirePayment] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 				INNER JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id

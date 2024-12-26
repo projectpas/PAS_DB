@@ -22,11 +22,13 @@
 	9    12/06/2024   Amit Ghediya      Modified to update cond.
 	10   12/07/2014   Moin Bloch		Modified to add AltOrEqType
 	11   18-12-2024   Shrey Chandegara  Modified to priorityid
+	12   26-12-2024   Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
      
--- EXEC [DBO].[GetSalesOrderPartView] 1603
+-- EXEC [DBO].[GetSalesOrderPartView] 1603,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
-    @SalesOrderId BIGINT
+    @SalesOrderId BIGINT,
+	@SoPartId BIGINT = 0
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -37,6 +39,12 @@ BEGIN
 	DECLARE @DefaultPriorityName VARCHAR(50) = 'ROUTINE';
 	DECLARE @DefaultStatusId INT = 1;
 	DECLARE @DefaultStatusName VARCHAR(50) = 'OPEN';
+
+	--Set SoPart null for all part for salesordor otherwise for perticular part only.
+	IF(ISNULL(@SoPartId,0) = 0)
+	BEGIN
+		SET @SoPartId = NULL;
+	END
 
     SELECT 
         part.SalesOrderId,
@@ -186,7 +194,8 @@ BEGIN
     LEFT JOIN DBO.[Priority] prit WITH (NOLOCK) ON prit.PriorityId = Stk.PriorityId
     LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
-    WHERE part.SalesOrderId = @SalesOrderId
+    WHERE part.SalesOrderId = @SalesOrderId 
+	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
     AND part.IsDeleted = 0
     AND ISNULL(rop.isAsset, 0) = 0;
 

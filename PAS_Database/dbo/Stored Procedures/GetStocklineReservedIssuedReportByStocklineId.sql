@@ -19,6 +19,7 @@
 	6    16-12-2024    RAJESH GAMI      Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
 	7    18-12-2024    RAJESH GAMI		Skip the record if WO,RO,SO,Exch deleted
 	8    19-12-2024    RAJESH GAMI		Add MastercompanyId in the managementstructure JOIN
+	9    26-12-2024    RAJESH GAMI		Modified WPN to check RO is closed or not
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
@@ -162,9 +163,9 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WOP.MasterCompanyId = SLM.MasterCompanyId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId AND ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsClosed,0) = 0 AND ISNULL(WOP.IsFinishGood,0) = 0
-					AND ISNULL(WOP.RepairOrderId,0) = 0
-						 --AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
-						 --AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(WOP.RepairOrderId,0) = 0 OR ISNULL((SELECT RO.StatusId FROM Dbo.RepairOrder RO WITH (NOLOCK) WHERE Ro.RepairOrderId = ISNULL(WOP.RepairOrderId,0)),0) = @ROClosedStatusId )
+				   --AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+				   --AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 				--* END: WorkOrderPartNumber For Reserve *--
 
 				--* START: RepairOrder For Reserve *--

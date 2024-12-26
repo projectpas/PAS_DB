@@ -21,6 +21,7 @@
 	5    16-12-2024   RAJESH GAMI           Get only data where RepairOrderId is null in WorkOrderPartNumber, If already created RO then no need to show
 	6    18-12-2024   RAJESH GAMI			handle QtyAdjustment in bulkadjustment
 	7    19-12-2024   RAJESH GAMI		    Add MastercompanyId in the managementstructure JOIN
+	8    26-12-2024   RAJESH GAMI		    Modified WPN to check RO is closed or not
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
@@ -57,7 +58,6 @@ AS
 BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
 
       DECLARE @RecordFrom INT;
 	  DECLARE @Total int;
@@ -196,7 +196,8 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WOP.MasterCompanyId = SLM.MasterCompanyId
 						WHERE ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WOP.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
-							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND ISNULL(WOP.RepairOrderId,0) = 0 AND
+							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') 
+							AND (ISNULL(WOP.RepairOrderId,0) = 0 OR ISNULL((SELECT RO.StatusId FROM Dbo.RepairOrder RO WITH (NOLOCK) WHERE Ro.RepairOrderId = ISNULL(WOP.RepairOrderId,0)),0) = @ROStatusId ) AND
 						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
 						  (ISNULL(@level3Str,'') ='' OR [level3Name] LIKE '%' + @level3Str + '%') AND
 						  (ISNULL(@level4Str,'') ='' OR [level4Name] LIKE '%' + @level4Str + '%') AND

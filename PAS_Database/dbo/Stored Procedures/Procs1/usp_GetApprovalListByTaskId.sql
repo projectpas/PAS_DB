@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetApprovalListByTaskId]           
  ** Author:  Amit Ghediya
  ** Description: 
@@ -18,6 +17,7 @@
 	4    19/03/2023  Amit Ghediya    Update for Check Register
 	5    19/03/2023  Amit Ghediya    Update for Check Register filter 
 	6    24/10/2024  Moin Bloch      Update Added Cycle Count 
+	7    26/12/2024  RAJESH GAMI     Added Vendor Proforma Approval for the Vendor Proforma Invoice
      
 -- exec [dbo].[usp_GetApprovalListByTaskId] 12, 12
 ************************************************************************/
@@ -289,7 +289,20 @@ BEGIN TRY
 		  FROM [dbo].[CycleCount] SC  WITH(NOLOCK)
 		   WHERE SC.[CycleCountId] = @ID
 	END
-	   	  
+	ELSE IF @TaskType = 'Vendor Proforma Approval'
+	BEGIN
+	SET @TotalCostText = 'Total Vendor Proforma Amount'
+	SELECT @TotalCost = SUM(ISNULL(Amount, 0))	 
+		  FROM dbo.VendorProformaInvoicePartDetails pop  WITH(NOLOCK)
+		   WHERE pop.VendorProformaInvoiceId = @ID
+
+	SELECT @MSID = ManagementStructureId,
+		   @EID = po.EmployeeId,	   
+			@MasterCompanyID = po.MasterCompanyId
+		  FROM dbo.VendorProformaInvoiceHeader po  WITH(NOLOCK)
+		   WHERE po.VendorProformaInvoiceId = @ID
+
+	END   	  
 	SET @TotalCost  = ISNULL(@TotalCost,0)
 
 	SELECT DISTINCT Ar.ApproverId,

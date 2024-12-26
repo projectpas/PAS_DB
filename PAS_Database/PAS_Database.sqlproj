@@ -3367,6 +3367,9 @@
     <Build Include="dbo\Tables\WorkOrderTaskDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateWorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWOTaskSequenceNumber.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

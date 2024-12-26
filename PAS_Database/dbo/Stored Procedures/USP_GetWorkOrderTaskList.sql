@@ -25,6 +25,9 @@ BEGIN
 		;WITH CTE AS (
 			SELECT 
 			WOT.WorkOrderTaskId,
+			WOT.WorkOrderId,
+			WOT.WorkOrderPartNumberId,
+			WOT.WorkFlowWorkOrderId,
 			WOT.TaskId,
 			WOT.SequenceNumber,
 			WOT.OpenDate,
@@ -32,18 +35,27 @@ BEGIN
 			WOT.IsIncludeInPrint,
 			WOT.HasInstruction,
 			WOT.TaskName,
+			WOTD.TechId,
+			WOTD.TechName,
+			WOTD.TechUpdatedDate,
+			WOTD.InspectorId,
+			WOTD.InspectorName,
+			WOTD.InspectorUpdatedDate,
+			WOTD.Descrepancy,
+			WOTD.Resolution,
 			WOT.MasterCompanyId,
 			WOT.CreatedBy,
 			WOT.CreatedDate,
 			WOT.UpdatedBy,
 			WOT.UpdatedDate
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
+			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
 		)
 
 		SELECT * INTO #LeafTempTbl FROM CTE
 
-		SELECT * FROM #LeafTempTbl;
+		SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
 	END
 	END TRY
 	BEGIN CATCH

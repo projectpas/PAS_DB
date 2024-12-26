@@ -14,6 +14,7 @@
 	1    11-11-2024   Moin Bloch        Created
 	2    13-11-2024   Moin Bloch        Added Difference Amount New Field
 	3    28-11-2024   Moin Bloch        Added New Field
+	4    28-11-2024   Moin Bloch        Updated fixed Management Structuer duplicate issue
 
    EXEC [GetCycleCountList] 
 **************************************************************/ 
@@ -59,6 +60,7 @@ BEGIN
 		SET NOCOUNT ON;
 		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
+
 		DECLARE @RecordFrom INT;
 		DECLARE @Count INT;
 		DECLARE @MSModuleID INT; 
@@ -66,6 +68,18 @@ BEGIN
 		SELECT @MSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'CycleCount'
 				
         SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline'
+
+		IF OBJECT_ID(N'tempdb..#tmpCycleCountUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpCycleCountUserRole
+		END
+		
+		SELECT * INTO #tmpCycleCountUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].[ManagementStructureDetails] MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @MSModuleID AND EUR.[EmployeeId] = @EmployeeId) AS cyclecountUserRole
+						
 	
 		SET @RecordFrom = (@PageNumber-1) * @PageSize;
 		IF @IsDeleted IS NULL
@@ -115,9 +129,10 @@ BEGIN
 					INNER JOIN [dbo].[Employee] CCE WITH(NOLOCK) ON CCC.[RequestedById] = CCE.[EmployeeId]
 					 LEFT JOIN [dbo].[Employee] CEE WITH(NOLOCK) ON CCC.[CountedById] = CEE.[EmployeeId]
 					 LEFT JOIN [dbo].[Employee] CEA WITH(NOLOCK) ON CCA.[ApprovedById] = CEA.[EmployeeId]
-					INNER JOIN [dbo].[ManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @MSModuleID AND MSD.[ReferenceID] = CCC.[CycleCountId]
-					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CCC.[ManagementStructureId] = RMS.[EntityStructureId]
-					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.[RoleId] = RMS.[RoleId] AND EUR.[EmployeeId] = @EmployeeId
+				   INNER JOIN #tmpCycleCountUserRole CCR ON CCR.[ReferenceID] = CCC.[CycleCountId]
+					--INNER JOIN [dbo].[ManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @MSModuleID AND MSD.[ReferenceID] = CCC.[CycleCountId]
+					--INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CCC.[ManagementStructureId] = RMS.[EntityStructureId]
+					--INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.[RoleId] = RMS.[RoleId] AND EUR.[EmployeeId] = @EmployeeId
 				WHERE (CCC.[MasterCompanyId] = @MasterCompanyId AND CCC.[IsActive] = 1 AND CCC.[IsDeleted] = @IsDeleted)		
 				GROUP BY CCC.[CycleCountId],CCC.[CycleCountNumber],CCC.[StatusId],CCS.[Status],CCC.[EntryDate],CCC.[PostedDate],CCC.[BatchName],CCC.[CountMethodId],
 					CCC.[CreatedDate],CCC.[UpdatedDate],CCC.[IsActive],CCC.[IsDeleted],CCE.[FirstName],CCE.[LastName],CEE.[FirstName],CEE.[LastName],

@@ -22,9 +22,14 @@
     [IsActive]              BIT            CONSTRAINT [DF_CycleCount_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT            CONSTRAINT [DF_CycleCount_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PDFPath]               NVARCHAR (200) NULL,
+    [IsQtyCounted]          INT            NULL,
+    [IsQtyVariance]         INT            NULL,
+    [IsUnitCoctAdj]         INT            NULL,
     CONSTRAINT [PK_CycleCount] PRIMARY KEY CLUSTERED ([CycleCountId] ASC),
     CONSTRAINT [FK_CycleCount_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

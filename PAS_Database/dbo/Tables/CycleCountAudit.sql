@@ -23,6 +23,9 @@
     [IsActive]              BIT            CONSTRAINT [DF_CycleCountAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT            CONSTRAINT [DF_CycleCountAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PDFPath]               NVARCHAR (200) NULL,
+    [IsQtyCounted]          INT            NULL,
+    [IsQtyVariance]         INT            NULL,
+    [IsUnitCoctAdj]         INT            NULL,
     CONSTRAINT [PK_CycleCountAudit] PRIMARY KEY CLUSTERED ([CycleCountAuditId] ASC)
 );
 

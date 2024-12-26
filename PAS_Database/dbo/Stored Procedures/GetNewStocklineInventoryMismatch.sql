@@ -1162,6 +1162,7 @@ BEGIN
 			  0 IsParent,
 			  Sl.IsCustomerStock,
 			  SL.CreatedDate,
+			  (SELECT MAX(UpdatedDate) FROM dbo.Stkline_History SH WITH(NOLOCK) WHERE SH.StocklineId = SL.StockLineId) AS UpdatedDate,
 			  tmpSL.StockLineNumber,
 			  SL.SerialNumber,
 			  tmpSL.PartNumber,

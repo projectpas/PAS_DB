@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetSalesOrderBillingInvoiceChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve Invoice child listing data
@@ -43,9 +42,10 @@
 	25	 05/12/2024	  Abhishek Jirawla	Fixed the issue with flat charges calculation
 	26   05/12/2024   Vishal Suthar		Fixed the issue with versioning and revised invoice
 	27   10/12/2024   RAJESH GAMI		Fixed the issue with TotalUnitCost : Commented -- + ISNULL(SOR.QtyToReserve, 0) as discussed with Vishal due to multyply the amount
+	28	 25/12/2024	  AMIT GHEDIYA		Modified for get TotalSales calculated with Sales tax & Other Tax.
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
+CREATE     PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
 @SalesOrderPartId bigint,  
 @ConditionId bigint  
@@ -312,7 +312,7 @@ BEGIN
 				INNER JOIN DBO.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId
 				AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId)))
-				ELSE sobii.PartCost END as 'TotalSales',  
+				ELSE sobii.GrandTotal END as 'TotalSales',  
 
 				((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * 
 				(ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
@@ -549,7 +549,7 @@ BEGIN
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
 						((ISNULL(SOSC.NetSaleAmount, 0)))
-						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
+						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
 						tmpSOBI.SOBillingInvoicingItemId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
@@ -566,7 +566,7 @@ BEGIN
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
 						(ISNULL(SOSC.NetSaleAmount, 0))
-						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
+						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
 						STK.SalesOrderStocklineId,
 						tmpSOBI.SOBillingInvoicingId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 

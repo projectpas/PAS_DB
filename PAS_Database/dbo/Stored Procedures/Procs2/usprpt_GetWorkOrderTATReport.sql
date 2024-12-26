@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usp_GetWorkOrderTATReport]             
  ** Author:   Hemant    
  ** Description: Get Data for WorkOrderTAT Report  
@@ -111,197 +112,229 @@ BEGIN
 		DROP TABLE #Result
 	END
 
-	CREATE TABLE #tmpTop10TATData (
-		ID bigint NOT NULL IDENTITY,						
-		WorkOrderPartId BIGINT  NULL,
-		DaysCount DECIMAL(18,2) NULL,
-		QuoteDays BIT NULL,
-		ApprovedDays BIT NULL,
-		ShippedDays BIT NULL,
-		IncludeInTAT BIT NULL
-	)
+	IF OBJECT_ID(N'tempdb..#finalSumData') IS NOT NULL
+	BEGIN
+		DROP TABLE #finalSumData
+	END
 
-	;WITH TimeSums AS (
-	SELECT 
-			SUM(WT.Days) AS TotalDays, 
-			SUM(WT.Hours) AS TotalHours, 
-			SUM(WT.Mins) AS TotalMinutes,
-			WOP.ID,
-			WS.QuoteDays,
-			WS.ApprovedDays,
-			WS.ShippedDays,
-			WS.IncludeInTAT
-	FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
-		INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-		INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID 
-		LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOP.ID
-		LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId
-		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WT.OldStageId --AND ISNULL(WS.QuoteDays,0) = 1 
-	WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
+
+		;WITH TimeSums AS (
+		SELECT 
+				SUM(WT.Days) AS TotalDays, 
+				SUM(WT.Hours) AS TotalHours, 
+				SUM(WT.Mins) AS TotalMinutes,
+				WOP.ID,
+				WT.CurrentStageId
+		FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
+			INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+			INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID 
+			INNER JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOP.ID
+			INNER JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId
+		WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
 			AND WO.customerid=ISNULL(@customername,WO.customerid)  
 			AND WO.mastercompanyid = @mastercompanyid  
 			AND WO.IsDeleted = 0 AND WO.IsActive = 1
-			GROUP BY WOP.ID,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT)
+			AND  ISNULL(WT.StatusChangedEndDate,0) != 0
+			GROUP BY WOP.ID,WT.CurrentStageId
+			
+		UNION
 
-	INSERT INTO #tmpTop10TATData (WorkOrderPartId,DaysCount,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT)
-	SELECT
-		ID,
-		SUM(TotalDays + (TotalHours / 24.0) + (TotalMinutes / 1440.0)) AS totaldays,
-		QuoteDays,
-		ApprovedDays,
-		ShippedDays,
-		IncludeInTAT
-	FROM TimeSums
-	GROUP BY ID,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT
+		SELECT 
+				0 AS TotalDays, 
+				0 AS TotalHours, 
+				SUM(DATEDIFF(MINUTE, WT.StatusChangedDate, GETUTCDATE())) AS TotalMinutes,
+				WOP.ID,
+				WT.CurrentStageId
+		FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
+			INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+			INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID 
+			INNER JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOP.ID
+			INNER JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId
+		WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
+			AND WO.customerid=ISNULL(@customername,WO.customerid)  
+			AND WO.mastercompanyid = @mastercompanyid  
+			AND WO.IsDeleted = 0 AND WO.IsActive = 1
+			AND ISNULL(WT.StatusChangedEndDate,0) = 0
+			GROUP BY WOP.ID,WT.CurrentStageId),
+
+		timeSumData AS (
+		select TotalDays, TotalHours, TotalMinutes, ID, CurrentStageId,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT,0 as TotalRecDays
+		FROM TimeSums WT
+		LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WT.CurrentStageId
+		)
+
+		SELECT
+			TotalDays, TotalHours, TotalMinutes, ID, CurrentStageId,QuoteDays,ApprovedDays,ShippedDays,IncludeInTAT,TotalRecDays
+		INTO #tmpTop10TATData
+		FROM timeSumData
+
+		select SUM(TotalDays + (TotalHours / 24.0) + (TotalMinutes / 1440.0)) AS totaldays , ID, CurrentStageId
+		INTO #finalSumData
+		FROM #tmpTop10TATData
+		GROUP BY CurrentStageId, ID
 
 
   
-  IF ISNULL(@PageSize,0)=0  
-  BEGIN   
-   SELECT @PageSize=COUNT(*)  
-   FROM DBO.WorkOrder WO WITH (NOLOCK)  
-   INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
-   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
-   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
-   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-   LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
-   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
-   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
-   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
-   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
-   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
-   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
-   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
-  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)  
-    AND WO.customerid=ISNULL(@customername,WO.customerid)  
-    AND WO.mastercompanyid = @mastercompanyid 
-	AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
-    --AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
-    AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-    AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-    AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-    AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-    AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-    AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-    AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-    AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-    AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-    AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-   END  
+	  IF ISNULL(@PageSize,0)=0  
+	  BEGIN   
+	   SELECT @PageSize=COUNT(*)  
+	   FROM DBO.WorkOrder WO WITH (NOLOCK)  
+		   INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
+		   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
+		   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
+		   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
+		   LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
+		   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
+		   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
+		   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
+		   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
+		   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+		   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
+		   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
+		   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
+	  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)  
+			AND WO.customerid=ISNULL(@customername,WO.customerid)  
+			AND WO.mastercompanyid = @mastercompanyid 
+			AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
+			--AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
+			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
+			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
+			AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
+			AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
+			AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
+			AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
+			AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
+			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
+			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
+			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+	   END  
   
-  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END  
-  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END  
+	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END  
+	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END  
   
-  SELECT COUNT(1) OVER () AS TotalRecordsCount,    
-   UPPER(C.Name) 'customername',  
-   UPPER(C.CustomerCode) 'customercode',  
-   UPPER(IM.partnumber) 'pn',  
-   UPPER(IM.PartDescription) 'pndescription',  
-   WOPN.Quantity 'qty',  
-   UPPER(WOPN.WorkScope) 'workscope',  
-   UPPER(CN.Description) 'condition',  
-   UPPER(WO.WorkOrderNum) 'wonum',  
-   WOBI.InvoiceNo 'invoicenum',  
-   DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'quotedays',
-   0 AS 'quotedaysavg',
-   --CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END AS 'quotedays',
-   DATEDIFF(DAY, WOQ.sentDate, WOQ.approveddate) 'approveddays',  
-   0 AS 'approveddaysavg',
-   --CASE WHEN  TP2.DaysCount >= 1 THEN TP2.DaysCount ELSE 0 END AS 'approveddays',  
-   DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) 'estshipdays', 
-   0 AS 'estshipdaysavg',
-   --CASE WHEN  TP3.DaysCount >= 1 THEN TP3.DaysCount ELSE 0 END AS 'estshipdays',  
-   DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) + DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'tat',  
-   0 AS 'tatavg',
-   --CASE WHEN  TP4.DaysCount >= 1 THEN TP4.DaysCount ELSE 0 END AS 'tat',  
+	  SELECT COUNT(1) OVER () AS TotalRecordsCount,    
+		   UPPER(C.Name) 'customername',  
+		   UPPER(C.CustomerCode) 'customercode',  
+		   UPPER(IM.partnumber) 'pn',  
+		   UPPER(IM.PartDescription) 'pndescription',  
+		   WOPN.Quantity 'qty',  
+		   UPPER(WOPN.WorkScope) 'workscope',  
+		   UPPER(CN.Description) 'condition',  
+		   UPPER(WO.WorkOrderNum) 'wonum',  
+		   WOBI.InvoiceNo 'invoicenum',  
+		   DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'quotedays',
+		   0 AS 'quotedaysavg',
+		   DATEDIFF(DAY, WOQ.sentDate, WOQ.approveddate) 'approveddays',  
+		   0 AS 'approveddaysavg',
+		   DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) 'estshipdays', 
+		   0 AS 'estshipdaysavg',
+		   DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) + DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'tat',  
+		   0 AS 'tatavg',
   
-   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
-   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
-   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.SentDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.SentDate, 107) END 'quotedate',   
-   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.approveddate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.approveddate,TZ.Description)), 107) END 'approveddate',   
-   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.EstimatedShipDate, 107) END 'estshipdate',   
-   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 107) END 'invoicedate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.SentDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.SentDate, 107) END 'quotedate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.approveddate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.approveddate,TZ.Description)), 107) END 'approveddate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.EstimatedShipDate, 107) END 'estshipdate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 107) END 'invoicedate',   
      
-   UPPER(E.FirstName + ' ' + E.LastName) 'techname',  
-   UPPER(MSD.Level1Name) AS level1,      UPPER(MSD.Level2Name) AS level2,     UPPER(MSD.Level3Name) AS level3,     UPPER(MSD.Level4Name) AS level4,     UPPER(MSD.Level5Name) AS level5,     UPPER(MSD.Level6Name) AS level6,     UPPER(MSD.Level7Name) AS level7,     UPPER(MSD.Level8Name) AS level8,     UPPER(MSD.Level9Name) AS level9,     UPPER(MSD.Level10Name) AS level10  ,
-   TZ.TimeZoneName AS 'TIMEZONE_NAME',
-    WOPN.ID ,
-    WOPN.mastercompanyid 
+		   UPPER(E.FirstName + ' ' + E.LastName) 'techname',  
+		   UPPER(MSD.Level1Name) AS level1,      UPPER(MSD.Level2Name) AS level2,     UPPER(MSD.Level3Name) AS level3,     UPPER(MSD.Level4Name) AS level4,     UPPER(MSD.Level5Name) AS level5,     UPPER(MSD.Level6Name) AS level6,     UPPER(MSD.Level7Name) AS level7,     UPPER(MSD.Level8Name) AS level8,     UPPER(MSD.Level9Name) AS level9,     UPPER(MSD.Level10Name) AS level10  ,
+		   TZ.TimeZoneName AS 'TIMEZONE_NAME',
+			WOPN.ID ,
+			WOPN.mastercompanyid 
+	  INTO #Result
+	  FROM DBO.WorkOrder WO WITH (NOLOCK)  
+	   INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
+	   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
+	   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
+	   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
+	   LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
+	   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
+	   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
+	   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
+	   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
+	   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+	   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
+	   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
+	   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
 
-   INTO #Result
-  FROM DBO.WorkOrder WO WITH (NOLOCK)  
-   INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
-   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
-   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
-   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-   LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
-   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
-   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
-   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
-   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
-   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
-   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
-   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
-
-   LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
-   LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
-   LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
-  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
-    AND WO.customerid=ISNULL(@customername,WO.customerid)  
-    AND WO.mastercompanyid = @mastercompanyid  
-	AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
-    AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-    AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-    AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-    AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-    AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-    AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-    AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-    AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-    AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-    AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+	   LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+	   LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
+	   LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
+	  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
+		AND WO.customerid=ISNULL(@customername,WO.customerid)  
+		AND WO.mastercompanyid = @mastercompanyid  
+		AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
+		AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
+		AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
+		AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
+		AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
+		AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
+		AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
+		AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
+		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
+		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
+		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
  
+
+ 		UPDATE TP 
+		SET TP.approveddays = CASE WHEN  ISNULL(daysResult.totaldays, 0) >= 1 THEN ISNULL(daysResult.totaldays, 0) ELSE 0 END   
+		FROM #Result TP
+		OUTER APPLY (
+		SELECT SUM(tm1.totaldays) AS totaldays FROM
+		#finalSumData tm1
+		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
+		WHERE ISNULL(ApprovedDays,0) = 1 AND TP.ID = tm1.ID
+		) daysResult
+
+		UPDATE TP 
+		SET TP.quotedays = CASE WHEN  ISNULL(daysResult.totaldays, 0) >= 1 THEN ISNULL(daysResult.totaldays, 0) ELSE 0 END   
+		FROM #Result TP
+		OUTER APPLY (
+		SELECT SUM(tm1.totaldays) AS totaldays FROM
+		#finalSumData tm1
+		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
+		WHERE ISNULL(quotedays,0) = 1 AND TP.ID = tm1.ID
+		) daysResult
+
+		UPDATE TP 
+		SET TP.estshipdays = CASE WHEN  ISNULL(daysResult.totaldays, 0) >= 1 THEN ISNULL(daysResult.totaldays, 0) ELSE 0 END   
+		FROM #Result TP
+		OUTER APPLY (
+		SELECT SUM(tm1.totaldays) AS totaldays FROM
+		#finalSumData tm1
+		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
+		WHERE ISNULL(ShippedDays,0) = 1 AND TP.ID = tm1.ID
+		) daysResult
+
+		UPDATE TP 
+		SET TP.tat = CASE WHEN  ISNULL(daysResult.totaldays, 0) >= 1 THEN ISNULL(daysResult.totaldays, 0) ELSE 0 END   
+		FROM #Result TP
+		OUTER APPLY (
+		SELECT SUM(tm1.totaldays) AS totaldays FROM
+		#finalSumData tm1
+		left join #tmpTop10TATData tm2 on tm2.CurrentStageId = tm1.CurrentStageId and tm1.ID = tm2.ID
+		WHERE ISNULL(IncludeInTAT,0) = 1 AND TP.ID = tm1.ID
+		) daysResult
+
+	 ;with AvgDaysTotal as (
+		select 
+		SUM(quotedays) as quotedaysavg,
+		SUM(approveddays) as approveddaysavg,
+		SUM(estshipdays) as estshipdaysavg,
+		SUM(tat) as tatavg,
+		MasterCompanyid
+		from #Result group by MasterCompanyid)
+
+	 UPDATE WOPN 
+	 set WOPN.quotedaysavg =  tt.quotedaysavg,WOPN.approveddaysavg = tt.approveddaysavg,WOPN.estshipdaysavg = tt.estshipdaysavg,WOPN.tatavg = tt.tatavg
+	 from #Result WOPN
+	 left join AvgDaysTotal tt on tt.MasterCompanyid = WOPN.MasterCompanyId
  
- UPDATE WOPN 
- set WOPN.quotedays =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
- from #Result WOPN
- LEFT JOIN #tmpTop10TATData TP ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.QuoteDays,0) = 1
-
-  UPDATE WOPN 
- set WOPN.approveddays =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
- from #Result WOPN
- LEFT JOIN #tmpTop10TATData TP WITH(NOLOCK) ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.ApprovedDays,0) = 1
-
-  UPDATE WOPN 
- set WOPN.estshipdays =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
- from #Result WOPN
- LEFT JOIN #tmpTop10TATData TP WITH(NOLOCK) ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.ShippedDays,0) = 1
-
-  UPDATE WOPN 
- set WOPN.tat =  CASE WHEN  TP.DaysCount >= 1 THEN TP.DaysCount ELSE 0 END
- from #Result WOPN
- LEFT JOIN #tmpTop10TATData TP WITH(NOLOCK) ON TP.WorkOrderPartId = WOPN.ID AND ISNULL(TP.IncludeInTAT,0) = 1
-
- ;with AvgDaysTotal as (
-	select 
-	SUM(quotedays) as quotedaysavg,
-	SUM(approveddays) as approveddaysavg,
-	SUM(estshipdays) as estshipdaysavg,
-	SUM(tat) as tatavg,
-	MasterCompanyid
-	from #Result group by MasterCompanyid
- )
-
- UPDATE WOPN 
- set WOPN.quotedaysavg =  tt.quotedaysavg,WOPN.approveddaysavg = tt.approveddaysavg,WOPN.estshipdaysavg = tt.estshipdaysavg,WOPN.tatavg = tt.tatavg
- from #Result WOPN
- left join AvgDaysTotal tt on tt.MasterCompanyid = WOPN.MasterCompanyId
- 
- select * from #Result
- ORDER BY CAST(OpenDate AS DATE)  
-   OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
+	 select * from #Result
+	 ORDER BY CAST(OpenDate AS DATE)  
+	   OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
   
     COMMIT TRANSACTION  
   END TRY  

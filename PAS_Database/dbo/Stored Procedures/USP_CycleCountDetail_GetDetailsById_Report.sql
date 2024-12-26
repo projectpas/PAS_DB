@@ -12,6 +12,7 @@
  ** PR     Date            Author		    Change Description            
  ** -----------------------------------------------------------          
     1    23/11/2024   BHARGAV SALIYA       Created
+    1    25/12/2024   BHARGAV SALIYA       Truncate the PartNumber
 	exec [USP_CycleCountDetail_GetDetailsById_Report] 15,1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_CycleCountDetail_GetDetailsById_Report]  
@@ -30,7 +31,7 @@ BEGIN
 			  ,CC.[ControlNumber]
 			  ,CC.[IdNumber]
 			  ,CASE WHEN LEN(UPPER(CC.[SerialNumber])) > 15 then LEFT(UPPER(CC.[SerialNumber]), 15) + '...' else  UPPER(CC.[SerialNumber]) end as SerialNumber 
-			  ,CC.[PartNumber]
+			  ,CASE WHEN LEN(UPPER(CC.[PartNumber])) > 13 then LEFT(UPPER(CC.[PartNumber]), 13) + '...' else  UPPER(CC.[PartNumber]) end as PartNumber
 			  ,CASE WHEN LEN(UPPER(CC.PartDescription)) > 23 then LEFT(UPPER(CC.PartDescription), 23) + '...' else  UPPER(CC.PartDescription) end as PartDescription 
 			  ,CASE WHEN LEN(UPPER(CC.[ManufacturerName])) > 19 then LEFT(UPPER(CC.[ManufacturerName]), 19) + '...' else  UPPER(CC.[ManufacturerName]) end as ManufacturerName
 			  ,CC.[ConditionName]

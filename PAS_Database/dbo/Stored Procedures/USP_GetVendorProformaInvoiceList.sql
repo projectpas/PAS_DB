@@ -107,7 +107,7 @@ BEGIN
 						VPI.PaymentMethodId,
 						VPI.VendorProformaInvoiceNo,
 						(CASE WHEN COUNT(VPIP.VendorProformaInvoicePartDetailsId) > 1 Then 'Multiple' Else CAST(MAX(VPIP.Amount) AS VARCHAR) End) as 'Amount',
-						(CASE WHEN COUNT(VPIP.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountName) + '-' + MAX(GL.AccountCode)  End) as 'GLAccount',
+						(CASE WHEN COUNT(VPIP.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountCode) + '-' + MAX(GL.AccountName)   End) as 'GLAccount',
 						VPI.InvoiceNumber as 'InvoiceNum'
 				FROM [dbo].[VendorProformaInvoiceHeader] VPI WITH (NOLOCK)
 				INNER JOIN [dbo].[VendorProformaInvoiceHeaderStatus] VPIS WITH (NOLOCK) ON VPIS.VendorProformaInvoiceHeaderStatusId = VPI.StatusId

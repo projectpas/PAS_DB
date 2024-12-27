@@ -2,7 +2,8 @@
 
 
 
-CREATE         VIEW [dbo].[vw_InventoryGLSetting]
+
+CREATE           VIEW [dbo].[vw_InventoryGLSetting]
 AS
 SELECT IGS.InventoryGLSettingId,
 IGS.StockInventoryName,
@@ -36,17 +37,17 @@ IGS.RevenueMiscGLAccId,
 GLGoods.AccountName AS RevenueMiscGLAccName,
 IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate,IGS.Memo, IGS.IsActive, IGS.IsDeleted
 FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)  
- LEFT JOIN [DBO].[GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 
- LEFT JOIN [DBO].[GLAccount] GLGoods WITH (NOLOCK) ON IGS.GoodsReceivedNotInvoicesGLAccId = GLGoods.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLWip WITH (NOLOCK) ON IGS.WorkInProgressGLAccId = GLWip.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLTobill WITH (NOLOCK) ON IGS.InventoryToBillGLAccId = GLTobill.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLFisnish WITH (NOLOCK) ON IGS.FinishedGoodsGLAccId = GLFisnish.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLExch WITH (NOLOCK) ON IGS.InventoryExchAgreementGLAccId = GLExch.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLRes WITH (NOLOCK) ON IGS.InventoryReserveGLAccId = GLRes.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLWo WITH (NOLOCK) ON IGS.COGS_WorkOrderGLAccId = GLWo.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLSo WITH (NOLOCK) ON IGS.COGS_SalesOrderGLAccId = GLSo.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLQty WITH (NOLOCK) ON IGS.COGS_QtyVarianceGLAccId = GLQty.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLUc WITH (NOLOCK) ON IGS.COGS_UnitCostVarianceGLAccId = GLUc.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLMro WITH (NOLOCK) ON IGS.RevenueMroGLAccId = GLMro.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLRso WITH (NOLOCK) ON IGS.RevenueSoGLAccId = GLRso.GLAccountId
- LEFT JOIN [DBO].[GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueMiscGLAccId = GLMisc.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 
+ LEFT JOIN [DBO].[view_GLAccount] GLGoods WITH (NOLOCK) ON IGS.GoodsReceivedNotInvoicesGLAccId = GLGoods.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLWip WITH (NOLOCK) ON IGS.WorkInProgressGLAccId = GLWip.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLTobill WITH (NOLOCK) ON IGS.InventoryToBillGLAccId = GLTobill.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLFisnish WITH (NOLOCK) ON IGS.FinishedGoodsGLAccId = GLFisnish.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLExch WITH (NOLOCK) ON IGS.InventoryExchAgreementGLAccId = GLExch.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLRes WITH (NOLOCK) ON IGS.InventoryReserveGLAccId = GLRes.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLWo WITH (NOLOCK) ON IGS.COGS_WorkOrderGLAccId = GLWo.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLSo WITH (NOLOCK) ON IGS.COGS_SalesOrderGLAccId = GLSo.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLQty WITH (NOLOCK) ON IGS.COGS_QtyVarianceGLAccId = GLQty.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLUc WITH (NOLOCK) ON IGS.COGS_UnitCostVarianceGLAccId = GLUc.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLMro WITH (NOLOCK) ON IGS.RevenueMroGLAccId = GLMro.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLRso WITH (NOLOCK) ON IGS.RevenueSoGLAccId = GLRso.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueMiscGLAccId = GLMisc.GLAccountId

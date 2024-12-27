@@ -16,7 +16,8 @@
 	3    19/11/2024          Moin Bloch          Added @AccountingCalendarId,@LedgerId 
 	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise 
 	5    05/12/2024          Moin Bloch          Added @IsAccountByPass Flag
-	
+	7    27/12/2024          Moin Bloch          Updated Added LegalEntityId
+
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
@@ -24,6 +25,7 @@ CREATE   PROCEDURE [dbo].[USP_PostCycleCountBatchDetails]
 @CycleCountDetailId BIGINT,
 @StockLineId BIGINT,
 @DifferenceAmount DECIMAL(18,2),
+@LegalEntityId  BIGINT,
 @LedgerId BIGINT,
 @AccountingCalendarId BIGINT,
 @UpdatedBy VARCHAR(50),
@@ -398,12 +400,12 @@ BEGIN
 							,[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[ItemMasterId]
 							,[PartNumber],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId]
 							,[Location],[BinId],[Bin],[ShelfId],[Shelf],[ReferenceId],[ReferenceNumber]
-							,[ReferenceDetailId],[MasterCompanyId],[LedgerId],[AccountingCalendarId])
+							,[ReferenceDetailId],[MasterCompanyId],[LegalEntityId],[LedgerId],[AccountingCalendarId])
 					  VALUES(@JournalBatchHeaderId,@JournalBatchDetailId 
 							,@CommonBatchDetailId,@StockLineId,@StockLineNumber,@ItemMasterId
 							,@PartNumber,@SiteId,@Site,@WarehouseId,@Warehouse, @LocationId   
 							,@Location,@BinId,@Bin,@ShelfId,@Shelf,@CycleCountId,@CycleCountNumber
-							,@CycleCountDetailId,@MasterCompanyId,@LedgerId,@AccountingCalendarId);
+							,@CycleCountDetailId,@MasterCompanyId,@LegalEntityId,@LedgerId,@AccountingCalendarId);
 			 
 				----- Inventory - Stock--------		  	 
 
@@ -447,12 +449,12 @@ BEGIN
 							,[CommonJournalBatchDetailId],[StocklineId],[StocklineNumber],[ItemMasterId]
 							,[PartNumber],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId]
 							,[Location],[BinId],[Bin],[ShelfId],[Shelf],[ReferenceId],[ReferenceNumber]
-							,[ReferenceDetailId],[MasterCompanyId],[LedgerId],[AccountingCalendarId])
+							,[ReferenceDetailId],[MasterCompanyId],[LegalEntityId],[LedgerId],[AccountingCalendarId])
 					  VALUES(@JournalBatchHeaderId,@JournalBatchDetailId 
 							,@CommonBatchDetailId,@StockLineId,@StockLineNumber,@ItemMasterId
 							,@PartNumber,@SiteId,@Site,@WarehouseId,@Warehouse, @LocationId   
 							,@Location,@BinId,@Bin,@ShelfId,@Shelf,@CycleCountId,@CycleCountNumber
-							,@CycleCountDetailId,@MasterCompanyId,@LedgerId,@AccountingCalendarId);
+							,@CycleCountDetailId,@MasterCompanyId,@LegalEntityId,@LedgerId,@AccountingCalendarId);
 						
 				 -----Inventory - Stock--------
 

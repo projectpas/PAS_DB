@@ -14,6 +14,7 @@
  ** PR   Date			 Author						Change Description            
  ** --   --------		 -------					--------------------------------          
     1    04/Dec/2024		RAJESH GAMI				CREATED
+	2    27/Dec/2024		RAJESH GAMI				Get the SUM of Amount when it's multiple
 
 exec USP_GetVendorProformaInvoiceList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=1,@ViewType=N'pnview',@VendorName=NULL,@VendorCode=NULL,
@@ -106,7 +107,7 @@ BEGIN
 						VPI.MasterCompanyId,
 						VPI.PaymentMethodId,
 						VPI.VendorProformaInvoiceNo,
-						(CASE WHEN COUNT(VPIP.VendorProformaInvoicePartDetailsId) > 1 Then 'Multiple' Else CAST(MAX(VPIP.Amount) AS VARCHAR) End) as 'Amount',
+						(CASE WHEN COUNT(VPIP.VendorProformaInvoicePartDetailsId) > 1 Then CAST(SUM(VPIP.ExtendedPrice)AS VARCHAR) Else CAST(MAX(VPIP.ExtendedPrice) AS VARCHAR) End) as 'Amount',
 						(CASE WHEN COUNT(VPIP.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountCode) + '-' + MAX(GL.AccountName)   End) as 'GLAccount',
 						VPI.InvoiceNumber as 'InvoiceNum'
 				FROM [dbo].[VendorProformaInvoiceHeader] VPI WITH (NOLOCK)
@@ -215,9 +216,8 @@ BEGIN
 						VPI.MasterCompanyId,
 						VPI.PaymentMethodId,
 						VPI.VendorProformaInvoiceNo,
-						VPIP.Amount,
-						GL.AccountName + '-' + GL.AccountCode  as 'GLAccount',
-						--VPIP.InvoiceNum as 'InvoiceNum'
+						VPIP.ExtendedPrice AS Amount,
+						GL.AccountCode  + '-' + GL.AccountName   as 'GLAccount',
 						VPI.InvoiceNumber as 'InvoiceNum'
 				FROM [dbo].[VendorProformaInvoiceHeader] VPI WITH (NOLOCK)
 				INNER JOIN [dbo].[VendorProformaInvoiceHeaderStatus] VPIS WITH (NOLOCK) ON VPIS.VendorProformaInvoiceHeaderStatusId = VPI.StatusId

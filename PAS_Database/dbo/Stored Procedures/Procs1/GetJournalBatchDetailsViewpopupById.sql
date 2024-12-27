@@ -52,7 +52,7 @@
  36	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
  37	  01/08/2024  Moin Bloch		     added IsReversedJE Flag
  38	  13/12/2024  Moin Bloch		     added Cycle Count Module
- 39	  26/Dec/2024 Rajesh Gami		     added Vendor Proforma Invoice
+ 39	  26/Dec/2024 Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -1911,7 +1911,8 @@ BEGIN
 					  ,UPPER(NPOMSD.Level9Name) AS level9   
 					  ,UPPER(NPOMSD.Level10Name) AS level10   
 					  ,CU.[Code] AS 'Currency'
-					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated,
+					  VPI.VendorProformaInvoiceNo AS ReferenceName
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1925,6 +1926,7 @@ BEGIN
 					LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId 
 					LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 					LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = @ProformaCurrencyId
+					LEFT JOIN dbo.VendorProformaInvoiceHeader VPI WITH(NOLOCK) ON NPD.VendorProformaInvoiceId = VPI.VendorProformaInvoiceId
 				WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = @IsDeleted  
 				ORDER BY DS.DisplayNumber ASC;  
 			END

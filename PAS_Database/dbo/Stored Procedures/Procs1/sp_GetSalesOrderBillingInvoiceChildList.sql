@@ -43,7 +43,9 @@
 	26   05/12/2024   Vishal Suthar		Fixed the issue with versioning and revised invoice
 	27   10/12/2024   RAJESH GAMI		Fixed the issue with TotalUnitCost : Commented -- + ISNULL(SOR.QtyToReserve, 0) as discussed with Vishal due to multyply the amount
 	28	 25/12/2024	  AMIT GHEDIYA		Modified for get TotalSales calculated with Sales tax & Other Tax.
-  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
+	29	 26/12/2024	  AMIT GHEDIYA		Fixed the billing amount when partial qty is rerserved
+
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
@@ -565,7 +567,7 @@ BEGIN
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
-						(ISNULL(SOSC.NetSaleAmount, 0))
+						((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * ISNULL(STK.QtyReserved, 1))
 						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
 						STK.SalesOrderStocklineId,
 						tmpSOBI.SOBillingInvoicingId

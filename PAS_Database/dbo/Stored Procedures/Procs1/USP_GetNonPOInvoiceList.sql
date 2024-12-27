@@ -19,6 +19,7 @@
     4    10/03/2023		Devendra Shekh					added filtering by headerstatus(open,posted,etc)
 	5    01/10/2024		Moin Bloch					    modified AllStatusId For All Records
 	6    01/16/2024		Moin Bloch					    modified InvoiceNumber From Detail Table To Header
+	7    12/27/2024     AMIT GHEDIYA					added COntrolNumber
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -49,7 +50,8 @@ CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @Amount  varchar(100) = NULL,
 @GLAccount varchar(100) = NULL,
 @NPONumber varchar(100) = NULL,
-@InvoiceNum  varchar(100) = NULL
+@InvoiceNum  varchar(100) = NULL,
+@ControlNumber varchar(50)=null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -115,7 +117,8 @@ BEGIN
 						(CASE WHEN COUNT(NPD.NonPOInvoicePartDetailsId) > 1 Then 'Multiple' ELse CAST(MAX(NPD.Amount) AS VARCHAR) End) as 'Amount',
 						(CASE WHEN COUNT(NPD.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountName) + '-' + MAX(GL.AccountCode)  End) as 'GLAccount',
 						--(CASE WHEN COUNT(NPD.InvoiceNum) > 1 Then 'Multiple' ELse MAX(NPD.InvoiceNum) End) as 'InvoiceNum'
-						NPH.InvoiceNumber as 'InvoiceNum'
+						NPH.InvoiceNumber as 'InvoiceNum',
+						NPH.ControlNumber
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId
@@ -142,7 +145,8 @@ BEGIN
 					NPH.MasterCompanyId,	
 					NPH.PaymentMethodId,
 					NPH.NPONumber,
-					NPH.InvoiceNumber
+					NPH.InvoiceNumber,
+					NPH.ControlNumber
 			), ResultCount AS(SELECT COUNT(NonPOInvoiceId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
@@ -154,7 +158,9 @@ BEGIN
 					(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 					(InvoiceNum LIKE '%' +@GlobalFilter+'%') OR
 					(NPONumber LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%'))) OR   
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(ControlNumber LIKE '%' +@GlobalFilter+'%'))) OR  
+					
 					(@GlobalFilter='' AND (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode + '%') AND	
 					(ISNULL(@NonPoInvoiceStatus,'') ='' OR NonPoInvoiceStatus LIKE '%' + @NonPoInvoiceStatus + '%') AND	
@@ -166,7 +172,8 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@NPONumber,'') ='' OR NPONumber LIKE '%' + @NPONumber + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 
 			SELECT @Count = COUNT(NonPOInvoiceId) FROM #TempResult			
@@ -195,7 +202,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -224,7 +233,8 @@ BEGIN
 						NPD.Amount,
 						GL.AccountName + '-' + GL.AccountCode  as 'GLAccount',
 						--NPD.InvoiceNum as 'InvoiceNum'
-						NPH.InvoiceNumber as 'InvoiceNum'
+						NPH.InvoiceNumber as 'InvoiceNum',
+						NPH.ControlNumber
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId
@@ -234,7 +244,7 @@ BEGIN
 		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)		     
 					AND NPH.MasterCompanyId=@MasterCompanyId	
 			),ResultData AS( Select NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
-						IsActive, IsDeleted, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum
+						IsActive, IsDeleted, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber
 						FROM Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
@@ -245,7 +255,8 @@ BEGIN
 					(GLAccount LIKE '%' +@GlobalFilter+'%') OR
 					(InvoiceNum LIKE '%' +@GlobalFilter+'%') OR
 					(NPONumber LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%'))) OR   
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(ControlNumber LIKE '%' +@GlobalFilter+'%'))) OR   
 					(@GlobalFilter='' AND (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND
 					(ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode + '%') AND	
 					(ISNULL(@NonPoInvoiceStatus,'') ='' OR NonPoInvoiceStatus LIKE '%' + @NonPoInvoiceStatus + '%') AND	
@@ -257,13 +268,14 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@NPONumber,'') ='' OR NPONumber LIKE '%' + @NPONumber + '%') AND							
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 			), ResultCount AS (Select COUNT(NonPOInvoiceId) AS NumberOfItems FROM ResultData)
 
 			SELECT	NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
 				IsActive, IsDeleted, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId,
-				NPONumber, Amount, GLAccount, InvoiceNum, NumberOfItems FROM ResultData,ResultCount
+				NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber, NumberOfItems FROM ResultData,ResultCount
 			ORDER BY		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
@@ -288,7 +300,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 		END	

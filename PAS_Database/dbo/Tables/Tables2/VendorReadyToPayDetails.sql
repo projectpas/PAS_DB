@@ -39,8 +39,11 @@
     [IsGenerated]                   BIT             NULL,
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
     [ControlNumber]                 VARCHAR (250)   NULL,
+    [VendorProformaInvoiceId]       BIGINT          NULL,
     CONSTRAINT [PK_ReadyToPayDetails] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsId] ASC)
 );
+
+
 
 
 

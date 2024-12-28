@@ -25,8 +25,11 @@
     [UpdatedDate]            DATETIME2 (7)   CONSTRAINT [DF_SalesOrderPartCost_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]               BIT             CONSTRAINT [DF_SalesOrderPartCost_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT             CONSTRAINT [DF_SalesOrderPartCost_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [NetSaleAmountPerUnit]   DECIMAL (18, 4) NULL,
     CONSTRAINT [PK_SalesOrderPartCost] PRIMARY KEY CLUSTERED ([SalesOrderPartCostId] ASC)
 );
+
+
 
 
 

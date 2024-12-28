@@ -14,6 +14,7 @@
 	2    09/27/2023   Moin Bloch     Modify(Added Invoice Date)
 	3    09/30/2023   Hemant Saliya  Modify(Added Accounting Calendor Id)
 	4    10/25/2023   Moin Bloch     Modify(Added Invoice On Hold Field)
+	5    12/27/2024   AMIT GHEDIYA   Modify(Added ControlNumber Field)
 
 ***********************************************************************     
 -- EXEC GetReceivingReconciliationHeaderById 106
@@ -51,6 +52,7 @@ BEGIN
 			   ,RRH.[InvoiceDate]
 			   ,RRH.[AccountingCalendarId]
 			   ,RRH.[IsInvoiceOnHold]
+			   ,RRH.[ControlNumber]
           FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
 		  
     END TRY    

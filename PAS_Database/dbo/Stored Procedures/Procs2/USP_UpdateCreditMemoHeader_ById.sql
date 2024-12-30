@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_UpdateCreditMemoHeader_ById]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used VendorReadyToPayList 
@@ -17,6 +18,7 @@
  ** --   --------     -------			--------------------------------          
     1    27/10/2023   Devendra Shekh	Changes for customer creditmemo details
     2    31/10/2023   Devendra Shekh	modified for different vendorreadytopay 
+	3    30/dec/2024  RAJESH GAMI    	Added @VendorRTPTypeId = 5 (Vendor Proforma Invoice)
 
 
 	exec [USP_UpdateCreditMemoHeader_ById] 1,1,1,1
@@ -55,6 +57,15 @@ BEGIN
 			UPDATE [NonPOInvoiceHeader]
 			SET [IsUsedInVendorPayment] = 1, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 			WHERE [NonPOInvoiceId] = @ReferenceId
+		END
+	END
+	ELSE IF(@VendorRTPTypeId = 5)
+	BEGIN
+		IF(@Type = 1)
+		BEGIN
+			UPDATE [VendorProformaInvoiceHeader]
+			SET [IsUsedInVendorPayment] = 1, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+			WHERE [VendorProformaInvoiceId] = @ReferenceId
 		END
 	END
 	

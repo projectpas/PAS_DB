@@ -38,6 +38,7 @@
 	21   23/12/2024   AMIT GHEDIYA      Update to get for IsEnable for next vendor payment.
 	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice
 	23   30/12/2024   AMIT GHEDIYA      Update for DiscountDate.
+
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -580,7 +581,7 @@ BEGIN
 						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 					IsCustomerCreditMemo = 0,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
-					VendorReadyToPayDetailsTypeId = 3,
+					VendorReadyToPayDetailsTypeId = 5,
 					NPH.VendorProformaInvoiceId,
 					[CustomerCreditPaymentDetailId] = 0,
 					VPD.CreatedDate

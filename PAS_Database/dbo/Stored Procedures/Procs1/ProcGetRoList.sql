@@ -15,6 +15,7 @@
  ** SN   Date           Author  		Change Description            
  ** --   --------		-------------	--------------------------------          
     01	 03-July-2023	Vishal Suthar	Removed script of "MULTIPLE" hover over
+	02	 30-Dec-2024	Abhishek Jirawla MULTIPLE checking was improper so corrected it
      
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=98,@MasterCompanyId=11,@VendorId=NULL,@ViewType=N'poview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@RepairOrderNumberType=NULL,@QuantityOrdered=NULL,@QuantityBackOrdered=NULL,@QuantityReceived=NULL
 **************************************************************/
@@ -109,11 +110,21 @@ BEGIN
 				   RO.[Status],
 				   RO.Requisitioner AS RequestedBy,
 				   RO.ApprovedBy,
-				   (CASE WHEN COUNT(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(ROP.PartNumber) END) AS 'PartNumberType',
-				   (CASE WHEN Count(ROP.RepairOrderPartRecordId) > 1 THEN 'Multiple' ELSE CAST(CONVERT(VARCHAR, MAX(ROP.EstRecordDate), 101) AS VARCHAR(MAX)) END) AS 'EstDeliveryType',
-				   (CASE WHEN COUNT(ROP.RepairOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(ROP.Manufacturer) END) AS 'ManufacturerType',
-				   (Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(WO.WorkOrderNum) End)  as 'WorkOrderNumType',
-				   (Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(SO.SalesOrderNumber) End)  as 'SalesOrderNumberType'
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.PartNumber) END) AS 'PartNumberType',
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 THEN 'Multiple' ELSE CAST(CONVERT(VARCHAR, MAX(ROP.EstRecordDate), 101) AS VARCHAR(MAX)) END) AS 'EstDeliveryType',
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 THEN 'Multiple' ELSE MAX(ROP.Manufacturer) END) AS 'ManufacturerType',
+					(CASE WHEN (SELECT COUNT(ROP.WorkOrderNo) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.WorkOrderNo) END) AS 'WorkOrderNumType',
+					(CASE WHEN (SELECT COUNT(ROP.SalesOrderNo) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.SalesOrderNo) END) AS 'SalesOrderNumberType'
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
 			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId		              			  
 			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId

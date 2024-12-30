@@ -122,13 +122,14 @@ BEGIN
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 		BEGIN 
 			PRINT '1.0'
-			INSERT INTO #SalesOrderBillingInvoiceChildList(
+			INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
 			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 		(
-			SELECT DISTINCT sosi.SalesOrderShippingId,   
+			SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+			sosi.SalesOrderShippingId,   
 			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
 			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId
 			AND ISNULL(sobii_1.IsProforma, 0) = 0) > 0 THEN sobii.SOBillingInvoicingId  

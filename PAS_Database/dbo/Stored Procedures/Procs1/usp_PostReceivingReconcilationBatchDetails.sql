@@ -28,8 +28,9 @@
 	16   03/09/2024   Moin Bloch          Modify(wrong account payble entry in ReconciliationRO)
 	17   20/09/2024	  AMIT GHEDIYA		  Added for AutoPost Batch
 	18	 09/10/2024	  Devendra Shekh	  Added new fields for [CommonBatchDetails]
-	19	 04/11/2024   Devendra Shekh     Added ReferenceModule For [CommonBatchDetails]
+	19	 04/11/2024   Devendra Shekh      Added ReferenceModule For [CommonBatchDetails]
 	20	 18/12/2024   Devendra Shekh      Modify (Handling Qty/Unit Cost Adjustment Separately For Accounting Entry) And Changed QuantityAvailable to QuantityOnHand
+	21	 30/12/2024   Devendra Shekh      Modify (Same JE for Post Batch, StockType wise)
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -50,6 +51,8 @@ BEGIN
 			DECLARE @Module varchar(256) = 0;
 			DECLARE @JournalBatchHeaderId bigint = 0;
 			DECLARE @StockType varchar(256)	 = 0;
+			DECLARE @OLD_StockType varchar(256)	 = 0;
+			DECLARE @IsStockTypeChange BIT= 0;
 			DECLARE @Packagingid int = 0;
 			DECLARE @EmployeeId BIGINT
 			DECLARE @id bigint = 0;
@@ -98,6 +101,7 @@ BEGIN
 			DECLARE @JournalNumber VARCHAR(100) = '';
 			DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 			DECLARE @ReferenceModule VARCHAR(100) = 'RECONCILIATION';
+			DECLARE @RecordId BIGINT = 0;
 
 			IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL    
 			BEGIN    
@@ -105,6 +109,7 @@ BEGIN
 			END        
 			CREATE TABLE #RRPostType  
 			(    
+				[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 				[StocklineId] [bigint] NOT NULL,
 				[InvoicedQty] [int] NULL,
 				[InvoicedUnitCost] [decimal](18, 2) NULL,
@@ -122,7 +127,7 @@ BEGIN
 			INSERT INTO #RRPostType ([StocklineId],[InvoicedQty],[InvoicedUnitCost],[JournalTypeName],[CreatedBy],[Module],[JournalBatchHeaderId],[StockType],
 				[Packagingid],[EmployeeId],[id],[ReceivingReconciliationDetailId])    
 			SELECT [StocklineId],[InvoicedQty],[InvoicedUnitCost],[JournalTypeName],[CreatedBy],[Module],[JournalBatchHeaderId],[StockType],
-				[Packagingid],[EmployeeId],[id],[ReceivingReconciliationDetailId] FROM @tbl_PostRRBatchType
+				[Packagingid],[EmployeeId],[id],[ReceivingReconciliationDetailId] FROM @tbl_PostRRBatchType ORDER BY [StockType]
 
 			IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 			BEGIN
@@ -274,10 +279,10 @@ BEGIN
 				SET @PostRRBatchCursor = CURSOR FOR	
 
 				SELECT [StocklineId],[InvoicedQty],[InvoicedUnitCost],[JournalTypeName],[CreatedBy],[Module],[JournalBatchHeaderId],[StockType],
-					[Packagingid],[EmployeeId],[id],[ReceivingReconciliationDetailId] FROM #RRPostType
+					[Packagingid],[EmployeeId],[id],[ReceivingReconciliationDetailId],[RecordId] FROM #RRPostType
 
 				OPEN @PostRRBatchCursor;
-				FETCH NEXT FROM @PostRRBatchCursor INTO @StocklineId,@InvoicedQty,@InvoicedUnitCost,@JournalTypeName,@CreatedBy,@Module,@JournalBatchHeaderId,@StockType,@Packagingid,@EmployeeId,@id,@ReceivingReconciliationDetailId;
+				FETCH NEXT FROM @PostRRBatchCursor INTO @StocklineId,@InvoicedQty,@InvoicedUnitCost,@JournalTypeName,@CreatedBy,@Module,@JournalBatchHeaderId,@StockType,@Packagingid,@EmployeeId,@id,@ReceivingReconciliationDetailId,@RecordId;
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
 						DECLARE @PieceItemmasterId bigint=0;
@@ -344,6 +349,10 @@ BEGIN
 						DECLARE @QtyVariance DECIMAL(18,2) = 0;
 						DECLARE @PriceVariance DECIMAL(18,2) = 0;
 
+						SET @IsStockTypeChange = CASE WHEN @RecordId = 1 THEN 1 ELSE CASE WHEN @OLD_StockType != @StockType THEN 1 ELSE 0 END END;
+
+						SET @OLD_StockType = @StockType;
+
 						SELECT @POROUnitPrice = ISNULL([POUnitCost], 0), 
 						       @ReceivedQty = ISNULL([InvoicedQty], 0), 
 						       @RRUnitPrice = ISNULL([InvoicedUnitCost], 0),
@@ -378,13 +387,16 @@ BEGIN
 									AND DistributionMasterId=@DistributionMasterId 
 									AND MasterCompanyId = @MasterCompanyId;
 							
-							INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
-								[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
-							    [AccountingPeriodId],[AccountingPeriod])
-							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL,@TransactionDate, GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
-								@JournalTypeId ,@JournalTypename, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
-								@AccountingPeriodId,@AccountingPeriod)
-							SET @JournalBatchDetailId=SCOPE_IDENTITY()
+							IF(ISNULL(@IsStockTypeChange, 0) = 1)
+							BEGIN
+								INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
+									[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+									[AccountingPeriodId],[AccountingPeriod])
+								VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL,@TransactionDate, GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
+									@JournalTypeId ,@JournalTypename, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+									@AccountingPeriodId,@AccountingPeriod)
+								SET @JournalBatchDetailId=SCOPE_IDENTITY()
+							END
 
 							SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode from dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('ReconciliationPO');
 							IF(UPPER(@StockType) = 'STOCK')
@@ -1068,14 +1080,17 @@ BEGIN
 											  AND DistributionMasterId=@DistributionMasterId 
 											  AND MasterCompanyId = @MasterCompanyId;
 
-							INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
-								[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
-								[AccountingPeriodId],[AccountingPeriod])
-							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, @TransactionDate, GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
-								@JournalTypeId, @JournalTypename, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
-								@AccountingPeriodId,@AccountingPeriod)
+							IF(ISNULL(@IsStockTypeChange, 0) = 1)
+							BEGIN
+								INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
+									[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+									[AccountingPeriodId],[AccountingPeriod])
+								VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, @TransactionDate, GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
+									@JournalTypeId, @JournalTypename, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+									@AccountingPeriodId,@AccountingPeriod)
 
-							SET @JournalBatchDetailId=SCOPE_IDENTITY()
+								SET @JournalBatchDetailId=SCOPE_IDENTITY()
+							END
 
 							SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode from dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('ReconciliationRO');
 							IF(UPPER(@StockType) = 'STOCK')
@@ -1707,19 +1722,22 @@ BEGIN
 							   [UpdatedBy] = @UpdateBy   
 						 WHERE [JournalBatchDetailId] = @JournalBatchDetailId
 						
-						UPDATE [dbo].[CodePrefixes] 
-						   SET [CurrentNummber] = @currentNo
-						 WHERE [CodeTypeId] = @CodeTypeId 
-						   AND [MasterCompanyId] = @MasterCompanyId    
+						IF(ISNULL(@IsStockTypeChange, 0) = 1)
+						BEGIN
+							UPDATE [dbo].[CodePrefixes] 
+							   SET [CurrentNummber] = @currentNo
+							 WHERE [CodeTypeId] = @CodeTypeId 
+							   AND [MasterCompanyId] = @MasterCompanyId    
 						
-						SET @currentNo = @currentNo + 1
+							SET @currentNo = @currentNo + 1
 
-						SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes
-						WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+							SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes
+							WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+						END
 
 						END
 
-						FETCH NEXT FROM @PostRRBatchCursor INTO @StocklineId,@InvoicedQty,@InvoicedUnitCost,@JournalTypeName,@CreatedBy,@Module,@JournalBatchHeaderId,@StockType,@Packagingid,@EmployeeId,@id,@ReceivingReconciliationDetailId;
+						FETCH NEXT FROM @PostRRBatchCursor INTO @StocklineId,@InvoicedQty,@InvoicedUnitCost,@JournalTypeName,@CreatedBy,@Module,@JournalBatchHeaderId,@StockType,@Packagingid,@EmployeeId,@id,@ReceivingReconciliationDetailId,@RecordId;
 					END
 
 				CLOSE @PostRRBatchCursor

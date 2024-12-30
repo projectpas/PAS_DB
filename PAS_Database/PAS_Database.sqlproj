@@ -3364,6 +3364,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetDropdownValueId.sql" />
     <Build Include="dbo\User Defined Types\UploadModuleDataTableType.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForPOAndRONumberByVendorId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderMSDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

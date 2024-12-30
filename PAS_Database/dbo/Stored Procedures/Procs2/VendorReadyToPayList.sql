@@ -36,7 +36,7 @@
 	19   08/04/2023   Devendra Shekh	added conditon for amount for SelectedforPayment
 	20   08/07/2024   Abhishek Jirawla	Removed Miscellaneous flag from CustomerCreditPaymentDetails select
 	21   23/12/2024   AMIT GHEDIYA      Update to get for IsEnable for next vendor payment.
-	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice
+	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice 
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -567,7 +567,7 @@ BEGIN
 						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 					IsCustomerCreditMemo = 0,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
-					VendorReadyToPayDetailsTypeId = 3,
+					VendorReadyToPayDetailsTypeId = 5,
 					NPH.VendorProformaInvoiceId,
 					[CustomerCreditPaymentDetailId] = 0,
 					VPD.CreatedDate

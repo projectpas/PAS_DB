@@ -15,8 +15,9 @@
  ** SN   Date           Author  		Change Description            
  ** --   --------		-------------	--------------------------------          
     01	 03-July-2023	Vishal Suthar	Removed script of "MULTIPLE" hover over
+	02	 30-Dec-2024	Abhishek Jirawla MULTIPLE checking was improper so corrected it and Performance changes implemented
      
--- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=98,@MasterCompanyId=11,@VendorId=NULL,@ViewType=N'poview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@RepairOrderNumberType=NULL,@QuantityOrdered=NULL,@QuantityBackOrdered=NULL,@QuantityReceived=NULL
+-- exec ProcGetRoList @PageNumber=1,@PageSize=100,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'OPEN',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=205,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@PageNumber int = null,
@@ -109,19 +110,27 @@ BEGIN
 				   RO.[Status],
 				   RO.Requisitioner AS RequestedBy,
 				   RO.ApprovedBy,
-				   (CASE WHEN COUNT(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(ROP.PartNumber) END) AS 'PartNumberType',
-				   (CASE WHEN Count(ROP.RepairOrderPartRecordId) > 1 THEN 'Multiple' ELSE CAST(CONVERT(VARCHAR, MAX(ROP.EstRecordDate), 101) AS VARCHAR(MAX)) END) AS 'EstDeliveryType',
-				   (CASE WHEN COUNT(ROP.RepairOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(ROP.Manufacturer) END) AS 'ManufacturerType',
-				   (Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(WO.WorkOrderNum) End)  as 'WorkOrderNumType',
-				   (Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(SO.SalesOrderNumber) End)  as 'SalesOrderNumberType'
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.PartNumber) END) AS 'PartNumberType',
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 THEN 'Multiple' ELSE CAST(CONVERT(VARCHAR, MAX(ROP.EstRecordDate), 101) AS VARCHAR(MAX)) END) AS 'EstDeliveryType',
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 THEN 'Multiple' ELSE MAX(ROP.Manufacturer) END) AS 'ManufacturerType',
+					(CASE WHEN (SELECT COUNT(ROP.WorkOrderNo) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.WorkOrderNo) END) AS 'WorkOrderNumType',
+					(CASE WHEN (SELECT COUNT(ROP.SalesOrderNo) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.SalesOrderNo) END) AS 'SalesOrderNumberType'
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
 			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId		              			  
 			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
 			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
-			 LEFT Join dbo.WorkOrder WO WITH (NOLOCK) On ROP.WorkOrderId = WO.WorkOrderId
-			 LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) On ROP.SalesOrderId = SO.SalesOrderId
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 					RO.MasterCompanyId=@MasterCompanyId 
 			GROUP BY RO.RepairOrderId,
@@ -143,83 +152,6 @@ BEGIN
 				   RO.Requisitioner,
 				   RO.ApprovedBy
 				)
-			--,PartCTE AS(
-			--			Select RO.RepairOrderId,(Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber 
-			--			FROM RepairOrder RO WITH (NOLOCK)
-			--			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) On RO.RepairOrderId = ROP.RepairOrderId --AND ROP.IsActive = 1 AND ROP.IsDeleted = 0 AND ROP.isParent=1
-			--			Outer Apply(
-			--				SELECT 
-			--				   STUFF((SELECT ',' + CASE WHEN R.ItemTypeId = @ItemTypeStock THEN I.partnumber 
-			--											WHEN R.ItemTypeId = @ItemTypeAsset THEN AI.AssetId
-			--											WHEN R.ItemTypeId = @ItemTypeNonStock THEN NI.PartNumber
-			--											ELSE I.partnumber END  														
-			--						  FROM dbo.RepairOrderPart R WITH (NOLOCK)
-			--						  LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On R.ItemMasterId = I.ItemMasterId
-			--						  LEFT JOIN dbo.Assetinventory AI WITH (NOLOCK) On R.ItemMasterId = AI.AssetinventoryId
-			--						  LEFT JOIN dbo.NonStockinventory NI WITH (NOLOCK) On R.ItemMasterId = NI.NonStockInventoryId
-			--						  Where R.RepairOrderId = ROP.RepairOrderId AND RO.IsActive = 1 AND RO.IsDeleted = 0 AND R.isParent = 1
-			--						  FOR XML PATH('')), 1, 1, '') PartNumber
-			--			) A
-			--			Where (RO.IsDeleted = @IsDeleted) 
-			--			Group By RO.RepairOrderId,A.PartNumber,ROP.EstRecordDate)
-			--,PartDateCTE AS(
-			--			Select RO.RepairOrderId, (CASE WHEN Count(ROP.RepairOrderPartRecordId) > 1 THEN 'Multiple' ELSE A.EstDeliveryDateMulti END) AS 'EstDeliveryType', A.EstDeliveryDateMulti 
-			--			from RepairOrder RO WITH (NOLOCK)
-			--			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) On RO.RepairOrderId = ROP.RepairOrderId AND ROP.IsActive = 1 AND ROP.IsDeleted = 0 AND ROP.isParent = 1
-			--			Outer Apply(
-			--				SELECT 
-			--				   STUFF((SELECT ',' + CAST(R.EstRecordDate as VARCHAR(MAX))											
-			--						  FROM dbo.RepairOrderPart R WITH (NOLOCK)
-			--						  Left Join dbo.ItemMaster I WITH (NOLOCK) On R.ItemMasterId = I.ItemMasterId
-			--						  Left Join dbo.Assetinventory AI WITH (NOLOCK) On R.ItemMasterId = AI.AssetinventoryId
-			--						  Left Join dbo.NonStockinventory NI WITH (NOLOCK) On R.ItemMasterId = NI.NonStockInventoryId
-			--						  Where R.RepairOrderId = ROP.RepairOrderId AND RO.IsActive = 1 AND RO.IsDeleted = 0 AND R.isParent = 1
-			--						  FOR XML PATH('')), 1, 1, '') EstDeliveryDateMulti
-			--			) A
-			--			Where (RO.IsDeleted = @IsDeleted)
-			--			Group By RO.RepairOrderId,A.EstDeliveryDateMulti)
-			--,ManufacturerCTE AS(
-			--			Select RO.RepairOrderId,(CASE WHEN COUNT(ROP.RepairOrderPartRecordId) > 1 THEN 'Multiple' ELSE M.Manufacturer END) AS 'ManufacturerType',M.Manufacturer 
-			--			FROM [dbo].[RepairOrder] RO WITH (NOLOCK)
-			--			LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON RO.RepairOrderId=ROP.RepairOrderId AND ROP.IsActive = 1 AND ROP.IsDeleted = 0 AND ROP.isParent=1
-			--			OUTER APPLY(
-			--				SELECT 
-			--				   STUFF((SELECT ',' + M.[Name]
-			--						  FROM [dbo].[RepairOrderPart] P WITH (NOLOCK)
-			--						  LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON P.ManufacturerId = M.ManufacturerId
-			--						  WHERE P.RepairOrderId = ROP.RepairOrderId AND P.IsActive = 1 AND P.IsDeleted = 0 AND P.isParent = 1
-			--						  FOR XML PATH('')), 1, 1, '') Manufacturer								
-			--			) M
-			--			WHERE (RO.IsDeleted = @IsDeleted) GROUP BY RO.RepairOrderId,M.Manufacturer)
-			--,WOCTE AS(
-			--			Select RO.RepairOrderId,(Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse B.WorkOrderNum End)  as 'WorkOrderNumType',B.WorkOrderNum from RepairOrder RO WITH (NOLOCK)
-			--			Left Join RepairOrderPart ROP WITH (NOLOCK) On RO.RepairOrderId=ROP.RepairOrderId AND ROP.IsActive = 1 AND ROP.IsDeleted = 0 AND ROP.isParent=1
-			--			INNER Join WorkOrder I WITH (NOLOCK) On ROP.WorkOrderId=I.WorkOrderId
-			--			Outer Apply(
-			--				SELECT 
-			--				   STUFF((SELECT ',' + I.WorkOrderNum
-			--						  FROM RepairOrderPart R WITH (NOLOCK)
-			--						  Left Join WorkOrder I WITH (NOLOCK) On R.WorkOrderId = I.WorkOrderId
-			--						  Where R.RepairOrderId = ROP.RepairOrderId AND R.IsActive = 1 AND R.IsDeleted = 0 AND R.isParent = 1
-			--						  FOR XML PATH('')), 1, 1, '') WorkOrderNum
-			--			) B
-			--Where (RO.IsDeleted=@IsDeleted)
-			--Group By RO.RepairOrderId,B.WorkOrderNum)
-			--,SOCTE AS(
-			--			Select RO.RepairOrderId,(Case When Count(ROP.RepairOrderPartRecordId) > 1 Then 'Multiple' ELse C.SalesOrderNumber End)  as 'SalesOrderNumberType', C.SalesOrderNumber 
-			--			FROM RepairOrder RO WITH (NOLOCK)
-			--			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) On RO.RepairOrderId = ROP.RepairOrderId AND ROP.IsActive = 1 AND ROP.IsDeleted = 0 AND ROP.isParent = 1
-			--			INNER JOIN dbo.SalesOrder I WITH (NOLOCK) On ROP.SalesOrderId = I.SalesOrderId
-			--			Outer Apply(
-			--				SELECT 
-			--				   STUFF((SELECT ',' + I.SalesOrderNumber
-			--						  FROM dbo.RepairOrderPart R WITH (NOLOCK)
-			--						  Left Join dbo.SalesOrder I WITH (NOLOCK) ON R.SalesOrderId = I.SalesOrderId
-			--						  Where R.RepairOrderId = ROP.RepairOrderId AND R.IsActive = 1 AND R.IsDeleted = 0 AND R.isParent = 1
-			--						  FOR XML PATH('')), 1, 1, '') SalesOrderNumber
-			--			) C
-			--Where (RO.IsDeleted = @IsDeleted) 
-			--Group By RO.RepairOrderId,C.SalesOrderNumber)
 			,ResultData AS(
 						Select M.RepairOrderId,M.RepairOrderNumber,M.RepairOrderNo,M.OpenDate as 'OpenDate',M.ClosedDate as 'ClosedDate',M.CreatedDate,
 									M.CreatedBy,M.UpdatedDate,M.UpdatedBy,M.IsActive,M.IsDeleted,
@@ -236,11 +168,7 @@ BEGIN
 									CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
 									0 as RepairOrderPartRecordId
 									from Result M 
-						--Left Join PartCTE PT On M.RepairOrderId=PT.RepairOrderId
-						--Left Join PartDateCTE PDT On M.RepairOrderId=PDT.RepairOrderId
-						--LEFT JOIN ManufacturerCTE MF ON MF.RepairOrderId=M.RepairOrderId	
-						--Left Join WOCTE PD on PD.RepairOrderId=M.RepairOrderId
-						--Left Join SOCTE PR on PR.RepairOrderId=M.RepairOrderId
+					
 			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR	
@@ -339,12 +267,12 @@ BEGIN
 				   RO.ApprovedBy,
 				   ROP.PartNumber,
 				   ROP.PartNumber as PartNumberType,
-				   M.[Name] AS Manufacturer,
-				   M.[Name] AS ManufacturerType,
-				   SO.SalesOrderNumber,
-				   SO.SalesOrderNumber as SalesOrderNumberType,
-				   WO.WorkOrderNum,
-				   WO.WorkOrderNum as WorkOrderNumType,
+				   ROP.Manufacturer AS Manufacturer,
+				   ROP.Manufacturer AS ManufacturerType,
+				   ROP.SalesOrderNo,
+				   ROP.SalesOrderNo as SalesOrderNumberType,
+				   ROP.WorkOrderNo,
+				   ROP.WorkOrderNo as WorkOrderNumType,
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryType,
 				   ROP.RepairOrderPartRecordId
@@ -354,9 +282,6 @@ BEGIN
 			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
-			 LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON ROP.SalesOrderId = SO.SalesOrderId
-			 LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON ROP.WorkOrderId = WO.WorkOrderId
-			 LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON ROP.ManufacturerId = M.ManufacturerId
 
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 			        --EMS.EmployeeId = @EmployeeId AND 

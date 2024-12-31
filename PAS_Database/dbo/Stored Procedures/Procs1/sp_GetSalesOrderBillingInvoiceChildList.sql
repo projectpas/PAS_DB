@@ -128,7 +128,7 @@ BEGIN
 			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
 			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 		(
-			SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+			SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 			sosi.SalesOrderShippingId,   
 			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
 			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId
@@ -269,7 +269,7 @@ BEGIN
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 				(
 				SELECT DISTINCT 
-				ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+				ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
 				else (SELECT TOP 1 SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
 				WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
@@ -397,7 +397,7 @@ BEGIN
 
 				UNION ALL
 
-				SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+				SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobi.InvoiceDate,
@@ -478,7 +478,7 @@ BEGIN
 				SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
 				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 				SELECT DISTINCT 
-					ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+					ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobii.SOBillingInvoicingItemId,

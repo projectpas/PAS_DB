@@ -235,14 +235,14 @@ BEGIN
 		ISNULL((SOBII.SubTotal), 0) AS 'Netsales',
 		UPPER(SOBII.MiscCharges) AS 'Misc',  
 		CASE WHEN SOBII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 THEN 
-			SOBII.PartCost + SOBII.SalesTax + SOBII.OtherTax + SOBII.Freight + SOBII.MiscCharges
+			ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)
 		ELSE 
-			SOBII.PartCost + taxValue.SalesTaxValue + taxValue.OtherTaxValue 
+			ISNULL(SOBII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0) 
 		END AS 'rev',
 		ISNULL(SOSC.UnitCostExtended, 0) AS 'directcost', 
-		(ISNULL(((SOSC.UnitCostExtended) / NULLIF((SOBII.SubTotal) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) * 100) AS 'dcofrevperc',   
-		ISNULL(((SOBII.SubTotal) + ISNULL(SOBII.MiscCharges, 0) - SOSC.UnitCostExtended), 0) AS 'marginamt',  
-		ISNULL(((((SOBII.SubTotal) + ISNULL(SOBII.MiscCharges, 0) - SOSC.UnitCostExtended) * 100) / NULLIF((SOBII.SubTotal) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) AS 'marginrevperc',
+		(ISNULL((ISNULL(SOSC.UnitCostExtended, 0) / NULLIF((SOBII.SubTotal) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) * 100) AS 'dcofrevperc',   
+		ISNULL((ISNULL(SOBII.SubTotal, 0) + ISNULL(SOBII.MiscCharges, 0) - ISNULL(SOSC.UnitCostExtended, 0)), 0) AS 'marginamt',  
+		ISNULL((((ISNULL(SOBII.SubTotal, 0) + ISNULL(SOBII.MiscCharges, 0) - ISNULL(SOSC.UnitCostExtended, 0)) * 100) / NULLIF(ISNULL(SOBII.SubTotal, 0) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) AS 'marginrevperc',
 		SOQ.salesorderquotenumber AS 'qtenum',  
 		UPPER(MSD.Level1Name) AS 'level1',  
 		UPPER(MSD.Level2Name) AS 'level2', 

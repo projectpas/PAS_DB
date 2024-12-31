@@ -326,8 +326,8 @@ select
 			END 'shipdate',
 			CASE 
 				WHEN SOBIII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 
-				THEN SOBIII.PartCost + SOBIII.SalesTax + SOBIII.OtherTax + SOBIII.Freight + SOBIII.MiscCharges
-				ELSE SOBIII.PartCost + taxValue.SalesTaxValue + taxValue.OtherTaxValue 
+				THEN ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOBIII.Freight, 0) + ISNULL(SOBIII.MiscCharges, 0)
+				ELSE ISNULL(SOBIII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0)
 			END 'revenue',
 			UPPER(MSD.Level1Name) AS level1, 
 			UPPER(MSD.Level2Name) AS level2,

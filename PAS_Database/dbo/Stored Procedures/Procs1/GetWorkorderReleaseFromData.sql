@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿ /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -19,6 +18,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 7    12/12/2024  Moin Bloch       Updated (Added formTypeId)
 ** 8    25/12/2024  Devendra Shekh   Resolved Design Issue while Print form
 ** 9    27/12/2024  Devendra Shekh   Resolved Design Issue while Print form
+** 10	31/12/2024  Devendra Shekh   Replace NA with Empty String for BatchNumber
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1,0
 **************************************************************/ 
@@ -81,7 +81,7 @@ BEGIN
 			  wop.RevisedPartNumber AS PartNumber,  
 			  wop.CustomerReference AS Reference,  
 			  wop.Quantity AS Quantity,  
-			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN 'NA' ELSE sl.SerialNumber END)
+			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 						ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
 			  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status],
 			  '' as Certifies,   

@@ -11,10 +11,11 @@
  **************************************************************             
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
-    1    07/08/2023   Ekta Chandegra     Convert text into uppercase   
-	2    06/29/2024   Abhishek Jirawla   Adding flag to return only specified status for pending Approval
-	3    18 July 2024 Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-	4    05/08/2024   HEMANT SALIYA Serial Number Changes
+    1    07/08/2023   Ekta Chandegra		Convert text into uppercase   
+	2    06/29/2024   Abhishek Jirawla		Adding flag to return only specified status for pending Approval
+	3    18 July 2024 Shrey Chandegara		Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	4    05/08/2024   HEMANT SALIYA			Serial Number Changes
+	5    31-DEC-2024  Devendra Shekh		Added Changes for QuoteAmount
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -47,7 +48,8 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]
  @WoStage  varchar(200)=null,
  @WoStatus varchar(200)=null,
  @ManufacturerName varchar(200)=null,
- @IsPendingApproval bit = null
+ @IsPendingApproval bit = null,
+ @QuoteAmount varchar(50)=null
 AS   
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -126,7 +128,9 @@ BEGIN
 			END) AS WorkOrderStatus,
 			UPPER(wos.CodeDescription) as WoStage,
 			UPPER(woss.Description) as WoStatus,
-			UPPER(im.ManufacturerName) 'ManufacturerName'
+			UPPER(im.ManufacturerName) 'ManufacturerName',
+			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
+					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR) 'QuoteAmount' 
 		FROM dbo.WorkOrderQuote woq WITH (NOLOCK)  
 			JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId  
 			JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId
@@ -140,6 +144,7 @@ BEGIN
 			LEFT JOIN dbo.ApprovalStatus appsI WITH (NOLOCK) on wopp.InternalStatusId = appsI.ApprovalStatusId  
 			LEFT JOIN dbo.ApprovalStatus appsA WITH (NOLOCK) on 4 = appsA.ApprovalStatusId  
 			LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId  
+			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON woq.workorderquoteid = WOQD.workorderquoteid AND wopn.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
 		WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND (wopp.ApprovalActionId IN (0, 1, 2, 4) OR wopp.ApprovalActionId IS NULL)))
 			 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
 			  SELECT * INTO #TempResult FROM  Result  
@@ -165,6 +170,7 @@ BEGIN
 			  (SerialNumber like '%' +@GlobalFilter+'%') OR  
 			  (WoStage like '%' +@GlobalFilter+'%') OR  
 			  (WoStatus like '%' +@GlobalFilter+'%') OR 
+			  (QuoteAmount like '%' +@GlobalFilter+'%') OR 
 			  (WorkOrderStatus like '%' +@GlobalFilter+'%')  
 			  )
 			  )  
@@ -189,6 +195,7 @@ BEGIN
 			  (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND  
 			  (IsNull(@WoStage,'') ='' OR WoStage like '%' + @WoStage+'%') AND  
 			  (IsNull(@WoStatus,'') ='' OR WoStatus like '%' + @WoStatus+'%') AND 
+			  (IsNull(@QuoteAmount,'') ='' OR QuoteAmount like '%' + @QuoteAmount+'%') AND 
 			  (IsNull(@WorkOrderStatus,'') ='' OR WorkOrderStatus like '%' + @WorkOrderStatus+'%')  
 			  ))  
   
@@ -217,6 +224,7 @@ BEGIN
 			  CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,
 			  CASE WHEN (@SortOrder=1 and @SortColumn='WOSTAGE')  THEN WoStage END ASC, 
 			  CASE WHEN (@SortOrder=1 and @SortColumn='WOSTATUS')  THEN WoStatus END ASC, 
+			  CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEAMOUNT')  THEN QuoteAmount END ASC, 
 			  CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC, 
   
 			  CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
@@ -239,6 +247,7 @@ BEGIN
 			  CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC, 
 			  CASE WHEN (@SortOrder=-1 and @SortColumn='WOSTAGE')  THEN WoStage END DESC, 
 			  CASE WHEN (@SortOrder=-1 and @SortColumn='WOSTATUS')  THEN WoStatus END DESC, 
+			  CASE WHEN (@SortOrder=-1 and @SortColumn='QuoteAmount')  THEN QuoteAmount END DESC, 
 			  CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC, 
 			  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END DESC  
   

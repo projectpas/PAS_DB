@@ -37,7 +37,7 @@
 	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital. Update Invoiced Date to InvoiceDate instead of Due date
 	22   19-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
 	23   27-12-2024   RAJESH GAMI     Added Vendor Proforma Invoice Functionality
-	24   30-12-2024   AMIT GHEDIYA    update get account name & get creditmemo amount
+	24   30-12-2024   AMIT GHEDIYA    update get account name & get creditmemo amount & PAyment method name.
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -192,9 +192,10 @@ BEGIN
 					 ELSE NULL END	AS 'DaysPastDue',
 			   --'' AS 'PaymentMethod',
 			   --'' AS 'PaymentRef',
-			   PaymentMethod = (SELECT MAX(PM.Description) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-								 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1),
+			   --PaymentMethod = (SELECT MAX(PM.Description) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+						--		 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1),
+			   PaymentMethod = ISNULL(Tab.PaymentMethod,''),
 			   ISNULL(Tab.PayRef,'') AS 'PaymentRef',
 			   --PaymentRef = (SELECT MAX(VD.CheckNumber) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 						--		 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
@@ -306,9 +307,10 @@ BEGIN
 					 ELSE NULL END	AS 'DaysPastDue',
 			   --'' AS 'PaymentMethod',
 			   --'' AS 'PaymentRef',
-			  PaymentMethod = (SELECT MAX(PM.Description) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-								 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
+			  --PaymentMethod = (SELECT MAX(PM.Description) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+					--			 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+					--			 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
+			   PaymentMethod = ISNULL(Tab.PaymentMethod,''),
 			   ISNULL(Tab.PayRef,'') AS 'PaymentRef',
 			   --PaymentRef = (SELECT MAX(VD.CheckNumber) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 						--		 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId

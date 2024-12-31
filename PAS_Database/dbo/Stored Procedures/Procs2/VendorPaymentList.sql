@@ -37,7 +37,7 @@
 	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital. Update Invoiced Date to InvoiceDate instead of Due date
 	22   19-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
 	23   27-12-2024   RAJESH GAMI     Added Vendor Proforma Invoice Functionality
-	24   30-12-2024   AMIT GHEDIYA    update get account name & get creditmemo amount & PAyment method name.
+	24   31-12-2024   AMIT GHEDIYA    update get account name & get creditmemo amount & PAyment method name.
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -228,7 +228,7 @@ BEGIN
 							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
+							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
 
@@ -345,7 +345,7 @@ BEGIN
 							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
+							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RRH.RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 
 		  AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
@@ -410,7 +410,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate) AS Tab
 				OUTER APPLY (SELECT VD.NonPOInvoiceId,
 								   SUM(ISNULL(VD.ExtendedPrice,0)) ExtendedPrice
@@ -481,7 +481,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
 		        AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
@@ -544,7 +544,7 @@ BEGIN
 							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1 AND VD.IsVoidedCheck = 0
+							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1 AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RRH.RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0
 
@@ -653,7 +653,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.VendorProformaInvoiceId, 0) <> 0
 		        AND NPH.StatusId = @ProformaInvoicePostedStatusId
@@ -825,7 +825,7 @@ BEGIN
 							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
@@ -887,7 +887,7 @@ BEGIN
 							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
@@ -953,7 +953,7 @@ BEGIN
 							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
@@ -1014,7 +1014,7 @@ BEGIN
 							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
@@ -1078,7 +1078,7 @@ BEGIN
 							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							WHERE ISNULL(VD.[CustomerCreditPaymentDetailId],0) = CCPD.[CustomerCreditPaymentDetailId] AND VD.IsVoidedCheck = 0
+							WHERE ISNULL(VD.[CustomerCreditPaymentDetailId],0) = CCPD.[CustomerCreditPaymentDetailId] AND VD.IsVoidedCheck = 0 AND VD.CheckNumber IS NULL
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber) AS Tab
 	      WHERE CCPD.MasterCompanyId = @MasterCompanyId 
 				AND CCPD.IsProcessed = 1 AND CCPD.IsMiscellaneous = 1 AND VPD.RemainingAmount > 0 
@@ -1501,7 +1501,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 		  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		  AND RRH.PaymentMade > 0 
@@ -1568,7 +1568,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 		  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		  AND RRH.PaymentMade > 0 
@@ -1635,7 +1635,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 		  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		  AND RRH.PaymentMade > 0 
@@ -1703,7 +1703,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId AND VD.CheckNumber IS NOT NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 		  WHERE VPD.MasterCompanyId = @MasterCompanyId 
 		  AND VPD.PaymentMade > 0 

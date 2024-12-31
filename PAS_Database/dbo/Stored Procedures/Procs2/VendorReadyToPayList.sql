@@ -37,7 +37,7 @@
 	20   08/07/2024   Abhishek Jirawla	Removed Miscellaneous flag from CustomerCreditPaymentDetails select
 	21   23/12/2024   AMIT GHEDIYA      Update to get for IsEnable for next vendor payment.
 	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice
-	23   30/12/2024   AMIT GHEDIYA      Update for DiscountDate.
+	23   31/12/2024   AMIT GHEDIYA      Update for  DiscountDate.
 
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
@@ -215,8 +215,11 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.[Days],0), RRC.InvoiceDate) AS DiscountDate,  
-				   --(VPD.DueDate + ISNULL(ctm.Days,0)) AS DiscountDate,  
+                   
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), RRC.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,  
+
 				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				 --VPD.DiscountToken,  
 				   0 'DiscountToken',
@@ -304,7 +307,11 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.[Days],0), CM.InvoiceDate) AS DiscountDate, 
+				   
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), CM.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,
+
 				   --(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				   0 AS DiscountAvailable,
 				   0 'DiscountToken',
@@ -391,8 +398,9 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) AS DiscountDate,
-				   --(VPD.DueDate + ISNULL(ctm.Days,0)) AS DiscountDate,  
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,
 				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				   0 'DiscountToken',
 				   VPD.StatusId,
@@ -477,7 +485,9 @@ BEGIN
 				ISNULL(ctm.NetDays,0) AS NetDays,
 				ISNULL(p.[PercentValue],0) AS [Percentage],   
 				CASE WHEN DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-				DATEADD(Day, ISNULL(ctm.Days,0), CCPD.ProcessedDate) AS DiscountDate,  
+				 CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), CCPD.ProcessedDate) 
+				   ELSE '' END AS DiscountDate,
 				--(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 
 					 --THEN CAST((CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN CCPD.RemainingAmount ELSE ISNULL(VPD.InvoiceTotal,0) END * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				0 AS DiscountAvailable,  
@@ -554,7 +564,9 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) AS DiscountDate,
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,
 				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				   0 'DiscountToken',
 				   VPD.StatusId,

@@ -18,11 +18,10 @@
 	2    01-SEPT-2023   Ekta Chandegra	   Convert text into uppercase
 	3	 04-12-2024     Shrey Chandegara   Modified due to add some new column and add filter
 
-	exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',
-	@PublicationRecordId=0,@PublicationId=NULL,@PartNumber=NULL,@PartDescription=NULL,@PublicationDescription=NULL,@VerifiedStatus=N'0',@ExpirationStatus=N'0',@Verified=NULL,
-	@Status=NULL,@DaysToExp=NULL,@RevNumber=NULL,@VerifiedBy=NULL,@Manufacturer=NULL,@Source=NULL,@Location=NULL,@EntryDate=NULL,@FromEntryDate='2024-08-01 00:00:00',
-	@ToEntryDate='2024-12-05 00:00:00',@NextRevDate=NULL,@RevDate=NULL,@ExpirationDate=NULL,@VerifiedDate=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,
-	@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1
+exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@PublicationRecordId=0,
+@PublicationId=NULL,@PartNumber=NULL,@PartDescription=NULL,@PublicationDescription=NULL,@VerifiedStatus=N'0',@DayToExpiry=NULL,@RedIndicator=0,@GreenIndicator=0,@YellowIndicator=0,@ExpirationStatus=N'0',
+@Verified=NULL,@DaysToExp=NULL,@RevNumber=NULL,@VerifiedBy=NULL,@Manufacturer=NULL,@Source=NULL,@Location=NULL,@EntryDate=NULL,@FromEntryDate='2024-01-01 00:00:00',@ToEntryDate='2024-12-31 00:00:00',
+@NextRevDate=NULL,@RevDate=NULL,@ExpirationDate=NULL,@VerifiedDate=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
@@ -38,9 +37,12 @@ CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport]
 @PartDescription NVARCHAR(MAX),
 @PublicationDescription NVARCHAR(MAX),
 @VerifiedStatus NVARCHAR(100),
+@DayToExpiry VARCHAR(200),
+@RedIndicator INT,
+@GreenIndicator INT,
+@YellowIndicator INT,
 @ExpirationStatus NVARCHAR(100),
 @Verified NVARCHAR(100),
-@Status NVARCHAR(100),
 @DaysToExp  VARCHAR(50) = NULL,
 @RevNumber NVARCHAR(100),
 @VerifiedBy NVARCHAR(100),
@@ -156,8 +158,11 @@ BEGIN
 		  --VerifiedStatus VARCHAR(100) NULL,
 		  --ExpirationStatus VARCHAR(100) NULL,
 		  Verified VARCHAR(100) NULL,
-		  Status VARCHAR(100) NULL,
+		  RedIndicator INT,
+		  YellowIndicator INT,
+		  GreenIndicator INT,
 		  DaysToExpiration VARCHAR(50) NULL,
+		  DaysToExp VARCHAR(50) NULL,
 		  RevNumber VARCHAR(100) NULL,
 		  VerifiedBy VARCHAR(100) NULL,
 		  Manufacturer VARCHAR(MAX) NULL,
@@ -180,7 +185,7 @@ BEGIN
 		  level10 VARCHAR(MAX) NULL
 		 )    
 
-		 INSERT INTO #tmpPublication (PublicationRecordId,PublicationId, PartNumber, PartDescription, PublicationDescription, Verified, Status, DaysToExpiration, RevNumber,
+		 INSERT INTO #tmpPublication (PublicationRecordId,PublicationId, PartNumber, PartDescription, PublicationDescription, Verified, RedIndicator,YellowIndicator,GreenIndicator, DaysToExpiration,DaysToExp, RevNumber,
 										VerifiedBy, Manufacturer, Source,Location, EntryDate, NextRevDate, RevDate, ExpirationDate, VerifiedDate, level1, level2, level3,
 										level4, level5, level6, level7, level8, level9, level10) 
 
@@ -191,13 +196,17 @@ BEGIN
 			 IM.PartDescription ,
 			 PUB.Description ,
 			 CASE WHEN ISNULL(PUB.VerifiedStatus,0) = 0 THEN 'NO' ELSE 'YES' END 'Verified',
-			 CASE WHEN DATEDIFF(day, @DefaultDate, ISNULL(CAST(PUB.ExpirationDate AS DATE),'')) > 30 THEN 'GREEN' 
-				  WHEN 30 > DATEDIFF(day, @DefaultDate, ISNULL(CAST(PUB.ExpirationDate AS DATE),'')) AND  DATEDIFF(day, @DefaultDate, ISNULL(CAST(PUB.ExpirationDate AS DATE),'')) > 10 THEN 'YELLOW'
-				  WHEN ISNULL(PUB.ExpirationDate,'') = ''  THEN 'WHITE'
-				  ELSE 'RED' END,
+			 STS.RedIndicator,
+			 STS.YellowIndicator,
+			 STS.GreenIndicator,
+			 --CASE WHEN DATEDIFF(day, @DefaultDate, ISNULL(CAST(PUB.ExpirationDate AS DATE),'')) > 30 THEN 'GREEN' 
+				--  WHEN 30 > DATEDIFF(day, @DefaultDate, ISNULL(CAST(PUB.ExpirationDate AS DATE),'')) AND  DATEDIFF(day, @DefaultDate, ISNULL(CAST(PUB.ExpirationDate AS DATE),'')) > 10 THEN 'YELLOW'
+				--  WHEN ISNULL(PUB.ExpirationDate,'') = ''  THEN 'WHITE'
+				--  ELSE 'RED' END,
 			 CASE WHEN ISNULL(PUB.ExpirationDate, '') != '' THEN 
 				CASE WHEN DATEDIFF(day, @DefaultDate, CAST(PUB.ExpirationDate AS DATE)) < 0 THEN '(' + CAST(ABS(DATEDIFF(day, @DefaultDate, CAST(PUB.ExpirationDate AS DATE))) AS VARCHAR) + ')'
 				ELSE CAST(DATEDIFF(day, @DefaultDate, CAST(PUB.ExpirationDate AS DATE)) AS VARCHAR) END ELSE 'NA' END,
+				CASE WHEN ISNULL(PUB.ExpirationDate, '') != '' THEN CAST((DATEDIFF(day, @DefaultDate, CAST(PUB.ExpirationDate AS DATE))) AS VARCHAR) ELSE 'NA' END,
 			 PUB.revisionnum,
 			 (E.firstname + ' ' + E.lastname) AS 'VerifiedBy',
 			 MNFR.name AS Manufacturer,
@@ -222,11 +231,12 @@ BEGIN
 		 FROM [dbo].[Publication] PUB WITH (NOLOCK)
 			 INNER JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId AND PIMM.IsActive = 1 AND PIMM.IsDeleted = 0
 			 INNER JOIN DBO.Itemmaster IM WITH (NOLOCK) ON PIMM.ItemMasterId = IM.ItemMasterId
+			 INNER JOIN dbo.PublicationManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.PublicationRecordId = PUB.PublicationRecordId
 			 LEFT JOIN DBO.Manufacturer MNFR WITH (NOLOCK) ON IM.ManufacturerId = MNFR.ManufacturerId
 			 LEFT JOIN DBO.WorkflowPublications WFPUB WITH (NOLOCK) ON PUB.PublicationRecordId = WFPUB.PublicationId
 			 LEFT JOIN DBO.Location LC WITH (NOLOCK) ON PUB.LocationId = LC.LocationId
 			 LEFT JOIN DBO.Employee E WITH (NOLOCK) ON PUB.VerifiedBy = E.EmployeeId
-			 INNER JOIN dbo.PublicationManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.PublicationRecordId = PUB.PublicationRecordId
+			 LEFT JOIN PublicationSettings STS WITH (NOLOCK) ON STS.MasterCompanyId =@MasterCompanyId
 		 WHERE PUB.entrydate BETWEEN (@FromEntryDate) AND (@ToEntryDate) AND PUB.MasterCompanyId = @MasterCompanyId AND PUB.IsActive = 1 AND PUB.IsDeleted = 0
 			   AND PUB.VerifiedStatus IN (SELECT * FROM DBO.SplitString(@VerStatus,','))
 			   AND ( @ExpirationStatus = @ExpireStatus AND ISNULL(CAST(PUB.ExpirationDate AS DATE),'') < @DefaultDate OR
@@ -264,7 +274,6 @@ BEGIN
 			 (ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
 			 (ISNULL(@PublicationDescription, '') = '' OR [PublicationDescription] LIKE '%' + @PublicationDescription + '%') AND
 			 (ISNULL(@Verified, '') = '' OR [Verified] LIKE '%' + @Verified + '%') AND
-			 (ISNULL(@Status, '') = '' OR [Status] LIKE '%' + @Status + '%') AND
 			 (ISNULL(@DaysToExp, '') = '' OR [DaysToExpiration] LIKE '%' + @DaysToExp+ '%') AND 
 			 (ISNULL(@RevNumber, '') = '' OR [RevNumber] LIKE '%' + @RevNumber + '%') AND 
 			 (ISNULL(@VerifiedBy, '') = '' OR [VerifiedBy] LIKE '%' + @VerifiedBy + '%') AND 
@@ -291,8 +300,6 @@ BEGIN
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PublicationDescription') THEN [PublicationDescription] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'Verified') THEN [Verified] END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'Verified') THEN [Verified] END DESC,
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'Status') THEN [Status] END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'Status') THEN [Status] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'DaysToExpiration') THEN [DaysToExpiration] END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'DaysToExpiration') THEN [DaysToExpiration] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'RevNumber') THEN [RevNumber] END ASC,
@@ -335,6 +342,8 @@ BEGIN
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LEVEL9') THEN [Level9] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LEVEL10') THEN [Level10] END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LEVEL10') THEN [Level10] END DESC
+			OFFSET @RecordFrom ROWS 
+   			FETCH NEXT @PageSize ROWS ONLY
 
 	 END
    

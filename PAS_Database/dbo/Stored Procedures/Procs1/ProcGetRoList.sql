@@ -232,14 +232,16 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='PartNumberType')  THEN PartNumberType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumberType')  THEN PartNumberType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC
+			CASE WHEN (@SortOrder=1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -345,14 +347,16 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='PartNumberType')  THEN PartNumberType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumberType')  THEN PartNumberType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,	
-			CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC
+			CASE WHEN (@SortOrder=1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END

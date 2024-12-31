@@ -18,6 +18,7 @@ EXEC [GetSubWorkorderReleaseFromData]
    7    23/12/2024  Moin Bloch       Updated (changed CustomerRequestDate AS ReceivedDate)
    8    25/12/2024  Devendra Shekh   Resolved Design Issue while Print form
    9    27/12/2024  Devendra Shekh   Resolved Design Issue while Print form
+   10	31/12/2024  Devendra Shekh   Replaced NA with Empty String for Batchnumber
     
 EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
     
@@ -84,7 +85,7 @@ BEGIN
 			  CASE WHEN ISNULL(wopn.CustomerReference, '') = '' THEN '-'
 				   ELSE wopn.CustomerReference END AS Reference,    
 			  wop.Quantity as Quantity,    
-			  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
+			  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then '' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
 			  wosc.conditionName AS [status],    
 			  '' AS Certifies,     
 			  0 AS approved ,    

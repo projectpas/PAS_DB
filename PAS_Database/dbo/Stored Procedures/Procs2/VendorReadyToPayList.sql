@@ -38,7 +38,7 @@
 	21   23/12/2024   AMIT GHEDIYA      Update to get for IsEnable for next vendor payment.
 	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice
 	23   31/12/2024   AMIT GHEDIYA      Update for  DiscountDate.
-
+	24   01/JAN/2025  RAJESH GAMI       Remove Discount Percentage from the proforma invoice
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -562,12 +562,14 @@ BEGIN
 					(ISNULL(VPD.RemainingAmount,0) + (ISNULL(VPD.InvoiceTotal,0) - 0 - ISNULL(VPD.PaymentMade,0) - ISNULL(VPD.RemainingAmount,0))) AS AmountDue,  
                     ISNULL(VPD.PaymentMade,0) AS PaidAmount,  
                     ISNULL(ctm.NetDays,0) AS NetDays,
-					ISNULL(p.[PercentValue],0) AS [Percentage],   
+					0 AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
-					DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) 
-				   ELSE '' END AS DiscountDate,
-				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				 --  CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					--DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) 
+				 --  ELSE '' END AS DiscountDate,
+					'' DiscountDate,
+				   --(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				   0 AS DiscountAvailable, 
 				   0 'DiscountToken',
 				   VPD.StatusId,
 				   VPD.[Status],

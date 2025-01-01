@@ -1,9 +1,7 @@
 ﻿
-/************************************************************************/
-
-CREATE  VIEW [dbo].[View_VendorProformaInvoiceHeaderStatus]
+CREATE   VIEW [dbo].[View_VendorProformaInvoiceHeaderStatus]
 AS
-	SELECT [VendorProformaInvoiceHeaderStatusId]
+	SELECT TOP 100 [VendorProformaInvoiceHeaderStatusId]
           ,[Description]
           ,[MasterCompanyId]
           ,[CreatedBy]
@@ -13,4 +11,4 @@ AS
           ,[IsActive]
           ,[IsDeleted]
       FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) 
-	 WHERE [Description] NOT IN ('Pending','Fulfilling','Closed')
+	  WHERE [Description] NOT IN ('Pending','Fulfilling') ORDER BY VendorProformaInvoiceHeaderStatusId

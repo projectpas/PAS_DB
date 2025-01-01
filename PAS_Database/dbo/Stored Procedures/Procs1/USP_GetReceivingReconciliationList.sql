@@ -13,6 +13,7 @@
 	1                  unknown
 	2    09-05-2024    Moin Bloch   added MasterCompanyId Wise Data
 	3    27-12-2024    AMIT GHEDIYA added COntrolNumber
+	4    01-Dec-2025   RAJESH GAMI  Add the logic for invoice total,(If vendor proforma is there then add the amount with invoice total)
 **************************************************************/  
 -- =============================================
 -- exec USP_GetReceivingReconciliationList 40,1,'ReceivingReconciliationId',-1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL
@@ -91,7 +92,7 @@ BEGIN
 							,RRH.[OpenDate]
 							,RRH.[OriginalTotal]
 							,RRH.[RRTotal]
-							,RRH.[InvoiceTotal]
+							,ISNULL(RRH.[InvoiceTotal],0) + ISNULL(RRH.VendorProformaAmount,0)  AS [InvoiceTotal]
 							,RRH.[DIfferenceAmount]
 							,RRH.[TotalAdjustAmount]
 							,RRH.[MasterCompanyId]

@@ -11,7 +11,7 @@
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  -------------------------------                
     1    18/05/2023   Satish Gohil   Count Showing issue fixed    
-	2    01/01/2025   Hemant Saliya  Verify the count AND correct the SP    
+	2    01/01/2025   Hemant Saliya  Removed MS Employee USer Role Join    
 **************************************************************/     
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
@@ -73,6 +73,36 @@ BEGIN
     BEGIN      
      SET @Status = null      
     END      
+
+		IF OBJECT_ID(N'tempdb..#tmpPOEmpUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpPOEmpUserRole
+		END
+
+		SELECT * INTO #tmpPOEmpUserRole FROM (SELECT DISTINCT
+			MSD.ReferenceID,
+			RMS.EntityStructureId
+		FROM dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK)
+		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) 
+			ON MSD.EntityMsId = RMS.EntityStructureId
+		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) 
+			ON EUR.RoleId = RMS.RoleId
+		WHERE MSD.ModuleID = @POModuleId AND EUR.EmployeeId = @EmployeeId) AS poUserRole
+
+		IF OBJECT_ID(N'tempdb..#tmpROEmpUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpROEmpUserRole
+		END
+
+		SELECT * INTO #tmpROEmpUserRole FROM (SELECT DISTINCT
+			MSD.ReferenceID,
+			RMS.EntityStructureId
+		FROM dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK)
+		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) 
+			ON MSD.EntityMsId = RMS.EntityStructureId
+		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) 
+			ON EUR.RoleId = RMS.RoleId
+		WHERE MSD.ModuleID = @ROModuleId AND EUR.EmployeeId = @EmployeeId) AS roUserRole
       
 		;With Result AS(      
 		SELECT 'PO' AS 'Module', POP.PurchaseOrderPartRecordId AS 'RefId', PO.PurchaseOrderId AS 'POROId', PO.PurchaseOrderNumber AS 'PORO',     
@@ -86,9 +116,10 @@ BEGIN
 				PO.NeedByDate AS 'PromisedDate', POP.EstDeliveryDate AS 'EstRecdDate', PO.Status       
 		FROM PurchaseOrder PO WITH (NOLOCK)      
 			 LEFT JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND POP.isParent=1      
-			 INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = Po.PurchaseOrderId      
-			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
-			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
+			 --INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = Po.PurchaseOrderId      
+			 --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
+			 --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId     
+			 INNER JOIN #tmpPOEmpUserRole DR ON DR.ReferenceID = Po.PurchaseOrderId
 			 LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON POP.SalesOrderId = SO.SalesOrderId      
 			 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON POP.WorkOrderId = WO.WorkOrderId      
 			 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON POP.RepairOrderId = RO.RepairOrderId      
@@ -119,9 +150,11 @@ BEGIN
 			RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo,'','', RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status 
 		FROM  DBO.RepairOrder RO WITH (NOLOCK)      
 			LEFT JOIN DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent=1      
-			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
+			--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId      
+			--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId      
+			--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
+			INNER JOIN #tmpROEmpUserRole DR ON DR.ReferenceID = RO.RepairOrderId 
+
 		WHERE ROP.QuantityBackOrdered > 0      
 			AND (RO.IsDeleted = @IsDeleted) AND (@StatusID is null or RO.StatusId = @StatusID)      
 			AND RO.MasterCompanyId = @MasterCompanyId),      

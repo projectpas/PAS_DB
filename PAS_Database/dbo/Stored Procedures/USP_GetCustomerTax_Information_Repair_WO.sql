@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/23/2024   Moin Bloch    Created
+	2    01/01/2025   Moin Bloch    Updated Set ShipToCustomerId For Billing Tax 
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_WO] 4111,3604,77,1
 **************************************************************/
@@ -54,7 +55,7 @@ BEGIN
 		INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])				 			
 							 SELECT WOS.[OriginSiteId],
 									WOS.[ShipToSiteId],
-	  									@CustomerId,
+	  								WOS.[ShipToCustomerId],
 										@WorkOrderId,
 										@WorkOrderPartId
 									 FROM [dbo].[WorkOrderShipping] WOS WITH(NOLOCK)  

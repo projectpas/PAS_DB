@@ -11,7 +11,7 @@
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  -------------------------------                
     1    18/05/2023   Satish Gohil   Count Showing issue fixed    
-	2    18/05/2023   Hemant Saliya  Verify the count AND correct the SP    
+	2    01/01/2025   Hemant Saliya  Verify the count AND correct the SP    
 **************************************************************/     
       
 -- EXEC [dbo].[SearchPODashboardData] 1, 10, null, 1, 1      
@@ -171,7 +171,7 @@ BEGIN
     ORDER BY        
     CASE WHEN (@SortOrder=1 AND @SortColumn='MODULE')  THEN Module END ASC,      
     CASE WHEN (@SortOrder=1 AND @SortColumn='REFID')  THEN RefId END ASC,      
-    CASE WHEN (@SortOrder=1 AND @SortColumn='PORO')  THEN PORO END ASC,      
+    CASE WHEN (@SortOrder=1 AND @SortColumn='PORO')  THEN POROId END ASC,      
     CASE WHEN (@SortOrder=1 AND @SortColumn='OPENDATE')  THEN OpenDate END ASC,      
     CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,      
     CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,      
@@ -188,7 +188,7 @@ BEGIN
       
     CASE WHEN (@SortOrder=-1 AND @SortColumn='MODULE')  THEN Module END DESC,      
     CASE WHEN (@SortOrder=-1 AND @SortColumn='REFID')  THEN RefId END DESC,      
-    CASE WHEN (@SortOrder=-1 AND @SortColumn='PORO')  THEN PORO END DESC,      
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='PORO')  THEN POROId END DESC,      
     CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN OpenDate END DESC,      
     CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,      
     CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,      

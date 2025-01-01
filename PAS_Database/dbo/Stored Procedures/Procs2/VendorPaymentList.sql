@@ -39,10 +39,10 @@
 	23   27-12-2024   RAJESH GAMI     Added Vendor Proforma Invoice Functionality
 	24   31-12-2024   AMIT GHEDIYA    update get account name & get creditmemo amount & PAyment method name.
 	25   01-01-2025   AMIT GHEDIYA    Update statusid for vendor perfoma in print check.
-
+	26   01-01-2025   RAJESH GAMI     Update logic for the get record for print check.
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
-CREATE   PROCEDURE [dbo].[VendorPaymentList]  
+CREATE    PROCEDURE [dbo].[VendorPaymentList]  
  -- Add the parameters for the stored procedure here  
 @PageSize int,  
 @PageNumber int,  
@@ -1869,6 +1869,7 @@ BEGIN
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
+		 AND ISNULL(VRTPD.ReceivingReconciliationId,0) >0 
 		 AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
@@ -2086,7 +2087,7 @@ BEGIN
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
-		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
+		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.VendorProformaInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
@@ -2244,13 +2245,13 @@ BEGIN
 		 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = VRTPDH.LegalEntityId
 		 OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VRTPD.ReadyToPayId =  SS.ReadyToPayId AND VRTPD.VendorPaymentDetailsId = SS.VendorPaymentDetailsId AND  VRTPD.VendorId = SS.VendorId AND  VRTPD.PaymentMethodId = SS.PaymentMethodId) AS SRT
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
-	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
-		-- AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+				 --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+					-- AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
-		 --AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0	
+			--AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0	
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
-		-- AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	
-		 -- AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
+				-- AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	
+				-- AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
 		 AND (CASE WHEN VRTPD.PaymentMethodId = @Check THEN CASE WHEN VRTPD.IsCheckPrinted = 1 THEN VRTPD.IsCheckPrinted END END = 1 OR  VRTPD.PaymentMethodId <> @Check )
 
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,

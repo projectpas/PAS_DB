@@ -11,6 +11,7 @@
  ** --   -----------   -------				--------------------------------          
     1    19-Dec-2024   RAJESH GAMI			Created
     2    02-Jan-2024   RAJESH GAMI			Auto Approved the part if part has sales tax. And Resolved issue regarding auto approve, And Commented unwanted code now
+	3    02-Jan-2024   RAJESH GAMI			Sales Tax timout issue resolved
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_SaveProformaInvoicePartsDetails]
 @tbl_VendorProformaInvoicePartDetailsType VendorProformaInvoicePartDetailsType READONLY
@@ -127,7 +128,6 @@ BEGIN
 						BEGIN
 								DECLARE @ApprovalProcessId INT = (Select TOP 1 ApprovalProcessId from dbo.ApprovalProcess WITH(NOLOCK) Where Name = 'Approved')
 								DECLARE @ApprovedStatusId INT = (Select TOP 1 ApprovalStatusId from dbo.ApprovalStatus WITH(NOLOCK) Where Name = 'Approved'),@totalTaxApprovalPartCount INT = 0;
-								DECLARE @totalTaxPartCount INT = (SELECT COUNT(1) FROM dbo.VendorProformaInvoicePartDetails AP WITH(NOLOCK) WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId and isnull(TaxTypeId,0) = 0)
 								MERGE INTO DBO.VendorProformaInvoiceApproval AS Target
 									USING (
 										SELECT
@@ -137,9 +137,9 @@ BEGIN
 											GETUTCDATE() AS CurrentDate, 
 											MasterCompanyId
 										FROM VendorProformaInvoicePartDetails
-										WHERE TaxTypeId > 0
+										WHERE TaxTypeId > 0 AND [VendorProformaInvoiceId] = @VendorProformaInvoiceId
 									) AS Source
-									ON Target.VendorProformaInvoicePartDetailsId = Source.VendorProformaInvoicePartDetailsId
+									ON Target.VendorProformaInvoicePartDetailsId = Source.VendorProformaInvoicePartDetailsId 
 									WHEN NOT MATCHED BY TARGET THEN
 									INSERT (
 										VendorProformaInvoiceId,

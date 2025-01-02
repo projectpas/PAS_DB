@@ -195,7 +195,7 @@ BEGIN
 			 IM.partnumber,
 			 IM.PartDescription ,
 			 PUB.Description ,
-			 CASE WHEN PUB.VerifiedDate IS NOT NULL AND CAST(PUB.VerifiedDate AS DATE) < CAST(GETUTCDATE() AS DATE) THEN 'YES' ELSE 'NO' END 'Verified',
+			 CASE WHEN PUB.VerifiedDate IS NOT NULL AND CAST(PUB.VerifiedDate AS DATE) <= CAST(GETUTCDATE() AS DATE) THEN 'YES' ELSE 'NO' END 'Verified',
 			 STS.RedIndicator,
 			 STS.YellowIndicator,
 			 STS.GreenIndicator,

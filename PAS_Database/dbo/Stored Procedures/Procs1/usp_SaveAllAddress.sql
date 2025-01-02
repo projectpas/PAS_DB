@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/23/2020   Happy Chandigara  Created
 	2    13-09-2024   Shrey Chandegara  Add referenceid and moduleid.
+	3    12/31/2024   Sahdev Saliya		Saving Address Details as primary for customer if ship/bill details are missing
      
  EXECUTE [USP_GetUserDetailByUserTypePOAddress] 9, '',1,'50','313'
 **************************************************************/ 
@@ -181,6 +182,11 @@ SET NOCOUNT ON
 			ELSE
 			BEGIN
 	
+				IF NOT EXISTS(SELECT TOP 1 CustomerDomensticShippingId FROM [dbo].[CustomerDomensticShipping] WHERE CustomerId = @UserId AND IsPrimary = 1)
+				BEGIN
+					SET @IsPrimary = 1;
+				END
+
 				INSERT INTO [dbo].[CustomerDomensticShipping]
 					   (CustomerId,[AddressId],[SiteName]
 					   ,[IsPrimary],[MasterCompanyId],[CreatedBy]
@@ -213,7 +219,12 @@ SET NOCOUNT ON
 			END
 			ELSE
 			BEGIN
-		
+
+				IF NOT EXISTS(SELECT TOP 1 VendorShippingAddressId FROM [dbo].VendorShippingAddress WHERE VendorId = @UserId AND IsPrimary = 1)
+				BEGIN
+					SET @IsPrimary = 1;
+				END
+	
 				INSERT INTO [dbo].VendorShippingAddress
 					   (VendorId,[AddressId],[SiteName]
 					   ,[IsPrimary],[MasterCompanyId],[CreatedBy]
@@ -303,6 +314,18 @@ SET NOCOUNT ON
 
 		 IF(@UserType = 'Customer')
 		 BEGIN 
+
+			DECLARE @CustomerBillingAddressId BIGINT = 0;
+
+			IF NOT EXISTS(SELECT TOP 1 CustomerBillingAddressId FROM [dbo].CustomerBillingAddress WHERE CustomerId = @UserId AND IsPrimary = 1)
+			BEGIN
+				SET @IsPrimary = 1;				
+			END
+			ELSE
+			BEGIN
+				SET @CustomerBillingAddressId = (SELECT TOP 1 CustomerBillingAddressId FROM [dbo].CustomerBillingAddress WHERE CustomerId = @UserId AND IsPrimary = 1)
+			END
+
  			UPDATE [dbo].CustomerBillingAddress
 				  SET IsPrimary = 0
 					 wHERE CustomerId = @UserId and IsPrimary = 1
@@ -314,7 +337,7 @@ SET NOCOUNT ON
 				[AddressId] = @AddressID,
 				[SiteName] = @SiteName,
 				[MasterCompanyId] = @MasterCompanyId,
-				[UpdatedBy] = @UpdatedBy,
+				[UpdatedBy] = @UpdatedBy, 
 				[UpdatedDate] = GETDATE(),
 				Attention=@Attention
 				WHERE CustomerBillingAddressId = @SiteId
@@ -332,6 +355,13 @@ SET NOCOUNT ON
 						@UpdatedBy,GETDATE(),GETDATE(),
 						1,0,@Attention)	
 					SET @IntertedSiteId=SCOPE_IDENTITY()		
+			END
+
+			IF NOT EXISTS(SELECT TOP 1 CustomerBillingAddressId FROM [dbo].CustomerBillingAddress WHERE CustomerId = @UserId AND IsPrimary = 1) AND ISNULL(@CustomerBillingAddressId,0) > 0
+			BEGIN
+				UPDATE [dbo].CustomerBillingAddress
+				SET IsPrimary = 1
+				WHERE CustomerBillingAddressId = @CustomerBillingAddressId
 			END
 		  END
 
@@ -354,6 +384,11 @@ SET NOCOUNT ON
 			END
 			ELSE
 			BEGIN
+
+			    IF NOT EXISTS(SELECT TOP 1 VendorBillingAddressId FROM [dbo].VendorBillingAddress WHERE VendorId = @UserId AND IsPrimary = 1)
+				BEGIN
+					SET @IsPrimary = 1;
+				END
 
 				INSERT INTO [dbo].VendorBillingAddress
 					   (VendorId,[AddressId],[SiteName]

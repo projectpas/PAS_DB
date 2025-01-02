@@ -28,8 +28,8 @@ BEGIN
  SET NOCOUNT ON;              
              
   BEGIN TRY              
-  BEGIN TRANSACTION              
-   BEGIN            
+  --BEGIN TRANSACTION              
+  -- BEGIN            
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
 		DECLARE @TravelerName AS varchar(250) = 0;            
@@ -186,14 +186,14 @@ BEGIN
 		LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
 		LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 		WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId              
-   END              
-  COMMIT  TRANSACTION              
+   --END              
+  --COMMIT  TRANSACTION              
              
   END TRY                  
   BEGIN CATCH                    
    IF @@trancount > 0              
     PRINT 'ROLLBACK'              
-    ROLLBACK TRAN;              
+    --ROLLBACK TRAN;              
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()              
              
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------              

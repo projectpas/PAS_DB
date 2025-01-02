@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [VendorReadyToPayList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used VendorReadyToPayList 
@@ -37,6 +36,9 @@
 	19   08/04/2023   Devendra Shekh	added conditon for amount for SelectedforPayment
 	20   08/07/2024   Abhishek Jirawla	Removed Miscellaneous flag from CustomerCreditPaymentDetails select
 	21   23/12/2024   AMIT GHEDIYA      Update to get for IsEnable for next vendor payment.
+	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice
+	23   31/12/2024   AMIT GHEDIYA      Update for  DiscountDate.
+	24   01/JAN/2025  RAJESH GAMI       Remove Discount Percentage from the proforma invoice
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -130,7 +132,8 @@ BEGIN
 		[VendorReadyToPayDetailsTypeId] INT NULL,
 		[NonPOInvoiceId] BIGINT NULL,
 		[CustomerCreditPaymentDetailId] BIGINT NULL,
-		[CreatedDate] DATETIME2 NULL
+		[CreatedDate] DATETIME2 NULL,
+		[VendorProformaInvoiceId] BIGINT NULL,
 		) 
 
 	INSERT #tmpVendorCreditMemoMapping ([VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId])
@@ -190,7 +193,10 @@ BEGIN
 
     SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
-					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS [DueDate],  
+					--DATEADD(RRC.InvoiceDate, ISNULL(ctm.NetDays,0), VPD.DueDate) AS [DueDate],  
+					CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),RRC.InvoiceDate)
+					  ELSE NULL END	AS 'DueDate',
                     --(VPD.DueDate + ISNULL(ctm.NetDays,0)) AS DueDate,  
 					VPD.VendorId,
 					VPD.VendorName,
@@ -209,8 +215,11 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DiscountDate,  
-				   --(VPD.DueDate + ISNULL(ctm.Days,0)) AS DiscountDate,  
+                   
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), RRC.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,  
+
 				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				 --VPD.DiscountToken,  
 				   0 'DiscountToken',
@@ -278,7 +287,10 @@ BEGIN
 					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 	    SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
-					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
+					CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),CM.InvoiceDate)
+					  ELSE NULL END	AS 'DueDate',
+					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
 					VPD.VendorId,
 					VPD.VendorName,
 					VPD.PaymentMethodId,
@@ -295,7 +307,11 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DiscountDate, 
+				   
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), CM.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,
+
 				   --(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				   0 AS DiscountAvailable,
 				   0 'DiscountToken',
@@ -361,7 +377,10 @@ BEGIN
 					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 		SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
-					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
+					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
+					CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),NPH.InvoiceDate)
+					  ELSE NULL END	AS 'DueDate',
                     --(VPD.DueDate + ISNULL(ctm.NetDays,0)) AS DueDate,  
 					VPD.VendorId,
 					VPD.VendorName,
@@ -379,8 +398,9 @@ BEGIN
                     ISNULL(ctm.NetDays,0) AS NetDays,
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-                   DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DiscountDate,
-				   --(VPD.DueDate + ISNULL(ctm.Days,0)) AS DiscountDate,  
+				   CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) 
+				   ELSE '' END AS DiscountDate,
 				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				   0 'DiscountToken',
 				   VPD.StatusId,
@@ -465,7 +485,9 @@ BEGIN
 				ISNULL(ctm.NetDays,0) AS NetDays,
 				ISNULL(p.[PercentValue],0) AS [Percentage],   
 				CASE WHEN DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-				DATEADD(Day, ISNULL(ctm.NetDays,0), CCPD.ProcessedDate) AS DiscountDate,  
+				 CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					DATEADD(Day, ISNULL(ctm.[Days],0), CCPD.ProcessedDate) 
+				   ELSE '' END AS DiscountDate,
 				--(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 
 					 --THEN CAST((CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN CCPD.RemainingAmount ELSE ISNULL(VPD.InvoiceTotal,0) END * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
 				0 AS DiscountAvailable,  
@@ -513,6 +535,97 @@ BEGIN
 				--AND  CCPD.IsMiscellaneous = 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND CP.LegalEntityId = @LegalEntityId
+
+/****************************START  Vendor Proforma Invoice*********************************/
+			INSERT INTO #TempVendorReadyToPayList(VendorPaymentDetailsId, ReadyToPayId, DueDate, VendorId, VendorName, PaymentMethodId, PaymentMethodName, ReceivingReconciliationId
+					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
+					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
+					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, VendorProformaInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+			SELECT DISTINCT VPD.VendorPaymentDetailsId,
+			        VPD.ReadyToPayId,  
+					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
+					CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),NPH.InvoiceDate)
+					  ELSE NULL END	AS 'DueDate',
+					VPD.VendorId,
+					VPD.VendorName,
+					VPD.PaymentMethodId,
+					VPD.PaymentMethodName,  
+                    VPD.ReceivingReconciliationId,
+					VPD.InvoiceNum,
+					VPD.CurrencyId,
+					VPD.CurrencyName,
+					VPD.FXRate,  
+					ISNULL(VPD.InvoiceTotal,0) AS OriginalAmount,
+					0 AS PaymentMade,  
+					(ISNULL(VPD.RemainingAmount,0) + (ISNULL(VPD.InvoiceTotal,0) - 0 - ISNULL(VPD.PaymentMade,0) - ISNULL(VPD.RemainingAmount,0))) AS AmountDue,  
+                    ISNULL(VPD.PaymentMade,0) AS PaidAmount,  
+                    ISNULL(ctm.NetDays,0) AS NetDays,
+					0 AS [Percentage],   
+                    CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
+				 --  CASE WHEN ISNULL(ctm.[Days],0) > 0 THEN
+					--DATEADD(Day, ISNULL(ctm.[Days],0), NPH.InvoiceDate) 
+				 --  ELSE '' END AS DiscountDate,
+					'' DiscountDate,
+				   --(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				   0 AS DiscountAvailable, 
+				   0 'DiscountToken',
+				   VPD.StatusId,
+				   VPD.[Status],
+				   VPD.MasterCompanyId,
+				   0 'ReadyToPaymentMade',
+				   DefaultPaymentMethod = (SELECT TOP 1 VP.DefaultPaymentMethod FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				   IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN CheckPayment ch WITH(NOLOCK) on ch.CheckPaymentId=vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted = 0),
+				   IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				   IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				   IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+	               IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				   IsCreditMemo = 0,
+				   SelectedforPayment = 
+				   (SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
+					FROM [dbo].[VendorCreditMemo] VCM 
+						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
+						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
+						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
+					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
+					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
+						WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
+					IsCustomerCreditMemo = 0,
+					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
+					VendorReadyToPayDetailsTypeId = 5,
+					NPH.VendorProformaInvoiceId,
+					[CustomerCreditPaymentDetailId] = 0,
+					VPD.CreatedDate
+			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
+				 INNER JOIN [dbo].VendorProformaInvoiceHeader NPH WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = NPH.VendorProformaInvoiceId	
+				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = NPH.ManagementStructureId
+				 JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+				 JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId  
+				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.VendorId = V.VendorId  
+				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
+				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  				 
+		   WHERE [VPD].[MasterCompanyId] = @MasterCompanyId 
+		        AND [VPD].[RemainingAmount] > 0
+				AND ISNULL(VPD.VendorProformaInvoiceId,0) <> 0
+				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
+				AND LE.LegalEntityId = @LegalEntityId
+
+				UPDATE  #TempVendorReadyToPayList 
+				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
+					DiscountToken = ISNULL(discNewData.DiscountToken,0), ReadyToPaymentMade = ISNULL(discNewData.ReadyToPaymentMade,0)
+				FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken, VD.InvoiceNum
+							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
+							    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = VD.VendorProformaInvoiceId	
+							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
+				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 3 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
+
+
+		/****************************END  Vendor Proforma Invoice*********************************/
+
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),

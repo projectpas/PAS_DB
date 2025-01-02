@@ -22,6 +22,9 @@
     [UpdatedDate]                         DATETIME2 (7)   NOT NULL,
     [IsActive]                            BIT             NOT NULL,
     [IsDeleted]                           BIT             NOT NULL,
+    [NetSaleAmountPerUnit]                DECIMAL (18, 4) NULL,
     CONSTRAINT [PK_SalesOrderQuoteStockLineCostAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteStockLineCostId] ASC)
 );
+
+
 

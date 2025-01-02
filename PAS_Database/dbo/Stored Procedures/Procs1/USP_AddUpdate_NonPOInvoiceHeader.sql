@@ -21,7 +21,8 @@
     5    11-OCT-2023	Devendra Shekh			added new columns for insert
     6    26-OCT-2023	Devendra Shekh			added new columns for insert
 	7    11-JAN-2024	Moin Bloch   			added new columns ReferenceId,ReferenceModuleId
-	7    16-JAN-2024	Moin Bloch   			added Updated by on Update Header
+	8    16-JAN-2024	Moin Bloch   			added Updated by on Update Header
+	9    27-DEC-2024    AMIT GHEDIYA			Modify(Added ControlNumber Field)
   
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]  
@@ -58,11 +59,15 @@ BEGIN
 
 	DECLARE @ModuleID INT = 0;
 	DECLARE @IdCodeTypeId BIGINT;
+	DECLARE @IdCNCodeTypeId BIGINT;
 	DECLARE @CurrentNPONumber AS BIGINT;
+	DECLARE @CurrentNPOCTRLNumber AS BIGINT;
 	DECLARE @NPONumber AS VARCHAR(50);
+	DECLARE @NPOCTRLNumber AS VARCHAR(50);
 
 	SET @ModuleID = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'NonPOInvoiceHeader')
 	SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'NonPOInvoice';
+	SELECT @IdCNCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'NonPOInvoiceCTRL';
 
 	IF OBJECT_ID(N'tempdb..#tmpReturnNonPOInvoiceId') IS NOT NULL    
      BEGIN    
@@ -108,17 +113,54 @@ BEGIN
 							(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
 		END
 		/*****************End Prefixes*******************/	
+
+		/*************** ControlNumber Prefixes ***************/		   			
+		IF OBJECT_ID(N'tempdb..#tmpCNCodePrefixes') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpCNCodePrefixes
+		END
+	
+		CREATE TABLE #tmpCNCodePrefixes
+		(
+				ID BIGINT NOT NULL IDENTITY, 
+				CodePrefixId BIGINT NULL,
+				CodeTypeId BIGINT NULL,
+				CurrentNumber BIGINT NULL,
+				CodePrefix VARCHAR(50) NULL,
+				CodeSufix VARCHAR(50) NULL,
+				StartsFrom BIGINT NULL,
+		)
+
+		INSERT INTO #tmpCNCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+		SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+		FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+		WHERE CT.CodeTypeId = @IdCNCodeTypeId
+		AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+
+		IF (EXISTS (SELECT 1 FROM #tmpCNCodePrefixes WHERE CodeTypeId = @IdCNCodeTypeId))
+		BEGIN
+			SELECT @CurrentNPOCTRLNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+			FROM #tmpCNCodePrefixes WHERE CodeTypeId = @IdCNCodeTypeId
+					
+			SET @NPOCTRLNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+							@CurrentNPOCTRLNumber,
+							(SELECT CodePrefix FROM #tmpCNCodePrefixes WHERE CodeTypeId = @IdCNCodeTypeId),
+							(SELECT CodeSufix FROM #tmpCNCodePrefixes WHERE CodeTypeId = @IdCNCodeTypeId)))
+		END
+		/*****************End ControlNumber Prefixes*******************/	
   
 		IF(@CurrentNPONumber!='' OR @CurrentNPONumber!=NULL)
 		BEGIN
 			INSERT INTO [dbo].[NonPOInvoiceHeader]([VendorId] ,[VendorName] ,[VendorCode] ,[PaymentTermsId] ,[StatusId] ,[ManagementStructureId], [MasterCompanyId],  
 								[CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PaymentMethodId], [EmployeeId], [IsEnforceNonPoApproval], [NPONumber]
-								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId] )  
+								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId],[ControlNumber] )  
 			VALUES	(@VendorId , @VendorName, @VendorCode, @PaymentTermsId, @StatusId, @ManagementStructureId, @MasterCompanyId,  
 					 @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber,
-					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId)  
+					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId,@NPOCTRLNumber)  
 
 			UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNPONumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
+
+			UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNPOCTRLNumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCNCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 		END
   
 		--SELECT @NonPOInvoiceId = MAX(NonPOInvoiceId) FROM [NonPOInvoiceHeader] WHERE [MasterCompanyId] = @MasterCompanyId

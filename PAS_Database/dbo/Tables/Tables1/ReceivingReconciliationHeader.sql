@@ -26,8 +26,14 @@
     [IsInvoiceOnHold]               BIT             NULL,
     [ManagementStructureId]         BIGINT          NULL,
     [LegalEntityId]                 BIGINT          NULL,
+    [ControlNumber]                 VARCHAR (150)   NULL,
+    [VendorProformaAmount]          DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeader] PRIMARY KEY CLUSTERED ([ReceivingReconciliationId] ASC)
 );
+
+
+
+
 
 
 

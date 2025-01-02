@@ -17,10 +17,11 @@
     1    08/07/2023   Amit Ghediya    Created
 	2    08/14/2023   Amit Ghediya    Updated Month calculation logic.
 	3    04/23/2024   Abhishek Jirawla Instead of calculating here we are getting the value from Asset Depr History table.
+	4	 12/31/2023   Abhishek Jirawla Adding IsNull to nullable fields
 
 EXEC [dbo].[USP_Asset_GetSaleorwriteoffById]  438
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_Asset_GetSaleorwriteoffById] 
+CREATE PROCEDURE [dbo].[USP_Asset_GetSaleorwriteoffById] 
 (
 	@AssetInventoryId BIGINT = NULL
 )
@@ -43,7 +44,7 @@ BEGIN
 				@DeprFrequency = AI.DepreciationFrequencyName ,@AssetCreateDate = AI.EntryDate,
 				@AssetLife = ISNULL(AI.AssetLife,0),
 				@ResidualPercentage = ISNULL(AI.ResidualPercentage,0),
-				@TotalInstallCost = ISNULL(SUM(UnitCost + Freight + Insurance + Taxes + InstallationCost),0),
+				@TotalInstallCost = ISNULL(SUM(ISNULL(UnitCost, 0) + ISNULL(Freight, 0) + ISNULL(Insurance, 0) + ISNULL(Taxes, 0) + ISNULL(InstallationCost, 0)),0),
 				@CurrencyCode = CU.Code,
 				@AD = ISNULL(ADH.AccumlatedDepr, 0),
 				@NBV = ISNULL(ADH.NetBookValue, @TotalInstallCost)

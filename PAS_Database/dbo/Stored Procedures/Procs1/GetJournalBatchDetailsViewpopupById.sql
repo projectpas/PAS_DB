@@ -52,6 +52,7 @@
  36	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
  37	  01/08/2024  Moin Bloch		     added IsReversedJE Flag
  38	  13/12/2024  Moin Bloch		     added Cycle Count Module
+ 39	  26/Dec/2024 Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -1855,6 +1856,79 @@ BEGIN
 					LEFT JOIN [dbo].[BatchStatus] BTS WITH(NOLOCK) ON BTD.[StatusId] = BTS.[Id]
 				 WHERE JBD.[JournalBatchDetailId] = @JournalBatchDetailId AND JBD.[IsDeleted] = @IsDeleted  
 				 ORDER BY DS.[DisplayNumber] ASC;  
+			END
+			IF(UPPER(@Module) = UPPER('VPI'))
+			BEGIN
+				DECLARE @VendorProformaModuleId BIGINT = 0, @VendorProformaInvoiceId BIGINT = 0, @ProformaCurrencyId BIGINT = 0 ;
+				SELECT @VendorProformaModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='VendorProformaInvoice';
+				SET @VendorProformaInvoiceId = (SELECT TOP 1 VendorProformaInvoiceId FROM [dbo].VendorProformaInvoiceBatchDetails WITH(NOLOCK) WHERE JournalBatchDetailId = @JournalBatchDetailId)
+
+				SELECT JBD.CommonJournalBatchDetailId
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName]  
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,NPD.VendorProformaInvoiceId AS 'ReferenceId'
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]  
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GL.AllowManualJE  
+					  ,JBD.LastMSLevel  
+					  ,JBD.AllMSlevels  
+					  ,JBD.IsManualEntry  
+					  ,jbd.DistributionSetupId  
+					  ,jbd.DistributionName  
+					  ,BD.[JournalTypeNumber]  
+					  ,BD.[CurrentNumber] 
+					  ,le.CompanyName AS LegalEntityName  
+					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
+					  ,UPPER(NPOMSD.Level1Name) AS level1    
+					  ,UPPER(NPOMSD.Level2Name) AS level2   
+					  ,UPPER(NPOMSD.Level3Name) AS level3   
+					  ,UPPER(NPOMSD.Level4Name) AS level4   
+					  ,UPPER(NPOMSD.Level5Name) AS level5   
+					  ,UPPER(NPOMSD.Level6Name) AS level6   
+					  ,UPPER(NPOMSD.Level7Name) AS level7   
+					  ,UPPER(NPOMSD.Level8Name) AS level8   
+					  ,UPPER(NPOMSD.Level9Name) AS level9   
+					  ,UPPER(NPOMSD.Level10Name) AS level10   
+					  ,CU.[Code] AS 'Currency'
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated,
+					  VPI.VendorProformaInvoiceNo AS ReferenceName
+				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
+					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
+					INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
+					LEFT JOIN [dbo].VendorProformaInvoiceBatchDetails NPD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = NPD.CommonJournalBatchDetailId  
+					LEFT JOIN [dbo].[NonPOInvoiceManagementStructureDetails] NPOMSD WITH (NOLOCK) ON NPOMSD.[ModuleID] = @VendorProformaModuleId AND  NPOMSD.[ReferenceID] = NPD.VendorProformaInvoiceId
+					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
+					LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
+					LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] AMS WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = AMS.[ReferenceId] AND JBD.[ManagementStructureId] = JBD.ManagementStructureId
+					LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON AMS.[Level1Id] = msl.[ID]
+					LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId 
+					LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
+					LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = @ProformaCurrencyId
+					LEFT JOIN dbo.VendorProformaInvoiceHeader VPI WITH(NOLOCK) ON NPD.VendorProformaInvoiceId = VPI.VendorProformaInvoiceId
+				WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = @IsDeleted  
+				ORDER BY DS.DisplayNumber ASC;  
 			END
     END TRY  
  BEGIN CATCH        

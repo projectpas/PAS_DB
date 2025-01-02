@@ -27,16 +27,20 @@
     CONSTRAINT [PK_CheckInCheckOutWorkOrderAsset] PRIMARY KEY CLUSTERED ([CheckInCheckOutWorkOrderAssetId] ASC),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId]),
+    CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_AvailableStatus] FOREIGN KEY ([InventoryStatusId]) REFERENCES [dbo].[AssetAvailableStatus] ([AssetAvailableStatusId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_CheckInBy] FOREIGN KEY ([CheckInById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_CheckInEmp] FOREIGN KEY ([CheckInEmpId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_CheckOutBy] FOREIGN KEY ([CheckOutById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_CheckOutEmp] FOREIGN KEY ([CheckOutEmpId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_InventoryStatus] FOREIGN KEY ([InventoryStatusId]) REFERENCES [dbo].[AssetInventoryStatus] ([AssetInventoryStatusId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_PartNo] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_CheckInCheckOutWorkOrderAsset_WorkOrderAsset] FOREIGN KEY ([WorkOrderAssetId]) REFERENCES [dbo].[WorkOrderAssets] ([WorkOrderAssetId])
 );
+
+
+
+
 
 
 GO

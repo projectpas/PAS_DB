@@ -22,6 +22,7 @@
 	5    12/12/2024   Moin Bloch        Updated For Get FormTypeId
 	6    12/16/2024   Moin Bloch        Updated For Get FormType Name
 	7    12/23/2024   Moin Bloch        Updated For Get Batchnumber from SubWorkOrderPartNumber
+	8    12/31/2024   Devendra Shekh	Updated For Get FormType and WOFormType Name
      
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
@@ -56,7 +57,7 @@ BEGIN
 					  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS [Description]
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' AND UPPER(wro.[Batchnumber]) != 'NA' --ISNULL(UPPER(wro.[Batchnumber]), '') != ''
+					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' AND UPPER(wro.[Batchnumber]) != '' --ISNULL(UPPER(wro.[Batchnumber]), '') != ''
 					        THEN UPPER(wro.[Batchnumber]) 
 							ELSE 
 								CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 
@@ -95,11 +96,11 @@ BEGIN
 					  ,wopn.ReceivedDate
 					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
-					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
+					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
 					  ,@ManagementStructureId AS  ManagementStructureId 
 					  ,wro.[EmployeeId]
 					  ,wro.[FormTypeId]
-					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
+					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[SubWorkOrder] swo  WITH(NOLOCK) ON swo.SubWorkOrderId = wop.SubWorkOrderId   

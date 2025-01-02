@@ -20,8 +20,9 @@
 	3    08/18/2023   Amit Ghediya		Update Calculation logic.
 	4    08/18/2023   Hemnat Saliya		Corrected Balance issues
 	5    10/19/2023   Vishal Suthar		Fixed Backorder qty calculation
+	6    12/31/2024   Hemant Saliya		Update for Modify Work Order cost analysis Summary
 
-EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3123, 3652     
+EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 4247, 4702     
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
@@ -39,7 +40,13 @@ BEGIN
 				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceCost DECIMAL(18,2),
 				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2),@IsSubWO BIT = 0;
 		DECLARE @exchangeProvisionId int = (SELECT TOP 1 ProvisionId FROM Provision Where Description = 'EXCHANGE')
-		
+
+		DECLARE @POStatusIds VARCHAR(100);
+		DECLARE @ROStatusIds VARCHAR(100);
+
+		SELECT @POStatusIds = STRING_AGG(POStatusId, ',')  FROM [DBO].[POStatus]  WITH(NOLOCK) WHERE Status IN ('CLOSING','CLOSED','CANCELED');  
+		SELECT @ROStatusIds = STRING_AGG(ROStatusId, ',')  FROM [DBO].[ROStatus]  WITH(NOLOCK) WHERE Status IN ('CLOSED','CANCELED');  
+
 		SET @count = 1;
 
 		-- Temp for WOMaterial data
@@ -90,44 +97,76 @@ BEGIN
 		SELECT  DISTINCT @WorkOrderWorkflowId, 
 				WOMS.WorkOrderMaterialsId,
 				WOMS.StocklineId,
-				WOMS.UnitCost,
+				CASE WHEN ISNULL(WOMS.RepairOrderId, 0) > 0 THEN WOMS.UnitCost - SL.RepairOrderUnitCost ELSE WOMS.UnitCost END AS UnitCost,
 				WOMS.ExtendedCost,
 				WOMS.QtyIssued,
 				WOMS.QtyReserved,
-				--ISNULL(POP.QuantityBackOrdered, 0),
 				CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
 					 THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
 					 ELSE ISNULL(POPartReferece.Qty, 0) END,
 				CASE WHEN ISNULL(WOM.UnitCost,0) = 0 THEN POP.UnitCost ELSE WOM.UnitCost END,
 				WOM.POId,
-				WOM.QtyToTurnIn
+				--WOM.QtyToTurnIn
+				CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN WOM.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
 		FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
+			LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON WOMS.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMS.RepairOrderId
+			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOM.POId AND POP.ItemMasterId = WOM.ItemMasterId AND (POP.ConditionId = WOM.ConditionCodeId OR (pop.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOM.ProvisionId = @exchangeProvisionId))
+			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@POStatusIds,',')) 
 			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOM.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 		WHERE WOM.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOM.IsDeleted = 0
+
+		--Select * from #tmpWorkOrderMaterials
 
 		INSERT INTO #tmpWorkOrderMaterialsKit (WorkFlowWorkOrderId, WorkOrderMaterialsId,StocklineId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
 			SELECT DISTINCT @WorkOrderWorkflowId,
 			WOMSK.WorkOrderMaterialsKitId,
 			WOMSK.StocklineId,
-			WOMSK.UnitCost,
+			--WOMSK.UnitCost,
+			CASE WHEN ISNULL(WOMSK.RepairOrderId, 0) > 0 THEN WOMSK.UnitCost - SL.RepairOrderUnitCost ELSE WOMSK.UnitCost END AS UnitCost,
 			WOMSK.ExtendedCost,
 			WOMSK.QtyIssued,
 			WOMSK.QtyReserved,
-			--WOMK.QtyOnBkOrder,
-			--ISNULL(POP.QuantityBackOrdered, 0),
 			CASE WHEN (ISNULL(WOMK.Quantity, 0) - (ISNULL(WOMK.QuantityReserved, 0) + ISNULL(WOMK.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
 				THEN (ISNULL(WOMK.Quantity, 0) - (ISNULL(WOMK.QuantityReserved, 0) + ISNULL(WOMK.QuantityIssued, 0))) 
 				ELSE ISNULL(POPartReferece.Qty, 0) END,
 			CASE WHEN ISNULL(WOMK.UnitCost,0) = 0 THEN POP.UnitCost ELSE WOMK.UnitCost END,
 			WOMK.POId,
-			WOMK.QtyToTurnIn
+			--WOMK.QtyToTurnIn
+			CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN WOMK.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
 		FROM [DBO].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMSK ON WOMK.WorkOrderMaterialsKitId = WOMSK.WorkOrderMaterialsKitId
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOMK.POId AND POP.ItemMasterId = WOMK.ItemMasterId AND POP.ConditionId = WOMK.ConditionCodeId
+			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMSK.StockLineId = SL.StockLineId
+			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@POStatusIds,',')) 
 			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOMK.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 		WHERE WOMK.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOMK.IsDeleted = 0;
+
+		--Handle for remove Duplicate Back Order Qty
+		WITH CTE AS (
+			SELECT 
+				id,
+				WorkOrderMaterialsId,
+				ROW_NUMBER() OVER (PARTITION BY WorkOrderMaterialsId, WorkFlowWorkOrderId ORDER BY id) AS row_num
+				FROM #tmpWorkOrderMaterials WHERE ISNULL(POId, 0) > 0
+		)
+		UPDATE #tmpWorkOrderMaterials
+		SET QtyOnBkOrder = 0
+		WHERE id IN (SELECT id FROM CTE	WHERE row_num > 1 AND CTE.WorkOrderMaterialsId = #tmpWorkOrderMaterials.WorkOrderMaterialsId);
+
+		WITH CTE AS (
+			SELECT 
+				id,
+				WorkOrderMaterialsId,
+				ROW_NUMBER() OVER (PARTITION BY WorkOrderMaterialsId, WorkFlowWorkOrderId ORDER BY id) AS row_num
+				FROM #tmpWorkOrderMaterialsKit WHERE ISNULL(POId, 0) > 0
+		)
+		UPDATE #tmpWorkOrderMaterialsKit
+		SET QtyOnBkOrder = 0
+		WHERE id IN (SELECT id FROM CTE	WHERE row_num > 1 AND CTE.WorkOrderMaterialsId = #tmpWorkOrderMaterialsKit.WorkOrderMaterialsId);
+
+		--Select * from #tmpWorkOrderMaterials
 
 		--Get from WOMaterial table
 		SELECT @TotalCounts = COUNT(ID) FROM #tmpWorkOrderMaterials;
@@ -138,13 +177,9 @@ BEGIN
 					@UnitCost = ISNULL(UnitCost, 0), 
 					@bkUnitCost = ISNULL(MUnitCost, 0),
 					@poid = POId,
-					--@QtyOnBkOrder = CASE WHEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) > ISNULL(QtyOnBkOrder, 0) THEN 0 ELSE ISNULL(QtyOnBkOrder, 0) - (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) END, 
 					@QtyOnBkOrder = ISNULL(QtyOnBkOrder, 0), 
 					@QtyReserved = ISNULL(QtyReserved, 0)
 			FROM #tmpWorkOrderMaterials tmpWOM WHERE tmpWOM.ID = @count; 
-			
-			--SELECT @POQuantity = ISNULL(SUM(Quantity),0) FROM [DBO].[StocklineDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @poid and StockLineId IS NOT NULL;
-			--SELECT @POQuantity = ISNULL(SUM(QuantityBackOrdered),0) FROM [DBO].[PurchaseOrderPart] WITH(NOLOCK) WHERE PurchaseOrderId = @poid --and StockLineId IS NOT NULL;
 			
 			IF(ISNULL(@QtyReserved, 0) > 0)
 			BEGIN
@@ -153,10 +188,6 @@ BEGIN
 
 			IF(ISNULL(@QtyOnBkOrder, 0) > 0)
 			BEGIN
-				--IF(@POQuantity > 0)
-				--BEGIN
-				--	SET @QtyOnBkOrder = ISNULL(@QtyOnBkOrder, 0) - ISNULL(@POQuantity, 0);
-				--END
 				SET @BkOrderCost = ISNULL(@BkOrderCost, 0) + (ISNULL(@QtyOnBkOrder, 0) * ISNULL(@bkUnitCost, 0));
 			END
 			
@@ -188,12 +219,9 @@ BEGIN
 		WHILE @count <= @TotalCounts
 		BEGIN
 			SELECT @QtyIssued = QtyIssued , @QtyToTurnIn = QtyToTurnIn , @UnitCost = UnitCost, @bkUnitCost = MUnitCost,@poid = POId,
-				   --@QtyOnBkOrder = QtyOnBkOrder, 
 				   @QtyOnBkOrder = CASE WHEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) > ISNULL(QtyOnBkOrder, 0) THEN 0 ELSE ISNULL(QtyOnBkOrder, 0) - (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) END, 
 				   @QtyReserved = QtyReserved
 			FROM #tmpWorkOrderMaterialsKit tmpWOM WHERE tmpWOM.ID = @count; 
-			
-			--SELECT @POQuantity = ISNULL(SUM(Quantity),0) FROM [DBO].[StocklineDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @poid and StockLineId IS NOT NULL;
 			
 			IF(@QtyReserved > 0)
 			BEGIN
@@ -202,10 +230,6 @@ BEGIN
 
 			IF(@QtyOnBkOrder > 0)
 			BEGIN
-				--IF(@POQuantity > 0)
-				--BEGIN
-				--	SET @QtyOnBkOrder = @QtyOnBkOrder - @POQuantity;
-				--END
 				SET @BkOrderCost = ISNULL(@BkOrderCost, 0) + (ISNULL(@QtyOnBkOrder, 0) * ISNULL(@bkUnitCost, 0));
 			END
 
@@ -231,6 +255,7 @@ BEGIN
 		--Outside Cost
 		SELECT @OutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
 			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+				JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
 		WHERE ROP.WorkOrderId = @WorkOrderId;
 
 		--Labor Cost
@@ -334,20 +359,43 @@ BEGIN
 			QtyIssued INT NULL,
 			QtyReserved INT NULL,
 			QtyOnBkOrder INT NULL,
+			MUnitCost DECIMAL(18,2) NULL,
+			POId BIGINT NULL,
 			QtyToTurnIn INT NULL,
 		);
 
-		INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, QtyToTurnIn) 
+		INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder,MUnitCost,POId, QtyToTurnIn) 
 			SELECT SWOMS.SubWorkOrderMaterialsId,
 				SWOMS.UnitCost,
 				SWOMS.ExtendedCost,
 				SWOMS.QtyIssued,
 				SWOMS.QtyReserved,
-				SWOM.QtyOnBkOrder,
-				SWOM.QtyToTurnIn
+				CASE WHEN (ISNULL(SWOM.Quantity, 0) - (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
+					 THEN (ISNULL(SWOM.Quantity, 0) - (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0))) 
+					 ELSE ISNULL(POPartReferece.Qty, 0) END,
+				CASE WHEN ISNULL(SWOM.UnitCost,0) = 0 THEN POP.UnitCost ELSE SWOM.UnitCost END,
+				SWOM.POId,
+				CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN SWOM.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
+				--SWOM.QtyOnBkOrder,
+				--SWOM.QtyToTurnIn
 		FROM [DBO].[SubWorkOrderMaterials] SWOM WITH(NOLOCK) 
-		LEFT JOIN [DBO].[SubWorkOrderMaterialStockLine] SWOMS WITH(NOLOCK) ON SWOM.SubWorkOrderMaterialsId = SWOMS.SubWorkOrderMaterialsId
+			LEFT JOIN [DBO].[SubWorkOrderMaterialStockLine] SWOMS WITH(NOLOCK) ON SWOM.SubWorkOrderMaterialsId = SWOMS.SubWorkOrderMaterialsId
+			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = SWOM.POId AND POP.ItemMasterId = SWOM.ItemMasterId AND ISNULL(POP.IsSubWO, 0) = 1 AND (POP.ConditionId = SWOM.ConditionCodeId OR (pop.WorkOrderMaterialsId = SWOM.SubWorkOrderMaterialsId AND SWOM.ProvisionId = @exchangeProvisionId))
+			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@POStatusIds,',')) 
+			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = SWOM.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 		WHERE SWOM.WorkOrderId = @WorkOrderId AND SWOM.IsDeleted = 0;
+
+		--Handle for remove Duplicate Back Order Qty
+		WITH CTE AS (
+			SELECT 
+				id,
+				SubWorkOrderMaterialsId,
+				ROW_NUMBER() OVER (PARTITION BY SubWorkOrderMaterialsId ORDER BY id) AS row_num
+				FROM #tmpSubWorkOrderMaterials WHERE ISNULL(POId, 0) > 0
+		)
+		UPDATE #tmpSubWorkOrderMaterials
+		SET QtyOnBkOrder = 0
+		WHERE id IN (SELECT id FROM CTE	WHERE row_num > 1 AND CTE.SubWorkOrderMaterialsId = #tmpSubWorkOrderMaterials.SubWorkOrderMaterialsId);
 
 		--Reset counts.
 		SET @TotalCounts  = 0;
@@ -396,6 +444,7 @@ BEGIN
 		--SubOutside Cost
 		SELECT @SubOutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
 			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+			JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
 		WHERE ROP.WorkOrderId = @WorkOrderId;
 
 		--Sub Labor Cost

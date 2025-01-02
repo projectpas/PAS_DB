@@ -16,6 +16,7 @@
  ** --   --------			-------				--------------------------------          
     1    23-DEC-2024		 Rajesh Gami			Created	
 	2    24-DEC-2024		 Rajesh Gami			Added DistributionSetup Logic	
+	3    30-DEC-2024		 Rajesh Gami			Added Logic for the Deposit Amount in PO and RO	
 	 exec USP_PostVendorProforma_BatchDetails 6,'admin'
 **********************/
 
@@ -73,10 +74,10 @@ BEGIN
 		DECLARE @TotalVendorProformaPart BIGINT
 		DECLARE @VendorProformaPartStart BIGINT = 1
 		DECLARE @PartMemo VARCHAR(500)
-		DECLARE @PartGlAccId BIGINT
+		DECLARE @PartGlAccId BIGINT,@ReferenceId BIGINT = 0, @isPurchaseOrder BIT = 0;
 		DECLARE @ReferenceNum VARCHAR(100)= '';
 		DECLARE @AccountMSModuleId INT = 0
-		DECLARE @PartAmtSum DECIMAL(18,2) =0;
+		DECLARE @PartAmtSum DECIMAL(18,2) =0, @totalAmount DECIMAL(18,2) =0 ;
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
@@ -86,7 +87,7 @@ BEGIN
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		SELECT @ReferenceNum = VendorProformaInvoiceNo, @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'') FROM [dbo].[VendorProformaInvoiceHeader] NPO WITH(NOLOCK)
+		SELECT @ReferenceNum = VendorProformaInvoiceNo,@ReferenceId= ISNULL(ReferenceId,0),@isPurchaseOrder = ISNULL(IsPurchaseOrder,0), @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'') FROM [dbo].[VendorProformaInvoiceHeader] NPO WITH(NOLOCK)
 		LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON NPO.CurrencyId = CU.CurrencyId
 		WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
 
@@ -361,7 +362,15 @@ BEGIN
 		UPDATE VendorProformaInvoiceHeader
 		SET StatusId = (SELECT VendorProformaInvoiceHeaderStatusId FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Posted'), [UpdatedDate] = GETUTCDATE(), [PostedDate] = GETUTCDATE()
 		WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
-
+		SET @totalAmount = ISNULL((SELECT SUM(ISNULL(ExtendedPrice,0)) FROM DBO.VendorProformaInvoicePartDetails WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0),0)
+		IF(@isPurchaseOrder = 1)
+		BEGIN
+			UPDATE PurchaseOrder Set DepositAmount = ISNULL(DepositAmount,0) + @totalAmount , VendorProformaInvoiceNo = @ReferenceNum Where PurchaseOrderId = @ReferenceId
+		END
+		ELSE 
+		BEGIN
+			UPDATE RepairOrder Set DepositAmount = ISNULL(DepositAmount,0) + @totalAmount , VendorProformaInvoiceNo = @ReferenceNum Where RepairOrderId = @ReferenceId
+		END
 		EXEC [USP_AddVendorPaymentDetailsForVendorProformaById] @VendorProformaInvoiceId
 
 	END TRY

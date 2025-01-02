@@ -1,17 +1,17 @@
 ﻿/*************************************************************           
  ** File:   [USP_UpdateVendorProformaInvoiceDetails]           
- ** Author:  RAJESH GAMI
- ** Description:  To Update the Proforma Invoice Details For Approval Process
+ ** Author:  Rajesh Gami
+ ** Description:  To Update the vendor proforma Details For Approval Process
  ** Purpose:         
- ** Date:  20-Dec-2024      
+ ** Date:        
           
  ** RETURN VALUE:           
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------			--------------------------------          
-    1    20-Dec-2024  RAJESH GAMI		CREATED
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------			--------------------------------          
+    1    30Dec2024		Rajesh Gami			Created
 
 --exec [dbo].[USP_UpdateVendorProformaInvoiceDetails] 105
 ************************************************************************/
@@ -25,19 +25,19 @@ SET NOCOUNT ON
 BEGIN TRY
 
 		DECLARE @VendorId BIGINT;
-		SET @VendorId = (SELECT VendorId FROM DBO.VendorProformaInvoiceHeader WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId)
+		SET @VendorId = (SELECT VendorId FROM Dbo.VendorProformaInvoiceHeader WITH (NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId)
 
 		UPDATE VPI SET
-			VPI.StatusId = (SELECT VendorProformaInvoiceHeaderStatusId FROM dbo.VendorProformaInvoiceHeaderStatus WITH (NOLOCK) Where IsActive = 1 and IsDeleted = 0  and [Description] = 'Approved' ),
-			VPI.ApproverId = ISNULL((select TOP 1 PA.ApprovedById from dbo.VendorProformaInvoiceApproval PA WITH (NOLOCK) INNER JOIN
-								dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
-								WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId ORDER BY ApprovedDate DESC),0),
-			VPI.DateApproved = (select TOP 1 PA.ApprovedDate from dbo.VendorProformaInvoiceApproval PA WITH (NOLOCK)
-								INNER JOIN
-								dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
-								WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId ORDER BY ApprovedDate DESC)
-			FROM dbo.VendorProformaInvoiceHeader VPI WITH (NOLOCK)
-			WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
+		VPI.StatusId = (SELECT VendorProformaInvoiceHeaderStatusId FROM dbo.VendorProformaInvoiceHeaderStatus Where IsActive = 1 and IsDeleted = 0  and [Description] = 'Approved' ),
+		VPI.ApproverId = ISNULL((select TOP 1 PA.ApprovedById from dbo.VendorProformaInvoiceApproval PA WITH (NOLOCK) INNER JOIN
+							dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
+							WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId ORDER BY ApprovedDate DESC),0),
+		VPI.DateApproved = (select TOP 1 PA.ApprovedDate from dbo.VendorProformaInvoiceApproval PA WITH (NOLOCK)
+							INNER JOIN
+							dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
+							WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId ORDER BY ApprovedDate DESC)
+		FROM dbo.VendorProformaInvoiceHeader VPI WITH (NOLOCK)
+		WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
 		AND 
 		ISNULL((SELECT Count(PA.VendorProformaInvoiceApprovalId) 
 				FROM dbo.VendorProformaInvoiceApproval PA WITH (NOLOCK) INNER JOIN dbo.ApprovalStatus APS WITH (NOLOCK)

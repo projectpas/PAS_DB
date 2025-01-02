@@ -14,6 +14,7 @@
  ** -----------------------------------------------------------          
     1    06/11/2024   Moin Bloch    Created
 	2    07/11/2024   Moin Bloch    Added IsActive,IsDeleted
+	3    27/12/2024   Moin Bloch    Added LegalEntityId,[LedgerId] Field	
 	     
     EXEC USP_CycleCountReviewDetail_GetDetailsById 23,1
 ************************************************************************/    
@@ -68,6 +69,8 @@ BEGIN
 			      ,CC.[DifferenceAmount]
 			      ,CC.[IsCustomerStock]
 			      ,CC.[ManagementStructureId]
+				  ,CC.[LegalEntityId]
+				  ,(SELECT TOP 1 [ledgerId] FROM [dbo].[AccountingCalendar] AC WITH(NOLOCK) WHERE AC.[LegalEntityId] = CC.[LegalEntityId] ORDER BY [AccountingCalendarId] DESC) AS [LedgerId]
 			      ,CC.[MasterCompanyId]
 			      ,CC.[CreatedBy]
 			      ,CC.[UpdatedBy]
@@ -123,6 +126,8 @@ BEGIN
 			  ,CC.[DifferenceAmount]
 			  ,CC.[IsCustomerStock]
 			  ,CC.[ManagementStructureId]
+			  ,CC.[LegalEntityId]
+			  ,(SELECT TOP 1 [ledgerId] FROM [dbo].[AccountingCalendar] AC WITH(NOLOCK) WHERE AC.[LegalEntityId] = CC.[LegalEntityId] ORDER BY [AccountingCalendarId] DESC) AS [LedgerId]
 			  ,CC.[MasterCompanyId]
 			  ,CC.[CreatedBy]
 			  ,CC.[UpdatedBy]

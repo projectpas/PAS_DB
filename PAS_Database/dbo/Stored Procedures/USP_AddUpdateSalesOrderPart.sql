@@ -167,19 +167,21 @@ BEGIN
 				DECLARE @DiscAmt AS decimal(18,4);
 				DECLARE @GrossAmt AS decimal(18,4);
 				DECLARE @NetSalesAmt AS decimal(18,4);
+				DECLARE @NetSalesPerUnitAmt AS decimal(18,4);
 
 				SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
 				SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
 				SET @DiscAmt = ISNULL(@DiscountAmount, 0);
 				SET @GrossAmt = (@SalesPrice + @MarkUpAmt) * @QtyOrder;
 				SET @NetSalesAmt = @GrossAmt - (@DiscAmt * @QtyOrder);
+				SET @NetSalesPerUnitAmt = (@SalesPrice + @MarkUpAmt) - @DiscAmt;
 
 				INSERT INTO [dbo].[SalesOrderPartCost] ([SalesOrderId], [SalesOrderPartId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount],
 				[NetSaleAmount], [MiscCharges], [Freight], [TaxAmount], [TaxPercentage], [UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [TotalRevenue], 
-				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [NetSaleAmountPerUnit])
 				SELECT SalesOrderId, @SalesOrderPartId, UnitSalesPrice, ISNULL((UnitSalesPrice * QtyOrder), 0), MarkUpPercentage, ISNULL((MarkUpAmount * QtyOrder), 0), DiscountPercentage, ISNULL((DiscountAmount * QtyOrder), 0),
 				@NetSalesAmt, NULL, NULL, TaxAmount, TaxPercentage, UnitCost, ISNULL((UnitCost * QtyOrder), 0), MarginAmount, MarginPercentage, 0,
-				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
+				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM #SOPartDetails WHERE ID = @SOPartLoopID;
 			END
 			ELSE
@@ -202,14 +204,15 @@ BEGIN
 				SET @DiscAmt = ISNULL(@DiscountAmount, 0);
 				SET @GrossAmt = (@SalesPrice + @MarkUpAmt) * @QtyOrder;
 				SET @NetSalesAmt = @GrossAmt - (@DiscAmt * @QtyOrder);
+				SET @NetSalesPerUnitAmt = (@SalesPrice + @MarkUpAmt) - @DiscAmt;
 
 				INSERT INTO [dbo].[SalesOrderStockLineCost] ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
 				[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
-				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [NetSaleAmountPerUnit])
 				
 				SELECT @SalesOrderId, @SalesOrderPartId, @InsertedSalesOrderStocklineId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QtyOrder), 0), @MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyOrder), 0), @NetSalesAmt,
 				@UnitCost, ISNULL((@UnitCost * @QtyOrder), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyOrder), 0), 
-				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM [DBO].[StockLine] Stkl 
 				WHERE Stkl.StockLineId = @StockLineId
 			END
@@ -243,12 +246,14 @@ BEGIN
 			DECLARE @DiscAmt_U AS decimal(18,4);
 			DECLARE @GrossAmt_U AS decimal(18,4);
 			DECLARE @NetSalesAmt_U AS decimal(18,4);
+			DECLARE @NetSalesPerUnitAmt_U AS decimal(18,4);
 
 			SET @SalesPrice_U = ISNULL(@UnitSalesPrice, 0);
 			SET @MarkUpAmt_U = ISNULL(@MarkUpAmount, 0) * @QtyOrder;
 			SET @DiscAmt_U = ISNULL(@DiscountAmount, 0) * @QtyOrder;
 			SET @GrossAmt_U = (@SalesPrice_U + @MarkUpAmt_U) * @QtyOrder;
 			SET @NetSalesAmt_U = @GrossAmt_U - (@DiscAmt_U * @QtyOrder);
+			SET @NetSalesPerUnitAmt_U = ((@SalesPrice_U) + ISNULL(@MarkUpAmount, 0)) - (ISNULL(@DiscountAmount, 0));
 
 			UPDATE [DBO].[SalesOrderPartCost]
 			SET UnitSalesPrice = @SalesPrice_U,
@@ -256,7 +261,8 @@ BEGIN
 			MarkUpAmount = @MarkUpAmt_U,
 			DiscountPercentage = @DiscountPercentage,
 			DiscountAmount = @DiscAmt_U,
-			NetSaleAmount = ISNULL(@NetSalesAmt_U, 0)
+			NetSaleAmount = ISNULL(@NetSalesAmt_U, 0),
+			NetSaleAmountPerUnit = @NetSalesPerUnitAmt_U
 			WHERE SalesOrderPartId = @SalesOrderPartId
 
 			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) -- Added at Stockline Level

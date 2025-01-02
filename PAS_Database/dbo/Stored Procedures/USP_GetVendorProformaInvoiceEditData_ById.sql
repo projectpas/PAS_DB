@@ -1,5 +1,4 @@
-﻿
-/****************************************************************************************     
+﻿/****************************************************************************************     
 ** Author:  <RAJESH GAMI>    
 ** Create date: <17-Dec-2024>    
 ** Description: <Get Vendor Proforma Invoice Edit Data By VendorProformaInvoiceId for edit>    
@@ -12,6 +11,7 @@ EXEC [USP_GetVendorProformaInvoiceEditData_ById]
 ** --   --------		-------				--------------------------------  
 ** 1    17-Dec-2024		RAJESH GAMI		    CREATED
 ** 2    25-Dec-2024		RAJESH GAMI		    Get ControlNumber
+** 3    30-Dec-2024		RAJESH GAMI		    Get TotalPartCount
 
 exec dbo.USP_GetVendorProformaInvoiceEditData_ById 10,1
 *****************************************************************************************/   
@@ -27,7 +27,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
-				
+				DECLARE @totalPartCount int = (SELECT COUNT(1) FROM dbo.VendorProformaInvoicePartDetails WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId)
 				SELECT DISTINCT
 						NPH.[VendorProformaInvoiceId],
 						NPH.[VendorId],
@@ -57,7 +57,8 @@ BEGIN
 						ISNULL(NPH.[CurrencyId], 0) AS [CurrencyId],
 						NPH.[ReferenceId],
 						NPH.[ReferenceModuleId],
-						NPH.[ControlNumber]
+						NPH.[ControlNumber],
+						@totalPartCount as TotalPartCount
 				FROM [dbo].[VendorProformaInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[VendorProformaInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.VendorProformaInvoiceHeaderStatusId = NPH.StatusId
 				 LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId

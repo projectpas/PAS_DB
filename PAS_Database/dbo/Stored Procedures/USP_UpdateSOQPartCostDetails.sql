@@ -133,7 +133,7 @@ SET NOCOUNT ON
 							UPDATE DBO.SalesOrderQuoteStockLineCost
 							SET UnitSalesPriceExtended = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
-							--NetSaleAmount = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
+							NetSaleAmountPerUnit = (ISNULL(UnitSalesPrice, 0) + (MarkUpAmount / @StockLineQty)) - (DiscountAmount / @StockLineQty),
 							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount,
 							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
 							MarginPercentage = CASE WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) > 0 THEN

@@ -13,6 +13,7 @@
  ** --   --------     -------  --------------------------------               
 	1    18-12-2024   Moin Bloch   Created
 	2    31-12-2024   Moin Bloch   Added Freight And Charges For WO/SO
+	3    02-01-2025   Moin Bloch   Added Labor Completed Condition
     
 -- EXEC [dbo].[CheckStocklineForDelete] 4724,15,'Jim Roberts'  
 **************************************************************/ 
@@ -84,6 +85,10 @@ BEGIN
 			[ID] BIGINT NOT NULL IDENTITY,
 			[StockLineId] BIGINT
 		)	
+
+		DECLARE @MasterCompanyId INT = 0;
+
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId AND [IsDeleted] = 0;
 		
 		SELECT @QtyReserved = ISNULL(SUM(WOMS.QtyReserved),0)
 		  FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.[WorkOrderMaterialsId] = WOMS.[WorkOrderMaterialsId]
@@ -106,9 +111,12 @@ BEGIN
 					DECLARE @TotalLaborCost DECIMAL(18,2) = 0;
 					DECLARE @TotalWOFreight DECIMAL(18,2) = 0;
 					DECLARE @TotalWOCharges DECIMAL(18,2) = 0;
-
+					DECLARE @TaskStatusId BIGINT = 0;
+							
+				    SET  @TaskStatusId = (SELECT [TaskStatusId] FROM [dbo].[TaskStatus] WITH(NOLOCK) WHERE [Description] = 'COMPLETED' AND [MasterCompanyId] = @MasterCompanyId);
+					
 					SET @TotalLaborCost = (SELECT ISNULL(SUM(WOL.[TotalCost]),0)  
-					FROM [dbo].[WorkOrderLaborHeader] WOLH WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderLabor] WOL WITH(NOLOCK)  ON WOLH.[WorkOrderLaborHeaderId] = WOL.[WorkOrderLaborHeaderId]
+					FROM [dbo].[WorkOrderLaborHeader] WOLH WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderLabor] WOL WITH(NOLOCK) ON WOLH.[WorkOrderLaborHeaderId] = WOL.[WorkOrderLaborHeaderId] AND WOL.[TaskStatusId] = @TaskStatusId
 					WHERE WOLH.[WorkOrderId] = @ReferenceId AND WOLH.[IsDeleted] = 0)
 
 					SET @TotalWOFreight = (SELECT ISNULL(SUM([FreightCost]),0) FROM [dbo].[WorkOrderCostDetails] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId AND [IsDeleted] = 0);

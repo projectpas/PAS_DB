@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [USP_AddUpdate_VendorProformaInvoiceHeader]               
  ** Author:   Rajesh Gami      
  ** Description: To add / update the vendor proforma invoice     
@@ -17,6 +16,7 @@
  ** --   --------         -------			--------------------------------              
     1    04-Dec-2024	Rajesh Gami			Created 
 	2    25-Dec-2024	Rajesh Gami			Added ControlNumber
+	3    02-JAN-2025	Rajesh Gami			Remove Unwanted while update the Proforma
   
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorProformaInvoiceHeader]  
@@ -189,11 +189,11 @@ BEGIN
 				   ,[InvoiceDate] = @InvoiceDate
 				   ,[AccountingCalendarId] = @AccountingCalendarId
 				   ,[CurrencyId] = @CurrencyId
-				   ,[ReferenceNumber] = @ReferenceNumber
-				   ,[ReferenceId] = @ReferenceId
-				   ,[ReferenceModuleId] = @ReferenceModuleId
-				    ,ReferenceModuleName = @ReferenceModuleName
-					 ,IsPurchaseOrder = @IsPurchaseOrder
+				   --,[ReferenceNumber] = @ReferenceNumber
+				  -- ,[ReferenceId] = @ReferenceId
+				  -- ,[ReferenceModuleId] = @ReferenceModuleId
+				  --  ,ReferenceModuleName = @ReferenceModuleName
+				  --,IsPurchaseOrder = @IsPurchaseOrder
 
               WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId;  
 

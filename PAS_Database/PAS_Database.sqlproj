@@ -3365,6 +3365,7 @@
     <Build Include="dbo\User Defined Types\UploadModuleDataTableType.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForPOAndRONumberByVendorId.sql" />
     <Build Include="dbo\Tables\PublicationSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ProformaInvoicePaymentMadeDepositPORO.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

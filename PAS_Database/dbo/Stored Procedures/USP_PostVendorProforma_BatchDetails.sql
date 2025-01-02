@@ -17,6 +17,7 @@
     1    23-DEC-2024		 Rajesh Gami			Created	
 	2    24-DEC-2024		 Rajesh Gami			Added DistributionSetup Logic	
 	3    30-DEC-2024		 Rajesh Gami			Added Logic for the Deposit Amount in PO and RO	
+	4    30-DEC-2024		 Rajesh Gami			Remove deposit amount while post the batch detail.
 	 exec USP_PostVendorProforma_BatchDetails 6,'admin'
 **********************/
 
@@ -362,15 +363,16 @@ BEGIN
 		UPDATE VendorProformaInvoiceHeader
 		SET StatusId = (SELECT VendorProformaInvoiceHeaderStatusId FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Posted'), [UpdatedDate] = GETUTCDATE(), [PostedDate] = GETUTCDATE()
 		WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
-		SET @totalAmount = ISNULL((SELECT SUM(ISNULL(ExtendedPrice,0)) FROM DBO.VendorProformaInvoicePartDetails WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0),0)
-		IF(@isPurchaseOrder = 1)
-		BEGIN
-			UPDATE PurchaseOrder Set DepositAmount = ISNULL(DepositAmount,0) + @totalAmount , VendorProformaInvoiceNo = @ReferenceNum Where PurchaseOrderId = @ReferenceId
-		END
-		ELSE 
-		BEGIN
-			UPDATE RepairOrder Set DepositAmount = ISNULL(DepositAmount,0) + @totalAmount , VendorProformaInvoiceNo = @ReferenceNum Where RepairOrderId = @ReferenceId
-		END
+		--/************ Not Used : DO NOT REMOVE ************/
+		--SET @totalAmount = ISNULL((SELECT SUM(ISNULL(ExtendedPrice,0)) FROM DBO.VendorProformaInvoicePartDetails WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0),0)
+		--IF(@isPurchaseOrder = 1)
+		--BEGIN
+		--	UPDATE PurchaseOrder Set DepositAmount = ISNULL(DepositAmount,0) + @totalAmount , VendorProformaInvoiceNo = @ReferenceNum Where PurchaseOrderId = @ReferenceId
+		--END
+		--ELSE 
+		--BEGIN
+		--	UPDATE RepairOrder Set DepositAmount = ISNULL(DepositAmount,0) + @totalAmount , VendorProformaInvoiceNo = @ReferenceNum Where RepairOrderId = @ReferenceId
+		--END
 		EXEC [USP_AddVendorPaymentDetailsForVendorProformaById] @VendorProformaInvoiceId
 
 	END TRY

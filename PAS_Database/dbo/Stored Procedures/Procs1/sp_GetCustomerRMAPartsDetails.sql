@@ -22,6 +22,7 @@
 	9    11/05/2024   Vishal Suthar	   Modified to make use of new SO Part tables
 	10   12/04/2024   RAJESH GAMI	   Create RMA from SO :Duplicate stocklines comes in to grid
 	12   12/04-05/2024   AMIT GHEDIYA	   Create RMA/CM from SO : UnitPrice & Amount wrong issue.
+	13   01/02/2025   Abhishek Jirawla	Updating the part cost
 
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -122,7 +123,8 @@ BEGIN
 						SO.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.NoofPieces as Qty, 
 						--SOBII.UnitPrice As [PartsUnitCost],
-						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END As [PartsUnitCost],
+						--CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END As [PartsUnitCost],
+						ISNULL(SOBII.PartCost, 0) As [PartsUnitCost],
 						(SOBII.PartCost * -1) As [PartsRevenue], 
 						0 AS [LaborRevenue], 
 						(SOBII.MiscCharges * -1) AS [MiscRevenue], 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_PostCheckBatchDetailsForVoidCheck]           
  ** Author: Satish Gohil
  ** Description: This stored procedure is used insert account report in batch while void check
@@ -82,6 +83,10 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
+		DECLARE @VendorProformaInvoiceId BIGINT = 0,
+					@PaymentMade DECIMAL(18,2) = 0,
+					@ModuleRefrenceID BIGINT= 0,
+					@IsPurchaseOrder BIT = 0;
 
 		IF OBJECT_ID(N'tempdb..#temptable') IS NOT NULL          
 		BEGIN          
@@ -126,6 +131,24 @@ BEGIN
 				UpdatedDate = GETUTCDATE(),
 				PdfPath = NULL
 				WHERE ReadyToPayId = @ReadyToPayId AND VendorId = @VendorId 
+			
+			SELECT @VendorProformaInvoiceId = ISNULL(VendorProformaInvoiceId,0),@PaymentMade = ISNULL(PaymentMade,0) 
+				FROM dbo.VendorReadyToPayDetails WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId AND VendorId = @VendorId;
+
+			SELECT @ModuleRefrenceID = ISNULL(ReferenceId,0), @IsPurchaseOrder = ISNULL(IsPurchaseOrder,0) FROM dbo.VendorProformaInvoiceHeader WITH(NOLOCK) 
+			WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId;
+
+			IF(@IsPurchaseOrder = 1 AND @VendorProformaInvoiceId > 0)
+			BEGIN
+				 UPDATE PurchaseOrder 
+				 SET DepositAmount = CASE WHEN ISNULL(DepositAmount,0) >= @PaymentMade THEN ISNULL(DepositAmount,0) - @PaymentMade ELSE 0 END WHERE PurchaseOrderId = @ModuleRefrenceID;
+			END
+			ELSE IF(@IsPurchaseOrder = 0 AND @VendorProformaInvoiceId > 0)
+			BEGIN
+				 UPDATE RepairOrder 
+				 SET DepositAmount = CASE WHEN ISNULL(DepositAmount,0) >= @PaymentMade THEN ISNULL(DepositAmount,0) - @PaymentMade ELSE 0 END 
+				 WHERE RepairOrderId = @ModuleRefrenceID;
+			END
 
 			----- Update Vendor Payment details------
 			UPDATE s1

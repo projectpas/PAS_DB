@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+﻿/*********************               
  ** File:   [USP_AddUpdate_VendorProformaInvoiceHeader]               
  ** Author:   Rajesh Gami      
  ** Description: To add / update the vendor proforma invoice     
@@ -9,16 +9,17 @@
              
  ** RETURN VALUE:               
       
- **************************************************************               
+ **********************               
   ** Change History               
- **************************************************************               
+ **********************               
  ** S NO   Date            Author			Change Description                
  ** --   --------         -------			--------------------------------              
     1    04-Dec-2024	Rajesh Gami			Created 
 	2    25-Dec-2024	Rajesh Gami			Added ControlNumber
 	3    02-JAN-2025	Rajesh Gami			Remove Unwanted while update the Proforma
+	3    02-JAN-2025	Bhargav Saliya		Append UTC time in InvoiceDate
   
-**************************************************************/    
+**********************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorProformaInvoiceHeader]  
 @VendorProformaInvoiceId BIGINT,  
 @VendorId BIGINT,  
@@ -58,6 +59,7 @@ BEGIN
 	DECLARE @CurrentNumber AS BIGINT, @CurrentCTRLNumber AS BIGINT;
 	DECLARE @VendorProformaInvoiceNo AS VARCHAR(50),@CTRLNumber AS VARCHAR(50);
 
+	SET @InvoiceDate = DATEADD(SECOND, DATEDIFF(SECOND, CAST(GETUTCDATE() AS DATE), GETUTCDATE()), CAST(@InvoiceDate AS DATETIME2));
 	SET @ModuleID = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'VendorProformaInvoice')
 	SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'VendorProformaInvoice';
 	SELECT @ControlCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'VendorProformaInvoiceCTRL';
@@ -72,7 +74,7 @@ BEGIN
    IF(@VendorProformaInvoiceId = 0)  
    BEGIN  
 
-	   /*************** Prefixes ***************/		   			
+	   /***** Prefixes *****/		   			
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpCodePrefixes
@@ -106,9 +108,9 @@ BEGIN
 							(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),
 							(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
 		END
-		/*****************End Prefixes*******************/	
+		/******End Prefixes******/	
 
-		 /*************** Prefixes : Control Number***************/		   			
+		 /***** Prefixes : Control Number*******/		   			
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixesCTRL') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpCodePrefixesCTRL
@@ -142,7 +144,7 @@ BEGIN
 							(SELECT CodePrefix FROM #tmpCodePrefixesCTRL WHERE CodeTypeId = @ControlCodeTypeId),
 							(SELECT CodeSufix FROM #tmpCodePrefixesCTRL WHERE CodeTypeId = @ControlCodeTypeId)))
 		END
-		/*****************End Prefixes*******************/	
+		/******End Prefixes******/	
 		PRINT @CurrentNumber
 		PRINT @CurrentCTRLNumber
 		IF(@CurrentNumber!='' OR @CurrentNumber!=NULL)

@@ -40,6 +40,7 @@
 	24   31-12-2024   AMIT GHEDIYA    update get account name & get creditmemo amount & PAyment method name.
 	25   01-01-2025   AMIT GHEDIYA    Update statusid for vendor perfoma in print check.
 	26   01-01-2025   RAJESH GAMI     Update logic for the get record for print check.
+	27   03-01-2025   RAJESH GAMI     Modified to resolved to not getting paymentmethod for the vendor Proforma.
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE    PROCEDURE [dbo].[VendorPaymentList]  
@@ -583,7 +584,7 @@ BEGIN
 				NPH.VendorId,
 				'' AS 'ControlNumber',
 				ISNULL(le.[Name], '') AS 'LegalEntity',
-				NPH.VendorProformaInvoiceId VendorProformaInvoiceId
+				NPH.VendorProformaInvoiceId AS VendorProformaInvoiceId
 		  FROM [dbo].[VendorProformaInvoiceHeader] NPH  WITH(NOLOCK)
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON NPH.VendorId = VN.VendorId
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
@@ -635,7 +636,7 @@ BEGIN
 			   RRH.VendorId,
 			    ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[Name], '') AS 'LegalEntity',
-					NPH.VendorProformaInvoiceId VendorProformaInvoiceId
+					NPH.VendorProformaInvoiceId AS VendorProformaInvoiceId
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[VendorProformaInvoiceHeader] NPH WITH(NOLOCK) ON RRH.VendorProformaInvoiceId = NPH.VendorProformaInvoiceId 	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId 
@@ -654,7 +655,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.VendorProformaInvoiceId, 0) <> 0
 		        AND NPH.StatusId = @ProformaInvoicePostedStatusId
@@ -710,7 +711,7 @@ BEGIN
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,CreditMemoUsed,DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate, DueDate, DaysPastDue, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems, DiscountToken,
-	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, VendorId, UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity,NonPOInvoiceId, CustomerCreditPaymentDetailId FROM FinalResult, ResultCount  
+	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, VendorId, UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
@@ -1133,7 +1134,7 @@ BEGIN
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,CreditMemoUsed, DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate,DueDate, DaysPastDue, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,
 	  DiscountToken, ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, VendorId, UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity
-	  ,NonPOInvoiceId, CustomerCreditPaymentDetailId FROM FinalResult, ResultCount  
+	  ,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
@@ -1396,7 +1397,7 @@ BEGIN
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems, DiscountToken,
-	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, ReadyToPayDetailsId, VendorId,NonPOInvoiceId, CustomerCreditPaymentDetailId  FROM FinalResult, ResultCount  
+	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, ReadyToPayDetailsId, VendorId,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId  FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID') THEN ReceivingReconciliationId END DESC,  
@@ -1636,7 +1637,7 @@ BEGIN
 								LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
 				OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VD.ReadyToPayId =  SS.ReadyToPayId AND  VD.VendorId = SS.VendorId AND  VD.PaymentMethodId = SS.PaymentMethodId) AS SRT
-		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL AND IsVoidedCheck = 0
+		  WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND IsVoidedCheck = 0
 			GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId,VD.IsVoidedCheck,VD.PaymentMethodId,SRT.CreatedDate,VD.ControlNumber) AS Tab
 		  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		  AND RRH.PaymentMade > 0 
@@ -1760,7 +1761,7 @@ BEGIN
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,CreditMemoUsed, DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate, ReadyToPaymentMade, DueDate, DaysPastDue, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, 
 	  NumberOfItems, DiscountToken, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber,ReadyToPayId,ReadyToPayDetailsId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,
-	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity,NonPOInvoiceId, CustomerCreditPaymentDetailId FROM FinalResult, ResultCount  
+	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
@@ -2132,7 +2133,7 @@ BEGIN
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,
 	  UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, IsVoidedCheck, VendorId, PaymentMethodId, CreatedDate, ReadyToPayDetailsId,
-	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity,NonPOInvoiceId, CustomerCreditPaymentDetailId FROM FinalResult, ResultCount  
+	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  

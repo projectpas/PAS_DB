@@ -17,7 +17,8 @@
 	4    19/03/2023  Amit Ghediya    Update for Check Register
 	5    19/03/2023  Amit Ghediya    Update for Check Register filter 
 	6    24/10/2024  Moin Bloch      Update Added Cycle Count 
-	7    26/12/2024  RAJESH GAMI     Added Vendor Proforma Approval for the Vendor Proforma Invoice
+	7    26/12/2024  RAJESH GAMI     Added Vendor Proforma Approval for the Vendor Proforma Invoice 
+	8	 02/01/2024  RAJESH GAMI     Vendor Proforma Approval: Return the extended cost
      
 -- exec [dbo].[usp_GetApprovalListByTaskId] 12, 12
 ************************************************************************/
@@ -292,7 +293,7 @@ BEGIN TRY
 	ELSE IF @TaskType = 'Vendor Proforma Approval'
 	BEGIN
 	SET @TotalCostText = 'Total Vendor Proforma Amount'
-	SELECT @TotalCost = SUM(ISNULL(Amount, 0))	 
+	SELECT @TotalCost = SUM(ISNULL(ExtendedPrice, 0))	 
 		  FROM dbo.VendorProformaInvoicePartDetails pop  WITH(NOLOCK)
 		   WHERE pop.VendorProformaInvoiceId = @ID
 

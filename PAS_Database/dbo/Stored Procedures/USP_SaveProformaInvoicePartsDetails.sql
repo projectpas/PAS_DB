@@ -10,7 +10,8 @@
  ** PR   Date          Author					Change Description            
  ** --   -----------   -------				--------------------------------          
     1    19-Dec-2024   RAJESH GAMI			Created
-    2    02-Jan-2024   RAJESH GAMI			Auto Approved the part if part has sales tax. And Resolved issue regarding auto approve
+    2    02-Jan-2024   RAJESH GAMI			Auto Approved the part if part has sales tax. And Resolved issue regarding auto approve, And Commented unwanted code now
+	3    02-Jan-2024   RAJESH GAMI			Sales Tax timout issue resolved
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_SaveProformaInvoicePartsDetails]
 @tbl_VendorProformaInvoicePartDetailsType VendorProformaInvoicePartDetailsType READONLY
@@ -127,7 +128,6 @@ BEGIN
 						BEGIN
 								DECLARE @ApprovalProcessId INT = (Select TOP 1 ApprovalProcessId from dbo.ApprovalProcess WITH(NOLOCK) Where Name = 'Approved')
 								DECLARE @ApprovedStatusId INT = (Select TOP 1 ApprovalStatusId from dbo.ApprovalStatus WITH(NOLOCK) Where Name = 'Approved'),@totalTaxApprovalPartCount INT = 0;
-								DECLARE @totalTaxPartCount INT = (SELECT COUNT(1) FROM dbo.VendorProformaInvoicePartDetails AP WITH(NOLOCK) WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId and isnull(TaxTypeId,0) = 0)
 								MERGE INTO DBO.VendorProformaInvoiceApproval AS Target
 									USING (
 										SELECT
@@ -137,9 +137,9 @@ BEGIN
 											GETUTCDATE() AS CurrentDate, 
 											MasterCompanyId
 										FROM VendorProformaInvoicePartDetails
-										WHERE TaxTypeId > 0
+										WHERE TaxTypeId > 0 AND [VendorProformaInvoiceId] = @VendorProformaInvoiceId
 									) AS Source
-									ON Target.VendorProformaInvoicePartDetailsId = Source.VendorProformaInvoicePartDetailsId
+									ON Target.VendorProformaInvoicePartDetailsId = Source.VendorProformaInvoicePartDetailsId 
 									WHEN NOT MATCHED BY TARGET THEN
 									INSERT (
 										VendorProformaInvoiceId,
@@ -173,23 +173,23 @@ BEGIN
 										Source.CurrentDate,
 										'Auto Approved'
 									);
-									SET @totalTaxApprovalPartCount = isnull((SELECT count(1) FROM DBO.VendorProformaInvoiceApproval AP WITH(NOLOCK) WHERE AP.VendorProformaInvoiceId = @VendorProformaInvoiceId and AP.VendorProformaInvoicePartDetailsId IN(SELECT VendorProformaInvoicePartDetailsId FROM dbo.VendorProformaInvoicePartDetails AP WITH(NOLOCK) WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId and isnull(TaxTypeId,0) = 0) AND ISNULL(Ap.ApprovedById,0) > 0 ),0)
-									If(((SELECT COUNT(VendorProformaInvoiceApprovalId) FROM VendorProformaInvoiceApproval AP WITH (NOLOCK) WHERE AP.VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(ApprovedDate,'') != '' ) - @totalTaxApprovalPartCount) = ISNULL((SELECT COUNT(VendorProformaInvoicePartDetailsId) FROM VendorProformaInvoicePartDetails P WITH (NOLOCK) WHERE P.VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(P.TaxTypeId,0) = 0),0))
-									BEGIN
-										UPDATE [dbo].[VendorProformaInvoiceHeader]
-										   SET [StatusId] = (SELECT [VendorProformaInvoiceHeaderStatusId] FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')
-											  ,[UpdatedDate] = GETUTCDATE()
-											  ,[UpdatedBy] = @UpdatedBy								
-									   WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId;
-									END
-									ELSE
-									BEGIN
-										UPDATE [dbo].[VendorProformaInvoiceHeader]
-										   SET [StatusId] = (SELECT [VendorProformaInvoiceHeaderStatusId] FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Open')
-											  ,[UpdatedDate] = GETUTCDATE()
-											  ,[UpdatedBy] = @UpdatedBy								
-									   WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId;
-									END
+									--SET @totalTaxApprovalPartCount = isnull((SELECT count(1) FROM DBO.VendorProformaInvoiceApproval AP WITH(NOLOCK) WHERE AP.VendorProformaInvoiceId = @VendorProformaInvoiceId and AP.VendorProformaInvoicePartDetailsId IN(SELECT VendorProformaInvoicePartDetailsId FROM dbo.VendorProformaInvoicePartDetails AP WITH(NOLOCK) WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId and isnull(TaxTypeId,0) = 0) AND ISNULL(Ap.ApprovedById,0) > 0 ),0)
+									--If(((SELECT COUNT(VendorProformaInvoiceApprovalId) FROM VendorProformaInvoiceApproval AP WITH (NOLOCK) WHERE AP.VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(ApprovedDate,'') != '' ) - @totalTaxApprovalPartCount) = ISNULL((SELECT COUNT(VendorProformaInvoicePartDetailsId) FROM VendorProformaInvoicePartDetails P WITH (NOLOCK) WHERE P.VendorProformaInvoiceId = @VendorProformaInvoiceId AND ISNULL(P.TaxTypeId,0) = 0),0))
+									--BEGIN
+									--	UPDATE [dbo].[VendorProformaInvoiceHeader]
+									--	   SET [StatusId] = (SELECT [VendorProformaInvoiceHeaderStatusId] FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')
+									--		  ,[UpdatedDate] = GETUTCDATE()
+									--		  ,[UpdatedBy] = @UpdatedBy								
+									--   WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId;
+									--END
+									--ELSE
+									--BEGIN
+									--	UPDATE [dbo].[VendorProformaInvoiceHeader]
+									--	   SET [StatusId] = (SELECT [VendorProformaInvoiceHeaderStatusId] FROM [dbo].[VendorProformaInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Open')
+									--		  ,[UpdatedDate] = GETUTCDATE()
+									--		  ,[UpdatedBy] = @UpdatedBy								
+									--   WHERE [VendorProformaInvoiceId] = @VendorProformaInvoiceId;
+									--END
 
 						END
 					END

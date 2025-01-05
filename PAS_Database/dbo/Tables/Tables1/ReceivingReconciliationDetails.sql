@@ -37,8 +37,11 @@
     [QtyVariance]                     DECIMAL (9, 2)  NULL,
     [PriceVariance]                   DECIMAL (9, 2)  NULL,
     [VendorProformaAmount]            DECIMAL (18, 2) NULL,
+    [VendorProformaInvoiceId]         BIGINT          NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetails] PRIMARY KEY CLUSTERED ([ReceivingReconciliationDetailId] ASC)
 );
+
+
 
 
 

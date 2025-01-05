@@ -56,7 +56,8 @@ BEGIN
 					1 AS 'Type',
 					'STOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -65,7 +66,7 @@ BEGIN
 					AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 					 
 				UNION ALL
 
@@ -91,14 +92,15 @@ BEGIN
 					pop.PurchaseOrderPartRecordId,
 					1 as 'Type','STOCK' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 
 				UNION
 			
@@ -125,7 +127,8 @@ BEGIN
 					1 AS 'Type',
 					'NONSTOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -134,7 +137,7 @@ BEGIN
 					AND pop.PurchaseOrderPartRecordId=CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)),0) = 0			
 				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,stk.UnitCost,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,stk.UnitCost,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 		
 				UNION ALL
 			
@@ -161,14 +164,15 @@ BEGIN
 					1 AS 'Type',
 					'NONSTOCK' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 					
 				UNION
 			
@@ -194,7 +198,8 @@ BEGIN
 					1 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND  
@@ -227,7 +232,8 @@ BEGIN
 					1 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
@@ -259,7 +265,8 @@ BEGIN
 					2 AS 'Type',
 					'STOCK' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -268,7 +275,7 @@ BEGIN
 					AND pop.RepairOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					AND ISNULL((SELECT COUNT(POS.RepairOrderPartRecordId) FROM dbo.RepairOrderPart POS WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0			
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 
 				UNION ALL
 			
@@ -295,14 +302,15 @@ BEGIN
 					2 AS 'Type',
 					'STOCK' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				WHERE po.RepairOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 					 				
 				UNION
 				
@@ -328,7 +336,8 @@ BEGIN
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -362,7 +371,8 @@ BEGIN
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
@@ -397,7 +407,8 @@ BEGIN
 					1 AS 'Type',
 					'STOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -406,7 +417,7 @@ BEGIN
 					--AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					--AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 					 
 				UNION ALL
 
@@ -432,14 +443,15 @@ BEGIN
 					pop.PurchaseOrderPartRecordId,
 					1 as 'Type','STOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 
 				UNION
 			
@@ -466,7 +478,8 @@ BEGIN
 					1 AS 'Type',
 					'NONSTOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -475,7 +488,7 @@ BEGIN
 					--AND pop.PurchaseOrderPartRecordId=CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					--AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)),0) = 0			
 				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,stk.UnitCost,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,stk.UnitCost,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 		
 				UNION ALL
 			
@@ -502,14 +515,15 @@ BEGIN
 					1 AS 'Type',
 					'NONSTOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 				GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 					
 				UNION
 			
@@ -535,7 +549,8 @@ BEGIN
 					1 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND  
@@ -568,7 +583,8 @@ BEGIN
 					1 AS 'Type',
 					'ASSET' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
@@ -600,7 +616,8 @@ BEGIN
 					2 AS 'Type',
 					'STOCK' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -609,7 +626,7 @@ BEGIN
 					--AND pop.RepairOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					--AND ISNULL((SELECT COUNT(POS.RepairOrderPartRecordId) FROM dbo.RepairOrderPart POS WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0			
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 
 				UNION ALL
 			
@@ -636,14 +653,15 @@ BEGIN
 					2 AS 'Type',
 					'STOCK' AS 'StockType' ,
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				WHERE po.RepairOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo
+					stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
 					 				
 				UNION
 				
@@ -669,7 +687,8 @@ BEGIN
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON stk.RepairOrderPartRecordId=pop.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
@@ -703,7 +722,8 @@ BEGIN
 					2 AS 'Type',
 					'ASSET' AS 'StockType',
 					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo 
+					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.RepairOrder po WITH(NOLOCK)
 					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 

@@ -18,6 +18,7 @@
     1    07/22/2022   Hemant Saliya   Created
 	2    03/08/2024   Bhargav Saliya  In WokOrder DashBoard  Count Issue Resolved
 	3	 12 NOV 2024  HEMANT SALIYA	  Verify the count and removed un used code 
+	4	 31/12/2024	  Bhargav saliya Resolved WO DashBoards Count Issue (PN-10677)
      
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
@@ -80,7 +81,7 @@ BEGIN
 					UPPER(ISNULL(StageCode, '')), 
 					UPPER(CodeDescription)
 				FROM dbo.WorkOrderStage WITH (NOLOCK) 
-				WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IncludeInDashboard, 0) = 1 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+				WHERE MasterCompanyId = 1 AND ISNULL(IncludeInDashboard, 0) = 1 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				order by [Sequence] ASC
 
 				UPDATE #tmpWorkOrderStage 
@@ -94,14 +95,14 @@ BEGIN
 				AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				GROUP BY WOP.WorkOrderStageId) AS T2 ON WOS.WorkOrderStageId = T2.WorkOrderStageId
 
-				UPDATE #tmpWorkOrderStage 
-						SET Counts = ISNULL(Counts, 0) + (SELECT ISNULL(COUNT(DISTINCT ReceivingCustomerWorkId), 0) 
-						FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) JOIN dbo.Customer C ON c.CustomerId = RC.CustomerId
-						WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 
-						AND RC.MasterCompanyId = @MasterCompanyId 
-						AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
-				FROM #tmpWorkOrderStage AS WOS 
-				WHERE WOS.StageCode = 'RECEIVED'
+				--UPDATE #tmpWorkOrderStage 
+				--		SET Counts = ISNULL(Counts, 0) + (SELECT ISNULL(COUNT(DISTINCT ReceivingCustomerWorkId), 0) 
+				--		FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) JOIN dbo.Customer C ON c.CustomerId = RC.CustomerId
+				--		WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 
+				--		AND RC.MasterCompanyId = @MasterCompanyId 
+				--		AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
+				--FROM #tmpWorkOrderStage AS WOS 
+				--WHERE WOS.StageCode = 'RECEIVED'
 				
 				UPDATE #tmpWorkOrderStage 
 					SET Cost = ISNULL(T2.TotalCost, 0)

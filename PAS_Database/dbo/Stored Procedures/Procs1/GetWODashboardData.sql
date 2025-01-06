@@ -18,6 +18,7 @@
     1    07/22/2022   Hemant Saliya Created
 	2    05/03/2022   Hemant Saliya Remove Duplicate Records
 	3	 04/04/2024	  Bhargav saliya Resolved WO open Count issue in WO DashBoard(More Info)
+	4	 31/12/2024	  Bhargav saliya Resolved WO DashBoards Count Issue (PN-10677)
 
 exec GetWODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@WOTypeId=N'ALL',@GlobalFilter=N'',
 @WorkOrderStageId=18,@WorkOrderNum=NULL,@PartNumber=NULL,@PartDescription=NULL,@Customer=NULL,@SerialNumber=NULL,
@@ -148,21 +149,21 @@ BEGIN
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @WorkOrderStageId AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				UNION ALL 
+				--UNION ALL 
 
-				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
-					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
-					'' AS Techname, RC.ReceivedDate AS OpenDate, RC.CustReqDate AS CustReqDate,
-					0 AS EstRevenue, 
-					0 AS EstCost,
-					0 AS EstMargin,
-					''  AS PONumber, RC.Reference AS RONumber,0 AS WOpartId
-				FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK) 
-					JOIN dbo.Customer C ON C.CustomerId = RC.CustomerId
-					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = RC.ItemMasterId
-					JOIN dbo.Stockline SL WITH (NOLOCK)  ON SL.StockLineId = RC.StockLineId
-				WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 AND RC.MasterCompanyId = @MasterCompanyId AND @RecStageCode = 'RECEIVED' AND
-				 RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
+				--SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				--	SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
+				--	'' AS Techname, RC.ReceivedDate AS OpenDate, RC.CustReqDate AS CustReqDate,
+				--	0 AS EstRevenue, 
+				--	0 AS EstCost,
+				--	0 AS EstMargin,
+				--	''  AS PONumber, RC.Reference AS RONumber,0 AS WOpartId
+				--FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK) 
+				--	JOIN dbo.Customer C ON C.CustomerId = RC.CustomerId
+				--	JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = RC.ItemMasterId
+				--	JOIN dbo.Stockline SL WITH (NOLOCK)  ON SL.StockLineId = RC.StockLineId
+				--WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 AND RC.MasterCompanyId = @MasterCompanyId AND @RecStageCode = 'RECEIVED' AND
+				-- RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
 				UNION ALL 
 

@@ -9,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    11-Dec-2024		Devendra Shekh			Created
+	2    06-Jan-2025		Devendra Shekh			Checking Equal Values instead similar
 
 DECLARE @FieldValueId VARCHAR(50);
 
@@ -40,14 +41,14 @@ BEGIN
 	IF(ISNULL(@MasterCompanyId, 0) > 0)
     BEGIN
 		SET @RefQuery 
-		= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' LIKE ''%'' + ST.value + ''%'' ' + 'AND MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' ) AS DropDownResult';
+		= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' ) AS DropDownResult';
     END
     ELSE
     BEGIN
 		SET @RefQuery 
-		= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' LIKE ''%'' + ST.value + ''%'' ' + ' ) AS DropDownResult';
+		= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + ' ) AS DropDownResult';
     END
-
+	
     EXEC sp_executesql @RefQuery, N'@FieldValueId VARCHAR(250) OUTPUT', @FieldValueId OUTPUT;
 
 END;

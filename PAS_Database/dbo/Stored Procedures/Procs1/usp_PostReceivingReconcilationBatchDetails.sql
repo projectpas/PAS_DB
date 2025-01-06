@@ -31,6 +31,7 @@
 	19	 04/11/2024   Devendra Shekh      Added ReferenceModule For [CommonBatchDetails]
 	20	 18/12/2024   Devendra Shekh      Modify (Handling Qty/Unit Cost Adjustment Separately For Accounting Entry) And Changed QuantityAvailable to QuantityOnHand
 	21	 30/12/2024   Devendra Shekh      Modify (Same JE for Post Batch, StockType wise)
+	22	 06/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,

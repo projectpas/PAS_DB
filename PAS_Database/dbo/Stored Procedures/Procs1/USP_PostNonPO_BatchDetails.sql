@@ -28,6 +28,7 @@
 	12   26/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
 	13	 14-OCT-2024		 Devendra Shekh			Added new fields for [CommonBatchDetails]
 	14	 04-NOV-2024		 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	15   06-JAN-2025		 Rajesh Gami			add new DistributionSetup for the DEPOSIT
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -277,7 +278,7 @@ BEGIN
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
-				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE') 
+				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-DEPOSIT') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
 				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
@@ -290,9 +291,9 @@ BEGIN
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-					CASE WHEN @CheckAmount > 0 THEN 1 ELSE 0 END,
-					CASE WHEN @CheckAmount > 0 THEN @CheckAmount ELSE 0 END,
-					CASE WHEN @CheckAmount > 0 THEN 0 ELSE ABS(@CheckAmount) END,
+					CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
+					CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END,
+					CASE WHEN @CRDRType = 1 THEN 0 ELSE ABS(@CheckAmount) END,
 					@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@NonPOInvoiceId,@ReferenceModule)
 

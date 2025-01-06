@@ -1,6 +1,8 @@
 ﻿CREATE TABLE [dbo].[WorkOrderTaskInstruction] (
     [WorkOrderTaskInstructionId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [WorkOrderTaskId]            BIGINT         NULL,
+    [ParentId]                   BIGINT         NULL,
+    [IsParent]                   BIT            NULL,
     [InstructionTitle]           VARCHAR (8000) NULL,
     [SequenceNumber]             INT            NULL,
     [InstructionDetails]         VARCHAR (MAX)  NULL,
@@ -10,6 +12,8 @@
     [InspectorId]                BIGINT         NULL,
     [InspectorName]              VARCHAR (100)  NULL,
     [InspectorUpdatedDate]       DATETIME2 (7)  NULL,
+    [PrintInWO]                  BIT            NULL,
+    [PrintInWOQ]                 BIT            NULL,
     [MasterCompanyId]            INT            NULL,
     [CreatedBy]                  VARCHAR (100)  NULL,
     [UpdatedBy]                  VARCHAR (100)  NULL,
@@ -19,4 +23,6 @@
     [IsDeleted]                  BIT            NULL,
     CONSTRAINT [PK_WorkOrderTaskInstruction] PRIMARY KEY CLUSTERED ([WorkOrderTaskInstructionId] ASC)
 );
+
+
 

@@ -36,30 +36,99 @@ BEGIN
 	IF (ISNULL(@WorkOrderTaskInstructionId, 0) = 0)
 	BEGIN
 		DECLARE @InsertedWorkOrderTaskInstructionId BIGINT = 0;
+		DECLARE @TaskMasterLoopID AS INT;
 
-		INSERT INTO DBO.WorkOrderTaskInstruction ([WorkOrderTaskId],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
-		[InspectorUpdatedDate],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-		SELECT @WorkOrderTaskId, TIM.Title, TIM.[SequenceNumber], TIM.[Description],@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
-		@InspectorUpdatedDate,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-		FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE TaskInstructionId IN (SELECT Item FROM DBO.SPLITSTRING(@InstructionListId, ','))
-		OR ParentId IN (SELECT Item FROM DBO.SPLITSTRING(@InstructionListId, ','))
+		IF OBJECT_ID(N'tempdb..#TaskMaster') IS NOT NULL
+		BEGIN
+			DROP TABLE #TaskMaster
+		END
 
-		SET @InsertedWorkOrderTaskInstructionId = SCOPE_IDENTITY();
+		CREATE TABLE #TaskMaster
+		(
+			ID bigint NOT NULL IDENTITY,
+			[TaskInstructionId] [bigint] NOT NULL,
+			[Title] [varchar](8000) NULL,
+			[Description] [varchar](max) NULL,
+			[TaskId] [bigint] NOT NULL,
+			[SequenceNumber] [int] NULL,
+			[ParentId] [bigint] NULL,
+			[IsParent] [bit] NULL,
+			[MasterCompanyId] [int] NOT NULL,
+			[CreatedBy] [varchar](100) NOT NULL,
+			[UpdatedBy] [varchar](100) NOT NULL,
+			[CreatedDate] [datetime2](7) NOT NULL,
+			[UpdatedDate] [datetime2](7) NOT NULL,
+			[IsActive] [bit] NOT NULL,
+			[IsDeleted] [bit] NOT NULL
+		)
+
+		;WITH RecursiveCTE AS (
+			SELECT * 
+			FROM DBO.TaskInstructionMaster WITH (NOLOCK)
+			WHERE TaskInstructionId IN (SELECT Item FROM DBO.SPLITSTRING(@InstructionListId, ','))
+    
+			UNION ALL
+    
+			SELECT t.*
+			FROM DBO.TaskInstructionMaster t WITH (NOLOCK)
+			INNER JOIN RecursiveCTE r
+			ON t.ParentId = r.TaskInstructionId
+		)
+
+		INSERT INTO #TaskMaster ([TaskInstructionId],[Title],[Description],[TaskId],[SequenceNumber],[ParentId],[IsParent],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
+		[UpdatedDate],[IsActive],[IsDeleted])
+		SELECT [TaskInstructionId],[Title],[Description],[TaskId],[SequenceNumber],[ParentId],[IsParent],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
+		[UpdatedDate],[IsActive],[IsDeleted]
+		FROM RecursiveCTE ORDER BY ParentId DESC;
+		
+		SELECT @TaskMasterLoopID = MAX(ID) FROM #TaskMaster;
+
+		WHILE (@TaskMasterLoopID > 0)
+		BEGIN
+			DECLARE @OldTaskInstructionId BIGINT = 0;
+			DECLARE @OldParentId BIGINT = 0;
+			DECLARE @OldTitle VARCHAR(8000) = NULL;
+			DECLARE @OldDescription VARCHAR(MAX) = NULL;
+
+			SELECT @OldTaskInstructionId = TaskInstructionId, @OldParentId = ParentId FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
+
+			IF (ISNULL(@OldParentId, 0) > 0)
+			BEGIN
+				SELECT @OldTitle = Title, @OldDescription = [Description] FROM DBO.TaskInstructionMaster WITH (NOLOCK) WHERE TaskInstructionId = @OldParentId;
+			END
+
+			INSERT INTO DBO.WorkOrderTaskInstruction ([WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+			SELECT @WorkOrderTaskId, [ParentId], [IsParent], Title, [SequenceNumber], [Description],@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+			@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
+			FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
+
+			SET @InsertedWorkOrderTaskInstructionId = SCOPE_IDENTITY();
+
+			IF (ISNULL(@OldParentId, 0) > 0)
+			BEGIN
+				UPDATE DBO.WorkOrderTaskInstruction
+				SET ParentId = (SELECT WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId)
+				WHERE WorkOrderTaskInstructionId = @InsertedWorkOrderTaskInstructionId;
+			END
+
+			SET @TaskMasterLoopID = @TaskMasterLoopID - 1;
+		END
 	END
 	ELSE
 	BEGIN
-		--UPDATE DBO.WorkOrderTaskDetails
-		--SET Descrepancy = @Descrepancy,
-		--Resolution = @Resolution,
-		--InspectorId = @InspectorId,
-		--InspectorName = @InspectorName,
-		--InspectorUpdatedDate = @InspectorUpdatedDate,
-		--TechId = @TechId,
-		--TechName = @TechName,
-		--TechUpdatedDate = @TechUpdatedDate
-		--WHERE WorkOrderTaskId = @WorkOrderTaskId;
+		UPDATE DBO.WorkOrderTaskInstruction
+		SET InspectorId = @InspectorId,
+		InspectorName = @InspectorName,
+		InspectorUpdatedDate = @InspectorUpdatedDate,
+		TechId = @TechId,
+		TechName = @TechName,
+		TechUpdatedDate = @TechUpdatedDate,
+		[PrintInWO] = @PrintInWO,
+		[PrintInWOQ] = @PrintInWOQ
+		WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId;
 
-		SELECT @WorkOrderTaskId AS WorkOrderTaskId;
+		SELECT @WorkOrderTaskInstructionId AS WorkOrderTaskInstructionId;
 	END
   COMMIT  TRANSACTION
   END TRY

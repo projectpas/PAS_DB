@@ -9,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    23-Dec-2024		Devendra Shekh			Created
+	2    06-Jan-2025		Devendra Shekh			Added MasterCompanyId for Delete [UploadModuleData]
  
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=2,@UserName=N'DEVENDRASILVER MICKSILVER',@MasterCompanyId=1
 **************************************************************/
@@ -232,7 +233,7 @@ BEGIN
 
 		--SELECT * FROM #uploadDataResults;
 
-		DELETE FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId;
+		DELETE FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND [MasterCompanyId] = @MasterCompanyId;
 
 	COMMIT TRANSACTION
 	 

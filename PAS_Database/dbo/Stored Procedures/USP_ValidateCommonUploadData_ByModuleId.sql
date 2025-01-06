@@ -9,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    23-Dec-2024		Devendra Shekh			Created
+    2    06-Jan-2025		Devendra Shekh			Issue While Save Resolved
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(2,N'DEVENDRASILVER MICKSILVER',1,N'{
@@ -77,7 +78,7 @@ BEGIN
 			[Status] [varchar](MAX) NULL
 		);
 		
-		DELETE FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId;
+		DELETE FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND [MasterCompanyId] = @MasterCompanyId;
 		
 		SELECT @GlImportModuleId = [ImportModuleId] FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'GLACCOUNT';
 
@@ -118,6 +119,7 @@ BEGIN
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '')
 				BEGIN
 					DECLARE @DropdownListValueId VARCHAR(100) = NULL;
+					SET @DropdownLFieldValue = UPPER(TRIM(@DropdownLFieldValue))
 
 					EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId, @FieldValueId = @DropdownListValueId OUTPUT;
 				
@@ -132,7 +134,8 @@ BEGIN
 
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN IMF.HeaderName + ' is Required'
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
 										ELSE ''
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
@@ -177,7 +180,7 @@ BEGIN
 			SET @CurrentRecord += 1;
 		END
 
-		SELECT * FROM [dbo].[UploadModuleData] WITH(NOLOCK) WHERE [ModuleId] = @ModuleId;
+		SELECT * FROM [dbo].[UploadModuleData] WITH(NOLOCK) WHERE [ModuleId] = @ModuleId AND [MasterCompanyId] = @MasterCompanyId;
 
 	COMMIT TRANSACTION
 	 

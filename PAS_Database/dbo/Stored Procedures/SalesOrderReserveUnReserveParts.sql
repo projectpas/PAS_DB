@@ -220,6 +220,9 @@ BEGIN
 			--Get SalesOrderNumber for RefrenceNumber
 			SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId;			
 			
+			DECLARE @IsUnreserve BIT = NULL;
+			SET @IsUnreserve = CASE WHEN @UnReserveStatusId = @PartStatusId THEN 1 ELSE 0 END;
+
 			--Set RefrenceNumber
 			IF(@autoReserve = 1)
 			BEGIN
@@ -322,7 +325,7 @@ BEGIN
 						FROM [DBO].[StockLine] Stkl 
 						WHERE Stkl.StockLineId = @StockLineId;
 
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve;
 					END
 				END
 				ELSE
@@ -355,7 +358,7 @@ BEGIN
 							WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
 						END
 
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve;
 					END
 				END
 			END
@@ -443,15 +446,7 @@ BEGIN
 					AND StockLineId = @StockLineId AND ISNULL(QtyReserved,0) = 0
 				END
 
-				IF NOT EXISTS( select SOI.SalesOrderShippingItemId from SalesOrderShippingItem SOI
-								INNER JOIN [DBO].[SOPickTicket] SOT WITH(NOLOCK) ON SOT.SOPickTicketId = SOI.SOPickTicketId
-								LEFT JOIN [dbo].[SalesOrderStocklineV1] SOP WITH(NOLOCK) ON SOP.SalesOrderStocklineId = SOT.SalesOrderPartStocklineId AND SOP.StockLineId = @StockLineId
-								WHERE SOI.SalesOrderPartId = @SalesOrderPartId AND SOT.SOPickTicketId = SOI.SOPickTicketId)
-				 BEGIN
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
-				 END
-
-				--EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
+				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve;
 			END
 			ELSE
 			BEGIN 

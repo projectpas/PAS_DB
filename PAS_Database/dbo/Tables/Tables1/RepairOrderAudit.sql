@@ -55,8 +55,11 @@
     [ForeignExchangeRate]     DECIMAL (18, 2) NULL,
     [DepositAmount]           DECIMAL (18, 2) NULL,
     [VendorProformaInvoiceNo] VARCHAR (150)   NULL,
+    [VendorProformaInvoiceId] BIGINT          NULL,
     CONSTRAINT [PK_RepairOrderAudit] PRIMARY KEY CLUSTERED ([RepairOrderAuditId] ASC)
 );
+
+
 
 
 

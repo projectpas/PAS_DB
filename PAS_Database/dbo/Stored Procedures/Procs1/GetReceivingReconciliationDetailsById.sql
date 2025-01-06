@@ -17,10 +17,12 @@
     6    03/01/2024   Moin Bloch    Added IsSerialized Field
     7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
 	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
+	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
+
 	
 --  EXEC GetReceivingReconciliationDetailsById 321
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
+CREATE    PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
 AS
 BEGIN
@@ -106,8 +108,9 @@ BEGIN
 						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name) 
 						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10,
 
-					(CASE WHEN [Type] = 1 THEN ISNULL(Po.DepositAmount,0) ELSE ISNULL(RO.DepositAmount,0) END) AS VendorProformaAmount,
-					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceNo,'') ELSE ISNULL(RO.VendorProformaInvoiceNo,'') END) AS VendorProformaInvoiceNo
+					CASE WHEN  ISNULL(JBH.VendorProformaAmount,0) > 0 THEN ISNULL(JBH.VendorProformaAmount,0) ELSE (CASE WHEN [Type] = 1 THEN ISNULL(Po.DepositAmount,0) ELSE ISNULL(RO.DepositAmount,0) END)END AS VendorProformaAmount,
+					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceNo,'') ELSE ISNULL(RO.VendorProformaInvoiceNo,'') END) AS VendorProformaInvoiceNo,
+					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceId,0) ELSE ISNULL(RO.VendorProformaInvoiceId,0) END) AS VendorProformaInvoiceId
 
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
 					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId					 

@@ -648,7 +648,50 @@ BEGIN
 				) mjNewData WHERE #TempVendorReadyToPayList.VendorId = mjNewData.VendorId AND ISNULL(#TempVendorReadyToPayList.SelectedforPayment, 0) = 0
 
 				--)
-				SELECT * FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
+
+		SELECT 		[ID] ,      
+		[VendorPaymentDetailsId] ,
+		[ReadyToPayId] ,
+		CASE WHEN ISNULL(DueDate, '') = '' THEN GETUTCDATE() ELSE DueDate END AS [DueDate] ,
+		[VendorId] ,
+		[VendorName] ,
+		[PaymentMethodId] ,
+		[PaymentMethodName] ,
+		[ReceivingReconciliationId] ,
+		[InvoiceNum] ,
+		[CurrencyId] ,
+		[CurrencyName] ,
+		[FXRate] ,
+		[OriginalAmount] ,
+		[PaymentMade] ,
+		[AmountDue] ,
+		[PaidAmount] ,
+		[NetDays] ,
+		[Percentage] ,
+		[DaysPastDue] ,
+		[DiscountDate] ,
+		[DiscountAvailable] ,
+		[DiscountToken] ,
+		[StatusId] ,
+		[Status] ,
+		[MasterCompanyId] ,
+		[ReadyToPaymentMade] ,
+		[DefaultPaymentMethod] ,
+		[IsCheckPayment] ,
+		[IsDomesticWirePayment] ,
+		[IsInternationlWirePayment] ,
+		[IsACHTransferPayment] ,
+		[IsCreditCardPayment] ,
+		[IsCreditMemo] ,
+		[SelectedforPayment] ,
+		[IsEnable] ,
+		[IsCustomerCreditMemo] ,
+		[CreditMemoHeaderId] ,
+		[VendorReadyToPayDetailsTypeId] ,
+		[NonPOInvoiceId] ,
+		[CustomerCreditPaymentDetailId] ,
+		[CreatedDate] ,
+		[VendorProformaInvoiceId] FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
 
   END TRY      
   BEGIN CATCH        

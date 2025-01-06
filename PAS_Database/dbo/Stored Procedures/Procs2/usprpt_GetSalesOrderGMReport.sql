@@ -345,7 +345,8 @@ BEGIN
 			  
 	UNION ALL
 
-	SELECT COUNT(1) OVER () AS TotalRecordsCount,    
+	SELECT DISTINCT
+		COUNT(1) OVER () AS TotalRecordsCount,    
 		ISNULL(Charges.BillingAmount,0) AS 'ChargesBillingAMt',
 		UPPER(CM.CustomerName) 'customer',  
 		UPPER(CM.CustomerCode) 'custcode',  
@@ -365,11 +366,15 @@ BEGIN
 		ISNULL((SOBII.SubTotal),0) 'Netsales',
 		UPPER(SOMS.misc) 'Misc',  
 		-- ISNULL(((SOP.NetSales) +  ISNULL(Charges.BillingAmount, 0)),0)  'rev',  
-		UPPER(CM.Amount) 'rev',  
-		ISNULL(SOMS.productcost,0)  'directcost', 
-		ISNULL(((SOMS.productcost) / NULLIF(((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0), 0)),0) 'dcofrevperc',   
-		ISNULL((((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost),0) 'marginamt',  
-		ISNULL((((((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost) * 100) / NULLIF(((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0), 0)),0) 'marginrevperc', 
+		UPPER(CMD.Amount) 'rev',  
+		--ISNULL(SOMS.productcost,0)  'directcost', 
+		--ISNULL(((SOMS.productcost) / NULLIF(((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0), 0)),0) 'dcofrevperc',   
+		--ISNULL((((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost),0) 'marginamt',  
+		--ISNULL((((((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost) * 100) / NULLIF(((SOBII.PartCost)) +  ISNULL(Charges.BillingAmount, 0), 0)),0) 'marginrevperc', 
+		0.00 'directcost', 
+		0.00 'dcofrevperc',
+		0.00 'marginamt',  
+		0.00 'marginrevperc', 
 		SOQ.salesorderquotenumber 'qtenum',  
 		UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
@@ -389,11 +394,11 @@ BEGIN
 	FROM DBO.CreditMemo CM WITH (NOLOCK)   
 		INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
 		INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
-		INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsProforma, 0) = 0
+		INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsProforma, 0) = 0 AND  CMD.StocklineId = SOBII.StockLineId
 		LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 		--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
-		LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-		LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
+		LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND  CMD.ItemMasterId = SOP.ItemMasterId
+		LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId AND  CMD.StocklineId = SOV.StockLineId
 		LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId   
 		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId  

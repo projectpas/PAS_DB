@@ -18,6 +18,7 @@
 	2    24-DEC-2024		 Rajesh Gami			Added DistributionSetup Logic	
 	3    30-DEC-2024		 Rajesh Gami			Added Logic for the Deposit Amount in PO and RO	
 	4    30-DEC-2024		 Rajesh Gami			Remove deposit amount while post the batch detail.
+	5    06-JAN-2025		 Rajesh Gami			add new DistributionSetup for the DEPOSIT
 	 exec USP_PostVendorProforma_BatchDetails 6,'admin'
 **********************/
 
@@ -84,7 +85,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
-		DECLARE @ReferenceModule VARCHAR(100) = 'VendorProformaInvoice', @ModuleName VARCHAR(100) = 'Vendor Proforma Invoice', @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
+		DECLARE @ReferenceModule VARCHAR(100) = 'VendorProformaInvoice', @ModuleName VARCHAR(100) = 'Vendor Proforma Invoice', @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE',@DistributionSetupCodeDeposit  VARCHAR(200) ='VPI-DEPOSIT' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -266,7 +267,7 @@ BEGIN
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
-				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCode) 
+				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCodeDeposit) 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
 				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
@@ -279,9 +280,9 @@ BEGIN
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-					CASE WHEN @CheckAmount > 0 THEN 1 ELSE 0 END,
-					CASE WHEN @CheckAmount > 0 THEN @CheckAmount ELSE 0 END,
-					CASE WHEN @CheckAmount > 0 THEN 0 ELSE ABS(@CheckAmount) END,
+					CASE WHEN @CRDRType = 1  THEN 1 ELSE 0 END,
+					CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END,
+					CASE WHEN @CRDRType = 1 THEN 0 ELSE ABS(@CheckAmount) END,
 					@ManagementStructureId ,@ReferenceModule,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorProformaInvoiceId,@ReferenceModule)
 

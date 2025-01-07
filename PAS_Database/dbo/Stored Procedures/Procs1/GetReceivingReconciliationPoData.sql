@@ -1,4 +1,7 @@
-﻿/*************************************************************             
+﻿
+
+
+/*************************************************************             
  ** File:   [usp_PostReceivingReconcilationBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to get Reconsilation Stockline data
@@ -19,6 +22,8 @@
 	7	 23/12/2024	  Abhishek Jirawla	Switching between Po view and PN view
 	8	 01/01/2025	  Devendra Shekh	getting NonStockInventory where RRQty > 0
 	9	 01/JAN/2024  RAJESH GAMI	Return the vendorProformaInvoiceNo and Deposit amount from the PO-RO
+    10   06/01/2025   Moin Bloch     Modify (removed duplicate asset inventory list)
+
 	EXEC GetReceivingReconciliationPoData 2100,3745,1
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPoData]
@@ -559,37 +564,37 @@ BEGIN
 					--AND pop.PurchaseOrderPartRecordId=CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					--AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0
 			
-				UNION ALL
+				--UNION ALL
 			
-				SELECT stk.InventoryNumber AS 'StockLineNumber',
-					stk.ControlNumber, 
-					stk.AssetInventoryId AS 'StockLineId',
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNo AS 'SerialNumber',
-					po.PurchaseOrderId,
-					po.PurchaseOrderNumber AS 'POReference',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					stkdf.Qty AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * stkdf.Qty) AS 'POExtCost',
-					stkdf.Qty AS 'InvoicedQty',
-					stk.UnitCost AS 'InvoicedUnitCost',
-					(stk.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
-					(stk.RRQty) AS 'RemainingRRQty',
-					pop.PurchaseOrderPartRecordId,
-					1 AS 'Type',
-					'ASSET' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
-				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
-					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
-					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
-				WHERE po.PurchaseOrderId = @PurchaseOrderId
+				--SELECT stk.InventoryNumber AS 'StockLineNumber',
+				--	stk.ControlNumber, 
+				--	stk.AssetInventoryId AS 'StockLineId',
+				--	CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
+				--	pop.ItemMasterId,
+				--	pop.PartNumber,
+				--	pop.PartDescription,
+				--	stk.SerialNo AS 'SerialNumber',
+				--	po.PurchaseOrderId,
+				--	po.PurchaseOrderNumber AS 'POReference',
+				--	pop.QuantityOrdered AS 'POQtyOrder',
+				--	stkdf.Qty AS 'ReceivedQty',
+				--	pop.UnitCost AS 'POUnitCost',
+				--	(pop.UnitCost * stkdf.Qty) AS 'POExtCost',
+				--	stkdf.Qty AS 'InvoicedQty',
+				--	stk.UnitCost AS 'InvoicedUnitCost',
+				--	(stk.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
+				--	(stk.RRQty) AS 'RemainingRRQty',
+				--	pop.PurchaseOrderPartRecordId,
+				--	1 AS 'Type',
+				--	'ASSET' AS 'StockType' ,
+				--	ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+				--	Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+				--	ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
+				--FROM dbo.PurchaseOrder po WITH(NOLOCK)
+				--	INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+				--	INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId --and stk.IsParent=1 --AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
+				--	INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
+				--WHERE po.PurchaseOrderId = @PurchaseOrderId
 			END
 			ELSE
 			BEGIN

@@ -16,13 +16,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/23/2021   Hemant Saliya Created
+	2    01/03/2025   Moin Bloch  	Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
      
 --EXEC [AutoTravelerTaskDropDownList] '',1,20,'0',1,10427
 **************************************************************/
-
-
-
-Create   PROCEDURE [dbo].[AutoTravelerTaskDropDownList]
+CREATE   PROCEDURE [dbo].[AutoTravelerTaskDropDownList]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -35,76 +33,87 @@ BEGIN
 	SET NOCOUNT ON  
 	BEGIN TRY  
 
-		DECLARE @Sql NVARCHAR(MAX);
-		
-		declare @DataEnteredBy bigint =0
-				DECLARE @Traveler_setupid AS BIGINT = 0;
-				DECLARE @WorkScopeId AS BIGINT = 0;
-				DECLARE @ItemMasterId AS BIGINT = 0;
-				declare @IstravelerTask bit =0
-                
-                select top 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler from WorkOrderPartNumber  where ID=@WorkOrderPartId
+		DECLARE @Sql NVARCHAR(MAX);		
+		DECLARE @DataEnteredBy BIGINT =0
+		DECLARE @Traveler_setupid AS BIGINT = 0;
+		DECLARE @WorkScopeId AS BIGINT = 0;
+		DECLARE @ItemMasterId AS BIGINT = 0;
+		DECLARE @IstravelerTask BIT =0
+        
+        SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartId
 
-			     IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0))
-				 BEGIN
-				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0
-				 END
-				 else IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0))
-				 BEGIN
-				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0
-				 END
+		IF(EXISTS (SELECT 1 FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId AND IsVersionIncrease=0))
+		BEGIN
+		   SELECT TOP 1 @Traveler_setupid= Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId=@ItemMasterId AND IsVersionIncrease=0
+		END
+		ELSE IF(EXISTS (SELECT 1 FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND IsVersionIncrease=0))
+		BEGIN
+		   SELECT TOP 1 @Traveler_setupid= Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId IS NULL AND IsVersionIncrease=0
+		END
 
 		IF(@Count = '0') 
-		   BEGIN
+		BEGIN
 		   SET @Count='20';	
 		END	
-		  IF(@Traveler_setupid >0 and @IstravelerTask=1)
-			BEGIN		
+		IF(@Traveler_setupid > 0 AND @IstravelerTask=1)
+		BEGIN		
 					SELECT DISTINCT TOP 20 
-						TS.TaskId AS Value, 
-						TS.Description AS Label,		
-						Isnull(TSS.Sequence,999999) as Sequence
-					FROM dbo.Task TS WITH(NOLOCK)
-					LEFT JOIN Traveler_Setup_Task TSS WITH(NOLOCK) on ts.TaskId= tss.TaskId and Traveler_SetupId= @Traveler_setupid
+						TS.[TaskId] AS Value, 
+						TS.[Description] AS Label,		
+						ISNULL(TSS.[Sequence],999999) AS Sequence,
+						TS.[IsTravelerTask], 
+						TS.[StandardHours], 
+						TS.[StandardMinute]
+					FROM [dbo].[Task] TS WITH(NOLOCK)
+					LEFT JOIN [dbo].[Traveler_Setup_Task] TSS WITH(NOLOCK) ON ts.TaskId= tss.TaskId AND Traveler_SetupId= @Traveler_setupid
 					WHERE TS.MasterCompanyId = @MasterCompanyId AND (TS.IsActive=1 AND ISNULL(TS.IsDeleted,0) = 0 
-						AND (TS.Description LIKE @StartWith + '%')) 
+						AND (TS.[Description] LIKE @StartWith + '%')) 
 			   UNION     
 					SELECT DISTINCT  
-						TS.TaskId AS Value, 
-						TS.Description AS Label,		
-						Isnull(TSS.Sequence,999999) as Sequence
-					FROM dbo.task TS WITH(NOLOCK)
-					LEFT JOIN Traveler_Setup_Task TSS WITH(NOLOCK) on ts.TaskId= tss.TaskId and Traveler_SetupId= @Traveler_setupid
-					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
-				order by Sequence asc				
-			End
-			ELSE
-			BEGIN
+						TS.[TaskId] AS Value, 
+						TS.[Description] AS Label,		
+						ISNULL(TSS.[Sequence],999999) AS Sequence,
+						TS.[IsTravelerTask], 
+						TS.[StandardHours], 
+						TS.[StandardMinute]
+					FROM [dbo].[Task] TS WITH(NOLOCK)
+					LEFT JOIN [dbo].[Traveler_Setup_Task] TSS WITH(NOLOCK) ON ts.TaskId= tss.TaskId AND Traveler_SetupId= @Traveler_setupid
+					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
+				ORDER BY Sequence ASC				
+		END
+		ELSE
+		BEGIN
 				SELECT DISTINCT TOP 20 
-						TS.TaskId AS Value, 
-						TS.Description AS Label		
-					FROM dbo.task TS WITH(NOLOCK)
+						TS.[TaskId] AS Value, 
+						TS.[Description] AS Label,	
+						TS.[IsTravelerTask], 
+						TS.[StandardHours], 
+						TS.[StandardMinute]
+					FROM [dbo].[Task] TS WITH(NOLOCK)
 					WHERE TS.MasterCompanyId = @MasterCompanyId AND (ISNULL(TS.IsDeleted,0) = 0 
 						AND (TS.Description LIKE '%' + @StartWith + '%'))
 				UNION 
 				SELECT DISTINCT  
-						TS.TaskId AS Value, 
-						TS.Description AS Label		
-					FROM dbo.task TS WITH(NOLOCK)
-					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
+						TS.[TaskId] AS Value, 
+						TS.[Description] AS Label,		
+						TS.[IsTravelerTask], 
+						TS.[StandardHours], 
+						TS.[StandardMinute]
+					FROM [dbo].[Task] TS WITH(NOLOCK)
+					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
 				ORDER BY Label	
-			END	
+		END	
 	END TRY
 	BEGIN CATCH	
 			DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'AutoCompleteDropdownsAssetByItemMaster'
-			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StartWith, '') as varchar(100))
-			   + '@Parameter2 = ''' + CAST(ISNULL(@IsActive, '') as varchar(100)) 
-			   + '@Parameter3 = ''' + CAST(ISNULL(@Count, '') as varchar(100))  
-			   + '@Parameter4 = ''' + CAST(ISNULL(@Idlist, '') as varchar(100))		
-			   + '@Parameter5 = ''' + CAST(ISNULL(@MasterCompanyId, '') as varchar(100)) 
+			,@AdhocComments VARCHAR(150) = 'AutoTravelerTaskDropDownList'
+			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StartWith, '') AS VARCHAR(100))
+			   + '@Parameter2 = ''' + CAST(ISNULL(@IsActive, '') AS VARCHAR(100)) 
+			   + '@Parameter3 = ''' + CAST(ISNULL(@Count, '') AS VARCHAR(100))  
+			   + '@Parameter4 = ''' + CAST(ISNULL(@Idlist, '') AS VARCHAR(100))		
+			   + '@Parameter5 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100)) 
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName

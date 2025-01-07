@@ -156,7 +156,7 @@ BEGIN
 				DECLARE @ItemMasterId INT;
 				DECLARE @InventoryGLSettingId INT;
 				DECLARE @IMInventoryGLSettingId INT;
-				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline where StockLineId=@StocklineId
+				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline SL WITH (NOLOCK)  where SL.StockLineId=@StocklineId
 				
 				IF ISNULL(@InventoryGLSettingId,0)=0
 				BEGIN
@@ -193,7 +193,7 @@ BEGIN
 					SL.RevenueMiscGLAccId = I.RevenueMiscGLAccId,
 					SL.RevenueMiscGLAccName = GL14.AccountCode + '-' + GL14.AccountName
 					FROM
-					dbo.ItemMaster IM
+					dbo.ItemMaster IM WITH (NOLOCK) 
 					JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.ItemMasterId=IM.ItemMasterId
 					JOIN dbo.GLAccount GA WITH (NOLOCK) ON  GA.GLAccountId=IM.GLAccountId
 					LEFT JOIN

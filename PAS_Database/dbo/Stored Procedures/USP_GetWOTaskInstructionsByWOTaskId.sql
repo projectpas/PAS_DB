@@ -1,9 +1,9 @@
 ﻿/*************************************************************
- ** File:   [USP_GetWOTaskInstructions]
+ ** File:   [USP_GetWOTaskInstructionsByWOTaskId]
  ** Author: Vishal Suthar
- ** Description: This stored procedure is used to get WO Task Instruction with ParentId NULL
+ ** Description: This stored procedure is used to get WO Task Instruction by WO Task Id
  ** Purpose:
- ** Date:   01/01/2025
+ ** Date:   01/07/2025
     
  ** PARAMETERS:
 
@@ -14,31 +14,28 @@
  **************************************************************
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
-    1    01/01/2025   Vishal Suthar		Created
+    1    01/07/2025   Vishal Suthar		Created
 
-EXEC [dbo].[USP_GetWOTaskInstructions] 274
+EXEC [dbo].[USP_GetWOTaskInstructionsByWOTaskId] 8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWOTaskInstructions]
-	@TaskId bigint = 0
+CREATE   PROCEDURE [dbo].[USP_GetWOTaskInstructionsByWOTaskId]
+	@WorkOrderTaskId bigint = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		IF (ISNULL(@TaskId, 0) = 0)
-		BEGIN
-			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE ParentId IS NULL;
-		END
-		ELSE
-		BEGIN
-			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE TaskId = @TaskId AND ParentId IS NULL;
-		END
+		SELECT *
+		FROM DBO.WorkOrderTaskInstruction WOTI WITH (NOLOCK) 
+		LEFT JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+		WHERE WOTI.WorkOrderTaskId = @WorkOrderTaskId
+		ORDER BY WOTI.SequenceNumber;
 	END TRY
 	BEGIN CATCH
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-        , @AdhocComments     VARCHAR(150)    = 'USP_GetWOTaskInstructions'
-        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@TaskId AS varchar(10)) ,'') +''
+        , @AdhocComments     VARCHAR(150)    = 'USP_GetWOTaskInstructionsByWOTaskId'
+        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@WorkOrderTaskId AS varchar(10)) ,'') +''
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         exec spLogException

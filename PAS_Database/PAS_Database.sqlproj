@@ -3368,6 +3368,7 @@
     <Build Include="dbo\Stored Procedures\USP_ProformaInvoicePaymentMadeDepositPORO.sql" />
     <Build Include="dbo\Stored Procedures\CopySalesOrder.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetGLDetailsByInventoryClass.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EmailTrack.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -87,7 +87,9 @@ BEGIN
 	FROM
 		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
         
-	DECLARE @ModuleID INT = 17; -- MS Module ID
+	DECLARE @ModuleID INT; -- MS Module ID
+
+	SELECT @ModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE UPPER(RTRIM(ModuleName)) = 'SALESORDER'
 	SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	IF ISNULL(@PageSize,0)=0
@@ -98,7 +100,7 @@ BEGIN
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) 
 				ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
 			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) 
-				ON MSD.ModuleID = 17 AND MSD.ReferenceID = SO.SalesOrderId  
+				ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			INNER JOIN dbo.EntityStructureSetup ES 
 				ON ES.EntityStructureId = MSD.EntityMSID  
 			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
@@ -183,7 +185,7 @@ BEGIN
 		SELECT  @PageSizeCM =COUNT(*)					
 		FROM DBO.CreditMemo CM WITH (NOLOCK)   
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
+			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0
 			LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
 			LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
@@ -277,7 +279,7 @@ BEGIN
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) 
 				ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
 			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) 
-				ON MSD.ModuleID = 17 AND MSD.ReferenceID = SO.SalesOrderId  
+				ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			INNER JOIN dbo.EntityStructureSetup ES 
 				ON ES.EntityStructureId = MSD.EntityMSID  
 			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
@@ -393,7 +395,7 @@ BEGIN
 		,STL.StocklineId
 	FROM DBO.CreditMemo CM WITH (NOLOCK)   
 		INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-		INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
+		INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0
 		INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsProforma, 0) = 0 AND  CMD.StocklineId = SOBII.StockLineId
 		LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 		--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 

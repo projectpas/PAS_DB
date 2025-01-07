@@ -158,14 +158,14 @@ BEGIN
 				DECLARE @IMInventoryGLSettingId INT;
 				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline where StockLineId=@StocklineId
 				
-				IF @InventoryGLSettingId is null
+				IF ISNULL(@InventoryGLSettingId,0)=0
 				BEGIN
 				
 					UPDATE SL
 					SET
 					SL.InventoryGLSettingId=I.InventoryGLSettingId,
 					 SL.GLAccountId=IM.GLAccountId,
-					 SL.InventoryGLAccName = (select AccountCode+'-'+AccountName from GLAccount where GLAccountId=IM.GLAccountId),  
+					 SL.InventoryGLAccName = GA.AccountCode+'-'+ GA.AccountName, 
 					SL.GoodsReceivedNotInvoicesGLAccId = I.GoodsReceivedNotInvoicesGLAccId,
 					SL.GoodsReceivedNotInvoicesGLAccName = GL2.AccountCode + '-' + GL2.AccountName,
 					SL.WorkInProgressGLAccId = I.WorkInProgressGLAccId,
@@ -194,8 +194,8 @@ BEGIN
 					SL.RevenueMiscGLAccName = GL14.AccountCode + '-' + GL14.AccountName
 					FROM
 					dbo.ItemMaster IM
-					JOIN
-					dbo.Stockline SL on SL.ItemMasterId=IM.ItemMasterId
+					JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.ItemMasterId=IM.ItemMasterId
+					JOIN dbo.GLAccount GA WITH (NOLOCK) ON  GA.GLAccountId=IM.GLAccountId
 					LEFT JOIN
 					InventoryGLSetting I WITH (NOLOCK) ON IM.InventoryGLSettingId = I.InventoryGLSettingId
 					LEFT JOIN

@@ -19,6 +19,7 @@
 	3    30-DEC-2024		 Rajesh Gami			Added Logic for the Deposit Amount in PO and RO	
 	4    30-DEC-2024		 Rajesh Gami			Remove deposit amount while post the batch detail.
 	5    06-JAN-2025		 Rajesh Gami			add new DistributionSetup for the DEPOSIT
+	6    07-JAN-2025		 Rajesh Gami			Modified DistributionSetup for the DEPOSIT from itemGLAccount to DistributionSetup GL and Amount logic change to SUM of extended cost instead of Item Level
 	 exec USP_PostVendorProforma_BatchDetails 6,'admin'
 **********************/
 
@@ -86,7 +87,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'VendorProformaInvoice', @ModuleName VARCHAR(100) = 'Vendor Proforma Invoice', @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE',@DistributionSetupCodeDeposit  VARCHAR(200) ='VPI-DEPOSIT' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
-
+		DECLARE @isItemLevelCalculation BIT = 0;
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @ReferenceNum = VendorProformaInvoiceNo,@ReferenceId= ISNULL(ReferenceId,0),@isPurchaseOrder = ISNULL(IsPurchaseOrder,0), @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'') FROM [dbo].[VendorProformaInvoiceHeader] NPO WITH(NOLOCK)
@@ -107,10 +108,18 @@ BEGIN
 			Memo [varchar](500) NULL,
 			ExtendedPrice [decimal](18,2) NULL,
 		) 
-
-		INSERT INTO #tmpVendorProformaPartDetails
-		SELECT [VendorProformaInvoicePartDetailsId], [Amount], [GlAccountId], [Memo], [ExtendedPrice]
-		FROM [dbo].[VendorProformaInvoicePartDetails] WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
+		IF(@isItemLevelCalculation = 1)
+		BEGIN
+			INSERT INTO #tmpVendorProformaPartDetails
+			SELECT [VendorProformaInvoicePartDetailsId], [Amount], [GlAccountId], [Memo], [ExtendedPrice]
+			FROM [dbo].[VendorProformaInvoicePartDetails] WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
+		END
+		ELSE
+		BEGIN
+			INSERT INTO #tmpVendorProformaPartDetails
+				SELECT MAX([VendorProformaInvoicePartDetailsId]), SUM(ISNULL([Amount],0)), MAX([GlAccountId]), MAX([Memo]), SUM(ISNULL([ExtendedPrice],0))
+				FROM [dbo].[VendorProformaInvoicePartDetails] WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
+		END
 
 		SELECT @PartAmtSum = SUM(ExtendedPrice) FROM #tmpVendorProformaPartDetails
 
@@ -266,11 +275,12 @@ BEGIN
 
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
-				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
+				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0),	
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName  
 				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCodeDeposit) 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
-				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
+				 --SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

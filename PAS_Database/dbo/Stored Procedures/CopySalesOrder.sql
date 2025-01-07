@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    01/01/2024		EKTA CHANDEGRA	 Created  
+    2    07/01/2024		EKTA CHANDEGRA	 Retrieve Specific columns from [dbo].[SalesOrderPartV1]
 
  EXEC CopySalesOrder 1666 , N'EKTA CHANDEGRA', 0
 ************************************************************************/ 
@@ -220,7 +221,49 @@ BEGIN
 					[AltOrEqType]
 				)
 
-				SELECT DISTINCT *  FROM [dbo].[SalesOrderPartV1] SOPV1 WITH (NOLOCK) WHERE SalesOrderId = @OldSalesOrderId;
+				SELECT DISTINCT 
+					SOPV1.[SalesOrderPartId],
+					SOPV1.[SalesOrderId],
+					SOPV1.[ItemMasterId],
+					SOPV1.[ConditionId],
+					SOPV1.[QtyRequested],
+					SOPV1.[QtyOrder],
+					SOPV1.[QtyReserved],
+					SOPV1.[CurrencyId],
+					SOPV1.[PriorityId],
+					SOPV1.[StatusId],
+					SOPV1.[FxRate],
+					SOPV1.[CustomerRequestDate],
+					SOPV1.[PromisedDate],
+					SOPV1.[EstimatedShipDate],
+				    SOPV1.[POId],
+					SOPV1.[PONumber],
+					SOPV1.[PONextDlvrDate],
+					SOPV1.[Notes],
+					SOPV1.[MasterCompanyId],
+					SOPV1.[CreatedBy],
+					SOPV1.[CreatedDate],
+					SOPV1.[UpdatedBy],
+					SOPV1.[UpdatedDate],
+					SOPV1.[IsActive],
+					SOPV1.[IsDeleted],
+					SOPV1.[OldSalesOrderPartId],
+					SOPV1.[PartNumber],
+					SOPV1.[PartDescription],
+					SOPV1.[ConditionName],
+					SOPV1.[CurrencyName],
+					SOPV1.[PriorityName],
+					SOPV1.[StatusName],
+					SOPV1.[SalesOrderQuotePartId],
+					SOPV1.[LotId],
+					SOPV1.[IsLotAssigned],
+					SOPV1.[ECCN],
+					SOPV1.[HSCODE],
+					SOPV1.[Weight],
+					SOPV1.[SizeLength],
+					SOPV1.[SizeWidth],
+					SOPV1.[SizeHeight],
+					SOPV1.[AltOrEqType]  FROM [dbo].[SalesOrderPartV1] SOPV1 WITH (NOLOCK) WHERE SOPV1.SalesOrderId = @OldSalesOrderId;
 
 				SELECT @SOLoopID = MAX(ID) FROM #sopartList;
 				WHILE (@SOLoopID > 0)

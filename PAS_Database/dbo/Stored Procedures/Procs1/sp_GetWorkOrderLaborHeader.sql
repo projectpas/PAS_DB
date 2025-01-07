@@ -17,9 +17,9 @@
  ** --   --------     -------		--------------------------------          
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
-
+	3    01/03/2025   Moin Bloch     Removed Un-Used Table Join
      
- EXECUTE [dbo].[sp_GetWorkOrderLaborHeader] 2730, 3221
+ EXECUTE [dbo].[sp_GetWorkOrderLaborHeader] 4284, 4737
 **************************************************************/
 CREATE     Procedure [dbo].[sp_GetWorkOrderLaborHeader]
 @wfwoId  bigint,
@@ -53,14 +53,14 @@ BEGIN
                                      lh.ExpertiseId,
                                      lh.TotalWorkHours,
 									 wfwo.WorkFlowWorkOrderNo,
-									 deby.FirstName + ' ' + deby.LastName as DataEnteredByName,			
-									 emp.FirstName + ' '+ emp.LastName as EmployeeName,
-									 expr.Description as ExpertiseType
+									 deby.FirstName + ' ' + deby.LastName AS DataEnteredByName,			
+									 emp.FirstName + ' '+ emp.LastName AS EmployeeName,
+									 expr.[Description] AS ExpertiseType
 				FROM DBO.WorkOrderLaborHeader lh WITH(NOLOCK)
-					LEFT JOIN DBO.WorkOrderLabor WL  WITH(NOLOCK) on lh.WorkOrderLaborHeaderId = WL.WorkOrderLaborHeaderId
-					LEFT JOIN DBO.Employee deby WITH(NOLOCK) on deby.EmployeeId = lh.DataEnteredBy
-					LEFT JOIN DBO.ExpertiseType expr WITH(NOLOCK) on expr.ExpertiseTypeId = lh.ExpertiseId
-					LEFT JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = lh.EmployeeId
+					--LEFT JOIN DBO.WorkOrderLabor WL  WITH(NOLOCK) on lh.WorkOrderLaborHeaderId = WL.WorkOrderLaborHeaderId
+					LEFT JOIN DBO.Employee deby WITH(NOLOCK) ON deby.EmployeeId = lh.DataEnteredBy
+					LEFT JOIN DBO.ExpertiseType expr WITH(NOLOCK) ON expr.ExpertiseTypeId = lh.ExpertiseId
+					LEFT JOIN DBO.Employee emp WITH(NOLOCK) ON emp.EmployeeId = lh.EmployeeId
 					LEFT JOIN DBO.WorkOrderWorkFlow wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = lh.WorkFlowWorkOrderId 
 				WHERE lh.IsDeleted = 0 AND lh.WorkFlowWorkOrderId = @wfwoId 
 			END
@@ -75,7 +75,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'sp_GetWorkOrderLaborHeader' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@workOrderId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@workOrderId, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

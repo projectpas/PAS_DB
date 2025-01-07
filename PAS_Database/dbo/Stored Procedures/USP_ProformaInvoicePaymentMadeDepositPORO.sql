@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_ProformaInvoicePaymentMadeDepositPORO]             
  ** Author:   RAJESH GAMI
  ** Description: This stored procedure is used to deposit amount into PO/RO from the vendor proforma invoice
@@ -10,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    02-JAN-2024		RAJESH GAMI			Created
+	2    06-JAN-2024		RAJESH GAMI			Added @VendorProformaInvoiceId in the PO/RO
  
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_ProformaInvoicePaymentMadeDepositPORO]
@@ -26,11 +26,11 @@ BEGIN
 		SELECT  @ReferenceNum = VendorProformaInvoiceNo, @ReferenceId= ISNULL(ReferenceId,0),@isPurchaseOrder = ISNULL(IsPurchaseOrder,0) FROM [dbo].[VendorProformaInvoiceHeader] VPI WITH(NOLOCK) WHERE VendorProformaInvoiceId = @VendorProformaInvoiceId
 		IF(@isPurchaseOrder = 1)
 		BEGIN
-			UPDATE PurchaseOrder Set DepositAmount = ISNULL(DepositAmount,0) + @PaymentMade , VendorProformaInvoiceNo = @ReferenceNum Where PurchaseOrderId = @ReferenceId
+			UPDATE PurchaseOrder Set DepositAmount = ISNULL(DepositAmount,0) + @PaymentMade , VendorProformaInvoiceNo = @ReferenceNum, VendorProformaInvoiceId = @VendorProformaInvoiceId Where PurchaseOrderId = @ReferenceId
 		END
 		ELSE 
 		BEGIN
-			UPDATE RepairOrder Set DepositAmount = ISNULL(DepositAmount,0) + @PaymentMade , VendorProformaInvoiceNo = @ReferenceNum Where RepairOrderId = @ReferenceId
+			UPDATE RepairOrder Set DepositAmount = ISNULL(DepositAmount,0) + @PaymentMade , VendorProformaInvoiceNo = @ReferenceNum, VendorProformaInvoiceId = @VendorProformaInvoiceId Where RepairOrderId = @ReferenceId
 		END
 		
 	COMMIT TRANSACTION

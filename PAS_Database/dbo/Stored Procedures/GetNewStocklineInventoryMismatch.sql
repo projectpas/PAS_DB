@@ -1175,6 +1175,7 @@ BEGIN
 			JOIN Stockline SL ON SL.StockLineId = tmpSL.StockLineId
 		 WHERE (ISNULL(ModuleQuantityReserved,0) <> ISNULL(tmpSL.QuantityReserved,0)) -- OR ISNULL(ModuleQuantityIssued,0) <> ISNULL(tmpSL.QuantityIssued,0))
 			AND (ISNULL(ModuleQuantityReserved,0) != 0 OR ISNULL(ModuleQuantityIssued,0) != 0 )
+		ORDER BY SL.MasterCompanyId DESC
 			
 	END
 

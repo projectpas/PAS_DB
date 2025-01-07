@@ -31,6 +31,7 @@
 	19	 04/11/2024   Devendra Shekh      Added ReferenceModule For [CommonBatchDetails]
 	20	 18/12/2024   Devendra Shekh      Modify (Handling Qty/Unit Cost Adjustment Separately For Accounting Entry) And Changed QuantityAvailable to QuantityOnHand
 	21	 30/12/2024   Devendra Shekh      Modify (Same JE for Post Batch, StockType wise)
+	22	 06/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -2622,46 +2623,210 @@ BEGIN
 				CREATE TABLE #TMPVendorProformaInv (
 					[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 					[VendorProformaInvoiceId] [bigint] NULL,
+					[ReferenceId] [bigint] NULL,
+					[ProformaAmount] [decimal](18, 2) NULL,
+					[StockType] [varchar](150) NULL,
+					[Type] [int] NULL,
 				)
 
 				DECLARE @TMPCommonBatchId BIGINT = 0, @TotalBatchRecords BIGINT = 0, @CurrentRecordId BIGINT = 0;
 
-				INSERT INTO #TMPVendorProformaInv (VendorProformaInvoiceId)
-				SELECT DISTINCT VPH.VendorProformaInvoiceId FROM [DBO].[ReceivingReconciliationDetails] RCD 
+				INSERT INTO #TMPVendorProformaInv (VendorProformaInvoiceId, ProformaAmount, ReferenceId, StockType, [Type])
+				SELECT DISTINCT VPH.VendorProformaInvoiceId, RCD.VendorProformaAmount, PO.PurchaseOrderId, RCD.StockType, 1 FROM [DBO].[ReceivingReconciliationDetails] RCD WITH(NOLOCK)
 				JOIN #RRPostType RRCT ON RRCT.ReceivingReconciliationDetailId = RCD.ReceivingReconciliationDetailId 
-				LEFT JOIN PurchaseOrder PO ON PO.PurchaseOrderId = RCD.PurchaseOrderId AND [Type] = 1 AND PO.MasterCompanyId = @MasterCompanyId
-				LEFT JOIN VendorProformaInvoiceHeader VPH ON VPH.ReferenceId = PO.PurchaseOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 1 AND VPH.MasterCompanyId = PO.MasterCompanyId
+				LEFT JOIN PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = RCD.PurchaseOrderId AND [Type] = 1 AND PO.MasterCompanyId = @MasterCompanyId
+				LEFT JOIN VendorProformaInvoiceHeader VPH WITH(NOLOCK) ON VPH.ReferenceId = PO.PurchaseOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 1 AND VPH.MasterCompanyId = PO.MasterCompanyId
 				WHERE PO.MasterCompanyId = @MasterCompanyId
 
-				INSERT INTO #TMPVendorProformaInv (VendorProformaInvoiceId)
-				SELECT DISTINCT VPH.VendorProformaInvoiceId FROM [DBO].[ReceivingReconciliationDetails] RCD 
+				INSERT INTO #TMPVendorProformaInv (VendorProformaInvoiceId, ProformaAmount, ReferenceId, StockType, [Type])
+				SELECT DISTINCT VPH.VendorProformaInvoiceId, RCD.VendorProformaAmount, RO.RepairOrderId, RCD.StockType, 2 FROM [DBO].[ReceivingReconciliationDetails] RCD WITH(NOLOCK)
 				JOIN #RRPostType RRCT ON RRCT.ReceivingReconciliationDetailId = RCD.ReceivingReconciliationDetailId 
-				LEFT JOIN RepairOrder RO ON RO.RepairOrderId = RCD.PurchaseOrderId AND [Type] = 2 AND RO.MasterCompanyId = @MasterCompanyId
-				LEFT JOIN VendorProformaInvoiceHeader VPH ON VPH.ReferenceId = RO.RepairOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 0 AND VPH.MasterCompanyId = RO.MasterCompanyId
+				LEFT JOIN RepairOrder RO WITH(NOLOCK) ON RO.RepairOrderId = RCD.PurchaseOrderId AND [Type] = 2 AND RO.MasterCompanyId = @MasterCompanyId
+				LEFT JOIN VendorProformaInvoiceHeader VPH WITH(NOLOCK) ON VPH.ReferenceId = RO.RepairOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 0 AND VPH.MasterCompanyId = RO.MasterCompanyId
 				WHERE RO.MasterCompanyId = @MasterCompanyId
-				--JOIN #TMPCommonBatchDetail TMP ON TMP.DE
-				SELECT * FROM #TMPVendorProformaInv
-				SELECT * FROM #TMPCommonBatchDetail
+
+				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
+				BEGIN
+					
+					DECLARE  @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
+					DECLARE @PaybleDistributionSetupId BIGINT;
+
+					--GET Vendor Proforma GL Account Details
+					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
+					FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCode) 
+						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
+
+					--GET PAYBLE ID to reduce payble amt
+					SELECT TOP 1 @PaybleDistributionSetupId = ID
+					FROM dbo.DistributionSetup WITH(NOLOCK)
+					WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @ManagementStructureId
+					
+					INSERT INTO #TMPCommonBatchDetail
+						([JournalBatchHeaderId],JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[GlAccountId],[GlAccountNumber],[GlAccountName] ,[JournalTypeId],[JournalTypeName],
+						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[ReferenceId],[ReferenceNumber],[ReferenceName],
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+					SELECT	MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
+								VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], MAX([JournalTypeId]), [JournalTypeName], 
+								0, 0, MAX([ExtendedPrice]) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
+								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
+					FROM dbo.VendorProformaInvoicePartDetails VPIPD 
+						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId 
+						JOIN GLAccount GL ON VPIPD.GlAccountId = GL.GLAccountId
+						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId AND [Type] = 1
+					GROUP BY JournalTypeNumber, CurrentNumber, [JournalTypeName], VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], [JournalTypeName],VPIPD.[ManagementStructureId], 
+							[ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], [LocalCurrency],
+							TMPCB.[FXRate],[ForeignCurrency], LineNumber, TMPCB.[CreatedBy],TMPCB.[UpdatedBy]
+
+					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY();
+
+					UPDATE #TMPCommonBatchDetail
+					SET 
+						VendorId = GROUPtmp.VendorId,
+						VendorName = GROUPtmp.VendorName,
+						ItemMasterId = GROUPtmp.ItemMasterId,
+						PartId = GROUPtmp.PartId,
+						PartNumber = GROUPtmp.PartNumber,
+						PoId = GROUPtmp.PoId,
+						PONum = GROUPtmp.PONum,
+						RoId = GROUPtmp.RoId,
+						RONum = GROUPtmp.RONum,
+						StocklineId = GROUPtmp.StocklineId,
+						StocklineNumber = GROUPtmp.StocklineNumber,
+						Consignment = '',
+						[Description] = GROUPtmp.[Description],
+						[SiteId] = GROUPtmp.SiteId,
+						[Site] = GROUPtmp.Site,
+						[WarehouseId] = GROUPtmp.WarehouseId,
+						[Warehouse] = GROUPtmp.Warehouse,
+						[LocationId] = GROUPtmp.LocationId,
+						[Location] = GROUPtmp.Location,
+						[BinId] = GROUPtmp.BinId,
+						[Bin] = GROUPtmp.Bin,
+						[ShelfId] = GROUPtmp.ShelfId,
+						[Shelf] = GROUPtmp.Shelf,
+						[StockType] = GROUPtmp.StockType,
+						[CommonJournalBatchDetailId] = GROUPtmp.CommonJournalBatchDetailId,
+						[ReferenceId] = @ReceivingReconciliationId,
+						[ReferenceTypeId] = 1
+					FROM ( SELECT TOP 1 VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
+								[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],TMPCB.[StockType],[CommonJournalBatchDetailId],
+								TMPCB.[ReferenceId],[ReferenceTypeId]
+							FROM #TMPCommonBatchDetail TMPCB
+							JOIN #TMPVendorProformaInv TMPVP ON TMPCB.PoId = TMPVP.ReferenceId AND [Type] = 1
+						) GROUPtmp 
+					WHERE TMPBatchId = @CommonJournalBatchDetailId;
+
+					INSERT INTO #TMPCommonBatchDetail
+						([JournalBatchHeaderId],JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[GlAccountId],[GlAccountNumber],[GlAccountName] ,[JournalTypeId],[JournalTypeName],
+						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[ReferenceId],[ReferenceNumber],[ReferenceName],
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+					SELECT	MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
+								VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], MAX([JournalTypeId]), [JournalTypeName], 
+								0, 0, MAX([ExtendedPrice]) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
+								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
+					FROM dbo.VendorProformaInvoicePartDetails VPIPD 
+						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId 
+						JOIN GLAccount GL ON VPIPD.GlAccountId = GL.GLAccountId
+						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.RoId = TMPVP.ReferenceId AND [Type] = 2
+					GROUP BY JournalTypeNumber, CurrentNumber, [JournalTypeName], VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], [JournalTypeName],VPIPD.[ManagementStructureId], 
+							[ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], [LocalCurrency],
+							TMPCB.[FXRate],[ForeignCurrency], LineNumber, TMPCB.[CreatedBy],TMPCB.[UpdatedBy]
+
+					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY();
+
+					UPDATE #TMPCommonBatchDetail
+					SET 
+						VendorId = GROUPtmp.VendorId,
+						VendorName = GROUPtmp.VendorName,
+						ItemMasterId = GROUPtmp.ItemMasterId,
+						PartId = GROUPtmp.PartId,
+						PartNumber = GROUPtmp.PartNumber,
+						PoId = GROUPtmp.PoId,
+						PONum = GROUPtmp.PONum,
+						RoId = GROUPtmp.RoId,
+						RONum = GROUPtmp.RONum,
+						StocklineId = GROUPtmp.StocklineId,
+						StocklineNumber = GROUPtmp.StocklineNumber,
+						Consignment = '',
+						[Description] = GROUPtmp.[Description],
+						[SiteId] = GROUPtmp.SiteId,
+						[Site] = GROUPtmp.Site,
+						[WarehouseId] = GROUPtmp.WarehouseId,
+						[Warehouse] = GROUPtmp.Warehouse,
+						[LocationId] = GROUPtmp.LocationId,
+						[Location] = GROUPtmp.Location,
+						[BinId] = GROUPtmp.BinId,
+						[Bin] = GROUPtmp.Bin,
+						[ShelfId] = GROUPtmp.ShelfId,
+						[Shelf] = GROUPtmp.Shelf,
+						[StockType] = GROUPtmp.StockType,
+						[CommonJournalBatchDetailId] = GROUPtmp.CommonJournalBatchDetailId,
+						[ReferenceId] = @ReceivingReconciliationId,
+						[ReferenceTypeId] = 1
+					FROM ( SELECT TOP 1 VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
+								[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],TMPCB.[StockType],[CommonJournalBatchDetailId],
+								TMPCB.[ReferenceId],[ReferenceTypeId]
+							FROM #TMPCommonBatchDetail TMPCB
+							JOIN #TMPVendorProformaInv TMPVP ON TMPCB.RoId = TMPVP.ReferenceId AND [Type] = 2
+						) GROUPtmp 
+					WHERE TMPBatchId = @CommonJournalBatchDetailId;
+
+					--SELECT @DistributionSetupId
+
+					--SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+					--	FROM #TMPVendorProformaInv TMPVP
+					--	JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId 
+					--	WHERE DistributionSetupId = @DistributionSetupId 
+					--	GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+
+					--SELECT StockType, PoId, DistributionSetupId, * FROM #TMPCommonBatchDetail
+
+					UPDATE #TMPCommonBatchDetail SET CreditAmount = CreditAmount - ProformaAmount
+					FROM (
+						SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+						FROM #TMPVendorProformaInv TMPVP
+						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId 
+						WHERE DistributionSetupId = @DistributionSetupId AND TMPVP.[Type] = 1
+						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+					) GroupTmp WHERE GroupTmp.StockType = #TMPCommonBatchDetail.StockType 
+						AND #TMPCommonBatchDetail.PoId = GroupTmp.ReferenceId 
+						AND #TMPCommonBatchDetail.DistributionSetupId = @PaybleDistributionSetupId
+
+					UPDATE #TMPCommonBatchDetail SET CreditAmount = CreditAmount - ProformaAmount
+					FROM (
+						SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+						FROM #TMPVendorProformaInv TMPVP
+						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.RoId = TMPVP.ReferenceId 
+						WHERE DistributionSetupId = @DistributionSetupId AND TMPVP.[Type] = 2
+						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+					) GroupTmp WHERE GroupTmp.StockType = #TMPCommonBatchDetail.StockType 
+						AND #TMPCommonBatchDetail.RoId = GroupTmp.ReferenceId 
+						AND #TMPCommonBatchDetail.DistributionSetupId = @PaybleDistributionSetupId
+				
+				END
+		
+				--SELECT * FROM #TMPVendorProformaInv
+				--SELECT * FROM #TMPCommonBatchDetail
 				--;WITH CTeResult AS (
-						INSERT INTO #TMPBatchFinalResult ([TMPBatchId], JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
-								[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
-								[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
-								[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-								[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
-						SELECT	MAX([TMPBatchId]), JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
-								[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], MAX([EntryDate]), [JournalTypeId], [JournalTypeName], 
-								[IsDebit], SUM([DebitAmount]) [DebitAmount], SUM([CreditAmount]) [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
-								[UpdatedBy], MAX([CreatedDate]), MAX([UpdatedDate]), [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-								[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule]
-						FROM #TMPCommonBatchDetail
-						GROUP BY 
-								JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
-								[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],  [JournalTypeId], [JournalTypeName], 
-								[IsDebit], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
-								[UpdatedBy], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-								[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule]
+				INSERT INTO #TMPBatchFinalResult ([TMPBatchId], JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
+						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
+						[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
+						[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
+				SELECT	MAX([TMPBatchId]), JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
+						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], MAX([EntryDate]), [JournalTypeId], [JournalTypeName], 
+						[IsDebit], SUM([DebitAmount]) [DebitAmount], SUM([CreditAmount]) [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
+						[UpdatedBy], MAX([CreatedDate]), MAX([UpdatedDate]), [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule]
+				FROM #TMPCommonBatchDetail
+				GROUP BY 
+						JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
+						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],  [JournalTypeId], [JournalTypeName], 
+						[IsDebit], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
+						[UpdatedBy], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule]
 				--)
-				SELECT * FROM #TMPBatchFinalResult
+				--SELECT * FROM #TMPBatchFinalResult
 
 				SELECT @TotalBatchRecords = MAX(BatchId), @CurrentRecordId = MIN(BatchId) FROM #TMPBatchFinalResult;
 
@@ -2693,6 +2858,9 @@ BEGIN
 					FROM #TMPBatchFinalResult TMPF
 					JOIN #TMPCommonBatchDetail TMPC ON TMPC.[TMPBatchId] = TMPF.[TMPBatchId]
 					WHERE BatchId = @CurrentRecordId;
+
+
+					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId		
 
 					--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
 					--SELECT	JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber]

@@ -3366,6 +3366,9 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForPOAndRONumberByVendorId.sql" />
     <Build Include="dbo\Tables\PublicationSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_ProformaInvoicePaymentMadeDepositPORO.sql" />
+    <Build Include="dbo\Stored Procedures\CopySalesOrder.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetGLDetailsByInventoryClass.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EmailTrack.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskDetailsAudit.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskList.sql" />

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetAddressById]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Address Deatais By Purchase Order Id    
@@ -27,8 +28,9 @@
 	3	 03/04/2024   Bhargav Saliya Resolved Ship-To address issue in Shipping (Single Part) 
 	4	 07/23/2024	  Bhargav Saliya Added ShippingTerms
 	5	 11/20/2024	  Abhishek Jirawla Adding IsDeleted 1 to SOQ
+	5	 07/01/2025	  Bhargav Saliya  Resolved Primary and Add/Update Issue In Ship To or Bill To 
      
-exec dbo.USP_GetAddressById @Id=111,@AddressType=N'VendorRMA',@ModuleID=0
+exec dbo.USP_GetAddressById @Id=212,@AddressType=N'VendorRMA',@ModuleID=0
 **************************************************************/ 
     
 CREATE       PROCEDURE [dbo].[USP_GetAddressById]
@@ -628,7 +630,8 @@ BEGIN
 				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.City ELSE SAD.City END AS ShipCity,
 				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.StateOrProvince ELSE SAD.StateOrProvince END AS ShipStateOrProvince,
 				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.PostalCode ELSE SAD.PostalCode END AS ShipPostalCode,
-
+				   ISNULL(VSA.VendorShippingAddressId, 0) AS ShipToSiteId,
+				   ISNULL(VBA.VendorBillingAddressId, 0) AS BillToSiteId,
 				   --VSA.AddressId AS ShipAddressId,
 				   --VSA.SiteName AS ShipSiteName,
 				   --SAD.Line1 AS ShipLine1,

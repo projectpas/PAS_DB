@@ -18,6 +18,7 @@
     1    07/22/2022   Hemant Saliya   Created
 	2    03/08/2024   Bhargav Saliya  In WokOrder DashBoard  Count Issue Resolved
 	3	 12 NOV 2024  HEMANT SALIYA	  Verify the count and removed un used code 
+	4	 31/12/2024	  Bhargav saliya  In WO DashBoards Resolved [RECEIVED] Count Issue (PN-10677)
      
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
@@ -98,7 +99,7 @@ BEGIN
 						SET Counts = ISNULL(Counts, 0) + (SELECT ISNULL(COUNT(DISTINCT ReceivingCustomerWorkId), 0) 
 						FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) JOIN dbo.Customer C ON c.CustomerId = RC.CustomerId
 						WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 
-						AND RC.MasterCompanyId = @MasterCompanyId 
+						AND RC.MasterCompanyId = @MasterCompanyId	AND  RC.IsActive = 1 AND RC.IsDeleted = 0
 						AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
 				FROM #tmpWorkOrderStage AS WOS 
 				WHERE WOS.StageCode = 'RECEIVED'

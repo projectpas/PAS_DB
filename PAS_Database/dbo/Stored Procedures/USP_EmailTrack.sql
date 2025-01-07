@@ -1,19 +1,18 @@
 ﻿/*************************************************************             
- ** File:   [USP_EmailTrack]            
+  ** File:   [USP_EmailTrack]            
  ** Author:  EKTA CHANDEGRA
  ** Description: This stored procedure is used send email for customer approvals for Sales order quote 
  ** Purpose:           
- ** Date:  07/01/2025        
+ ** Date:  07/01/2025      
             
- ** PARAMETERS: @ReferenceId BIGINT, @MasterCompanyId INT,@ContactId BIGINT,@RecepientEmail VARCHAR(4000),@Subject VARCHAR(MAX),@EmailBody VARCHAR(MAX),@CreatedBy VARCHAR(256),@AttachmentId VARCHAR(256)
-           
+ ** PARAMETERS: @ReferenceId BIGINT, @MasterCompanyId INT,@ContactId BIGINT,@RecepientEmail VARCHAR(4000),@Subject VARCHAR(MAX),@EmailBody VARCHAR(MAX),@CreatedBy VARCHAR(256),@AttachmentId VARCHAR(256)           
  ** RETURN VALUE:             
  **************************************************************             
  ** Change History             
  **************************************************************             
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
-    1    07/01/2024		EKTA CHANDEGRA	 Created  
+    1    07/01/2025		EKTA CHANDEGRA	 Created  
 
 EXEC dbo.USP_EmailTrack @ReferenceId=1012,@MasterCompanyId=1,@ContactId=208,@RecepientEmail=N'sx.alen@yopmail.com',@Subject=N'SOQ-000861',@EmailBody=N'<p>Dear Approver,</p><p><br></p><p>Sales Order Quote - SOQ-000861 requires your approval. For more details, please see the attached file.</p><p><br></p><p>Regards,</p><br><p><img src="##EmailSignatureLogo##" height="60px" width="150px"></p><br><p style="min-height:100px;margin:1px;float:left;font-size:12px!important;font-family:Tahoma,Arial,sans-serif;font-weight:400;line-height:20px;text-align:left">EKTA CHANDEGARA</p><br>',@CreatedBy=N'EKTA CHANDEGARA',@AttachmentId=17715
 
@@ -53,7 +52,7 @@ BEGIN
 			DECLARE @EmailTypeId INT = (SELECT EmailTypeID FROM [dbo].[EmailType] WITH(NOLOCK) WHERE [Name] = 'Background');
 
 			-- Insert into Email table
-			INSERT INTO Email 
+			INSERT INTO [dbo].[Email] 
 			(ReferenceId,ModuleId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AttachmentId,FromEmail,
 			 ToEmail,Subject,CC,BCC,EmailTypeId,ContactById,ContactDate,EmailBody,IsActive,IsDeleted,Type)
 			VALUES 

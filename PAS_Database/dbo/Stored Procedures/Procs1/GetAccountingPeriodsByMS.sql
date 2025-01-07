@@ -12,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
 	
 	2    18/01/2024   Bhargav Saliya  Added [label],[value] Field
+	3    07/01/2025   Amit Ghediya    Modified for allow to display all accounting period year.
 
 ************************************************************************
 EXEC GetAccountingPeriodsByMS 1
@@ -38,7 +39,9 @@ BEGIN
 			INNER JOIN dbo.AccountingCalendar AC WITH(NOLOCK) ON MSL.LegalEntityId = AC.LegalEntityId
 			where ESS.EntityStructureId = @EntityStructureId --AND AC.[Status]='Open'
 			--AND (CAST(GETDATE() as date) >= AC.FromDate AND CAST(GETDATE() as date) >= AC.ToDate)
-			AND AC.IsDeleted = 0 AND AC.FiscalYear=YEAR(GETDATE()) ORDER BY AC.AccountingCalendarId;
+			AND AC.IsDeleted = 0 
+			--AND AC.FiscalYear=YEAR(GETDATE()) 
+			ORDER BY AC.[FiscalYear] DESC,AC.AccountingCalendarId;
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

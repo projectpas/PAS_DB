@@ -89,15 +89,18 @@ select
  
 	BEGIN TRY
   
-	DECLARE @ModuleID INT = 17; -- MS Module ID  
+	DECLARE @ModuleID INT; -- MS Module ID
+
+	SELECT @ModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE UPPER(RTRIM(ModuleName)) = 'SALESORDER'
+
 	SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END  
 
 	IF ISNULL(@PageSize,0)=0  
 	BEGIN
 		SELECT @PageSize=COUNT(*)
-	FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
+		FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) 
-				ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1
+				ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
 			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) 
 				ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			INNER JOIN dbo.EntityStructureSetup ES 
@@ -114,33 +117,35 @@ select
 				ON SOP.itemmasterid = IM.itemmasterid 
 			INNER JOIN dbo.stockline STL WITH (NOLOCK) 
 				ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
+			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) 
+				ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
 				ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
 			LEFT JOIN dbo.workorder WO WITH (NOLOCK)  
 				ON STL.workorderid = WO.workorderid 
 			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) 
-				ON SOP.conditionid = CDTN.conditionid 
-			OUTER APPLY (
-				SELECT TOP 1 
-					SOBillingInvoicingItemId,
-					RowNumber
-				FROM 
-					(SELECT *, ROW_NUMBER() OVER (PARTITION BY SOBillingInvoicingId ORDER BY SOBillingInvoicingItemId) AS RowNumber
-					FROM SalesOrderBillingInvoicingItem) sub
-				WHERE sub.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-				ORDER BY sub.SOBillingInvoicingItemId
-			) AS firstRow
-			OUTER APPLY (
-				SELECT TOP 1 
-					SOBillingInvoicingItemId,
-					PartCost * p.PercentValue / 100 AS OtherTaxValue,
-					PartCost * ps.PercentValue / 100 AS SalesTaxValue
-				FROM SalesOrderBillingInvoicingItem SBII
-				INNER JOIN [Percent] p ON p.PercentId = SBII.OtherTaxPercent
-				INNER JOIN [Percent] ps ON ps.PercentId = SBII.SalesTaxPercent
-				WHERE SBII.SOBillingInvoicingItemId = SOBIII.SOBillingInvoicingItemId
-				ORDER BY SBII.SOBillingInvoicingItemId
-			) AS taxValue
+				ON SOP.conditionid = CDTN.conditionid
+			--OUTER APPLY (
+			--	SELECT TOP 1 
+			--		SOBillingInvoicingItemId,
+			--		RowNumber
+			--	FROM 
+			--		(SELECT *, ROW_NUMBER() OVER (PARTITION BY SOBillingInvoicingId ORDER BY SOBillingInvoicingItemId) AS RowNumber
+			--		FROM SalesOrderBillingInvoicingItem) sub
+			--	WHERE sub.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
+			--	ORDER BY sub.SOBillingInvoicingItemId
+			--) AS firstRow
+			--OUTER APPLY (
+			--	SELECT TOP 1 
+			--		SOBillingInvoicingItemId,
+			--		PartCost * p.PercentValue / 100 AS OtherTaxValue,
+			--		PartCost * ps.PercentValue / 100 AS SalesTaxValue
+			--	FROM SalesOrderBillingInvoicingItem SBII
+			--	INNER JOIN [Percent] p ON p.PercentId = SBII.OtherTaxPercent
+			--	INNER JOIN [Percent] ps ON ps.PercentId = SBII.SalesTaxPercent
+			--	WHERE SBII.SOBillingInvoicingItemId = SOBIII.SOBillingInvoicingItemId
+			--	ORDER BY SBII.SOBillingInvoicingItemId
+			--) AS taxValue
 		WHERE SOBI.customerid = ISNULL(@name, SOBI.customerid) 
 			AND CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
 			AND SOBI.mastercompanyid = @mastercompanyid 
@@ -159,7 +164,7 @@ select
 		SELECT @PageSizeCM=COUNT(*) 
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
-			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0  
+			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0  AND ISNULL(SOBI.IsProforma,0) = 0  
 			LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId  
 			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
@@ -193,103 +198,7 @@ select
   
 	;WITH rptCTE (TotalRecordsCount, customername, customercode, pn, pndescription, condition, sonum, wonum, invoicenum,
 	receiveddate, opendate, invoicedate, quotedate, quoteapprovaldate, shipdate, revenue, level1, level2, level3, level4, level5, level6, level7, level8,  
-	level9, level10, salesperson, csr, masterCompanyId,StocklineId) AS (  
-		--SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,
-		--	UPPER(C.NAME) 'customername', 
-		--	UPPER(C.customercode) 'customercode', 
-		--	UPPER(IM.partnumber) 'pn', 
-		--	UPPER(IM.partdescription) 'pndescription', 
-		--	UPPER(CDTN.description) 'condition',
-		--	UPPER(SO.salesordernumber) 'sonum', 
-		--	UPPER(WO.workordernum) 'wonum', 
-		--	UPPER(SOBI.invoiceno) 'invoicenum', 
-		--	CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END 'receiveddate',
-		--	CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.opendate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SO.opendate, 107) END 'opendate',
-		--	CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.invoicedate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.invoicedate, 107) END 'invoicedate',
-		--	CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate',
-		--	CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END 'quoteapprovaldate',
-		--	CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate',
-		--	CASE WHEN SOBIII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId and firstRow.RowNumber = 1 THEN SOBIII.PartCost + SOBIII.SalesTax + SOBIII.OtherTax + SOBIII.Freight + SOBIII.MiscCharges
-		--		ELSE SOBIII.PartCost +  taxValue.SalesTaxValue + taxValue.OtherTaxValue END 'revenue',
-		--	--(isnull(SOBIII.GrandTotal,0)) as 'revenue', 
-		--	--  (SELECT ISNULL(SUM(SOBII.GrandTotal), 0)
-		--	-- FROM dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK)
-		--	-- INNER JOIN dbo.SalesOrderStocklineV1 SOSV1 WITH (NOLOCK) 
-		--	--  ON SOBII.StockLineId = SOSV1.StockLineId AND SOBII.SOBillingInvoicingId = SOBIII.SOBillingInvoicingId
-		--	-- WHERE SOBII.IsVersionIncrease = 0 
-		--	--AND SOBII.IsProforma = 0
-		--	--AND SOSV1.SalesOrderPartId = SOP.SalesOrderPartId
-		--	--) AS Revenue,
-		--	UPPER(MSD.Level1Name) AS level1, 
-		--	UPPER(MSD.Level2Name) AS level2,
-		--	UPPER(MSD.Level3Name) AS level3,
-		--	UPPER(MSD.Level4Name) AS level4,
-		--	UPPER(MSD.Level5Name) AS level5,
-		--	UPPER(MSD.Level6Name) AS level6,
-		--	UPPER(MSD.Level7Name) AS level7,
-		--	UPPER(MSD.Level8Name) AS level8,
-		--	UPPER(MSD.Level9Name) AS level9,
-		--	UPPER(MSD.Level10Name) AS level10,  
-		--	UPPER(SO.SalesPersonName) 'salesperson', 
-		--	UPPER(SO.CustomerServiceRepName) 'csr',  
-		--	SO.MasterCompanyId 
-		--	,STL.StocklineId
-		--FROM dbo.salesorder SO WITH (NOLOCK) 
-		--	INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
-		--	INNER JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-		--	INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-		--	LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid 
-		--	INNER JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0  
-		--	INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease,0) = 0 AND ISNULL(SOBIII.IsProforma,0) = 0AND SOP.SalesOrderPartId = SOBIII.SalesOrderPartId
-		--	INNER JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOBIII.StockLineId = SOV.StockLineId --SOP.SalesOrderPartId = SOV.SalesOrderPartId
-		--	INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
-		--	INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
-		--	INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid and stl.IsParent=1 
-		--	LEFT JOIN dbo.workorder WO WITH (NOLOCK)  ON STL.workorderid = WO.workorderid 
-		--	LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid 
-		--	OUTER APPLY (
-		--		SELECT TOP 1 
-		--			SOBillingInvoicingItemId,
-		--			RowNumber
-		--		FROM 
-		--			(
-		--				SELECT *, 
-		--					ROW_NUMBER() OVER (PARTITION BY SOBillingInvoicingId ORDER BY SOBillingInvoicingItemId) AS RowNumber
-		--				FROM SalesOrderBillingInvoicingItem
-		--			) sub
-		--		WHERE 
-		--			sub.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-		--		ORDER BY 
-		--			sub.SOBillingInvoicingItemId
-		--	) AS firstRow
-		--	OUTER APPLY (
-		--		SELECT TOP 1 
-		--			SOBillingInvoicingItemId,
-		--			PartCost * p.PercentValue / 100 AS OtherTaxValue,
-		--			PartCost * ps.PercentValue / 100 AS SalesTaxValue
-		--		FROM SalesOrderBillingInvoicingItem SBII
-		--			INNER JOIN [Percent] p ON p.PercentId = SBII.OtherTaxPercent
-		--			INNER JOIN [Percent] ps ON ps.PercentId = SBII.SalesTaxPercent
-		--		WHERE 
-		--			SBII.SOBillingInvoicingItemId = SOBIII.SOBillingInvoicingItemId
-		--		ORDER BY 
-		--			SBII.SOBillingInvoicingItemId
-		--	) AS taxValue
-		--WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  
-		--CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
-		--SO.mastercompanyid = @mastercompanyid AND SO.IsDeleted = 0 AND SO.IsActive = 1 
-		--AND 
-		--(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
-		--AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-		--AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-		--AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-		--AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-		--AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-		--AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-		--AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-		--AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-		--AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-		--AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))
+	level9, level10, salesperson, csr, masterCompanyId,StocklineId) AS (
 		SELECT DISTINCT 
 			COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(C.NAME) 'customername', 
@@ -324,11 +233,12 @@ select
 				WHEN ISNULL(@IsDownload, 0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') 
 				ELSE CONVERT(VARCHAR(50), SOBI.shipdate, 107) 
 			END 'shipdate',
-			CASE 
-				WHEN SOBIII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 
-				THEN ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOBIII.Freight, 0) + ISNULL(SOBIII.MiscCharges, 0)
-				ELSE ISNULL(SOBIII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0)
-			END 'revenue',
+			--CASE 
+			--	WHEN SOBIII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 
+				--THEN 
+				ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOBIII.Freight, 0) + ISNULL(SOBIII.MiscCharges, 0) AS 'revenue',
+			--	ELSE ISNULL(SOBIII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0)
+			--END 'revenue',
 			UPPER(MSD.Level1Name) AS level1, 
 			UPPER(MSD.Level2Name) AS level2,
 			UPPER(MSD.Level3Name) AS level3,
@@ -369,28 +279,7 @@ select
 			LEFT JOIN dbo.workorder WO WITH (NOLOCK)  
 				ON STL.workorderid = WO.workorderid 
 			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) 
-				ON SOP.conditionid = CDTN.conditionid 
-			OUTER APPLY (
-				SELECT TOP 1 
-					SOBillingInvoicingItemId,
-					RowNumber
-				FROM 
-					(SELECT *, ROW_NUMBER() OVER (PARTITION BY SOBillingInvoicingId ORDER BY SOBillingInvoicingItemId) AS RowNumber
-					FROM SalesOrderBillingInvoicingItem) sub
-				WHERE sub.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-				ORDER BY sub.SOBillingInvoicingItemId
-			) AS firstRow
-			OUTER APPLY (
-				SELECT TOP 1 
-					SOBillingInvoicingItemId,
-					PartCost * p.PercentValue / 100 AS OtherTaxValue,
-					PartCost * ps.PercentValue / 100 AS SalesTaxValue
-				FROM SalesOrderBillingInvoicingItem SBII
-				INNER JOIN [Percent] p ON p.PercentId = SBII.OtherTaxPercent
-				INNER JOIN [Percent] ps ON ps.PercentId = SBII.SalesTaxPercent
-				WHERE SBII.SOBillingInvoicingItemId = SOBIII.SOBillingInvoicingItemId
-				ORDER BY SBII.SOBillingInvoicingItemId
-			) AS taxValue
+				ON SOP.conditionid = CDTN.conditionid
 		WHERE SOBI.customerid = ISNULL(@name, SOBI.customerid) 
 			AND CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
 			AND SOBI.mastercompanyid = @mastercompanyid 
@@ -445,7 +334,7 @@ select
 			,STL.StocklineId
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
-			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0  
+			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0  
 			LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId  
 			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND  CMD.ItemMasterId = SOP.ItemMasterId

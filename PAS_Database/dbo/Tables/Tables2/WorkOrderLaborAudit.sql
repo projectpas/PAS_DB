@@ -8,6 +8,10 @@
     [Hours]                       DECIMAL (10, 2) NULL,
     [Adjustments]                 DECIMAL (10, 2) NULL,
     [AdjustedHours]               DECIMAL (10, 2) NULL,
+    [StandardHours]               INT             NULL,
+    [StandardMinute]              INT             NULL,
+    [VarianceHours]               DECIMAL (10, 2) NULL,
+    [VarianceMinute]              DECIMAL (10, 2) NULL,
     [Memo]                        NVARCHAR (MAX)  NULL,
     [CreatedBy]                   VARCHAR (256)   NOT NULL,
     [UpdatedBy]                   VARCHAR (256)   NOT NULL,
@@ -34,4 +38,6 @@
     [IsBegin]                     BIT             NULL,
     CONSTRAINT [PK_WorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
+
+
 

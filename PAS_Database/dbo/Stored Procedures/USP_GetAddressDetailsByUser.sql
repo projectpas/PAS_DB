@@ -20,15 +20,15 @@
 	3    06/29/2023   Amit Ghediya		Added Vendor RMA both ship/bill address.
 	4	 07/23/2024	  Bhargav Saliya    Added/get ShippingTerms
 	5	 07/31/2024	  Amit Ghediya      Added remaining ShippingTerms for VendorRMA.
-     
+    6	 07/01/2025	  Bhargav Saliya   Resolved Primary and Add/Update Issue In Ship To or Bill To  
  EXECUTE [USP_GetAddressDetailsByUser] 9, 97, 'Ship',20199
  EXECUTE [USP_GetAddressDetailsByUser] 9, 13, 'Ship'
  EXECUTE [USP_GetAddressDetailsByUser] 9, 98, 'Bill'
   EXECUTE [USP_GetAddressDetailsByUser] 45, 2492, 'Ship' --VendorRMA
-  EXECUTE [USP_GetAddressDetailsByUser] 45, 34, 'Bill',53 --VendorRMA
+  EXECUTE [USP_GetAddressDetailsByUser] 45, 54, 'Ship',205 --VendorRMA
 **************************************************************/ 
     
-CREATE    PROCEDURE [dbo].[USP_GetAddressDetailsByUser]    
+CREATE   PROCEDURE [dbo].[USP_GetAddressDetailsByUser]    
 (    
 @UserTypeId BIGINT,   
 @UserId BIGINT,
@@ -551,7 +551,7 @@ BEGIN
 						WHERE V.VendorId = @UserId;
 
 				SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
-						VSA.AddressId AS AddressId,VSA.AddressId AS SiteId,VSA.SiteName AS SiteName,VSA.IsPrimary,0 AS IsPoOnly,'' AS Attention,
+						VSA.AddressId AS AddressId,VSA.VendorShippingAddressId AS SiteId,VSA.SiteName AS SiteName,VSA.IsPrimary,0 AS IsPoOnly,'' AS Attention,
 						SAD.Line1 AS Address1,SAD.Line2 AS Address2,SAD.Line3 AS Address3,SAD.City AS City,SAD.StateOrProvince AS StateOrProvince,SAD.PostalCode AS PostalCode,
 						SCO.countries_id AS CountryId,SCO.countries_name AS countries_name,SCO.nice_name AS Billnice_name,SCO.countries_isd_code AS Billcountries_isd_code,SCO.countries_iso3 AS Billcountries_iso3
 
@@ -616,7 +616,7 @@ BEGIN
 						WHERE V.VendorId = @UserId;
 
 				SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
-						VBA.AddressId AS AddressId,VBA.AddressId AS SiteId,VBA.SiteName AS SiteName,VBA.IsPrimary,0 AS IsPoOnly,'' AS Attention,
+						VBA.AddressId AS AddressId,VBA.VendorBillingAddressId AS SiteId,VBA.SiteName AS SiteName,VBA.IsPrimary,0 AS IsPoOnly,'' AS Attention,
 						BAD.Line1 AS Address1,BAD.Line2 AS Address2,BAD.Line3 AS Address3,BAD.City AS City,BAD.StateOrProvince AS StateOrProvince,BAD.PostalCode AS PostalCode,
 						BCO.countries_id AS CountryId,BCO.countries_name AS countries_name,BCO.nice_name AS Billnice_name,BCO.countries_isd_code AS Billcountries_isd_code,BCO.countries_iso3 AS Billcountries_iso3
 

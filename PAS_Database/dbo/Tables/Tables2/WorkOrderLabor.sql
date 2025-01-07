@@ -7,6 +7,10 @@
     [Hours]                   DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_Hours] DEFAULT ((0)) NULL,
     [Adjustments]             DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_Adjustments] DEFAULT ((0)) NULL,
     [AdjustedHours]           DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_AdjustedHours] DEFAULT ((0)) NULL,
+    [StandardHours]           INT             NULL,
+    [StandardMinute]          INT             NULL,
+    [VarianceHours]           DECIMAL (10, 2) NULL,
+    [VarianceMinute]          DECIMAL (10, 2) NULL,
     [Memo]                    NVARCHAR (MAX)  NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
     [UpdatedBy]               VARCHAR (256)   NOT NULL,
@@ -37,6 +41,8 @@
     CONSTRAINT [FK_WorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId]),
     CONSTRAINT [FK_WorkOrderLabor_WorkOrderLaborHeader] FOREIGN KEY ([WorkOrderLaborHeaderId]) REFERENCES [dbo].[WorkOrderLaborHeader] ([WorkOrderLaborHeaderId])
 );
+
+
 
 
 GO

@@ -81,7 +81,7 @@ BEGIN
 					UPPER(ISNULL(StageCode, '')), 
 					UPPER(CodeDescription)
 				FROM dbo.WorkOrderStage WITH (NOLOCK) 
-				WHERE MasterCompanyId = 1 AND ISNULL(IncludeInDashboard, 0) = 1 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+				WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IncludeInDashboard, 0) = 1 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				order by [Sequence] ASC
 
 				UPDATE #tmpWorkOrderStage 

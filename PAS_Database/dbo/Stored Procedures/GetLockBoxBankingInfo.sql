@@ -15,6 +15,7 @@
  ** --   --------		-------			--------------------------------            
     1    09/12/2024		EKTA CHANDEGRA	 Created  
     2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
+    3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
 
  EXEC GetLockBoxBankingInfo 1 
 ************************************************************************/  
@@ -64,7 +65,7 @@ BEGIN
 		FROM [dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 		LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 		LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-		LEFT JOIN [dbo].[LegalEntityBankingLockBox] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId
+		LEFT JOIN [dbo].[LegalEntityBankingLockBox] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
 		LEFT JOIN [dbo].[Address] ad WITH(NOLOCK) ON lockbox.AddressId = ad.AddressId
 		LEFT JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 		WHERE ISNULL(ess.IsActive,0) = 1

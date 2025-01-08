@@ -32,9 +32,12 @@
     [ReferenceModuleId]       INT           NULL,
     [ReferenceModuleName]     VARCHAR (150) NULL,
     [IsPurchaseOrder]         BIT           NOT NULL,
+    [ControlNumber]           VARCHAR (150) NULL,
     CONSTRAINT [PK_VendorProformaInvoiceHeader] PRIMARY KEY CLUSTERED ([VendorProformaInvoiceId] ASC),
     CONSTRAINT [FK_VendorProformaInvoiceHeader_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 GO

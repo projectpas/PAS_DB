@@ -31,8 +31,11 @@
     [IsUsedInVendorPayment]     BIT           NULL,
     [ReferenceId]               BIGINT        NULL,
     [ReferenceModuleId]         INT           NULL,
+    [ControlNumber]             VARCHAR (150) NULL,
     CONSTRAINT [PK_NonPOInvoiceHeaderAudit] PRIMARY KEY CLUSTERED ([NonPOInvoiceHeaderAuditId] ASC)
 );
+
+
 
 
 

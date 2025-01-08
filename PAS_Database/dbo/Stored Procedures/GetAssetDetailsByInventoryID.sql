@@ -2,7 +2,7 @@
 /*************************************************************           
  ** File:   [GetAssetDetailsByInventoryID]           
  ** Author:   Abhishek Jirawla
- ** Description: This stored procedure is used to get Asset Data By InventoryId
+ ** Description: This stored procedure is used to get AssetData By InventoryId
  ** Purpose:         
  ** Date:    09/12/2024 
           
@@ -222,13 +222,13 @@ BEGIN
 			ISNULL(asset.Model, '') AS Model,
 			ISNULL(asset.Name, '') AS Name,
 			asset.UnexpiredTime,
-			asset.UnitCost,
-			asset.InstallationCost,
-			asset.Freight,
-			asset.Insurance,
-			asset.TotalCost,
+			ISNULL(asset.UnitCost, 0) AS UnitCost,
+			ISNULL(asset.InstallationCost, 0) AS InstallationCost,
+			ISNULL(asset.Freight, 0) AS Freight,
+			ISNULL(asset.Insurance, 0) AS Insurance,
+			ISNULL(asset.TotalCost, 0) AS TotalCost,
 			ISNULL(ADH.AccumlatedDepr, 0) AS AccumlatedDepreciation,
-			ISNULL(ADH.NetBookValue, 0) AS NetBookValue,
+			ISNULL(ADH.NetBookValue, asset.TotalCost) AS NetBookValue,
 			ISNULL(asset.IsDepreciable, 0) AS IsDepreciable,
 			ISNULL(asset.IsNonDepreciable, 0) AS IsNonDepreciable,
 			asset.UpdatedBy,

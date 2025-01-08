@@ -34,7 +34,10 @@
     [DifferenceAmount]      DECIMAL (18, 2) NULL,
     [IsCustomerStock]       BIT             NULL,
     [ManagementStructureId] BIGINT          NULL,
+    [LegalEntityId]         BIGINT          NULL,
     [MasterCompanyId]       INT             NULL,
     [CreatedBy]             VARCHAR (256)   NULL,
     [UpdatedBy]             VARCHAR (256)   NULL);
+
+
 

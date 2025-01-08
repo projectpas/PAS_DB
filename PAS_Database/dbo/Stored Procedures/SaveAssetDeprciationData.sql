@@ -19,6 +19,7 @@
  ** --   --------     -------		     --------------------------------          
     1    09/01/2024   Ayesha Sultana     Created
 	2	 27/03/2024	  Abhishek Jirawla	 Added more conditions to the store procedure with correcting a few features of it as well
+	3	 19/12/2024	  Abhishek Jirawla	 Added Full Depreciating status once depreciation is done
 
 ************************************************************************/
 
@@ -60,9 +61,10 @@ BEGIN
 		DECLARE @Hundred DECIMAL(18,2) = 100;
 		DECLARE @DepreciationStartDate DATETIME;
 		DECLARE @LastDeprRunPeriod VARCHAR(30)
+		DECLARE @FullyDepreciatedStatusId BIGINT; 
 
-		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId)
-		SELECT @ResidualPercentage = ResidualPercentage FROM AssetInventory WHERE [AssetInventoryId] = @AssetInventoryId 
+		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM DBO.AssetDepreciationHistory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM DBO.AssetDepreciationHistory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId)
+		SELECT @ResidualPercentage = ResidualPercentage FROM DBO.AssetInventory WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId 
 
 		SELECT @ReduceResidualPerc = ISNULL(ISNULL(@ResidualPercentage,0) / ISNULL(@Hundred,0),0);				
 		SELECT @AfterReduceResidual = ISNULL(ISNULL(@InstalledCost,0) - (ISNULL(@InstalledCost,0) * ISNULL(@ReduceResidualPerc,0)),0);
@@ -71,8 +73,17 @@ BEGIN
 		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));												-- @InstalledCost - @AccumlatedDepr;
 		SELECT @NBVAfterDepreciation = (ISNULL(ISNULL(@NetBookValue,0) - ISNULL(@DepreciationAmount,0),0));										-- @NetBookValue - @DepreciationAmount;
 		
-		SELECT @LastDeprRunPeriod = PeriodName FROM AccountingCalendar WHERE AccountingCalendarId = @SelectedAccountingPeriodId 
+		SELECT @LastDeprRunPeriod = PeriodName FROM DBO.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @SelectedAccountingPeriodId 
 		SET @DepreciationStartDate = GETUTCDATE();
+
+		IF(@AfterReduceResidual = @AccumlatedDepr)
+		BEGIN
+			SELECT @FullyDepreciatedStatusId = AssetStatusId FROM DBO.AssetStatus WITH(NOLOCK) WHERE Name = 'FULLY DEPRECIATED' AND MasterCompanyId = @MasterCompanyId
+			
+			UPDATE DBO.AssetInventory
+			SET AssetStatusId = @FullyDepreciatedStatusId
+			WHERE AssetInventoryId = @AssetInventoryId
+		END
 
 		IF(@InServiceDate = NULL)
 		BEGIN
@@ -92,10 +103,10 @@ BEGIN
 		IF @AccumlatedDepr <= @AfterReduceResidual
 		BEGIN
 
-			IF NOT EXISTS(SELECT * FROM [AssetDepreciationHistory] WHERE AssetInventoryId = @AssetInventoryId and AccountingCalenderId = @SelectedAccountingPeriodId)
+			IF NOT EXISTS(SELECT * FROM DBO.[AssetDepreciationHistory] WITH(NOLOCK) WHERE AssetInventoryId = @AssetInventoryId and AccountingCalenderId = @SelectedAccountingPeriodId)
 			BEGIN
 
-				INSERT INTO [AssetDepreciationHistory]
+				INSERT INTO DBO.[AssetDepreciationHistory]
 
 				([SerialNo],[StklineNumber],[InServiceDate],[DepriciableStatus],[CURRENCY],[DepriciableLife],[DepreciationMethod],[DepreciationFrequency],[AssetId]
 				,[AssetInventoryId],[InstalledCost],[DepreciationAmount],[AccumlatedDepr],[NetBookValue],[NBVAfterDepreciation],[LastDeprRunPeriod],[AccountingCalenderId],

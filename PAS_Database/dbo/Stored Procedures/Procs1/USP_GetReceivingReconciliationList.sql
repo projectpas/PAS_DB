@@ -12,6 +12,8 @@
  ** --   --------     -------		-------------------------------            
 	1                  unknown
 	2    09-05-2024    Moin Bloch   added MasterCompanyId Wise Data
+	3    27-12-2024    AMIT GHEDIYA added COntrolNumber
+	4    01-Dec-2025   RAJESH GAMI  Add the logic for invoice total,(If vendor proforma is there then add the amount with invoice total)
 **************************************************************/  
 -- =============================================
 -- exec USP_GetReceivingReconciliationList 40,1,'ReceivingReconciliationId',-1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL
@@ -41,7 +43,8 @@ CREATE PROCEDURE [dbo].[USP_GetReceivingReconciliationList]
 @CurrencyName varchar(50),
 @PartNumberType varchar(50),
 @PORODateType date=null,
-@LastMSLevel varchar(50)=null
+@LastMSLevel varchar(50)=null,
+@ControlNumber varchar(50)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -89,7 +92,7 @@ BEGIN
 							,RRH.[OpenDate]
 							,RRH.[OriginalTotal]
 							,RRH.[RRTotal]
-							,RRH.[InvoiceTotal]
+							,ISNULL(RRH.[InvoiceTotal],0) + ISNULL(RRH.VendorProformaAmount,0)  AS [InvoiceTotal]
 							,RRH.[DIfferenceAmount]
 							,RRH.[TotalAdjustAmount]
 							,RRH.[MasterCompanyId]
@@ -103,7 +106,8 @@ BEGIN
 							ELSE R.LastMSLevel END as 'LastMSLevel' 
 							,CASE WHEN (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.AllMSlevels
 							ELSE R.AllMSlevels END as 'AllMSlevels',
-							[Type] = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)
+							[Type] = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId),
+							[ControlNumber] = RRH.ControlNumber
 						FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK)  
 						LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH(NOLOCK) ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId
 						OUTER APPLY(
@@ -180,7 +184,8 @@ BEGIN
 						SELECT M.ReceivingReconciliationId,M.ReceivingReconciliationNumber,M.InvoiceNum as 'InvoiceNum',M.StatusId,M.Status as 'Status',M.VendorId,M.VendorName,IsNull(M.CurrencyId,0) as 'CurrencyId',M.CurrencyName,M.OpenDate,
 									M.OriginalTotal,M.RRTotal,M.InvoiceTotal,M.DIfferenceAmount,M.TotalAdjustAmount,M.CreatedBy,M.UpdatedBy,M.CreatedDate,M.UpdatedDate,M.IsDeleted,M.IsActive,
 									M.LastMSLevel,M.AllMSlevels,CASE WHEN M.[Type] = 1 THEN PT.PartNumber ELSE PTRO.PartNumber END as 'PartNumber',CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END as 'PartNumberType',
-									CASE WHEN M.[Type] = 1 THEN PTE.PORODate ELSE PTERO.PORODate END as 'PORODate',CASE WHEN M.[Type] = 1 THEN PTE.PORODateType ELSE PTERO.PORODateType END as 'PORODateType'
+									CASE WHEN M.[Type] = 1 THEN PTE.PORODate ELSE PTERO.PORODate END as 'PORODate',CASE WHEN M.[Type] = 1 THEN PTE.PORODateType ELSE PTERO.PORODateType END as 'PORODateType',
+									M.ControlNumber
 									from Main M 
 						LEFT JOIN PartCTE PT On M.ReceivingReconciliationId=PT.ReceivingReconciliationId
 						LEFT JOIN PartDateCTE PTE On M.ReceivingReconciliationId=PTE.ReceivingReconciliationId
@@ -198,7 +203,8 @@ BEGIN
 								(M.DIfferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 								(M.VendorName LIKE '%' +@GlobalFilter+'%') OR
 								(CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END LIKE '%' +@GlobalFilter+'%') OR  
-								(M.CurrencyName LIKE '%' +@GlobalFilter+'%')
+								(M.CurrencyName LIKE '%' +@GlobalFilter+'%') OR
+								(M.ControlNumber LIKE '%' +@GlobalFilter+'%')
 								))
 								OR   
 								(@GlobalFilter='' AND 
@@ -212,12 +218,13 @@ BEGIN
 								(@RRTotal IS  NULL OR M.RRTotal=@RRTotal) AND
 								(@InvoiceTotal IS  NULL OR M.InvoiceTotal=@InvoiceTotal) AND
 								(@DIfferenceAmount IS  NULL OR M.DIfferenceAmount=@DIfferenceAmount) AND
-								(ISNULL(@PORODateType,'') ='' OR CASE WHEN M.[Type] = 1 THEN CONVERT(VARCHAR, PTE.PORODateType , 110) ELSE CONVERT(VARCHAR, PTERO.PORODateType , 110) END = CONVERT(VARCHAR, @PORODateType , 110))							
+								(ISNULL(@PORODateType,'') ='' OR CASE WHEN M.[Type] = 1 THEN CONVERT(VARCHAR, PTE.PORODateType , 110) ELSE CONVERT(VARCHAR, PTERO.PORODateType , 110) END = CONVERT(VARCHAR, @PORODateType , 110))	AND
+								(IsNull(@ControlNumber,'') ='' OR M.ControlNumber like '%'+@ControlNumber+'%')
 							))								
 
 						),CTE_Count AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM Result)
 						SELECT ReceivingReconciliationId,ReceivingReconciliationNumber,InvoiceNum,StatusId,Status,VendorId,VendorName,CurrencyId,CurrencyName,OpenDate
-						,OriginalTotal,RRTotal,InvoiceTotal,DIfferenceAmount,TotalAdjustAmount,CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,LastMSLevel,AllMSlevels,PartNumber,PartNumberType,PORODate,PORODateType
+						,OriginalTotal,RRTotal,InvoiceTotal,DIfferenceAmount,TotalAdjustAmount,CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,LastMSLevel,AllMSlevels,PartNumber,PartNumberType,PORODate,PORODateType,ControlNumber
 						FROM Result,CTE_Count
 						ORDER BY  
 						CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END ASC,
@@ -231,6 +238,7 @@ BEGIN
 						CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 						CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 						CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,
@@ -242,7 +250,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,    
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY
 				

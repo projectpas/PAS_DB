@@ -19,7 +19,8 @@
 	6    12/11/2024   Moin Bloch     Updated For Get FormTypeId
 	7    12/13/2024   Moin Bloch     Removed Static Value
 	8    12/16/2024   Moin Bloch     Updated For Get FormType Name
-     
+	9    12/31/2024   Devendra Shekh Updated For Get FormType and WOFormType Name
+
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
 
@@ -59,7 +60,7 @@ BEGIN
 					  ,wro.[Quantity]
 					  ,CASE WHEN ISNULL(wop.RevisedSerialNumber , '') != '' THEN UPPER(wop.RevisedSerialNumber) 
 								ELSE CASE WHEN ISNULL(wro.[Batchnumber], '') != '' THEN UPPER(wro.[Batchnumber])
-									   ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE 'NA' END 
+									   ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END 
 								END
 						END AS Batchnumber
 					  ,CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status]
@@ -89,13 +90,13 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
-					  ,wop.[islocked]
+					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
-					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
+					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
 					  ,wop.[ManagementStructureId]
 					  ,wro.[EmployeeId]
 					  ,wro.[FormTypeId]
-					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
+					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -154,7 +155,7 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
-					  ,wop.[islocked]
+					  ,wro.[islocked]
 					  ,wro.[IsEASALicense]
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
 					  ,wop.[ManagementStructureId]

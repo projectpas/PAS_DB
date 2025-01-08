@@ -14,6 +14,7 @@
     1    16/10/2024   Moin Bloch    Created
 	2    24/10/2024   Moin Bloch    Added RequestedById
 	3    28/10/2024   Moin Bloch    Added @CountedById,@CountMethodId
+	3    24/12/2024   Bhargav Saliya    Added @IsQtyCounnted, @IsQtyVariance and @IsUnitCoctAdj
 
   EXEC [dbo].[USP_CycleCount_AddUpdate] 1,'2024-10-15','19:36',1,1,1,2,1,'ADMIN User','ADMIN User'    
 ************************************************************************/
@@ -29,7 +30,10 @@ CREATE   PROCEDURE [dbo].[USP_CycleCount_AddUpdate]
 @CountMethodId INT,
 @MasterCompanyId INT,
 @CreatedBy VARCHAR(200),
-@UpdatedBy VARCHAR(200)
+@UpdatedBy VARCHAR(200),
+@IsQtyCounted INT,
+@IsQtyVariance INT,
+@IsUnitCoctAdj INT
 AS  
 BEGIN  
 	SET NOCOUNT ON;	
@@ -76,7 +80,7 @@ BEGIN
 									[CreatedDate],
 									[UpdatedDate],
 									[IsActive],
-									[IsDeleted])
+									[IsDeleted],[IsQtyCounted],[IsQtyVariance],[IsUnitCoctAdj])
 							 VALUES (@CycleCountNumber,
 							         @EntryDate,
 									 @EntryTime,
@@ -92,7 +96,7 @@ BEGIN
 									 GETUTCDATE(),
 									 GETUTCDATE(),
 									 1,
-									 0);
+									 0,@IsQtyCounted,@IsQtyVariance,@IsUnitCoctAdj);
 							
 							UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = CAST(@CurrentNummber AS BIGINT) + 1 WHERE [CodeTypeId] = @CodeTypeId AND [MasterCompanyId] = @MasterCompanyId;    
     

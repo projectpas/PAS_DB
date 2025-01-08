@@ -26,7 +26,7 @@
 	10	 05-08-2024   Devendra Shekh    Non-Stock, Accounting Entry Issue Resolved
 	11   11-10-2024	  Ekta Chandegra    Add history when update Part
 	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType), And manage NULL value 
-
+	13   20-12-2024   Moin Bloch        Fixed Asset Inventory Partial Receive issue
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -1972,12 +1972,11 @@ BEGIN
                                 SET @LoopID_QtyToReceive_Asset = @LoopID_QtyToReceive_Asset - 1;
                             END
 
-
-                            IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
-                            BEGIN
-                                SET @StockLineNumber_Asset = NULL;
-                                SET @NewStocklineId_Asset = NULL;
-                            END
+                            --IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
+                            --BEGIN
+                            --    SET @StockLineNumber_Asset = NULL;
+                            --    SET @NewStocklineId_Asset = NULL;
+                            --END
 
                             UPDATE dstl
                             SET dstl.AssetInventoryId = @NewStocklineId_Asset,
@@ -2602,8 +2601,8 @@ BEGIN
                 @DatabaseName varchar(100) = DB_NAME(),
                 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------    
                 @AdhocComments varchar(150) = 'USP_CreateStocklineForReceivingPO',
-                @ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@PurchaseOrderId, '') + '',
-                @ApplicationName varchar(100) = 'PAS'
+				@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PurchaseOrderId, '') AS VARCHAR(100)),
+                @ApplicationName VARCHAR(100) = 'PAS'
         -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
         EXEC spLogException @DatabaseName = @DatabaseName,
                             @AdhocComments = @AdhocComments,

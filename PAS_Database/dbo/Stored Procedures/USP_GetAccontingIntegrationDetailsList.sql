@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [GetAccIntegrationList]           
+ ** File:   [USP_GetAccontingIntegrationDetailsList]           
  ** Author:    HEMANT SALIYA
  ** Description:  
  ** Purpose:         
@@ -18,6 +18,7 @@
 	2    29/10/2024   Devendra Shekh	 Modified(added RedirectUrl,IntigrationStatus to select)
 	3    11/11/2024   Devendra Shekh	 Modified(resolved column filter issue)
 	4    12/11/2024   Devendra Shekh	 Modified(added LastSycDate to select)
+	5    17/12/2024   Devendra Shekh	 Modified(added Changes for Credit Terms)
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -56,10 +57,12 @@ BEGIN
 		DECLARE @StocklineModuleId INT;
 		DECLARE @VendorModuleId INT;
 		DECLARE @IntegrationId INT;
+		DECLARE @CreditTermId INT;
 
 		SELECT @CustomerModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER'
 		SELECT @StocklineModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'STOCKLINE'
 		SELECT @VendorModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE UPPER(ModuleName) = 'VENDOR'
+		SELECT @CreditTermId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM'
 
 		SET @RecordFrom = (@PageNumber-1) * @PageSize;
 			
@@ -86,20 +89,24 @@ BEGIN
 				[STLastSycDate] [DateTime2] null,
 				[VQuickBookCount] [BIGINT] NULL,
 				[VLastSycDate] [DateTime2] null,
-				[MasterCompanyId] [INT] NULL
+				[MasterCompanyId] [INT] NULL,
+				[CreditTermsQuickBookCount] [BIGINT] NULL,
+				[CreditTermsLastSycDate] [DateTime2] null,
 			)
 
-			INSERT #InsertedSyncRecords([CustQuickBookCount],[CustLastSycDate],[STQuickBookCount],[STLastSycDate],[VQuickBookCount],[VLastSycDate],
+			INSERT #InsertedSyncRecords([CustQuickBookCount],[CustLastSycDate],[STQuickBookCount],[STLastSycDate],[VQuickBookCount],[VLastSycDate],[CreditTermsQuickBookCount],[CreditTermsLastSycDate],
 			[MasterCompanyId],[IntegrationId])
 			SELECT  COUNT(C.QuickBooksReferenceId),MAX(C.LastSyncDate),
 					COUNT(ST.QuickBooksReferenceId),MAX(ST.LastSyncDate),
 					COUNT(V.QuickBooksReferenceId),MAX(V.LastSyncDate),
+					COUNT(CT.QuickBooksReferenceId),MAX(CT.LastSyncDate),
 					ACI.[MasterCompanyId], ACI.IntegrationId 
 			FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId AND ISNULL(C.IsActive, 0) = 1 AND ISNULL(C.IsDeleted, 0) = 0
 				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId AND ISNULL(ST.IsActive, 0) = 1 AND ISNULL(ST.IsDeleted, 0) = 0
 				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId AND ISNULL(V.IsActive, 0) = 1 AND ISNULL(V.IsDeleted, 0) = 0
-			WHERE (ISNULL(C.QuickBooksReferenceId,0) > 0 OR ISNULL(ST.QuickBooksReferenceId,0) > 0 OR ISNULL(V.QuickBooksReferenceId,0) > 0)
+				LEFT JOIN  dbo.CreditTerms CT  WITH (NOLOCK) ON CT.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermId AND ISNULL(CT.IsActive, 0) = 1 AND ISNULL(CT.IsDeleted, 0) = 0
+			WHERE (ISNULL(C.QuickBooksReferenceId,0) > 0 OR ISNULL(ST.QuickBooksReferenceId,0) > 0 OR ISNULL(V.QuickBooksReferenceId,0) > 0 OR ISNULL(CT.QuickBooksReferenceId,0) > 0)
 			GROUP BY ACI.[MasterCompanyId], ACI.IntegrationId
 
 			--SELECT * FROM #InsertedSyncRecords
@@ -114,15 +121,17 @@ BEGIN
 				[CustPendingSyncRecords] [BIGINT] NULL,
 				[STPendingSyncRecords] [BIGINT] NULL,
 				[VPendingSyncRecords] [BIGINT] NULL,
+				[CreditTermsPendingSyncRecords] [BIGINT] NULL,
 				[MasterCompanyId] [INT] NULL
 			)
 
-			INSERT #InsertedPendingSyncRecords([IntegrationId],[CustPendingSyncRecords],[STPendingSyncRecords],[VPendingSyncRecords],[MasterCompanyId])
-			SELECT ACI.IntegrationId, COUNT(C.IsUpdated),COUNT(ST.IsUpdated),COUNT(V.IsUpdated), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
+			INSERT #InsertedPendingSyncRecords([IntegrationId],[CustPendingSyncRecords],[STPendingSyncRecords],[VPendingSyncRecords],[CreditTermsPendingSyncRecords],[MasterCompanyId])
+			SELECT ACI.IntegrationId, COUNT(C.IsUpdated),COUNT(ST.IsUpdated),COUNT(V.IsUpdated),COUNT(CT.IsUpdated), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId AND ISNULL(C.IsActive, 0) = 1 AND ISNULL(C.IsDeleted, 0) = 0
 				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId AND ISNULL(ST.IsActive, 0) = 1 AND ISNULL(ST.IsDeleted, 0) = 0
 				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId AND ISNULL(V.IsActive, 0) = 1 AND ISNULL(V.IsDeleted, 0) = 0
-			WHERE (ISNULL(C.IsUpdated,0) = 1 OR ISNULL(ST.IsUpdated,0) = 1 OR ISNULL(V.IsUpdated,0) = 1)
+				LEFT JOIN  dbo.CreditTerms CT  WITH (NOLOCK) ON CT.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermId AND ISNULL(CT.IsActive, 0) = 1 AND ISNULL(CT.IsDeleted, 0) = 0
+			WHERE (ISNULL(C.IsUpdated,0) = 1 OR ISNULL(ST.IsUpdated,0) = 1 OR ISNULL(V.IsUpdated,0) = 1 OR ISNULL(CT.IsUpdated,0) = 1)
 			GROUP BY ACI.[MasterCompanyId] , ACI.IntegrationId
 
 			--SELECT * FROM #InsertedPendingSyncRecords
@@ -137,15 +146,17 @@ BEGIN
 				[CustTotalRecords] [BIGINT] NULL,
 				[STTotalRecords] [BIGINT] NULL,
 				[VTotalRecords] [BIGINT] NULL,
+				[CreditTermsTotalRecords] [BIGINT] NULL,
 				[MasterCompanyId] [int] NULL
 			)
 
-			INSERT #InsertedTotalRecords([IntegrationId],[CustTotalRecords],[STTotalRecords],[VTotalRecords],[MasterCompanyId])
-			SELECT [IntegrationId], COUNT(C.CustomerId),COUNT(ST.StocklineId),COUNT(V.VendorId), ACI.[MasterCompanyId] 
+			INSERT #InsertedTotalRecords([IntegrationId],[CustTotalRecords],[STTotalRecords],[VTotalRecords],[CreditTermsTotalRecords],[MasterCompanyId])
+			SELECT [IntegrationId], COUNT(C.CustomerId),COUNT(ST.StocklineId),COUNT(V.VendorId),COUNT(CT.CreditTermsId), ACI.[MasterCompanyId] 
 			FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId AND ISNULL(C.IsActive, 0) = 1 AND ISNULL(C.IsDeleted, 0) = 0
 				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId AND ISNULL(ST.IsActive, 0) = 1 AND ISNULL(ST.IsDeleted, 0) = 0
 				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId AND ISNULL(V.IsActive, 0) = 1 AND ISNULL(V.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.CreditTerms CT  WITH (NOLOCK) ON CT.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermId AND ISNULL(CT.IsActive, 0) = 1 AND ISNULL(CT.IsDeleted, 0) = 0
 			GROUP BY ACI.[MasterCompanyId], ACI.IntegrationId
 
 			--SELECT * FROM #InsertedTotalRecords
@@ -164,18 +175,21 @@ BEGIN
 						WHEN ACI.ModuleId = @CustomerModuleId THEN ISNULL(SR.CustQuickBookCount, 0)
 						WHEN ACI.ModuleId = @StocklineModuleId THEN ISNULL(SR.STQuickBookCount, 0)
 						WHEN ACI.ModuleId = @VendorModuleId THEN ISNULL(SR.VQuickBookCount, 0)
+						WHEN ACI.ModuleId = @CreditTermId THEN ISNULL(SR.CreditTermsQuickBookCount, 0)
 					else  0
 					END  AS SyncRecords,
 					CASE  
 						WHEN ACI.ModuleId = @CustomerModuleId  THEN ISNULL(PSR.CustPendingSyncRecords, 0)
 						WHEN ACI.ModuleId = @StocklineModuleId THEN ISNULL(PSR.STPendingSyncRecords, 0)
 						WHEN ACI.ModuleId = @VendorModuleId THEN ISNULL(PSR.VPendingSyncRecords, 0)
+						WHEN ACI.ModuleId = @CreditTermId THEN ISNULL(PSR.CreditTermsPendingSyncRecords, 0)
 					else  0
 					END  AS PendingSyncRecords,
 					CASE  
 						WHEN ACI.ModuleId = @CustomerModuleId  THEN ISNULL(TR.CustTotalRecords, 0)
 						WHEN ACI.ModuleId = @StocklineModuleId THEN ISNULL(TR.STTotalRecords, 0)
 						WHEN ACI.ModuleId = @VendorModuleId THEN ISNULL(TR.VTotalRecords, 0)
+						WHEN ACI.ModuleId = @CreditTermId THEN ISNULL(TR.CreditTermsTotalRecords, 0)
 					else  0
 					END  AS TotalCount,
 					ISNULL(SR.CustQuickBookCount, 0) AS CustQuickBookCount,

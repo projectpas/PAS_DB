@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------		-------------------------------- 
 	1    22/03/2024   AMIT GHEDIYA		Created
+	2    20/03/2024   AMIT GHEDIYA		No need to update it ws handle in EXEC UpdatevendorReadyToPayHeader SP.
      
 -- EXEC GetUpdateVendorCheckNumber 3,NULL,0
 **************************************************************/
@@ -32,11 +33,15 @@ BEGIN
 
 	IF(@IsUpdate = 1)
 	BEGIN
-		SELECT @StartNumber = StartNum FROM [dbo].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
-		IF(@StartNumber != (@UpdatedNumber -1))
+		SELECT TOP 1 @StartNumber = StartNum FROM [dbo].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
+		IF(@StartNumber != @UpdatedNumber)
 		BEGIN
-			UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber - 1
-			WHERE PrintingId = @PrintingId;
+				SELECT 
+			PCS.PrintingId,
+			PCS.StartNum
+			FROM [dbo].[PrintCheckSetup] PCS WITH(NOLOCK) WHERE PrintingId = @PrintingId;
+			--UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber
+			--WHERE PrintingId = @PrintingId;
 		END
 	END
 	ELSE

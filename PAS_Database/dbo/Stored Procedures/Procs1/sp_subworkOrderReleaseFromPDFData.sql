@@ -19,6 +19,7 @@
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    02/02/2024   Devendra Shekh	Updated for revised Part Panry and Condition
 	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
+	5    12/31/2024   Devendra Shekh Updated For Get FormType and Batchnumber Name
 
      
  EXECUTE [sp_subworkOrderReleaseFromPDFData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
@@ -93,7 +94,7 @@ BEGIN
 					  ,wop.[islocked]
 					  ,wop.[IsFinishGood]
 					  ,wro.[PDFPath]
-					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
+					  ,case when wro.[is8130from] = 1 then '8130 Certificate' else '9130 Form' end as FormType 
 					  ,wop.CustomerRequestDate as ReceivedDate,
 					@ManagementStructureId as ManagementStructureId
 				FROM [dbo].SubWorkOrder_ReleaseFrom_8130 wro WITH(NOLOCK)

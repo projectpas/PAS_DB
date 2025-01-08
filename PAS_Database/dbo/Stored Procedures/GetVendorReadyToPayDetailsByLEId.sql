@@ -19,7 +19,7 @@
 	3    27/03/2024   AMIT GHEDIYA		Update to get LE
 	4    29/03/2024   Devendra Shekh	duplicate record issue resolved
 	5    29/03/2024   AMIT GHEDIYA		Update to get desc order list.
-     
+	6    02/01/2025   RAJESH GAMI		Modified to get the VendorProformaInvoiceID from the [VendorReadyToPayDetails].     
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
@@ -78,7 +78,8 @@ BEGIN
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 
 				  LE.[Name] AS 'LegalEntityName',
-				  VRTPD.CreatedDate
+				  VRTPD.CreatedDate,
+				ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
@@ -130,7 +131,8 @@ BEGIN
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',
-				  VRTPD.CreatedDate
+				  VRTPD.CreatedDate,
+				  ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 				LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 				LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
@@ -180,7 +182,8 @@ BEGIN
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',
-				  VRTPD.CreatedDate
+				  VRTPD.CreatedDate,
+				  ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK) 
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId

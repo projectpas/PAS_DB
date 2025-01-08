@@ -20,6 +20,7 @@
     4    11/26/2024   Vishal Suthar Fixed divide by zero error
     5    12/09/2024   Vishal Suthar Modified to remove Pick Ticket Qty on Unreserve
     6    01/06/2025   Vishal Suthar Added one parameter to identify if it's been called from unreserve action
+	7    01/08/2025   AMIT GHEDIYA  Added one parameter to identify if it's been called from shipping or not
      
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
@@ -29,7 +30,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 	@SalesOrderPartId BIGINT = NULL,
 	@UpdatedBy VARCHAR(100) = NULL,
 	@MasterCompanyId INT = NULL,
-	@IsUnreservedAction BIT = 0
+	@IsUnreservedAction BIT = 0,
+	@IsFromShipping BIT = 0
 )
 AS
 BEGIN
@@ -322,7 +324,11 @@ SET NOCOUNT ON
 								
 						UPDATE dbo.SOPickTicket SET QtyToShip = (QtyToShip - @PTQtytoShip) WHERE SOPickTicketId = @PickTicketId;
 
-						DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
+						--Bypass from Shipping
+						IF(@IsFromShipping = 0)
+						BEGIN
+							DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
+						END
 				
 						SET @LoopID = @LoopID - 1;
 					END

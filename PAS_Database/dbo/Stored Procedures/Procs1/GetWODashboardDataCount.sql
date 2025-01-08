@@ -90,14 +90,14 @@ BEGIN
 				SELECT DISTINCT ISNULL(COUNT(DISTINCT WOP.ID), 0) AS StageCount, WorkOrderStageId  
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
 					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
-					JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
+					JOIN dbo.Customer C WITH (NOLOCK) ON c.CustomerId = WO.CustomerId
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1
 				AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				GROUP BY WOP.WorkOrderStageId) AS T2 ON WOS.WorkOrderStageId = T2.WorkOrderStageId
 
 				UPDATE #tmpWorkOrderStage 
 						SET Counts = ISNULL(Counts, 0) + (SELECT ISNULL(COUNT(DISTINCT ReceivingCustomerWorkId), 0) 
-						FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) JOIN dbo.Customer C ON c.CustomerId = RC.CustomerId
+						FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) JOIN dbo.Customer C WITH (NOLOCK) ON c.CustomerId = RC.CustomerId
 						WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 
 						AND RC.MasterCompanyId = @MasterCompanyId	AND  RC.IsActive = 1 AND RC.IsDeleted = 0
 						AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')))
@@ -111,7 +111,7 @@ BEGIN
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
 					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId	
 					JOIN dbo.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOP.ID = WOC.WOPartNoId	
-					JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
+					JOIN dbo.Customer C WITH (NOLOCK) ON c.CustomerId = WO.CustomerId
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1--AND WO.WorkOrderStatusId  != @WorkOrderStatusId
 					AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				GROUP BY WOP.WorkOrderStageId) AS T2 ON WOS.WorkOrderStageId = T2.WorkOrderStageId

@@ -1,7 +1,4 @@
-﻿
-
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_PostReceivingReconcilationBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to get Reconsilation Stockline data
@@ -21,8 +18,9 @@
 	6    17/07/2024   AMIT GHEDIYA   Modify (changed UnitCost Field From stockline to Part for RO)
 	7	 23/12/2024	  Abhishek Jirawla	Switching between Po view and PN view
 	8	 01/01/2025	  Devendra Shekh	getting NonStockInventory where RRQty > 0
-	9	 01/JAN/2024  RAJESH GAMI	Return the vendorProformaInvoiceNo and Deposit amount from the PO-RO
+	9	 01/01/2025   RAJESH GAMI	Return the vendorProformaInvoiceNo and Deposit amount from the PO-RO
     10   06/01/2025   Moin Bloch     Modify (removed duplicate asset inventory list)
+	11   08/01/2025   Moin Bloch     Modify (removed duplicate asset inventory list for RO)
 
 	EXEC GetReceivingReconciliationPoData 2100,3745,1
 **************************************************************/  
@@ -703,37 +701,37 @@ BEGIN
 					--AND ISNULL((SELECT COUNT(POS.RepairOrderPartRecordId) from dbo.RepairOrderPart POS  WITH(NOLOCK) 
 					--	WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0
 				
-				UNION ALL
+				--UNION ALL
 				
-				SELECT stk.InventoryNumber AS 'StockLineNumber',
-					stk.ControlNumber,
-					stk.AssetInventoryId AS 'StockLineId',
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNo AS 'SerialNumber',
-					po.RepairOrderId AS 'PurchaseOrderId',
-					po.RepairOrderNumber AS 'POReference',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					stkdf.Qty AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * stkdf.Qty) AS 'POExtCost',
-					stkdf.Qty AS 'InvoicedQty',
-					pop.UnitCost AS 'InvoicedUnitCost',
-					(pop.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
-					(stk.RRQty) AS 'RemainingRRQty',
-					pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
-					2 AS 'Type',
-					'ASSET' AS 'StockType',
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
-				FROM dbo.RepairOrder po WITH(NOLOCK)
-					INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
-					INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
-					INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
-				WHERE po.RepairOrderId = @PurchaseOrderId
+				--SELECT stk.InventoryNumber AS 'StockLineNumber',
+				--	stk.ControlNumber,
+				--	stk.AssetInventoryId AS 'StockLineId',
+				--	CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
+				--	pop.ItemMasterId,
+				--	pop.PartNumber,
+				--	pop.PartDescription,
+				--	stk.SerialNo AS 'SerialNumber',
+				--	po.RepairOrderId AS 'PurchaseOrderId',
+				--	po.RepairOrderNumber AS 'POReference',
+				--	pop.QuantityOrdered AS 'POQtyOrder',
+				--	stkdf.Qty AS 'ReceivedQty',
+				--	pop.UnitCost AS 'POUnitCost',
+				--	(pop.UnitCost * stkdf.Qty) AS 'POExtCost',
+				--	stkdf.Qty AS 'InvoicedQty',
+				--	pop.UnitCost AS 'InvoicedUnitCost',
+				--	(pop.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
+				--	(stk.RRQty) AS 'RemainingRRQty',
+				--	pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
+				--	2 AS 'Type',
+				--	'ASSET' AS 'StockType',
+				--	ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+				--	Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
+				--	ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
+				--FROM dbo.RepairOrder po WITH(NOLOCK)
+				--	INNER JOIN dbo.RepairOrderPart pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId --AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+				--	INNER JOIN dbo.AssetInventory stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId --and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
+				--	INNER JOIN dbo.AssetInventoryDraft stkdf WITH(NOLOCK) ON stk.AssetInventoryId = stkdf.AssetInventoryId
+				--WHERE po.RepairOrderId = @PurchaseOrderId
 
 			END
 		END

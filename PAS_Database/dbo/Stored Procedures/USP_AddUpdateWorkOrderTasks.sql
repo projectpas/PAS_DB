@@ -1,0 +1,101 @@
+﻿/***************************************************************  
+ ** File:   [USP_AddUpdateWorkOrderTasks]
+ ** Author:   Vishal Suthar
+ ** Description: This stored procedure is used add or update sales order part details
+ ** Purpose:
+ ** Date:   12/24/2024
+
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author  		 Change Description
+ ** --   --------     -------		 --------------------------------
+    1    12/24/2024   Vishal Suthar	 Created
+
+**************************************************************/
+CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
+	@WorkOrderTaskId BIGINT,
+	@WorkOrderId BIGINT,
+	@WorkFlowWorkOrderId BIGINT,
+	@TaskId BIGINT,
+	@TaskName VARCHAR(250) = '',
+	@OpenDate DATETIME2(7) = NULL,
+	@OpenBy VARCHAR(100) = '',
+	@WorkOrderPartNumberId BIGINT = NULL,
+	@IsIncludeInPrint BIT = NULL,
+	@HasInstruction BIT = NULL,
+	@SequenceNumber INT = NULL,
+	@TechId BIGINT = NULL,
+	@TechName VARCHAR(100) = NULL,
+	@TechUpdatedDate DATETIME2(7) = NULL,
+	@InspectorId BIGINT = NULL,
+	@InspectorName VARCHAR(100) = NULL,
+	@InspectorUpdatedDate DATETIME2(7) = NULL,
+	@Descrepancy VARCHAR(MAX) = NULL,
+	@Resolution VARCHAR(MAX) = NULL,
+	@CreatedBy VARCHAR(100) = NULL,
+	@MasterCompanyId BIGINT = NULL
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+  BEGIN TRY
+  BEGIN TRANSACTION
+	
+	IF (ISNULL(@WorkOrderTaskId, 0) = 0)
+	BEGIN
+		DECLARE @CurrentSequenceNo INT = 0;
+
+		SELECT @CurrentSequenceNo = ISNULL(MAX(SequenceNumber), 0) FROM DBO.WorkOrderTask WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+		DECLARE @InsertedWorkOrderTaskId BIGINT = 0;
+
+		INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+		[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName])
+		SELECT @WorkOrderId, @WorkFlowWorkOrderId,@TaskId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+		@WorkOrderPartNumberId, (@CurrentSequenceNo + 1), @OpenDate, @OpenBy, @IsIncludeInPrint, @HasInstruction, @TaskName;
+
+		SET @InsertedWorkOrderTaskId = SCOPE_IDENTITY();
+
+		INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],[Descrepancy],
+		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+		SELECT @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
+		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+
+		SELECT @InsertedWorkOrderTaskId AS WorkOrderTaskId;
+	END
+	ELSE
+	BEGIN
+		UPDATE DBO.WorkOrderTaskDetails
+		SET Descrepancy = @Descrepancy,
+		Resolution = @Resolution,
+		InspectorId = @InspectorId,
+		InspectorName = @InspectorName,
+		InspectorUpdatedDate = @InspectorUpdatedDate,
+		TechId = @TechId,
+		TechName = @TechName,
+		TechUpdatedDate = @TechUpdatedDate
+		WHERE WorkOrderTaskId = @WorkOrderTaskId;
+
+		SELECT @WorkOrderTaskId AS WorkOrderTaskId;
+	END
+  COMMIT  TRANSACTION
+  END TRY
+  BEGIN CATCH
+	IF @@trancount > 0
+		PRINT 'ROLLBACK'
+		ROLLBACK TRAN;
+    DECLARE @ErrorLogID int,
+            @DatabaseName varchar(100) = DB_NAME()
+            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+            ,@AdhocComments varchar(150) = 'USP_AddUpdateWorkOrderTasks',
+            @ProcedureParameters varchar(3000) = '@WorkOrderTaskId = ''' + CAST(ISNULL(@WorkOrderTaskId, '') AS varchar(100)),
+            @ApplicationName varchar(100) = 'PAS'
+    -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+    EXEC spLogException @DatabaseName = @DatabaseName,
+                        @AdhocComments = @AdhocComments,
+                        @ProcedureParameters = @ProcedureParameters,
+                        @ApplicationName = @ApplicationName,
+                        @ErrorLogID = @ErrorLogID OUTPUT;
+    RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+    RETURN (1);
+  END CATCH
+END

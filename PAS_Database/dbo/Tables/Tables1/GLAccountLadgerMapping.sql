@@ -8,7 +8,7 @@
     [CreatedDate]             DATETIME2 (7) CONSTRAINT [DF_GLAccountLadgerMapping_CreatedDate] DEFAULT (getdate()) NOT NULL,
     [UpdatedDate]             DATETIME2 (7) CONSTRAINT [DF_GLAccountLadgerMapping_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                BIT           CONSTRAINT [DF_GLAccountLadgerMapping_IsActive] DEFAULT ((1)) NOT NULL,
-    [IsDeleted]               BIT           NOT NULL,
+    [IsDeleted]               BIT           CONSTRAINT [DF_GLAccountLadgerMapping_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_GLAccountLadgerMapping] PRIMARY KEY CLUSTERED ([GLAccountLadgerMapperId] ASC),
     CONSTRAINT [FK_GLAccountLadgerMapping_GLAccount] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_GLAccountLadgerMapping_Ladger] FOREIGN KEY ([LedgerId]) REFERENCES [dbo].[Ledger] ([LedgerId]),

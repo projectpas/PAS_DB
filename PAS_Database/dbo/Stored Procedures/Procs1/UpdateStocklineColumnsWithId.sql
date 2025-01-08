@@ -19,7 +19,7 @@
 	3    07/14/2023   Amit Ghediya  Update UnitCost set 0 if NULL
 	4    04/25/2024   Devendra Shekh  Updatting GLAccountName issue resolved
 	5    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
-     
+    6    24/12/2024   BHAVESH RAVAL   For the UpdateGLAccount Details in Stockline Table 
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -151,6 +151,83 @@ BEGIN
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.OpenDays > 0 AND STL.OpenDays IS NULL AND IsParent = 1
+
+					-- update glaccount details by bhavesh raval
+				DECLARE @ItemMasterId INT;
+				DECLARE @InventoryGLSettingId INT;
+				DECLARE @IMInventoryGLSettingId INT;
+				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline SL WITH (NOLOCK)  where SL.StockLineId=@StocklineId
+				
+				IF ISNULL(@InventoryGLSettingId,0)=0
+				BEGIN
+				
+					UPDATE SL
+					SET
+					SL.InventoryGLSettingId=I.InventoryGLSettingId,
+					 SL.GLAccountId=IM.GLAccountId,
+					 SL.InventoryGLAccName = GA.AccountCode+'-'+ GA.AccountName, 
+					SL.GoodsReceivedNotInvoicesGLAccId = I.GoodsReceivedNotInvoicesGLAccId,
+					SL.GoodsReceivedNotInvoicesGLAccName = GL2.AccountCode + '-' + GL2.AccountName,
+					SL.WorkInProgressGLAccId = I.WorkInProgressGLAccId,
+					SL.WorkInProgressGLAccName = GL3.AccountCode + '-' + GL3.AccountName,
+					SL.InventoryToBillGLAccId = I.InventoryToBillGLAccId,
+					SL.InventoryToBillGLAccName = GL4.AccountCode + '-' + GL4.AccountName,
+					SL.FinishedGoodsGLAccId = I.FinishedGoodsGLAccId,
+					SL.FinishedGoodsGLAccName = GL5.AccountCode + '-' + GL5.AccountName, 
+					SL.InventoryExchAgreementGLAccId = I.InventoryExchAgreementGLAccId,
+					SL.InventoryExchAgreementGLAccName = GL6.AccountCode + '-' + GL6.AccountName,
+					SL.InventoryReserveGLAccId = I.InventoryReserveGLAccId,
+					SL.InventoryReserveGLAccName = GL7.AccountCode + '-' + GL7.AccountName, 
+					SL.COGS_WorkOrderGLAccId = I.COGS_WorkOrderGLAccId,
+					SL.COGS_WorkOrderGLAccName = GL8.AccountCode + '-' + GL8.AccountName, 
+					SL.COGS_SalesOrderGLAccId = I.COGS_SalesOrderGLAccId,
+					SL.COGS_SalesOrderGLAccName = GL9.AccountCode + '-' + GL9.AccountName, 
+					SL.COGS_QtyVarianceGLAccId = I.COGS_QtyVarianceGLAccId,
+					SL.COGS_QtyVarianceGLAccName = GL10.AccountCode + '-' + GL10.AccountName, 
+					SL.COGS_UnitCostVarianceGLAccId = I.COGS_UnitCostVarianceGLAccId,
+					SL.COGS_UnitCostVarianceGLAccName = GL11.AccountCode + '-' + GL11.AccountName,
+					SL.RevenueMroGLAccId = I.RevenueMroGLAccId,
+					SL.RevenueMroGLAccName = GL12.AccountCode + '-' + GL12.AccountName,
+					SL.RevenueSoGLAccId = I.RevenueSoGLAccId,
+					SL.RevenueSoGLAccName = GL13.AccountCode + '-' + GL13.AccountName,
+					SL.RevenueMiscGLAccId = I.RevenueMiscGLAccId,
+					SL.RevenueMiscGLAccName = GL14.AccountCode + '-' + GL14.AccountName
+					FROM
+					dbo.ItemMaster IM WITH (NOLOCK) 
+					JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.ItemMasterId=IM.ItemMasterId
+					JOIN dbo.GLAccount GA WITH (NOLOCK) ON  GA.GLAccountId=IM.GLAccountId
+					LEFT JOIN
+					InventoryGLSetting I WITH (NOLOCK) ON IM.InventoryGLSettingId = I.InventoryGLSettingId
+					LEFT JOIN
+					GLAccount GL1 WITH (NOLOCK) ON I.InventoryGLAccId = GL1.GLAccountId
+					LEFT JOIN
+					GLAccount GL2 WITH (NOLOCK) ON I.GoodsReceivedNotInvoicesGLAccId = GL2.GLAccountId
+					LEFT JOIN
+					GLAccount GL3 WITH (NOLOCK) ON I.WorkInProgressGLAccId = GL3.GLAccountId
+					LEFT JOIN
+					GLAccount GL4 WITH (NOLOCK) ON I.InventoryToBillGLAccId = GL4.GLAccountId
+					LEFT JOIN
+					GLAccount GL5 WITH (NOLOCK) ON I.FinishedGoodsGLAccId = GL5.GLAccountId
+					LEFT JOIN
+					GLAccount GL6 WITH (NOLOCK) ON I.InventoryExchAgreementGLAccId = GL6.GLAccountId
+					LEFT JOIN
+					GLAccount GL7 WITH (NOLOCK) ON I.InventoryReserveGLAccId = GL7.GLAccountId
+					LEFT JOIN
+					GLAccount GL8 WITH (NOLOCK) ON I.COGS_WorkOrderGLAccId = GL8.GLAccountId
+					LEFT JOIN
+					GLAccount GL9 WITH (NOLOCK) ON I.COGS_SalesOrderGLAccId = GL9.GLAccountId
+					LEFT JOIN
+					GLAccount GL10 WITH (NOLOCK) ON I.COGS_QtyVarianceGLAccId = GL10.GLAccountId
+					LEFT JOIN
+					GLAccount GL11 WITH (NOLOCK) ON I.COGS_UnitCostVarianceGLAccId = GL11.GLAccountId
+					LEFT JOIN
+					GLAccount GL12 WITH (NOLOCK) ON I.RevenueMroGLAccId = GL12.GLAccountId
+					LEFT JOIN
+					GLAccount GL13 WITH (NOLOCK) ON I.RevenueSoGLAccId = GL13.GLAccountId
+					LEFT JOIN
+					GLAccount GL14 WITH (NOLOCK) ON I.RevenueMiscGLAccId = GL14.GLAccountId
+					WHERE SL.StockLineId=@StocklineId
+				END
 
 			END		   
 		COMMIT  TRANSACTION

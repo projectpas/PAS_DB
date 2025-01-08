@@ -43,8 +43,11 @@
     [IsEASALicense]         BIT           NULL,
     [EmployeeId]            BIGINT        NULL,
     [FormTypeId]            INT           NULL,
+    [IsLocked]              BIT           NULL,
     CONSTRAINT [PK_SubWorkOrder_ReleaseFrom_8130Audit] PRIMARY KEY CLUSTERED ([SubReleaseFromAuditId] ASC)
 );
+
+
 
 
 

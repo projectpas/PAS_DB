@@ -12,6 +12,14 @@
     [IsDeleted]       BIT            NULL,
     [Sequence]        BIGINT         NULL,
     [IsTravelerTask]  BIT            NULL,
+    [Descrepancy]     NVARCHAR (MAX) NULL,
+    [Resolution]      NVARCHAR (MAX) NULL,
+    [StandardHours]   INT            NULL,
+    [StandardMinute]  INT            NULL,
     PRIMARY KEY CLUSTERED ([TaskAuditId] ASC)
 );
+
+
+
+
 

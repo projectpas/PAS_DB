@@ -157,19 +157,21 @@ BEGIN
 				DECLARE @DiscAmt AS decimal(18,4);
 				DECLARE @GrossAmt AS decimal(18,4);
 				DECLARE @NetSalesAmt AS decimal(18,4);
+				DECLARE @NetSalesPerUnitAmt AS decimal(18,4);
 
 				SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
 				SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
 				SET @DiscAmt = ISNULL(@DiscountAmount, 0);
 				SET @GrossAmt = (@SalesPrice + @MarkUpAmt) * @QtyQuoted;
 				SET @NetSalesAmt = @GrossAmt - (@DiscAmt * @QtyQuoted);
+				SET @NetSalesPerUnitAmt = (@SalesPrice + @MarkUpAmt) - @DiscAmt;
 
 				INSERT INTO [dbo].[SalesOrderQuotePartCost] ([SalesOrderQuoteId], [SalesOrderQuotePartId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount],
 				[GrossSaleAmount], [NetSaleAmount], [MiscCharges], [Freight], [TaxAmount], [TaxPercentage], [UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [TotalRevenue], 
-				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [NetSaleAmountPerUnit])
 				SELECT SalesOrderQuoteId, @SalesOrderQuotePartId, UnitSalesPrice, ISNULL((UnitSalesPrice * QtyQuoted), 0), MarkUpPercentage, ISNULL((MarkUpAmount * QtyQuoted), 0), DiscountPercentage, ISNULL((DiscountAmount * QtyQuoted), 0),
 				ISNULL(@GrossAmt, 0), @NetSalesAmt, NULL, NULL, TaxAmount, TaxPercentage, UnitCost, ISNULL((UnitCost * QtyQuoted), 0), MarginAmount, MarginPercentage, 0,
-				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
+				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM #SOQPartDetails WHERE ID = @SOQPartLoopID;
 			END
 			ELSE
@@ -191,21 +193,28 @@ BEGIN
 				SET @DiscAmt = ISNULL(@DiscountAmount, 0);
 				SET @GrossAmt = (@SalesPrice + @MarkUpAmt) * @QtyQuoted;
 				SET @NetSalesAmt = @GrossAmt - (@DiscAmt * @QtyQuoted);
+				SET @NetSalesPerUnitAmt = (@SalesPrice + @MarkUpAmt) - @DiscAmt;
 
 				INSERT INTO [dbo].[SalesOrderQuoteStockLineCost] ([SalesOrderQuoteId], [SalesOrderQuotePartId], [SalesOrderQuoteStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
 				[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
-				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [NetSaleAmountPerUnit])
 				
 				SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @InsertedSalesOrderQuoteStocklineId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QuantityToQuote), 0), @MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyQuoted), 0), @NetSalesAmt,
 				@UnitCost, ISNULL((@UnitCost * @QuantityToQuote), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyQuoted), 0), 
-				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM [DBO].[StockLine] Stkl
 				WHERE Stkl.StockLineId = @StockLineId;
 			END
 		END
 		ELSE
 		BEGIN
-			PRINT 'IN ELSE'
+			DECLARE @IsQtyRequestedModified BIT;
+			DECLARE @ExistingQtyReq INT;
+
+			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+
+			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
+
 			UPDATE [DBO].[SalesOrderQuotePartV1]
 			SET 
 			CustomerRequestDate = @CustomerRequestDate,
@@ -225,15 +234,14 @@ BEGIN
 			DECLARE @DiscAmt_U AS decimal(18,4);
 			DECLARE @GrossAmt_U AS decimal(18,4);
 			DECLARE @NetSalesAmt_U AS decimal(18,4);
+			DECLARE @NetSalesPerUnitAmt_U AS decimal(18,4);
 
 			SET @SalesPrice_U = ISNULL(@UnitSalesPrice, 0);
 			SET @MarkUpAmt_U = ISNULL(@MarkUpAmount, 0) * @QtyQuoted;
 			SET @DiscAmt_U = ISNULL(@DiscountAmount, 0) * @QtyQuoted;
 			SET @GrossAmt_U = ((@SalesPrice_U * @QtyQuoted) + @MarkUpAmt_U);
 			SET @NetSalesAmt_U = @GrossAmt_U - (@DiscAmt_U);
-
-			PRINT '@MarkUpAmt_U'
-			PRINT @MarkUpAmt_U
+			SET @NetSalesPerUnitAmt_U = ((@SalesPrice_U) + ISNULL(@MarkUpAmount, 0)) - (ISNULL(@DiscountAmount, 0));
 
 			UPDATE [DBO].[SalesOrderQuotePartCost]
 			SET UnitSalesPrice = @SalesPrice_U,
@@ -242,7 +250,8 @@ BEGIN
 			DiscountPercentage = @DiscountPercentage,
 			DiscountAmount = @DiscAmt_U,
 			GrossSaleAmount = ISNULL(@GrossAmt_U, 0),
-			NetSaleAmount = ISNULL(@NetSalesAmt_U, 0)
+			NetSaleAmount = ISNULL(@NetSalesAmt_U, 0),
+			NetSaleAmountPerUnit = @NetSalesPerUnitAmt_U
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			IF (@SalesOrderQuoteStocklineId IS NOT NULL AND @SalesOrderQuoteStocklineId > 0) -- Added at Stockline Level
@@ -255,7 +264,11 @@ BEGIN
 				WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 
 				UPDATE [DBO].[SalesOrderQuoteStockLineCost]
-				SET UnitSalesPrice = @UnitSalesPrice
+				SET UnitSalesPrice = @UnitSalesPrice,
+				MarkUpPercentage = @MarkUpPercentage,
+				DiscountPercentage = @DiscountPercentage,
+				MarkUpAmount = @MarkUpAmt_U,
+				DiscountAmount = @DiscAmt_U
 				WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 			END
 
@@ -273,6 +286,14 @@ BEGIN
 			FROM [DBO].[SalesOrderQuotePartV1] SOP
 			INNER JOIN QuotedSums QS ON SOP.SalesOrderQuotePartId = QS.SalesOrderQuotePartId
 			WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+
+			IF NOT EXISTS (SELECT TOP 1 1 FROM [DBO].[SalesOrderQuoteStocklineV1] SOS WITH (NOLOCK) WHERE SOS.SalesOrderQuotePartId = @SalesOrderQuotePartId)
+			BEGIN
+				UPDATE SOP
+				SET SOP.QtyQuoted = CASE WHEN @IsQtyRequestedModified = 1 THEN @QtyRequested ELSE @QtyQuoted END
+				FROM [DBO].[SalesOrderQuotePartV1] SOP
+				WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			END
 		END
 
 		SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;

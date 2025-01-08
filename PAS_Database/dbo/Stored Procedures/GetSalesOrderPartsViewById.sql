@@ -11,46 +11,37 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date			 Author			Change Description              
- ** --   --------		-------			--------------------------------            
-    1    03/06/2024		AMIT GHEDIYA	 Created  
-	2    13/06/2024		AMIT GHEDIYA	 Update for get only part which is reserve qty. 
-	3    11/05/2024		Vishal Suthar	 Modified to make use of new SO Part tables
-	4    07/11/2024		Devendra Shekh	 added PartDescription and ShortName to select
-	5	 05-12-2024     Shrey Chandegara  add [Customer]
+ ** PR   Date			 Author				Change Description              
+ ** --   --------		-------				--------------------------------            
+    1    03/06/2024		AMIT GHEDIYA		Created  
+	2    13/06/2024		AMIT GHEDIYA		Update for get only part which is reserve qty. 
+	3    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	4    07/11/2024		Devendra Shekh		added PartDescription and ShortName to select
+	5	 05-12-2024     Shrey Chandegara	add [Customer]
+	5	 20-12-2024     RAJESH GAMI			Add the PickTicket(ID) join with the SalesOrderShippingItem instead of SOPart ID
+	6    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
 
--- exec GetSalesOrderPartsViewById 1273 
+-- exec GetSalesOrderPartsViewById 1624,2087
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
-	@SalesOrderId BIGINT    
+	@SalesOrderId BIGINT,
+	@SoPartId BIGINT = 0    
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
    BEGIN   
-		--SELECT 
-		--	 ROW_NUMBER() OVER (
-		--		ORDER BY part.SalesOrderId
-		--	 ) row_num, 
-		--	UPPER(part.PONumber) AS PONumber,
-		--	UPPER(itemMaster.PartNumber) AS PartNumber,
-		--	UPPER(itemMaster.PartDescription) AS PartDescription,
-		--	UPPER(ISNULL(qs.StockLineNumber, '')) AS StockLineNumber,
-		--	UPPER(qs.SerialNumber) AS SerialNumber,
-		--	rPart.QtyToReserve AS Qty,
-		--	UPPER(ISNULL(cp.Description, '')) AS Condition
-		--FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
-		--INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId AND rPart.QtyToReserve > 0
-		--LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
-		--LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		--LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
-		--WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
-		--ORDER BY part.ItemNo;
-
+		
 		IF OBJECT_ID(N'tempdb..#tmprShipDetails') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmprShipDetails
+		END
+
+		--Set SoPart null for all part for salesordor otherwise for perticular part only.
+		IF(ISNULL(@SoPartId,0) = 0)
+		BEGIN
+			SET @SoPartId = NULL;
 		END
 		
 		CREATE TABLE #tmprShipDetails
@@ -86,6 +77,7 @@ BEGIN
 				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
+			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
 
 		UNION 
 
@@ -103,12 +95,14 @@ BEGIN
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
-				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON part.SalesOrderPartId = sos.SalesOrderPartId
+				LEFT JOIN [dbo].[SOPickTicket] SOPICK WITH(NOLOCK) ON SOPICK.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId
+				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON sos.SOPickTicketId = SOPICK.SOPickTicketId
 				AND sos.IsActive = 1 AND sos.IsDeleted = 0
 				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
+			  AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
 		
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
 				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber,PartDescription,ShortName,Customer

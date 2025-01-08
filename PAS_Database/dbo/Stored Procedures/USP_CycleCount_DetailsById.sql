@@ -11,11 +11,12 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    16/10/2024   Moin Bloch    Created
-	2    24/10/2024   Moin Bloch    Added RequestedById
-	3    29/10/2024   Moin Bloch    Added ApproverId,ApprovedBy,DateApproved
-	4    28/10/2024   Moin Bloch    Added @CountedById,@CountMethodId
+    1    16/10/2024   Moin Bloch	 Created
+	2    24/10/2024   Moin Bloch	 Added RequestedById
+	3    29/10/2024   Moin Bloch	 Added ApproverId,ApprovedBy,DateApproved
+	4    28/10/2024   Moin Bloch	 Added @CountedById,@CountMethodId
 	5	 22/11/2024   Bhargav Saliya Get Status From The [CycleCountStatus] Table
+	5	 25/12/2024   Bhargav Saliya Get new Field [IsQtyCounted],[IsQtyVariance] and [IsUnitCoctAdj]
 
   EXEC [dbo].[USP_CycleCount_DetailsById] 1,1
   exec [USP_CycleCount_DetailsById] 63,1
@@ -52,6 +53,9 @@ BEGIN
 			  ,CCS.[Status]
 			  ,GETUTCDATE() AS [CurrentTime]
 			  ,(ISNULL(EP.FirstName,'') +' '+ ISNULL(EP.LastName,'')) AS [EmployeeName]
+			  ,CC.[IsQtyCounted]
+			  ,CC.[IsQtyVariance]
+			  ,CC.[IsUnitCoctAdj]
 		  FROM [dbo].[CycleCount] CC WITH(NOLOCK) 
 		  LEFT JOIN [dbo].CycleCountStatus CCS WITH(NOLOCK) ON CCS.CycleCountStatusId = CC.StatusId
 		  LEFT JOIN [dbo].Employee EP WITH(NOLOCK) ON CC.[CountedById] = EP.[EmployeeId]

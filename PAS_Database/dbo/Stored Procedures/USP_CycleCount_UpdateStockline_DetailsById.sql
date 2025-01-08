@@ -18,11 +18,13 @@
 	4    19/11/2024   Moin Bloch   Added Paramiter LedgerId,AccountingCalendarId  
 	5    22/11/2024   Moin Bloch   Updated Changed logic of Qty
 	6    25/11/2024   Moin Bloch   Updated Changed logic of Qty Avail TO OH
+	7    27/12/2024   Moin Bloch   Updated Added LegalEntityId
          
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CycleCount_UpdateStockline_DetailsById]
 @CycleCountId BIGINT,
+@LegalEntityId BIGINT,
 @LedgerId BIGINT,
 @AccountingCalendarId BIGINT,
 @UpdatedBy VARCHAR(50),
@@ -118,7 +120,7 @@ BEGIN
 				-- Accounting Entry
 				IF(ISNULL(@DifferenceAmount,0) <> 0)
 				BEGIN
-					EXEC [dbo].[USP_PostCycleCountBatchDetails] @CycleCountId,@CycleCountDetailId,@StockLineId,@DifferenceAmount,@LedgerId,@AccountingCalendarId,@UpdatedBy,@MasterCompanyId
+					EXEC [dbo].[USP_PostCycleCountBatchDetails] @CycleCountId,@CycleCountDetailId,@StockLineId,@DifferenceAmount,@LegalEntityId,@LedgerId,@AccountingCalendarId,@UpdatedBy,@MasterCompanyId
 				END
 			END
 			IF(@CurrentStockQuantity < @CountedQuantity)	
@@ -140,7 +142,7 @@ BEGIN
 				-- Accounting Entry
 				IF(ISNULL(@DifferenceAmount,0) <> 0)
 				BEGIN
-					EXEC [dbo].[USP_PostCycleCountBatchDetails] @CycleCountId,@CycleCountDetailId,@StockLineId,@DifferenceAmount,@LedgerId,@AccountingCalendarId,@UpdatedBy,@MasterCompanyId		
+					EXEC [dbo].[USP_PostCycleCountBatchDetails] @CycleCountId,@CycleCountDetailId,@StockLineId,@DifferenceAmount,@LegalEntityId,@LedgerId,@AccountingCalendarId,@UpdatedBy,@MasterCompanyId		
 				END
 			END
 			SET @MinId = @MinId + 1

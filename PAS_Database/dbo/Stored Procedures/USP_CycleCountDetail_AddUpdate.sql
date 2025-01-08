@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    23/10/2024   Moin Bloch    Created
+	2    26/12/2024   Moin Bloch    Added LegalEntityId Field	
 
   EXEC [dbo].[USP_CycleCountDetail_AddUpdate]  
 ************************************************************************/
@@ -68,6 +69,7 @@ BEGIN
 				[DifferenceAmount] [decimal](18, 2) NULL,
 				[IsCustomerStock] [bit] NULL,
 				[ManagementStructureId] [bigint] NULL,
+				[LegalEntityId] [bigint] NULL,
 				[MasterCompanyId] [int] NULL,
 				[CreatedBy] [varchar](256) NULL,
 				[UpdatedBy] [varchar](256) NULL)
@@ -77,14 +79,14 @@ BEGIN
 							[ManufacturerName],[ConditionId],[ConditionName],[UnitOfMeasureId],[UnitOfMeasureName],
 							[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],
 							[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],
-							[DifferenceQuantity],[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],
+							[DifferenceQuantity],[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],
 							[MasterCompanyId],[CreatedBy],[UpdatedBy])
 					 SELECT [CycleCountDetailId],[CycleCountId],[StockLineId],[StockLineNumber],[ControlNumber],
 				            [IdNumber],[SerialNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],
 							[ManufacturerName],[ConditionId],[ConditionName],[UnitOfMeasureId],[UnitOfMeasureName],
 							[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],
 							[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],
-							[DifferenceQuantity],[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],
+							[DifferenceQuantity],[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],
 							[MasterCompanyId],[CreatedBy],[UpdatedBy] 
 					   FROM @TableCycleCountDetailType;
 				
@@ -103,13 +105,13 @@ BEGIN
 									[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName],[ConditionId],[ConditionName],
 									[UnitOfMeasureId],[UnitOfMeasureName],[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],
 									[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],
-									[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
+									[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
 									[UpdatedDate],[IsActive],[IsDeleted])
 							 SELECT [CycleCountId],[StockLineId],[StockLineNumber],[ControlNumber],[IdNumber],[SerialNumber],
 									[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName],[ConditionId],[ConditionName],
 									[UnitOfMeasureId],[UnitOfMeasureName],[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],
 									[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],
-									[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),
+									[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),
 									GETUTCDATE(),1,0					
 							   FROM #TempCycleCountDetail WHERE [ID] = @MinId;
 

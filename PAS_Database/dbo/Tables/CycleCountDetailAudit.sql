@@ -35,6 +35,7 @@
     [DifferenceAmount]        DECIMAL (18, 2) NOT NULL,
     [IsCustomerStock]         BIT             NULL,
     [ManagementStructureId]   BIGINT          NOT NULL,
+    [LegalEntityId]           BIGINT          NULL,
     [MasterCompanyId]         INT             NOT NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
     [UpdatedBy]               VARCHAR (256)   NOT NULL,
@@ -44,6 +45,8 @@
     [IsDeleted]               BIT             CONSTRAINT [DF_CycleCountDetailAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_CycleCountDetailAudit] PRIMARY KEY CLUSTERED ([CycleCountDetailAuditId] ASC)
 );
+
+
 
 
 

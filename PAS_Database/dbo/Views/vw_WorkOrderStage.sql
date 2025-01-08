@@ -1,4 +1,4 @@
-﻿CREATE         VIEW [dbo].[vw_WorkOrderStage]
+﻿CREATE   VIEW [dbo].[vw_WorkOrderStage]
 AS
 SELECT WOS.[WorkOrderStageId]
       ,WOS.[Code]
@@ -26,6 +26,7 @@ SELECT WOS.[WorkOrderStageId]
 	  ,WOS.IncludeInTAT
 	  ,WOS.QuoteDays
 	  ,WOS.ShippedDays
+	  ,WOS.ApprovedDays
   FROM [dbo].[WorkOrderStage] WOS 
   LEFT JOIN [dbo].Employee EMP ON WOS.ManagerId=EMP.EmployeeId
   LEFT JOIN [dbo].[WorkOrderStatus] WS ON WOS.StatusId=WS.Id

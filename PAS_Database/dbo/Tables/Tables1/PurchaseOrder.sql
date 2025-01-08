@@ -53,6 +53,9 @@
     [FunctionalCurrencyId]     INT             NULL,
     [ReportCurrencyId]         INT             NULL,
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
+    [DepositAmount]            DECIMAL (18, 2) NULL,
+    [VendorProformaInvoiceNo]  VARCHAR (150)   NULL,
+    [VendorProformaInvoiceId]  BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrder] PRIMARY KEY CLUSTERED ([PurchaseOrderId] ASC),
     CONSTRAINT [FK_PurchaseOrder_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_PurchaseOrder_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -61,6 +64,10 @@
     CONSTRAINT [FK_PurchaseOrder_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_PurchaseOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
+
+
 
 
 

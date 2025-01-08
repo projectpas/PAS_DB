@@ -28,6 +28,8 @@
 	12   26/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
 	13	 14-OCT-2024		 Devendra Shekh			Added new fields for [CommonBatchDetails]
 	14	 04-NOV-2024		 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	15   06-JAN-2025		 Rajesh Gami			add new DistributionSetup for the DEPOSIT
+	16   07-JAN-2025		 Rajesh Gami			Modified DistributionSetup for the DEPOSIT from itemGLAccount to DistributionSetup GL and Amount logic change to SUM of extended cost instead of Item Level
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -96,7 +98,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'NONPO';
-
+		DECLARE @isItemLevelCalculation BIT = 0;
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @ReferenceNum = NPONumber, @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'') FROM [dbo].[NonPOInvoiceHeader] NPO WITH(NOLOCK)
@@ -117,10 +119,19 @@ BEGIN
 			Memo [varchar](500) NULL,
 			ExtendedPrice [decimal](18,2) NULL,
 		) 
+		IF(@isItemLevelCalculation = 1)
+		BEGIN			
+				INSERT INTO #tmpNonPOPartDetails
+				SELECT [NonPOInvoicePartDetailsId], [Amount], [GlAccountId], [Memo], [ExtendedPrice]
+				FROM [dbo].[NonPOInvoicePartDetails] WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
+		END
+		ELSE
+		BEGIN
+				INSERT INTO #tmpNonPOPartDetails
+				SELECT  MAX(ISNULL([NonPOInvoicePartDetailsId],0)), SUM(ISNULL([Amount],0)), MAX([GlAccountId]), MAX([Memo]), SUM(ISNULL([ExtendedPrice],0))
+				FROM [dbo].[NonPOInvoicePartDetails] WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
+		END
 
-		INSERT INTO #tmpNonPOPartDetails
-		SELECT [NonPOInvoicePartDetailsId], [Amount], [GlAccountId], [Memo], [ExtendedPrice]
-		FROM [dbo].[NonPOInvoicePartDetails] WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
 
 		SELECT @PartAmtSum = SUM(ExtendedPrice) FROM #tmpNonPOPartDetails
 
@@ -276,11 +287,12 @@ BEGIN
 
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
-				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
-				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE') 
+				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0),
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-DEPOSIT') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
-				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
+				 --SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -290,9 +302,9 @@ BEGIN
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-					CASE WHEN @CheckAmount > 0 THEN 1 ELSE 0 END,
-					CASE WHEN @CheckAmount > 0 THEN @CheckAmount ELSE 0 END,
-					CASE WHEN @CheckAmount > 0 THEN 0 ELSE ABS(@CheckAmount) END,
+					CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
+					CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END,
+					CASE WHEN @CRDRType = 1 THEN 0 ELSE ABS(@CheckAmount) END,
 					@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@NonPOInvoiceId,@ReferenceModule)
 

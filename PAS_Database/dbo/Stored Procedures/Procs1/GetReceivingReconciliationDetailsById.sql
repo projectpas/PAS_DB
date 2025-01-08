@@ -15,10 +15,14 @@
 	4    18/12/2023   Moin Bloch    Added Order By
 	5    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
     6    03/01/2024   Moin Bloch    Added IsSerialized Field
+    7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
+	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
+	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
+
 	
---  EXEC GetReceivingReconciliationDetailsById 220
+--  EXEC GetReceivingReconciliationDetailsById 321
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
+CREATE    PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
 AS
 BEGIN
@@ -57,6 +61,8 @@ BEGIN
 					 ,JBD.[GlAccountId]
 					 ,[Type]
 					 ,[StockType]
+					 ,ISNULL([QtyVariance], 0) AS [QtyVariance]
+					 ,ISNULL([PriceVariance], 0) AS [PriceVariance]
 					 --,[RemainingRRQty]
 					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN UPPER(SLI.RRQty) 
 						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN UPPER(NSI.RRQty) 
@@ -100,7 +106,12 @@ BEGIN
 						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level9Name) ELSE '' END  AS level9
 					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' THEN UPPER(MSD.Level10Name) 
 						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name) 
-						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10
+						   WHEN UPPER(JBD.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10,
+
+					CASE WHEN  ISNULL(JBH.VendorProformaAmount,0) > 0 THEN ISNULL(JBH.VendorProformaAmount,0) ELSE (CASE WHEN [Type] = 1 THEN ISNULL(Po.DepositAmount,0) ELSE ISNULL(RO.DepositAmount,0) END)END AS VendorProformaAmount,
+					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceNo,'') ELSE ISNULL(RO.VendorProformaInvoiceNo,'') END) AS VendorProformaInvoiceNo,
+					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceId,0) ELSE ISNULL(RO.VendorProformaInvoiceId,0) END) AS VendorProformaInvoiceId
+
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
 					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId					 
 					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'						
@@ -111,7 +122,9 @@ BEGIN
 					  LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'NONSTOCK'
 					  LEFT JOIN [dbo].[EntityStructureSetup] NES WITH (NOLOCK) ON NES.EntityStructureId=NMSD.EntityMSID
 					  LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'ASSET'
-					  LEFT JOIN [dbo].[EntityStructureSetup] AES WITH (NOLOCK) ON AES.EntityStructureId=AMSD.EntityMSID								
+					  LEFT JOIN [dbo].[EntityStructureSetup] AES WITH (NOLOCK) ON AES.EntityStructureId=AMSD.EntityMSID			
+					  LEFT JOIN [dbo].PurchaseOrder PO WITH (NOLOCK) ON JBD.PurchaseOrderId = PO.PurchaseOrderId AND JBD.[Type] = 1
+					  LEFT JOIN [dbo].RepairOrder RO WITH (NOLOCK) ON JBD.PurchaseOrderId = RO.RepairOrderId AND JBD.[Type] = 2
 				WHERE JBD.[ReceivingReconciliationId] =@ReceivingReconciliationId ORDER BY JBD.[ReceivingReconciliationDetailId]
     END TRY
 	BEGIN CATCH      

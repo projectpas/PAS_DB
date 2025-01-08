@@ -10,6 +10,7 @@
 ** PR   Date				Author					Change Description              
 ** --   --------			-------				-------------------------------            
 	1   21-NOV-2024			Devendra Shekh			Created
+	1   03-Jan-2025			Bhargav Saliya			Resolved EntryDate conversation issue(Removed DBO.ConvertUTCtoLocal() Function)
 **************************************************************/  
 /*************************************************************             
 exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter 
@@ -595,7 +596,7 @@ BEGIN
 	SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount,
 			LeafNodeId, UPPER(NodeName) AS NodeName, GLAccountId, (UPPER(GLAccountCode) + '-' + UPPER(GLAccountName)) AS GLAccount, UPPER(JournalNumber) AS JournalNumber, LastMSLevel,  AllMSlevels,
 			CreditAmount, DebitAmount, AccountingPeriodId, UPPER(AccountingPeriod) AS AccountingPeriod, UPPER(PeriodName) AS PeriodName, ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, 
-			Cast(DBO.ConvertUTCtoLocal(EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal ,IsStandAloneCM, @TotalRecordsCount as NumberOfItems
+			Cast(EntryDate as datetime) AS EntryDate, IsManualJournal ,IsStandAloneCM, @TotalRecordsCount as NumberOfItems
 	FROM cteRanked c1 
 	WHERE GLAccountId IS NOT NULL
 	ORDER BY AccountingPeriodId, JournalNumber;

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetSalesOrderBillingInvoiceChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve Invoice child listing data
@@ -43,9 +42,13 @@
 	25	 05/12/2024	  Abhishek Jirawla	Fixed the issue with flat charges calculation
 	26   05/12/2024   Vishal Suthar		Fixed the issue with versioning and revised invoice
 	27   10/12/2024   RAJESH GAMI		Fixed the issue with TotalUnitCost : Commented -- + ISNULL(SOR.QtyToReserve, 0) as discussed with Vishal due to multyply the amount
-  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1434,20745,1
+	28	 25/12/2024	  AMIT GHEDIYA		Modified for get TotalSales calculated with Sales tax & Other Tax.
+	29	 26/12/2024	  AMIT GHEDIYA		Fixed the billing amount when partial qty is rerserved
+	30	 26/12/2024	  Vishal Suthar		Fixed the issue with tax calculation when part has multiple stockline and freight and charges are also applied
+
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
+CREATE     PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
 @SalesOrderPartId bigint,  
 @ConditionId bigint  
@@ -68,6 +71,7 @@ BEGIN
 		END
 
 		CREATE TABLE #SalesOrderBillingInvoiceChildList(
+			IndexColumn BIGINT NULL,
 			SalesOrderShippingId [BIGINT] NOT NULL,
 			SOBillingInvoicingId [BIGINT] NULL,
 			SOBillingInvoicingItemId [BIGINT] NULL,
@@ -118,13 +122,14 @@ BEGIN
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 		BEGIN 
 			PRINT '1.0'
-			INSERT INTO #SalesOrderBillingInvoiceChildList(
+			INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
 			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 		(
-			SELECT DISTINCT sosi.SalesOrderShippingId,   
+			SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
+			sosi.SalesOrderShippingId,   
 			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
 			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId
 			AND ISNULL(sobii_1.IsProforma, 0) = 0) > 0 THEN sobii.SOBillingInvoicingId  
@@ -257,13 +262,14 @@ BEGIN
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
 			BEGIN  
 				PRINT '2.1'
-				INSERT INTO #SalesOrderBillingInvoiceChildList(
+				INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 				(
 				SELECT DISTINCT 
+				ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
 				else (SELECT TOP 1 SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
 				WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
@@ -312,7 +318,7 @@ BEGIN
 				INNER JOIN DBO.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND stk.SalesOrderStocklineId = SOPS.SalesOrderStocklineId
 				AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId)))
-				ELSE sobii.PartCost END as 'TotalSales',  
+				ELSE sobii.GrandTotal END as 'TotalSales',  
 
 				((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * 
 				(ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
@@ -391,7 +397,8 @@ BEGIN
 
 				UNION ALL
 
-				SELECT DISTINCT 0 AS SalesOrderShippingId,   
+				SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
+					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobi.InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
@@ -465,12 +472,14 @@ BEGIN
 			ELSE
 			BEGIN 
 				PRINT '2.2'
-				INSERT INTO #SalesOrderBillingInvoiceChildList(
+				INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
 				SalesOrderShippingId,SOBillingInvoicingId , SOBillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 				SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
 				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
-				SELECT DISTINCT 0 AS SalesOrderShippingId,   
+				SELECT DISTINCT 
+					ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
+					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobii.SOBillingInvoicingItemId,
 					sobi.InvoiceDate,
@@ -549,7 +558,7 @@ BEGIN
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
 						((ISNULL(SOSC.NetSaleAmount, 0)))
-						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
+						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
 						tmpSOBI.SOBillingInvoicingItemId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
@@ -565,8 +574,8 @@ BEGIN
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 				FROM( SELECT 
 						CASE WHEN ISNULL(tmpSOBI.SOBillingInvoicingId, 0) = 0 THEN 
-						(ISNULL(SOSC.NetSaleAmount, 0))
-						ELSE ISNULL(SOBII.PartCost, 0) END as 'TotalSales',
+						((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * ISNULL(STK.QtyReserved, 1))
+						ELSE ISNULL(SOBII.GrandTotal, 0) END as 'TotalSales',
 						STK.SalesOrderStocklineId,
 						tmpSOBI.SOBillingInvoicingId
 					FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
@@ -628,16 +637,23 @@ BEGIN
 					
 				) tmpcash WHERE tmpcash.SOBillingInvoicingId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingId
 				
+				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFreight = 0
+				WHERE IndexColumn > 1
+
+				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalCharges = 0
+				WHERE IndexColumn > 1
 			END
 		END
 			PRINT '3.0'
-			INSERT INTO #SalesOrderBillingInvoiceChildList(
+			INSERT INTO #SalesOrderBillingInvoiceChildList (IndexColumn,
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
 				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges)
 			(
-				SELECT DISTINCT 0 AS SalesOrderShippingId,   
+				SELECT DISTINCT 
+					ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobi.InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
@@ -711,7 +727,9 @@ BEGIN
 					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 					)
 
-				SELECT SalesOrderShippingId,
+				SELECT 
+					   IndexColumn,
+					   SalesOrderShippingId,
 					   SOBillingInvoicingId ,
 					   InvoiceDate , 
 					   InvoiceNo ,
@@ -734,9 +752,9 @@ BEGIN
 					   CurrencyCode ,
 					   TotalSales ,
 					   ISNULL(TotalUnitCost,0) TotalUnitCost,
-					   ISNULL(TotalFreight,0) TotalFreight,
+					   ISNULL(CASE WHEN IndexColumn = 1 THEN TotalFreight ELSE 0 END,0) TotalFreight,
 					   ISNULL(TotalFlatFreight,0) TotalFlatFreight,
-					   ISNULL(TotalCharges,0) TotalCharges,
+					   ISNULL(CASE WHEN IndexColumn = 1 THEN TotalCharges ELSE 0 END,0) TotalCharges,
 					   ISNULL(TotalFlatCharges,0) TotalFlatCharges,
 					   InvoiceStatus ,	
 					   SmentNo ,

@@ -32,13 +32,18 @@
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_CheckInEmp] FOREIGN KEY ([CheckInEmpId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_CheckOutBy] FOREIGN KEY ([CheckOutById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_CheckOutEmp] FOREIGN KEY ([CheckOutEmpId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_InventoryStatus] FOREIGN KEY ([InventoryStatusId]) REFERENCES [dbo].[AssetInventoryStatus] ([AssetInventoryStatusId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_SubWoPartNo] FOREIGN KEY ([SubWOPartNoId]) REFERENCES [dbo].[SubWorkOrderPartNumber] ([SubWOPartNoId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_SubWorkOrder] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_SubWorkOrderAsset] FOREIGN KEY ([SubWorkOrderAssetId]) REFERENCES [dbo].[SubWorkOrderAsset] ([SubWorkOrderAssetId]),
     CONSTRAINT [FK_SubWOCheckInCheckOutWorkOrderAsset_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
+
+
+
+
 
 
 GO

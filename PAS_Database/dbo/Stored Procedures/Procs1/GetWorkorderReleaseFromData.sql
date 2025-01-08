@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+﻿ /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -16,6 +16,9 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 5    07/29/2024  HEMANT SALIYA    Updated For Get Part Number, Serial NUmber and Condition from Work Order Part table
 ** 6    10/02/2024  AMIT GHEDIYA     Updated For Get EASA UK Dualreleaselanguage message.
 ** 7    12/12/2024  Moin Bloch       Updated (Added formTypeId)
+** 8    25/12/2024  Devendra Shekh   Resolved Design Issue while Print form
+** 9    27/12/2024  Devendra Shekh   Resolved Design Issue while Print form
+** 10	31/12/2024  Devendra Shekh   Replace NA with Empty String for BatchNumber
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1,0
 **************************************************************/ 
@@ -78,7 +81,7 @@ BEGIN
 			  wop.RevisedPartNumber AS PartNumber,  
 			  wop.CustomerReference AS Reference,  
 			  wop.Quantity AS Quantity,  
-			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN 'NA' ELSE sl.SerialNumber END)
+			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 						ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
 			  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status],
 			  '' as Certifies,   
@@ -95,7 +98,7 @@ BEGIN
 			  1 AS is8130from ,  
 			  wop.ReceivedDate,  
 			  wop.ManagementStructureId AS ManagementStructureId,  
-			  ('<div style = "position:relative; height:180px; font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:13px">' 
+			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">' 
 				+ (CASE WHEN wop.CMMId is not null and wop.CMMId > 0 THEN   
 						CASE WHEN wo.MasterCompanyId != @MTIMasterCompanyId THEN '<p>' + ('Publication ID: ' + ISNULL(UPPER(pub.PublicationId),0)) +'</p>'   
 								+'<p>'+(CASE WHEN pub.PublishedById = 2 THEN 'Published By: ' + ISNULL(UPPER(ven.VendorName),'-')  
@@ -108,8 +111,8 @@ BEGIN
 								+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
 								+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
 						END ELSE '' END)   	  
-					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</p>') ELSE ''  END)        
-					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</p>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 					+ '</div>') Remarks,  
 					Upper(le.EASALicense) AS EASALicense  
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   

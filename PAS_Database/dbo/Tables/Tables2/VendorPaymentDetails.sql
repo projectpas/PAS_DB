@@ -36,8 +36,11 @@
     [NonPOInvoiceId]                BIGINT          NULL,
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
     [CreditMemoHeaderId]            BIGINT          NULL,
+    [VendorProformaInvoiceId]       BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetails] PRIMARY KEY CLUSTERED ([VendorPaymentDetailsId] ASC)
 );
+
+
 
 
 

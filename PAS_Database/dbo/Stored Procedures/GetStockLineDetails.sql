@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/09/2024  MOIN BLOCH 		Created
+	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
      
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -281,10 +282,28 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			  ,'' AS TaxAdjustmentAmounts
 			  ,ISNULL(stl.[IsStkTimeLife], im.[IsTimeLife]) AS isTimeLife
 			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1 ELSE 0 END AS IsSkipSerialNo
-			  ,stl.[RepairOrderNumber] RONumber			                
+			  ,stl.[RepairOrderNumber] RONumber
+			,stl.InventoryGLSettingId      
+			,igls.[Name]      
+			AS InventoryGLSettingName      
+			,stl.GlAccountName AS  InventoryGLAccName      
+			,stl.GoodsReceivedNotInvoicesGLAccName        
+			,stl.WorkInProgressGLAccName        
+			,stl.InventoryToBillGLAccName        
+			,stl.FinishedGoodsGLAccName        
+			,stl.InventoryExchAgreementGLAccName        
+			,stl.InventoryReserveGLAccName        
+			,stl.COGS_WorkOrderGLAccName        
+			,stl.COGS_SalesOrderGLAccName        
+			,stl.COGS_QtyVarianceGLAccName        
+			,stl.COGS_UnitCostVarianceGLAccName        
+			,stl.RevenueMroGLAccName        
+			,stl.RevenueSoGLAccName        
+			,stl.RevenueMiscGLAccName   
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
+		LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
 		 LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON im.[ItemMasterId] = imx.[ItemMasterId]
 		 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.[PurchaseOrderId] = po.[PurchaseOrderId]
 		 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON stl.[RepairOrderId] = ro.[RepairOrderId]

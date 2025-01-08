@@ -14,6 +14,7 @@
     1    23/10/2024   Moin Bloch    Created
 	2    18/11/2024   Moin Bloch    Added IsSerialized Field
 	3    25/11/2024   Moin Bloch    Added QuantityReserved Field	
+	4    26/12/2024   Moin Bloch    Added LegalEntityId Field	
 	     
     EXEC USP_CycleCountDetail_GetDetailsById 7,1
 ************************************************************************/    
@@ -65,6 +66,7 @@ BEGIN
 			  ,CC.[IsCustomerStock]
 			  ,ISNULL(SL.[QuantityReserved],0) [QuantityReserved]			  
 			  ,CC.[ManagementStructureId]
+			  ,CC.[LegalEntityId]
 			  ,CC.[MasterCompanyId]
 			  ,CC.[CreatedBy]
 			  ,CC.[UpdatedBy]

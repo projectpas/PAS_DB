@@ -34,6 +34,7 @@
     [DifferenceAmount]      DECIMAL (18, 2) NOT NULL,
     [IsCustomerStock]       BIT             NULL,
     [ManagementStructureId] BIGINT          NOT NULL,
+    [LegalEntityId]         BIGINT          NULL,
     [MasterCompanyId]       INT             NOT NULL,
     [CreatedBy]             VARCHAR (256)   NOT NULL,
     [UpdatedBy]             VARCHAR (256)   NOT NULL,
@@ -49,6 +50,8 @@
     CONSTRAINT [FK_CycleCountDetail_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_CycleCountDetail_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

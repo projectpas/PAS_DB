@@ -14,9 +14,11 @@
 	2    09/27/2023   Moin Bloch     Modify(Added Invoice Date)
 	3    09/30/2023   Hemant Saliya  Modify(Added Accounting Calendor Id)
 	4    10/25/2023   Moin Bloch     Modify(Added Invoice On Hold Field)
+	5    12/27/2024   AMIT GHEDIYA   Modify(Added ControlNumber Field)
+	6    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
 
 ***********************************************************************     
--- EXEC GetReceivingReconciliationHeaderById 106
+-- EXEC GetReceivingReconciliationHeaderById 352
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationHeaderById]
 @ReceivingReconciliationId bigint
@@ -25,6 +27,41 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+		DECLARE @totalProformaInvoiceAmount decimal(18,2) = 0, @moduleType int = 1, @totalPartCount int = 0, @PartLoopId int = 1, @ReferenceId BIGINT = 0;
+		SELECT  @moduleType = MAX(Isnull([Type],0)) FROM dbo.ReceivingReconciliationDetails WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
+
+		IF OBJECT_ID(N'tempdb..#tmpDetailTbl') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #tmpDetailTbl
+			END
+						
+		CREATE TABLE #tmpDetailTbl
+		(
+				ID BIGINT NOT NULL IDENTITY, 
+				[PurchaseOrderId] [bigint] NULL
+		)		
+
+		INSERT INTO #tmpDetailTbl ([PurchaseOrderId]) 
+		SELECT DISTINCT PurchaseOrderId
+		FROM DBO.ReceivingReconciliationDetails WITH (NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
+
+		SET @totalPartCount = (SELECT COUNT(1) FROM #tmpDetailTbl)
+		 
+		WHILE @PartLoopId <= @totalPartCount
+		BEGIN
+			SELECT @ReferenceId = PurchaseOrderId FROM #tmpDetailTbl Where ID =@PartLoopId;
+			IF(@moduleType  =1) /** Type =1 : Purchase Order , For 2 Repair Order **/
+			BEGIN
+				SET @totalProformaInvoiceAmount = CONVERT(DECIMAL(18,2),@totalProformaInvoiceAmount) + (SELECT ISNULL(DepositAmount,0) FROM Dbo.PurchaseOrder WHERE PurchaseOrderId = @ReferenceId AND ISNULL(DepositAmount,0) > 0 AND ISNULL(VendorProformaInvoiceNo,'') != '')
+
+			END
+			ELSE IF (@moduleType  =2)
+			BEGIN
+				SET @totalProformaInvoiceAmount = CONVERT(DECIMAL(18,2),@totalProformaInvoiceAmount) + CONVERT(DECIMAL(18,2),(SELECT ISNULL(DepositAmount,0) FROM Dbo.RepairOrder WHERE RepairOrderId = @ReferenceId AND ISNULL(DepositAmount,0) > 0 AND ISNULL(VendorProformaInvoiceNo,'') != ''))
+			END
+			SET @PartLoopId +=1
+		END
+	
 
 		SELECT RRH.[ReceivingReconciliationId]
                ,RRH.[ReceivingReconciliationNumber]
@@ -51,6 +88,10 @@ BEGIN
 			   ,RRH.[InvoiceDate]
 			   ,RRH.[AccountingCalendarId]
 			   ,RRH.[IsInvoiceOnHold]
+			   ,RRH.[ControlNumber],
+			   CASE WHEN ISNULL(RRH.VendorProformaAmount,0) > 0 THEN ISNULL(RRH.VendorProformaAmount,0) ELSE ISNULL(@totalProformaInvoiceAmount,0) END as VendorProformaAmount,
+			   CASE WHEN ISNULL(RRH.VendorProformaAmount,0) > 0 THEN 1 ELSE (CASE WHEN ISNULL(@totalProformaInvoiceAmount,0) > 0 THEN 1 ELSE 0  END) END as IsVendorProforma
+			   
           FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
 		  
     END TRY    

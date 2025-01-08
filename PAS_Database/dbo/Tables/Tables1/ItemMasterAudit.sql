@@ -133,8 +133,20 @@
     [Figure]                            VARCHAR (15)    NULL,
     [Item]                              VARCHAR (15)    NULL,
     [UNCode]                            BIT             NULL,
+    [InventoryGLSettingId]              BIGINT          NULL,
+    [GoodsReceivedNotInvoicesGLAccId]   BIGINT          NULL,
+    [WorkInProgressGLAccId]             BIGINT          NULL,
+    [InventoryToBillGLAccId]            BIGINT          NULL,
+    [FinishedGoodsGLAccId]              BIGINT          NULL,
+    [InventoryExchAgreementGLAccId]     BIGINT          NULL,
+    [InventoryReserveGLAccId]           BIGINT          NULL,
+    [COGS_WorkOrderGLAccId]             BIGINT          NULL,
+    [COGS_SalesOrderGLAccId]            BIGINT          NULL,
+    [COGS_QtyVarianceGLAccId]           BIGINT          NULL,
+    [COGS_UnitCostVarianceGLAccId]      BIGINT          NULL,
+    [RevenueMroGLAccId]                 BIGINT          NULL,
+    [RevenueSoGLAccId]                  BIGINT          NULL,
+    [RevenueMiscGLAccId]                BIGINT          NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
-
-
 

@@ -9,9 +9,10 @@
     [UpdatedDate]              DATETIME2 (7) CONSTRAINT [DF_WorkOrderTaskAttribute_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                 BIT           CONSTRAINT [DF_WorkOrderTaskAttribute_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                BIT           CONSTRAINT [DF_WorkOrderTaskAttribute_IsDeleted] DEFAULT ((0)) NOT NULL,
-    CONSTRAINT [PK_WorkOrderTaskAttribute] PRIMARY KEY CLUSTERED ([WorkOrderTaskAttributeId] ASC),
-    CONSTRAINT [FK_WorkOrderTaskAttribute_WorkOrderTask] FOREIGN KEY ([WorkOrderTaskId]) REFERENCES [dbo].[WorkOrderTask] ([WorkOrderTaskId])
+    CONSTRAINT [PK_WorkOrderTaskAttribute] PRIMARY KEY CLUSTERED ([WorkOrderTaskAttributeId] ASC)
 );
+
+
 
 
 GO

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -22,11 +21,15 @@
 	8    12/04/2024   RAJESH GAMI       Modified to Devide by 0 issue
 	9    12/06/2024   Amit Ghediya      Modified to update cond.
 	10   12/07/2014   Moin Bloch		Modified to add AltOrEqType
+	11   18-12-2024   Shrey Chandegara  Modified to priorityid
+	12   26-12-2024   Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
+	13   02-01-2025   Amit Ghediya		Modified to get part leval Available & onhnad qty after reserve.
      
--- EXEC [DBO].[GetSalesOrderPartView] 1475
+-- EXEC [DBO].[GetSalesOrderPartView] 1603,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
-    @SalesOrderId BIGINT
+    @SalesOrderId BIGINT,
+	@SoPartId BIGINT = 0
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -37,6 +40,12 @@ BEGIN
 	DECLARE @DefaultPriorityName VARCHAR(50) = 'ROUTINE';
 	DECLARE @DefaultStatusId INT = 1;
 	DECLARE @DefaultStatusName VARCHAR(50) = 'OPEN';
+
+	--Set SoPart null for all part for salesordor otherwise for perticular part only.
+	IF(ISNULL(@SoPartId,0) = 0)
+	BEGIN
+		SET @SoPartId = NULL;
+	END
 
     SELECT 
         part.SalesOrderId,
@@ -105,8 +114,8 @@ BEGIN
         part.CustomerRequestDate,
         part.PromisedDate,
         part.EstimatedShipDate,
-        ISNULL(part.PriorityId, @DefaultPriorityId) AS PriorityId,
-        ISNULL(pri.Description, @DefaultPriorityName) AS PriorityName,
+		CASE WHEN Stk.PriorityId IS NOT NULL THEN Stk.PriorityId ELSE ISNULL(part.PriorityId, @DefaultPriorityId) END AS PriorityId,
+		CASE WHEN Stk.PriorityId IS NOT NULL THEN prit.Description ELSE ISNULL(pri.Description, @DefaultPriorityName) END AS PriorityName,
 		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END StatusId,
 		ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = (CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.StatusId,@DefaultStatusId) ELSE ISNULL(part.StatusId,@DefaultStatusId) END )), @DefaultStatusName) AS StatusName,
         ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
@@ -137,16 +146,20 @@ BEGIN
         itemMaster.ItemClassificationName AS ItemClassification,
         itemMaster.ItemGroup,
         rop.EstRecordDate AS roNextDlvrDate,
-		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
-			(SELECT SUM(Stkl.QuantityAvailable) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
-		ELSE
-			(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
-		END QtyAvailable,
-		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
-			(SELECT SUM(Stkl.QuantityOnHand) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
-		ELSE
-			(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
-		END QuantityOnHand,
+		--CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
+		--	(SELECT SUM(Stkl.QuantityAvailable) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		--ELSE
+		--	(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		--END 
+		(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+		 QtyAvailable,
+		--CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
+		--	(SELECT SUM(Stkl.QuantityOnHand) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		--ELSE
+		--	(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		--END 
+		(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+		 QuantityOnHand,
 		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		LEFT JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SOPickTicketId = sosi.SOPickTicketId
@@ -183,9 +196,11 @@ BEGIN
     LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
+    LEFT JOIN DBO.[Priority] prit WITH (NOLOCK) ON prit.PriorityId = Stk.PriorityId
     LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
-    WHERE part.SalesOrderId = @SalesOrderId
+    WHERE part.SalesOrderId = @SalesOrderId 
+	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
     AND part.IsDeleted = 0
     AND ISNULL(rop.isAsset, 0) = 0;
 

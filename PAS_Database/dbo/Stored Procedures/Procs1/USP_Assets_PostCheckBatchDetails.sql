@@ -161,7 +161,7 @@ BEGIN
 			SELECT TOP 1  @IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'CASHARTRADEAROTHERSALE' AND MasterCompanyId = @MasterCompanyId;
 
-			SELECT @DeprExpenseGLAccountId= DeprExpenseGLAccountId,@AdDepsGLAccountId= AdDepsGLAccountId,
+			SELECT @DeprExpenseGLAccountId= DeprExpenseGLAccountId,@AdDepsGLAccountId= AdDepsGLAccountId, @AcquiredGLAccountId = AcquiredGLAccountId,
 			@AssetSaleGLAccountId=AssetSaleGLAccountId, @AssetWriteOffGLAccountId=AssetWriteOffGLAccountId, @AssetWriteDownGLAccountId=AssetWriteDownGLAccountId
 			FROM DBO.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@AssetInventoryId;
 
@@ -606,10 +606,10 @@ BEGIN
 			BEGIN 
 				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
 				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
-				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'ASSETINSTALLEDCOSTSALE'  AND MasterCompanyId = @MasterCompanyId
+				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'ASSETINSTALLEDCOSTSALE' AND MasterCompanyId = @MasterCompanyId
 
-				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AdDepsGLAccountId
-				FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AdDepsGLAccountId
+				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId
+				FROM DBO.GLAccount WITH(NOLOCK) where GLAccountId=@AcquiredGLAccountId
 
 				INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

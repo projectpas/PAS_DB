@@ -31,7 +31,7 @@
 	19	 04/11/2024   Devendra Shekh      Added ReferenceModule For [CommonBatchDetails]
 	20	 18/12/2024   Devendra Shekh      Modify (Handling Qty/Unit Cost Adjustment Separately For Accounting Entry) And Changed QuantityAvailable to QuantityOnHand
 	21	 30/12/2024   Devendra Shekh      Modify (Same JE for Post Batch, StockType wise)
-	22	 06/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
+	22	 08/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -271,7 +271,7 @@ BEGIN
 			
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT TOP 1 @JournalTypeId =JournalTypeId,@jlTypeId = JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
-			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId = @StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName,@jlTypeName = JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -288,7 +288,7 @@ BEGIN
 				INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 				WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
-				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND IsDeleted =0)
+				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) and StatusId=@StatusId AND IsDeleted =0)
 				BEGIN
 					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 					BEGIN
@@ -335,7 +335,8 @@ BEGIN
 				ELSE
 				BEGIN
 					SELECT @JlBatchHeaderId=JournalBatchHeaderId,@JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM BatchHeader WITH(NOLOCK) 
-					WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+					WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId AND CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)
+					
 					SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
 						FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
 						
@@ -2618,6 +2619,9 @@ BEGIN
 					[ForeignCurrency] [varchar](20) NULL,
 					[ReferenceModule] [varchar](100) NULL,
 					[TMPBatchId] [bigint] NULL,
+					[PoId] [bigint] NULL,
+					[RoId] [bigint] NULL,
+					[StockType] [varchar](150) NULL,
 				)
 
 				CREATE TABLE #TMPVendorProformaInv (
@@ -2645,28 +2649,37 @@ BEGIN
 				LEFT JOIN VendorProformaInvoiceHeader VPH WITH(NOLOCK) ON VPH.ReferenceId = RO.RepairOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 0 AND VPH.MasterCompanyId = RO.MasterCompanyId
 				WHERE RO.MasterCompanyId = @MasterCompanyId
 
+				--SELECT * FROM #TMPVendorProformaInv
+
+				DECLARE  @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
+
 				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
 				BEGIN
+					DECLARE @ProformaDistributionMasterId BIGINT;
 					
-					DECLARE  @DistributionSetupCode  VARCHAR(200) ='VPI-ACCPAYABLE' , @DistributionCodeName  VARCHAR(200) = 'VendorProformaInvoice'
-					DECLARE @PaybleDistributionSetupId BIGINT;
+					SELECT @ProformaDistributionMasterId =ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VendorProformaInvoice') 
+					--SELECT '1.0'
 
-					--GET Vendor Proforma GL Account Details
-					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
-					FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCode) 
-						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
+					SELECT TOP 1 @DistributionSetupId=ID, 
+								 @DistributionName=Name, 
+								 @JournalTypeId=JournalTypeId, 
+								 @GlAccountId=GlAccountId, 
+								 @GlAccountNumber=GlAccountNumber, 
+								 @GlAccountName=GlAccountName,
+								 @CrDrType=CRDRType
+					  FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+					  WHERE UPPER(DistributionSetupCode)=UPPER('VPI-DEPOSIT') 
+						AND DistributionMasterId=@ProformaDistributionMasterId 
+						AND MasterCompanyId = @MasterCompanyId
 
-					--GET PAYBLE ID to reduce payble amt
-					SELECT TOP 1 @PaybleDistributionSetupId = ID
-					FROM dbo.DistributionSetup WITH(NOLOCK)
-					WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @ManagementStructureId
+					--SELECT '1.0.1'
 					
 					INSERT INTO #TMPCommonBatchDetail
 						([JournalBatchHeaderId],JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[GlAccountId],[GlAccountNumber],[GlAccountName] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[ReferenceId],[ReferenceNumber],[ReferenceName],
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT	MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
-								VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], MAX([JournalTypeId]), [JournalTypeName], 
+								@GlAccountId, @GlAccountNumber, @GlAccountName, @JournalTypeId, [JournalTypeName], 
 								0, 0, MAX([ExtendedPrice]) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
 								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
 					FROM dbo.VendorProformaInvoicePartDetails VPIPD 
@@ -2721,7 +2734,7 @@ BEGIN
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[ReferenceId],[ReferenceNumber],[ReferenceName],
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT	MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
-								VPIPD.[GlAccountId], GL.[AccountCode], GL.[AccountName], MAX([JournalTypeId]), [JournalTypeName], 
+								@GlAccountId, @GlAccountNumber, @GlAccountName, MAX([JournalTypeId]), [JournalTypeName], 
 								0, 0, MAX([ExtendedPrice]) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
 								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
 					FROM dbo.VendorProformaInvoicePartDetails VPIPD 
@@ -2770,65 +2783,81 @@ BEGIN
 							JOIN #TMPVendorProformaInv TMPVP ON TMPCB.RoId = TMPVP.ReferenceId AND [Type] = 2
 						) GROUPtmp 
 					WHERE TMPBatchId = @CommonJournalBatchDetailId;
-
-					--SELECT @DistributionSetupId
-
-					--SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
-					--	FROM #TMPVendorProformaInv TMPVP
-					--	JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId 
-					--	WHERE DistributionSetupId = @DistributionSetupId 
-					--	GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
-
-					--SELECT StockType, PoId, DistributionSetupId, * FROM #TMPCommonBatchDetail
-
-					UPDATE #TMPCommonBatchDetail SET CreditAmount = CreditAmount - ProformaAmount
-					FROM (
-						SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
-						FROM #TMPVendorProformaInv TMPVP
-						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId 
-						WHERE DistributionSetupId = @DistributionSetupId AND TMPVP.[Type] = 1
-						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
-					) GroupTmp WHERE GroupTmp.StockType = #TMPCommonBatchDetail.StockType 
-						AND #TMPCommonBatchDetail.PoId = GroupTmp.ReferenceId 
-						AND #TMPCommonBatchDetail.DistributionSetupId = @PaybleDistributionSetupId
-
-					UPDATE #TMPCommonBatchDetail SET CreditAmount = CreditAmount - ProformaAmount
-					FROM (
-						SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
-						FROM #TMPVendorProformaInv TMPVP
-						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.RoId = TMPVP.ReferenceId 
-						WHERE DistributionSetupId = @DistributionSetupId AND TMPVP.[Type] = 2
-						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
-					) GroupTmp WHERE GroupTmp.StockType = #TMPCommonBatchDetail.StockType 
-						AND #TMPCommonBatchDetail.RoId = GroupTmp.ReferenceId 
-						AND #TMPCommonBatchDetail.DistributionSetupId = @PaybleDistributionSetupId
 				
 				END
-		
+				--SELECT '1.1'
 				--SELECT * FROM #TMPVendorProformaInv
 				--SELECT * FROM #TMPCommonBatchDetail
-				--;WITH CTeResult AS (
+			
 				INSERT INTO #TMPBatchFinalResult ([TMPBatchId], JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
 						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 						[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
 						[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], PoId, RoId, StockType)
 				SELECT	MAX([TMPBatchId]), JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
 						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], MAX([EntryDate]), [JournalTypeId], [JournalTypeName], 
 						[IsDebit], SUM([DebitAmount]) [DebitAmount], SUM([CreditAmount]) [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
 						[UpdatedBy], MAX([CreatedDate]), MAX([UpdatedDate]), [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule]
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], PoId, RoId, StockType
 				FROM #TMPCommonBatchDetail
 				GROUP BY 
 						JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
 						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],  [JournalTypeId], [JournalTypeName], 
 						[IsDebit], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
 						[UpdatedBy], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule]
-				--)
+						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], PoId, RoId, StockType
+			
 				--SELECT * FROM #TMPBatchFinalResult
 
+				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
+				BEGIN
+					
+					SET @DistributionSetupCode ='VPI-DEPOSIT';
+					SET @DistributionCodeName  = 'VendorProformaInvoice';
+					DECLARE @PaybleDistributionSetupId BIGINT;
+
+					--GET Vendor Proforma GL Account Details
+					SELECT TOP 1 @DistributionSetupId = ID
+					FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER(@DistributionSetupCode) 
+						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
+						AND MasterCompanyId = @MasterCompanyId
+
+					--GET PAYBLE ID to reduce payble amt
+					SELECT TOP 1 @PaybleDistributionSetupId = ID
+					FROM dbo.DistributionSetup WITH(NOLOCK)
+					WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @ManagementStructureId
+
+					--SELECT '1.2'
+
+					UPDATE #TMPBatchFinalResult SET CreditAmount = CreditAmount - ProformaAmount
+					FROM (
+						SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+						FROM #TMPVendorProformaInv TMPVP
+						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId 
+						WHERE DistributionSetupId = @DistributionSetupId AND TMPVP.[Type] = 1
+						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+					) GroupTmp WHERE GroupTmp.StockType = #TMPBatchFinalResult.StockType 
+						AND #TMPBatchFinalResult.PoId = GroupTmp.ReferenceId 
+						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleDistributionSetupId
+
+					UPDATE #TMPBatchFinalResult SET CreditAmount = CreditAmount - ProformaAmount
+					FROM (
+						SELECT SUM([ProformaAmount]) AS ProformaAmount, TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+						FROM #TMPVendorProformaInv TMPVP
+						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.RoId = TMPVP.ReferenceId 
+						WHERE DistributionSetupId = @DistributionSetupId AND TMPVP.[Type] = 2
+						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
+					) GroupTmp WHERE GroupTmp.StockType = #TMPBatchFinalResult.StockType 
+						AND #TMPBatchFinalResult.RoId = GroupTmp.ReferenceId 
+						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleDistributionSetupId
+
+				END
+
 				SELECT @TotalBatchRecords = MAX(BatchId), @CurrentRecordId = MIN(BatchId) FROM #TMPBatchFinalResult;
+
+				--SELECT '1.3'
+
+				--SELECT * FROM #TMPBatchFinalResult
 
 				WHILE(ISNULL(@CurrentRecordId, 0) <= ISNULL(@TotalBatchRecords, 0))
 				BEGIN
@@ -2854,11 +2883,12 @@ BEGIN
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
 					INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-					SELECT TMPF.JournalBatchDetailId, TMPF.JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],@CommonJournalBatchDetailId,TMPF.[ReferenceId],[ReferenceTypeId],TMPF.[ReferenceNumber]
+					SELECT TMPF.JournalBatchDetailId, TMPF.JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, TMPC.PoId, PONum, TMPC.RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], TMPF.[StockType],@CommonJournalBatchDetailId,TMPF.[ReferenceId],[ReferenceTypeId],TMPF.[ReferenceNumber]
 					FROM #TMPBatchFinalResult TMPF
 					JOIN #TMPCommonBatchDetail TMPC ON TMPC.[TMPBatchId] = TMPF.[TMPBatchId]
 					WHERE BatchId = @CurrentRecordId;
 
+					--SELECT '1.4'
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId		
 
@@ -2937,7 +2967,7 @@ BEGIN
 					DROP TABLE #RRPostType 
 				END
 			END
-		END 
+		END 			
 		COMMIT TRANSACTION
 	END TRY
 	BEGIN CATCH

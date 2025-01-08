@@ -24,6 +24,12 @@
 	8    11/18/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
 	9    11/20/2024   Sahdev Saliya         SubWorkOrder Issue Resolved And Multipal WO Issue Resolved
 	10   12/31/2024   Devendra Shekh        added new Fields :- mpnQuoteStatus, approvedAmount
+
+	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
+	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
+	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
+	@UpdatedBy=default,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=98,@WorkOrderStatusType=default,@TechName=default,@TechStation=default,@SerialNumber=default,@CustRef=default,
+	@MSModuleID=12,@ManufacturerName=default,@WorkOrderType=default,@IsSubWorkOrder=default,@MPNQuoteStatus=default,@ApprovedAmount=default
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -213,7 +219,7 @@ BEGIN
 			,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder,
 			UPPER(wqs.Description) AS MPNQuoteStatus,
 			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR) 'ApprovedAmount' 
+					ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) 'ApprovedAmount' 
        FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
@@ -229,7 +235,7 @@ BEGIN
 			--LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
 			--LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
 			--LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.WorkOrderId = WPN.WorkOrderId
-			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 and ISNULL(WOQD.IsDeleted,1)=0
+			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 AND ISNULL(IsVersionIncrease, 0) = 0 
 			LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.workorderquoteid = WOQD.workorderquoteid
 			LEFT JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
        WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))  
@@ -461,7 +467,8 @@ BEGIN
 			  MAX(CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END) AS SerialNumber,
 			  MAX(UPPER(wqs.Description)) AS MPNQuoteStatus,
 			  MAX(CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR)) 'ApprovedAmount'
+					ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) ) 'ApprovedAmount'
+					--ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR)) 'ApprovedAmount'
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
@@ -473,7 +480,7 @@ BEGIN
 			  --LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WPN.WorkOrderStatusId  = WOST.Id
 			  --LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
 			  --LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
-				LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 and ISNULL(WOQD.IsDeleted,1)=0
+				LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 AND ISNULL(IsVersionIncrease, 0) = 0 
 				LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.workorderquoteid = WOQD.workorderquoteid
 				LEFT JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   

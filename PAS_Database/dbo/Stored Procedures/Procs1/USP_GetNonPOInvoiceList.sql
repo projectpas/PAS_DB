@@ -114,7 +114,7 @@ BEGIN
 						NPH.MasterCompanyId,
 						NPH.PaymentMethodId,
 						NPH.NPONumber,
-						(CASE WHEN COUNT(NPD.NonPOInvoicePartDetailsId) > 1 Then 'Multiple' ELse CAST(MAX(NPD.Amount) AS VARCHAR) End) as 'Amount',
+						(CASE WHEN COUNT(NPD.NonPOInvoicePartDetailsId) > 1 Then CAST(SUM(NPD.ExtendedPrice)AS VARCHAR)  ELse CAST(MAX(NPD.ExtendedPrice) AS VARCHAR) End) as 'Amount',
 						(CASE WHEN COUNT(NPD.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountName) + '-' + MAX(GL.AccountCode)  End) as 'GLAccount',
 						--(CASE WHEN COUNT(NPD.InvoiceNum) > 1 Then 'Multiple' ELse MAX(NPD.InvoiceNum) End) as 'InvoiceNum'
 						NPH.InvoiceNumber as 'InvoiceNum',

@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/09/2024  MOIN BLOCH 		Created
 	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
-     
+    3    08/01/2025   BHAVESH RAVAL   For the Revenue Exch replace with revenue Mis 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -299,7 +299,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.COGS_UnitCostVarianceGLAccName        
 			,stl.RevenueMroGLAccName        
 			,stl.RevenueSoGLAccName        
-			,stl.RevenueMiscGLAccName   
+			,stl.RevenueExchGLAccName   
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

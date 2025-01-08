@@ -146,7 +146,7 @@
     [COGS_UnitCostVarianceGLAccId]      BIGINT          NULL,
     [RevenueMroGLAccId]                 BIGINT          NULL,
     [RevenueSoGLAccId]                  BIGINT          NULL,
-    [RevenueMiscGLAccId]                BIGINT          NULL,
+    [RevenueExchGLAccId]                BIGINT          NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

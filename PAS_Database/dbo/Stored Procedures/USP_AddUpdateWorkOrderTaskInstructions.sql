@@ -13,7 +13,7 @@
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
-	@WorkOrderTaskInstructionId BIGINT,
+	@WorkOrderTaskInstructionId BIGINT = NULL,
 	@WorkOrderTaskId BIGINT,
 	@TechId BIGINT = NULL,
 	@TechName VARCHAR(100) = NULL,
@@ -27,7 +27,8 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
 	@InstructionTitle VARCHAR(1000) = NULL,
 	@InstructionDetails VARCHAR(MAX) = NULL,
 	@CreatedBy VARCHAR(100) = NULL,
-	@MasterCompanyId BIGINT = NULL
+	@MasterCompanyId BIGINT = NULL,
+	@IsAddChildNode BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -126,6 +127,23 @@ BEGIN
 			SELECT @WorkOrderTaskId, NULL, 1, @InstructionTitle, 1, @InstructionDetails, @TechId, @TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
 			@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0;
 		END
+	END
+	ELSE IF (@IsAddChildNode = 1)
+	BEGIN
+		-- Find the maximum sequence number under the specific parent
+        DECLARE @MaxSequenceNumber INT;
+        SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
+        FROM DBO.WorkOrderTaskInstruction
+        WHERE ParentId = @WorkOrderTaskInstructionId;
+
+        -- Determine the new sequence number for the child
+        DECLARE @NewSequenceNumber INT = @MaxSequenceNumber + 1;
+
+		-- Insert the new child node with the next sequence number
+		INSERT INTO WorkOrderTaskInstruction ([WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+		VALUES (@WorkOrderTaskId, @WorkOrderTaskInstructionId, 0, @InstructionTitle, @NewSequenceNumber, @InstructionDetails, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, 
+			@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0);
 	END
 	ELSE
 	BEGIN

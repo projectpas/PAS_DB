@@ -51,6 +51,7 @@ BEGIN
 		INSERT INTO #DefaultTask ([TaskId])
 		SELECT Item FROM DBO.SPLITSTRING(@TaskTypes, ',');
 
+		DECLARE @SequenceNo AS INT = 0;
 		DECLARE @LoopID AS INT;
 		DECLARE @TotCount AS INT;
 
@@ -58,12 +59,13 @@ BEGIN
 
 		WHILE (@LoopID <= @TotCount)
 		BEGIN
+			SET @SequenceNo = @SequenceNo + 1;
 			DECLARE @WorkOrderTaskId BIGINT = 0;
 
 			INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 			[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName])
 			SELECT @WorkOrderId,@WorkFlowWorkOrderId,T.[TaskId],[MasterCompanyId],@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
-			@WorkOrderPartNoId,1,NULL,NULL,NULL,NULL,T.[Description]
+			@WorkOrderPartNoId,@SequenceNo,NULL,NULL,NULL,NULL,T.[Description]
 			FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
 
 			SELECT @WorkOrderTaskId = SCOPE_IDENTITY();

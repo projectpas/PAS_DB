@@ -22,6 +22,8 @@
     [COGS_WorkOrderGLAccCode]           NVARCHAR (250) NULL,
     [COGS_SalesOrderGLAccId]            BIGINT         NULL,
     [COGS_SalesOrderGLAccCode]          NVARCHAR (250) NULL,
+    [COGS_ExchSalesOrderGLAccId]        BIGINT         NULL,
+    [COGS_ExchSalesOrderGLAccCode]      NVARCHAR (250) NULL,
     [COGS_QtyVarianceGLAccId]           BIGINT         NULL,
     [COGS_QtyVarianceGLAccCode]         NVARCHAR (250) NULL,
     [COGS_UnitCostVarianceGLAccId]      BIGINT         NULL,

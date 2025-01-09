@@ -228,6 +228,8 @@
     [RevenueSoGLAccName]                  VARCHAR (255)   NULL,
     [RevenueExchGLAccId]                  BIGINT          NULL,
     [RevenueExchGLAccName]                VARCHAR (255)   NULL,
+    [COGS_ExchSalesOrderGLAccId]          BIGINT          NULL,
+    [COGS_ExchSalesOrderGLAccName]        VARCHAR (255)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

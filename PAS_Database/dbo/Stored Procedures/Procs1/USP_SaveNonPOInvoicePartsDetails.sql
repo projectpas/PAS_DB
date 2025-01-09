@@ -13,7 +13,7 @@
 	2	 26-10-2023		Devendra				added new columns  
 	3	 11-01-2024		Moin Bloch		        Modified chaned Status Open To Approved
 	4	 17-01-2024		Moin Bloch		        Modified Added [TaxTypeId]
-
+	5	 17-JAN-2025	RAJESH GAMI		        Modified to status change auto approve to OPEN based on condition.(When @IsEnforceNonPoApproval = 0)
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveNonPOInvoicePartsDetails]
 @tbl_NonPOInvoicePartDetails NonPOInvoicePartDetailsType READONLY
@@ -119,10 +119,10 @@ BEGIN
 					BEGIN
 						DECLARE @IsEnforceNonPoApproval BIT = 0
 						SELECT @IsEnforceNonPoApproval = [IsEnforceNonPoApproval] FROM [dbo].[NonPOInvoiceHeader] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
-						IF(@IsEnforceNonPoApproval = 0)
+						IF(@IsEnforceNonPoApproval = 0 AND (SELECT COUNT(NonPOInvoicePartDetailsId) FROM @tbl_NonPOInvoicePartDetails WHERE ISNULL(NonPOInvoicePartDetailsId,0) = 0) > 0)
 						BEGIN
 							UPDATE [dbo].[NonPOInvoiceHeader]
-							   SET [StatusId] = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')
+							   SET [StatusId] = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Open')
 							      ,[UpdatedDate] = GETUTCDATE()
 								  ,[UpdatedBy] = @UpdatedBy								
 						   WHERE [NonPOInvoiceId] = @NonPOInvoiceId;

@@ -16,6 +16,7 @@
 	3    13-11-2024   Vishal Suthar		Fixed the QtyAvail and QtyOH
 	4    03-12-2024   AMIT GHEDIYA		Fixed Get Saved CurrId from part table.
 	5    12-12-2024   Vishal Suthar		Fixed Qty Quoted when no stockline is added
+	6    09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
      
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
@@ -122,8 +123,20 @@ BEGIN
             WHEN itemMaster.IsDER = 1 THEN 'DER'
             ELSE 'OEM'
         END,
-        (SELECT ISNULL(SUM(sl.QuantityAvailable), 0) FROM DBO.Stockline sl WITH (NOLOCK) WHERE sl.ItemMasterId = part.ItemMasterId AND sl.ConditionId = part.ConditionId AND sl.IsParent = 1 AND sl.IsCustomerStock = 0) AS QtyAvailable,
-        (SELECT ISNULL(SUM(sl.QuantityOnHand), 0) FROM DBO.Stockline sl WITH (NOLOCK) WHERE sl.ItemMasterId = part.ItemMasterId AND sl.ConditionId = part.ConditionId AND sl.IsParent = 1 AND sl.IsCustomerStock = 0) AS QuantityOnHand,
+		CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
+			(SELECT SUM(Stkl.QuantityAvailable) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		ELSE
+			(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		END StkQtyAvailable,
+		(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+		 QtyAvailable,
+		CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
+			(SELECT SUM(Stkl.QuantityOnHand) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		ELSE
+			(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		END StkQuantityOnHand,
+		(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+		 QuantityOnHand,
         part.IsConvertedToSalesOrder,
         --ISNULL(part.ItemNo, 0) AS ItemNo,
         0 AS ItemNo,

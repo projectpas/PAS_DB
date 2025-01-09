@@ -3309,7 +3309,6 @@
     <Build Include="dbo\Stored Procedures\USP_AddUpdate_VendorProformaInvoiceHeader.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetDetailsByInventoryID.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetDataforInventoryOnEdit.sql" />
-    <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerPartsLIstData.sql" />
     <Build Include="dbo\Stored Procedures\USP_Assets_AddAssetSaleorwriteoff.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePartStockLineDetails.sql" />

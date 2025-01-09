@@ -16,7 +16,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Hemant Saliya Created
-     
+	2    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
+
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetPublicationPNList]	
@@ -102,7 +103,7 @@ BEGIN
 					   p.NextReviewDate AS NextReviewDate,
 					   p.ExpirationDate AS ExpirationDate,					   
 					   loc.[Name] AS [Location],
-					   e.FirstName AS VerifiedBy,
+					   e.FirstName+' '+e.LastName  AS VerifiedBy,
 					   p.VerifiedDate AS VerifiedDate,					  
 					   p.CreatedDate,
 					   p.UpdatedDate,

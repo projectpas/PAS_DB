@@ -16,6 +16,7 @@
  ** --   --------		-------------	--------------------------------          
     01	 03-July-2023	Vishal Suthar	Removed script of "MULTIPLE" hover over
 	02	 30-Dec-2024	Abhishek Jirawla MULTIPLE checking was improper so corrected it and Performance changes implemented
+	03   08-Jan-2025    Sahdev Saliya    Added New Field ReceivedDate
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=100,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'OPEN',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=205,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL
 **************************************************************/
@@ -47,7 +48,8 @@ CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@EstDeliveryType varchar(50) = null,
 	@ManufacturerType varchar(50) = null,
 	@SalesOrderNumberType varchar(50) = null,
-	@WorkOrderNumType varchar(50) = null
+	@WorkOrderNumType varchar(50) = null,
+	@ReceivedDate  datetime = null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -124,13 +126,17 @@ BEGIN
 							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.WorkOrderNo) END) AS 'WorkOrderNumType',
 					(CASE WHEN (SELECT COUNT(ROP.SalesOrderNo) 
 							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
-							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.SalesOrderNo) END) AS 'SalesOrderNumberType'
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.SalesOrderNo) END) AS 'SalesOrderNumberType',
+			        (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then CAST(MAX(STK.ReceivedDate) AS VARCHAR) ELse CAST(MAX(STK.ReceivedDate) AS VARCHAR) END) AS 'ReceivedDate'
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
 			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId		              			  
 			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
 			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
+	         LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = ROP.StockLineId 
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 					RO.MasterCompanyId=@MasterCompanyId 
 			GROUP BY RO.RepairOrderId,
@@ -166,6 +172,7 @@ BEGIN
 									M.WorkOrderNumType,
 									--M.EstDeliveryDateMulti,
 									CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
+									M.ReceivedDate as 'ReceivedDate',
 									0 as RepairOrderPartRecordId
 									from Result M 
 					
@@ -199,7 +206,9 @@ BEGIN
 					(ISNULL(@EstDeliveryType,'') ='' OR M.EstDeliveryType like '%'+ @EstDeliveryType+'%') AND					
 					(ISNULL(@ManufacturerType,'') ='' OR M.ManufacturerType like '%'+ @ManufacturerType+'%') AND
 					(ISNULL(@SalesOrderNumberType,'') ='' OR M.SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND
-					(ISNULL(@WorkOrderNumType,'') ='' OR M.WorkOrderNumType like '%'+@WorkOrderNumType+'%'))
+					(ISNULL(@WorkOrderNumType,'') ='' OR M.WorkOrderNumType like '%'+@WorkOrderNumType+'%')) AND
+			        (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date) = CAST(@ReceivedDate AS date)) 
+
 				   )
 				   --SELECT @Count = COUNT(RepairOrderId) FROM #TempResult
 				   --SELECT *, @Count AS NumberOfItems FROM #TempResult
@@ -207,7 +216,7 @@ BEGIN
 						SELECT RepairOrderId,RepairOrderNumber,RepairOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted
 						,VendorId,VendorName,VendorCode,StatusId,[Status],RequestedBy,ApprovedBy,
 						'' PartNumber, PartNumberType, '' Manufacturer, ManufacturerType, '' WorkOrderNum, WorkOrderNumType, '' SalesOrderNumber, SalesOrderNumberType,
-						CreatedDate, UpdatedDate, NumberOfItems, CreatedBy, UpdatedBy, '' EstDeliveryDateMulti, EstDeliveryType, RepairOrderPartRecordId 
+						CreatedDate, UpdatedDate, NumberOfItems, CreatedBy, UpdatedBy, '' EstDeliveryDateMulti, EstDeliveryType, RepairOrderPartRecordId, ReceivedDate 
 						FROM ResultData, CTE_Count
 			ORDER BY  
             CASE WHEN (@SortOrder=1 AND @SortColumn='repairOrderNumber')  THEN repairOrderNumber END ASC,
@@ -241,7 +250,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -275,6 +286,7 @@ BEGIN
 				   ROP.SalesOrderNo as SalesOrderNumberType,
 				   ROP.WorkOrderNo,
 				   ROP.WorkOrderNo as WorkOrderNumType,
+				   STK.ReceivedDate,
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryType,
 				   ROP.RepairOrderPartRecordId
@@ -284,7 +296,7 @@ BEGIN
 			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
-
+			 LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = ROP.StockLineId 
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 			        --EMS.EmployeeId = @EmployeeId AND 
 					RO.MasterCompanyId=@MasterCompanyId 
@@ -320,7 +332,8 @@ BEGIN
 					(ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and
 					(ISNULL(@ManufacturerType,'') ='' OR Manufacturer like '%'+ @ManufacturerType +'%') AND
 					(IsNull(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') and
-					(IsNull(@WorkOrderNumType,'') ='' OR WorkOrderNumType like '%'+@WorkOrderNumType+'%'))
+					(IsNull(@WorkOrderNumType,'') ='' OR WorkOrderNumType like '%'+@WorkOrderNumType+'%')) AND
+					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date) = CAST(@ReceivedDate AS date)) 
 				   )
 				   SELECT @Count = COUNT(RepairOrderId) FROM #TempResult
 				   SELECT *, @Count AS NumberOfItems FROM #TempResult
@@ -356,7 +369,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END

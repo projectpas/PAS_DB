@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetRecevingCustomerList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Receving Customer List    
@@ -23,7 +24,7 @@
 	6    20-03-2024   AMIT GHEDIYA      Update Reference filter.
 	7    05-09-2024   Moin Bloch        Updated (Added Piece Part Filter)
 	8    09/17/2024   Hemant Saliya		Updated For Work Order Status
-
+	9	 08/01/2025   AYUSHI PATEL		Get the createdDate based on Currnt Emp TimeZone
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -69,6 +70,12 @@ BEGIN
 		DECLARE @Count INT;
 		DECLARE @MSModuleID INT = 1; -- Receving Customer Management Structure Module ID
 		DECLARE @PiecePart BIT; 
+		DECLARE @EmpLegalEntiyId BIGINT = 0;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		WHERE LE.LegalEntityId = @EmpLegalEntiyId;
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -203,7 +210,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE)=CAST(@ReceivedDate AS DATE)) AND
-					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
+					(IsNull(@CreatedDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@CreatedDate as date)) AND 
+					--(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 					(ISNULL(@Reference,'') ='' OR Reference LIKE '%' + @Reference+'%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%'))

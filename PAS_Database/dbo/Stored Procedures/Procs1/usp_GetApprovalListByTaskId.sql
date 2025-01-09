@@ -19,7 +19,7 @@
 	6    24/10/2024  Moin Bloch      Update Added Cycle Count 
 	7    26/12/2024  RAJESH GAMI     Added Vendor Proforma Approval for the Vendor Proforma Invoice 
 	8	 02/01/2024  RAJESH GAMI     Vendor Proforma Approval: Return the extended cost
-     
+	9	 8/JAN/2024  RAJESH GAMI     Non PO Approval: Return the extended cost 
 -- exec [dbo].[usp_GetApprovalListByTaskId] 12, 12
 ************************************************************************/
 CREATE   Procedure [dbo].[usp_GetApprovalListByTaskId]
@@ -247,7 +247,7 @@ BEGIN TRY
 	ELSE IF @TaskType = 'Non PO Approval'
 	BEGIN
 	 SET @TotalCostText = 'Total Non PO Amount'
-	SELECT @TotalCost = SUM(ISNULL(Amount, 0))	 
+	SELECT @TotalCost = SUM(ISNULL(ExtendedPrice, 0))	 
 		  FROM dbo.NonPOInvoicePartDetails pop  WITH(NOLOCK)
 		   WHERE pop.NonPOInvoiceId = @ID
 

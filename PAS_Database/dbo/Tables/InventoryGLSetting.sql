@@ -29,8 +29,8 @@
     [RevenueMroGLAccCode]               NVARCHAR (250) NULL,
     [RevenueSoGLAccId]                  BIGINT         NOT NULL,
     [RevenueSoGLAccCode]                NVARCHAR (250) NULL,
-    [RevenueMiscGLAccId]                BIGINT         NOT NULL,
-    [RevenueMiscGLAccCode]              NVARCHAR (250) NULL,
+    [RevenueExchGLAccId]                BIGINT         NOT NULL,
+    [RevenueExchGLAccCode]              NVARCHAR (250) NULL,
     [MasterCompanyId]                   INT            NOT NULL,
     [CreatedBy]                         VARCHAR (256)  NOT NULL,
     [UpdatedBy]                         VARCHAR (256)  NOT NULL,
@@ -40,6 +40,8 @@
     [IsActive]                          BIT            CONSTRAINT [DF__tmp_ms_xx__IsAct__5BF257F4] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                         BIT            CONSTRAINT [DF__tmp_ms_xx__IsDel__5CE67C2D] DEFAULT ((0)) NOT NULL
 );
+
+
 
 
 
@@ -75,7 +77,7 @@ BEGIN
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
             RevenueSoGLAccId,
-            RevenueMiscGLAccId,
+            RevenueExchGLAccId,
             MasterCompanyId,
             CreatedBy,
             UpdatedBy,
@@ -101,7 +103,7 @@ BEGIN
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
             RevenueSoGLAccId,
-            RevenueMiscGLAccId,
+            RevenueExchGLAccId,
             MasterCompanyId,
             CreatedBy,
             UpdatedBy,

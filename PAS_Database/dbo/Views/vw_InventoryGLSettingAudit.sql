@@ -40,4 +40,4 @@ FROM [DBO].[InventoryGLSettingAudit] IGS WITH (NOLOCK)
  LEFT JOIN [DBO].[View_GLAccount] GLUc WITH (NOLOCK) ON IGS.COGS_UnitCostVarianceGLAccId = GLUc.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLMro WITH (NOLOCK) ON IGS.RevenueMroGLAccId = GLMro.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLRso WITH (NOLOCK) ON IGS.RevenueSoGLAccId = GLRso.GLAccountId
- LEFT JOIN [DBO].[View_GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueMiscGLAccId = GLMisc.GLAccountId
+ LEFT JOIN [DBO].[View_GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueExchGLAccId = GLMisc.GLAccountId

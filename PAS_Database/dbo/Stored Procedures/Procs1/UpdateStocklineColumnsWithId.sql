@@ -20,6 +20,7 @@
 	4    04/25/2024   Devendra Shekh  Updatting GLAccountName issue resolved
 	5    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
     6    24/12/2024   BHAVESH RAVAL   For the UpdateGLAccount Details in Stockline Table 
+	7    08/01/2025   BHAVESH RAVAL   For the Revenue Exch replace with revenue Mis  
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -190,8 +191,8 @@ BEGIN
 					SL.RevenueMroGLAccName = GL12.AccountCode + '-' + GL12.AccountName,
 					SL.RevenueSoGLAccId = I.RevenueSoGLAccId,
 					SL.RevenueSoGLAccName = GL13.AccountCode + '-' + GL13.AccountName,
-					SL.RevenueMiscGLAccId = I.RevenueMiscGLAccId,
-					SL.RevenueMiscGLAccName = GL14.AccountCode + '-' + GL14.AccountName
+					SL.RevenueExchGLAccId = I.RevenueExchGLAccId,
+					SL.RevenueExchGLAccName = GL14.AccountCode + '-' + GL14.AccountName
 					FROM
 					dbo.ItemMaster IM WITH (NOLOCK) 
 					JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.ItemMasterId=IM.ItemMasterId
@@ -225,7 +226,7 @@ BEGIN
 					LEFT JOIN
 					GLAccount GL13 WITH (NOLOCK) ON I.RevenueSoGLAccId = GL13.GLAccountId
 					LEFT JOIN
-					GLAccount GL14 WITH (NOLOCK) ON I.RevenueMiscGLAccId = GL14.GLAccountId
+					GLAccount GL14 WITH (NOLOCK) ON I.RevenueExchGLAccId = GL14.GLAccountId
 					WHERE SL.StockLineId=@StocklineId
 				END
 

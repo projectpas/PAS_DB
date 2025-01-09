@@ -599,7 +599,7 @@ BEGIN
 						AND sof.ItemMasterId = tmpSOBI.ItemMasterId 
 						AND sof.ConditionId = tmpSOBI.ConditionId 
 						AND sof.IsActive = 1 
-						AND sof.IsDeleted = 0 AND tmpSOBI.IsVersionIncrease = 1
+						AND sof.IsDeleted = 0 AND ISNULL(tmpSOBI.IsVersionIncrease,0) = 1
 					GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
 				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId --AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
@@ -618,7 +618,7 @@ BEGIN
 							AND SOC.ItemMasterId = tmpSOBI.ItemMasterId 
 							AND SOC.ConditionId = tmpSOBI.ConditionId 
 							AND SOC.IsActive = 1 
-							AND SOC.IsDeleted = 0  AND tmpSOBI.IsVersionIncrease = 1
+							AND SOC.IsDeleted = 0  AND ISNULL(tmpSOBI.IsVersionIncrease,0) = 1
 						GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
 				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId --AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 

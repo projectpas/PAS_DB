@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve WorkOrder Labor Analysis Details    
@@ -19,9 +18,10 @@
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
 	2    01/19/2022   Hemant Saliya Update Calculated Values
+	3    01/09/2025   Moin Bloch    Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
      
  EXECUTE USP_GetWorkOrderLaborAnalysisDetails 270, 254
- EXECUTE USP_GetWorkOrderLaborAnalysisDetails 60, 67,false
+ EXECUTE USP_GetWorkOrderLaborAnalysisDetails 4739, 0,false
 
 **************************************************************/ 
     
@@ -38,25 +38,28 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON    
 
 	BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN  
+		--BEGIN TRANSACTION
+		--	BEGIN  
 				IF(@WorkOrderPartNoId = 0)
 				BEGIN
 					SELECT 
 						im.partnumber AS PartNumber,
 						im.PartDescription,
 						im.RevisedPart AS RevisedPN,
-						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
-						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(wfx.EstimatedHours,0)) AS [Adjustments],
-						--SUM(wl.Adjustments) AS [Adjustments],
-						SUM(ISNULL(wfx.EstimatedHours,0)) AS [AdjustedHours],
-						SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
+						ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+						ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(wfx.EstimatedHours,0)) AS [Adjustments],						
+						ISNULL(SUM(wfx.EstimatedHours),0) AS [AdjustedHours],
+						ISNULL(SUM(wl.StandardHours),0) AS StandardHours,
+						ISNULL(SUM(wl.StandardMinute),0) AS StandardMinute,
+						ISNULL(SUM(wl.VarianceHours),0) AS VarianceHours,	
+						ISNULL(SUM(wl.VarianceMinute),0) AS VarianceMinute, 
+						ISNULL(SUM(wl.BurdenRateAmount),0) AS BurdenRateAmount,
 						CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-						c.Name AS Customer,
+						c.[Name] AS Customer,
 						wo.WorkOrderNum,
 						ws.Stage,
-						st.[Description] As [Status],
-						t.[Description] As [Action],
+						st.[Description] AS [Status],
+						t.[Description] AS [Action],
 						ex.[Description] AS Expertise,
 						emp.FirstName + ' ' + emp.LastName AS EmployeeName,
 						wl.EmployeeId
@@ -75,7 +78,7 @@ SET NOCOUNT ON
 						JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1
-					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.Name ,wo.WorkOrderNum,ws.Stage,BillableId,
+					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
 						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId
 				END
 				IF(@WorkOrderPartNoId > 0)
@@ -84,17 +87,20 @@ SET NOCOUNT ON
 						im.partnumber AS PartNumber,
 						im.PartDescription,
 						im.RevisedPart AS RevisedPN,
-						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
-						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(wfx.EstimatedHours,0)) AS [Adjustments],
-						--SUM(wl.Adjustments) AS [Adjustments],
-						SUM(ISNULL(wfx.EstimatedHours,0)) AS [AdjustedHours],
-						SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
+						ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+						ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(wfx.EstimatedHours,0)) AS [Adjustments],
+						ISNULL(SUM(wfx.EstimatedHours),0) AS [AdjustedHours],
+						ISNULL(SUM(wl.StandardHours),0) AS StandardHours,
+						ISNULL(SUM(wl.StandardMinute),0) AS StandardMinute,
+						ISNULL(SUM(wl.VarianceHours),0) AS VarianceHours,	
+						ISNULL(SUM(wl.VarianceMinute),0) AS VarianceMinute, 
+						ISNULL(SUM(wl.BurdenRateAmount),0) AS BurdenRateAmount,
 						CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-						c.Name AS Customer,
+						c.[Name] AS Customer,
 						wo.WorkOrderNum,
 						ws.Stage,
-						st.[Description] As [Status],
-						t.[Description] As [Action],
+						st.[Description] AS [Status],
+						t.[Description] AS [Action],
 						ex.[Description] AS Expertise,
 						emp.FirstName + ' ' + emp.LastName AS EmployeeName,
 						wl.EmployeeId
@@ -113,18 +119,18 @@ SET NOCOUNT ON
 						JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1
-					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.Name ,wo.WorkOrderNum,ws.Stage, BillableId,
+					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage, BillableId,
 						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId
 				END
 				
-			END
-		COMMIT  TRANSACTION
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
+				--ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

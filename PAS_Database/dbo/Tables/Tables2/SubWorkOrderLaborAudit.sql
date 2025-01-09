@@ -8,6 +8,10 @@
     [Hours]                     DECIMAL (10, 2) NULL,
     [Adjustments]               DECIMAL (10, 2) NULL,
     [AdjustedHours]             DECIMAL (10, 2) NULL,
+    [StandardHours]             INT             NULL,
+    [StandardMinute]            INT             NULL,
+    [VarianceHours]             DECIMAL (10, 2) NULL,
+    [VarianceMinute]            DECIMAL (10, 2) NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
     [StartDate]                 DATETIME2 (7)   NULL,
     [EndDate]                   DATETIME2 (7)   NULL,
@@ -31,4 +35,6 @@
     [IsBegin]                   BIT             NULL,
     CONSTRAINT [PK_SubWorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderLaborAuditId] ASC)
 );
+
+
 

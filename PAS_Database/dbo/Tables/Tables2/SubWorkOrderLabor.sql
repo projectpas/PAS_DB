@@ -7,6 +7,10 @@
     [Hours]                     DECIMAL (10, 2) NULL,
     [Adjustments]               DECIMAL (10, 2) NULL,
     [AdjustedHours]             DECIMAL (10, 2) NULL,
+    [StandardHours]             INT             NULL,
+    [StandardMinute]            INT             NULL,
+    [VarianceHours]             DECIMAL (10, 2) NULL,
+    [VarianceMinute]            DECIMAL (10, 2) NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
     [StartDate]                 DATETIME2 (7)   NULL,
     [EndDate]                   DATETIME2 (7)   NULL,
@@ -37,6 +41,8 @@
     CONSTRAINT [FK_SubWorkOrderLabor_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_SubWorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId])
 );
+
+
 
 
 GO

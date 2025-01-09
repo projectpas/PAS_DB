@@ -18,6 +18,7 @@
     1    12/29/2020   Hemant Saliya Created
 	2    09/24/2021   Deep Patel    Add multiple part view changes.....
 	3    13/06/2024   Shrey Chandegara  Remove OUTER APPLY
+	4    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -101,7 +102,7 @@ BEGIN
 						pu.NextReviewDate AS NextReviewDate,
 					    pu.ExpirationDate AS ExpirationDate,
 						loc.[Name] AS [Location],
-						e.FirstName AS VerifiedBy,
+						e.FirstName+' '+e.LastName AS VerifiedBy,
 						pu.VerifiedDate AS VerifiedDate,
 						pu.CreatedDate,
 					    pu.UpdatedDate,

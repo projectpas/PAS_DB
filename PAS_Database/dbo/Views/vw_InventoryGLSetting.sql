@@ -3,6 +3,7 @@
 
 
 
+
 CREATE           VIEW [dbo].[vw_InventoryGLSetting]
 AS
 SELECT IGS.InventoryGLSettingId,
@@ -32,9 +33,9 @@ GLUc.AccountName AS COGS_UnitCostVarianceGLAccName,
 IGS.RevenueMroGLAccId,
 GLMro.AccountName AS RevenueMroGLAccName,
 IGS.RevenueSoGLAccId,
-GLMisc.AccountName AS RevenueSoGLAccName,
+GLRExch.AccountName AS RevenueSoGLAccName,
 IGS.RevenueExchGLAccId,
-GLGoods.AccountName AS RevenueMiscGLAccName,
+GLGoods.AccountName AS RevenueExchGLAccName,
 IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate,IGS.Memo, IGS.IsActive, IGS.IsDeleted
 FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)  
  LEFT JOIN [DBO].[view_GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 
@@ -50,4 +51,4 @@ FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)
  LEFT JOIN [DBO].[view_GLAccount] GLUc WITH (NOLOCK) ON IGS.COGS_UnitCostVarianceGLAccId = GLUc.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLMro WITH (NOLOCK) ON IGS.RevenueMroGLAccId = GLMro.GLAccountId
  LEFT JOIN [DBO].[view_GLAccount] GLRso WITH (NOLOCK) ON IGS.RevenueSoGLAccId = GLRso.GLAccountId
- LEFT JOIN [DBO].[view_GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueExchGLAccId = GLMisc.GLAccountId
+ LEFT JOIN [DBO].[view_GLAccount] GLRExch WITH (NOLOCK) ON IGS.RevenueExchGLAccId = GLRExch.GLAccountId

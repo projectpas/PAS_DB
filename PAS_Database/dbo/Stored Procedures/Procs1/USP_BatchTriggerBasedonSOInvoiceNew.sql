@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoiceNew]
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to enter acounting entry for SO
@@ -31,6 +30,7 @@
 	16	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
 	17	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
 	18	 12/06/2024  Moin Bloch     Fixed Duplicate amount issue 
+	19	 06/01/2025  AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -135,6 +135,11 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'SO';
 
+		DECLARE @InventoryToBillGLAccId BIGINT = 0;
+		DECLARE @InventoryGLAccId BIGINT = 0;
+		DECLARE @COGSSalesOrderGLAccId BIGINT = 0;
+		DECLARE @RevenueSoGLAccId BIGINT = 0;
+
 		SELECT @IsAccountByPass =IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
 	    SELECT @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
 	    SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
@@ -183,7 +188,7 @@ BEGIN
 			
 			SELECT @StocklineNumber= STK.[StockLineNumber],
 			       @LotId = STK.[LotId], 
-				   @LotNumber = LO.[LotNumber]
+				   @LotNumber = LO.[LotNumber]				   
 			  FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 			  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = STK.LotId  
 			  WHERE StockLineId=@StockLineId
@@ -240,7 +245,7 @@ BEGIN
 
 
 			IF(UPPER(@DistributionCode) = UPPER('SOINVOICE'))
-			BEGIN
+			BEGIN 
 				IF NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderBatchDetails] SOD WITH(NOLOCK) WHERE SOD.[SalesOrderId] = @ReferenceId AND SOD.[DocumentId] = @InvoiceId)
 				BEGIN
 
@@ -272,7 +277,10 @@ BEGIN
 						   @InvoiceDate = [InvoiceDate],
 						   @LocalCurrencyCode = ISNULL(CL.Code, @LocalCurrencyCode),
 						   @ForeignCurrencyCode = ISNULL(CL.Code, @ForeignCurrencyCode)
-					 FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) LEFT JOIN [DBO].[Currency] CL WITH(NOLOCK) ON CL.CurrencyId = SOBI.CurrencyId WHERE SOBI.SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0 AND ISNULL([IsVersionIncrease],0) = 0
+					 FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) 
+					 LEFT JOIN [DBO].[Currency] CL WITH(NOLOCK) ON CL.CurrencyId = SOBI.CurrencyId 
+					 WHERE SOBI.SOBillingInvoicingId=@InvoiceId 
+					 AND ISNULL(IsProforma,0) = 0 AND ISNULL([IsVersionIncrease],0) = 0
 
 					SET @TotalTax = (@SalesTax + @OtherTax);
 
@@ -283,19 +291,26 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderStockLineCost] sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
 					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 
+
 					SELECT TOP 1 @StocklineId = stk.[StockLineId],
-					             @partId = sop.[ItemMasterId],
-								 @MPNName = itm.[partnumber]
+					            @partId = sop.[ItemMasterId],
+							 @MPNName = itm.[partnumber]								
 					FROM [dbo].[SalesOrderBillingInvoicing] soi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.[IsVersionIncrease],0) = 0
 					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
 					LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
-					WHERE soi.SOBillingInvoicingId = @InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
+					WHERE soi.SOBillingInvoicingId = @InvoiceId 
+					AND soit.SalesOrderPartId = @ReferencePartId
+					AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 
 					SELECT @LotId = SL.LotId,
 						   @LotNumber = LO.[LotNumber],						  
-						   @StocklineNumber = SL.[StockLineNumber]
+						   @StocklineNumber = SL.[StockLineNumber],
+						   @InventoryToBillGLAccId = SL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
+						   @InventoryGLAccId = SL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
+						   @COGSSalesOrderGLAccId = SL.COGS_SalesOrderGLAccId,  -- For COGS EXc Sales Order Distribution (Billing)
+						   @RevenueSoGLAccId = SL.RevenueSoGLAccId -- For Revenue EXc SO Distribution (Billing)
 					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
 					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
 					  WHERE SL.[StockLineId] = @StocklineId;
@@ -309,7 +324,15 @@ BEGIN
 					IF(@SalesTotal > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
-						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUESALESORDER') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUESALESORDER') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
+
+						--GET GL Accounting Data from GLAccout based on stockline
+						SELECT @GlAccountId = [GLAccountId],
+							   @GlAccountNumber = [AccountCode],
+							   @GlAccountName = [AccountName]
+						FROM [dbo].[GLAccount]
+						WHERE [GLAccountId] = @RevenueSoGLAccId
+						AND [MasterCompanyId] = @MasterCompanyId;
 						
 						IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND CustomerTypeId=@CustomerTypeId)
 						BEGIN
@@ -560,7 +583,7 @@ BEGIN
 					INNER JOIN dbo.Stockline STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 					WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 					GROUP BY STL.GLAccountId
-
+					
 					OPEN @SalesOrderPartDetailsCursor;
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor INTO @PartGLAccountId;
 					WHILE @@FETCH_STATUS = 0
@@ -571,25 +594,41 @@ BEGIN
 						INNER JOIN dbo.SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND sop.StockLineId = soit.StockLineId
 						INNER JOIN dbo.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
 						INNER JOIN dbo.SalesOrderStockLineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
-						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
+						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 
+						AND STL.GLAccountId=@PartGLAccountId;
 
-						SELECT TOP 1 @STKId = STL.StockLineId 
+						SELECT TOP 1 @STKId = STL.StockLineId,
+									 @InventoryToBillGLAccId = STL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
+									 @InventoryGLAccId = STL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
+									 @COGSSalesOrderGLAccId = STL.COGS_SalesOrderGLAccId,  -- For COGS Sales Order Distribution (Billing)
+									 @RevenueSoGLAccId = STL.RevenueSoGLAccId -- For Revenue SO Distribution (Billing)
 						FROM SalesOrderBillingInvoicing soi WITH(NOLOCK)
 						INNER JOIN SalesOrderBillingInvoicingItem soit WITH(NOLOCK) ON soi.SOBillingInvoicingId = soit.SOBillingInvoicingId AND ISNULL(soit.IsProforma,0) = 0 AND ISNULL(soit.IsVersionIncrease,0) = 0
 						--INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SalesOrderStocklineV1 sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = sop.StockLineId
 						INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
-						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND STL.GLAccountId=@PartGLAccountId;
+						WHERE soi.SOBillingInvoicingId=@InvoiceId AND ISNULL(soi.IsProforma,0) = 0 
+						AND ISNULL(soi.IsVersionIncrease,0) = 0 
+						AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 						INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@STKId;
 
 						----COGS - Parts----
 						IF(@PartUnitSalesPrices >0)
-						BEGIN						
+						BEGIN	
+						
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
 							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSPARTS') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 							
+							--GET GL Accounting Data from GLAccout based on stockline
+							SELECT @GlAccountId = [GLAccountId],
+								   @GlAccountNumber = [AccountCode],
+								   @GlAccountName = [AccountName]
+							FROM [dbo].[GLAccount]
+							WHERE [GLAccountId] = @COGSSalesOrderGLAccId
+							AND [MasterCompanyId] = @MasterCompanyId;
+
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -619,6 +658,14 @@ BEGIN
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
 							FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('INVENTORYPARTS') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId	
 							 
+							--GET GL Accounting Data from GLAccout based on stockline
+							SELECT @GlAccountId = [GLAccountId],
+								   @GlAccountNumber = [AccountCode],
+								   @GlAccountName = [AccountName]
+							FROM [dbo].[GLAccount]
+							WHERE [GLAccountId] = @InventoryToBillGLAccId
+							AND [MasterCompanyId] = @MasterCompanyId;
+
 				    		INSERT INTO [dbo].[CommonBatchDetails]
 				    			(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -793,7 +840,11 @@ BEGIN
 
 						SELECT TOP 1 @STKId = STL.StockLineId,
 						             @partId = sop.[SalesOrderPartId],--sop.[ItemMasterId],
-								     @MPNName = itm.[partnumber]						
+								     @MPNName = itm.[partnumber],
+									 @InventoryToBillGLAccId = STL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
+									 @InventoryGLAccId = STL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
+									 @COGSSalesOrderGLAccId = STL.COGS_SalesOrderGLAccId,  -- For COGS Sales Order Distribution (Billing)
+									 @RevenueSoGLAccId = STL.RevenueSoGLAccId -- For Revenue SO Distribution (Billing)
 						FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 						INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId
 						INNER JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SOPickTicketId = soit.SOPickTicketId
@@ -829,7 +880,15 @@ BEGIN
 							        FROM dbo.DistributionSetup WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) =UPPER('INVENTORYTOBILLSO') 
 									 AND DistributionMasterId=@DistributionMasterId 
-									 AND MasterCompanyId = @MasterCompanyId	
+									 AND MasterCompanyId = @MasterCompanyId;
+
+							--GET GL Accounting Data from GLAccout based on stockline
+							SELECT @GlAccountId = [GLAccountId],
+								   @GlAccountNumber = [AccountCode],
+								   @GlAccountName = [AccountName]
+							FROM [dbo].[GLAccount]
+							WHERE [GLAccountId] = @InventoryToBillGLAccId
+							AND [MasterCompanyId] = @MasterCompanyId;
 							
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -867,7 +926,15 @@ BEGIN
 							        FROM dbo.DistributionSetup WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) =UPPER('PARTSINVENTORY') 
 									AND DistributionMasterId=@DistributionMasterId 
-									AND MasterCompanyId = @MasterCompanyId	
+									AND MasterCompanyId = @MasterCompanyId;
+									
+							--GET GL Accounting Data from GLAccout based on stockline
+							SELECT @GlAccountId = [GLAccountId],
+								   @GlAccountNumber = [AccountCode],
+								   @GlAccountName = [AccountName]
+							FROM [dbo].[GLAccount]
+							WHERE [GLAccountId] = @InventoryGLAccId
+							AND [MasterCompanyId] = @MasterCompanyId;
 				            
 				    		INSERT INTO [dbo].[CommonBatchDetails]
 				    			(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],

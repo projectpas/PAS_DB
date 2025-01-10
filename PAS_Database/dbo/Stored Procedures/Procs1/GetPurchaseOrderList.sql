@@ -18,7 +18,6 @@
     02  23-July-2024	Vishal Suthar		Removed Transaction from the SP
 	03	29-Oct-2024		Abhishek Jirawla	Adding extra data so that we can remove unnecessary data
 	04	14-Nov-2024		Vishal Suthar		Fixed the Quantity Received Issue
-	05  08-Jan-2025     Sahdev Saliya       Added New Field ReceivedDate
            
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
@@ -57,8 +56,7 @@ CREATE PROCEDURE [dbo].[GetPurchaseOrderList]
 	@RepairOrderNumberType varchar(50)=null,
 	@QuantityOrdered varchar(50)= null,
 	@QuantityBackOrdered varchar(50)= null,
-	@QuantityReceived varchar(50)= null,    
-	@ReceivedDate  datetime = null
+	@QuantityReceived varchar(50)= null    
 AS      
 BEGIN      
 	SET NOCOUNT ON;       
@@ -123,21 +121,9 @@ BEGIN
 					POP.ReapairOrderNo AS 'RepairOrderNumber',
 					POP.WorkOrderNo AS 'WorkOrderNum',
 					POP.SalesOrderNo AS 'SalesOrderNumber',
-					CASE WHEN POP.ItemType = 'Stock' THEN
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN CAST(MAX(CONVERT(VARCHAR, STK.ReceivedDate, 101)) AS VARCHAR) ELSE CAST(MAX(CONVERT(VARCHAR, STK.ReceivedDate, 101)) AS VARCHAR) END)
-						WHEN POP.ItemType = 'Non-Stock' THEN
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN CAST(MAX(CONVERT(VARCHAR, NSI.ReceivedDate, 101)) AS VARCHAR) ELSE CAST(MAX(CONVERT(VARCHAR, NSI.ReceivedDate, 101)) AS VARCHAR) END)
-					ELSE
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN CAST(MAX(CONVERT(VARCHAR, ASI.ReceivedDate, 101)) AS VARCHAR) ELSE CAST(MAX(CONVERT(VARCHAR, ASI.ReceivedDate, 101)) AS VARCHAR) END)
-					end
-					AS 'ReceivedDate',				   	
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELSE MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
 				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
-			    LEFT JOIN  dbo.Stockline STK WITH (NOLOCK) ON STK.PurchaseOrderId = POP.PurchaseOrderId AND POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND STK.IsParent = 1
-				LEFT JOIN  dbo.NonStockInventory NSI  WITH (NOLOCK) ON NSI.PurchaseOrderId = POP.PurchaseOrderId AND NSI.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND NSI.IsParent = 1 
-				LEFT JOIN  dbo.AssetInventory ASI  WITH (NOLOCK) ON ASI.PurchaseOrderId = POP.PurchaseOrderId AND ASI.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId 
-
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId      
 				GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,
@@ -159,8 +145,7 @@ BEGIN
 					PO.ApprovedBy,
 					POP.ReapairOrderNo,
 					POP.WorkOrderNo,
-					POP.SalesOrderNo,
-					POP.ItemType				
+					POP.SalesOrderNo
 				)   
 	,ResultData AS(      
 		SELECT M.PurchaseOrderId,M.PurchaseOrderNumber,M.PurchaseOrderNo,M.OpenDate as 'OpenDate',M.ClosedDate as 'ClosedDate',M.CreatedDate,
@@ -175,7 +160,6 @@ BEGIN
 			M.WorkOrderNum,
 			M.SalesOrderNumber,
 			CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
-			CAST(M.ReceivedDate AS VARCHAR(MAX)) as 'ReceivedDate',			
 			0 as PurchaseOrderPartRecordId      
 			,M.QuantityOrdered,M.QuantityBackOrdered,M.QuantityReceived      
 		FROM Result M    
@@ -213,14 +197,12 @@ BEGIN
 			(IsNull(@RepairOrderNumberType, '') = '' OR M.RepairOrderNumberType like '%'+ @RepairOrderNumberType +'%') and      
 			(IsNull(@QuantityOrdered, '') = '' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered +'%') AND       
 			(IsNull(@QuantityBackOrdered, '') = '' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+ @QuantityBackOrdered +'%') AND       
-			(IsNull(@QuantityReceived, '') = '' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+ @QuantityReceived +'%')) AND
-			(ISNULL(@ReceivedDate, '') = '' OR CAST(ReceivedDate AS date) = CAST(@ReceivedDate AS date))       
+			(IsNull(@QuantityReceived, '') = '' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+ @QuantityReceived +'%'))
 			)      
 			), CTE_Count AS (Select COUNT(PurchaseOrderId) AS NumberOfItems FROM ResultData)      
       
 			SELECT PurchaseOrderId,PurchaseOrderNumber,PurchaseOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted      
 			,StatusId,VendorId,VendorName,VendorCode,[Status],RequestedBy,ApprovedBy,'' PartNumber,PartNumberType,'' Manufacturer,ManufacturerType,WorkOrderNumType,SalesOrderNumberType,RepairOrderNumberType, RepairOrderNumber , SalesOrderNumber,WorkOrderNum,
-             ReceivedDate,
 			CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy, '' EstDeliveryDate,EstDeliveryType,PurchaseOrderPartRecordId,QuantityOrdered,QuantityBackOrdered,QuantityReceived FROM ResultData,CTE_Count      
 		ORDER BY      
          
@@ -269,9 +251,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='approvedBy')  THEN approvedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='approvedBy')  THEN approvedBy END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='estDeliveryType')  THEN estDeliveryType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC 
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC
 
 		OFFSET @RecordFrom ROWS       
 		FETCH NEXT @PageSize ROWS ONLY      
@@ -309,7 +289,6 @@ BEGIN
 			POP.WorkOrderNo as WorkOrderNumType,
 			POP.ReapairOrderNo AS RepairOrderNumber,
 			POP.ReapairOrderNo as RepairOrderNumberType,
-			STK.ReceivedDate,
 			CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,
 			CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryType,
 			POP.PurchaseOrderPartRecordId,
@@ -318,9 +297,6 @@ BEGIN
 			ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
 		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1 
-		    LEFT JOIN  dbo.Stockline STK WITH (NOLOCK) ON STK.PurchaseOrderId = POP.PurchaseOrderId AND POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND STK.IsParent = 1
-			LEFT JOIN  dbo.NonStockInventory NSI  WITH (NOLOCK) ON NSI.PurchaseOrderId = POP.PurchaseOrderId AND NSI.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND NSI.IsParent = 1 
-			LEFT JOIN  dbo.AssetInventory ASI  WITH (NOLOCK) ON ASI.PurchaseOrderId = POP.PurchaseOrderId AND ASI.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId 
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId           
 		
 		), ResultCount AS(
@@ -361,8 +337,7 @@ BEGIN
 				(ISNULL(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') AND      
 				(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND       
 				(ISNULL(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND       
-				(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%')) AND
-				(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date))       
+				(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))
 			)      
       
 	  SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult      
@@ -398,9 +373,7 @@ BEGIN
 	  CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,
-	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC,
-	  CASE WHEN (@SortOrder=1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,
-	  CASE WHEN (@SortOrder=-1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC  
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC
 	  OFFSET @RecordFrom ROWS       
 	  FETCH NEXT @PageSize ROWS ONLY      
  END      

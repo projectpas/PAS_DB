@@ -16,8 +16,12 @@
     [Resolution]      NVARCHAR (MAX) NULL,
     [StandardHours]   INT            NULL,
     [StandardMinute]  INT            NULL,
+    [IsPrintInWO]     BIT            NULL,
+    [IsPrintInWOQ]    BIT            NULL,
     PRIMARY KEY CLUSTERED ([TaskAuditId] ASC)
 );
+
+
 
 
 

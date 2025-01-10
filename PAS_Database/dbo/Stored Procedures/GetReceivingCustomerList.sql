@@ -25,6 +25,7 @@
 	7    05-09-2024   Moin Bloch        Updated (Added Piece Part Filter)
 	8    09/17/2024   Hemant Saliya		Updated For Work Order Status
 	9	 08/01/2025   AYUSHI PATEL		Get the createdDate based on Currnt Emp TimeZone
+	10   09/01/2025   Ayushi Patel      converted the date into utc (created , updated)
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -76,7 +77,6 @@ BEGIN
 		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		WHERE LE.LegalEntityId = @EmpLegalEntiyId;
-
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -146,13 +146,15 @@ BEGIN
 					RC.ManagementStructureId AS Ids,
 					RC.IsActive,
 					RC.IsDeleted,
-					RC.CreatedDate,
+					--RC.CreatedDate,
 					RC.CreatedBy,
-					RC.UpdatedDate,
+					--RC.UpdatedDate,
 					RC.UpdatedBy, 
 					MSD.LastMSLevel,
 					MSD.AllMSlevels,
-					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart
+					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
+					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate
 				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
@@ -210,8 +212,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE)=CAST(@ReceivedDate AS DATE)) AND
-					(IsNull(@CreatedDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@CreatedDate as date)) AND 
-					--(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
+					--(IsNull(@CreatedDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@CreatedDate as date)) AND 
+					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 					(ISNULL(@Reference,'') ='' OR Reference LIKE '%' + @Reference+'%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%'))

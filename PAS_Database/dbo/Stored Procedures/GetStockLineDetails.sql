@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/09/2024  MOIN BLOCH 		Created
 	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
-    3    08/01/2025   BHAVESH RAVAL   For the Revenue Exch replace with revenue Mis 
+     
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -294,7 +294,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.InventoryExchAgreementGLAccName        
 			,stl.InventoryReserveGLAccName        
 			,stl.COGS_WorkOrderGLAccName        
-			,stl.COGS_SalesOrderGLAccName        
+			,stl.COGS_SalesOrderGLAccName   
+			,stl.COGS_ExchSalesOrderGLAccName   
 			,stl.COGS_QtyVarianceGLAccName        
 			,stl.COGS_UnitCostVarianceGLAccName        
 			,stl.RevenueMroGLAccName        

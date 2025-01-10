@@ -147,6 +147,7 @@
     [RevenueMroGLAccId]                 BIGINT          NULL,
     [RevenueSoGLAccId]                  BIGINT          NULL,
     [RevenueExchGLAccId]                BIGINT          NULL,
+    [COGS_ExchSalesOrderGLAccId]        BIGINT          NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

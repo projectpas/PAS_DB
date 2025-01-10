@@ -78,6 +78,60 @@ BEGIN
 						SET @SalesOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(0, '', ''));
 					END
 
+				DECLARE @CustomerTypeId INT;
+				DECLARE @CustomerContactId BIGINT;
+				DECLARE @PrimarySalesPersonId BIGINT;
+				DECLARE @CsrId BIGINT;
+				DECLARE @RestrictPMA BIT;
+				DECLARE @RestrictDER BIT;
+				DECLARE @ContractReference VARCHAR(100);
+				DECLARE @CustomerTypeName VARCHAR(256);
+				DECLARE @CustomerName VARCHAR(100);
+				DECLARE @SalesPersonName VARCHAR(80);
+				DECLARE @CustomerServiceRepName VARCHAR(80);
+				DECLARE @CreditLimit DECIMAL(18,2);
+				DECLARE @CreditTermsId INT;
+				DECLARE @CreditTermName VARCHAR(50)
+				DECLARE @PercentId BIGINT;
+				DECLARE @Days INT;
+				DECLARE @NetDays INT;
+				DECLARE @BalanceDue DECIMAL(18,2);
+
+			-- Fetch Customer details by customerId
+				SELECT TOP 1
+				 @CustomerTypeId =  CT.CustomerTypeId,
+				 @CustomerContactId = CC.[CustomerContactId],
+				 @PrimarySalesPersonId = CS.[PrimarySalesPersonId],
+				 @CsrId = CS.[CsrId],
+				 @RestrictPMA = C.[RestrictPMA],
+				 @RestrictDER = C.[RestrictDER],
+				 @ContractReference = C.[ContractReference],
+				 @CustomerTypeName = CT.[CustomerTypeName],
+				 @CustomerName = C.[Name],
+				 @SalesPersonName = CONCAT(ISNULL(EMP.FirstName, ''), ' ', ISNULL(EMP.LastName, '')),
+				 @CustomerServiceRepName = CONCAT(ISNULL(EMPCSR.FirstName, ''), ' ', ISNULL(EMPCSR.LastName, '')),
+				 @CreditLimit = ISNULL(CF.[CreditLimit],0),
+				 @CreditTermsId = ISNULL(CF.[CreditTermsId],0),
+				 @CreditTermName = CTMS.[Name],
+				 @PercentId = CTMS.[PercentId],
+				 @Days = CTMS.[Days],
+				 @NetDays = CTMS.[NetDays]
+				 FROM [dbo].[Customer] C WITH(NOLOCK) 
+				 LEFT JOIN [dbo].[CustomerSales] CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId
+				 LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON CT.CustomerTypeId = C.CustomerTypeId
+				 LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON CS.PrimarySalesPersonId = EMP.EmployeeId
+				 LEFT JOIN [dbo].[Employee] EMPCSR WITH(NOLOCK) ON CS.CsrId = EMPCSR.EmployeeId
+				 LEFT JOIN [dbo].[CustomerContact] CC WITH(NOLOCK) ON CC.CustomerId = C.CustomerId AND CC.IsDefaultContact = 1
+				 LEFT JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = C.CustomerId
+				 LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = CF.CurrencyId
+				 LEFT JOIN [dbo].[CreditTerms] CTMS WITH(NOLOCK) ON CF.CreditTermsId = CTMS.CreditTermsId
+				 WHERE C.CustomerId = @CustomerId
+
+			-- Fetch ARBalance details by customerId
+				 SELECT TOP 1 
+				 @BalanceDue = CCTH.ARBalance FROM [dbo].[CustomerCreditTermsHistory] CCTH WITH(NOLOCK) WHERE CCTH.CustomerId = @CustomerId 
+				 ORDER BY CCTH.UpdatedDate DESC; 
+
 			-- Insert SalesOrder
 				INSERT INTO [dbo].[SalesOrder]
 				([Version],[TypeId],[OpenDate],[ShippedDate],[NumberOfItems],[AccountTypeId],[CustomerId],[CustomerContactId],
@@ -93,29 +147,19 @@ BEGIN
 				 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 
 				 SELECT 
-				 SO.[Version],SO.[TypeId],GETDATE(),SO.[ShippedDate],SO.[NumberOfItems],CT.CustomerTypeId,@CustomerId,CC.[CustomerContactId],
-				 @CustomerReference,SO.[CurrencyId],SO.[TotalSalesAmount],SO.[CustomerHold],SO.[DepositAmount],SO.[BalanceDue],CS.[PrimarySalesPersonId],
-				 SO.[AgentId],CS.[CsrId],SO.[EmployeeId],SO.[ApprovedById],SO.[ApprovedDate],SO.[Memo],SO.[StatusId],SO.[StatusChangeDate],
-				 SO.[Notes],C.[RestrictPMA],C.[RestrictDER],SO.[ManagementStructureId],SO.[CustomerWarningId],@CreatedBy,GETDATE(),@CreatedBy,
+				 SO.[Version],SO.[TypeId],GETDATE(),SO.[ShippedDate],SO.[NumberOfItems],@CustomerTypeId,@CustomerId,@CustomerContactId,
+				 @CustomerReference,SO.[CurrencyId],SO.[TotalSalesAmount],SO.[CustomerHold],SO.[DepositAmount],@BalanceDue,@PrimarySalesPersonId,
+				 SO.[AgentId],@CsrId,SO.[EmployeeId],SO.[ApprovedById],SO.[ApprovedDate],SO.[Memo],SO.[StatusId],SO.[StatusChangeDate],
+				 SO.[Notes],@RestrictPMA,@RestrictDER,SO.[ManagementStructureId],SO.[CustomerWarningId],@CreatedBy,GETDATE(),@CreatedBy,
 				 GETDATE(),SO.[MasterCompanyId],0,SO.[SalesOrderQuoteId],SO.[QtyRequested],SO.[QtyToBeQuoted],@SalesOrderNumber,
-				 1,C.[ContractReference],SO.[TypeName],CT.[CustomerTypeName],C.[Name],CONCAT(ISNULL(EMP.FirstName, ''), ' ', ISNULL(EMP.LastName, '')),CONCAT(ISNULL(EMPCSR.FirstName, ''), ' ', ISNULL(EMPCSR.LastName, '')),
-				 @CreatedBy,NULL,SO.[CustomerWarningName],SO.[ManagementStructureName],ISNULL(CF.[CreditLimit],0),ISNULL(CF.[CreditTermsId],0),
-				 CF.[CreditLimit],CTMS.[Name],SO.[VersionNumber],SO.[TotalFreight],SO.[TotalCharges],SO.[FreightBilingMethodId],
+				 1,@ContractReference,SO.[TypeName],@CustomerTypeName,@CustomerName,@SalesPersonName,@CustomerServiceRepName,
+				 @CreatedBy,NULL,SO.[CustomerWarningName],SO.[ManagementStructureName],@CreditLimit,@CreditTermsId,
+				 NULL,@CreditTermName,SO.[VersionNumber],SO.[TotalFreight],SO.[TotalCharges],SO.[FreightBilingMethodId],
 				 SO.[ChargesBilingMethodId],SO.[EnforceEffectiveDate],SO.[IsEnforceApproval],SO.[Level1],SO.[Level2],SO.[Level3],SO.[Level4],SO.[ATAPDFPath],
-				 SO.[LotId],SO.[IsLotAssigned],SO.[AllowInvoiceBeforeShipping],CTMS.[PercentId],CTMS.[Days],CTMS.[NetDays],SO.[COCManufacturingPDFPath],
+				 SO.[LotId],SO.[IsLotAssigned],SO.[AllowInvoiceBeforeShipping],@PercentId,@Days,@NetDays,SO.[COCManufacturingPDFPath],
 				 @FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate
-				 FROM [dbo].[SalesOrder] SO WITH(NOLOCK)
-				 LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = @CustomerId 
-				 LEFT JOIN [dbo].[CustomerSales] CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId
-				 LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON CT.CustomerTypeId = C.CustomerTypeId
-				 LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON CS.PrimarySalesPersonId = EMP.EmployeeId
-				 LEFT JOIN [dbo].[Employee] EMPCSR WITH(NOLOCK) ON CS.CsrId = EMPCSR.EmployeeId
-				 LEFT JOIN [dbo].[CustomerContact] CC WITH(NOLOCK) ON CC.CustomerId = @CustomerId AND CC.IsDefaultContact = 1
-				 LEFT JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = C.CustomerId
-				 LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = CF.CurrencyId
-				 LEFT JOIN [dbo].[CreditTerms] CTMS WITH(NOLOCK) ON CF.CreditTermsId = CTMS.CreditTermsId
-				 WHERE SO.SalesOrderId = @SalesOrderId
-
+				 FROM [dbo].[SalesOrder] SO WITH(NOLOCK)  WHERE SO.SalesOrderId = @SalesOrderId;
+				 
 			-- END Insert SalesOrder
 
 				SELECT @OldSalesOrderId = @SalesOrderId;

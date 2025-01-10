@@ -13,8 +13,9 @@
  ** -----------------------------------------------------------          
     1					Unknown					Created
 	2    07/11/2024		Devendra Shekh			added ImgClass to select
+	3    10/01/2025		Bhargav Saliya			added MobileMenuSequence
 	     
--- EXEC [dbo].[GetMenuPermission] '27,1'
+-- EXEC [dbo].[GetMenuPermission] '1'
 ************************************************************************/ 
 CREATE   Procedure [dbo].[GetMenuPermission] 
 	@RoleId varchar(max),
@@ -52,6 +53,7 @@ Begin
 			 ImgClass varchar(1000) null,
 			 IsMobileMenu bit null,
 			 MobileMenuName varchar(250) null,
+			 MobileMenuSequence int null,
 			)
 
 
@@ -75,7 +77,7 @@ Begin
 
 				--SELECT distinct MenuName+'.'+PermissionName as Name,M.IsPage,M.DisplayOrder,M.ModuleCode,M.Id,M.ModuleIcon,M.RouterLink,M.ParentId,M.IsMenu FROM MenuSettings1
 				--Inner Join dbo.ModuleHierarchyMaster M on MenuSettings1.ParentID=M.Id and M.ParentId is null
-				SELECT distinct M.PermissionConstant + '.' + P.PermissionName as Name, M.IsPage, M.DisplayOrder, M.ModuleCode, M.Id, M.ModuleIcon, M.RouterLink, M.ParentId, M.IsMenu,DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName
+				SELECT distinct M.PermissionConstant + '.' + P.PermissionName as Name, M.IsPage, M.DisplayOrder, M.ModuleCode, M.Id, M.ModuleIcon, M.RouterLink, M.ParentId, M.IsMenu,DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName,ISNULL(M.MobileMenuSequence,0) MobileMenuSequence
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					Inner Join dbo.PermissionMaster P WITH (NOLOCK) on R.PermissionID = P.PermissionID
@@ -84,16 +86,16 @@ Begin
 			End
 			Else
 			Begin
-				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName,ImgClass,IsMobileMenu,MobileMenuName)
+				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName,ImgClass,IsMobileMenu,MobileMenuName,MobileMenuSequence)
 				AS
 				(
 					SELECT M.ID,M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, R.PermissionID, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,
-					M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName
+					M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName,ISNULL(M.MobileMenuSequence,0) MobileMenuSequence
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					WHERE R.UserRoleId in (Select * from [dbo].[SplitString](@RoleId, ','))
 					UNION ALL 
-					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName
+					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName,M.ImgClass,M.IsMobileMenu,M.MobileMenuName,ISNULL(M.MobileMenuSequence,0) MobileMenuSequence
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK) 
 					INNER JOIN MenuSettings1 M1 ON M1.ParentID = M.ID
 				)
@@ -106,7 +108,7 @@ Begin
 				SELECT id FROM #TempTable T WHERE CreateMenu = 1  
 						 AND (SELECT count(id) FROM #TempTable where ISNULL(ModuleId, 0) = T.ModuleId AND  PermissionID = 1) > 0)
 
-				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName,ImgClass,IsMobileMenu,MobileMenuName
+				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName,ImgClass,IsMobileMenu,MobileMenuName,MobileMenuSequence
 				FROM  #TempTable Order By DisplayOrder
 			End
 

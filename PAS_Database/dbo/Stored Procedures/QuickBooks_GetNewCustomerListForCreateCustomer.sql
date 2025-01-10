@@ -13,11 +13,13 @@
  ** --   --------		-------			--------------------------------          
     1    04-July-2024   Hemant Saliya	Created
 	2    18-NOV-2024    Devendra Shekh	Modified(Added fields to select)
+	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
      
  EXECUTE [QuickBooks_GetNewCustomerListForCreateCustomer] 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetNewCustomerListForCreateCustomer]
-	@IntegrationTypeId INT = NULL
+	@IntegrationTypeId INT = NULL,
+	@MasterCompanyId INT = NULL
 AS
 BEGIN
 	
@@ -57,7 +59,7 @@ BEGIN
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON C.AddressId = AD.AddressId
 				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
-			WHERE ISNULL(C.QuickBooksReferenceId, 0) = 0 AND ISNULL(C.IsUpdated, 0) = 1 
+			WHERE ISNULL(C.QuickBooksReferenceId, 0) = 0 AND ISNULL(C.IsUpdated, 0) = 1 AND C.MasterCompanyId = 1 
 		END
 	END TRY    
 	BEGIN CATCH      

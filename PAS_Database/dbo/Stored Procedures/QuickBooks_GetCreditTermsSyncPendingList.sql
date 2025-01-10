@@ -12,11 +12,13 @@
  ** PR   Date				Author					Change Description            
  ** --   --------			-------				--------------------------------          
     1    27-Nov-2024		Devendra Shekh			Created
+	2    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
      
  EXECUTE [QuickBooks_GetCreditTermsSyncPendingList] 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetCreditTermsSyncPendingList]
-	@IntegrationTypeId INT = NULL
+	@IntegrationTypeId INT = NULL,
+	@MasterCompanyId INT = NULL
 AS
 BEGIN
 	
@@ -44,7 +46,7 @@ BEGIN
 			FROM [dbo].[CreditTerms] CT WITH(NOLOCK) 
 				LEFT JOIN [dbo].[TaxRate] TR WITH(NOLOCK) ON TR.TaxRateId = CT.PercentId
 				 
-			WHERE ISNULL(CT.QuickBooksReferenceId, 0) = 0 AND ISNULL(CT.IsUpdated, 0) = 1 
+			WHERE ISNULL(CT.QuickBooksReferenceId, 0) = 0 AND ISNULL(CT.IsUpdated, 0) = 1 AND CT.MasterCompanyId = @MasterCompanyId
 		END
 	END TRY    
 	BEGIN CATCH      

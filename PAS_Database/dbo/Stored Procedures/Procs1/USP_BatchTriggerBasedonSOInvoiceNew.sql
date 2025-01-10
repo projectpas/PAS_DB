@@ -330,7 +330,7 @@ BEGIN
 						SELECT @GlAccountId = [GLAccountId],
 							   @GlAccountNumber = [AccountCode],
 							   @GlAccountName = [AccountName]
-						FROM [dbo].[GLAccount]
+						FROM [dbo].[GLAccount] WITH(NOLOCK)
 						WHERE [GLAccountId] = @RevenueSoGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 						
@@ -625,7 +625,7 @@ BEGIN
 							SELECT @GlAccountId = [GLAccountId],
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount]
+							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @COGSSalesOrderGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 
@@ -662,7 +662,7 @@ BEGIN
 							SELECT @GlAccountId = [GLAccountId],
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount]
+							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @InventoryToBillGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 
@@ -886,7 +886,7 @@ BEGIN
 							SELECT @GlAccountId = [GLAccountId],
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount]
+							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @InventoryToBillGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 							
@@ -932,7 +932,7 @@ BEGIN
 							SELECT @GlAccountId = [GLAccountId],
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
-							FROM [dbo].[GLAccount]
+							FROM [dbo].[GLAccount] WITH(NOLOCK)
 							WHERE [GLAccountId] = @InventoryGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 				            

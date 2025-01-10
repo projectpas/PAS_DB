@@ -16,7 +16,7 @@ EXEC [USP_GetNonPOInvoiceEditData_ById]
 ** 5    10/26/2023		Devendra Shekh		 ADDED new columns
 ** 6    11/01/2024	    Moin Bloch 			 ADDED new columns ReferenceId,ReferenceModuleId
 ** 7    12/27/2024		AMIT GHEDIYA		 Modify(Added ControlNumber Field)
-
+** 3    01-Jan-2025		AYUSHI PATEL		 Get TotalPartCount
 exec dbo.USP_GetNonPOInvoiceEditData_ById 1,1
 *****************************************************************************************/   
 
@@ -31,7 +31,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
-				
+				DECLARE @totalPartCount int = (SELECT COUNT(1) FROM dbo.NOnPOInvoicePartDetails WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId)
 				SELECT DISTINCT
 						NPH.[NonPOInvoiceId],
 						NPH.[VendorId],
@@ -61,7 +61,8 @@ BEGIN
 						ISNULL(NPH.[CurrencyId], 0) AS [CurrencyId],
 						NPH.[ReferenceId],
 						NPH.[ReferenceModuleId],
-						NPH.[ControlNumber]
+						NPH.[ControlNumber],
+						@totalPartCount as TotalPartCount
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				 LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId

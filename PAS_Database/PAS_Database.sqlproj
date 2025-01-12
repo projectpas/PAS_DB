@@ -3386,6 +3386,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetWOTaskInstructionsByWOTaskId.sql" />
     <Build Include="dbo\Stored Procedures\GetDepositDistributionNonPOVendorProforma.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOTaskInstructionSequenceNumber.sql" />
+    <Build Include="dbo\Tables\WorkOrderTaskInstructionAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateTaskInstructionSequenceNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_TaskInstruction_DeleteRestoreById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTaskInstructionMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTaskInstructionMasterList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

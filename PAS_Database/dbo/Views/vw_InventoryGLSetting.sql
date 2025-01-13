@@ -37,7 +37,7 @@ GLMro.AccountName AS RevenueMroGLAccName,
 IGS.RevenueSoGLAccId,
 GLMisc.AccountName AS RevenueSoGLAccName,
 IGS.RevenueExchGLAccId,
-GLGoods.AccountName AS RevenueMiscGLAccName,
+GLGoods.AccountName AS RevenueExchGLAccName,
 IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate,IGS.Memo, IGS.IsActive, IGS.IsDeleted
 FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)  
  LEFT JOIN [DBO].[view_GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 

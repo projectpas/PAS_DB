@@ -45,6 +45,7 @@
 	28	 25/12/2024	  AMIT GHEDIYA		Modified for get TotalSales calculated with Sales tax & Other Tax.
 	29	 26/12/2024	  AMIT GHEDIYA		Fixed the billing amount when partial qty is rerserved
 	30	 26/12/2024	  Vishal Suthar		Fixed the issue with tax calculation when part has multiple stockline and freight and charges are also applied
+	31   08-01-2025   Shrey Chandegara  Fixed Issue of costplus amount in salesorder billing.
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
@@ -589,17 +590,17 @@ BEGIN
 				) tmpcash WHERE 
 				tmpcash.SalesOrderStocklineId = #SalesOrderBillingInvoiceChildList.SalesOrderStocklineId
 				AND tmpcash.SOBillingInvoicingId IS NULL
-
+				--select * from #SalesOrderBillingInvoiceChildList
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFreight = tmpcash.TotalFreight
-				FROM( SELECT ISNULL((BillingAmount), 0) AS TotalFreight , tmpSOBI.SalesOrderPartId--, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
+				FROM( SELECT SUM(ISNULL((BillingAmount), 0)) AS TotalFreight , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
 					FROM dbo.SalesOrderFreight SOF WITH (NOLOCK) 
 					JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOF.SalesOrderPartId
 					WHERE sof.SalesOrderId = tmpSOBI.SalesOrderId 						
 						AND sof.ItemMasterId = tmpSOBI.ItemMasterId 
 						AND sof.ConditionId = tmpSOBI.ConditionId 
 						AND sof.IsActive = 1 
-						AND sof.IsDeleted = 0
-					--GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
+						AND sof.IsDeleted = 0 AND ISNULL(tmpSOBI.IsVersionIncrease,0) = 1
+					GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
 				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId --AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFlatFreight = tmpcash.TotalFreight
@@ -610,15 +611,15 @@ BEGIN
 				) tmpcash WHERE tmpcash.SalesOrderId = #SalesOrderBillingInvoiceChildList.SalesOrderId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalCharges = tmpcash.TotalCharges
-				FROM( SELECT ISNULL((BillingAmount), 0) AS TotalCharges , tmpSOBI.SalesOrderPartId--, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
+				FROM( SELECT SUM(ISNULL((BillingAmount), 0)) AS TotalCharges , tmpSOBI.SalesOrderPartId, ISNULL(tmpSOBI.StockLineId, 0) StockLineId
 						FROM dbo.SalesOrderCharges SOC WITH (NOLOCK) 
 						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SalesOrderPartId = SOC.SalesOrderPartId
 						WHERE SOC.SalesOrderId = @SalesOrderId 						
 							AND SOC.ItemMasterId = tmpSOBI.ItemMasterId 
 							AND SOC.ConditionId = tmpSOBI.ConditionId 
 							AND SOC.IsActive = 1 
-							AND SOC.IsDeleted = 0
-						--GROUP BY tmpSOBI.SalesOrderPartId--, tmpSOBI.StockLineId
+							AND SOC.IsDeleted = 0  AND ISNULL(tmpSOBI.IsVersionIncrease,0) = 1
+						GROUP BY tmpSOBI.SalesOrderPartId, tmpSOBI.StockLineId
 				) tmpcash WHERE tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId --AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFlatCharges = tmpcash.TotalFlatCharges

@@ -21,6 +21,8 @@
     [COGS_WorkOrderGLAccCode]           NVARCHAR (250) NULL,
     [COGS_SalesOrderGLAccId]            BIGINT         NOT NULL,
     [COGS_SalesOrderGLAccCode]          NVARCHAR (250) NULL,
+    [COGS_ExchSalesOrderGLAccId]        BIGINT         NULL,
+    [COGS_ExchSalesOrderGLAccCode]      NVARCHAR (250) NULL,
     [COGS_QtyVarianceGLAccId]           BIGINT         NOT NULL,
     [COGS_QtyVarianceGLAccCode]         NVARCHAR (250) NULL,
     [COGS_UnitCostVarianceGLAccId]      BIGINT         NOT NULL,
@@ -48,8 +50,9 @@
 
 
 
-GO
 
+
+GO
 CREATE   TRIGGER [dbo].[Trg_InventoryGLSetting_Audit]
 ON [dbo].[InventoryGLSetting]
 AFTER INSERT, UPDATE, DELETE
@@ -73,6 +76,7 @@ BEGIN
             InventoryReserveGLAccId,
             COGS_WorkOrderGLAccId,
             COGS_SalesOrderGLAccId,
+			COGS_ExchSalesOrderGLAccId,
             COGS_QtyVarianceGLAccId,
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
@@ -99,6 +103,7 @@ BEGIN
             InventoryReserveGLAccId,
             COGS_WorkOrderGLAccId,
             COGS_SalesOrderGLAccId,
+			COGS_ExchSalesOrderGLAccId,
             COGS_QtyVarianceGLAccId,
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,

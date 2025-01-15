@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetRecevingCustomerList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Receving Customer List    
@@ -25,6 +24,8 @@
 	7    05-09-2024   Moin Bloch        Updated (Added Piece Part Filter)
 	8    09/17/2024   Hemant Saliya		Updated For Work Order Status
 	9	 08/01/2025   AYUSHI PATEL		Get the createdDate based on Currnt Emp TimeZone
+	10   09/01/2025   Ayushi Patel      converted the date into utc (created , updated)
+	11	 10/01/2025   Ayushi Patel		Added a case to get timeZone 
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -72,11 +73,30 @@ BEGIN
 		DECLARE @PiecePart BIT; 
 		DECLARE @EmpLegalEntiyId BIGINT = 0;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-
+		
 		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-		WHERE LE.LegalEntityId = @EmpLegalEntiyId;
+		--SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		--WHERE LE.LegalEntityId = @EmpLegalEntiyId;
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
+		
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -146,13 +166,15 @@ BEGIN
 					RC.ManagementStructureId AS Ids,
 					RC.IsActive,
 					RC.IsDeleted,
-					RC.CreatedDate,
+					--RC.CreatedDate,
 					RC.CreatedBy,
-					RC.UpdatedDate,
+					--RC.UpdatedDate,
 					RC.UpdatedBy, 
 					MSD.LastMSLevel,
 					MSD.AllMSlevels,
-					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart
+					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
+					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate
 				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
@@ -210,8 +232,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE)=CAST(@ReceivedDate AS DATE)) AND
-					(IsNull(@CreatedDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@CreatedDate as date)) AND 
-					--(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
+					--(IsNull(@CreatedDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@CreatedDate as date)) AND 
+					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 					(ISNULL(@Reference,'') ='' OR Reference LIKE '%' + @Reference+'%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%'))

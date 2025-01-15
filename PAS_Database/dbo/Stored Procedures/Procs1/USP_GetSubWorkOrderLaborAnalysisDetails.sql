@@ -18,7 +18,8 @@
  ** --   --------     -------				--------------------------------          
     1    02/22/2021   Hemant Saliya			Created
 	2    12/22/2021   Devendra Shekh		added SubWorkOrderNo to select
-     
+    3    01/09/2025   Moin Bloch    Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
+ 
  EXECUTE USP_GetSubWorkOrderLaborAnalysisDetails 331,122, 0
 
 **************************************************************/ 
@@ -36,23 +37,28 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON    
 
 	BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN  
+		--BEGIN TRANSACTION
+		--	BEGIN  
 				SELECT 
 						im.partnumber AS PartNumber,
 						im.PartDescription,
 						im.RevisedPart AS RevisedPN,
-						SUM(wl.Hours) AS [Hours],
-						SUM(wl.Adjustments) AS [Adjustments],
-						SUM(wl.AdjustedHours) AS [AdjustedHours],
-						SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
+						--ISNULL(SUM(wl.[Hours]),0) AS [Hours],
+						ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+						ISNULL(SUM(wl.Adjustments),0) AS [Adjustments],
+						ISNULL(SUM(wl.AdjustedHours),0) AS [AdjustedHours],
+						ISNULL(SUM(wl.StandardHours),0) AS StandardHours,
+						ISNULL(SUM(wl.StandardMinute),0) AS StandardMinute,
+						ISNULL(SUM(wl.VarianceHours),0) AS VarianceHours,	
+						ISNULL(SUM(wl.VarianceMinute),0) AS VarianceMinute,
+						ISNULL(SUM(wl.BurdenRateAmount),0) AS BurdenRateAmount,
 						CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-						c.Name AS Customer,
+						c.[Name] AS Customer,
 						wo.WorkOrderNum,
 						swo.SubWorkOrderNo,
 						ws.Stage,
-						st.[Description] As [Status],
-						t.[Description] As [Action],
+						st.[Description] AS [Status],
+						t.[Description] AS [Action],
 						ex.[Description] AS Expertise,
 						emp.FirstName + ' ' + emp.LastName AS EmployeeName,
 						wl.EmployeeId
@@ -69,10 +75,10 @@ SET NOCOUNT ON
 						JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wlh.SubWOPartNoId = @SubWorkOrderPartNoId AND wo.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1 
-					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.Name ,wo.WorkOrderNum,ws.Stage,BillableId,
+					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
 						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,swo.SubWorkOrderNo
-			END
-		COMMIT  TRANSACTION
+		--	END
+		--COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0

@@ -19,6 +19,7 @@
 	4	 21-NOV-2024  Abhishek Jirawla		Price correction with the helpp of Vishal Sir and Happy Sir
 	5	 28-NOV-2024  Vishal Suthar			Handled divide by zero exception
 	6	 02-DEC-2024  Vishal Suthar			Fixed issues with amount in most of the charts
+	7    09-JAN-2025  Divyesh Kathiriya		Fix Duplicate Value Due To ManagementStructure JOIN
 
 EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '11/29/2024', 10
 ************************************************************************/
@@ -153,6 +154,32 @@ BEGIN
 
 				SELECT @MasterLoopID = MIN(ID) FROM #tmpDateOfMonth;
 
+				-- To Avoid DuplicatedRoles Due To ManagementStructure JOIN --
+				IF OBJECT_ID(N'tempdb..#tmpSOQUserRole') IS NOT NULL    
+				BEGIN    
+					DROP TABLE #tmpSOQUserRole
+				END
+				IF OBJECT_ID(N'tempdb..#tmpSOUserRole') IS NOT NULL    
+				BEGIN    
+					DROP TABLE #tmpSOUserRole
+				END
+
+				SELECT * INTO #tmpSOQUserRole FROM (SELECT DISTINCT
+					MSD.ReferenceID,
+					RMS.EntityStructureId
+				FROM dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON MSD.EntityMsId = RMS.EntityStructureId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+				WHERE MSD.ModuleID = @SOQMSModuleID AND EUR.EmployeeId = @EmployeeId) AS SoqUserRole
+		
+				SELECT * INTO #tmpSOUserRole FROM (SELECT DISTINCT
+					MSD.ReferenceID,
+					RMS.EntityStructureId
+				FROM dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON MSD.EntityMsId = RMS.EntityStructureId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+				WHERE MSD.ModuleID = @SOMSModuleID AND EUR.EmployeeId = @EmployeeId) AS SoUserRole
+
 				-- Monthly Dashboard
 				WHILE (@MasterLoopID <= @Day)
 				BEGIN
@@ -233,9 +260,10 @@ BEGIN
 					SELECT SUM(ISNULL(SOQPC.NetSaleAmount, 0)), @Month
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						INNER JOIN #tmpSOQUserRole SOQUR ON SOQUR.ReferenceID = SOQ.SalesOrderQuoteId
+						--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						LEFT OUTER JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 						LEFT OUTER JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE CAST(SOQ.OpenDate as Date) = CAST(@SelectedDate AS DATE) 
@@ -255,9 +283,10 @@ BEGIN
 					@Month
 					FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						INNER JOIN #tmpSOUserRole SOUR ON SOUR.ReferenceID = SO.SalesOrderId
+						--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						LEFT OUTER JOIN dbo.SalesOrderCharges SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT OUTER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 					WHERE CAST(SO.OpenDate as Date) = CAST(@SelectedDate AS DATE) 
@@ -429,9 +458,10 @@ BEGIN
 					@Month
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						INNER JOIN #tmpSOQUserRole SOQUR ON SOQUR.ReferenceID = SOQ.SalesOrderQuoteId
+						--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						LEFT OUTER JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 						LEFT OUTER JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE MONTH(Cast(SOQ.OpenDate as Date)) = @Month AND YEAR(Cast(SOQ.OpenDate as Date)) = @YEAR
@@ -451,9 +481,10 @@ BEGIN
 					@Month 
 					FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						INNER JOIN #tmpSOUserRole SOUR ON SOUR.ReferenceID = SO.SalesOrderId
+						--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						LEFT OUTER JOIN dbo.SalesOrderCharges SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT OUTER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 					WHERE MONTH(Cast(SO.OpenDate as Date)) = @Month AND YEAR(Cast(SO.OpenDate as Date)) = @YEAR
@@ -494,9 +525,10 @@ BEGIN
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						INNER JOIN #tmpSOQUserRole SOQUR ON SOQUR.ReferenceID = SOQ.SalesOrderQuoteId
+						--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					WHERE YEAR(SOQ.OpenDate) = @CurrentYear 
 					AND MONTH(SOQ.OpenDate) = @CurrentMonth 
 					AND CAST(SOQ.OpenDate AS DATE) <= CAST(@StartDate AS DATE)
@@ -538,9 +570,10 @@ BEGIN
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-							INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
-							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							INNER JOIN #tmpSOUserRole SOUR ON SOUR.ReferenceID = SO.SalesOrderId
+							--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 							LEFT OUTER JOIN dbo.SalesOrderShipping SOS WITH (NOLOCK) ON SO.SalesOrderId = SOS.SalesOrderId
 							LEFT OUTER JOIN dbo.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
@@ -587,9 +620,10 @@ BEGIN
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN Customer C WITH (NOLOCK) ON C.CustomerId = SO.CustomerId
-							INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
-							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							INNER JOIN #tmpSOUserRole SOUR ON SOUR.ReferenceID = SO.SalesOrderId
+							--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 							LEFT OUTER JOIN dbo.SalesOrderCharges SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOP.SalesOrderPartId
 							LEFT OUTER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 						WHERE YEAR(SO.OpenDate) = @CurrentYear
@@ -619,8 +653,9 @@ BEGIN
 				SELECT @soqNumOfPartsYearly = COUNT(SalesOrderQuotePartId)
 				FROM SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 					INNER JOIN SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
-					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					INNER JOIN #tmpSOQUserRole SOQUR ON SOQUR.ReferenceID = SOQ.SalesOrderQuoteId
+					--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+					--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE CAST(SOQ.OpenDate AS DATE) BETWEEN CAST(@YearStartDate AS DATE) AND CAST(@StartDate AS DATE)
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0;
 

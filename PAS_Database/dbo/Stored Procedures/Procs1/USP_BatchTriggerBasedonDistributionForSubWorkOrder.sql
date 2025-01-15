@@ -18,6 +18,7 @@
 	3    25/09/2024	 AMIT GHEDIYA	Added for AutoPost Batch
 	4	 08/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	5	 11/05/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	6	 13/01/2025  Devendra Shekh Modify (StockLine GL selection Changes)
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
@@ -250,6 +251,10 @@ BEGIN
 						WHERE UPPER([DistributionSetupCode]) = UPPER('WIPPARTS') 
 						AND [DistributionMasterId] = @DistributionMasterId 
 						AND MasterCompanyId=@MasterCompanyId
+
+					--GL Selection Saved At StockLine 
+					SELECT	@GlAccountId = SL.WorkInProgressGLAccId	FROM DBO.Stockline SL WITH(NOLOCK) WHERE SL.StockLineId = @StocklineId;
+					SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName	FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
 					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
 					BEGIN
@@ -723,6 +728,10 @@ BEGIN
 				WHERE UPPER([DistributionSetupCode]) = UPPER('WIPPARTS') 
 				AND [DistributionMasterId] = @DistributionMasterId 
 				AND MasterCompanyId=@MasterCompanyId
+
+					--GL Selection Saved At StockLine 
+					SELECT	@GlAccountId = SL.WorkInProgressGLAccId	FROM DBO.Stockline SL WITH(NOLOCK) WHERE SL.StockLineId = @StocklineId;
+					SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName	FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
 					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
 					BEGIN

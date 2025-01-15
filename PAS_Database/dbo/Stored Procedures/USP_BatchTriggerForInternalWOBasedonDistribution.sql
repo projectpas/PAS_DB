@@ -14,6 +14,7 @@
 	3   18/09/2024		AMIT GHEDIYA		Added for AutoPost Batch
 	4	10/08/2024		Devendra Shekh		Added new fields for [CommonBatchDetails]
 	5	11/04/2024		Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	6	13/01/2025		Devendra Shekh		Modify (StockLine GL selection Changes)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
@@ -155,6 +156,24 @@ BEGIN
 		DECLARE @FXRate DECIMAL(18,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'WO';
 
+		DECLARE 
+		@GoodsReceivedNotInvoicesGLAccId BIGINT = 0,
+		@GoodsReceivedNotInvoicesGLAccName VARCHAR(250),
+		@InventoryGLAccId BIGINT = 0,
+		@WorkInProgressGLAccId BIGINT = 0,
+		@WorkInProgressGLAccName VARCHAR(250),
+		@InventoryToBillGLAccId BIGINT = 0,
+		@InventoryToBillGLAccName VARCHAR(250),
+		@FinishedGoodsGLAccId BIGINT = 0,
+		@FinishedGoodsGLAccName VARCHAR(250),
+		@InventoryExchAgreementGLAccId BIGINT = 0,
+		@InventoryExchAgreementGLAccName VARCHAR(250),
+		@InventoryReserveGLAccId BIGINT = 0,
+		@InventoryReserveGLAccName VARCHAR(250),
+		@COGS_WorkOrderGLAccId BIGINT = 0,
+		@RevenueMROGLAccId BIGINT = 0,
+		@COGS_WorkOrderGLAccName VARCHAR(250);
+
 		WHILE(@TotalRecords >= @StartCount AND @TotalAmount <> 0)
 		BEGIN
 
@@ -291,6 +310,10 @@ BEGIN
 					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 					FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
+					--GL Selection Saved At StockLine 
+					SELECT	@GlAccountId = SL.WorkInProgressGLAccId	FROM DBO.Stockline SL WITH(NOLOCK) WHERE SL.StockLineId = @StocklineId;
+					SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName	FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
+
 					IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
@@ -396,8 +419,9 @@ BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType from DistributionSetup 
 								WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('INVENTORYPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
-						SELECT @GlAccountId=GlAccountId from Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
-						SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName from GLAccount WITH(NOLOCK) WHERE GLAccountId=@GlAccountId
+						--GL Selection Saved At StockLine 
+						SELECT	@GlAccountId = GLAccountId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+						SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
 						SET @GlAccountId = ISNULL(@GlAccountId,0) 
 
@@ -535,8 +559,9 @@ BEGIN
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType from DistributionSetup WITH(NOLOCK)  
 							WHERE UPPER(DistributionSetupCode) =UPPER('INVENTORYPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 						
-							SELECT @GlAccountId=GlAccountId from Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
-							SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName from GLAccount WITH(NOLOCK) WHERE GLAccountId=@GlAccountId
+							--GL Selection Saved At StockLine 
+							SELECT	@GlAccountId = GLAccountId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
 							SET @GlAccountId = isnull(@GlAccountId,0) 
 					
@@ -1259,6 +1284,10 @@ BEGIN
 						BEGIN
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FGINVENTROY') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+							--GL Selection Saved At StockLine 
+							SELECT	@GLAccountId = FinishedGoodsGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
 				        
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 							BEGIN
@@ -1355,6 +1384,10 @@ BEGIN
 							BEGIN
 								SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 								FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FG-WIP-PARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+								--GL Selection Saved At StockLine 
+								SELECT	@GLAccountId = WorkInProgressGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+								SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
 					    
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1473,6 +1506,10 @@ BEGIN
 						BEGIN
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FGINVENTROY') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+							--GL Selection Saved At StockLine 
+							SELECT	@GLAccountId = FinishedGoodsGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
 				        
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 							BEGIN
@@ -1569,6 +1606,10 @@ BEGIN
 							BEGIN
 								SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 								FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FG-WIP-PARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+								--GL Selection Saved At StockLine 
+								SELECT	@GLAccountId = WorkInProgressGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+								SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
 					    
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1871,7 +1912,8 @@ BEGIN
 					SET @FinishGoodAmount = ISNULL((@MaterialCost+@LaborCost+@LaborOverHeadCost),0)
 
 					SELECT @LotId = STL.[LotId],
-						   @LotNumber = LO.[LotNumber]		
+						   @LotNumber = LO.[LotNumber],
+						   @StocklineId = WOP.StockLineId
 					FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)  
 					LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK)  ON STL.[StockLineId] = WOP.[StockLineId]
 					LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK)  ON LO.[LotId] = STL.[LotId]				
@@ -1989,6 +2031,10 @@ BEGIN
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
+							--GL Selection Saved At StockLine 
+							SELECT	@GlAccountId = COGS_WorkOrderGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
+
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -2076,6 +2122,10 @@ BEGIN
 						BEGIN
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WOIFINISHGOOD') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+							--GL Selection Saved At StockLine 
+							SELECT	@GlAccountId = FinishedGoodsGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
 							INSERT INTO [dbo].[CommonBatchDetails]
 							  (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],

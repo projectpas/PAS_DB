@@ -99,9 +99,6 @@ BEGIN
 				FROM 
 				[dbo].[PurchaseOrder] PO WITH (NOLOCK)
 				INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId  
-				--INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = PO.PurchaseOrderId
-	            --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
-	            --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1
 				Where (PO.IsDeleted = 0) and (@StatusID is null or PO.StatusId = @StatusID)
 				AND PO.MasterCompanyId = @MasterCompanyId

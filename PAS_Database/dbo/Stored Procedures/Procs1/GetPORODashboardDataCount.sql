@@ -72,9 +72,6 @@ BEGIN
   SELECT  @POOpenCount=count(PO.PurchaseOrderId)  FROM   
     DBO.PurchaseOrder PO WITH (NOLOCK)   
 	   INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId  
-       --INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
-       --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
-       --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 	   LEFT JOIN dbo.PurchaseOrderPart POP  WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
     WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND (PO.StatusId =@POOpenStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  

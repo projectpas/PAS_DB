@@ -33,7 +33,7 @@ BEGIN
 			LEFT JOIN [dbo].[UserRole] UR WITH (NOLOCK) ON EUR.RoleId = UR.Id 
 			WHERE UR.Name = @RoleName
 			AND EMP.MasterCompanyId =  @MasterCompanyId
-			AND EMP.IsActive = 1 
+			AND ISNULL(EMP.IsActive,0) = 1 
 			AND ISNULL(EMP.IsDeleted,0) = 0
 		END 
 	END TRY

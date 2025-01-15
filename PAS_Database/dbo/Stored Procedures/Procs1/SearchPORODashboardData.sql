@@ -1,4 +1,20 @@
-﻿-- exec SearchPORODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@StatusID=1,@GlobalFilter=N'',@Module=N'RO',@RefId=0,@PORO=NULL,@OpenDate=NULL,@PartNumber=NULL,@PartDescription=NULL,@Requisitioner=NULL,@Age=0,@Amount=0,@Currency=NULL,@Vendor=NULL,@WorkOrderNo=NULL,@SalesOrderNo=NULL,@PromisedDate=NULL,@EstRecdDate=NULL,@Status=NULL,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=104,@Priority=NULL,@Qty=NULL,@UnitCost=NULL,@ExtCost=NULL,@SubWorkOrderNo=NULL
+﻿/*************************************************************             
+ ** File:   [SearchPORODashboardData]             
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to display PO Open Status
+ ** Purpose:           
+ ** Date:       
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+    1    --------		Unknown
+	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
+
+**************************************************************/
+-- exec SearchPORODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@StatusID=1,@GlobalFilter=N'',@Module=N'RO',@RefId=0,@PORO=NULL,@OpenDate=NULL,@PartNumber=NULL,@PartDescription=NULL,@Requisitioner=NULL,@Age=0,@Amount=0,@Currency=NULL,@Vendor=NULL,@WorkOrderNo=NULL,@SalesOrderNo=NULL,@PromisedDate=NULL,@EstRecdDate=NULL,@Status=NULL,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=104,@Priority=NULL,@Qty=NULL,@UnitCost=NULL,@ExtCost=NULL,@SubWorkOrderNo=NULL
 CREATE   PROCEDURE [dbo].[SearchPORODashboardData]
 	@PageNumber int,
 	@PageSize int,
@@ -63,6 +79,18 @@ BEGIN
 					SET @Status = null
 				END
 
+				 DECLARE @POMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName = 'POHeader');  
+				IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderUserRole') IS NOT NULL    
+				BEGIN    
+					DROP TABLE #tmpPurchaseOrderUserRole
+				END
+		
+				SELECT * INTO #tmpPurchaseOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+					FROM [dbo].PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK)
+					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+				WHERE MSD.[ModuleID] = @POMSModuleID AND EUR.[EmployeeId] = @EmployeeId) AS PurchaseOrderUserRole
+
 				;With Result AS(
 				SELECT 'PO' AS 'Module', ISNULL(POP.PurchaseOrderPartRecordId, 0) AS 'RefId', PO.PurchaseOrderId AS 'POROId', PO.PurchaseOrderNumber AS 'PORO', PO.OpenDate, POP.PartNumber, POP.PartDescription, PO.Requisitioner, 
 				(DATEDIFF(day, PO.OpenDate, GETDATE())) AS 'Age', ISNULL(POP.VendorListPrice, 0) AS 'Amount', POP.UnitOfMeasure AS 'Currency', 
@@ -70,14 +98,8 @@ BEGIN
 				POP.Priority as Priority, ISNULL(POP.QuantityOrdered, 0) as Qty, ISNULL(pop.VendorListPrice, 0) as UnitCost, ISNULL(pop.ExtendedCost, 0) as ExtCost,POP.SubWorkOrderNo as SubWorkOrderNo
 				FROM 
 				[dbo].[PurchaseOrder] PO WITH (NOLOCK)
-				INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = PO.PurchaseOrderId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
-	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1 AND POP.IsDeleted = @IsDeleted
-				--DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId
-				--INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
-	   --         INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId
-	   --         INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId  
+				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1
 				Where (PO.IsDeleted = 0) and (@StatusID is null or PO.StatusId = @StatusID)
 				AND PO.MasterCompanyId = @MasterCompanyId
 				UNION

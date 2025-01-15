@@ -7,10 +7,10 @@
     [Hours]                   DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_Hours] DEFAULT ((0)) NULL,
     [Adjustments]             DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_Adjustments] DEFAULT ((0)) NULL,
     [AdjustedHours]           DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_AdjustedHours] DEFAULT ((0)) NULL,
-    [StandardHours]           INT             NULL,
-    [StandardMinute]          INT             NULL,
-    [VarianceHours]           DECIMAL (10, 2) NULL,
-    [VarianceMinute]          DECIMAL (10, 2) NULL,
+    [StandardHours]           INT             CONSTRAINT [DF_WorkOrderLabor_StandardHours] DEFAULT ((0)) NULL,
+    [StandardMinute]          INT             CONSTRAINT [DF_WorkOrderLabor_StandardMinute] DEFAULT ((0)) NULL,
+    [VarianceHours]           DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_VarianceHours] DEFAULT ((0)) NULL,
+    [VarianceMinute]          DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_VarianceMinute] DEFAULT ((0)) NULL,
     [Memo]                    NVARCHAR (MAX)  NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
     [UpdatedBy]               VARCHAR (256)   NOT NULL,
@@ -37,10 +37,11 @@
     CONSTRAINT [FK_WorkOrderLabor_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrderLabor_ExpertiseId] FOREIGN KEY ([ExpertiseId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),
     CONSTRAINT [FK_WorkOrderLabor_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorkOrderLabor_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId]),
     CONSTRAINT [FK_WorkOrderLabor_WorkOrderLaborHeader] FOREIGN KEY ([WorkOrderLaborHeaderId]) REFERENCES [dbo].[WorkOrderLaborHeader] ([WorkOrderLaborHeaderId])
 );
+
+
 
 
 

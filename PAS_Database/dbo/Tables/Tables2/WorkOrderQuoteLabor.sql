@@ -34,9 +34,10 @@
     CONSTRAINT [FK_WorkOrderQuoteLabor_Expertise] FOREIGN KEY ([ExpertiseId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),
     CONSTRAINT [FK_WorkOrderQuoteLabor_MarkupPercentage] FOREIGN KEY ([MarkupPercentageId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [FK_WorkOrderQuoteLabor_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorkOrderQuoteLabor_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderQuoteLabor_WorkOrderQuoteLaborHeader] FOREIGN KEY ([WorkOrderQuoteLaborHeaderId]) REFERENCES [dbo].[WorkOrderQuoteLaborHeader] ([WorkOrderQuoteLaborHeaderId])
 );
+
+
 
 
 GO

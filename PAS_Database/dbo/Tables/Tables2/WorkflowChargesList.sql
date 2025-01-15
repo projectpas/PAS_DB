@@ -23,10 +23,11 @@
     [WFParentId]            BIGINT          NULL,
     [IsVersionIncrease]     BIT             NULL,
     CONSTRAINT [PK_ProcessChargesList] PRIMARY KEY CLUSTERED ([WorkflowChargesListId] ASC),
-    CONSTRAINT [FK_WorkflowChargesList_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkflowChargesList_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_WorkflowChargesList_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

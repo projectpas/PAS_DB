@@ -186,6 +186,7 @@ BEGIN
 		FROM DBO.CreditMemo CM WITH (NOLOCK)   
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
 			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma,0) = 0
+			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsProforma, 0) = 0 AND  CMD.StocklineId = SOBII.StockLineId
 			LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
 			LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
@@ -246,7 +247,11 @@ BEGIN
 		CASE WHEN soq.statusid IN (2, 4) THEN 
 			CASE WHEN ISNULL(@IsDownload, 0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), soq.ApprovedDate, 107) END 
 		END AS 'qteapprovaldate',  
-		CASE WHEN ISNULL(@IsDownload, 0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOBI.shipdate, 107) END AS 'shipdate', 
+		--CASE WHEN ISNULL(@IsDownload, 0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOBI.shipdate, 107) END AS 'shipdate', 
+		CASE 
+			WHEN ISNULL(@IsDownload, 0) = 0 THEN CASE WHEN SOBI.shipdate IS NULL THEN '' ELSE ISNULL(CAST(SOBI.shipdate AS date), '') END 
+			ELSE CASE WHEN SOBI.shipdate IS NULL THEN '' ELSE ISNULL(CAST(SOBI.shipdate AS date), '') END 
+		END 'shipdate',
 
 		ISNULL((SOBII.SubTotal), 0) AS 'Netsales',
 		UPPER(SOBII.MiscCharges) AS 'Misc',  
@@ -363,7 +368,11 @@ BEGIN
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CM.InvoiceDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), CM.InvoiceDate, 107) END 'invdate', 
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'qtedate', 
 		CASE  WHEN SOQ.statusid IN(2,4) THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.ApprovedDate, 107) END END AS 'qteapprovaldate',  
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate', 
+		--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate', 
+		CASE 
+			WHEN ISNULL(@IsDownload, 0) = 0 THEN CASE WHEN SOBI.shipdate IS NULL THEN '' ELSE ISNULL(CAST(SOBI.shipdate AS date), '') END 
+			ELSE CASE WHEN SOBI.shipdate IS NULL THEN '' ELSE ISNULL(CAST(SOBI.shipdate AS date), '') END 
+		END 'shipdate',
 
 		ISNULL((SOBII.SubTotal),0) 'Netsales',
 		UPPER(SOMS.misc) 'Misc',  
@@ -400,7 +409,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 		--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
 		LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND  CMD.ItemMasterId = SOP.ItemMasterId
-		LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId AND  CMD.StocklineId = SOV.StockLineId
+		LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId AND CMD.StocklineId = SOV.StockLineId
 		LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId   
 		LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId  

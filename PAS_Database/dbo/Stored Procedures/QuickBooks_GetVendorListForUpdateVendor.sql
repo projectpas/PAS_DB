@@ -13,11 +13,13 @@
  ** --   --------		-------			--------------------------------          
     1    04-July-2024   Hemant Saliya	Created
     2    12-Nov-2024   Devendra Shekh	Modified (Update AccountingIntegrationSettings LastRun, UpdatedDate)
+	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
      
  EXECUTE [QuickBooks_GetVendorListForUpdateVendor] 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetVendorListForUpdateVendor]
-	@IntegrationTypeId INT = NULL
+	@IntegrationTypeId INT = NULL,
+	@MasterCompanyId INT = NULL
 AS
 BEGIN
 	
@@ -59,7 +61,7 @@ BEGIN
 				JOIN dbo.Contact CON WITH(NOLOCK) ON VO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON V.AddressId = AD.AddressId
 				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
-			WHERE ISNULL(V.QuickBooksReferenceId, 0) != 0 AND ISNULL(V.IsUpdated, 0) = 1 
+			WHERE ISNULL(V.QuickBooksReferenceId, 0) != 0 AND ISNULL(V.IsUpdated, 0) = 1 AND V.MasterCompanyId = @MasterCompanyId 
 		END
 	END TRY    
 	BEGIN CATCH      

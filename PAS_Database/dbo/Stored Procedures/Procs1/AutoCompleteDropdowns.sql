@@ -206,11 +206,11 @@ AS BEGIN
                          END
 						  IF(@TableName='Site')BEGIN
                              SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized
-                             FROM dbo.Site IM
+                             FROM dbo.Site IM WITH(NOLOCK)
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.Name like '%'+@Parameter3+'%'
                              UNION
                              SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized
-                             FROM dbo.Site IM
+                             FROM dbo.Site IM WITH(NOLOCK)
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.SiteId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          END
                          ELSE BEGIN

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetPORODashboardDataCount]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to display PO/RO records Count
@@ -12,6 +13,7 @@
  ** --   --------     -------		-------------------------------            
     1    18/05/2023   Satish Gohil    Count Showing issue fixed
 	2	 12 NOV 2024  HEMANT SALIYA	  Verify the count AND removed un used code 
+	3	 15 jan 2025  BHARGAV SALIYA	 Resolved Count issue 
 
 **************************************************************/ 
 
@@ -54,12 +56,25 @@ BEGIN
   DECLARE @POMSModuleID INT = 4;  
   DECLARE @ROMSModuleID INT = 24;  
      
+
+	    IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpPurchaseOrderUserRole
+		END
+		
+		SELECT * INTO #tmpPurchaseOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @POMSModuleID AND EUR.[EmployeeId] = @EmployeeId) AS PurchaseOrderUserRole
+
   
   SELECT  @POOpenCount=count(PO.PurchaseOrderId)  FROM   
     DBO.PurchaseOrder PO WITH (NOLOCK)   
-       INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
-       INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
-       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
+	   INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId  
+       --INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
+       --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
+       --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 	   LEFT JOIN dbo.PurchaseOrderPart POP  WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
     WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND (PO.StatusId =@POOpenStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  

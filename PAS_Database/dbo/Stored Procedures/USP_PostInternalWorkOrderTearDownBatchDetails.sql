@@ -18,6 +18,7 @@
 	2    04/04/2024          Moin Bloch          changed logic for unit cost
 	3    12/04/2024          Devendra Shekh      added case to set @ManagementStructureId  
 	4    04/11/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
+	5	 13/01/2025			 Devendra Shekh		 Modify (StockLine GL selection Changes)
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
@@ -78,6 +79,7 @@ BEGIN
 		DECLARE @CurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'TEARDOWN_WO';
+		DECLARE @StocklineId BIGINT = NULL;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -102,7 +104,8 @@ BEGIN
 		-- Only Tear Down WO Type Batch Entry
 			
 		SELECT @UnitCost = ((ISNULL(WOP.StocklineCost,0) + ISNULL(WOPC.PartsCost,0) + ISNULL(WOPC.LaborCost,0) + ISNULL(WOPC.OtherCost,0)) - ISNULL(wop.TendorStocklineCost,0)),
-               @WorkOrderTypeId = WO.[WorkOrderTypeId]     
+               @WorkOrderTypeId = WO.[WorkOrderTypeId],
+			   @StocklineId = WOP.StockLineId
             FROM [dbo].[WorkOrder] WO WITH(NOLOCK)			   
 			INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WO.[WorkOrderId] = WOP.WorkOrderId  
              LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOPC WITH(NOLOCK) ON WOP.ID = WOPC.WOPartNoId
@@ -488,6 +491,10 @@ BEGIN
 			         FROM [dbo].[DistributionSetup] WITH(NOLOCK)					
 					WHERE UPPER([DistributionSetupCode]) = UPPER('IWOTINVENTORY')
 			          AND [DistributionMasterId] = @DistributionMasterId;
+
+			 --GL Selection Saved At StockLine 
+			SELECT	@GlAccountId = GLAccountId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+			SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				        ([JournalBatchDetailId],

@@ -26,9 +26,10 @@
     CONSTRAINT [FK_WorkflowExclusion_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkflowExclusion_ItemClassificationId] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
     CONSTRAINT [FK_WorkFlowExclusion_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
-    CONSTRAINT [FK_WorkFlowExclusion_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkFlowExclusion_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

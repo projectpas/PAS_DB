@@ -16,12 +16,13 @@
     [TaskId]              BIGINT        NULL,
     CONSTRAINT [PK_SubWorkOrderAsset] PRIMARY KEY CLUSTERED ([SubWorkOrderAssetId] ASC),
     CONSTRAINT [FK_SubWorkOrderAsset_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
-    CONSTRAINT [FK_SubWorkOrderAsset_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_SubWorkOrderAssets_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SubWorkOrderAssets_SubWorkOrder] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_SubWorkOrderAssets_SubWorkOrderPartNumber] FOREIGN KEY ([SubWOPartNoId]) REFERENCES [dbo].[SubWorkOrderPartNumber] ([SubWOPartNoId]),
     CONSTRAINT [FK_SubWorkOrderAssets_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

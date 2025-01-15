@@ -73,10 +73,11 @@
     CONSTRAINT [FK_SubWorkOrderMaterials_Provision] FOREIGN KEY ([ProvisionId]) REFERENCES [dbo].[Provision] ([ProvisionId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_SubWOPartNo] FOREIGN KEY ([SubWOPartNoId]) REFERENCES [dbo].[SubWorkOrderPartNumber] ([SubWOPartNoId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_SubWorkOrder] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
-    CONSTRAINT [FK_SubWorkOrderMaterials_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

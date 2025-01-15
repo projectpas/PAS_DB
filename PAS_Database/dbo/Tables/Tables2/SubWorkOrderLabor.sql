@@ -4,13 +4,13 @@
     [TaskId]                    BIGINT          NOT NULL,
     [ExpertiseId]               SMALLINT        NULL,
     [EmployeeId]                BIGINT          NULL,
-    [Hours]                     DECIMAL (10, 2) NULL,
-    [Adjustments]               DECIMAL (10, 2) NULL,
-    [AdjustedHours]             DECIMAL (10, 2) NULL,
-    [StandardHours]             INT             NULL,
-    [StandardMinute]            INT             NULL,
-    [VarianceHours]             DECIMAL (10, 2) NULL,
-    [VarianceMinute]            DECIMAL (10, 2) NULL,
+    [Hours]                     DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_Hours] DEFAULT ((0)) NULL,
+    [Adjustments]               DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_Adjustments] DEFAULT ((0)) NULL,
+    [AdjustedHours]             DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_AdjustedHours] DEFAULT ((0)) NULL,
+    [StandardHours]             INT             CONSTRAINT [DF_SubWorkOrderLabor_StandardHours] DEFAULT ((0)) NULL,
+    [StandardMinute]            INT             CONSTRAINT [DF_SubWorkOrderLabor_StandardMinute] DEFAULT ((0)) NULL,
+    [VarianceHours]             DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_VarianceHours] DEFAULT ((0)) NULL,
+    [VarianceMinute]            DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_VarianceMinute] DEFAULT ((0)) NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
     [StartDate]                 DATETIME2 (7)   NULL,
     [EndDate]                   DATETIME2 (7)   NULL,
@@ -38,9 +38,10 @@
     CONSTRAINT [FK_SubWorkOrderLabor_ExpertiseId] FOREIGN KEY ([ExpertiseId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),
     CONSTRAINT [FK_SubWorkOrderLabor_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SubWorkOrderLabor_SubWorkOrderLaborHeader] FOREIGN KEY ([SubWorkOrderLaborHeaderId]) REFERENCES [dbo].[SubWorkOrderLaborHeader] ([SubWorkOrderLaborHeaderId]),
-    CONSTRAINT [FK_SubWorkOrderLabor_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_SubWorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId])
 );
+
+
 
 
 

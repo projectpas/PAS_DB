@@ -17,9 +17,10 @@
     CONSTRAINT [PK_WorkOrderAssets] PRIMARY KEY CLUSTERED ([WorkOrderAssetId] ASC),
     CONSTRAINT [FK_WorkOrderAssets_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_WorkOrderAssets_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorkOrderAssets_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderAssets_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

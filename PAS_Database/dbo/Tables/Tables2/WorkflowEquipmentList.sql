@@ -21,9 +21,10 @@
     [AssetAttributeTypeId]    BIGINT         NULL,
     CONSTRAINT [PK_ProcessEquipmentList] PRIMARY KEY CLUSTERED ([WorkflowEquipmentListId] ASC),
     CONSTRAINT [FK_WorkflowEquipmentList_AssetId] FOREIGN KEY ([AssetId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
-    CONSTRAINT [FK_WorkflowEquipmentList_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkflowEquipmentList_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

@@ -27,6 +27,7 @@
 	11	 14/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	12   29/10/2024   AMIT GHEDIYA		Handle bypass accounting entry.
 	13	 11/05/2024	  Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	14	 15/01/2025   AMIT GHEDIYA		Modify(get Distribution based on new settings from stockline level)
 
 EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -115,6 +116,8 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @IsAccountByPass BIT = 0;
 		DECLARE @ReferenceModule VARCHAR(100) = 'BSADJ';
+
+		DECLARE @InventoryGLAccId BIGINT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentINTERCOTRANSLE';
 
@@ -308,8 +311,20 @@ BEGIN
 						   @StockLineId = StockLineId
 					FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
 					
-					SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
+					SELECT @GlAccountId = GLAccountId,
+						   @InventoryGLAccId = InventoryGLSettingId --For INVENTORY-STOCK Distribution
+					FROM [DBO].[Stockline] WITH(NOLOCK) 
+					WHERE StockLineId = @StockLineId;
+
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
+
+					--GET GL Accounting Data from GLAccout based on stockline
+					SELECT @GlAccountId = [GLAccountId],
+						   @GlAccountNumber = [AccountCode],
+						   @GlAccountName = [AccountName]
+					FROM [dbo].[GLAccount] WITH(NOLOCK)
+					WHERE [GLAccountId] = @InventoryGLAccId
+					AND [MasterCompanyId] = @MasterCompanyId;
 
 					--Update Stockline table Adjustment & Freight,Tax
 					SELECT @Quantity = Quantity, @QuantityOnHand = [QuantityOnHand],
@@ -383,7 +398,15 @@ BEGIN
 					
 					 SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					 SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
-					 select @CrDrType;
+					 
+					 --GET GL Accounting Data from GLAccout based on stockline
+					 SELECT @GlAccountId = [GLAccountId],
+						    @GlAccountNumber = [AccountCode],
+						    @GlAccountName = [AccountName]
+					 FROM [dbo].[GLAccount] WITH(NOLOCK)
+					 WHERE [GLAccountId] = @InventoryGLAccId
+					 AND [MasterCompanyId] = @MasterCompanyId;
+
 					 INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],

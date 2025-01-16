@@ -39,6 +39,8 @@
     [FunctionalCurrencyId]    INT             NULL,
     [ReportCurrencyId]        INT             NULL,
     [ForeignExchangeRate]     DECIMAL (18, 2) NULL,
+    [WorkOrderFormTypeId]     BIT             NULL,
+    [IsWoAlwaysOrOndemandId]  BIT             NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -51,6 +53,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

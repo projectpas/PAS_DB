@@ -3403,6 +3403,7 @@
     <Build Include="dbo\Stored Procedures\GetSupportEmployeeList.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerTicketList.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerTicketById.sql" />
+    <Build Include="dbo\Stored Procedures\GetPurchaseOrderList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

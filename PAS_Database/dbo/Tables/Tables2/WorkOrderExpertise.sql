@@ -21,10 +21,11 @@
     [IsFromWorkFlow]       BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_WorkOrderExpertise] PRIMARY KEY CLUSTERED ([WorkOrderExpertiseId] ASC),
     CONSTRAINT [FK_WorkOrderExpertise_ExpertiseTypeId] FOREIGN KEY ([ExpertiseTypeId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),
-    CONSTRAINT [FK_WorkOrderExpertise_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderExpertise_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderExpertise_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

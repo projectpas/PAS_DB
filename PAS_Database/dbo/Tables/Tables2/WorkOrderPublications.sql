@@ -16,10 +16,11 @@
     [IsFromWorkFlow]         BIT           DEFAULT ((0)) NULL,
     CONSTRAINT [PK_WorkOrderPublications] PRIMARY KEY CLUSTERED ([WorkOrderPublicationId] ASC),
     CONSTRAINT [FK_WorkOrderPublications_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorkOrderPublications_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderPublications_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderPublications_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

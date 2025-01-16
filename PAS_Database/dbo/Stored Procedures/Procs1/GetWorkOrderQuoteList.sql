@@ -16,6 +16,7 @@
 	3    18 July 2024 Shrey Chandegara		Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	4    05/08/2024   HEMANT SALIYA			Serial Number Changes
 	5    31-DEC-2024  Devendra Shekh		Added Changes for QuoteAmount
+	6    15-Jan-2024  Moin Bloch  		    Added New Fields WOPartNoId,IsWoAlwaysOrOndemandId,WorkOrderFormTypeId                               
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -130,7 +131,10 @@ BEGIN
 			UPPER(woss.Description) as WoStatus,
 			UPPER(im.ManufacturerName) 'ManufacturerName',
 			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR) 'QuoteAmount' 
+					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR) 'QuoteAmount',
+		    WOQD.WOPartNoId,			
+			ISNULL(wopn.WorkOrderFormTypeId,0) AS WorkOrderFormTypeId,
+			ISNULL(wopn.IsWoAlwaysOrOndemandId,0) AS IsWoAlwaysOrOndemandId
 		FROM dbo.WorkOrderQuote woq WITH (NOLOCK)  
 			JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId  
 			JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId
@@ -159,11 +163,11 @@ BEGIN
 			  (OpenDate like '%' +@GlobalFilter+'%') OR  
 			  (promisedDate like '%' +@GlobalFilter+'%') OR  
 			  (estShipDate like '%'+@GlobalFilter+'%') OR  
-				(estCompletionDate like '%' +@GlobalFilter+'%' ) OR   
+			  (estCompletionDate like '%' +@GlobalFilter+'%' ) OR   
 			  (quoteStatus like '%' +@GlobalFilter+'%') OR  
 			  (quoteStatusId like '%' +@GlobalFilter+'%') OR  
 			  (CreatedBy like '%' +@GlobalFilter+'%') OR  
-			   (quoteStatus like '%' +@GlobalFilter+'%') OR  
+			  (quoteStatus like '%' +@GlobalFilter+'%') OR  
 			  (UpdatedBy like '%' +@GlobalFilter+'%') OR  
 			  (PartNumber like '%' +@GlobalFilter+'%') OR  
 			  (PartDescription like '%' +@GlobalFilter+'%') OR  

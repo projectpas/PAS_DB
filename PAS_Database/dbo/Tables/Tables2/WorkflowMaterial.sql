@@ -36,10 +36,11 @@
     CONSTRAINT [FK_WorkflowMaterial_ItemClassificationId] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
     CONSTRAINT [FK_WorkflowMaterial_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkflowMaterial_MaterialMandatoriesId] FOREIGN KEY ([MaterialMandatoriesId]) REFERENCES [dbo].[MaterialMandatories] ([Id]),
-    CONSTRAINT [FK_WorkflowMaterial_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkflowMaterial_UnitOfMeasureId] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_WorkflowMaterial_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

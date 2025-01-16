@@ -52,9 +52,10 @@
     [OverHeadCostRevenuePercentage] DECIMAL (20, 2) NULL,
     CONSTRAINT [PK_WorkOrderQuoteTask] PRIMARY KEY CLUSTERED ([WorkOrderQuoteTaskId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteTask_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorkOrderQuoteTask_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderQuoteTask_WorkOrderPartNumber] FOREIGN KEY ([WOPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 GO

@@ -71,6 +71,7 @@
     [DownloadFiles]                   NVARCHAR (250)  NULL,
     [CompanyLogos]                    NVARCHAR (250)  NULL,
     [SignatureLogoPath]               NVARCHAR (MAX)  NULL,
+    [UserSignaturePath]               NVARCHAR (MAX)  NULL,
     [CustomerRMAPDFPath]              NVARCHAR (MAX)  NULL,
     [CreditMemoPDFPrint]              NVARCHAR (MAX)  NULL,
     [BatchDetaiilsPrintFilePath]      NVARCHAR (MAX)  NULL,
@@ -96,6 +97,8 @@
     [DBS3BucketName]                  VARCHAR (100)   NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
+
+
 
 
 

@@ -69,6 +69,8 @@
 );
 
 
+
+
 GO
 
 CREATE TRIGGER [dbo].[Trg_WorkOrderMaterialsAudit]
@@ -159,7 +161,7 @@ BEGIN
 
     SELECT [WorkOrderMaterialsId]
 
-      ,[WorkOrderId],[WorkFlowWorkOrderId],[ItemMasterId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
+      ,[WorkOrderId],[WorkFlowWorkOrderId],[ItemMasterId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE()
 
       ,[IsActive],[IsDeleted],[TaskId],[ConditionCodeId],[ItemClassificationId],[Quantity],[UnitOfMeasureId],[UnitCost]
 

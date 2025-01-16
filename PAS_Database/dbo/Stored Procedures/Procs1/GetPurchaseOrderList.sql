@@ -19,6 +19,7 @@
 	03	29-Oct-2024		Abhishek Jirawla	Adding extra data so that we can remove unnecessary data
 	04	14-Nov-2024		Vishal Suthar		Fixed the Quantity Received Issue
  	05	15-Jan-2025		RAJESH GAMI		    Fixed to multiple records display while select on POVIEW     
+	06	15-Jan-2025		Hemant Saliya		Resolved Duplicate issue
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
     
@@ -56,7 +57,7 @@ CREATE   PROCEDURE [dbo].[GetPurchaseOrderList]
 	@RepairOrderNumberType varchar(50)=null,
 	@QuantityOrdered varchar(50)= null,
 	@QuantityBackOrdered varchar(50)= null,
-	@QuantityReceived varchar(50)= null    
+	@QuantityReceived varchar(50)= null      
 AS      
 BEGIN      
 	SET NOCOUNT ON;       
@@ -118,10 +119,11 @@ BEGIN
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNumType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumberType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumberType', 
-					MAX(POP.ReapairOrderNo) AS 'RepairOrderNumber',
-					MAX(POP.WorkOrderNo) AS 'WorkOrderNum',
-					MAX(POP.SalesOrderNo) AS 'SalesOrderNumber',
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELSE MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNum', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumber', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumber', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType',
+
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
 				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
@@ -194,12 +196,13 @@ BEGIN
 			(IsNull(@RepairOrderNumberType, '') = '' OR M.RepairOrderNumberType like '%'+ @RepairOrderNumberType +'%') and      
 			(IsNull(@QuantityOrdered, '') = '' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered +'%') AND       
 			(IsNull(@QuantityBackOrdered, '') = '' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+ @QuantityBackOrdered +'%') AND       
-			(IsNull(@QuantityReceived, '') = '' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+ @QuantityReceived +'%'))
+			(IsNull(@QuantityReceived, '') = '' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+ @QuantityReceived +'%'))      
 			)      
 			), CTE_Count AS (Select COUNT(PurchaseOrderId) AS NumberOfItems FROM ResultData)      
       
 			SELECT PurchaseOrderId,PurchaseOrderNumber,PurchaseOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted      
 			,StatusId,VendorId,VendorName,VendorCode,[Status],RequestedBy,ApprovedBy,'' PartNumber,PartNumberType,'' Manufacturer,ManufacturerType,WorkOrderNumType,SalesOrderNumberType,RepairOrderNumberType, RepairOrderNumber , SalesOrderNumber,WorkOrderNum,
+      
 			CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy, '' EstDeliveryDate,EstDeliveryType,PurchaseOrderPartRecordId,QuantityOrdered,QuantityBackOrdered,QuantityReceived FROM ResultData,CTE_Count      
 		ORDER BY      
          
@@ -248,7 +251,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='approvedBy')  THEN approvedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='approvedBy')  THEN approvedBy END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='estDeliveryType')  THEN estDeliveryType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC 
 
 		OFFSET @RecordFrom ROWS       
 		FETCH NEXT @PageSize ROWS ONLY      
@@ -293,7 +296,7 @@ BEGIN
 			ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,
 			ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
 		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
-			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1 
+			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId           
 		
 		), ResultCount AS(
@@ -334,7 +337,7 @@ BEGIN
 				(ISNULL(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') AND      
 				(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND       
 				(ISNULL(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND       
-				(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))
+				(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))      
 			)      
       
 	  SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult      
@@ -370,7 +373,7 @@ BEGIN
 	  CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,
-	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC      
 	  OFFSET @RecordFrom ROWS       
 	  FETCH NEXT @PageSize ROWS ONLY      
  END      

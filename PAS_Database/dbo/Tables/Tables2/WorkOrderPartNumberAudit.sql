@@ -82,10 +82,10 @@
     [WorkOrderStage]             VARCHAR (150)   NULL,
     [ManufacturerName]           VARCHAR (250)   NULL,
     [EmployeeStation]            VARCHAR (100)   NULL,
-    [WorkOrderFormTypeId]        BIT             NULL,
-    [IsWoAlwaysOrOndemandId]     BIT             NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

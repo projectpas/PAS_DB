@@ -41,6 +41,10 @@
     [PercentId]               BIGINT          NULL,
     [Days]                    INT             NULL,
     [NetDays]                 INT             NULL,
+    [IsWoAlwaysOrOndemandId]  BIT             NULL,
+    [WorkOrderFormTypeId]     BIT             NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
 

@@ -122,8 +122,8 @@ BEGIN
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode;
 
 			SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
-			SET @TemplateBody = REPLACE(@TemplateBody, '##OldResolution##', ISNULL(@OldDescrepancy,''));
-			SET @TemplateBody = REPLACE(@TemplateBody, '##NewResolution##', ISNULL(@Descrepancy,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldResolution##', ISNULL(@OldResolution,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewResolution##', ISNULL(@Resolution,''));
 
 			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, @OldDescrepancy, @Descrepancy, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
 		END

@@ -1189,7 +1189,7 @@ BEGIN
 						SELECT @GlAccountId = [GLAccountId],
 							   @GlAccountNumber = [AccountCode],
 							   @GlAccountName = [AccountName]
-						FROM [dbo].[GLAccount]
+						FROM [dbo].[GLAccount] WITH(NOLOCK)
 						WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
@@ -1315,7 +1315,7 @@ BEGIN
 						SELECT @GlAccountId = [GLAccountId],
 							   @GlAccountNumber = [AccountCode],
 							   @GlAccountName = [AccountName]
-						FROM [dbo].[GLAccount]
+						FROM [dbo].[GLAccount] WITH(NOLOCK)
 						WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
@@ -1675,7 +1675,7 @@ BEGIN
 						SELECT @GlAccountId = [GLAccountId],
 							   @GlAccountNumber = [AccountCode],
 							   @GlAccountName = [AccountName]
-						FROM [dbo].[GLAccount]
+						FROM [dbo].[GLAccount] WITH(NOLOCK)
 						WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 

@@ -16,6 +16,7 @@
     [ExtendedCost]                DECIMAL (20, 2) NULL,
     [RefNum]                      VARCHAR (20)    NULL,
     [MasterCompanyId]             INT             NULL,
+    [UomId]                       BIGINT          NULL,
     [CreatedBy]                   VARCHAR (256)   NULL,
     [UpdatedBy]                   VARCHAR (256)   NULL,
     [CreatedDate]                 DATETIME2 (7)   NULL,

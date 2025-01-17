@@ -1,4 +1,20 @@
-﻿--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
+﻿/*************************************************************           
+ ** File:   [AutoCompleteDropdownsEmployeeByMSRoleWise]
+ ** Author: unknown
+ ** Description: This stored procedure is used to Get Employee Data
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	01/17/2025		Bhargav Saliya	Resolved Employee Not Binded Issue, when we create SOQ to SO
+
+************************************************************************/
+--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
 --EXEC AutoCompleteDropdownsEmployeeByMS '',1,200,'0',7899,2
 --EXEC AutoCompleteDropdownsEmployeeByMSRoleWise '',1,200,'73',1,1,73
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByMSRoleWise]
@@ -37,7 +53,7 @@ BEGIN
 		IF(@Parameter4 = 1)
 		BEGIN		
 
-			SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
+			SELECT DISTINCT E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
             FROM dbo.Employee E WITH(NOLOCK) 
 			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
 			INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = ER.RoleId

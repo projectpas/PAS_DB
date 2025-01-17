@@ -27,6 +27,7 @@
 	11   27/09/2024 Rajesh Gami			Add logic for ActionId = 16 /**** CLOSED SUB WORKORDER*****/
 	12   07/11/2024  Moin Bloch         Add logic for ActionId = 22,23 Cycle Count Adjustment
 	13   27/11/2024  Moin Bloch         Add logic for Delete Available Child Qty
+	14   16/01/2025  ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
 
 	EXEC USP_AddUpdateChildStockline 180043,23,6,'CycleCount','CC-000026','','','ADMIN User'
 **************************************************************/
@@ -71,6 +72,10 @@ BEGIN
 		DECLARE @PrevIssuedQty INT = 0;  
 		DECLARE @PrevOHQty INT = 0;  
 		DECLARE @PrevAvailableQty INT = 0, @OriginalQtyOnAction INT = @QtyOnAction;
+		DECLARE @RecievingPOModuleId BIGINT = 0, @IncomingModuleId BIGINT = 0, @IsSerialized BIT = 0; 
+
+		SELECT @RecievingPOModuleId = ModuleId FROM DBO.Module WITH (NOLOCK) WHERE ModuleName = 'ReceivingPurchaseOrder'
+		SELECT @IncomingModuleId = ModuleId FROM DBO.Module WITH (NOLOCK) WHERE ModuleName = @ModuleName
 
 		SELECT @UnAvailQtyCount = COUNT(*) FROM DBO.ChildStockline CStk WITH (NOLOCK) WHERE CStk.StockLineId = @StocklineId AND CStk.QuantityOnHand = 0;
 		SELECT @AvailQtyCount = COUNT(*) FROM DBO.ChildStockline CStk WITH (NOLOCK) WHERE CStk.StockLineId = @StocklineId AND CStk.QuantityOnHand = 1 AND CStk.QuantityAvailable = 1;
@@ -133,74 +138,221 @@ BEGIN
 					(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),  
 					(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))  
 				END  
-  
-				INSERT INTO DBO.ChildStockline ([StockLineId],[PartNumber],[StockLineNumber],[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
-				,[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
-				,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
-				,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
-				,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
-				,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
-				,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
-				,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId]  
-				,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
-				,[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
-				,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
-				,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],  
-				[QuantityReserved], [QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],[QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed]  
-				,[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
-				,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
-				,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
-				,[InspectionDate],[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId],
-				[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],
-				[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
-				,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
-				,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
-				,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
-				[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
-  
-				SELECT [StockLineId],[PartNumber], @StocklineNumber  
-				,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
-				,1,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
-				,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
-				,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
-				,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
-				,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
-				,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
-				,[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId]  
-				,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
-				,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
-				,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
-				,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], 0,[QuantityTurnIn], 0, 1, 1,[QuantityOnOrder], [QtyReserved]  
-				,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
-				,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
-				,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
-				,[InspectionDate],[VendorId],0,@StocklineId,[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId]  
-				,[SubWOPartNoId],[IsOemPNId],[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName]  
-				,[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin]  
-				,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
-				,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
-				,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
-				,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
-				@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
-				FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
-  
-				SELECT @NewStocklineId = SCOPE_IDENTITY()
 
-				INSERT INTO [dbo].[TimeLife] ([CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew], [TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair],
-					[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],
-					[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId])
-				SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],
-					[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,
-					[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId] 
-				FROM DBO.TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId;
+				IF ISNULL(@RecievingPOModuleId, 0) = ISNULL(@IncomingModuleId, 0)
+				BEGIN
+					SELECT @IsSerialized = isSerialized FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+
+					IF ISNULL(@IsSerialized, 0) <> 0
+					BEGIN 
+						INSERT INTO DBO.ChildStockline ([StockLineId],[PartNumber],[StockLineNumber],[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+						,[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+						,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+						,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+						,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+						,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+						,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+						,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId]  
+						,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+						,[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+						,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+						,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],  
+						[QuantityReserved], [QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],[QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed]  
+						,[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+						,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+						,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+						,[InspectionDate],[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId],
+						[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],
+						[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
+						,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+						,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+						,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
+						[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
   
-				-- Use variable instead of updating in the table  
-				UPDATE CodePrefixes SET CurrentNummber = @CurrentIdNumber WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId  
+						SELECT [StockLineId],[PartNumber], @StocklineNumber  
+						,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+						,1,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+						,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+						,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+						,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+						,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+						,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+						,[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId]  
+						,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+						,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+						,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+						,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], 0,[QuantityTurnIn], 0, 1, 1,[QuantityOnOrder], [QtyReserved]  
+						,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+						,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+						,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+						,[InspectionDate],[VendorId],0,@StocklineId,[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId]  
+						,[SubWOPartNoId],[IsOemPNId],[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName]  
+						,[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin]  
+						,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
+						,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+						,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+						,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
+						@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
+						FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
   
-				--EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId;
+						SELECT @NewStocklineId = SCOPE_IDENTITY()
+
+						INSERT INTO [dbo].[TimeLife] ([CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew], [TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair],
+							[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],
+							[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId])
+						SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],
+							[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,
+							[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId] 
+						FROM DBO.TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId;
+  
+						-- Use variable instead of updating in the table  
+						UPDATE CodePrefixes SET CurrentNummber = @CurrentIdNumber WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId  
+  
+						--EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId;
+					END
+					ELSE
+					BEGIN
+						IF ISNULL(@Qty, 0) < 200
+						BEGIN
+							INSERT INTO DBO.ChildStockline ([StockLineId],[PartNumber],[StockLineNumber],[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+							,[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+							,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+							,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+							,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+							,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+							,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+							,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId]  
+							,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+							,[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+							,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+							,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],  
+							[QuantityReserved], [QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],[QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed]  
+							,[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+							,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+							,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+							,[InspectionDate],[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId],
+							[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],
+							[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
+							,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+							,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+							,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
+							[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
+  
+							SELECT [StockLineId],[PartNumber], @StocklineNumber  
+							,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+							,1,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+							,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+							,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+							,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+							,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+							,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+							,[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId]  
+							,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+							,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+							,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+							,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], 0,[QuantityTurnIn], 0, 1, 1,[QuantityOnOrder], [QtyReserved]  
+							,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+							,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+							,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+							,[InspectionDate],[VendorId],0,@StocklineId,[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId]  
+							,[SubWOPartNoId],[IsOemPNId],[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName]  
+							,[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin]  
+							,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
+							,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+							,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+							,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
+							@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
+							FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
+  
+							SELECT @NewStocklineId = SCOPE_IDENTITY()
+
+							INSERT INTO [dbo].[TimeLife] ([CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew], [TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair],
+								[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],
+								[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId])
+							SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],
+								[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,
+								[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId] 
+							FROM DBO.TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId;
+  
+							-- Use variable instead of updating in the table  
+							UPDATE CodePrefixes SET CurrentNummber = @CurrentIdNumber WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId  
+						END
+					END
+					SET @LoopID = @LoopID - 1;
+					SET @CurrentIndex = @CurrentIndex + 1;
+				END
+				ELSE
+				BEGIN
+					INSERT INTO DBO.ChildStockline ([StockLineId],[PartNumber],[StockLineNumber],[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+					,[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+					,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+					,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+					,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+					,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+					,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+					,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId]  
+					,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+					,[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+					,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],  
+					[QuantityReserved], [QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],[QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed]  
+					,[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+					,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+					,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+					,[InspectionDate],[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId],
+					[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],
+					[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
+					,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+					,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+					,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
+					[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
+  
+					SELECT [StockLineId],[PartNumber], @StocklineNumber  
+					,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+					,1,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+					,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+					,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+					,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+					,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+					,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+					,[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId]  
+					,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+					,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+					,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], 0,[QuantityTurnIn], 0, 1, 1,[QuantityOnOrder], [QtyReserved]  
+					,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+					,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+					,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+					,[InspectionDate],[VendorId],0,@StocklineId,[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId]  
+					,[SubWOPartNoId],[IsOemPNId],[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName]  
+					,[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin]  
+					,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
+					,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+					,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+					,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
+					@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
+					FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
+  
+					SELECT @NewStocklineId = SCOPE_IDENTITY()
+
+					INSERT INTO [dbo].[TimeLife] ([CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew], [TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair],
+						[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],
+						[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId])
+					SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],
+						[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,
+						[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId] 
+					FROM DBO.TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId;
+  
+					-- Use variable instead of updating in the table  
+					UPDATE CodePrefixes SET CurrentNummber = @CurrentIdNumber WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId  
+  
+					--EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId;
 				
-				SET @LoopID = @LoopID - 1;
-				SET @CurrentIndex = @CurrentIndex + 1;
+					SET @LoopID = @LoopID - 1;
+					SET @CurrentIndex = @CurrentIndex + 1;
+				END
+  
+				
 			END
 		END
 		ELSE

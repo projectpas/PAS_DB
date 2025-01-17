@@ -27,6 +27,7 @@
 	11   15-10-2024   RAJESH GAMI       Add IsSubWOType and their values (WOMaterialsId, IsSubWOType , IsKitType)
 	12   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
 	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
+	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -139,107 +140,193 @@ BEGIN
      SET @LoopID_Qty = @QtyToTraverse;    
     
      SET @LoopID_Qty = @LoopID_Qty + 1;    
+
+	 DECLARE @NewStocklineDraftId BIGINT;    
+	 DECLARE @IsParent BIT = 1;
+
+	DECLARE @Quantity INT = 1;    
+	DECLARE @QuantityAvailable INT = 1;    
+	DECLARE @QuantityOnHand INT = 1;  
     
-     WHILE (@LoopID_Qty > 0)    
-     BEGIN    
-      DECLARE @NewStocklineDraftId BIGINT;    
-      DECLARE @IsParent BIT = 1;    
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
+	BEGIN
+	      
+		IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))    
+		BEGIN    
+			IF (@CurrentIndex = 0)    
+			BEGIN    
+				SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END       
+				FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId    
+			END    
+			ELSE    
+			BEGIN    
+				SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END    
+				FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId    
+			END    
           
-      IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))    
-      BEGIN    
-       IF (@CurrentIndex = 0)    
-       BEGIN    
-        SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END       
-        FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId    
-       END    
-       ELSE    
-       BEGIN    
-        SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END    
-        FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId    
-       END    
+			SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber,    
+				(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),    
+				(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))      
+		END    
+    
+		--SET @Quantity = 1;    
+		--SET @QuantityAvailable = 1;    
+		--SET @QuantityOnHand = 1;    
           
-       SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber,    
-        (SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),    
-        (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))      
-      END    
+		IF (@CurrentIndex = 0)    
+		BEGIN 
+			SET @Quantity = ISNULL(@QtyOrdered, 0);    
+			SET @QuantityAvailable = ISNULL(@QtyOrdered, 0);    
+			SET @QuantityOnHand = ISNULL(@QtyOrdered, 0);    
     
-      DECLARE @Quantity INT = 1;    
-      DECLARE @QuantityAvailable INT = 1;    
-      DECLARE @QuantityOnHand INT = 1;    
-          
-      IF (@CurrentIndex = 0)    
-      BEGIN    
-       IF (@IsSerialized = 0)    
-       BEGIN    
-        SET @Quantity = @QtyOrdered;    
-        SET @QuantityAvailable = @QtyOrdered;    
-        SET @QuantityOnHand = @QtyOrdered;    
+			SET @IsParent = 1;
+		END  
     
-        SET @IsParent = 1;    
-       END    
-       ELSE IF (@IsSerialized = 1)    
-       BEGIN    
-        SET @Quantity = @QtyOrdered;    
-        SET @QuantityAvailable = @QtyOrdered;    
-        SET @QuantityOnHand = @QtyOrdered;    
-    
-        SET @IsParent = 0;    
-       END    
-      END    
-      ELSE    
-      BEGIN    
-       IF (@IsSerialized = 0)    
-       BEGIN    
-        SET @IsParent = 0;    
-       END    
-       ELSE IF (@IsSerialized = 1)    
-       BEGIN    
-        SET @IsParent = 1;    
-       END    
-      END    
-    
-      INSERT INTO DBO.StocklineDraft (    
-      [PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],    
-      [LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],    
-      [CertifiedBy],[CertifiedDate],[TagDate],[TagTypeIds],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],    
-      [RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],    
-      [IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId],    
-      [ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],    
-      [ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],    
-      [TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],[QuantityReserved],[QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],    
-      [QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive],[isDeleted],    
-      [WorkOrderExtendedCost],[RepairOrderExtendedCost],[NHAItemMasterId],[TLAItemMasterId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[Level1],[Level2],[Level3],[Level4],[Condition],    
-      [Warehouse],[Location],[ObtainFromName],[OwnerName],[TraceableToName],[GLAccount],[AssetName],[LegalEntityName],[ShelfName],[BinName],[SiteName],[ObtainFromTypeName],[OwnerTypeName],    
-      [TraceableToTypeName],[UnitCostAdjustmentReasonType],[UnitSalePriceAdjustmentReasonType],[ShippingVia],[WorkOrder],[WorkOrderMaterialsName],[TagTypeId],[StockLineDraftNumber],    
-      [StockLineId],[TaggedBy],[TaggedByName],[UnitOfMeasureId],[UnitOfMeasure],[RevisedPartId],[RevisedPartNumber],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],    
-      [CertifiedType],[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],    
-      [LotId],[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],    
-      [VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife],IsKitType, IsSubWOType)    
+		INSERT INTO DBO.StocklineDraft (    
+		[PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],    
+		[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],    
+		[CertifiedBy],[CertifiedDate],[TagDate],[TagTypeIds],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],    
+		[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],    
+		[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId],    
+		[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],    
+		[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],    
+		[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],[QuantityReserved],[QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],    
+		[QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive],[isDeleted],    
+		[WorkOrderExtendedCost],[RepairOrderExtendedCost],[NHAItemMasterId],[TLAItemMasterId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[Level1],[Level2],[Level3],[Level4],[Condition],    
+		[Warehouse],[Location],[ObtainFromName],[OwnerName],[TraceableToName],[GLAccount],[AssetName],[LegalEntityName],[ShelfName],[BinName],[SiteName],[ObtainFromTypeName],[OwnerTypeName],    
+		[TraceableToTypeName],[UnitCostAdjustmentReasonType],[UnitSalePriceAdjustmentReasonType],[ShippingVia],[WorkOrder],[WorkOrderMaterialsName],[TagTypeId],[StockLineDraftNumber],    
+		[StockLineId],[TaggedBy],[TaggedByName],[UnitOfMeasureId],[UnitOfMeasure],[RevisedPartId],[RevisedPartNumber],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],    
+		[CertifiedType],[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],    
+		[LotId],[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],    
+		[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife],IsKitType, IsSubWOType)    
       
-      SELECT IM.partnumber, NULL, NULL, NULL, @ItemMasterId, @Quantity, @ConditionId, '', 0, NULL, IM.WarehouseId,     
-      IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
-      NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
-      NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
-      IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
-      NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
-      NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
-	  NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
-      NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
-      IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
-      '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
-      NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
-      NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
-      @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
-      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
-      FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
+		SELECT IM.partnumber, NULL, NULL, NULL, @ItemMasterId, @Quantity, @ConditionId, '', 0, NULL, IM.WarehouseId,     
+		IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
+		NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
+		NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
+		IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
+		NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
+		NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
+		NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
+		NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
+		IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
+		'', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
+		NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
+		NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
+		@LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
+		NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
+		FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     
-      SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    
+		SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    
     
-      EXEC [PROCAddStockLineDraftMSData] @NewStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 31, 1;    
+		EXEC [PROCAddStockLineDraftMSData] @NewStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 31, 1;    
     
-      SET @LoopID_Qty = @LoopID_Qty - 1;    
-      SET @CurrentIndex = @CurrentIndex + 1;      
-     END    
+		SET @LoopID_Qty = @LoopID_Qty - 1;    
+		SET @CurrentIndex = @CurrentIndex + 1;
+	END
+	ELSE
+	BEGIN
+		WHILE (@LoopID_Qty > 0)    
+		BEGIN    
+			--DECLARE @NewStocklineDraftId BIGINT;    
+			--DECLARE @IsParent BIT = 1;    
+          
+			IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))    
+			BEGIN    
+				IF (@CurrentIndex = 0)    
+				BEGIN    
+					SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END       
+					FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId    
+				END    
+				ELSE    
+				BEGIN    
+					SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END    
+					FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId    
+				END    
+          
+				SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber,    
+				(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),    
+				(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))      
+			END    
+    
+			SET @Quantity = 1;    
+			SET @QuantityAvailable = 1;    
+			SET @QuantityOnHand = 1;    
+          
+			IF (@CurrentIndex = 0)    
+			BEGIN    
+				IF (@IsSerialized = 0)    
+				BEGIN    
+					SET @Quantity = @QtyOrdered;    
+					SET @QuantityAvailable = @QtyOrdered;    
+					SET @QuantityOnHand = @QtyOrdered;    
+    
+					SET @IsParent = 1;    
+				END    
+				ELSE IF (@IsSerialized = 1)    
+				BEGIN    
+					SET @Quantity = @QtyOrdered;    
+					SET @QuantityAvailable = @QtyOrdered;    
+					SET @QuantityOnHand = @QtyOrdered;    
+    
+					SET @IsParent = 0;    
+				END    
+			END    
+			ELSE    
+			BEGIN    
+				IF (@IsSerialized = 0)    
+				BEGIN    
+					SET @IsParent = 0;    
+				END    
+				ELSE IF (@IsSerialized = 1)    
+				BEGIN    
+					SET @IsParent = 1;    
+				END    
+			END    
+    
+		  INSERT INTO DBO.StocklineDraft (    
+		  [PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],    
+		  [LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],    
+		  [CertifiedBy],[CertifiedDate],[TagDate],[TagTypeIds],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],    
+		  [RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],    
+		  [IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId],    
+		  [ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],    
+		  [ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],    
+		  [TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],[QuantityReserved],[QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],    
+		  [QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive],[isDeleted],    
+		  [WorkOrderExtendedCost],[RepairOrderExtendedCost],[NHAItemMasterId],[TLAItemMasterId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[Level1],[Level2],[Level3],[Level4],[Condition],    
+		  [Warehouse],[Location],[ObtainFromName],[OwnerName],[TraceableToName],[GLAccount],[AssetName],[LegalEntityName],[ShelfName],[BinName],[SiteName],[ObtainFromTypeName],[OwnerTypeName],    
+		  [TraceableToTypeName],[UnitCostAdjustmentReasonType],[UnitSalePriceAdjustmentReasonType],[ShippingVia],[WorkOrder],[WorkOrderMaterialsName],[TagTypeId],[StockLineDraftNumber],    
+		  [StockLineId],[TaggedBy],[TaggedByName],[UnitOfMeasureId],[UnitOfMeasure],[RevisedPartId],[RevisedPartNumber],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],    
+		  [CertifiedType],[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],    
+		  [LotId],[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],    
+		  [VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife],IsKitType, IsSubWOType)    
+      
+		  SELECT IM.partnumber, NULL, NULL, NULL, @ItemMasterId, @Quantity, @ConditionId, '', 0, NULL, IM.WarehouseId,     
+		  IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
+		  NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
+		  NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
+		  IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
+		  NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
+		  NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
+		  NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
+		  NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
+		  IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
+		  '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
+		  NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
+		  NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
+		  @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
+		  NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
+		  FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
+    
+		  SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    
+    
+		  EXEC [PROCAddStockLineDraftMSData] @NewStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 31, 1;    
+    
+		  SET @LoopID_Qty = @LoopID_Qty - 1;    
+		  SET @CurrentIndex = @CurrentIndex + 1;      
+		END  
+	END
     
      SET @LoopID = @LoopID - 1;    
     END 
@@ -547,92 +634,162 @@ BEGIN
      SET @LoopID_Qty = @QtyToTraverse;    
     
      SET @LoopID_Qty = @LoopID_Qty + 1;    
-    
-     WHILE (@LoopID_Qty > 0)    
-     BEGIN    
-      DECLARE @NewNonStocklineDraftId BIGINT;    
-      DECLARE @IsParent_NonStock BIT = 1;    
+
+	 DECLARE @NewNonStocklineDraftId BIGINT;    
+	 DECLARE @IsParent_NonStock BIT = 1;    
+
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
+	BEGIN
+		
           
-      IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId))    
-      BEGIN    
-       IF (@CurrentIndex = 0)    
-       BEGIN    
-        SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END       
-        FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId    
-       END    
-       ELSE    
-       BEGIN    
-        SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END    
-        FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId    
-       END    
+			IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId))    
+			BEGIN    
+				IF (@CurrentIndex = 0)    
+				BEGIN    
+					SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END       
+					FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId    
+				END    
+				ELSE    
+				BEGIN    
+					SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END    
+					FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId    
+				END    
           
-       SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber,    
-        (SELECT CodePrefix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId),    
-        (SELECT CodeSufix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId)))      
-      END    
+				SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber,    
+				(SELECT CodePrefix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId),    
+				(SELECT CodeSufix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId)))      
+			END    
     
-      SET @Quantity = 1;    
-      SET @QuantityAvailable = 1;    
-      SET @QuantityOnHand = 1;    
+			SET @Quantity = 1;    
+			SET @QuantityAvailable = 1;    
+			SET @QuantityOnHand = 1;    
           
-      IF (@CurrentIndex = 0)    
-      BEGIN    
-       IF (@IsSerialized = 0)    
-       BEGIN    
-        SET @Quantity = @QtyOrdered;    
-        SET @QuantityAvailable = @QtyOrdered;    
-        SET @QuantityOnHand = @QtyOrdered;    
+			IF (@CurrentIndex = 0)    
+			BEGIN  
+				SET @Quantity = @QtyOrdered;    
+				SET @QuantityAvailable = @QtyOrdered;    
+				SET @QuantityOnHand = @QtyOrdered;    
     
-        SET @IsParent_NonStock = 1;    
-       END    
-       ELSE IF (@IsSerialized = 1)    
-       BEGIN    
-        SET @Quantity = @QtyOrdered;    
-        SET @QuantityAvailable = @QtyOrdered;    
-        SET @QuantityOnHand = @QtyOrdered;    
+				SET @IsParent_NonStock = 1;    
+			END
+				
     
-        SET @IsParent_NonStock = 0;    
-       END    
-      END    
-      ELSE    
-      BEGIN    
-       IF (@IsSerialized = 0)    
-       BEGIN    
-        SET @IsParent_NonStock = 0;    
-       END    
-       ELSE IF (@IsSerialized = 1)    
-       BEGIN    
-        SET @IsParent_NonStock = 1;    
-       END    
-      END    
-    
-	   INSERT INTO [dbo].[NonStockInventoryDraft]  
-		([NonStockDraftNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber] ,[IsParent] ,[ParentId],[MasterPartId],[PartNumber],[PartDescription],[NonStockInventoryId],
-		[NonStockInventoryNumber],[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand],[CurrencyId],
-		[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost],[ExtendedCost],[Acquired],
-		[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],
-		[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId],[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],
-		[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ShippingReferenceNumberNotProvided],
-		[SerialNumberNotProvided],[TimeLifeDetailsNotProvided])
-		SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,NULL,NULL,NULL,NULL,@IdNumber,NULL,GETUTCDATE(),
-		ISNULL(IMN.IsSerialized,0),'',@Quantity,0,@QuantityOnHand,IMN.CurrencyId,IMN.Currency,@ConditionId,@ConditionName, @POPartGLAccountId, @POPartGLAccountName,IMN.PurchaseUnitOfMeasureId,
-		'',IMN.ManufacturerId,IMN.Manufacturer,IMN.MfgExpirationDate,CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END,((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),
-		NULL,IMN.IsHazardousMaterial,IMN.ItemNonStockClassificationId,IMN.ItemNonStockClassification,IMN.SiteId,IMN.Site,IMN.WarehouseId,IMN.Warehouse,IMN.LocationId,IMN.Location,IMN.ShelfId,IMN.Shelf,IMN.BinId,IMN.Bin,
-		CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName,@ShippingAccountNo,NULL,1,NULL,NULL,NULL,NULL,NULL,NUll,@ManagementStructureId,NULL,NUll,NULL,NULL,NULL,@MasterCompanyId,
-		@UserName, @UserName, GETUTCDATE(), GETUTCDATE(),1,0,0,0,0
-		FROM DBO.ItemMasterNonStock IMN WITH (NOLOCK) WHERE IMN.MasterPartId = @ItemMasterId;  
+			INSERT INTO [dbo].[NonStockInventoryDraft]  
+			([NonStockDraftNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber] ,[IsParent] ,[ParentId],[MasterPartId],[PartNumber],[PartDescription],[NonStockInventoryId],
+			[NonStockInventoryNumber],[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand],[CurrencyId],
+			[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost],[ExtendedCost],[Acquired],
+			[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],
+			[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId],[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],
+			[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ShippingReferenceNumberNotProvided],
+			[SerialNumberNotProvided],[TimeLifeDetailsNotProvided])
+			SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,NULL,NULL,NULL,NULL,@IdNumber,NULL,GETUTCDATE(),
+			ISNULL(IMN.IsSerialized,0),'',@Quantity,0,@QuantityOnHand,IMN.CurrencyId,IMN.Currency,@ConditionId,@ConditionName, @POPartGLAccountId, @POPartGLAccountName,IMN.PurchaseUnitOfMeasureId,
+			'',IMN.ManufacturerId,IMN.Manufacturer,IMN.MfgExpirationDate,CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END,((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),
+			NULL,IMN.IsHazardousMaterial,IMN.ItemNonStockClassificationId,IMN.ItemNonStockClassification,IMN.SiteId,IMN.Site,IMN.WarehouseId,IMN.Warehouse,IMN.LocationId,IMN.Location,IMN.ShelfId,IMN.Shelf,IMN.BinId,IMN.Bin,
+			CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName,@ShippingAccountNo,NULL,1,NULL,NULL,NULL,NULL,NULL,NUll,@ManagementStructureId,NULL,NUll,NULL,NULL,NULL,@MasterCompanyId,
+			@UserName, @UserName, GETUTCDATE(), GETUTCDATE(),1,0,0,0,0
+			FROM DBO.ItemMasterNonStock IMN WITH (NOLOCK) WHERE IMN.MasterPartId = @ItemMasterId;  
       
-	  SELECT @NewNonStocklineDraftId = SCOPE_IDENTITY();    
+			SELECT @NewNonStocklineDraftId = SCOPE_IDENTITY();    
     
-      EXEC dbo.[PROCAddStockLineDraftMSData] @NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 55, 1;    
+			EXEC dbo.[PROCAddStockLineDraftMSData] @NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 55, 1;    
     
-      SET @LoopID_Qty = @LoopID_Qty - 1;    
-      SET @CurrentIndex = @CurrentIndex + 1;      
-     END    
+			SET @LoopID_Qty = @LoopID_Qty - 1;    
+			SET @CurrentIndex = @CurrentIndex + 1;      
+			   
     
-     SET @LoopID_Nonstock = @LoopID_Nonstock - 1;    
-    END    
+			SET @LoopID_Nonstock = @LoopID_Nonstock - 1;   
+		
+	END
+	ELSE
+	BEGIN
     
+		WHILE (@LoopID_Qty > 0)    
+		BEGIN    
+			
+          
+			IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId))    
+			BEGIN    
+				IF (@CurrentIndex = 0)    
+				BEGIN    
+					SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END       
+					FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId    
+				END    
+				ELSE    
+				BEGIN    
+					SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END    
+					FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId    
+				END    
+          
+				SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber,    
+				(SELECT CodePrefix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId),    
+				(SELECT CodeSufix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = @IdCodeTypeId)))      
+			END    
+    
+			SET @Quantity = 1;    
+			SET @QuantityAvailable = 1;    
+			SET @QuantityOnHand = 1;    
+          
+			IF (@CurrentIndex = 0)    
+			BEGIN    
+				IF (@IsSerialized = 0)    
+				BEGIN    
+					SET @Quantity = @QtyOrdered;    
+					SET @QuantityAvailable = @QtyOrdered;    
+					SET @QuantityOnHand = @QtyOrdered;    
+    
+					SET @IsParent_NonStock = 1;    
+				END    
+				ELSE IF (@IsSerialized = 1)    
+				BEGIN    
+					SET @Quantity = @QtyOrdered;    
+					SET @QuantityAvailable = @QtyOrdered;    
+					SET @QuantityOnHand = @QtyOrdered;    
+    
+					SET @IsParent_NonStock = 0;    
+				END    
+			END    
+			ELSE    
+			BEGIN    
+				IF (@IsSerialized = 0)    
+				BEGIN    
+					SET @IsParent_NonStock = 0;    
+				END    
+				ELSE IF (@IsSerialized = 1)    
+				BEGIN    
+					SET @IsParent_NonStock = 1;    
+				END    
+			END    
+    
+			INSERT INTO [dbo].[NonStockInventoryDraft]  
+			([NonStockDraftNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber] ,[IsParent] ,[ParentId],[MasterPartId],[PartNumber],[PartDescription],[NonStockInventoryId],
+			[NonStockInventoryNumber],[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand],[CurrencyId],
+			[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost],[ExtendedCost],[Acquired],
+			[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],
+			[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId],[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],
+			[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ShippingReferenceNumberNotProvided],
+			[SerialNumberNotProvided],[TimeLifeDetailsNotProvided])
+			SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,NULL,NULL,NULL,NULL,@IdNumber,NULL,GETUTCDATE(),
+			ISNULL(IMN.IsSerialized,0),'',@Quantity,0,@QuantityOnHand,IMN.CurrencyId,IMN.Currency,@ConditionId,@ConditionName, @POPartGLAccountId, @POPartGLAccountName,IMN.PurchaseUnitOfMeasureId,
+			'',IMN.ManufacturerId,IMN.Manufacturer,IMN.MfgExpirationDate,CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END,((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),
+			NULL,IMN.IsHazardousMaterial,IMN.ItemNonStockClassificationId,IMN.ItemNonStockClassification,IMN.SiteId,IMN.Site,IMN.WarehouseId,IMN.Warehouse,IMN.LocationId,IMN.Location,IMN.ShelfId,IMN.Shelf,IMN.BinId,IMN.Bin,
+			CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName,@ShippingAccountNo,NULL,1,NULL,NULL,NULL,NULL,NULL,NUll,@ManagementStructureId,NULL,NUll,NULL,NULL,NULL,@MasterCompanyId,
+			@UserName, @UserName, GETUTCDATE(), GETUTCDATE(),1,0,0,0,0
+			FROM DBO.ItemMasterNonStock IMN WITH (NOLOCK) WHERE IMN.MasterPartId = @ItemMasterId;  
+      
+			SELECT @NewNonStocklineDraftId = SCOPE_IDENTITY();    
+    
+			EXEC dbo.[PROCAddStockLineDraftMSData] @NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 55, 1;    
+    
+			SET @LoopID_Qty = @LoopID_Qty - 1;    
+			SET @CurrentIndex = @CurrentIndex + 1;      
+		END    
+		END 
+    
+		SET @LoopID_Nonstock = @LoopID_Nonstock - 1;    
+	END
+
+
    EXEC UpdateStocklineDraftDetail @PurchaseOrderId;    
    EXEC UpdateAssetInventoryDraftPoDetails @PurchaseOrderId;    
    EXEC UpdateNonStockDraftDetail @PurchaseOrderId;  

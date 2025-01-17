@@ -27,7 +27,7 @@
 	11   11-10-2024	  Ekta Chandegra    Add history when update Part
 	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType), And manage NULL value 
 	13   20-12-2024   Moin Bloch        Fixed Asset Inventory Partial Receive issue
-    
+    14   17-JAN-2025  RAJESH GAMI       Fixed Asset Inventory to insert RRQty by default as 1 instead of 0
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -1856,7 +1856,7 @@ BEGIN
 						[TotalCost],[WarrantyDefaultVendorId],[WarrantyGLAccountId],[IsDepreciable],[IsNonDepreciable],[IsAmortizable],[IsNonAmortizable],[SerialNo],[IsInsurance],[AssetLife],[WarrantyCompanyId],[WarrantyCompanyName],
 						[WarrantyCompanySelectId],[WarrantyMemo],[IsQtyReserved],1,@InventoryNumber_Asset,[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],@StockLineNumber_Asset,[AvailStatus],
 						[PartNumber],@ControlNumber_Asset,[RepairOrderId],[RepairOrderPartRecordId],[PurchaseOrderId],[PurchaseOrderPartRecordId],@ReceiverNumber_Asset,GETUTCDATE(),[SiteId],[SiteName],[WarehouseId],[Warehouse],
-						[LocationId],[Location],[ShelfId],[ShelfName],[BinId],[BinName],'',0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+						[LocationId],[Location],[ShelfId],[ShelfName],[BinId],[BinName],'',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 						NULL,NULL,NULL,NULL,NULL,NULL
 						FROM #tmpAssetInventoryDraft
                         WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;

@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[JobTitleAudit] (
     [JobTitleAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [JobTitleId]      SMALLINT       NOT NULL,
-    [Description]     VARCHAR (30)   NOT NULL,
+    [Description]     VARCHAR (256)  NULL,
     [Memo]            NVARCHAR (MAX) NULL,
     [MasterCompanyId] INT            NOT NULL,
     [CreatedBy]       VARCHAR (256)  NOT NULL,
@@ -13,4 +13,6 @@
     [JobTitleCode]    VARCHAR (50)   NULL,
     CONSTRAINT [PK_JobTitleAudit] PRIMARY KEY CLUSTERED ([JobTitleAuditId] ASC)
 );
+
+
 

@@ -19,6 +19,7 @@
 	2	 03/08/2024   Bhargav Saliya     Change Order By Desc to Asc
 	3	 06/24/2024   Abhishek Jirawla   Adding memo
 	4	 01/16/2025	  Moin Bloch		 Modified (Added TaskId For Kit)
+	5	 01/17/2025	  Moin Bloch		 Modified (Added @WorkOrderFormTypeId from WO Kit)
 
      
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
@@ -40,12 +41,13 @@ BEGIN
 			DECLARE @WorkflowWorkOrderId BIGINT = 0
 			DECLARE @WorkOrderQuoteId BIGINT = 0			
 			DECLARE @WorkOrderId BIGINT = 0
-			DECLARE @WOPartNoId BIGINT = 0
 			DECLARE @WorkOrderFormTypeId BIT = 0; 			
 
-			SELECT @WorkflowWorkOrderId=WorkflowWorkOrderId,@WorkOrderQuoteId=WorkOrderQuoteId,@WOPartNoId = [WOPartNoId] FROM DBO.WorkOrderQuoteDetails WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId= @workOrderQuoteDetailsId
+			SELECT @WorkflowWorkOrderId=WorkflowWorkOrderId,@WorkOrderQuoteId=WorkOrderQuoteId FROM dbo.WorkOrderQuoteDetails WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId= @workOrderQuoteDetailsId
 
-			--SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrderPartNumber] WITH (NOLOCK) WHERE [ID] = @WOPartNoId;
+			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId
+
+			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 			
 			SELECT      im.PartNumber,
                         im.PartDescription,

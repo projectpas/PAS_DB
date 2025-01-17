@@ -21,7 +21,10 @@
     [Condition]              VARCHAR (100)   NULL,
     [UOM]                    VARCHAR (100)   NULL,
     [IsEditable]             BIT             NULL,
-    [IsNewItem]              BIT             NULL);
+    [IsNewItem]              BIT             NULL,
+    [TaskId]                 BIGINT          NULL);
+
+
 
 
 

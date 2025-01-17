@@ -16,10 +16,11 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
 	1	12/11/2024		AMIT GHEDIYA		Created
+	2	16th-Jan-2025	Devendra Shekh		Added New Fields (IsQuickBookGeneratedInvoice, IsUpdated)
      
    EXEC [dbo].[GetSalesOrderBillingInvoicingData] 1038
 **************************************************************/
-CREATE   PROCEDURE GetSalesOrderBillingInvoicingData
+CREATE   PROCEDURE [dbo].[GetSalesOrderBillingInvoicingData]
     @soBillingInvoiceId BIGINT
 AS
 BEGIN
@@ -85,7 +86,9 @@ BEGIN
 				bi.UpdatedBy,
 				bi.UpdatedDate,
 				bi.IsActive,
-				bi.IsDeleted
+				bi.IsDeleted,
+				ISNULL(bi.IsQuickBookGeneratedInvoice,0) AS IsQuickBookGeneratedInvoice,
+				ISNULL(bi.IsUpdated,0) AS IsUpdated
 			FROM DBO.SalesOrderBillingInvoicing bi WITH(NOLOCK)
 			WHERE bi.SOBillingInvoicingId = @soBillingInvoiceId;
 

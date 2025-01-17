@@ -10,6 +10,7 @@
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
     1    12/24/2024   Vishal Suthar	 Created
+    2    01/17/2025   Vishal Suthar	 Added History for Add and Update
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
@@ -33,7 +34,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@Descrepancy VARCHAR(MAX) = NULL,
 	@Resolution VARCHAR(MAX) = NULL,
 	@CreatedBy VARCHAR(100) = NULL,
-	@MasterCompanyId BIGINT = NULL
+	@MasterCompanyId BIGINT = NULL,
+	@PrintInWO BIT = NULL,
+	@PrintInWOQ BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -41,6 +44,12 @@ BEGIN
   BEGIN TRY
   BEGIN TRANSACTION
 	
+	DECLARE @StatusCode VARCHAR(100), @TemplateBody VARCHAR(MAX);
+	DECLARE @ModuleId INT, @SubModuleId INT;
+
+	SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15;
+	SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderTask';
+
 	IF (ISNULL(@WorkOrderTaskId, 0) = 0)
 	BEGIN
 		DECLARE @CurrentSequenceNo INT = 0;
@@ -56,14 +65,29 @@ BEGIN
 		SET @InsertedWorkOrderTaskId = SCOPE_IDENTITY();
 
 		INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],[Descrepancy],
-		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted], [PrintInWO], [PrintInWOQ])
 		SELECT @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
-		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ;
+
+		-- Add Entry in History Table
+		SET @StatusCode = 'CreateWorkOrderTask';
+
+		SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+		SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+
+		EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @TaskName, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
 
 		SELECT @InsertedWorkOrderTaskId AS WorkOrderTaskId;
 	END
 	ELSE
 	BEGIN
+		DECLARE @OldDescrepancy VARCHAR(MAX);
+		DECLARE @OldResolution VARCHAR(MAX);
+
+		SELECT @OldDescrepancy = Descrepancy, @OldResolution = Resolution FROM DBO.WorkOrderTaskDetails WHERE WorkOrderTaskId = @WorkOrderTaskId;
+		SELECT @TaskName = TaskName FROM DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
+
 		UPDATE DBO.WorkOrderTaskDetails
 		SET Descrepancy = @Descrepancy,
 		Resolution = @Resolution,
@@ -72,8 +96,37 @@ BEGIN
 		InspectorUpdatedDate = @InspectorUpdatedDate,
 		TechId = @TechId,
 		TechName = @TechName,
-		TechUpdatedDate = @TechUpdatedDate
+		TechUpdatedDate = @TechUpdatedDate,
+		[PrintInWO] = @PrintInWO,
+		[PrintInWOQ] = @PrintInWOQ
 		WHERE WorkOrderTaskId = @WorkOrderTaskId;
+
+		-- Add Entry in History Table
+		IF (@OldDescrepancy <> @Descrepancy)
+		BEGIN
+			SET @StatusCode = 'UpdateWorkOrderTaskDescrepancy';
+
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode;
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldDescrepancy##', ISNULL(@OldDescrepancy,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewDescrepancy##', ISNULL(@Descrepancy,''));
+
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, @OldDescrepancy, @Descrepancy, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+		END
+
+		IF (@OldResolution <> @Resolution)
+		BEGIN
+			SET @StatusCode = 'UpdateWorkOrderTaskResolution';
+
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode;
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldResolution##', ISNULL(@OldResolution,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewResolution##', ISNULL(@Resolution,''));
+
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, @OldDescrepancy, @Descrepancy, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+		END
 
 		SELECT @WorkOrderTaskId AS WorkOrderTaskId;
 	END

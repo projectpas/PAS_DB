@@ -16,11 +16,12 @@
  ** --   --------		 -------			--------------------------------          
      1    10/10/2024	AMIT GHEDIYA		Created
      2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
+	 3    17/01/2025	AMIT GHEDIYA		Handle mutiple invoiced data with laytest invoiced.
 
-EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1103
+EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
-    @SalesOrderId INT,
+    @SalesOrderId BIGINT,
 	@ItemMasterId BIGINT = NULL
 AS
 BEGIN
@@ -77,7 +78,8 @@ BEGIN
 			   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 			   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 			   WHERE sobi.SalesOrderId = @SalesOrderId AND ISNULL(sobi.IsProforma, 0) = 0
-			   AND sobii.StockLineId = stl.StockLineId), 0) AS NoofPieces
+			   AND sobii.StockLineId = stl.StockLineId
+			   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) AS NoofPieces
 		FROM [DBO].[SalesOrder] so WITH(NOLOCK)
 		JOIN [DBO].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
@@ -141,7 +143,7 @@ BEGIN
 		,@DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
 		,@AdhocComments varchar(150) = 'GetUnReservedStockPartsListBySOId'
-		,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@SalesOrderId, '') + ''
+		,@ProcedureParameters varchar(3000) = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + '' 
 		,@ApplicationName varchar(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName,

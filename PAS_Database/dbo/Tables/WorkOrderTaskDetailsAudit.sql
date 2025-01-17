@@ -20,6 +20,10 @@
     [UpdatedDate]                 DATETIME2 (7) NULL,
     [IsActive]                    BIT           NULL,
     [IsDeleted]                   BIT           NULL,
+    [PrintInWO]                   BIT           NULL,
+    [PrintInWOQ]                  BIT           NULL,
     CONSTRAINT [PK_WorkOrderTaskDetailsAudit] PRIMARY KEY CLUSTERED ([WorkOrderTaskDetailsAuditId] ASC)
 );
+
+
 

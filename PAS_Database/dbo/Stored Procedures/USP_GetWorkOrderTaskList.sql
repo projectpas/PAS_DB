@@ -47,7 +47,9 @@ BEGIN
 			WOT.CreatedBy,
 			WOT.CreatedDate,
 			WOT.UpdatedBy,
-			WOT.UpdatedDate
+			WOT.UpdatedDate,
+			WOTD.PrintInWO,
+			WOTD.PrintInWOQ
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0

@@ -15,6 +15,8 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------     
 	1    11/27/2023   Hemant Saliya			Created
+	2	 01/13/2024	  Moin Bloch			Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	3	 01/16/2024	  Moin Bloch			Modified (Added TaskId In Type)
 
 declare @p1 dbo.WorkOrderMaterialKitType
 insert into @p1 values(0,3718,124,148,124,124,3380,N'JD-KIT',20748,5,15280,1,N'ADMIN User',N'ADMIN User','2023-09-05 05:42:00','2023-11-06 02:25:00',1,0)
@@ -22,7 +24,7 @@ insert into @p1 values(0,3718,124,148,124,124,3380,N'JD-KIT',20748,5,15280,1,N'A
 exec dbo.usp_SaveSubWorkOrderMaterialKit @tbl_WorkOrderMaterialKitType=@p1
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_SaveSubWorkOrderMaterialKit]
+CREATE    PROCEDURE [dbo].[usp_SaveSubWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
 AS
 BEGIN
@@ -70,14 +72,15 @@ BEGIN
 				[CreatedDate] [datetime2](7) NULL,
 				[UpdatedDate] [datetime2](7) NULL,
 				[IsActive] [bit] NULL,
-				[IsDeleted] [bit] NULL
+				[IsDeleted] [bit] NULL,
+				[TaskId] [bigint] NULL
 			)
 				
 			INSERT INTO #SubWorkOrderMaterialKitType 
 			([SubWorkOrderMaterialKitMappingId], [WorkOrderId], [WOPartNoId], [SubWorkOrderId], [SubWOPartNoId], [KitId], [KitNumber], [ItemMasterId], [Quantity], 
-			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[TaskId])
 			SELECT [WorkOrderMaterialKitMappingId], [WorkOrderId], [WOPartNoId], [SubWorkOrderId], [SubWOPartNoId], [KitId], [KitNumber], [ItemMasterId], [Quantity], 
-			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
+			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[TaskId]
 			FROM @tbl_WorkOrderMaterialKitType
 
 			DECLARE @TotMainCount AS INT;
@@ -172,12 +175,15 @@ BEGIN
 					DECLARE @Qty BIGINT;
 					DECLARE @UOMId BIGINT;
 					DECLARE @UnitCost [decimal](18, 2);
-					DECLARE @TaskId BIGINT;
+					DECLARE @TaskId BIGINT = 0;
 					DECLARE @ItemClassificationId BIGINT;
 					DECLARE @ProvisionId BIGINT;
+					DECLARE @WorkOrderId BIGINT = 0;
+					DECLARE @WOPartNoId BIGINT = 0;
+					DECLARE @WorkOrderFormTypeId BIT = 0; 
 
-					SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM #SubWorkOrderMaterialKitType;
-					SELECT @TaskId = [DefaultTaskId] FROM [dbo].[WorkOrderSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+					SELECT TOP 1 @MasterCompanyId = [MasterCompanyId],@TaskId = [TaskId],@WorkOrderId = [WorkOrderId], @WOPartNoId = [WOPartNoId] FROM #SubWorkOrderMaterialKitType;
+					--SELECT @TaskId = [DefaultTaskId] FROM [dbo].[WorkOrderSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 					IF (ISNULL(@TaskId, 0) = 0)
 					BEGIN
 						SELECT @TaskId = ISNULL(TaskId, 0) FROM [dbo].[Task] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND UPPER(Description) = 'ALL TASK';
@@ -186,6 +192,16 @@ BEGIN
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
 					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId;
 					SELECT @ProvisionId = PROV.ProvisionId FROM [DBO].[Provision] PROV WHERE UPPER(StatusCode) = 'REPLACE';
+					--SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WOPartNoId;
+					
+					--IF(@WorkOrderFormTypeId = 1)
+					--BEGIN
+					--	SET @TaskId = (SELECT TOP 1 ISNULL([WorkOrderTaskId],0) FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [WorkOrderPartNumberId] = @WOPartNoId);
+					--	IF (ISNULL(@TaskId, 0) = 0)
+					--	BEGIN
+					--		SELECT @TaskId = ISNULL(TaskId, 0) FROM [dbo].[Task] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND UPPER([Description]) = 'ALL TASK';
+					--	END
+					--END
 
 					INSERT INTO [dbo].[SubWorkOrderMaterialsKit]
 					([SubWorkOrderMaterialsKitMappingId],[WorkOrderId],[SubWorkOrderId],[SubWOPartNoId],[ItemMasterId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],

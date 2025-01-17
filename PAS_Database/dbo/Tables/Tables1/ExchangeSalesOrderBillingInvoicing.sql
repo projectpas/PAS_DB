@@ -53,6 +53,7 @@
     [IsUpdated]                           BIT             NULL,
     [LastSyncDate]                        DATETIME2 (7)   NULL,
     [SyncToken]                           VARCHAR (200)   NULL,
+    [IsQuickBookGeneratedInvoice]         BIT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),

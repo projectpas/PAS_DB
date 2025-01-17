@@ -10,8 +10,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    10/02/2023   Rajesh Gami	Created     
-
+    1    10/02/2023   Rajesh Gami	Created  
+	2    10/01/2025   Moin Bloch	Updated Added WorkOrderTask Table to Manage Task Name
+	
 	--[dbo].[GetWorkOrderLaborTrackingList] 1,10,null,1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,2,0,1
 **************************************************************/
 
@@ -120,14 +121,16 @@ BEGIN
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
-		,T.[Description] TaskName,
+		--,T.[Description] TaskName,
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName,
 		(CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN 1 ELSE 0 END) IsAnyTaskStarted
 		FROM WorkOrderLaborTracking WOT WITH(NOLOCK)  
-	    JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
-	    JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
-		JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
-		JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
-		INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+	    LEFT JOIN dbo.Task T WITH(NOLOCK) ON WOT.TaskId = T.TaskId 
+		LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) ON WOT.TaskId = WT.WorkOrderTaskId 
+	    JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) ON WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
+		JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) ON WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
+		JOIN dbo.WorkOrder WO WITH(NOLOCK) ON LH.WorkOrderId = WO.WorkOrderId
+		INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) ON LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
 		INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 		JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
 		LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId AND Ts.MasterCompanyId = @MasterCompanyId
@@ -161,14 +164,16 @@ BEGIN
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
-		,T.[Description] TaskName
+		--,T.[Description] TaskName
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
 		,0 as IsAnyTaskStarted
        FROM  dbo.WorkOrderLabor WOL WITH(NOLOCK)
 	    --JOIN WorkOrderLaborTracking WOT WITH(NOLOCK) on  WOL.WorkOrderLaborId = WOT.WorkOrderLaborId 
-	    JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 
-		JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
-		INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
-		INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+	    LEFT JOIN dbo.Task T WITH(NOLOCK) ON WOL.TaskId = T.TaskId 
+		LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) ON WOL.TaskId = WT.WorkOrderTaskId 
+		JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) ON WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
+		INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON LH.WorkOrderId = WO.WorkOrderId
+		INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) ON LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
 		INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 		JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
 		LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId AND Ts.MasterCompanyId = @MasterCompanyId
@@ -358,10 +363,12 @@ BEGIN
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
-		,T.[Description] TaskName
+		--,T.[Description] TaskName
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
        FROM WorkOrderLaborTracking WOT WITH(NOLOCK)  
-	    JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
-	    JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
+	    LEFT JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
+	    LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) ON WOT.TaskId = WT.WorkOrderTaskId 
+		JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
 		JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
 		INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
 		INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
@@ -398,10 +405,12 @@ BEGIN
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
-		,T.[Description] TaskName
+		--,T.[Description] TaskName
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
        FROM dbo.WorkOrderLabor WOL WITH(NOLOCK)
 	    --JOIN WorkOrderLaborTracking WOT WITH(NOLOCK) on WOL.WorkOrderLaborId = WOT.WorkOrderLaborId
-	    JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 
+	    LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 		
+        LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) ON WOL.TaskId = WT.WorkOrderTaskId 
 		JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
 		INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
 		INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId

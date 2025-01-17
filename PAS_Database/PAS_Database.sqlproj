@@ -3394,6 +3394,22 @@
     <Build Include="dbo\Stored Procedures\USP_SaveTaskInstructionMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTaskInstructionMasterList.sql" />
     <Build Include="dbo\Stored Procedures\DeleteWorkOrderTaskInstruction.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateInventoryGLSettingCode.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForTask.sql" />
+    <Build Include="dbo\Tables\TicketStatus.sql" />
+    <Build Include="dbo\Tables\TicketPriority.sql" />
+    <Build Include="dbo\Tables\SupportDepartment.sql" />
+    <Build Include="dbo\Tables\CustomerTicketResponse.sql" />
+    <Build Include="dbo\Tables\CustomerTicket.sql" />
+    <Build Include="dbo\Stored Procedures\GetSupportEmployeeList.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerTicketList.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerTicketById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingWOInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingSOInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingExChangeInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingWOInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingSOInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingExChangeInvoiceList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

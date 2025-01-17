@@ -18,9 +18,11 @@
 	1    03/24/2023   Vishal Suthar			Created
 	2    07/19/2023   Devendra Shekh		changes for updatedby for wohistory
 	3    08/29/2023   AMIT GHEDIYA		    Updated HistoryText for wohistory & set multiple kit entry in history table.
+	4	 01/13/2024	  Moin Bloch			Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	5	 01/16/2024	  Moin Bloch			Modified (Added TaskId In Type)
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
+CREATE    PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
 AS
 BEGIN
@@ -67,14 +69,15 @@ BEGIN
 				[CreatedDate] [datetime2](7) NULL,
 				[UpdatedDate] [datetime2](7) NULL,
 				[IsActive] [bit] NULL,
-				[IsDeleted] [bit] NULL
+				[IsDeleted] [bit] NULL,
+				[TaskId] [bigint] NULL
 			)
 				
 			INSERT INTO #WorkOrderMaterialKitType 
 			([WorkOrderMaterialKitMappingId], [WorkOrderId], [WOPartNoId], [WorkflowWorkOrderId], [KitId], [KitNumber], [ItemMasterId], [Quantity], 
-			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[TaskId])
 			SELECT [WorkOrderMaterialKitMappingId], [WorkOrderId], [WOPartNoId], [WorkflowWorkOrderId], [KitId], [KitNumber], [ItemMasterId], [Quantity], 
-			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]
+			[UnitCost], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[TaskId]
 			FROM @tbl_WorkOrderMaterialKitType
 
 			DECLARE @TotMainCount AS INT;
@@ -169,20 +172,34 @@ BEGIN
 					DECLARE @Qty BIGINT;
 					DECLARE @UOMId BIGINT;
 					DECLARE @UnitCost [decimal](18, 2);
-					DECLARE @TaskId BIGINT;
+					DECLARE @TaskId BIGINT = 0;
 					DECLARE @ItemClassificationId BIGINT;
 					DECLARE @ProvisionId BIGINT;
+					DECLARE @WorkOrderId BIGINT = 0;
+					DECLARE @WOPartNoId BIGINT = 0;
+					DECLARE @WorkOrderFormTypeId BIT = 0; 
+								
 
-					SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM #WorkOrderMaterialKitType;
-					SELECT @TaskId = [DefaultTaskId] FROM [dbo].[WorkOrderSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+					SELECT TOP 1 @MasterCompanyId = MasterCompanyId,@TaskId = [TaskId],  @WorkOrderId = [WorkOrderId], @WOPartNoId = [WOPartNoId]  FROM #WorkOrderMaterialKitType;
+					--SELECT @TaskId = [DefaultTaskId] FROM [dbo].[WorkOrderSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 					IF (ISNULL(@TaskId, 0) = 0)
 					BEGIN
-						SELECT @TaskId = ISNULL(TaskId, 0) FROM [dbo].[Task] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND UPPER(Description) = 'ALL TASK';
+						SELECT @TaskId = ISNULL(TaskId, 0) FROM [dbo].[Task] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND UPPER([Description]) = 'ALL TASK';
 					END
 
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
 					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId;
 					SELECT @ProvisionId = PROV.ProvisionId FROM [DBO].[Provision] PROV WHERE UPPER(StatusCode) = 'REPLACE';
+					--SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WOPartNoId;
+					
+					--IF(@WorkOrderFormTypeId = 1)
+					--BEGIN
+					--	SET @TaskId = (SELECT TOP 1 ISNULL([WorkOrderTaskId],0) FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [WorkOrderPartNumberId] = @WOPartNoId);
+					--	IF (ISNULL(@TaskId, 0) = 0)
+					--	BEGIN
+					--		SELECT @TaskId = ISNULL(TaskId, 0) FROM [dbo].[Task] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND UPPER([Description]) = 'ALL TASK';
+					--	END
+					--END
 
 					INSERT INTO [dbo].[WorkOrderMaterialsKit]
 					([WorkOrderMaterialsKitMappingId],[WorkOrderId],[WorkFlowWorkOrderId],[ItemMasterId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
@@ -216,7 +233,7 @@ BEGIN
               DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'usp_SaveWorkOrderMaterialKit' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

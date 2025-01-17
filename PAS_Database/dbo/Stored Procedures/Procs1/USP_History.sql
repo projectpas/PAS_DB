@@ -20,6 +20,7 @@
 	5    17/08/2023  Amit Ghediya		Updated HitoryText content.
 	6    05/05/2024  HEMANT SALIYA		Added Customer ReOpen WO ,Change & Part Number Change
 	7    18/10/2023  Devendra Shekh		added new status code REOPENEDFINISHEDGOODS    
+	8    17/01/2025  Vishal Suthar		added new status code CreateWorkOrderTask, UpdateWorkOrderTaskDescrepancy and UpdateWorkOrderTaskResolution    
          
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
@@ -56,7 +57,7 @@ BEGIN
   @StatusCode = 'UpdateWorkOrderPriority' OR @StatusCode = 'UpdateWorkOrderPublication' OR @StatusCode = 'AddWorkFlow' OR @StatusCode = 'UpdateWorkFlow' OR @StatusCode = 'CreateVendorRMA' OR @StatusCode = 'AddVendorRMAPN' OR @StatusCode = 'CreateVendorRMAPickTicket' 
   OR @StatusCode = 'VendorRMAPickTicketConfirmed' OR @StatusCode = 'VendorRMAShipped' OR @StatusCode = 'CreateVendorCreditMemo' OR @StatusCode = 'UpdateVendorRMAPartQty' OR @StatusCode = 'UpdateVendorRMAReturnReason'
   OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR 
-  @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS')    
+  @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution')    
   BEGIN    
    INSERT INTO [dbo].[History]    
        ([ModuleId]    

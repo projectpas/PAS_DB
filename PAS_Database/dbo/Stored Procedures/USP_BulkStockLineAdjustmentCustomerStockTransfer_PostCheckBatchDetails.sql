@@ -23,7 +23,8 @@
 	7	 20/09/2024   Rajesh Gami	      Update the StocklineAdjustment modulename while adjustment.
 	8	 14/10/2024	  Devendra Shekh	  Added new fields for [CommonBatchDetails]
 	9    29/10/2024   AMIT GHEDIYA		  Handle bypass accounting entry.
-	10	 11/05/2024	  Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	10	 11/05/2024	  Devendra Shekh	  Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	11	 16/01/2025   AMIT GHEDIYA		  Modify(get Distribution based on new settings from stockline level)
      
 **************************************************************/
 
@@ -116,6 +117,8 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @IsAccountByPass BIT = 0;
 		DECLARE @ReferenceModule VARCHAR(100) = 'BSADJ';
+
+		DECLARE @InventoryGLAccId BIGINT = 0;
 
 		SELECT @BlkModuleID = ModuleId FROM Module WHERE CodePrefix='BSTKADJ';
 		
@@ -307,8 +310,20 @@ BEGIN
 						   @NewUnitCostTotransfer = NewUnitCostTotransfer
 					FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
 					
-					SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
+					SELECT @GlAccountId = GLAccountId,
+						   @InventoryGLAccId = InventoryGLSettingId --For INVENTORY-STOCK Distribution
+					FROM [DBO].[Stockline] WITH(NOLOCK) 
+					WHERE StockLineId = @StockLineId;
+
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
+
+					--GET GL Accounting Data from GLAccout based on stockline
+					SELECT @GlAccountId = [GLAccountId],
+						   @GlAccountNumber = [AccountCode],
+						   @GlAccountName = [AccountName]
+					FROM [dbo].[GLAccount] WITH(NOLOCK)
+					WHERE [GLAccountId] = @InventoryGLAccId
+					AND [MasterCompanyId] = @MasterCompanyId;
 
 					--Update Stockline table 
 					SELECT @Quantity = Quantity, @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable],

@@ -13,6 +13,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    07/01/2025		EKTA CHANDEGRA	 Created  
+    2    16/01/2025		EKTA CHANDEGRA	 Add Email Status  
 
 EXEC dbo.USP_EmailTrack @ReferenceId=1012,@MasterCompanyId=1,@ContactId=208,@RecepientEmail=N'sx.alen@yopmail.com',@Subject=N'SOQ-000861',@EmailBody=N'<p>Dear Approver,</p><p><br></p><p>Sales Order Quote - SOQ-000861 requires your approval. For more details, please see the attached file.</p><p><br></p><p>Regards,</p><br><p><img src="##EmailSignatureLogo##" height="60px" width="150px"></p><br><p style="min-height:100px;margin:1px;float:left;font-size:12px!important;font-family:Tahoma,Arial,sans-serif;font-weight:400;line-height:20px;text-align:left">EKTA CHANDEGARA</p><br>',@CreatedBy=N'EKTA CHANDEGARA',@AttachmentId=17715
 
@@ -36,6 +37,7 @@ BEGIN
 			DECLARE @EmailId BIGINT;
 			DECLARE @CreatedByValue VARCHAR(256);
 			DECLARE @EmailType INT = 1;
+			DECLARE @EmailStatus BIT = 1;
 			DECLARE @FromEmail VARCHAR(4000) = 'info.poweraerosuites@gmail.com';
 
 			-- SELECT Module Id For SOQ
@@ -54,10 +56,10 @@ BEGIN
 			-- Insert into Email table
 			INSERT INTO [dbo].[Email] 
 			(ReferenceId,ModuleId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AttachmentId,FromEmail,
-			 ToEmail,Subject,CC,BCC,EmailTypeId,ContactById,ContactDate,EmailBody,IsActive,IsDeleted,Type)
+			 ToEmail,Subject,CC,BCC,EmailTypeId,ContactById,ContactDate,EmailBody,IsActive,IsDeleted,Type,EmailStatus)
 			VALUES 
 			(@ReferenceId,@ModuleId,@MasterCompanyId,@CreatedByValue,@CreatedByValue,GETDATE(),GETDATE(),@AttachmentId,@FromEmail,
-			 @RecepientEmail,@Subject,'','',@EmailTypeId,@ContactId,GETDATE(),@EmailBody,1,0,@EmailType);
+			 @RecepientEmail,@Subject,'','',@EmailTypeId,@ContactId,GETDATE(),@EmailBody,1,0,@EmailType,@EmailStatus);
 
 			-- Get the ID of the inserted Email record
 			SET @EmailId = SCOPE_IDENTITY();

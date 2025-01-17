@@ -17,9 +17,10 @@
     [WFParentId]          BIGINT         NULL,
     [IsVersionIncrease]   BIT            NULL,
     CONSTRAINT [PK_WorkflowDirection] PRIMARY KEY CLUSTERED ([WorkflowDirectionId] ASC),
-    CONSTRAINT [FK_WorkFlowDirection_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkFlowDirection_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

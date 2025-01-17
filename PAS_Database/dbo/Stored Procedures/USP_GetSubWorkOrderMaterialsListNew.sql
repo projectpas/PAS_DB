@@ -60,13 +60,12 @@ SET NOCOUNT ON
 
 		SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
 		SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
-		SELECT DISTINCT TOP 1 @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderPartNumberId = SWO.[WorkOrderPartNumberId] 
+		SELECT DISTINCT TOP 1 @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderPartNumberId = SWO.[WorkOrderPartNumberId],
+		@WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0)
 		FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
 			JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) on SWOPN.SubWorkOrderId = SWO.SubWorkOrderId 
 		WHERE SWOPN.SubWOPartNoId = @subWOPartNoId;
 
-		SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrderPartNumber] WITH (NOLOCK) WHERE [ID] = @WorkOrderPartNumberId;
-			     
 		 IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL  
 		 BEGIN  
 		 DROP TABLE #tmpStockline  

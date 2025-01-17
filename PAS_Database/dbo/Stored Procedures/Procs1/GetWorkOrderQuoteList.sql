@@ -133,8 +133,8 @@ BEGIN
 			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
 					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR) 'QuoteAmount',
 		    WOQD.WOPartNoId,			
-			ISNULL(wopn.WorkOrderFormTypeId,0) AS WorkOrderFormTypeId,
-			ISNULL(wopn.IsWoAlwaysOrOndemandId,0) AS IsWoAlwaysOrOndemandId
+			ISNULL(wo.WorkOrderFormTypeId,0) AS WorkOrderFormTypeId,
+			ISNULL(wo.IsWoAlwaysOrOndemandId,0) AS IsWoAlwaysOrOndemandId
 		FROM dbo.WorkOrderQuote woq WITH (NOLOCK)  
 			JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId  
 			JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId

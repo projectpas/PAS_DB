@@ -122,7 +122,7 @@ BEGIN
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
 		--,T.[Description] TaskName,
-		,CASE WHEN ISNULL(WPN.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName,
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName,
 		(CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN 1 ELSE 0 END) IsAnyTaskStarted
 		FROM WorkOrderLaborTracking WOT WITH(NOLOCK)  
 	    LEFT JOIN dbo.Task T WITH(NOLOCK) ON WOT.TaskId = T.TaskId 
@@ -165,7 +165,7 @@ BEGIN
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
 		--,T.[Description] TaskName
-		,CASE WHEN ISNULL(WPN.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
 		,0 as IsAnyTaskStarted
        FROM  dbo.WorkOrderLabor WOL WITH(NOLOCK)
 	    --JOIN WorkOrderLaborTracking WOT WITH(NOLOCK) on  WOL.WorkOrderLaborId = WOT.WorkOrderLaborId 
@@ -364,7 +364,7 @@ BEGIN
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
 		--,T.[Description] TaskName
-		,CASE WHEN ISNULL(WPN.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
        FROM WorkOrderLaborTracking WOT WITH(NOLOCK)  
 	    LEFT JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
 	    LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) ON WOT.TaskId = WT.WorkOrderTaskId 
@@ -406,7 +406,7 @@ BEGIN
 		,TS.TaskStatusId
 		,WOL.StatusChangedDate StatusChangedDate
 		--,T.[Description] TaskName
-		,CASE WHEN ISNULL(WPN.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
+		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
        FROM dbo.WorkOrderLabor WOL WITH(NOLOCK)
 	    --JOIN WorkOrderLaborTracking WOT WITH(NOLOCK) on WOL.WorkOrderLaborId = WOT.WorkOrderLaborId
 	    LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 		

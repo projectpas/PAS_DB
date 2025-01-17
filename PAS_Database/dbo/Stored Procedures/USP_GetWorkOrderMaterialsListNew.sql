@@ -71,9 +71,7 @@ SET NOCOUNT ON
 				SET @IsTeardownWO = (CASE WHEN (Select TOP 1 ID from dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER(Description) = UPPER('Teardown') ) = @WoTypeId THEN 1 ELSE 0 END )
 				SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
 				SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
-				SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @Local_WFWOId;				
-				SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrderPartNumber] WITH (NOLOCK) WHERE [ID] = @WOPartNoId;
-
+				SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @Local_WFWOId;				
 
 				SET @RecordFrom = (@Local_PageNumber-1)*@Local_PageSize;  
 

@@ -3410,9 +3410,6 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingWOInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingSOInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingExChangeInvoiceList.sql" />
-    <Build Include="Security\paswalaba.sql" />
-    <Build Include="Security\pasadmin.sql" />
-    <Build Include="Security\Donald.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

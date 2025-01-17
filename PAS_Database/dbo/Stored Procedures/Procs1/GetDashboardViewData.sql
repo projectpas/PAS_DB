@@ -17,6 +17,7 @@
 	5	03/28/2024		Bhargav Saliya  Resolve Snapshot: MRO Billing amount issue
 	6	16/10/2024		Shrey Chandegara  add new @DashboardType for workorder dashboard
 	7   11/04/2024		Vishal Suthar	Modified to make use of new SOQ new tables
+	8   01/16/2025		Bhargav Saliya 	Resolved Dashboard Amount issue (SO invoice)
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -101,14 +102,15 @@ BEGIN
 				;WITH Result AS (	
 					SELECT DISTINCT
 					item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-					sobi.GrandTotal, cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+					sobii.GrandTotal,
+					cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 					FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)
-					INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 0
 					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
 					LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON so.SalesPersonId = emp.EmployeeId
 					LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 					LEFT JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId
+					INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sop.SalesOrderPartId = sobii.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 					LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON sop.ItemMasterId = item.ItemMasterId
 					INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId

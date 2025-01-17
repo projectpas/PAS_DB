@@ -34,6 +34,8 @@
 
 
 
+
+
 GO
 
 
@@ -46,37 +48,32 @@ CREATE TRIGGER [dbo].[Trg_WorkOrderFreightAudit]
    AFTER INSERT,UPDATE
 
 AS 
-
 BEGIN
-
-
-
-	DECLARE @TaskId BIGINT,@ShipViaId BIGINT,@UOMId BIGINT,@DimentionUOMId BIGINT,@CurrencyId BIGINT
-
-
-
+	DECLARE @TaskId BIGINT,@ShipViaId BIGINT,@UOMId BIGINT,@DimentionUOMId BIGINT,@CurrencyId BIGINT,@WorkOrderId BIGINT
+	DECLARE @WorkOrderFormTypeId BIT; 			
 	DECLARE @Task VARCHAR(256),@ShipVia VARCHAR(256),@UOM VARCHAR(256),@DimentionUOM VARCHAR(256),@Currency VARCHAR(256)
-
 	
+	SELECT @TaskId= TaskId,@ShipViaId=ShipViaId,@UOMId=UOMId,@DimentionUOMId=DimensionUOMId,@CurrencyId=CurrencyId,@WorkOrderId=WorkOrderId FROM INSERTED
 
+	SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 
+	IF(@WorkOrderFormTypeId=1)
+	BEGIN		
+		SELECT @Task=[TaskName] FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkOrderTaskId]=@TaskId;
+	END
+	ELSE
+	BEGIN 
+		SELECT @Task=[Description] FROM [dbo].[Task]  WITH(NOLOCK) WHERE [TaskId]=@TaskId;
+	END
 
-	SELECT @TaskId= TaskId,@ShipViaId=ShipViaId,@UOMId=UOMId,@DimentionUOMId=DimensionUOMId,@CurrencyId=CurrencyId FROM INSERTED
+	SELECT @ShipVia=[Name] FROM [dbo].[ShippingVia] WITH(NOLOCK) WHERE [ShippingViaId] = @ShipViaId;
 
+	SELECT @UOM = [ShortName] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @UOMId;
 
+	SELECT @DimentionUOM = [Description] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @DimentionUOMId;
 
-	SELECT @Task=Description FROM Task WHERE TaskId=@TaskId
-
-	SELECT @ShipVia=Name FROM ShippingVia WHERE ShippingViaId=@ShipViaId
-
-	SELECT @UOM=ShortName FROM UnitOfMeasure WHERE UnitOfMeasureId=@UOMId
-
-	SELECT @DimentionUOM=Description FROM UnitOfMeasure WHERE UnitOfMeasureId=@DimentionUOMId
-
-	SELECT @Currency=Code FROM Currency WHERE CurrencyId=@CurrencyId
-
-	   
-
+	SELECT @Currency = [Code] FROM [dbo].[Currency] WITH(NOLOCK) WHERE [CurrencyId] = @CurrencyId;
+		   
 	INSERT INTO [dbo].[WorkOrderFreightAudit] 
 
     SELECT * ,@Task,@ShipVia,@UOM,@DimentionUOM,@Currency
@@ -84,7 +81,5 @@ BEGIN
 	FROM INSERTED 
 
 	SET NOCOUNT ON;
-
-
 
 END

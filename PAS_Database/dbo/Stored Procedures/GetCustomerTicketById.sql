@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    11/11/2024  Ekta Chandegra     Created
+    2    17/11/2024  Ekta Chandegra     Retrieve Employee name and email
 
 
 exec [dbo].[GetCustomerTicketById] @CustomerTicketId = 2
@@ -95,6 +96,8 @@ BEGIN
 				TS.Description AS 'Status',
 				CT.ReportedBy,
 				CT.AssignTo,
+				EMP.FirstName +' '+EMP.LastName AS AssignToName, 
+				EMP.Email AS AssignToEmail, 
 				CT.AttachmentId
 			FROM
 			[dbo].[CustomerTicket] CT WITH (NOLOCK)

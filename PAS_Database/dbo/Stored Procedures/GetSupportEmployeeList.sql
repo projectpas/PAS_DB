@@ -11,7 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/11/2024  Ekta Chandegra     Created
-    2    17/11/2024  Ekta Chandegra     Retrieve support user email
+	2    17/01/2025  Ekta Chandegra     Retrieve support user email
+
 
 exec dbo.GetSupportEmployeeList 
 

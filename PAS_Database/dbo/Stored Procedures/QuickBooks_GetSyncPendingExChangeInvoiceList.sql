@@ -13,7 +13,7 @@
  ** --   --------		-------					--------------------------------          
     1   09-Jan-2025		Devendra Shekh			Created
      
- EXECUTE [QuickBooks_GetSyncPendingExChangeInvoiceList] 1
+ EXECUTE [QuickBooks_GetSyncPendingExChangeInvoiceList] 1, 1, 523, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetSyncPendingExChangeInvoiceList]
 	@IntegrationTypeId INT = NULL,
@@ -85,6 +85,7 @@ BEGIN
 			[MiscCharges] DECIMAL(13,2) NULL,
 			[FreightCost] DECIMAL(13,2) NULL,
 			[PercentValue] DECIMAL(13,2) NULL,
+			[BillingType] VARCHAR(100) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -96,7 +97,7 @@ BEGIN
 				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue])
+				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType])
 				SELECT	SOBI.SOBillingInvoicingId,
 						SOBI.InvoiceNo,
 						SOBII.ExchangeSOBillingInvoicingItemId,
@@ -142,11 +143,14 @@ BEGIN
 						ISNULL(SOBII.UnitPrice, 0),
 						ISNULL(SOBII.MiscCharges, 0),
 						ISNULL(SOBII.Freight, 0),
-						ISNULL(P.PercentValue, 0)
+						ISNULL(P.PercentValue, 0),
+						ISNULL(EBT.Description, '')
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 					JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
 					JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
+					LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] SSBI WITH(NOLOCK) ON SSBI.ExchangeSalesOrderScheduleBillingId = SOBII.ExchangeSalesOrderScheduleBillingId
+					LEFT JOIN [dbo].[ExchangeBillingType] EBT WITH(NOLOCK) ON EBT.ExchangeBillingTypeId = SSBI.BillingTypeId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
 					LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBI.BillToSiteId = billToSite.CustomerBillingAddressId
 					LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
@@ -163,7 +167,7 @@ BEGIN
 				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue])
+				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType])
 				SELECT	SOBI.SOBillingInvoicingId,
 						SOBI.InvoiceNo,
 						SOBII.ExchangeSOBillingInvoicingItemId,
@@ -209,11 +213,14 @@ BEGIN
 						ISNULL(SOBII.UnitPrice, 0),
 						ISNULL(SOBII.MiscCharges, 0),
 						ISNULL(SOBII.Freight, 0),
-						ISNULL(P.PercentValue, 0)
+						ISNULL(P.PercentValue, 0),
+						ISNULL(EBT.Description, '')
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 					JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
 					JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
+					LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] SSBI WITH(NOLOCK) ON SSBI.ExchangeSalesOrderScheduleBillingId = SOBII.ExchangeSalesOrderScheduleBillingId
+					LEFT JOIN [dbo].[ExchangeBillingType] EBT WITH(NOLOCK) ON EBT.ExchangeBillingTypeId = SSBI.BillingTypeId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
 					LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBI.BillToSiteId = billToSite.CustomerBillingAddressId
 					LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
@@ -226,23 +233,27 @@ BEGIN
 						AND SOBI.ExchangeSalesOrderId = @ReferenceId;
 			END
 
+			--SELECT * FROM #InvoiceResults
+
 			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Parts Cost' AS [PartDescription],
+					--[PartNumber], [PartNumber] + ' - ' + 'Parts Cost' AS [PartDescription],
+					[PartNumber], [PartNumber] + ' - ' + [BillingType] AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MaterialCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType]
 			FROM #InvoiceResults 
-			WHERE MaterialCost > 0
+			WHERE MaterialCost > 0 AND (MiscCharges = 0 AND FreightCost = 0)
 
 			UNION
 
 			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Misc Charges Cost' AS [PartDescription],
+					--[PartNumber], [PartNumber] + ' - ' + 'Misc Charges Cost' AS [PartDescription],
+					[PartNumber], [PartNumber] + ' - ' + [BillingType] AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MiscCharges] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType]
 			FROM #InvoiceResults
 			WHERE MiscCharges > 0
 
@@ -250,10 +261,11 @@ BEGIN
 
 			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Freight Cost' AS [PartDescription],
+					--[PartNumber], [PartNumber] + ' - ' + 'Freight Cost' AS [PartDescription],
+					[PartNumber], [PartNumber] + ' - ' + [BillingType] AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [FreightCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType]
 			FROM #InvoiceResults
 			WHERE FreightCost > 0
  

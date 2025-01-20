@@ -3412,6 +3412,9 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingExChangeInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOTaskMaterialsByWOTaskId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOTaskLaborByWOTaskId.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_UpdateModuleReferenceDetails.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingCashReceiptList_ById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCashReceiptList_ById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

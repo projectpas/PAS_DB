@@ -1,0 +1,52 @@
+﻿/*************************************************************
+ ** File:   [USP_GetWOTaskMaterialsByWOTaskId]
+ ** Author: Vishal Suthar
+ ** Description: This stored procedure is used to get WO Task Instruction by WO Task Id
+ ** Purpose:
+ ** Date:   01/17/2025
+    
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History               
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
+    1    01/17/2025   Vishal Suthar		Created
+
+EXEC [dbo].[USP_GetWOTaskMaterialsByWOTaskId] 57
+**************************************************************/
+CREATE   PROCEDURE [dbo].[USP_GetWOTaskMaterialsByWOTaskId]
+	@WorkOrderTaskId bigint = 0
+AS
+BEGIN
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	SET NOCOUNT ON;
+	BEGIN TRY
+		SELECT 
+		STRING_AGG(IM.partnumber, ',') AS PartNumbers,
+		SUM(WOM.ExtendedCost) AS BillingAmount
+		FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
+		INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
+		LEFT JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId AND WOT.WorkOrderId = WOM.WorkOrderId
+		WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+	END TRY
+	BEGIN CATCH
+	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+        , @AdhocComments     VARCHAR(150)    = 'USP_GetWOTaskMaterialsByWOTaskId'
+        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@WorkOrderTaskId AS varchar(10)) ,'') +''
+        , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+        exec spLogException
+                @DatabaseName           =  @DatabaseName
+                , @AdhocComments          =  @AdhocComments
+                , @ProcedureParameters    =  @ProcedureParameters
+                , @ApplicationName        =  @ApplicationName
+                , @ErrorLogID             =  @ErrorLogID OUTPUT;
+        RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+        RETURN(1);
+  END CATCH
+END

@@ -17,6 +17,7 @@
     2    07/01/2025		EKTA CHANDEGRA	 Retrieve Specific columns from [dbo].[SalesOrderPartV1]
     3    10/01/2025		EKTA CHANDEGRA	 Insert values in [dbo].[SalesOrder] based on selected customer
     4    16/01/2025		EKTA CHANDEGRA	 Add QtyReserved value 0 
+    5    20/01/2025		EKTA CHANDEGRA	 Do not copy stockline   
 
 exec dbo.CopySalesOrder @SalesOrderId=1730,@CreatedBy=N'EKTA CHANDEGARA',@TransferSOApproval=1,
 @CustomerId=85,@CustomerReference=N'test',@FunctionalCurrencyId=3,@ForeignExchangeRate=1.000000,
@@ -388,74 +389,74 @@ BEGIN
 
 				-- End Transfer Part Cost 
 
-					IF EXISTS(SELECT 1 FROM [dbo].[SalesOrderStocklineV1] SOSTL WITH(NOLOCK) WHERE SOSTL.SalesOrderPartId = @OldSOPartId)
-					BEGIN
-						DECLARE @SOStocklineLoopID AS INT;
-						IF OBJECT_ID(N'tempdb..#sopsList') IS NOT NULL
-						BEGIN
-							DROP TABLE #sopsList
-						END
-						CREATE TABLE #sopsList
-						(
-							ID BIGINT NOT NULL IDENTITY,
-							[SalesOrderStocklineId] [bigint] NULL,
-							[StocklineId] [bigint] NULL
-						)
+					--IF EXISTS(SELECT 1 FROM [dbo].[SalesOrderStocklineV1] SOSTL WITH(NOLOCK) WHERE SOSTL.SalesOrderPartId = @OldSOPartId)
+					--BEGIN
+					--	DECLARE @SOStocklineLoopID AS INT;
+					--	IF OBJECT_ID(N'tempdb..#sopsList') IS NOT NULL
+					--	BEGIN
+					--		DROP TABLE #sopsList
+					--	END
+					--	CREATE TABLE #sopsList
+					--	(
+					--		ID BIGINT NOT NULL IDENTITY,
+					--		[SalesOrderStocklineId] [bigint] NULL,
+					--		[StocklineId] [bigint] NULL
+					--	)
 
-						INSERT INTO #sopsList([SalesOrderStocklineId],[StocklineId])
-						SELECT DISTINCT SOSV1.SalesOrderStocklineId , SOSV1.StockLineId
-						FROM [dbo].[SalesOrderStocklineV1] SOSV1 WITH (NOLOCK)
-						WHERE SOSV1.SalesOrderPartId = @OldSOPartId
+					--	INSERT INTO #sopsList([SalesOrderStocklineId],[StocklineId])
+					--	SELECT DISTINCT SOSV1.SalesOrderStocklineId , SOSV1.StockLineId
+					--	FROM [dbo].[SalesOrderStocklineV1] SOSV1 WITH (NOLOCK)
+					--	WHERE SOSV1.SalesOrderPartId = @OldSOPartId
 
-						SELECT @SOStocklineLoopID = MAX(ID) FROM #sopsList;
-						WHILE(@SOStocklineLoopID > 0)
-						BEGIN 
-							DECLARE @OldSOStocklineId BIGINT;
-							SELECT @OldSOStocklineId = SalesOrderStocklineId FROM #sopsList sopl WITH(NOLOCK) WHERE sopl.ID = @SOStocklineLoopID
+					--	SELECT @SOStocklineLoopID = MAX(ID) FROM #sopsList;
+					--	WHILE(@SOStocklineLoopID > 0)
+					--	BEGIN 
+					--		DECLARE @OldSOStocklineId BIGINT;
+					--		SELECT @OldSOStocklineId = SalesOrderStocklineId FROM #sopsList sopl WITH(NOLOCK) WHERE sopl.ID = @SOStocklineLoopID
 
-						-- Transfer Part Stockline 
-							INSERT INTO [dbo].[SalesOrderStocklineV1]
-							([SalesOrderPartId],[StockLineId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],
-							 [QtyOH],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],
-							 [CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[StocklineNumber],
-						     [ConditionName],[StatusName],[Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
-							 [ReferenceNumber],[PriorityId])
+					--	-- Transfer Part Stockline 
+					--		INSERT INTO [dbo].[SalesOrderStocklineV1]
+					--		([SalesOrderPartId],[StockLineId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],
+					--		 [QtyOH],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],
+					--		 [CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[StocklineNumber],
+					--	     [ConditionName],[StatusName],[Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
+					--		 [ReferenceNumber],[PriorityId])
 
-							SELECT 
-							@CurrentSOPartId,SOSTLV1.[StockLineId],SOSTLV1.[ConditionId],SOSTLV1.[QtyOrder],0,SOSTLV1.[QtyAvailable],
-							 SOSTLV1.[QtyOH],SOSTLV1.[CustomerRequestDate],SOSTLV1.[PromisedDate],SOSTLV1.[EstimatedShipDate],1,SOSTLV1.[MasterCompanyId],
-							 SOSTLV1.[CreatedBy],GETDATE(),SOSTLV1.[UpdatedBy],GETDATE(),SOSTLV1.[IsActive],SOSTLV1.[IsDeleted],SOSTLV1.[StocklineNumber],
-						     SOSTLV1.[ConditionName],SOSTLV1.[StatusName],SOSTLV1.[Notes],IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],
-							 SOSTLV1.[ReferenceNumber],SOSTLV1.[PriorityId]
-							FROM [dbo].[SalesOrderStocklineV1] SOSTLV1 WITH(NOLOCK)
-							INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOSTLV1.SalesOrderPartId
-							LEFT JOIN [dbo].[ItemMasterExportInfo] IMEI WITH (NOLOCK) ON IMEI.ItemMasterId = SOP.ItemMasterId
-							WHERE SOSTLV1.SalesOrderStocklineId = @OldSOStocklineId;
+					--		SELECT 
+					--		@CurrentSOPartId,SOSTLV1.[StockLineId],SOSTLV1.[ConditionId],SOSTLV1.[QtyOrder],0,SOSTLV1.[QtyAvailable],
+					--		 SOSTLV1.[QtyOH],SOSTLV1.[CustomerRequestDate],SOSTLV1.[PromisedDate],SOSTLV1.[EstimatedShipDate],1,SOSTLV1.[MasterCompanyId],
+					--		 SOSTLV1.[CreatedBy],GETDATE(),SOSTLV1.[UpdatedBy],GETDATE(),SOSTLV1.[IsActive],SOSTLV1.[IsDeleted],SOSTLV1.[StocklineNumber],
+					--	     SOSTLV1.[ConditionName],SOSTLV1.[StatusName],SOSTLV1.[Notes],IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],
+					--		 SOSTLV1.[ReferenceNumber],SOSTLV1.[PriorityId]
+					--		FROM [dbo].[SalesOrderStocklineV1] SOSTLV1 WITH(NOLOCK)
+					--		INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOSTLV1.SalesOrderPartId
+					--		LEFT JOIN [dbo].[ItemMasterExportInfo] IMEI WITH (NOLOCK) ON IMEI.ItemMasterId = SOP.ItemMasterId
+					--		WHERE SOSTLV1.SalesOrderStocklineId = @OldSOStocklineId;
 
-							SET @NewSOStocklineId = SCOPE_IDENTITY();
-						-- End Transfer Part Stockline
+					--		SET @NewSOStocklineId = SCOPE_IDENTITY();
+					--	-- End Transfer Part Stockline
 						
-						-- Transfer Part Stockline Cost 
-							INSERT INTO [DBO].[SalesOrderStockLineCost]
-							([SalesOrderId],[SalesOrderPartId],[SalesOrderStocklineId],[UnitSalesPrice],
-							[UnitSalesPriceExtended],[UnitCost],[UnitCostExtended],[MarkUpPercentage],
-							[MarkUpAmount],[DiscountPercentage],[DiscountAmount],[MarginAmount],
-							[MarginPercentage],[NetSaleAmount],[MasterCompanyId],[CreatedBy],[CreatedDate],
-							[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[NetSaleAmountPerUnit])
+					--	-- Transfer Part Stockline Cost 
+					--		INSERT INTO [DBO].[SalesOrderStockLineCost]
+					--		([SalesOrderId],[SalesOrderPartId],[SalesOrderStocklineId],[UnitSalesPrice],
+					--		[UnitSalesPriceExtended],[UnitCost],[UnitCostExtended],[MarkUpPercentage],
+					--		[MarkUpAmount],[DiscountPercentage],[DiscountAmount],[MarginAmount],
+					--		[MarginPercentage],[NetSaleAmount],[MasterCompanyId],[CreatedBy],[CreatedDate],
+					--		[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[NetSaleAmountPerUnit])
 
-							SELECT @SalesOrderId,@CurrentSOPartId,@NewSOStocklineId,SOSTLC.[UnitSalesPrice],
-							SOSTLC.[UnitSalesPriceExtended],SOSTLC.[UnitCost],SOSTLC.[UnitCostExtended],SOSTLC.[MarkUpPercentage],
-							SOSTLC.[MarkUpAmount],SOSTLC.[DiscountPercentage],SOSTLC.[DiscountAmount],SOSTLC.[MarginAmount],
-							SOSTLC.[MarginPercentage],SOSTLC.[NetSaleAmount],SOSTLC.[MasterCompanyId],SOSTLC.[CreatedBy],GETDATE(),
-							SOSTLC.[UpdatedBy],GETDATE(),SOSTLC.[IsActive],SOSTLC.[IsDeleted],SOSTLC.[NetSaleAmountPerUnit]
-							FROM [dbo].[SalesOrderStockLineCost] SOSTLC WITH(NOLOCK)
-							WHERE SOSTLC.SalesOrderStocklineId = @OldSOStocklineId
-							AND SOSTLC.SalesOrderId = @OldSalesOrderId 
+					--		SELECT @SalesOrderId,@CurrentSOPartId,@NewSOStocklineId,SOSTLC.[UnitSalesPrice],
+					--		SOSTLC.[UnitSalesPriceExtended],SOSTLC.[UnitCost],SOSTLC.[UnitCostExtended],SOSTLC.[MarkUpPercentage],
+					--		SOSTLC.[MarkUpAmount],SOSTLC.[DiscountPercentage],SOSTLC.[DiscountAmount],SOSTLC.[MarginAmount],
+					--		SOSTLC.[MarginPercentage],SOSTLC.[NetSaleAmount],SOSTLC.[MasterCompanyId],SOSTLC.[CreatedBy],GETDATE(),
+					--		SOSTLC.[UpdatedBy],GETDATE(),SOSTLC.[IsActive],SOSTLC.[IsDeleted],SOSTLC.[NetSaleAmountPerUnit]
+					--		FROM [dbo].[SalesOrderStockLineCost] SOSTLC WITH(NOLOCK)
+					--		WHERE SOSTLC.SalesOrderStocklineId = @OldSOStocklineId
+					--		AND SOSTLC.SalesOrderId = @OldSalesOrderId 
 
-						-- END Transfer Part Stockline Cost
-							SET @SOStocklineLoopID = @SOStocklineLoopID - 1;
-						END
-					END
+					--	-- END Transfer Part Stockline Cost
+					--		SET @SOStocklineLoopID = @SOStocklineLoopID - 1;
+					--	END
+					--END
 
 				-- Transfer Freights
 					IF EXISTS(SELECT 1 FROM [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) WHERE SOF.SalesOrderPartId = @OldSOPartId)

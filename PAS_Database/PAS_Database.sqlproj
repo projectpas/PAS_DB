@@ -3416,6 +3416,15 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdatePendingCashReceiptList_ById.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCashReceiptList_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_Check_To_Allow_ReOpen_FinishGood_WorkOrder.sql" />
+    <Build Include="dbo\Tables\CashReceiptSearchParams.sql" />
+    <Build Include="dbo\Tables\CashReceiptEmployeeMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveCashReceiptSearchParams.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RemoveCashReceiptSearchParams_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateCashReceiptParam.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CashReceiptSearchParams_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CashReceiptEmployeeMappingData.sql" />
+    <Build Include="dbo\Stored Procedures\SaveSearch_CashReceiptSaveSearchData.sql" />
+    <Build Include="dbo\User Defined Types\CashReceiptSearchParamsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

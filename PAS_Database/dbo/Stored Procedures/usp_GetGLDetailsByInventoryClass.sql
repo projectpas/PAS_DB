@@ -18,12 +18,12 @@
  ** S NO   Date         Author    Change Description                          
  ** --   --------     -------    --------------------------------                        
      1    07-01-25    Bhavesh Raval   Get Glaaccount by InventoryGlSettingId    
-              
+     2    21-01-25    Bhavesh Raval   Remove Name and Notes Columns              
 **************************************************************/              
 --exec  [dbo].[usp_GetGLDetailsByInventoryClass] 1             
              
 CREATE        PROCEDURE [dbo].[usp_GetGLDetailsByInventoryClass]             
-@inventoryglsettingid int            
+@InventoryGLSettingId int            
 AS              
 BEGIN              
   SET NOCOUNT ON;              
@@ -33,8 +33,7 @@ BEGIN
               
    SELECT           
    I.InventoryGLSettingId,           
-   I.[Name] AS InventoryGLSettingName,           
-   I.Notes,           
+   I.[StockInventoryName] AS InventoryGLSettingName,                    
  -- (select TOP 1 GLAccountId from ItemMaster IM where IM.InventoryGLSettingId =I.InventoryGLSettingId)       
   I.InventoryGLAccId AS InventoryGLAccId,      
  -- (select GLAccount from ItemMaster IM where IM.InventoryGLSettingId =I.InventoryGLSettingId)      
@@ -107,7 +106,7 @@ BEGIN
    GLAccount GL15 WITH (NOLOCK) ON I.COGS_ExchSalesOrderGLAccId = GL15.GLAccountId     
   
   WHERE           
-   I.InventoryGLSettingId = @inventoryglsettingid          
+   I.InventoryGLSettingId = @InventoryGLSettingId          
           
   END TRY              
               
@@ -118,7 +117,7 @@ BEGIN
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------              
             ,              
             @AdhocComments varchar(150) = '[usp_GetGLDetailsByInventoryClass]',              
-            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@inventoryglsettingid, '') AS varchar(100)) ,              
+            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@InventoryGLSettingId, '') AS varchar(100)) ,              
             @ApplicationName varchar(100) = 'PAS'              
               
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------              

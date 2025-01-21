@@ -10,13 +10,13 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author			Change Description              
- ** --   --------     -------			--------------------------------            
-    1    01/05/2024   AMIT GHEDIYA		Created  
-	2    01/05/2024   HEMANT SALIYA		Updated For Handle Flat Rate values 
-	3    02/07/2024   VISHAL SUTHAR		Updated to handle Flat Rate and calculate tax in SP level itself
-
---EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2176,3752  
+ ** PR   Date			Author			Change Description              
+ ** --   --------		-------			--------------------------------            
+    1    01/05/2024		AMIT GHEDIYA		Created  
+	2    01/05/2024		HEMANT SALIYA		Updated For Handle Flat Rate values 
+	3    02/07/2024		VISHAL SUTHAR		Updated to handle Flat Rate and calculate tax in SP level itself
+	4    21/JAN/2025	RAJESH GAMI			Updated to WorkScopeCode Instead of their Description
+--EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
  @WorkOrderQuoteId bigint,  
@@ -45,7 +45,7 @@ BEGIN
 		 DirectCost = SUM(wqd.MaterialCost + wqd.LaborCost + wqd.ChargesCost),  
 		 Margin = SUM(wqd.MaterialMargin + wqd.LaborMargin + wqd.ChargesMargin),  
 		 MarginPercentage = SUM(wqd.MaterialMarginPer + wqd.LaborMarginPer + wqd.ChargesMarginPer),  
-		 Scope = UPPER(s.Description),
+		 Scope = UPPER(MAX(s.WorkScopeCode)),
 		 UPPER(sl.StockLineNumber) AS StockLineNumber,
 		 UPPER(sl.SerialNumber) AS SerialNumber,
 		 SUM(wqd.MaterialRevenue) AS 'MaterialRevenue',  
@@ -83,7 +83,7 @@ BEGIN
 	WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 	GROUP BY im.PartNumber,  
-		 im.PartDescription, im1.ItemMasterId, im1.PartNumber, s.Description,  
+		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,  
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	

@@ -17,6 +17,7 @@
    2   01/02/2024	    AMIT GHEDIYA	   added isperforma Flage for SO
    3   10-OCT-2024      Abhishek Jirawla   Implemented the new tables for SalesOrderQuotePart related tables
    4   02-DEC-2024      Vishal Suthar	   Fixed the join after adding the missing column
+   5   21-01-2025       Shrey Chandegara   Changes for sorevenue and soqrevenue (charge ,salestax and othertax not come in sorevenue)
 
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -182,8 +183,8 @@ BEGIN
 			UPPER(SOQ.statusname) 'quoteStatus',  
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.QuoteSentDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.QuoteSentDate, 107) END 'datesent', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate', 
-			ISNULL((ISNULL(SOQPC.NetSaleAmount, 0)), 0) 'quoterevenue',
-			ISNULL((ISNULL(A.NetSaleAmount, 0)), 0) 'sorevenue',
+			ISNULL((ISNULL(SOQPC.TotalRevenue, 0)), 0) 'quoterevenue',
+			ISNULL((ISNULL(A.TotalRevenue, 0)), 0) + ISNULL((ISNULL(A.SalesTax, 0)), 0) + ISNULL((ISNULL(A.OtherTax, 0)), 0) 'sorevenue',
 			FORMAT(ISNULL(SOQPC.UnitCostExtended, 0),'#,0.00') 'qtedirectcost',  
 			FORMAT(((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0))),'#,0.00') 'qtemarginamt',  
 		    FORMAT((((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0)))*100) /  
@@ -219,15 +220,15 @@ BEGIN
 		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
 		  OUTER APPLY(
-			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.NetSaleAmount,SOBilling.InvoiceNo 
+			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.TotalRevenue,SOBilling.InvoiceNo,SOBilling.SalesTax,SOBilling.OtherTax
 			FROM DBO.SalesOrder SO WITH (NOLOCK)   
 			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPC.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId FROM  DBO.SalesOrderBillingInvoicing SOBI
+			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId,SOBII.SalesTax,SOBII.OtherTax FROM  DBO.SalesOrderBillingInvoicing SOBI
 			LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 			WHERE ISNULL(SOBI.IsProforma,0) = 0
-			GROUP BY SalesOrderPartId,InvoiceNo) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
+			GROUP BY SalesOrderPartId,InvoiceNo,SOBII.SalesTax,SOBII.OtherTax) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM dbo.SalesOrderCharges A2 WITH (NOLOCK) WHERE A2.[IsActive] = 1 
 		    GROUP BY SalesOrderPartId) SOCharges ON SOCharges.SalesOrderPartId = SOP.SalesOrderPartId
 		 ) A

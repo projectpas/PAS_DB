@@ -17,6 +17,7 @@
  ** --   --------       -------				--------------------------------          
     1    13 JAN 2025    RAJESH GAMI			Created
     2    16 JAN 2025  RAJESH GAMI			Updated to print only instruction which has PrintInWOQ is enabled    
+	3    21 JAN 2025  RAJESH GAMI			Updated to print only Task which has PrintInWO is enabled
 RPT_GetCommonWorkOrderQuoteFormTypePrintView 4769, 4028, 4316
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderQuoteFormTypePrintView]
@@ -74,7 +75,7 @@ BEGIN
 					FROM dbo.WorkOrderTask WOT WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWOQ, 0) = 1
-					WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
+					WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOTD.PrintInWOQ,0) = 1
 				),
 				RecursiveCTE AS (				
 					SELECT 

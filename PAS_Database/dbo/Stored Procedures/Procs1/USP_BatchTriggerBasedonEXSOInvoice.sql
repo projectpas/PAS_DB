@@ -22,7 +22,7 @@
 	7    19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
 	8	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	9	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	10	 06/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
+	10	 21/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -123,6 +123,8 @@ BEGIN
 		DECLARE @InventoryGLAccId BIGINT = 0;
 		DECLARE @COGSExchSalesOrderGLAccId BIGINT = 0;
 		DECLARE @RevenueEXCSoGLAccId BIGINT = 0;
+		DECLARE @InventoryExchAgreementGLAccId BIGINT = 0;
+		DECLARE @InventoryGLSettingId BIGINT = 0;
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE [ID] = @DistributionMasterId;
@@ -442,7 +444,9 @@ BEGIN
 									 @InventoryToBillGLAccId = STL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
 									 @InventoryGLAccId = STL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
 									 @COGSExchSalesOrderGLAccId = STL.COGS_ExchSalesOrderGLAccId,  -- For COGS EXc Sales Order Distribution (Billing)
-									 @RevenueEXCSoGLAccId = STL.RevenueExchGLAccId -- For Revenue EXc SO Distribution (Billing)
+									 @RevenueEXCSoGLAccId = STL.RevenueExchGLAccId, -- For Revenue EXc SO Distribution (Billing)
+									 @InventoryExchAgreementGLAccId = STL.InventoryExchAgreementGLAccId, -- For 12130 - INVENTORY - EXCHANGE AGREEMENT Distribution (Shipping)
+									 @InventoryGLSettingId = STL.InventoryGLSettingId -- For 12000 - INVENTORY - STOCK SO Distribution (Shipping)
 						FROM [dbo].[ExchangeSalesOrderShipping] ESOI WITH(NOLOCK)
 					    INNER JOIN [dbo].[ExchangeSalesOrderShippingItem] ESSI WITH(NOLOCK) ON ESOI.ExchangeSalesOrderShippingId = ESSI.ExchangeSalesOrderShippingId
 					    INNER JOIN [dbo].[ExchangeSalesOrderPart] ESOP WITH(NOLOCK) ON ESSI.ExchangeSalesOrderPartId = ESOP.ExchangeSalesOrderPartId
@@ -481,7 +485,7 @@ BEGIN
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
-							WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
+							WHERE [GLAccountId] = @InventoryExchAgreementGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 
 							INSERT INTO [dbo].[CommonBatchDetails]
@@ -611,7 +615,7 @@ BEGIN
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
-							WHERE [GLAccountId] = @RevenueEXCSoGLAccId
+							WHERE [GLAccountId] = @InventoryGLSettingId
 							AND [MasterCompanyId] = @MasterCompanyId;
 													    
 				    		INSERT INTO [dbo].[CommonBatchDetails]
@@ -839,7 +843,8 @@ BEGIN
 						   @InventoryToBillGLAccId = SL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
 						   @InventoryGLAccId = SL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
 						   @COGSExchSalesOrderGLAccId = SL.COGS_ExchSalesOrderGLAccId,  -- For COGS EXc Sales Order Distribution (Billing)
-						   @RevenueEXCSoGLAccId = SL.RevenueExchGLAccId -- For Revenue EXc SO Distribution (Billing)
+						   @RevenueEXCSoGLAccId = SL.RevenueExchGLAccId, -- For Revenue EXc SO Distribution (Billing)
+						   @InventoryExchAgreementGLAccId = SL.InventoryExchAgreementGLAccId -- For 12130 - INVENTORY - EXCHANGE AGREEMENT Distribution (Shipping)
 					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
 					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON LO.LotId = SL.LotId  
 					  WHERE SL.[StockLineId] = @StocklineId;
@@ -1316,7 +1321,7 @@ BEGIN
 							   @GlAccountNumber = [AccountCode],
 							   @GlAccountName = [AccountName]
 						FROM [dbo].[GLAccount] WITH(NOLOCK)
-						WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
+						WHERE [GLAccountId] = @RevenueEXCSoGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
 						INSERT INTO [dbo].[CommonBatchDetails]
@@ -1676,7 +1681,7 @@ BEGIN
 							   @GlAccountNumber = [AccountCode],
 							   @GlAccountName = [AccountName]
 						FROM [dbo].[GLAccount] WITH(NOLOCK)
-						WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
+						WHERE [GLAccountId] = @InventoryExchAgreementGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
 						INSERT INTO [dbo].[CommonBatchDetails]

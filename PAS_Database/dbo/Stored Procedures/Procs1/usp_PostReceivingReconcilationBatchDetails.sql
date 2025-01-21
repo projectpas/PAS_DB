@@ -33,6 +33,7 @@
 	21	 30/12/2024   Devendra Shekh      Modify (Same JE for Post Batch, StockType wise)
 	22	 08/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 	23	 20/01/2025   RAJESH GAMI		  Commented the [UpdateStocklineBatchDetailsColumnsWithId] execution due to performance
+	24	 20/01/2025   RAJESH GAMI		  UnCommented the [UpdateStocklineBatchDetailsColumnsWithId] SP
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -2760,14 +2761,14 @@ BEGIN
 
 				
 				/**************START: DO NOT DELETE BELOW CODE:  Update Stk Batch Detail Columns with Id by StocklineId : RAJESH GAMI **********/
-				--SELECT @MinRecordId = MIN(RecordId), @MaxRecordId = MAX(RecordId) FROM #RRPostType;
-				--WHILE @MinRecordId <= @MaxRecordId
-				--BEGIN
-				--	PRINT @MinRecordId
-				--	SELECT @StocklineId = StocklineId FROM #RRPostType	WHERE RecordId = @MinRecordId;
-				--	EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId;
-				--	SET @MinRecordId += 1;
-				--END;
+				SELECT @MinRecordId = MIN(RecordId), @MaxRecordId = MAX(RecordId) FROM #RRPostType;
+				WHILE @MinRecordId <= @MaxRecordId
+				BEGIN
+					PRINT @MinRecordId
+					SELECT @StocklineId = StocklineId FROM #RRPostType	WHERE RecordId = @MinRecordId;
+					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId;
+					SET @MinRecordId += 1;
+				END;
 				/**************END: Update Stk Batch Detail Columns with Id by StocklineId **********/
 
 				-- FREIGHT AND TAX BATCH DETAIL --

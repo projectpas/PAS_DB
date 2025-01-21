@@ -21,6 +21,7 @@
  	05	15-Jan-2025		RAJESH GAMI		    Fixed to multiple records display while select on POVIEW     
 	06	15-Jan-2025		Hemant Saliya		Resolved Duplicate issue
 	07	16-Jan-2025		Bhargav Saliya		Resolved Purchase Order count issue
+	08	21-Jan-2025		Bhargav Saliya		When we attached WO with PO Part That time select Multiple/WO Number
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
     
@@ -100,12 +101,55 @@ BEGIN
 		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
 		INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
 	WHERE MSD.[ModuleID] = @POMSModuleID AND EUR.[EmployeeId] = @EmployeeId) AS PurchaseOrderUserRole
+
+
+	IF OBJECT_ID('tempdb..#TempPurchaseOrders') IS NOT NULL
+    DROP TABLE #TempPurchaseOrders;
+
+	CREATE TABLE #TempPurchaseOrders (
+		[PurchaseOrderId] INT,
+		[PurchaseOrderNumber] NVARCHAR(50),
+		[PurchaseOrderNo] NVARCHAR(50),
+		[OpenDate] DATETIME,
+		[ClosedDate] DATETIME,
+		[CreatedDate] DATETIME,
+		[CreatedBy] NVARCHAR(256),
+		[UpdatedDate] DATETIME,
+		[UpdatedBy] NVARCHAR(256),
+		[IsActive] BIT,
+		[IsDeleted] BIT,
+		[StatusId] INT,
+		[VendorId] INT,
+		[VendorName] NVARCHAR(100),
+		[VendorCode] NVARCHAR(100),
+		[Status] NVARCHAR(100),
+		[RequestedBy] NVARCHAR(50),
+		[ApprovedBy] NVARCHAR(100),
+		[QuantityOrdered] NVARCHAR(100),
+		[QuantityBackOrdered] NVARCHAR(100),
+		[QuantityReceived] NVARCHAR(100),
+		[PartNumberType] NVARCHAR(250),
+		[ManufacturerType] NVARCHAR(250),
+		[WorkOrderNumType] NVARCHAR(250),
+		[SalesOrderNumberType] NVARCHAR(250),
+		[RepairOrderNumberType] NVARCHAR(250),
+		[WorkOrderNum] NVARCHAR(250),
+		[SalesOrderNumber] NVARCHAR(250),
+		[RepairOrderNumber] NVARCHAR(250),
+		[EstDeliveryType] NVARCHAR(MAX)
+	);
         
 	BEGIN TRY      
 		BEGIN       
 			IF(@ViewType = 'poview')      
-			BEGIN      
-				;WITH Result AS(               
+			BEGIN     
+			
+
+			INSERT INTO #TempPurchaseOrders ([PurchaseOrderId],[PurchaseOrderNumber],[PurchaseOrderNo],[OpenDate],[ClosedDate],[CreatedDate],[CreatedBy],[UpdatedDate],[UpdatedBy],
+								[IsActive],[IsDeleted],[StatusId],[VendorId],[VendorName],[VendorCode],[Status],[RequestedBy],[ApprovedBy],[QuantityOrdered],[QuantityBackOrdered],
+								[QuantityReceived],[PartNumberType],[ManufacturerType],[WorkOrderNumType],[SalesOrderNumberType],[RepairOrderNumberType],[WorkOrderNum],
+								[SalesOrderNumber],[RepairOrderNumber],[EstDeliveryType])
+				--;WITH Result AS(               
 				SELECT DISTINCT PO.PurchaseOrderId,
 					PO.PurchaseOrderNumber,
 					PO.PurchaseOrderNumber AS PurchaseOrderNo,
@@ -124,12 +168,12 @@ BEGIN
 					PO.[Status],
 					PO.Requisitioner AS RequestedBy,
 					PO.ApprovedBy,
-					SUM(ISNULL(POP.QuantityOrdered,0)) AS QuantityOrdered,
-					SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityBackOrdered,
+					CAST(SUM(ISNULL(POP.QuantityOrdered,0)) AS varchar(100)) AS QuantityOrdered,
+					CAST(SUM(ISNULL(POP.QuantityBackOrdered,0)) AS varchar(100)) AS QuantityBackOrdered,
 					SUM(ISNULL(POP.QuantityOrdered,0)) - SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityReceived,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) End) as 'PartNumberType',
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  					
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNumType', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  
+					'' WorkOrderNumType,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumberType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumberType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNum', 
@@ -158,8 +202,23 @@ BEGIN
 					PO.[Status],
 					PO.Requisitioner,
 					PO.ApprovedBy
-				)   
-	,ResultData AS(      
+				--)   
+	UPDATE TMP
+	SET TMP.WorkOrderNumType = WODATA.WorkOrderNumType
+	FROM #TempPurchaseOrders TMP
+	OUTER APPLY (
+		SELECT  
+			CASE WHEN COUNT(DISTINCT PORW.ReferenceId) > 1 AND PORW.ModuleId = 1 THEN 'Multiple' ELSE MAX(WON.WorkOrderNum) end  AS 'WorkOrderNumType'
+		FROM 
+		[dbo].[PurchaseOrderPart] POPW WITH (NOLOCK) 
+		LEFT JOIN [dbo].[PurchaseOrderPartReference] PORW  WITH (NOLOCK) ON POPW.PurchaseOrderPartRecordId = PORW.PurchaseOrderPartId AND POPW.PurchaseOrderId = PORW.PurchaseOrderId
+		LEFT JOIN [dbo].WorkOrder WON WITH (NOLOCK) ON PORW.ReferenceId = WON.WorkOrderId
+		WHERE	POPW.PurchaseOrderPartRecordId = PORW.PurchaseOrderPartId AND POPW.PurchaseOrderId = PORW.PurchaseOrderId
+				AND POPW.isParent=1  AND TMP.PurchaseOrderId = POPW.PurchaseOrderId  
+				GROUP BY PORW.ModuleId
+		) AS WODATA
+	
+	;WITH ResultData AS(      
 		SELECT M.PurchaseOrderId,M.PurchaseOrderNumber,M.PurchaseOrderNo,M.OpenDate as 'OpenDate',M.ClosedDate as 'ClosedDate',M.CreatedDate,
 			M.CreatedBy, M.UpdatedDate, M.UpdatedBy, M.IsActive, M.IsDeleted,
 			M.StatusId, M.VendorId, M.VendorName, M.VendorCode, M.[Status], M.RequestedBy, M.ApprovedBy,
@@ -174,7 +233,7 @@ BEGIN
 			CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
 			0 as PurchaseOrderPartRecordId      
 			,M.QuantityOrdered,M.QuantityBackOrdered,M.QuantityReceived      
-		FROM Result M    
+		FROM #TempPurchaseOrders M    
 		WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR      
 			(CreatedBy LIKE '%' +@GlobalFilter+'%') OR      
 			(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR       

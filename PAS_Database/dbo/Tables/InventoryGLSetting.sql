@@ -1,8 +1,6 @@
 ﻿CREATE TABLE [dbo].[InventoryGLSetting] (
     [InventoryGLSettingId]              BIGINT         IDENTITY (1, 1) NOT NULL,
     [StockInventoryName]                VARCHAR (150)  NOT NULL,
-    [Name]                              NVARCHAR (150) NULL,
-    [Notes]                             NVARCHAR (250) NULL,
     [InventoryGLAccId]                  BIGINT         NOT NULL,
     [InventoryGLAccCode]                NVARCHAR (250) NULL,
     [GoodsReceivedNotInvoicesGLAccId]   BIGINT         NOT NULL,

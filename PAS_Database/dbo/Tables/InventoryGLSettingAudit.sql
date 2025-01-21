@@ -2,8 +2,6 @@
     [InventoryGLSettingAuditId]         BIGINT         IDENTITY (1, 1) NOT NULL,
     [InventoryGLSettingId]              BIGINT         NULL,
     [StockInventoryName]                VARCHAR (150)  NULL,
-    [Name]                              NVARCHAR (150) NULL,
-    [Notes]                             NVARCHAR (250) NULL,
     [InventoryGLAccId]                  BIGINT         NULL,
     [InventoryGLAccCode]                NVARCHAR (250) NULL,
     [GoodsReceivedNotInvoicesGLAccId]   BIGINT         NULL,

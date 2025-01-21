@@ -2760,14 +2760,14 @@ BEGIN
 
 				
 				/**************START: DO NOT DELETE BELOW CODE:  Update Stk Batch Detail Columns with Id by StocklineId : RAJESH GAMI **********/
-				--SELECT @MinRecordId = MIN(RecordId), @MaxRecordId = MAX(RecordId) FROM #RRPostType;
-				--WHILE @MinRecordId <= @MaxRecordId
-				--BEGIN
-				--	PRINT @MinRecordId
-				--	SELECT @StocklineId = StocklineId FROM #RRPostType	WHERE RecordId = @MinRecordId;
-				--	EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId;
-				--	SET @MinRecordId += 1;
-				--END;
+				SELECT @MinRecordId = MIN(RecordId), @MaxRecordId = MAX(RecordId) FROM #RRPostType;
+				WHILE @MinRecordId <= @MaxRecordId
+				BEGIN
+					PRINT @MinRecordId
+					SELECT @StocklineId = StocklineId FROM #RRPostType	WHERE RecordId = @MinRecordId;
+					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId;
+					SET @MinRecordId += 1;
+				END;
 				/**************END: Update Stk Batch Detail Columns with Id by StocklineId **********/
 
 				-- FREIGHT AND TAX BATCH DETAIL --

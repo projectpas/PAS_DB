@@ -79,20 +79,20 @@ AS
 			DECLARE @TOWOID BIGINT;
 
 			SET @RecordFrom = (@PageNumber - 1) * @PageSize;
-			SET @FROMSOID = (SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum);
+			SET @FROMSOID = (SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum);
 
 			SET @TOSOID = (CASE WHEN ISNULL(@FROMSOID,0) > 0 
-								THEN (SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum)
+								THEN (SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum)
 								ELSE NULL END);
 
 			SET @FROMWOID = (CASE WHEN ISNULL(@FROMSOID,0) > 0 AND ISNULL(@TOSOID,0) > 0 
 								  THEN NULL 
-								  ELSE (SELECT BillingInvoicingId FROM [dbo].[WorkOrderBillingInvoicing] WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum)
+								  ELSE (SELECT BillingInvoicingId FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum)
 							 END);
 
 			SET @TOWOID = (CASE WHEN ISNULL(@FROMSOID,0) > 0 AND ISNULL(@TOSOID,0) > 0  AND ISNULL(@FROMWOID,0) > 0
 								  THEN NULL 
-								  ELSE (SELECT BillingInvoicingId FROM [dbo].[WorkOrderBillingInvoicing] WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum)
+								  ELSE (SELECT BillingInvoicingId FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum)
 							 END);
 
 			SET @CHEK = CASE WHEN @PaymentMethodId = '1' THEN 1 ELSE 0 END;

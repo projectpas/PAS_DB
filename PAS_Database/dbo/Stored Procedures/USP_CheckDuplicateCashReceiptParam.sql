@@ -29,7 +29,7 @@ BEGIN
 	BEGIN
 		
 		DECLARE @MappingId BIGINT = 0;
-		SELECT @MappingId = CashReceiptEmployeeMappingId FROM [CashReceiptEmployeeMapping] WITH(NOLOCK) WHERE [CashReceiptSearchParamsId] = @CashReceiptSearchParamsId AND [EmployeeId] = @EmployeeId AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT @MappingId = CashReceiptEmployeeMappingId FROM [dbo].[CashReceiptEmployeeMapping] WITH(NOLOCK) WHERE [CashReceiptSearchParamsId] = @CashReceiptSearchParamsId AND [EmployeeId] = @EmployeeId AND [MasterCompanyId] = @MasterCompanyId;
 			
 		SET @CashReceiptEmployeeMappingId = ISNULL(@MappingId, 0);	
 		

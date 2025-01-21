@@ -3425,6 +3425,7 @@
     <Build Include="dbo\Stored Procedures\USP_CashReceiptEmployeeMappingData.sql" />
     <Build Include="dbo\Stored Procedures\SaveSearch_CashReceiptSaveSearchData.sql" />
     <Build Include="dbo\User Defined Types\CashReceiptSearchParamsType.sql" />
+    <Build Include="dbo\Stored Procedures\GetTaskInstructionMasterListById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

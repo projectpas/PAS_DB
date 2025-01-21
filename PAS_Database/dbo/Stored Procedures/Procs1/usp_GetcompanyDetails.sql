@@ -1,7 +1,4 @@
-﻿
-
-  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_GetcompanyDetails]             
  ** Author:   Mukesh    
  ** Description: Get Data for company Details   
@@ -15,10 +12,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date         Author    Change Description              
- ** --   --------     -------    --------------------------------            
-  
-  
+ ** S NO	Date			Author				Change Description              
+ ** --		--------		-------				--------------------------------            
+ **	1							
+ **	2		20-Jan-2025		Devendra Shekh		Added IsQuickBookEnabled to select and formatted the SP
+
+ EXEC [usp_GetcompanyDetails] 1
 **************************************************************/  
  
  
@@ -32,9 +31,10 @@ BEGIN
   BEGIN TRY  
     BEGIN TRANSACTION  
   
-  select MasterCompanyId,MasterCompanyCode,CompanyName,TaxId,EmailAddress,companylogo,
-  Line1,Line2,City,StateOrProvince,PostalCode,CountryId,PhoneNumber
-  from MasterCompany where MasterCompanyId=@mastercompanyid
+	  SELECT	MasterCompanyId, MasterCompanyCode, CompanyName, TaxId, EmailAddress, companylogo,
+				Line1, Line2, City, StateOrProvince, PostalCode, CountryId, PhoneNumber, ISNULL(IsQuickBookEnabled, 0) AS IsQuickBookEnabled 
+	  FROM [dbo].[MasterCompany] where MasterCompanyId = @mastercompanyid
+
     COMMIT TRANSACTION  
   END TRY  
   

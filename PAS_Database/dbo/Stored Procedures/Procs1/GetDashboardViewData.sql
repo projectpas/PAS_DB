@@ -18,6 +18,7 @@
 	6	16/10/2024		Shrey Chandegara  add new @DashboardType for workorder dashboard
 	7   11/04/2024		Vishal Suthar	Modified to make use of new SOQ new tables
 	8   01/16/2025		Bhargav Saliya 	Resolved Dashboard Amount issue (SO invoice)
+	9   01/22/2025		Bhargav Saliya 	Resolved Workable Backlog(More Info) PN Amount Issues [PN-10689]
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -151,7 +152,8 @@ BEGIN
 			BEGIN
 				SELECT 
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SUM(SOPC.NetSaleAmount) AS GrandTotal, cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				SUM(ISNULL(SOPC.NetSaleAmount,0)) + SUM(ISNULL(SOPC.MiscCharges,0)) AS GrandTotal,
+				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId

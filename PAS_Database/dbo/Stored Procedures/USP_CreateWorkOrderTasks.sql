@@ -76,10 +76,11 @@ BEGIN
 				SELECT @WorkOrderTaskId = SCOPE_IDENTITY();
 
 				INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],
-				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PrintInWO],[PrintInWOQ])
 				SELECT @WorkOrderTaskId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-				NULL,NULL,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-				FROM DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
+				T.Descrepancy,T.Resolution,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,T.IsPrintInWO,T.IsPrintInWOQ
+				FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
+				--DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
 
 				SET @LoopID = @LoopID + 1;
 			END

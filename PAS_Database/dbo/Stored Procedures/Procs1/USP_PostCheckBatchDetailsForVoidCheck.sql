@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_PostCheckBatchDetailsForVoidCheck]           
  ** Author: Satish Gohil
  ** Description: This stored procedure is used insert account report in batch while void check
@@ -20,6 +19,7 @@
 	3    22/01/2024	  Moin Bloch		Modify(Added PdfPath Null when IsVoidedCheck Is True)
 	4	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	5	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	6	 10/01/2025	  AMIT GHEDIYA		Added for AutoPost Batch
      
 **************************************************************/
 
@@ -83,6 +83,8 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @VendorProformaInvoiceId BIGINT = 0,
 					@PaymentMade DECIMAL(18,2) = 0,
 					@ModuleRefrenceID BIGINT= 0,
@@ -191,7 +193,14 @@ BEGIN
 			inner join dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 			inner join dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 			where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  
-			and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+			and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date);
+
+			--Select from as save at payment time
+			SELECT @AccountingPeriodId = acc.[AccountingCalendarId],
+				   @AccountingPeriod = acc.[PeriodName]
+			FROM [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK)
+			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON VRH.AccountingPeriodId = acc.AccountingCalendarId AND acc.IsDeleted = 0
+			WHERE VRH.ReadyToPayId = @ReadyToPayId;
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
@@ -283,6 +292,8 @@ BEGIN
 					begin  
 						Update dbo.BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   where JournalBatchHeaderId= @JournalBatchHeaderId  
 					END  
+
+					SET @IsBatchGenerated = 1;
 				END
 
 
@@ -298,7 +309,7 @@ BEGIN
 				--------Account Payable--------
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0)
 				 FROM DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSACCPAYBLE'
 				 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -327,7 +338,7 @@ BEGIN
 				IF(@CheckAmount > 0)
 				BEGIN
 
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=[Name],@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=[Name],@JournalTypeId =JournalTypeId,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 					 FROM DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSBANKACCOUNT' 
 					 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 				
@@ -397,6 +408,16 @@ BEGIN
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN
 					TRUNCATE TABLE #tmpCodePrefixes
+				END
+
+				--AutoPost Batch
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+				BEGIN
+					EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				BEGIN
+					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 				END
 			END
 

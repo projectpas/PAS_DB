@@ -13,7 +13,7 @@
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
-	@WorkOrderTaskInstructionId BIGINT,
+	@WorkOrderTaskInstructionId BIGINT = NULL,
 	@WorkOrderTaskId BIGINT,
 	@TechId BIGINT = NULL,
 	@TechName VARCHAR(100) = NULL,
@@ -27,7 +27,8 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
 	@InstructionTitle VARCHAR(1000) = NULL,
 	@InstructionDetails VARCHAR(MAX) = NULL,
 	@CreatedBy VARCHAR(100) = NULL,
-	@MasterCompanyId BIGINT = NULL
+	@MasterCompanyId BIGINT = NULL,
+	@IsAddChildNode BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -37,6 +38,8 @@ BEGIN
 	
 	IF (ISNULL(@WorkOrderTaskInstructionId, 0) = 0)
 	BEGIN
+		DECLARE @WorkOrderId BIGINT;
+		DECLARE @MaxSequence INT;
 		DECLARE @InsertedWorkOrderTaskInstructionId BIGINT = 0;
 		DECLARE @TaskMasterLoopID AS INT;
 
@@ -108,11 +111,19 @@ BEGIN
 				FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
 
 				SET @InsertedWorkOrderTaskInstructionId = SCOPE_IDENTITY();
+				
+				SELECT TOP 1 @WorkOrderId = WorkOrderId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+
+				SELECT @MaxSequence = ISNULL(MAX(WOTI.SequenceNumber), 0)
+				FROM DBO.WorkOrderTaskInstruction WOTI WITH (NOLOCK)
+				INNER JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId AND WOTI.IsParent = 1
+				WHERE WOT.WorkOrderId = @WorkOrderId;
 
 				IF (ISNULL(@OldParentId, 0) > 0)
 				BEGIN
 					UPDATE DBO.WorkOrderTaskInstruction
-					SET ParentId = (SELECT WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId)
+					SET ParentId = (SELECT TOP 1 WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId),
+					SequenceNumber = (@MaxSequence + 1)
 					WHERE WorkOrderTaskInstructionId = @InsertedWorkOrderTaskInstructionId;
 				END
 
@@ -121,14 +132,40 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+			SELECT TOP 1 @WorkOrderId = WorkOrderId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+
+			SELECT @MaxSequence = ISNULL(MAX(WOTI.SequenceNumber), 0)
+			FROM DBO.WorkOrderTaskInstruction WOTI WITH (NOLOCK)
+			INNER JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId AND WOTI.IsParent = 1
+			WHERE WOT.WorkOrderId = @WorkOrderId;
+
 			INSERT INTO DBO.WorkOrderTaskInstruction ([WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
 			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-			SELECT @WorkOrderTaskId, NULL, 1, @InstructionTitle, 1, @InstructionDetails, @TechId, @TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+			SELECT @WorkOrderTaskId, NULL, 1, @InstructionTitle, (@MaxSequence + 1), @InstructionDetails, @TechId, @TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
 			@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0;
 		END
 	END
+	ELSE IF (@IsAddChildNode = 1)
+	BEGIN
+		PRINT 'IsAddChildNode'
+		-- Find the maximum sequence number under the specific parent
+        DECLARE @MaxSequenceNumber INT;
+        SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
+        FROM DBO.WorkOrderTaskInstruction
+        WHERE ParentId = @WorkOrderTaskInstructionId;
+
+        -- Determine the new sequence number for the child
+        DECLARE @NewSequenceNumber INT = @MaxSequenceNumber + 1;
+
+		-- Insert the new child node with the next sequence number
+		INSERT INTO WorkOrderTaskInstruction ([WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+		VALUES (@WorkOrderTaskId, @WorkOrderTaskInstructionId, 0, @InstructionTitle, @NewSequenceNumber, @InstructionDetails, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, 
+			@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0);
+	END
 	ELSE
 	BEGIN
+		PRINT 'Update'
 		UPDATE DBO.WorkOrderTaskInstruction
 		SET [InstructionTitle] = @InstructionTitle,
 		[InstructionDetails] = @InstructionDetails,

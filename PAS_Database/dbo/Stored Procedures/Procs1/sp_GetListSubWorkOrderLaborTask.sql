@@ -18,25 +18,25 @@
  ** --   --------     -------		--------------------------------          
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
-
+	3    01/08/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
      
  EXECUTE [sp_GetListSubWorkOrderLaborTask] 34, 39
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetListSubWorkOrderLaborTask]
-@SubWorkOrderLaborHeaderId  bigint
+CREATE   PROCEDURE [dbo].[sp_GetListSubWorkOrderLaborTask]
+@SubWorkOrderLaborHeaderId  BIGINT
 AS
 BEGIN
-
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-
 		BEGIN TRY
-		  BEGIN TRANSACTION
-			BEGIN
-
-				               SELECT 
-					                 wol.AdjustedHours,
+		 -- BEGIN TRANSACTION
+			--BEGIN
+				              SELECT wol.AdjustedHours,
                                      wol.Adjustments,
+									 wol.StandardHours,
+									 wol.StandardMinute,
+									 wol.VarianceHours,
+									 wol.VarianceMinute,
                                      wol.BillableId,
                                      wol.CreatedBy,
                                      wol.CreatedDate,
@@ -61,31 +61,31 @@ BEGIN
                                      wol.TotalCostPerHour,
                                      wol.TotalCost,
 									 wol.IsBegin,
-									case when (select count(SubWorkOrderLaborTrackingId) FROM DBO.SubWorkOrderLaborTracking wolt WITH(NOLOCK) where wolt.SubWorkOrderLaborId= wol.SubWorkOrderLaborId) >0 then wol.IsBegin else NULL end as IsBeginTemp,
-									 CASE WHEN wop.IsTraveler=1 then (select dbo.FN_GetCurrentLaborHours(wol.SubWorkOrderLaborId,1)) else wol.Hours end as Hours,
-									 emp.FirstName + ' '+ emp.LastName as EmployeeName,
-									 task.Description as Task,
-									 expr.Description as Expertise
-				FROM DBO.SubWorkOrderLabor wol WITH(NOLOCK)
-					LEFT JOIN DBO.Task task  WITH(NOLOCK) on task.TaskId = wol.TaskId
-					LEFT JOIN DBO.ExpertiseType expr WITH(NOLOCK) on expr.ExpertiseTypeId = wol.ExpertiseId
-					LEFT JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = wol.EmployeeId
-					INNER JOIN DBO.SubWorkOrderLaborHeader lh WITH(NOLOCK) ON lh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId 
-					INNER JOIN DBO.SubWorkOrderPartNumber wop WITH(NOLOCK) ON wop.SubWOPartNoId = lh.SubWOPartNoId 
-				WHERE wol.SubWorkOrderLaborHeaderId = @SubWorkOrderLaborHeaderId AND wol.IsDeleted = 0 order by IsBeginTemp desc 
-			END
-		COMMIT  TRANSACTION
+									 CASE WHEN (SELECT COUNT(SubWorkOrderLaborTrackingId) FROM DBO.SubWorkOrderLaborTracking wolt WITH(NOLOCK) WHERE wolt.SubWorkOrderLaborId = wol.SubWorkOrderLaborId) > 0 THEN wol.IsBegin ELSE NULL END AS IsBeginTemp,
+									 CASE WHEN wop.IsTraveler = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.SubWorkOrderLaborId,1)) ELSE wol.[Hours] END AS [Hours],
+									 emp.FirstName + ' '+ emp.LastName AS EmployeeName,
+									 task.[Description] AS Task,
+									 expr.[Description] AS Expertise
+				FROM [dbo].[SubWorkOrderLabor] wol WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
+					LEFT JOIN [dbo].[ExpertiseType] expr WITH(NOLOCK) ON expr.ExpertiseTypeId = wol.ExpertiseId
+					LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = wol.EmployeeId
+					INNER JOIN [dbo].[SubWorkOrderLaborHeader] lh WITH(NOLOCK) ON lh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId 
+					INNER JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wop.SubWOPartNoId = lh.SubWOPartNoId 
+				WHERE wol.SubWorkOrderLaborHeaderId = @SubWorkOrderLaborHeaderId AND wol.IsDeleted = 0 ORDER BY IsBeginTemp DESC 
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
+				--ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'sp_GetSubWorkOrderLaborTaskList' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SubWorkOrderLaborHeaderId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@SubWorkOrderLaborHeaderId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 
@@ -98,5 +98,4 @@ BEGIN
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
 		END CATCH
-
 END

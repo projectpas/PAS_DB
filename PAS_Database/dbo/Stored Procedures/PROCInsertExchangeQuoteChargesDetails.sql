@@ -12,10 +12,11 @@
  ** PR   Date         Author			  Change Description            
  ** --   --------     -------			  --------------------------------          
     1    09-04-2024  Abhishek Jirawla     Created
-
+	2    16-01-2025  Bhavesh Raval        PN-10969 - Add UomId 
+	
 -- EXEC PROCInsertExchangeQuoteChargesDetails
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[PROCInsertExchangeQuoteChargesDetails](@TableExchangeQuoteChargesType ExchangeQuoteChargesType READONLY)  
+CREATE     PROCEDURE [dbo].[PROCInsertExchangeQuoteChargesDetails](@TableExchangeQuoteChargesType ExchangeQuoteChargesType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -56,12 +57,12 @@ BEGIN
 						TARGET.[UpdatedBy] = SOURCE.UpdatedBy,
 						TARGET.[UpdatedDate] = SOURCE.UpdatedDate,
 						TARGET.[IsActive] = SOURCE.IsActive,
-						TARGET.[IsDeleted] = SOURCE.IsDeleted
+						TARGET.[IsDeleted] = SOURCE.IsDeleted,
 						--TARGET.[LineNum] = SOURCE.LineNum,
 						--TARGET.[PartNumber] = SOURCE.PartNumber,
 						--TARGET.[ManufacturerId] = SOURCE.ManufacturerId,
       --                  TARGET.[Manufacturer] = SOURCE.Manufacturer,
-                        --TARGET.[UOMId] = SOURCE.UOMId
+                        TARGET.[UOMId] = SOURCE.UomId
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -98,7 +99,7 @@ BEGIN
 							--,[PartNumber]
 							--,[ManufacturerId]
 							--,[Manufacturer]					
-							--,[UOMId]					
+							,[UOMId]					
 							)
                      VALUES
 							 (SOURCE.ExchangeQuoteId
@@ -133,7 +134,7 @@ BEGIN
 							 --,SOURCE.PartNumber
 							 --,SOURCE.ManufacturerId
 							 --,SOURCE.Manufacturer							 
-							 --,SOURCE.UOMId							 
+							 ,SOURCE.UomId							 
 							 );	
 					END
 

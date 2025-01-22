@@ -18,6 +18,7 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    12/22/2022   Subhash Saliya  Created  
+	2    01/09/2025   Moin Bloch      Changed [WorkScope] Discription to [WorkScopeCode]
        
 -- EXEC [USP_GetTravelerSetupList] 44  
 **************************************************************/  
@@ -48,22 +49,26 @@ BEGIN
        BEGIN   
         SET @IsActive=NULL  
        END  
-    SELECT [Traveler_SetupId]  
-                      ,[TravelerId]  
-                      ,[WorkScopeId]  
-                      ,[WorkScope]  
-                      ,[Version]  
-       ,[ItemMasterId]  
-       ,[PartNumber]  
-                      ,[MasterCompanyId]  
-                      ,[CreatedBy]  
-                      ,[UpdatedBy]  
-                      ,[CreatedDate]  
-                      ,[UpdatedDate]  
-                      ,[IsActive]  
-                      ,[IsDeleted]  
-       ,[IsVersionIncrease]  
-                  FROM [dbo].[Traveler_Setup]  where IsDeleted=@isdeleted  AND (@IsActive IS NULL OR IsActive=@IsActive) and MasterCompanyId=@MasterCompanyId Order by CreatedDate desc   
+    SELECT TS.[Traveler_SetupId]  
+              ,TS.[TravelerId]  
+              ,TS.[WorkScopeId]  
+              ,WS.[WorkScopeCode] AS [WorkScope]  
+              ,TS.[Version]  
+			  ,TS.[ItemMasterId]  
+			  ,TS.[PartNumber]  
+              ,TS.[MasterCompanyId]  
+              ,TS.[CreatedBy]  
+              ,TS.[UpdatedBy]  
+              ,TS.[CreatedDate]  
+              ,TS.[UpdatedDate]  
+              ,TS.[IsActive]  
+              ,TS.[IsDeleted]  
+              ,TS.[IsVersionIncrease]  
+         FROM [dbo].[Traveler_Setup] TS WITH(NOLOCK)
+		 LEFT JOIN [dbo].[WorkScope] WS WITH(NOLOCK) ON TS.[WorkScopeId] = WS.[WorkScopeId] 
+		 WHERE TS.IsDeleted=@isdeleted  
+		 AND (@IsActive IS NULL OR TS.IsActive=@IsActive) 
+		 AND TS.MasterCompanyId=@MasterCompanyId ORDER BY TS.CreatedDate DESC   
                   
    END  
   COMMIT  TRANSACTION  

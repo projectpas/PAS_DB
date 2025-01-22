@@ -1,8 +1,6 @@
 ﻿CREATE TABLE [dbo].[InventoryGLSetting] (
     [InventoryGLSettingId]              BIGINT         IDENTITY (1, 1) NOT NULL,
     [StockInventoryName]                VARCHAR (150)  NOT NULL,
-    [Name]                              NVARCHAR (150) NULL,
-    [Notes]                             NVARCHAR (250) NULL,
     [InventoryGLAccId]                  BIGINT         NOT NULL,
     [InventoryGLAccCode]                NVARCHAR (250) NULL,
     [GoodsReceivedNotInvoicesGLAccId]   BIGINT         NOT NULL,
@@ -21,6 +19,8 @@
     [COGS_WorkOrderGLAccCode]           NVARCHAR (250) NULL,
     [COGS_SalesOrderGLAccId]            BIGINT         NOT NULL,
     [COGS_SalesOrderGLAccCode]          NVARCHAR (250) NULL,
+    [COGS_ExchSalesOrderGLAccId]        BIGINT         NULL,
+    [COGS_ExchSalesOrderGLAccCode]      NVARCHAR (250) NULL,
     [COGS_QtyVarianceGLAccId]           BIGINT         NOT NULL,
     [COGS_QtyVarianceGLAccCode]         NVARCHAR (250) NULL,
     [COGS_UnitCostVarianceGLAccId]      BIGINT         NOT NULL,
@@ -29,8 +29,8 @@
     [RevenueMroGLAccCode]               NVARCHAR (250) NULL,
     [RevenueSoGLAccId]                  BIGINT         NOT NULL,
     [RevenueSoGLAccCode]                NVARCHAR (250) NULL,
-    [RevenueMiscGLAccId]                BIGINT         NOT NULL,
-    [RevenueMiscGLAccCode]              NVARCHAR (250) NULL,
+    [RevenueExchGLAccId]                BIGINT         NOT NULL,
+    [RevenueExchGLAccCode]              NVARCHAR (250) NULL,
     [MasterCompanyId]                   INT            NOT NULL,
     [CreatedBy]                         VARCHAR (256)  NOT NULL,
     [UpdatedBy]                         VARCHAR (256)  NOT NULL,
@@ -46,8 +46,11 @@
 
 
 
-GO
 
+
+
+
+GO
 CREATE   TRIGGER [dbo].[Trg_InventoryGLSetting_Audit]
 ON [dbo].[InventoryGLSetting]
 AFTER INSERT, UPDATE, DELETE
@@ -71,11 +74,12 @@ BEGIN
             InventoryReserveGLAccId,
             COGS_WorkOrderGLAccId,
             COGS_SalesOrderGLAccId,
+			COGS_ExchSalesOrderGLAccId,
             COGS_QtyVarianceGLAccId,
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
             RevenueSoGLAccId,
-            RevenueMiscGLAccId,
+            RevenueExchGLAccId,
             MasterCompanyId,
             CreatedBy,
             UpdatedBy,
@@ -97,11 +101,12 @@ BEGIN
             InventoryReserveGLAccId,
             COGS_WorkOrderGLAccId,
             COGS_SalesOrderGLAccId,
+			COGS_ExchSalesOrderGLAccId,
             COGS_QtyVarianceGLAccId,
             COGS_UnitCostVarianceGLAccId,
             RevenueMroGLAccId,
             RevenueSoGLAccId,
-            RevenueMiscGLAccId,
+            RevenueExchGLAccId,
             MasterCompanyId,
             CreatedBy,
             UpdatedBy,

@@ -17,7 +17,9 @@
  **************************************************************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
-    1    12/22/2022   Subhash Saliya  Created  
+    1    12/22/2022   Subhash Saliya  Created
+	2    01/09/2025   Moin Bloch 	  ADDED [StandardHours],[StandardMinute]
+
        
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44  
 **************************************************************/  
@@ -36,11 +38,11 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN    
-    declare @DataEnteredBy bigint =0  
-    declare @WorkOrderLaborHeaderId bigint =0  
-                declare @HoursorClockorScan int =2  
-                declare @WorkOrderHoursType int =1  
-    declare @IsTaskCompletedByOne bit =0  
+    DECLARE @DataEnteredBy bigint =0  
+    DECLARE @WorkOrderLaborHeaderId bigint =0  
+    DECLARE @HoursorClockorScan int =2  
+    DECLARE @WorkOrderHoursType int =1  
+    DECLARE @IsTaskCompletedByOne bit =0  
     DECLARE @ExpertiseId AS BIGINT = 0;  
     DECLARE @EmployeeId AS BIGINT = 0;  
     DECLARE @TotalWorkHours AS BIGINT = 0.00;  
@@ -51,28 +53,32 @@ BEGIN
     declare @IstravelerTask bit =0  
     declare @ManagementStructureId bigint=0  
                   
-                select top 1 @ManagementStructureId= ManagementStructureId,@ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler from WorkOrderPartNumber  where ID=@WorkOrderPartNoId  
-    select top 1 @HoursorClockorScan=laborHoursMedthodId from LaborOHSettings  where MasterCompanyId=@MasterCompanyId and ManagementStructureId=@ManagementStructureId  
-       select @DataEnteredBy =isnull(EmployeeId,0) from Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@CreatedBy, ' ', '')) and MasterCompanyId=@MasterCompanyId  
-    select @EmployeeId =isnull(EmployeeId,0) from Employee WITH(NOLOCK)  where FirstName='TBD' and MasterCompanyId=@MasterCompanyId  
-                select @ExpertiseId=EmployeeExpertiseId from EmployeeExpertise  where MasterCompanyId=@MasterCompanyId and EmpExpCode='TECHNICIAN'  
-       select @TaskStatusId=TaskStatusId from TaskStatus  where MasterCompanyId=@MasterCompanyId and Upper(Description)='PENDING'  
+    SELECT TOP 1 @ManagementStructureId= ManagementStructureId,@ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId  
+    
+	SELECT TOP 1 @HoursorClockorScan=laborHoursMedthodId FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ManagementStructureId=@ManagementStructureId  
+    
+	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@CreatedBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId  
+    
+	SELECT @EmployeeId = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE FirstName='TBD' AND MasterCompanyId=@MasterCompanyId  
+   
+    SELECT @ExpertiseId=EmployeeExpertiseId FROM [dbo].[EmployeeExpertise] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND EmpExpCode='TECHNICIAN'  
+   
+    SELECT @TaskStatusId=TaskStatusId FROM [dbo].[TaskStatus] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND UPPER(Description)='PENDING'  
        
-     IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0  and ISNULL(Isactive,1)=1 and ISNULL(IsDeleted,0)=0))  
+     IF(EXISTS (SELECT 1 FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId AND IsVersionIncrease=0  AND ISNULL(Isactive,1)=1 and ISNULL(IsDeleted,0)=0))  
      BEGIN  
-        SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0 and ISNULL(Isactive,1)=1 and ISNULL(IsDeleted,0)=0 
+        SELECT top 1 @Traveler_setupid = Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId=@ItemMasterId AND IsVersionIncrease=0 AND ISNULL(Isactive,1)=1 AND ISNULL(IsDeleted,0)=0 
      END  
-     else IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0 and ISNULL(Isactive,1)=1 and ISNULL(IsDeleted,0)=0  ))  
+     ELSE IF(EXISTS (SELECT 1 FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId IS NULL AND IsVersionIncrease=0 AND ISNULL(Isactive,1)=1 AND ISNULL(IsDeleted,0)=0  ))  
      BEGIN  
-        SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0 and ISNULL(Isactive,1)=1 and ISNULL(IsDeleted,0)=0   
+        SELECT top 1 @Traveler_setupid = Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND IsVersionIncrease=0 AND ISNULL(Isactive,1)=1 AND ISNULL(IsDeleted,0)=0   
      END  
              IF(@Traveler_setupid >0 and @IstravelerTask=1)  
-               begin  
-                 IF(NOT EXISTS (SELECT 1 FROM WorkOrderLaborHeader WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId))  
+               BEGIN  
+                 IF(NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId))  
                   BEGIN   
-                 
                                   INSERT INTO [dbo].[WorkOrderLaborHeader]  
-               ([WorkOrderId]  
+                                                 ([WorkOrderId]  
                                                  ,[WorkFlowWorkOrderId]  
                                                  ,[DataEnteredBy]  
                                                  ,[HoursorClockorScan]  
@@ -101,8 +107,8 @@ BEGIN
                                                  ,@MasterCompanyId  
                                                  ,@CreatedBy  
                                                  ,@CreatedBy  
-                                                 ,GETDATE()  
-                                                 ,GETDATE()  
+                                                 ,GETUTCDATE()  
+                                                 ,GETUTCDATE()  
                                                  ,1  
                                                  ,0  
                                                  ,@ExpertiseId  
@@ -126,23 +132,29 @@ BEGIN
                                        ,[BillableId]  
                                        ,[IsFromWorkFlow]  
                                        ,[MasterCompanyId]  
-                                       ,[TaskStatusId]  
-            )  
+                                       ,[TaskStatusId]
+									   ,[StandardHours]
+									   ,[StandardMinute]
+									   )  
                                 SELECT @WorkOrderLaborHeaderId  
-                                       ,TaskId  
+                                       ,TST.TaskId  
                                        ,@ExpertiseId  
-                                       ,Notes  
+                                       ,TST.Notes  
                                        ,@CreatedBy  
                                        ,@CreatedBy  
-                                       ,GETDATE()  
-                                       ,GETDATE()  
+                                       ,GETUTCDATE()  
+                                       ,GETUTCDATE()  
                                        ,1  
                                        ,0  
                                        ,1  
                                        ,0  
                                        ,@MasterCompanyId  
-    ,@TaskStatusId  
-                                        from Traveler_Setup_Task where Traveler_SetupId=@Traveler_SetupId and IsDeleted=0 order by Sequence asc  
+                                       ,@TaskStatusId  
+									   ,TSK.[StandardHours]
+									   ,TSK.[StandardMinute]
+                                  FROM [dbo].[Traveler_Setup_Task] TST WITH(NOLOCK) 
+								  LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
+								  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
                   END  
                END  
    END  

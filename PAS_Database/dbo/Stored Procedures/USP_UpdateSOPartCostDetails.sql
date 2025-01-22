@@ -20,6 +20,8 @@
     4    11/26/2024   Vishal Suthar Fixed divide by zero error
     5    12/09/2024   Vishal Suthar Modified to remove Pick Ticket Qty on Unreserve
     6    01/06/2025   Vishal Suthar Added one parameter to identify if it's been called from unreserve action
+	7    01/08/2025   AMIT GHEDIYA  Added one parameter to identify if it's been called from shipping or not
+	8    21-01-2025   Shrey Chandegara   Add charge In totalRevenue
      
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
@@ -29,7 +31,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 	@SalesOrderPartId BIGINT = NULL,
 	@UpdatedBy VARCHAR(100) = NULL,
 	@MasterCompanyId INT = NULL,
-	@IsUnreservedAction BIT = 0
+	@IsUnreservedAction BIT = 0,
+	@IsFromShipping BIT = 0
 )
 AS
 BEGIN
@@ -69,6 +72,7 @@ SET NOCOUNT ON
 				SELECT @SalesOrderId, @SalesOrderPartId
 				
 				IF((SELECT COUNT(1) FROM DBO.SalesOrderPartCost SOC WITH(NOLOCK) WHERE SOC.SalesOrderId = @SalesOrderId AND SOC.SalesOrderPartId = @SalesOrderPartId) > 0)
+				
 				BEGIN
 					DECLARE @MasterLoopID AS INT;
 					DECLARE @SalesOrderStocklineId AS BIGINT;
@@ -153,7 +157,7 @@ SET NOCOUNT ON
 						UnitSalesPriceExtended = (SELECT SUM(SOSC.UnitSalesPriceExtended) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						UnitCostExtended = (SELECT SUM(ISNULL(SOSC.UnitCostExtended, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
 						NetSaleAmount = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId),
-						TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + MiscCharges FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId)
+						TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + ISNULL(@Charges_S, 0) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SalesOrderPartId)
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 					ELSE
@@ -164,7 +168,7 @@ SET NOCOUNT ON
 						SET UnitSalesPriceExtended = ISNULL(UnitSalesPrice, 0) * @PartQty,
 						UnitCostExtended = ISNULL(UnitCost, 0) * @PartQty,
 						NetSaleAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount,
-						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
+						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + ISNULL(@Charges_S, 0)
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 
@@ -322,7 +326,11 @@ SET NOCOUNT ON
 								
 						UPDATE dbo.SOPickTicket SET QtyToShip = (QtyToShip - @PTQtytoShip) WHERE SOPickTicketId = @PickTicketId;
 
-						DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
+						--Bypass from Shipping
+						IF(@IsFromShipping = 0)
+						BEGIN
+							DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
+						END
 				
 						SET @LoopID = @LoopID - 1;
 					END

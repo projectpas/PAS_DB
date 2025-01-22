@@ -146,7 +146,22 @@
     [COGS_UnitCostVarianceGLAccId]      BIGINT          NULL,
     [RevenueMroGLAccId]                 BIGINT          NULL,
     [RevenueSoGLAccId]                  BIGINT          NULL,
-    [RevenueMiscGLAccId]                BIGINT          NULL,
+    [RevenueExchGLAccId]                BIGINT          NULL,
+    [COGS_ExchSalesOrderGLAccId]        BIGINT          NULL,
+    [GoodsReceivedNotInvoicesGLAccName] VARCHAR (255)   NULL,
+    [WorkInProgressGLAccName]           VARCHAR (255)   NULL,
+    [InventoryToBillGLAccName]          VARCHAR (255)   NULL,
+    [FinishedGoodsGLAccName]            VARCHAR (255)   NULL,
+    [InventoryExchAgreementGLAccName]   VARCHAR (255)   NULL,
+    [InventoryReserveGLAccName]         VARCHAR (255)   NULL,
+    [COGS_WorkOrderGLAccName]           VARCHAR (255)   NULL,
+    [COGS_SalesOrderGLAccName]          VARCHAR (255)   NULL,
+    [COGS_QtyVarianceGLAccName]         VARCHAR (255)   NULL,
+    [COGS_UnitCostVarianceGLAccName]    VARCHAR (255)   NULL,
+    [RevenueMroGLAccName]               VARCHAR (255)   NULL,
+    [RevenueSoGLAccName]                VARCHAR (255)   NULL,
+    [RevenueExchGLAccName]              VARCHAR (255)   NULL,
+    [COGS_ExchSalesOrderGLAccName]      VARCHAR (255)   NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

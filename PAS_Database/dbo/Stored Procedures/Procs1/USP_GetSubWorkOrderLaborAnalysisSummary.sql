@@ -18,7 +18,8 @@
  ** --   --------     -------			--------------------------------          
     1    06/18/2021   Hemant Saliya		Created
     2    12/22/2021   Devendra Shekh	added SubWorkOrderNo to select
-     
+    3    01/09/2025   Moin Bloch    Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
+
  EXECUTE USP_GetSubWorkOrderLaborAnalysisSummary 331,122, 0
 
 **************************************************************/ 
@@ -36,18 +37,23 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON    
 
 	BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN  
+		--BEGIN TRANSACTION
+		--	BEGIN  
 				SELECT 
 					im.partnumber AS PartNumber,
 					im.PartDescription,
 					wop.SubWOPartNoId AS WOPartNum,
 					im.RevisedPart AS RevisedPN,
 					CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-					SUM(wl.Hours) AS [Hours],
-					SUM(wl.Adjustments) AS [Adjustments],
-					SUM(wl.AdjustedHours) AS [AdjustedHours],
-					SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
+					--ISNULL(SUM(wl.[Hours]),0) AS [Hours],
+					ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+					ISNULL(SUM(wl.Adjustments),0) AS [Adjustments],
+					ISNULL(SUM(wl.AdjustedHours),0) AS [AdjustedHours],
+					ISNULL(SUM(wl.StandardHours),0) AS StandardHours,
+					ISNULL(SUM(wl.StandardMinute),0) AS StandardMinute,
+					ISNULL(SUM(wl.VarianceHours),0) AS VarianceHours,	
+					ISNULL(SUM(wl.VarianceMinute),0) AS VarianceMinute,
+					ISNULL(SUM(wl.BurdenRateAmount),0) AS BurdenRateAmount,
 					c.Name AS Customer,
 					wo.WorkOrderNum,
 					swo.SubWorkOrderNo,
@@ -64,9 +70,9 @@ SET NOCOUNT ON
 				JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.SubWorkOrderStatusId
 				WHERE wlh.SubWOPartNoId = @SubWorkOrderPartNoId AND wo.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
 				GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId, wop.SubWOPartNoId,
-					c.Name,wo.WorkOrderNum,ws.Stage,st.[Description],swo.SubWorkOrderNo		
-			END
-		COMMIT  TRANSACTION
+					c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],swo.SubWorkOrderNo		
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

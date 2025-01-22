@@ -26,3 +26,15 @@
 
 
 
+
+
+
+GO
+CREATE   TRIGGER [dbo].[Trg_WorkOrderTaskInstructionAudit] ON [dbo].[WorkOrderTaskInstruction]
+   AFTER INSERT,UPDATE  
+AS   
+BEGIN  
+ INSERT INTO [dbo].[WorkOrderTaskInstructionAudit]  
+ SELECT * FROM INSERTED  
+ SET NOCOUNT ON;  
+END

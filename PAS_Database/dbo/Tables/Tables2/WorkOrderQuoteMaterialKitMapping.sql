@@ -5,6 +5,7 @@
     [kitId]                   BIGINT          NOT NULL,
     [KitNumber]               VARCHAR (256)   NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
+    [TaskId]                  BIGINT          NULL,
     [Quantity]                INT             NOT NULL,
     [UnitCost]                DECIMAL (20, 2) NOT NULL,
     [ExtendedCost]            DECIMAL (20, 2) NOT NULL,
@@ -28,4 +29,6 @@
     CONSTRAINT [FK_WorkOrderQuoteMaterialKitMapping_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderQuoteMaterialKitMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

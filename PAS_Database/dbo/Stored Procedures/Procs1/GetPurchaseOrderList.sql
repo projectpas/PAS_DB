@@ -18,7 +18,9 @@
     02  23-July-2024	Vishal Suthar		Removed Transaction from the SP
 	03	29-Oct-2024		Abhishek Jirawla	Adding extra data so that we can remove unnecessary data
 	04	14-Nov-2024		Vishal Suthar		Fixed the Quantity Received Issue
-           
+ 	05	15-Jan-2025		RAJESH GAMI		    Fixed to multiple records display while select on POVIEW     
+	06	15-Jan-2025		Hemant Saliya		Resolved Duplicate issue
+	07	16-Jan-2025		Bhargav Saliya		Resolved Purchase Order count issue
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
     
@@ -26,7 +28,7 @@ NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=98,@MasterCompan
   
 rType=NULL,@QuantityOrdered=NULL,@QuantityBackOrdered=NULL,@QuantityReceived=NULL      
 **************************************************************/      
-CREATE PROCEDURE [dbo].[GetPurchaseOrderList]
+CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -85,7 +87,19 @@ BEGIN
 	IF (@StatusID=6 OR @StatusID=0)      
 	BEGIN      
 	SET @StatusID = NULL         
-	END        
+	END       
+	
+	DECLARE @POMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName = 'POHeader');  
+	IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderUserRole') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #tmpPurchaseOrderUserRole
+	END
+		
+	SELECT * INTO #tmpPurchaseOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+	FROM [dbo].PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK)
+		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+		INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+	WHERE MSD.[ModuleID] = @POMSModuleID AND EUR.[EmployeeId] = @EmployeeId) AS PurchaseOrderUserRole
         
 	BEGIN TRY      
 		BEGIN       
@@ -118,10 +132,11 @@ BEGIN
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNumType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumberType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumberType', 
-					POP.ReapairOrderNo AS 'RepairOrderNumber',
-					POP.WorkOrderNo AS 'WorkOrderNum',
-					POP.SalesOrderNo AS 'SalesOrderNumber',
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'--,
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNum', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumber', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumber', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'
+
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
 				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
@@ -142,10 +157,7 @@ BEGIN
 					PO.VendorCode,  
 					PO.[Status],
 					PO.Requisitioner,
-					PO.ApprovedBy,
-					POP.ReapairOrderNo,
-					POP.WorkOrderNo,
-					POP.SalesOrderNo
+					PO.ApprovedBy
 				)   
 	,ResultData AS(      
 		SELECT M.PurchaseOrderId,M.PurchaseOrderNumber,M.PurchaseOrderNo,M.OpenDate as 'OpenDate',M.ClosedDate as 'ClosedDate',M.CreatedDate,
@@ -296,7 +308,8 @@ BEGIN
 			ISNULL(POP.QuantityOrdered,0) AS QuantityOrdered,
 			ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,
 			ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
-		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
+		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)  
+			INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId           
 		

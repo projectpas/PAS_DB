@@ -13,11 +13,13 @@
  ** --   --------		-------			--------------------------------          
     1    27-AUG-2024   Hemant Saliya	Created
     2    18-NOV-2024   Devendra Shekh	Modified(Added fields to select)
+	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
      
  EXECUTE [QuickBooks_GetNewVendorListForCreateVendor] 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetNewVendorListForCreateVendor]
-	@IntegrationTypeId INT = NULL
+	@IntegrationTypeId INT = NULL,
+	@MasterCompanyId INT = NULL
 AS
 BEGIN
 	
@@ -57,7 +59,7 @@ BEGIN
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON V.AddressId = AD.AddressId
 				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
-			WHERE ISNULL(V.QuickBooksReferenceId, 0) = 0 AND ISNULL(V.IsUpdated, 0) = 1 
+			WHERE ISNULL(V.QuickBooksReferenceId, 0) = 0 AND ISNULL(V.IsUpdated, 0) = 1 AND V.MasterCompanyId = @MasterCompanyId
 		END
 	END TRY    
 	BEGIN CATCH      

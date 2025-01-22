@@ -21,6 +21,7 @@
 	5    26/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	6	 14/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	7	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	8	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -334,6 +335,13 @@ BEGIN
 					  AND acc.[MasterCompanyId] = @MasterCompanyId  
 					  AND CAST(GETUTCDATE() AS DATE) >= CAST([FromDate] AS DATE) AND CAST(GETUTCDATE() AS DATE) <= CAST([ToDate] AS DATE)
 					
+					--Select from as save at payment time
+					SELECT @AccountingPeriodId = acc.[AccountingCalendarId],
+								 @AccountingPeriod = acc.[PeriodName]
+					FROM [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK)
+					INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON VRH.AccountingPeriodId = acc.AccountingCalendarId AND acc.IsDeleted = 0
+					WHERE VRH.ReadyToPayId = @ReadyToPayId;
+
 					IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE [JournalTypeId] = @JournalTypeId AND [MasterCompanyId] = @MasterCompanyId AND CAST([EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND [StatusId] = @StatusId)
 					BEGIN
 						IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK))

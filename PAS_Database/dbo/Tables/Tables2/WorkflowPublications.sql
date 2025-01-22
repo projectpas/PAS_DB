@@ -28,10 +28,11 @@
     [WFParentId]             BIGINT         NULL,
     [IsVersionIncrease]      BIT            NULL,
     PRIMARY KEY CLUSTERED ([WorkflowPublicationsId] ASC),
-    CONSTRAINT [FK_Publications_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkflowPublications_PublicationId] FOREIGN KEY ([PublicationId]) REFERENCES [dbo].[Publication] ([PublicationRecordId]),
     CONSTRAINT [FK_WorkflowPublications_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

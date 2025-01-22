@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[JobTitle] (
     [JobTitleId]      SMALLINT       IDENTITY (1, 1) NOT NULL,
-    [Description]     VARCHAR (30)   NOT NULL,
+    [Description]     VARCHAR (256)  NULL,
     [Memo]            NVARCHAR (MAX) NULL,
     [MasterCompanyId] INT            NOT NULL,
     [CreatedBy]       VARCHAR (256)  NOT NULL,
@@ -14,6 +14,8 @@
     CONSTRAINT [FK_JobTitle_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [UQ_JobTitle_codes] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

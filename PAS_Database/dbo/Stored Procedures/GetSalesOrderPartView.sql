@@ -23,8 +23,9 @@
 	10   12/07/2014   Moin Bloch		Modified to add AltOrEqType
 	11   18-12-2024   Shrey Chandegara  Modified to priorityid
 	12   26-12-2024   Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
-	13   02-01-2025   Amit Ghediya		Modified to get part leval Available & onhnad qty after reserve.
-     
+	13   02-01-2025   Amit Ghediya		Modified to get part level Available & onhnad qty after reserve.
+	14   09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
+	14   17-01-2025   RAJESH GAMI		Modified to get Revised PN.     
 -- EXEC [DBO].[GetSalesOrderPartView] 1603,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -146,18 +147,18 @@ BEGIN
         itemMaster.ItemClassificationName AS ItemClassification,
         itemMaster.ItemGroup,
         rop.EstRecordDate AS roNextDlvrDate,
-		--CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
-		--	(SELECT SUM(Stkl.QuantityAvailable) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
-		--ELSE
-		--	(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
-		--END 
+		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
+			(SELECT ISNULL(SUM(Stkl.QuantityAvailable),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		ELSE
+			(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		END StkQtyAvailable,
 		(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
 		 QtyAvailable,
-		--CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
-		--	(SELECT SUM(Stkl.QuantityOnHand) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
-		--ELSE
-		--	(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
-		--END 
+		CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN
+			(SELECT ISNULL(SUM(Stkl.QuantityOnHand),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+		ELSE
+			(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+		END StkQuantityOnHand,
 		(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
 		 QuantityOnHand,
 		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
@@ -177,7 +178,10 @@ BEGIN
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.[Weight] ELSE part.[Weight] END [Weight],
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeLength ELSE part.SizeLength END SizeLength,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeWidth ELSE part.SizeWidth END SizeWidth,
-		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight
+		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight,
+
+		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
+		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId

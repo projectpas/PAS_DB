@@ -23,6 +23,7 @@
     [ReportPDFPath]            VARCHAR (MAX) NULL,
     [IsAccountByPass]          BIT           NULL,
     [IsDeleted]                BIT           NULL,
+    [IsQuickBookEnabled]       BIT           NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
 

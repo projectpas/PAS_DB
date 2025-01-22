@@ -26,10 +26,11 @@
 	9	 08/01/2025   AYUSHI PATEL		Get the createdDate based on Currnt Emp TimeZone
 	10   09/01/2025   Ayushi Patel      converted the date into utc (created , updated)
 	11	 10/01/2025   Ayushi Patel		Added a case to get timeZone 
+	12   15/01/2025   Bhargav Saliya    Get Requested Date as ReceivedDate
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
-CREATE  PROCEDURE [dbo].[GetReceivingCustomerList]
+CREATE   PROCEDURE [dbo].[GetReceivingCustomerList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
 	@PageNumber int,
@@ -134,7 +135,6 @@ BEGIN
 					SELECT	DISTINCT
 					RC.CustomerId, 
 					RC.ReceivingCustomerWorkId,
-					RC.ReceivedDate,
 					RC.ReceivingNumber,
 					RC.StockLineId,
 					SL.QuantityAvailable,
@@ -174,7 +174,8 @@ BEGIN
 					MSD.AllMSlevels,
 					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
 					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate
+					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+					RC.CustReqDate AS ReceivedDate
 				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId

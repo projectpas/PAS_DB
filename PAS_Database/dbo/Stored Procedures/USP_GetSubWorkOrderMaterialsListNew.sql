@@ -16,6 +16,8 @@
 	5	12/05/2024		RAJESH GAMI				Resolved the issue for KIT in return the flags (IsFullyReserved - IsFullyIssued)
 	6	12/12/2024		Devendra Shekh			Resolved Records Count Issue
 	7	12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
+    9	01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
+
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=316,@ShowPendingToIssue=0
@@ -46,6 +48,9 @@ SET NOCOUNT ON
 		DECLARE @Count Int, @TotalQty INT =0, @TotalReserved INT =0, @TotalIssued INT =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0;  
 		DECLARE @RecordFrom int;  
 		DECLARE @TotalExtendedCost DECIMAL(13,2);
+		DECLARE @WorkOrderPartNumberId BIGINT = 0
+		DECLARE @WorkOrderFormTypeId BIT = 0; 
+
 
 		IF @SortColumn IS NULL
 		BEGIN  
@@ -55,12 +60,12 @@ SET NOCOUNT ON
 
 		SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
 		SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
-		SELECT DISTINCT TOP 1 @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId 
+		SELECT DISTINCT TOP 1 @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderPartNumberId = SWO.[WorkOrderPartNumberId],
+		@WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0)
 		FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
 			JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) on SWOPN.SubWorkOrderId = SWO.SubWorkOrderId 
 		WHERE SWOPN.SubWOPartNoId = @subWOPartNoId;
 
-  
 		 IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL  
 		 BEGIN  
 		 DROP TABLE #tmpStockline  
@@ -561,7 +566,8 @@ SET NOCOUNT ON
 					WOM.Memo,  
 					ISNULL(WOM.IsDeferred, 0),
 					WOM.TaskId,  
-					T.Description AS TaskName,  
+					--T.Description AS TaskName,  
+					CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 					MM.Name AS MandatoryOrSupplemental,  
 					WOM.MaterialMandatoriesId,  
 					WOM.MasterCompanyId,  
@@ -575,11 +581,12 @@ SET NOCOUNT ON
 					WOM.ProvisionId,  
 					WOM.SubWorkOrderMaterialsId,  
 					WOM.SubWOPartNoId,  
-					ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,  
+					ISNULL(WOM.IsFromWorkFlow,0) AS IsFromWorkFlow,  
 					ISNULL(SL.StockLineId,0) AS  StockLIneId ,  
 					Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 					ROP.EstRecordDate 'RONextDlvrDate',  
-					RO.RepairOrderNumber
+					--RO.RepairOrderNumber
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
 					,WOM.Figure Figure
 					,WOM.Item Item
 					,MSTL.Figure StockLineFigure
@@ -630,11 +637,14 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
-					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
+					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId 
+					LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
-					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
+					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 					LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
+					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
+
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
@@ -769,7 +779,8 @@ SET NOCOUNT ON
 					WOM.Memo,  
 					ISNULL(WOM.IsDeferred, 0),
 					WOM.TaskId,  
-					T.Description AS TaskName,  
+					--T.Description AS TaskName,  
+					CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 					MM.Name AS MandatoryOrSupplemental,  
 					WOM.MaterialMandatoriesId,  
 					WOM.MasterCompanyId,  
@@ -786,7 +797,8 @@ SET NOCOUNT ON
 					ISNULL(SL.StockLineId,0) AS  StockLIneId ,  
 					Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 					ROP.EstRecordDate 'RONextDlvrDate',  
-					RO.RepairOrderNumber
+					--RO.RepairOrderNumber
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
 					,WOM.Figure Figure
 					,WOM.Item Item
 					,MSTL.Figure StockLineFigure
@@ -838,10 +850,12 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
+					LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
-					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
+					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 					LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
+					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
 					LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
@@ -980,7 +994,8 @@ SET NOCOUNT ON
 				  WOM.Memo,  
 				  ISNULL(WOM.IsDeferred, 0),
 				  WOM.TaskId,  
-				  T.Description AS TaskName,  
+				  --T.Description AS TaskName,  
+				  CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 				  MM.Name AS MandatoryOrSupplemental,  
 				  WOM.MaterialMandatoriesId,  
 				  WOM.MasterCompanyId,  
@@ -998,7 +1013,8 @@ SET NOCOUNT ON
 				  ISNULL(SL.StockLineId,0) AS  StockLIneId ,  
 				  Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 				  ROP.EstRecordDate 'RONextDlvrDate',  
-				  RO.RepairOrderNumber
+				  --RO.RepairOrderNumber
+				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
 				  ,WOM.Figure Figure
 				  ,WOM.Item Item
 				  ,MSTL.Figure StockLineFigure
@@ -1050,10 +1066,12 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
+				  LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
-				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
+				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId 
 				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
+				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 			 AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
@@ -1187,7 +1205,8 @@ SET NOCOUNT ON
 				  WOM.Memo,  
 				  ISNULL(WOM.IsDeferred, 0),
 				  WOM.TaskId,  
-				  T.Description AS TaskName,  
+				  --T.Description AS TaskName, 
+				  CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 				  MM.Name AS MandatoryOrSupplemental,  
 				  WOM.MaterialMandatoriesId,  
 				  WOM.MasterCompanyId,  
@@ -1204,7 +1223,8 @@ SET NOCOUNT ON
 				  ISNULL(SL.StockLineId,0) AS  StockLIneId ,  
 				  Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 				  ROP.EstRecordDate 'RONextDlvrDate',  
-				  RO.RepairOrderNumber
+				  --RO.RepairOrderNumber,
+				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
 				  ,WOM.Figure Figure
 				  ,WOM.Item Item
 				  ,MSTL.Figure StockLineFigure
@@ -1256,10 +1276,13 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
+				  LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
-				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
+				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
+				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId
+
 				  LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0

@@ -16,7 +16,7 @@
  ** --   --------     -------   --------------------------------              
     1    09/22/2023   Vishal Suthar  Created  
     2    10/05/2023   Vishal Suthar  Modified to get parent stockline draft details to bind as parent record  
-    
+	3    8-JAN-2025   RAJESH GAMI    update UnitCost int AssetInventoryDraft and AssetInventory table  
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(1821,3412,5)  
   
@@ -38,8 +38,10 @@ BEGIN
   BEGIN TRY
   BEGIN TRANSACTION
   BEGIN
-  DECLARE @LoopID AS INT;
-  
+  DECLARE @LoopID AS INT, @UnitCost DECIMAL(18,2), @IsSameDetailsForAllPartsMain BIT = 0;
+  DECLARE @assetInventoryDraftId BIGINT = (SELECT TOP 1 AssetInventoryDraftId FROM dbo.AssetInventoryDraft d Where ISNULL(d.AssetInventoryId,0) = 0 AND d.AssetInventoryDraftId in(Select StockLineDraftId from @tbl_UpdateStocklineReceivingPOType ))
+  SET @UnitCost = (SELECT TOP 1 ISNULL(PurchaseOrderUnitCost,0) FROM @tbl_UpdateStocklineReceivingPOType where StockLineDraftId = @assetInventoryDraftId)
+  SET @IsSameDetailsForAllPartsMain = (SELECT TOP 1 IsSameDetailsForAllParts FROM @tbl_UpdateStocklineReceivingPOType)
   IF OBJECT_ID(N'tempdb..#UpdateStocklineReceivingPOType') IS NOT NULL  
   BEGIN  
 	DROP TABLE #UpdateStocklineReceivingPOType   
@@ -242,7 +244,7 @@ BEGIN
   SELECT [StockLineDraftId],[PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],  
   [SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],  
   [ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagTypeIds],[TagType],[CertifiedDueDate],[CalibrationMemo],  
-  [OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],  
+  [OrderDate],[PurchaseOrderId], CASE WHEN @IsSameDetailsForAllPartsMain = 1 THEN @UnitCost ELSE PurchaseOrderUnitCost END,[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],  
   [CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],  
   [UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],  
   [UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],  
@@ -443,6 +445,27 @@ BEGIN
    SET @LoopID = @LoopID - 1;  
   END  
   
+  /**************START: Update Unit Cost In Asset Inventory *************/
+  IF(@IsSameDetailsForAllPartsMain = 1)
+  BEGIN
+	 UPDATE inventory  
+	   SET inventory.UnitCost = @UnitCost 
+	   FROM DBO.AssetInventory inventory  
+	   WHERE inventory.AssetInventoryId IN(
+		SELECT AssetInventoryId FROM AssetInventoryDraft WHERE ISNULL(AssetInventoryId,0) > 0 AND AssetInventoryDraftId in (SELECT StockLineDraftId FROM @tbl_UpdateStocklineReceivingPOType)
+	   )
+  END
+  ELSE
+  BEGIN
+	UPDATE inventory  
+	   SET inventory.UnitCost = stk.PurchaseOrderUnitCost 
+	   FROM DBO.AssetInventory inventory 
+	   INNER JOIN dbo.AssetInventoryDraft draft on inventory.AssetInventoryId = draft.AssetInventoryId 
+	   INNER JOIN @tbl_UpdateStocklineReceivingPOType stk on draft.AssetInventoryDraftId = stk.StockLineDraftId
+	   WHERE ISNULL(draft.AssetInventoryId,0) > 0 
+  END  
+  /**************END: Update Unit Cost In Asset Inventory *************/
+
   EXEC DBO.UpdateStocklineDraftDetail @PurchaseOrderId;  
  END    
     COMMIT TRANSACTION    

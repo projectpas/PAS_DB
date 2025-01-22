@@ -13,15 +13,25 @@
  **************************************************************             
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
-    1    01/01/2024		EKTA CHANDEGRA	 Created  
-    2    07/01/2024		EKTA CHANDEGRA	 Retrieve Specific columns from [dbo].[SalesOrderPartV1]
+    1    01/01/2025		EKTA CHANDEGRA	 Created  
+    2    07/01/2025		EKTA CHANDEGRA	 Retrieve Specific columns from [dbo].[SalesOrderPartV1]
+    3    10/01/2025		EKTA CHANDEGRA	 Insert values in [dbo].[SalesOrder] based on selected customer
+    4    16/01/2025		EKTA CHANDEGRA	 Add QtyReserved value 0 
 
- EXEC CopySalesOrder 1666 , N'EKTA CHANDEGRA', 0
+exec dbo.CopySalesOrder @SalesOrderId=1730,@CreatedBy=N'EKTA CHANDEGARA',@TransferSOApproval=1,
+@CustomerId=85,@CustomerReference=N'test',@FunctionalCurrencyId=3,@ForeignExchangeRate=1.000000,
+@ReportCurrencyId=3,@EmployeeId=211
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[CopySalesOrder]
 	@SalesOrderId BIGINT,
 	@CreatedBy VARCHAR(256),
-	@TransferSOApproval BIT
+	@TransferSOApproval BIT,
+	@CustomerId BIGINT,
+	@CustomerReference VARCHAR(100),
+	@FunctionalCurrencyId INT,
+	@ForeignExchangeRate DECIMAL(18,2),
+	@ReportCurrencyId INT,
+	@EmployeeId BIGINT
 AS
 BEGIN 
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -70,6 +80,66 @@ BEGIN
 						SET @SalesOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(0, '', ''));
 					END
 
+				DECLARE @CustomerTypeId INT;
+				DECLARE @CustomerContactId BIGINT;
+				DECLARE @PrimarySalesPersonId BIGINT;
+				DECLARE @CsrId BIGINT;
+				DECLARE @RestrictPMA BIT;
+				DECLARE @RestrictDER BIT;
+				DECLARE @ContractReference VARCHAR(100);
+				DECLARE @CustomerTypeName VARCHAR(256);
+				DECLARE @CustomerName VARCHAR(100);
+				DECLARE @SalesPersonName VARCHAR(80);
+				DECLARE @CustomerServiceRepName VARCHAR(80);
+				DECLARE @CreditLimit DECIMAL(18,2);
+				DECLARE @CreditTermsId INT;
+				DECLARE @CreditTermName VARCHAR(50)
+				DECLARE @PercentId BIGINT;
+				DECLARE @Days INT;
+				DECLARE @NetDays INT;
+				DECLARE @BalanceDue DECIMAL(18,2);
+				DECLARE @CustomerWarningID BIGINT;
+				DECLARE @WarningMessage VARCHAR(300);
+				DECLARE @CustomerWarningTypeId BIGINT = (SELECT CustomerWarningTypeId FROM [dbo].[CustomerWarningType] WITH(NOLOCK) WHERE [Name]='Create Sales Order')
+			
+			-- Fetch Customer details by customerId
+				SELECT TOP 1
+				 @CustomerTypeId =  CT.CustomerTypeId,
+				 @CustomerContactId = CC.[CustomerContactId],
+				 @PrimarySalesPersonId = CS.[PrimarySalesPersonId],
+				 @CsrId = CS.[CsrId],
+				 @RestrictPMA = C.[RestrictPMA],
+				 @RestrictDER = C.[RestrictDER],
+				 @ContractReference = C.[ContractReference],
+				 @CustomerTypeName = CT.[CustomerTypeName],
+				 @CustomerName = C.[Name],
+				 @SalesPersonName = CONCAT(ISNULL(EMP.FirstName, ''), ' ', ISNULL(EMP.LastName, '')),
+				 @CustomerServiceRepName = CONCAT(ISNULL(EMPCSR.FirstName, ''), ' ', ISNULL(EMPCSR.LastName, '')),
+				 @CreditLimit = ISNULL(CF.[CreditLimit],0),
+				 @CreditTermsId = ISNULL(CF.[CreditTermsId],0),
+				 @CreditTermName = CTMS.[Name],
+				 @PercentId = CTMS.[PercentId],
+				 @Days = CTMS.[Days],
+				 @NetDays = CTMS.[NetDays],
+				 @CustomerWarningID = CW.CustomerWarningId,
+				 @WarningMessage = CW.WarningMessage
+				 FROM [dbo].[Customer] C WITH(NOLOCK) 
+				 LEFT JOIN [dbo].[CustomerSales] CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId
+				 LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON CT.CustomerTypeId = C.CustomerTypeId
+				 LEFT JOIN [dbo].[CustomerWarning] CW WITH(NOLOCK) ON CW.CustomerId = C.CustomerId AND CW.CustomerWarningTypeId = @CustomerWarningTypeId
+				 LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON CS.PrimarySalesPersonId = EMP.EmployeeId
+				 LEFT JOIN [dbo].[Employee] EMPCSR WITH(NOLOCK) ON CS.CsrId = EMPCSR.EmployeeId
+				 LEFT JOIN [dbo].[CustomerContact] CC WITH(NOLOCK) ON CC.CustomerId = C.CustomerId AND CC.IsDefaultContact = 1
+				 LEFT JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = C.CustomerId
+				 LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = CF.CurrencyId
+				 LEFT JOIN [dbo].[CreditTerms] CTMS WITH(NOLOCK) ON CF.CreditTermsId = CTMS.CreditTermsId
+				 WHERE C.CustomerId = @CustomerId
+
+			-- Fetch ARBalance details by customerId
+				 SELECT TOP 1 
+				 @BalanceDue = CCTH.ARBalance FROM [dbo].[CustomerCreditTermsHistory] CCTH WITH(NOLOCK) WHERE CCTH.CustomerId = @CustomerId 
+				 ORDER BY CCTH.UpdatedDate DESC; 
+
 			-- Insert SalesOrder
 				INSERT INTO [dbo].[SalesOrder]
 				([Version],[TypeId],[OpenDate],[ShippedDate],[NumberOfItems],[AccountTypeId],[CustomerId],[CustomerContactId],
@@ -85,20 +155,19 @@ BEGIN
 				 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 
 				 SELECT 
-				 SO.[Version],SO.[TypeId],GETDATE(),SO.[ShippedDate],SO.[NumberOfItems],SO.[AccountTypeId],SO.[CustomerId],SO.[CustomerContactId],
-				 SO.[CustomerReference],SO.[CurrencyId],SO.[TotalSalesAmount],SO.[CustomerHold],SO.[DepositAmount],SO.[BalanceDue],SO.[SalesPersonId],
-				 SO.[AgentId],SO.[CustomerSeviceRepId],SO.[EmployeeId],SO.[ApprovedById],SO.[ApprovedDate],SO.[Memo],SO.[StatusId],SO.[StatusChangeDate],
-				 SO.[Notes],SO.[RestrictPMA],SO.[RestrictDER],SO.[ManagementStructureId],SO.[CustomerWarningId],@CreatedBy,GETDATE(),@CreatedBy,
+				 SO.[Version],SO.[TypeId],GETDATE(),SO.[ShippedDate],SO.[NumberOfItems],@CustomerTypeId,@CustomerId,@CustomerContactId,
+				 @CustomerReference,SO.[CurrencyId],SO.[TotalSalesAmount],SO.[CustomerHold],SO.[DepositAmount],@BalanceDue,@PrimarySalesPersonId,
+				 SO.[AgentId],@CsrId,@EmployeeId,SO.[ApprovedById],SO.[ApprovedDate],SO.[Memo],SO.[StatusId],SO.[StatusChangeDate],
+				 SO.[Notes],@RestrictPMA,@RestrictDER,SO.[ManagementStructureId],@CustomerWarningID,@CreatedBy,GETDATE(),@CreatedBy,
 				 GETDATE(),SO.[MasterCompanyId],0,SO.[SalesOrderQuoteId],SO.[QtyRequested],SO.[QtyToBeQuoted],@SalesOrderNumber,
-				 1,SO.[ContractReference],SO.[TypeName],SO.[AccountTypeName],SO.[CustomerName],SO.[SalesPersonName],SO.[CustomerServiceRepName],
-				 SO.[EmployeeName],SO.[CurrencyName],SO.[CustomerWarningName],SO.[ManagementStructureName],SO.[CreditLimit],SO.[CreditTermId],
-				 SO.[CreditLimitName],SO.[CreditTermName],SO.[VersionNumber],SO.[TotalFreight],SO.[TotalCharges],SO.[FreightBilingMethodId],
+				 1,@ContractReference,SO.[TypeName],@CustomerTypeName,@CustomerName,@SalesPersonName,@CustomerServiceRepName,
+				 @CreatedBy,NULL,@WarningMessage,SO.[ManagementStructureName],@CreditLimit,@CreditTermsId,
+				 NULL,@CreditTermName,SO.[VersionNumber],SO.[TotalFreight],SO.[TotalCharges],SO.[FreightBilingMethodId],
 				 SO.[ChargesBilingMethodId],SO.[EnforceEffectiveDate],SO.[IsEnforceApproval],SO.[Level1],SO.[Level2],SO.[Level3],SO.[Level4],SO.[ATAPDFPath],
-				 SO.[LotId],SO.[IsLotAssigned],SO.[AllowInvoiceBeforeShipping],SO.[PercentId],SO.[Days],SO.[NetDays],SO.[COCManufacturingPDFPath],
-				 SO.[FunctionalCurrencyId],SO.[ReportCurrencyId],SO.[ForeignExchangeRate]
-				 FROM [dbo].[SalesOrder] SO WITH(NOLOCK)
-				 WHERE SO.SalesOrderId = @SalesOrderId
-
+				 SO.[LotId],SO.[IsLotAssigned],SO.[AllowInvoiceBeforeShipping],@PercentId,@Days,@NetDays,SO.[COCManufacturingPDFPath],
+				 @FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate
+				 FROM [dbo].[SalesOrder] SO WITH(NOLOCK)  WHERE SO.SalesOrderId = @SalesOrderId;
+				 
 			-- END Insert SalesOrder
 
 				SELECT @OldSalesOrderId = @SalesOrderId;
@@ -285,9 +354,9 @@ BEGIN
 					[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType])
 
 					SELECT
-					@SalesOrderId,SOP.[ItemMasterId],SOP.[ConditionId],SOP.[QtyRequested],SOP.[QtyOrder],SOP.[QtyReserved],
-					SOP.[CurrencyId],SOP.[PriorityId],SOP.[StatusId],SOP.[FxRate],SOP.[CustomerRequestDate],SOP.[PromisedDate],SOP.[EstimatedShipDate],
-				    SOP.[POId],SOP.[PONumber],SOP.[PONextDlvrDate],SOP.[Notes],SOP.[MasterCompanyId],@CreatedBy,GETDATE(),@CreatedBy,GETDATE(),
+					@SalesOrderId,SOP.[ItemMasterId],SOP.[ConditionId],SOP.[QtyRequested],SOP.[QtyOrder],0,
+					SOP.[CurrencyId],SOP.[PriorityId],1,SOP.[FxRate],SOP.[CustomerRequestDate],SOP.[PromisedDate],SOP.[EstimatedShipDate],
+				    SOP.[POId],SOP.[PONumber],SOP.[PONextDlvrDate],SOP.[Notes],SOP.[MasterCompanyId],SOP.[CreatedBy],GETDATE(),SOP.[CreatedBy],GETDATE(),
 					1,0,SOP.[OldSalesOrderPartId],SOP.[PartNumber],SOP.[PartDescription],SOP.[ConditionName],SOP.[CurrencyName],
 					SOP.[PriorityName],SOP.[StatusName],SOP.[SalesOrderQuotePartId],SOP.[LotId],SOP.[IsLotAssigned],IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],
 					IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],SOP.[AltOrEqType]
@@ -305,14 +374,14 @@ BEGIN
 					[UnitCost],[UnitCostExtended],[MarkUpPercentage],[MarkUpAmount],[MarginAmount],
 					[MarginPercentage],[DiscountPercentage],[DiscountAmount],[TaxPercentage],[TaxAmount],
 					[NetSaleAmount],[MiscCharges],[Freight],[TotalRevenue],[MasterCompanyId],[CreatedBy],
-					[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+					[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[NetSaleAmountPerUnit])
 
 					SELECT
 					@SalesOrderId,@CurrentSOPartId,SOPC.[UnitSalesPrice],SOPC.[UnitSalesPriceExtended],
 					SOPC.[UnitCost],SOPC.[UnitCostExtended],SOPC.[MarkUpPercentage],SOPC.[MarkUpAmount],SOPC.[MarginAmount],
 					SOPC.[MarginPercentage],SOPC.[DiscountPercentage],SOPC.[DiscountAmount],SOPC.[TaxPercentage],SOPC.[TaxAmount],
 					SOPC.[NetSaleAmount],SOPC.[MiscCharges],SOPC.[Freight],SOPC.[TotalRevenue],SOPC.[MasterCompanyId],SOPC.[CreatedBy],
-					GETDATE(),SOPC.[UpdatedBy],GETDATE(),SOPC.[IsActive],SOPC.[IsDeleted]
+					GETDATE(),SOPC.[UpdatedBy],GETDATE(),SOPC.[IsActive],SOPC.[IsDeleted],SOPC.[NetSaleAmountPerUnit]
 					FROM [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK)
 					WHERE SOPC.SalesOrderPartId = @OldSOPartId
 					AND SOPC.SalesOrderId = @OldSalesOrderId;
@@ -322,7 +391,7 @@ BEGIN
 					IF EXISTS(SELECT 1 FROM [dbo].[SalesOrderStocklineV1] SOSTL WITH(NOLOCK) WHERE SOSTL.SalesOrderPartId = @OldSOPartId)
 					BEGIN
 						DECLARE @SOStocklineLoopID AS INT;
-						IF OBJECT_ID(N'tempdb..#soqpsList') IS NOT NULL
+						IF OBJECT_ID(N'tempdb..#sopsList') IS NOT NULL
 						BEGIN
 							DROP TABLE #sopsList
 						END
@@ -353,8 +422,8 @@ BEGIN
 							 [ReferenceNumber],[PriorityId])
 
 							SELECT 
-							@CurrentSOPartId,SOSTLV1.[StockLineId],SOSTLV1.[ConditionId],SOSTLV1.[QtyOrder],SOSTLV1.[QtyReserved],SOSTLV1.[QtyAvailable],
-							 SOSTLV1.[QtyOH],SOSTLV1.[CustomerRequestDate],SOSTLV1.[PromisedDate],SOSTLV1.[EstimatedShipDate],SOSTLV1.[StatusId],SOSTLV1.[MasterCompanyId],
+							@CurrentSOPartId,SOSTLV1.[StockLineId],SOSTLV1.[ConditionId],SOSTLV1.[QtyOrder],0,SOSTLV1.[QtyAvailable],
+							 SOSTLV1.[QtyOH],SOSTLV1.[CustomerRequestDate],SOSTLV1.[PromisedDate],SOSTLV1.[EstimatedShipDate],1,SOSTLV1.[MasterCompanyId],
 							 SOSTLV1.[CreatedBy],GETDATE(),SOSTLV1.[UpdatedBy],GETDATE(),SOSTLV1.[IsActive],SOSTLV1.[IsDeleted],SOSTLV1.[StocklineNumber],
 						     SOSTLV1.[ConditionName],SOSTLV1.[StatusName],SOSTLV1.[Notes],IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],
 							 SOSTLV1.[ReferenceNumber],SOSTLV1.[PriorityId]
@@ -499,9 +568,14 @@ BEGIN
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'CopySalesOrder'     
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''',
-													 @Parameter2 = '''+ ISNULL(@CreatedBy, '') + ''',
-													 @Parameter3 = '''+ ISNULL(@TransferSOApproval, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@SalesOrderId, '') AS varchar(100) ) + ''',
+													 @Parameter2 = '''+ CAST(ISNULL(@CreatedBy, '') AS varchar(100)) + ''',
+													 @Parameter3 = '''+ CAST(ISNULL(@TransferSOApproval, '')AS varchar(100)) + '''
+													 @Parameter4 = '''+ CAST(ISNULL(@CustomerId, '')AS varchar(100)) + '''
+													 @Parameter5 = '''+ CAST(ISNULL(@CustomerReference, '')AS varchar(100)) + '''
+													 @Parameter6 = '''+ CAST(ISNULL(@FunctionalCurrencyId, '')AS varchar(100)) + '''
+													 @Parameter7 = '''+ CAST(ISNULL(@ForeignExchangeRate, '')AS varchar(100)) + '''
+													 @Parameter8 = '''+ CAST(ISNULL(@ReportCurrencyId, '')AS varchar(100)) + ''
             , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
             exec spLogException     

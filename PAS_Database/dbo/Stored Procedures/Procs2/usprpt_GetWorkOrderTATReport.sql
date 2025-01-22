@@ -20,6 +20,8 @@
  3 01/31/2024   Devendra Shekh	added isperforma Flage for WO 
  4 03/29/2024   Ekta Chandegra	IsDeleted and IsActive flag is added
  5 12-12-2024   Shrey Chandegara  Modify Due to change calculation of quotedays ,approvedays,shipdays and tatdays and add another filter
+ 6 09-Jan-2025	Devendra Shekh	Reading Revised PN details if exists
+ 
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
@@ -215,11 +217,11 @@ BEGIN
 	  SELECT COUNT(1) OVER () AS TotalRecordsCount,    
 		   UPPER(C.Name) 'customername',  
 		   UPPER(C.CustomerCode) 'customercode',  
-		   UPPER(IM.partnumber) 'pn',  
-		   UPPER(IM.PartDescription) 'pndescription',  
+		   CASE WHEN ISNULL(WOPN.RevisedPartNumber, '') = '' THEN UPPER(IM.partnumber) ELSE UPPER(WOPN.RevisedPartNumber) END 'pn',  
+		   CASE WHEN ISNULL(WOPN.RevisedPartDescription, '') = '' THEN UPPER(IM.PartDescription) ELSE UPPER(WOPN.RevisedPartDescription) END 'pndescription',  
 		   WOPN.Quantity 'qty',  
 		   UPPER(WOPN.WorkScope) 'workscope',  
-		   UPPER(CN.Description) 'condition',  
+		   CASE WHEN ISNULL(RCN.Description, '') = '' THEN UPPER(CN.Description) ELSE UPPER(RCN.Description) END 'condition',  
 		   UPPER(WO.WorkOrderNum) 'wonum',  
 		   WOBI.InvoiceNo 'invoicenum',  
 		   DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'quotedays',
@@ -262,6 +264,7 @@ BEGIN
 	   LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 	   LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
 	   LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
+	   LEFT JOIN [dbo].[Condition] RCN WITH (NOLOCK) ON WOPN.RevisedConditionId = RCN.ConditionId
 	  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)
 		AND WO.customerid=ISNULL(@customername,WO.customerid)  
 		AND WO.mastercompanyid = @mastercompanyid  

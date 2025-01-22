@@ -25,9 +25,10 @@
     CONSTRAINT [PK_ProcessExpertiseList] PRIMARY KEY CLUSTERED ([WorkflowExpertiseListId] ASC),
     CONSTRAINT [FK_WorkflowExpertiseList_EmployeeExpertiseId] FOREIGN KEY ([ExpertiseTypeId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),
     CONSTRAINT [FK_WorkflowExpertiseList_PercentId] FOREIGN KEY ([OverheadburdenPercentId]) REFERENCES [dbo].[Percent] ([PercentId]),
-    CONSTRAINT [FK_WorkflowExpertiseList_Task_TaskId] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkflowExpertiseList_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

@@ -16,12 +16,13 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    06/02/2020   Subhash Saliya Created  
+	2	 01/16/2025	  Moin Bloch	 Modified (Added TaskId In Type)
        
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
 
 
-Create       PROCEDURE [dbo].[usp_SavePostKitforWOQ]
+CREATE       PROCEDURE [dbo].[usp_SavePostKitforWOQ]
 	@tbl_KITPartType WOQMaterialKitMappingType READONLY
 AS
 BEGIN
@@ -54,7 +55,7 @@ BEGIN
 				[UpdatedDate] [datetime2](7) NULL,
 				[IsActive] [bit] NULL,
 				[IsDeleted] [bit] NULL,
-				[Memo] [nvarchar](max) NULL,
+				[Memo] [nvarchar](MAX) NULL,
 	            [MarkupPercentageId] [bigint] NULL,
 	            [MarkupFixedPrice] [varchar](15) NULL,
 	            [BillingAmount] [decimal](20, 2) NULL,
@@ -64,45 +65,39 @@ BEGIN
 	            [BillingName] [varchar](50) NULL,
 	            [MarkUp] [varchar](50) NULL,
 				[IsInsert] [bit] NULL,
-				
+				[TaskId] [bigint] NULL,
 			)
 
 				
 			INSERT INTO #KITPartType 
 			(WOQMaterialKitMappingId,WorkOrderQuoteId,WorkflowWorkOrderId,[KitId],KitNumber,[ItemMasterId],
-			[Quantity],[UnitCost],[ExtendedCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],Memo,MarkupPercentageId,MarkupFixedPrice,BillingAmount,BillingRate,HeaderMarkupId,BillingMethodId)
+			[Quantity],[UnitCost],[ExtendedCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],Memo,MarkupPercentageId,MarkupFixedPrice,BillingAmount,BillingRate,HeaderMarkupId,BillingMethodId,[TaskId])
 			SELECT WOQMaterialKitMappingId,WorkOrderQuoteId,WorkflowWorkOrderId,[KitId],KitNumber,[ItemMasterId],
-			1,[UnitCost],[ExtendedCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],Memo,MarkupPercentageId,MarkupFixedPrice,BillingAmount,BillingRate,HeaderMarkupId,BillingMethodId
-			
+			1,[UnitCost],[ExtendedCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],Memo,MarkupPercentageId,MarkupFixedPrice,BillingAmount,BillingRate,HeaderMarkupId,BillingMethodId,[TaskId]			
 			FROM @tbl_KITPartType
+		
+			UPDATE #KITPartType SET IsInsert=0 WHERE WOQMaterialKitMappingId = 0
 
-			print '1'
-			
-			update #KITPartType set IsInsert=0 where WOQMaterialKitMappingId = 0
-
-			INSERT INTO [dbo].WorkOrderQuoteMaterialKitMapping
+			INSERT INTO [dbo].[WorkOrderQuoteMaterialKitMapping]
 		    (WorkOrderQuoteId,WorkflowWorkOrderId,[KitId],KitNumber,[ItemMasterId],[Quantity],[UnitCost],[ExtendedCost],
-		    [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],BillingRate,BillingAmount)
+		    [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],BillingRate,BillingAmount,[TaskId])
 		    SELECT WorkOrderQuoteId,WorkflowWorkOrderId,tmp.KitId,KM.KitNumber,tmp.[ItemMasterId],[Quantity],[UnitCost],(UnitCost),
-		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],tmp.[CreatedDate],tmp.[UpdatedDate],tmp.[IsActive],tmp.[IsDeleted],UnitCost,(UnitCost)
+		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],tmp.[CreatedDate],tmp.[UpdatedDate],tmp.[IsActive],tmp.[IsDeleted],UnitCost,(UnitCost),tmp.[TaskId]
 		    FROM #KITPartType tmp
-			INNER JOIN KitMaster KM WITH (NOLOCK) on KM.KitId = tmp.KitId 
+			INNER JOIN [dbo].[KitMaster] KM WITH (NOLOCK) ON KM.KitId = tmp.KitId 
 		    WHERE tmp.WOQMaterialKitMappingId = 0
 
-			print '2'
-
-			INSERT INTO [dbo].WorkOrderQuoteMaterialKit
+			INSERT INTO [dbo].[WorkOrderQuoteMaterialKit]
 		    (WOQMaterialKitMappingId,[KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[PartNumber],[PartDescription],[Manufacturer],
 		    [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 		    SELECT woqkit.WOQMaterialKitMappingId,woqkit.[KitId],tmp.[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],tmp.[Qty],tmp.[UnitCost],[PartNumber],[PartDescription],[Manufacturer],
-		    [Condition],[UOM],woqkit.[MasterCompanyId],woqkit.[CreatedBy],woqkit.[UpdatedBy],getdate(),getdate(),1,0
-		    FROM KitItemMasterMapping  tmp
-			INNER JOIN #KITPartType kim WITH (NOLOCK) on kim.KitId = tmp.KitId 
-			INNER JOIN WorkOrderQuoteMaterialKitMapping woqkit WITH (NOLOCK) on woqkit.KitId = kim.KitId  and woqkit.WorkflowWorkOrderId = kim.WorkflowWorkOrderId
+		    [Condition],[UOM],woqkit.[MasterCompanyId],woqkit.[CreatedBy],woqkit.[UpdatedBy],GETUTCDATE(),GETUTCDATE(),1,0
+		    FROM [dbo].[KitItemMasterMapping]  tmp
+			INNER JOIN #KITPartType kim WITH (NOLOCK) ON kim.KitId = tmp.KitId 
+			INNER JOIN [dbo].[WorkOrderQuoteMaterialKitMapping] woqkit WITH (NOLOCK) ON woqkit.KitId = kim.KitId  and woqkit.WorkflowWorkOrderId = kim.WorkflowWorkOrderId
 
 		    WHERE kim.WOQMaterialKitMappingId = 0 and kim.IsInsert=0
 			
-			print '3'
 			---------------------------------Update Kit Item Master Mapping---------------------
 			UPDATE kim
 			SET  
@@ -111,7 +106,7 @@ BEGIN
 				,[ExtendedCost] = t.ExtendedCost
 				--,[MasterCompanyId] = t.MasterCompanyId    
 				,[UpdatedBy] = t.UpdatedBy     
-				,[UpdatedDate] = getdate()
+				,[UpdatedDate] = GETUTCDATE()
 				,[IsActive] = t.IsActive
 				,[IsDeleted] = t.IsDeleted
 				,Memo=t.Memo
@@ -122,15 +117,13 @@ BEGIN
 				,HeaderMarkupId= t.HeaderMarkupId
 				,BillingMethodId= t.BillingMethodId
 				,MarkUp = p.PercentValue
-				,BillingName = (case when kim.BillingMethodId = 1 then 'T&M'  when  kim.BillingMethodId = 2 then 'Actual' else '' End)
+				,BillingName = (CASE WHEN kim.BillingMethodId = 1 THEN 'T&M'  WHEN  kim.BillingMethodId = 2 THEN 'Actual' ELSE '' END)
 				FROM #KITPartType t
-				INNER JOIN dbo.WorkOrderQuoteMaterialKitMapping kim WITH (NOLOCK) on kim.WOQMaterialKitMappingId = t.WOQMaterialKitMappingId
-				LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = kim.MarkupPercentageId 
+				INNER JOIN [dbo].[WorkOrderQuoteMaterialKitMapping] kim WITH (NOLOCK) ON kim.WOQMaterialKitMappingId = t.WOQMaterialKitMappingId
+				LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON p.PercentId = kim.MarkupPercentageId 
 			 WHERE t.WOQMaterialKitMappingId > 0;
 
-
-		
-				
+			 	
 			END
 			COMMIT TRANSACTION
 		END TRY    

@@ -17,6 +17,7 @@
     1    07/25/2024   Vishal Suthar		Created
 	2   11/13/2014    Abhishek Jirawla  Resolved errors of divide by zero
 	3   12/12/2014    Vishal Suthar		Resolved issue with price calculation
+	4   21-01-2025    Shrey Chandegara  Add Charge in total Revenue
      
  EXECUTE USP_UpdateSOQPartCostDetails 590, 551, 'ADMIN User', 1
 **************************************************************/ 
@@ -149,7 +150,7 @@ SET NOCOUNT ON
 						SET UnitSalesPriceExtended = (SELECT SUM(SOSC.UnitSalesPriceExtended) FROM DBO.SalesOrderQuoteStockLineCost SOSC WHERE SOSC.SalesOrderQuotePartId = @SalesOrderQuotePartId),
 						UnitCostExtended = (SELECT SUM(ISNULL(SOSC.UnitCostExtended, 0)) FROM DBO.SalesOrderQuoteStockLineCost SOSC WHERE SOSC.SalesOrderQuotePartId = @SalesOrderQuotePartId),
 						NetSaleAmount = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) FROM DBO.SalesOrderQuoteStockLineCost SOSC WHERE SOSC.SalesOrderQuotePartId = @SalesOrderQuotePartId),
-						TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + MiscCharges FROM DBO.SalesOrderQuoteStockLineCost SOSC WHERE SOSC.SalesOrderQuotePartId = @SalesOrderQuotePartId)
+						TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + ISNULL(@Charges_S, 0) FROM DBO.SalesOrderQuoteStockLineCost SOSC WHERE SOSC.SalesOrderQuotePartId = @SalesOrderQuotePartId)
 						WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 					END
 					ELSE
@@ -160,7 +161,7 @@ SET NOCOUNT ON
 						SET UnitSalesPriceExtended = ISNULL(UnitSalesPrice, 0) * @PartQty,
 						UnitCostExtended = ISNULL(UnitCost, 0) * @PartQty,
 						NetSaleAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount,
-						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + MiscCharges
+						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + ISNULL(@Charges_S, 0)
 						WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 					END
 

@@ -19,7 +19,8 @@
 	3    03 DEC 2024  Vishal Suthar		Fixed calculating markup and discount while adding stockline throught reservation
 	4    05 DEC 2024  Vishal Suthar		Use stockline unitcost when stockline is added through reservation
 	5    13 DEC 2024  AMIT GHEDIYA		Add RefrenceNumber in stocktable.
-	6    17-12-2024   Shrey Chandegara  Add condition while execute USP_UpdateSOPartCostDetails this procedure 
+	6    17 DEC 2024   Shrey Chandegara  Add condition while execute USP_UpdateSOPartCostDetails this procedure 
+	7    08 JAN 2025   AMIT GHEDIYA		 Added one parameter to identify if it's been called from shipping or not
 
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
@@ -31,7 +32,8 @@ CREATE   PROCEDURE [dbo].[SalesOrderReserveUnReserveParts]
 (
 	@tbl_SalesOrderReserveIssueParts SalesOrderReserveIssueParts READONLY,
 	@afterShipping BIT,
-	@autoReserve BIT
+	@autoReserve BIT,
+	@isFromShipping BIT = 0
 )
 AS
 BEGIN
@@ -325,7 +327,7 @@ BEGIN
 						FROM [DBO].[StockLine] Stkl 
 						WHERE Stkl.StockLineId = @StockLineId;
 
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping;
 					END
 				END
 				ELSE
@@ -358,7 +360,7 @@ BEGIN
 							WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
 						END
 
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping;
 					END
 				END
 			END
@@ -446,7 +448,7 @@ BEGIN
 					AND StockLineId = @StockLineId AND ISNULL(QtyReserved,0) = 0
 				END
 
-				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve;
+				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping;
 			END
 			ELSE
 			BEGIN 

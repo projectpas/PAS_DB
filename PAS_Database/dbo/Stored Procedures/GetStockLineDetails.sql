@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/09/2024  MOIN BLOCH 		Created
 	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
-     
+    3    21-01-25    Bhavesh Raval   Remove Name and Notes Columns 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -284,7 +284,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1 ELSE 0 END AS IsSkipSerialNo
 			  ,stl.[RepairOrderNumber] RONumber
 			,stl.InventoryGLSettingId      
-			,igls.[Name]      
+			,igls.[StockInventoryName]      
 			AS InventoryGLSettingName      
 			,stl.GlAccountName AS  InventoryGLAccName      
 			,stl.GoodsReceivedNotInvoicesGLAccName        
@@ -294,12 +294,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.InventoryExchAgreementGLAccName        
 			,stl.InventoryReserveGLAccName        
 			,stl.COGS_WorkOrderGLAccName        
-			,stl.COGS_SalesOrderGLAccName        
+			,stl.COGS_SalesOrderGLAccName   
+			,stl.COGS_ExchSalesOrderGLAccName   
 			,stl.COGS_QtyVarianceGLAccName        
 			,stl.COGS_UnitCostVarianceGLAccName        
 			,stl.RevenueMroGLAccName        
 			,stl.RevenueSoGLAccName        
-			,stl.RevenueMiscGLAccName   
+			,stl.RevenueExchGLAccName   
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

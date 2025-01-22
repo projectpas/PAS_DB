@@ -10,6 +10,8 @@
     [IsActive]          BIT             NOT NULL,
     [IsDeleted]         BIT             NOT NULL,
     [Memo]              NVARCHAR (MAX)  NULL,
-    [Description]       VARCHAR (500)   NULL
+    [Description]       VARCHAR (500)   NULL,
+    [TaxRateRef]        VARCHAR (50)    NULL,
+    [TxnTaxCodeRef]     VARCHAR (50)    NULL
 );
 

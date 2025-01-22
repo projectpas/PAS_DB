@@ -55,6 +55,8 @@
 );
 
 
+
+
 GO
 
 CREATE   TRIGGER [dbo].[Trg_WorkOrderMaterialsKitAudit]
@@ -125,8 +127,8 @@ BEGIN
            ,[MasterCompanyId]
            ,[CreatedBy]
            ,[UpdatedBy]
-           ,[CreatedDate]
-           ,[UpdatedDate]
+           ,GETUTCDATE()
+           ,GETUTCDATE()
            ,[IsActive]
            ,[IsDeleted]
            ,[TaskId]

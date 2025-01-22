@@ -23,6 +23,8 @@
 	7	 27/09/2024	  AMIT GHEDIYA	Added for AutoPost Batch
 	8	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	9	 11/04/2024   Devendra Shekh    Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	10	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
 @ReadyToPayId BIGINT,
@@ -155,7 +157,14 @@ BEGIN
 			INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 			INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 			WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  
-			and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+			and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date);
+
+			--Select from as save at payment time
+			SELECT @AccountingPeriodId = acc.[AccountingCalendarId],
+						 @AccountingPeriod = acc.[PeriodName]
+			FROM [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK)
+			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON VRH.AccountingPeriodId = acc.AccountingCalendarId AND acc.IsDeleted = 0
+			WHERE VRH.ReadyToPayId = @ReadyToPayId;
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 

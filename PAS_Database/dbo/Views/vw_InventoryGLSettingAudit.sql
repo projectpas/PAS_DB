@@ -4,6 +4,7 @@
 
 
 
+
 CREATE       VIEW [dbo].[vw_InventoryGLSettingAudit]
 AS
 SELECT InventoryGLSettingAuditId  AS PkID,
@@ -18,6 +19,7 @@ GLExch.AccountName AS [Inventory-Exchange Agreement],
 GLRes.AccountName AS [Inventory Reserve],
 GLWo.AccountName AS [Cost Of Goods Sold (COGS)-Work Order],
 GLSo.AccountName AS [Cost Of Goods Sold (COGS)-Sales Order],
+GLExSo.AccountName AS [Cost Of Goods Sold (COGS)-Exch Sales Order],
 GLQty.AccountName AS [Cost Of Goods Sold (COGS)-Qty Variance],
 GLUc.AccountName AS [Cost Of Goods Sold (COGS)-Unit Cost Variance],
 GLMro.AccountName AS [Revenue-MRO],
@@ -36,8 +38,9 @@ FROM [DBO].[InventoryGLSettingAudit] IGS WITH (NOLOCK)
  LEFT JOIN [DBO].[View_GLAccount] GLRes WITH (NOLOCK) ON IGS.InventoryReserveGLAccId = GLRes.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLWo WITH (NOLOCK) ON IGS.COGS_WorkOrderGLAccId = GLWo.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLSo WITH (NOLOCK) ON IGS.COGS_SalesOrderGLAccId = GLSo.GLAccountId
+ LEFT JOIN [DBO].[View_GLAccount] GLExSo WITH (NOLOCK) ON IGS.COGS_SalesOrderGLAccId = GLExSo.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLQty WITH (NOLOCK) ON IGS.COGS_QtyVarianceGLAccId = GLQty.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLUc WITH (NOLOCK) ON IGS.COGS_UnitCostVarianceGLAccId = GLUc.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLMro WITH (NOLOCK) ON IGS.RevenueMroGLAccId = GLMro.GLAccountId
  LEFT JOIN [DBO].[View_GLAccount] GLRso WITH (NOLOCK) ON IGS.RevenueSoGLAccId = GLRso.GLAccountId
- LEFT JOIN [DBO].[View_GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueMiscGLAccId = GLMisc.GLAccountId
+ LEFT JOIN [DBO].[View_GLAccount] GLMisc WITH (NOLOCK) ON IGS.RevenueExchGLAccId = GLMisc.GLAccountId

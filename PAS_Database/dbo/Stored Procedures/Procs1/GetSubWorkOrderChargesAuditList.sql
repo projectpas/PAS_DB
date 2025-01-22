@@ -14,23 +14,28 @@
  ** --   --------     -------			--------------------------------          
     1    02/23/2021   Subhash Saliya	Created
     2    01/11/2024   Devendra Shekh	added UOM changes
+	3	 01/17/2025	  Moin Bloch	 Modified (Added @WorkOrderFormTypeId from WO)    
      
  EXECUTE [GetSubWorkOrderChargesAuditList] 148, null, 0
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[GetSubWorkOrderChargesAuditList]
-	@subWorkOrderChargesId bigint = null
+@subWorkOrderChargesId bigint = null
 AS
 BEGIN
-
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
-  BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN
+  BEGIN TRY	
+			DECLARE @WorkOrderFormTypeId BIT = 0; 
+			DECLARE @WorkOrderId BIGINT = 0; 
+
+			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[SubWorkOrderCharges] WITH(NOLOCK) WHERE [SubWorkOrderChargesId] = @subWorkOrderChargesId;
+
+			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+		
 				SELECT	
 					 woc.ChargesTypeId,
-                     ct.ChargeType as ChargeType,
+                     ct.ChargeType AS ChargeType,
                      woc.Description,
                      woc.Quantity,
                      woc.UnitCost,
@@ -48,25 +53,24 @@ BEGIN
                      woc.SubWOPartNoId,
                      woc.SubWorkOrderChargesId,
                      woc.WorkOrderId,
-					 ISNULL(ts.Description,'') as TaskName,
-					 woc.ReferenceNo as ReferenceNo,
-					 ISNULL(gl.AccountName,'') as GLAccountName,
+					 CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+					 woc.ReferenceNo AS ReferenceNo,
+					 ISNULL(gl.AccountName,'') AS GLAccountName,
 					 woc.UOMId,  
 					 um.ShortName AS 'UOM'
-				FROM dbo.SubWorkOrderChargesAudit woc WITH(NOLOCK)
-					JOIN dbo.Charge ct WITH(NOLOCK) on woc.ChargesTypeId = ct.ChargeId
-					LEFT JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId
-					JOIN dbo.Task ts WITH(NOLOCK) on woc.TaskId = ts.TaskId
-					LEFT JOIN dbo.GLAccount gl  WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId
-					LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) on um.UnitOfMeasureId = woc.UOMId  
+				FROM [dbo].[SubWorkOrderChargesAudit] woc WITH(NOLOCK)
+					JOIN [dbo].[Charge] ct WITH(NOLOCK) ON woc.ChargesTypeId = ct.ChargeId
+					LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) ON woc.VendorId = v.VendorId
+					LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON woc.TaskId = ts.TaskId
+					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = woc.TaskId
+					LEFT JOIN [dbo].[GLAccount] gl  WITH(NOLOCK) ON ct.GLAccountId = gl.GLAccountId
+					LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON um.UnitOfMeasureId = woc.UOMId  
 				WHERE woc.subWorkOrderChargesId = @subWorkOrderChargesId
-				END
-			COMMIT  TRANSACTION
+				
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetSubWorkOrderChargesAuditList' 

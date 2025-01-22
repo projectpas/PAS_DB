@@ -74,7 +74,6 @@ SET NOCOUNT ON
 				IF((SELECT COUNT(1) FROM DBO.SalesOrderPartCost SOC WITH(NOLOCK) WHERE SOC.SalesOrderId = @SalesOrderId AND SOC.SalesOrderPartId = @SalesOrderPartId) > 0)
 				
 				BEGIN
-				print 1
 					DECLARE @MasterLoopID AS INT;
 					DECLARE @SalesOrderStocklineId AS BIGINT;
 

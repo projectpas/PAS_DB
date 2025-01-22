@@ -57,7 +57,8 @@ BEGIN
   @StatusCode = 'UpdateWorkOrderPriority' OR @StatusCode = 'UpdateWorkOrderPublication' OR @StatusCode = 'AddWorkFlow' OR @StatusCode = 'UpdateWorkFlow' OR @StatusCode = 'CreateVendorRMA' OR @StatusCode = 'AddVendorRMAPN' OR @StatusCode = 'CreateVendorRMAPickTicket' 
   OR @StatusCode = 'VendorRMAPickTicketConfirmed' OR @StatusCode = 'VendorRMAShipped' OR @StatusCode = 'CreateVendorCreditMemo' OR @StatusCode = 'UpdateVendorRMAPartQty' OR @StatusCode = 'UpdateVendorRMAReturnReason'
   OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR 
-  @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution')    
+  @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution'
+  OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction')    
   BEGIN    
    INSERT INTO [dbo].[History]    
        ([ModuleId]    

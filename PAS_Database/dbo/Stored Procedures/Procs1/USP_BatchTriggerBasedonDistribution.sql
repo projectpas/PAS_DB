@@ -27,6 +27,7 @@
 	12	 08/10/2024	 Devendra Shekh		Added new fields for [CommonBatchDetails]
 	13	 11/04/2024  Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 13/01/2025  Devendra Shekh		Modify (StockLine GL selection Changes)
+	15	 22/01/2025	 Devendra Shekh		Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -1264,6 +1265,54 @@ BEGIN
 					 
 				SET @FinishGoodAmount=Isnull((@MaterialCost+@LaborCost+@LaborOverHeadCost),0)
 
+				DECLARE @TotalStkRecords BIGINT = 0, @CurrentRecId BIGINT = 0, @StkExtendedCost BIGINT = 0, @StkGLId BIGINT = 0;
+				IF OBJECT_ID(N'tempdb..#tmpStockLineResult') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpStockLineResult
+				END
+
+				IF OBJECT_ID(N'tempdb..#tmpFinalStockLineResult') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpFinalStockLineResult
+				END
+				
+				CREATE TABLE #tmpStockLineResult
+				(
+					RecId BIGINT NOT NULL IDENTITY, 
+					ExtendedCost DECIMAL(18, 2) NULL,
+					WOPartNoId BIGINT NULL,
+					WorkInProgressGLAccId BIGINT NULL,
+				)
+
+				CREATE TABLE #tmpFinalStockLineResult
+				(
+					RecId BIGINT NOT NULL IDENTITY, 
+					ExtendedCost DECIMAL(18, 2) NULL,
+					WOPartNoId BIGINT NULL,
+					WorkInProgressGLAccId BIGINT NULL,
+				)
+
+				--Inserting WO Material StockLine Result
+				INSERT INTO #tmpStockLineResult([ExtendedCost], [WOPartNoId], [WorkInProgressGLAccId])
+				SELECT WOMS.ExtendedCost, WOM.WOPartNoId, STK.WorkInProgressGLAccId
+				FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
+				INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = WOMS.StockLineId
+				WHERE WOF.WorkOrderPartNoId = @partId
+
+				--Inserting WO Kit Material StockLine Result
+				INSERT INTO #tmpStockLineResult([ExtendedCost], [WOPartNoId], [WorkInProgressGLAccId])
+				SELECT WOMS.ExtendedCost, WOM.WOPartNoId, STK.WorkInProgressGLAccId
+				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
+				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId
+				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = WOMS.StockLineId
+				WHERE WOF.WorkOrderPartNoId = @partId
+
+				INSERT INTO #tmpFinalStockLineResult([ExtendedCost], [WOPartNoId], [WorkInProgressGLAccId])
+				SELECT SUM([ExtendedCost]) AS [ExtendedCost], [WOPartNoId], [WorkInProgressGLAccId]  FROM #tmpStockLineResult GROUP BY [WOPartNoId], [WorkInProgressGLAccId]
+
 				IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
@@ -1371,33 +1420,75 @@ BEGIN
 					    
 						IF(@MaterialCost > 0)
 						BEGIN
+
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FG-WIP-PARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+								
+							SELECT @TotalStkRecords = MAX(RecId), @CurrentRecId = MIN(RecId) FROM #tmpFinalStockLineResult;
 
-							--GL Selection Saved At StockLine 
-							SELECT	@GLAccountId = WorkInProgressGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
-							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
-					    
-							INSERT INTO [dbo].[CommonBatchDetails]
-								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
-							VALUES
-								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
-								CASE WHEN @CrDrType = 1 THEN @MaterialCost ELSE 0 END,
-								CASE WHEN @CrDrType = 1 THEN 0 ELSE @MaterialCost END
-								,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
-					    
-							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+							IF(ISNULL(@TotalStkRecords, 0) > 0)
+							BEGIN
+								WHILE(@TotalStkRecords >= @CurrentRecId)
+								BEGIN										
+									SELECT @StkExtendedCost = ISNULL(ExtendedCost, 0), @StkGLId = WorkInProgressGLAccId FROM #tmpFinalStockLineResult WHERE RecId = @CurrentRecId;
 
-							-----  Accounting MS Entry  -----
-
-							EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+									IF(@StkExtendedCost > 0)
+									BEGIN
+										--GL Selection Saved At StockLine 
+										SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @StkGLId;
 					    
-							INSERT INTO [dbo].[WorkOrderBatchDetails]
-								(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId ,[IsWorkOrder])
-							VALUES
-								(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,1)
+										INSERT INTO [dbo].[CommonBatchDetails]
+											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
+										VALUES
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+											CASE WHEN @CrDrType = 1 THEN @StkExtendedCost ELSE 0 END,
+											CASE WHEN @CrDrType = 1 THEN 0 ELSE @StkExtendedCost END
+											,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
+					    
+										SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+
+										-----  Accounting MS Entry  -----
+
+										EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					    
+										INSERT INTO [dbo].[WorkOrderBatchDetails]
+											(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId ,[IsWorkOrder])
+										VALUES
+											(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,1)
+									END
+										
+									SET @CurrentRecId += 1;
+								END
+							END
+							--SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
+							--FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FG-WIP-PARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+							----GL Selection Saved At StockLine 
+							--SELECT	@GLAccountId = WorkInProgressGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							--SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
+					    
+							--INSERT INTO [dbo].[CommonBatchDetails]
+							--	(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+							--	[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
+							--VALUES
+							--	(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+							--	CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+							--	CASE WHEN @CrDrType = 1 THEN @MaterialCost ELSE 0 END,
+							--	CASE WHEN @CrDrType = 1 THEN 0 ELSE @MaterialCost END
+							--	,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
+					    
+							--SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+
+							-------  Accounting MS Entry  -----
+
+							--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					    
+							--INSERT INTO [dbo].[WorkOrderBatchDetails]
+							--	(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId ,[IsWorkOrder])
+							--VALUES
+							--	(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,1)
 					    END
 					END
 
@@ -1587,34 +1678,77 @@ BEGIN
 					    
 						IF(@MaterialCost > 0)
 						BEGIN
+
 							SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FG-WIP-PARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+								
+							SELECT @TotalStkRecords = MAX(RecId), @CurrentRecId = MIN(RecId) FROM #tmpFinalStockLineResult;
 
-							--GL Selection Saved At StockLine 
-							SELECT	@GLAccountId = WorkInProgressGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
-							SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
+							IF(ISNULL(@TotalStkRecords, 0) > 0)
+							BEGIN
+								WHILE(@TotalStkRecords >= @CurrentRecId)
+								BEGIN										
+									SELECT @StkExtendedCost = ISNULL(ExtendedCost, 0), @StkGLId = WorkInProgressGLAccId FROM #tmpFinalStockLineResult WHERE RecId = @CurrentRecId;
+
+									IF(@StkExtendedCost > 0)
+									BEGIN
+										--GL Selection Saved At StockLine 
+										SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @StkGLId;
 					    
-							INSERT INTO [dbo].[CommonBatchDetails]
-								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
-							VALUES
-								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-								CASE WHEN @CrDrType = 0 THEN 1 ELSE 0 END,
-								CASE WHEN @CrDrType = 0 THEN @MaterialCost ELSE 0 END,
-								CASE WHEN @CrDrType = 0 THEN 0 ELSE @MaterialCost END
-								,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
+										INSERT INTO [dbo].[CommonBatchDetails]
+											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
+										VALUES
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+											CASE WHEN @CrDrType = 1 THEN @StkExtendedCost ELSE 0 END,
+											CASE WHEN @CrDrType = 1 THEN 0 ELSE @StkExtendedCost END
+											,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
 					    
-							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+										SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
-							-----  Accounting MS Entry  -----
+										-----  Accounting MS Entry  -----
 
-							EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+										EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					    
+										INSERT INTO [dbo].[WorkOrderBatchDetails]
+											(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId ,[IsWorkOrder])
+										VALUES
+											(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,1)
+									END
+										
+									SET @CurrentRecId += 1;
+								END
+							END
+
+							--SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
+							--FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FG-WIP-PARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+
+							----GL Selection Saved At StockLine 
+							--SELECT	@GLAccountId = WorkInProgressGLAccId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId					
+							--SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId = @GLAccountId
+					    
+							--INSERT INTO [dbo].[CommonBatchDetails]
+							--	(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+							--	[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
+							--VALUES
+							--	(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+							--	CASE WHEN @CrDrType = 0 THEN 1 ELSE 0 END,
+							--	CASE WHEN @CrDrType = 0 THEN @MaterialCost ELSE 0 END,
+							--	CASE WHEN @CrDrType = 0 THEN 0 ELSE @MaterialCost END
+							--	,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
+					    
+							--SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+
+							-------  Accounting MS Entry  -----
+
+							--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
 					    
-							INSERT INTO [dbo].[WorkOrderBatchDetails]
-								(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId,[IsWorkOrder])
-							VALUES
-								(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,1)
+							--INSERT INTO [dbo].[WorkOrderBatchDetails]
+							--	(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId,[IsWorkOrder])
+							--VALUES
+							--	(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,null ,null,null,@CustRefNumber,@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,1)
 					    END
 					END
 

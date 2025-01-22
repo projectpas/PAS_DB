@@ -35,6 +35,8 @@
 
 
 
+
+
 GO
 
 ----------------------------------------------
@@ -46,41 +48,30 @@ CREATE TRIGGER [dbo].[Trg_WorkOrderChargesAudit]
    AFTER INSERT,UPDATE
 
 AS 
-
 BEGIN
-
-
-
-	DECLARE @TaskId BIGINT,@ChargeId BIGINT,@GLAccountId BIGINT,@VendorId BIGINT
-
-
-
+	DECLARE @TaskId BIGINT,@ChargeId BIGINT,@GLAccountId BIGINT,@VendorId BIGINT,@WorkOrderId BIGINT
+	DECLARE @WorkOrderFormTypeId BIT;
 	DECLARE @Task VARCHAR(256),@ChargeType VARCHAR(256),@GLAccount VARCHAR(256),@Vendor VARCHAR(256)
 
+	SELECT @TaskId= TaskId,@ChargeId=ChargesTypeId,@VendorId=VendorId,@WorkOrderId=WorkOrderId FROM INSERTED
 	
+	SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 
+	IF(@WorkOrderFormTypeId=1)
+	BEGIN		
+		SELECT @Task=[TaskName] FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkOrderTaskId]=@TaskId;
+	END
+	ELSE
+	BEGIN 
+		SELECT @Task=[Description] FROM [dbo].[Task]  WITH(NOLOCK) WHERE [TaskId]=@TaskId;
+	END
+	
+	SELECT @Vendor=VendorName FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId=@VendorId
 
+	SELECT @ChargeType=ChargeType,@GLAccountId=GLAccountId FROM [dbo].[Charge] WITH(NOLOCK) WHERE ChargeId=@ChargeId
 
-	SELECT @TaskId= TaskId,@ChargeId=ChargesTypeId,@VendorId=VendorId FROM INSERTED
-
-
-
-	SELECT @Task=Description FROM Task WHERE TaskId=@TaskId
-
-	SELECT @Vendor=VendorName FROM Vendor WHERE VendorId=@VendorId
-
-	SELECT @ChargeType=ChargeType,@GLAccountId=GLAccountId FROM Charge WHERE ChargeId=@ChargeId
-
-	SELECT @GLAccount=AccountName FROM GLAccount WHERE GLAccountId=@GLAccountId
-
-
-
-
-
- 
-
-
-
+	SELECT @GLAccount=AccountName FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GLAccountId
+		   
 	INSERT INTO [dbo].[WorkOrderChargesAudit]
            ([WorkOrderChargesId]
            ,[WorkOrderId]
@@ -133,7 +124,4 @@ BEGIN
 	FROM INSERTED 
 
 	SET NOCOUNT ON;
-
-
-
 END

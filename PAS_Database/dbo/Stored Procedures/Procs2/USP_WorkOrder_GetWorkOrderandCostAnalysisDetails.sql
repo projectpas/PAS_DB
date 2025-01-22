@@ -97,7 +97,7 @@ BEGIN
 		SELECT  DISTINCT @WorkOrderWorkflowId, 
 				WOMS.WorkOrderMaterialsId,
 				WOMS.StocklineId,
-				CASE WHEN ISNULL(WOMS.RepairOrderId, 0) > 0 THEN WOMS.UnitCost - SL.RepairOrderUnitCost ELSE WOMS.UnitCost END AS UnitCost,
+				CASE WHEN ISNULL(WOMS.RepairOrderId, 0) > 0 THEN ISNULL(WOMS.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE WOMS.UnitCost END AS UnitCost,
 				WOMS.ExtendedCost,
 				WOMS.QtyIssued,
 				WOMS.QtyReserved,
@@ -124,7 +124,7 @@ BEGIN
 			WOMSK.WorkOrderMaterialsKitId,
 			WOMSK.StocklineId,
 			--WOMSK.UnitCost,
-			CASE WHEN ISNULL(WOMSK.RepairOrderId, 0) > 0 THEN WOMSK.UnitCost - SL.RepairOrderUnitCost ELSE WOMSK.UnitCost END AS UnitCost,
+			CASE WHEN ISNULL(WOMSK.RepairOrderId, 0) > 0 THEN ISNULL(WOMSK.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE WOMSK.UnitCost END AS UnitCost,
 			WOMSK.ExtendedCost,
 			WOMSK.QtyIssued,
 			WOMSK.QtyReserved,
@@ -137,8 +137,9 @@ BEGIN
 			CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN WOMK.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
 		FROM [DBO].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMSK ON WOMK.WorkOrderMaterialsKitId = WOMSK.WorkOrderMaterialsKitId
-			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOMK.POId AND POP.ItemMasterId = WOMK.ItemMasterId AND POP.ConditionId = WOMK.ConditionCodeId
+			LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON WOMSK.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMSK.RepairOrderId
 			LEFT JOIN [DBO].[Stockline] SL WITH(NOLOCK) ON WOMSK.StockLineId = SL.StockLineId
+			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOMK.POId AND POP.ItemMasterId = WOMK.ItemMasterId AND POP.ConditionId = WOMK.ConditionCodeId
 			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@POStatusIds,',')) 
 			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOMK.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 		WHERE WOMK.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOMK.IsDeleted = 0;

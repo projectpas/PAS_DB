@@ -14,10 +14,11 @@
   ** Change History           
  **************************************************************           
  ** PR   Date         Author		         Change Description            
- ** --   --------     -------				--------------------------------          
+ ** --   ----------   -----------		--------------------------------          
     1    9 JAN 2025   RAJESH GAMI			Created    
-
-	-- EXEC  [dbo].[RPT_GetCommonWorkOrderFormTypePrintView] 4769
+    2    16 JAN 2025  RAJESH GAMI			Updated to print only Instruction which has PrintInWO is enabled 
+	3    21 JAN 2025  RAJESH GAMI			Updated to print only Task which has PrintInWO is enabled  
+-- EXEC  [dbo].[RPT_GetCommonWorkOrderFormTypePrintView] 4769
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderFormTypePrintView]
 	@WorkorderId bigint = 0
@@ -30,111 +31,106 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				;WITH CTE AS (
-				SELECT 
-					ISNULL(WOT.WorkOrderTaskId, 0) AS WorkOrderTaskId,
-					ISNULL(WOT.WorkOrderId, 0) AS WorkOrderId,
-					ISNULL(WOT.WorkOrderPartNumberId, 0) AS WorkOrderPartNumberId,
-					ISNULL(WOT.WorkFlowWorkOrderId, 0) AS WorkFlowWorkOrderId,
-					ISNULL(WOT.TaskId, 0) AS TaskId,
-					ISNULL(WOT.SequenceNumber, 0) AS SequenceNumber,
-					WOT.OpenDate AS OpenDate,
-					ISNULL(WOT.OpenBy, '') AS OpenBy,
-					ISNULL(WOT.IsIncludeInPrint, 0) AS IsIncludeInPrint,
-					ISNULL(WOT.HasInstruction, 0) AS HasInstruction,
-					ISNULL(WOT.TaskName, '') AS TaskName,
-					ISNULL(WOTD.TechId, 0) AS TechId,
-					ISNULL(WOTD.TechName, '') AS TechName,
-					WOTD.TechUpdatedDate AS TechUpdatedDate,
-					ISNULL(WOTD.InspectorId, 0) AS InspectorId,
-					ISNULL(WOTD.InspectorName, '') AS InspectorName,
-					WOTD.InspectorUpdatedDate AS InspectorUpdatedDate,
-					ISNULL(WOTD.Descrepancy, '') AS Descrepancy,
-					ISNULL(WOTD.Resolution, '') AS Resolution,
-					ISNULL(WOT.MasterCompanyId, 0) AS MasterCompanyId,
-					ISNULL(WOT.CreatedBy, '') AS CreatedBy,
-					ISNULL(WOT.CreatedDate, '') AS CreatedDate,
-					ISNULL(WOT.UpdatedBy, '') AS UpdatedBy,
-					ISNULL(WOT.UpdatedDate, '') AS UpdatedDate,
-					WOTI.WorkOrderTaskInstructionId,
-					ISNULL(WOTI.ParentId, 0) AS ParentId,
-					ISNULL(WOTI.IsParent, 0) AS IsParent,
-					ISNULL(WOTI.InstructionTitle, '') AS InstructionTitle,
-					ISNULL(WOTI.SequenceNumber, 0) AS ChildSequenceNumber,
-					ISNULL(WOTI.InstructionDetails, '') AS InstructionDetails,
-					ISNULL(WOTI.TechId, 0) AS ChildTechId,
-					ISNULL(WOTI.TechName, '') AS ChildTechName,
-					WOTI.TechUpdatedDate AS ChildTechUpdatedDate,
-					ISNULL(WOTI.InspectorId, 0) AS ChildInspectorId,
-					ISNULL(WOTI.InspectorName, '') AS ChildInspectorName,
-					WOTI.InspectorUpdatedDate AS ChildInspectorUpdatedDate,
-					ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
-					ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ
-				FROM dbo.WorkOrderTask WOT WITH (NOLOCK)
-				INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
-				LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
-				WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
-			),
-			RecursiveCTE AS (
+					SELECT 
+						ISNULL(WOT.WorkOrderTaskId, 0) AS WorkOrderTaskId,
+						ISNULL(WOT.WorkOrderId, 0) AS WorkOrderId,
+						ISNULL(WOT.WorkOrderPartNumberId, 0) AS WorkOrderPartNumberId,
+						ISNULL(WOT.WorkFlowWorkOrderId, 0) AS WorkFlowWorkOrderId,
+						ISNULL(WOT.TaskId, 0) AS TaskId,
+						ISNULL(WOT.SequenceNumber, 0) AS SequenceNumber,
+						WOT.OpenDate AS OpenDate,
+						ISNULL(WOT.OpenBy, '') AS OpenBy,
+						ISNULL(WOT.IsIncludeInPrint, 0) AS IsIncludeInPrint,
+						ISNULL(WOT.HasInstruction, 0) AS HasInstruction,
+						ISNULL(WOT.TaskName, '') AS TaskName,
+						ISNULL(WOTD.TechId, 0) AS TechId,
+						ISNULL(WOTD.TechName, '') AS TechName,
+						WOTD.TechUpdatedDate AS TechUpdatedDate,
+						ISNULL(WOTD.InspectorId, 0) AS InspectorId,
+						ISNULL(WOTD.InspectorName, '') AS InspectorName,
+						WOTD.InspectorUpdatedDate AS InspectorUpdatedDate,
+						ISNULL(WOTD.Descrepancy, '') AS Descrepancy,
+						ISNULL(WOTD.Resolution, '') AS Resolution,
+						ISNULL(WOT.MasterCompanyId, 0) AS MasterCompanyId,
+						ISNULL(WOT.CreatedBy, '') AS CreatedBy,
+						ISNULL(WOT.CreatedDate, '') AS CreatedDate,
+						ISNULL(WOT.UpdatedBy, '') AS UpdatedBy,
+						ISNULL(WOT.UpdatedDate, '') AS UpdatedDate,
+						WOTI.WorkOrderTaskInstructionId,
+						ISNULL(WOTI.ParentId, 0) AS ParentId,
+						ISNULL(WOTI.IsParent, 0) AS IsParent,
+						ISNULL(WOTI.InstructionTitle, '') AS InstructionTitle,
+						ISNULL(WOTI.SequenceNumber, 0) AS ChildSequenceNumber,
+						ISNULL(WOTI.InstructionDetails, '') AS InstructionDetails,
+						ISNULL(WOTI.TechId, 0) AS ChildTechId,
+						ISNULL(WOTI.TechName, '') AS ChildTechName,
+						WOTI.TechUpdatedDate AS ChildTechUpdatedDate,
+						ISNULL(WOTI.InspectorId, 0) AS ChildInspectorId,
+						ISNULL(WOTI.InspectorName, '') AS ChildInspectorName,
+						WOTI.InspectorUpdatedDate AS ChildInspectorUpdatedDate,
+						ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
+						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ
+					FROM dbo.WorkOrderTask WOT WITH (NOLOCK)
+					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWO,0) = 1
+					WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOTD.PrintInWO,0) = 1
+				),
+				RecursiveCTE AS (				
+					SELECT 
+						c.*,
+						CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+					FROM CTE c
+					WHERE c.ParentId = 0
+					UNION ALL
 				
+					SELECT 
+						c.*,
+						CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+					FROM CTE c
+					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
+				)
 				SELECT 
-					c.*,
-					CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-				FROM CTE c
-				WHERE c.ParentId = 0
-				UNION ALL
-				
-				SELECT 
-					c.*,
-					CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
-				FROM CTE c
-				INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
-			)
-			SELECT 
-				WorkOrderTaskId,
-				WorkOrderId,
-				WorkOrderPartNumberId,
-				WorkFlowWorkOrderId,
-				TaskId,
-				SequenceNumber,
-				OpenDate,
-				OpenBy,
-				IsIncludeInPrint,
-				HasInstruction,
-				TaskName,
-				TechId,
-				TechName,
-				TechUpdatedDate,
-				InspectorId,
-				InspectorName,
-				InspectorUpdatedDate,
-				Descrepancy,
-				Resolution,
-				MasterCompanyId,
-				CreatedBy,
-				CreatedDate,
-				UpdatedBy,
-				UpdatedDate,
-				WorkOrderTaskInstructionId,
-				ParentId,
-				IsParent,
-				InstructionTitle,
-				ChildSequenceNumber,
-				InstructionDetails,
-				ChildTechId,
-				ChildTechName,
-				ChildTechUpdatedDate,
-				ChildInspectorId,
-				ChildInspectorName,
-				ChildInspectorUpdatedDate,
-				PrintInWO,
-				PrintInWOQ,
-				SrNo
-			FROM RecursiveCTE
-			ORDER BY SrNo;
-
-		--SELECT * INTO #LeafTempTbl FROM CTE
-
-		--SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
+					WorkOrderTaskId,
+					WorkOrderId,
+					WorkOrderPartNumberId,
+					WorkFlowWorkOrderId,
+					TaskId,
+					SequenceNumber,
+					OpenDate,
+					OpenBy,
+					IsIncludeInPrint,
+					HasInstruction,
+					TaskName,
+					TechId,
+					TechName,
+					TechUpdatedDate,
+					InspectorId,
+					InspectorName,
+					InspectorUpdatedDate,
+					Descrepancy,
+					Resolution,
+					MasterCompanyId,
+					CreatedBy,
+					CreatedDate,
+					UpdatedBy,
+					UpdatedDate,
+					ISNULL(WorkOrderTaskInstructionId,0)WorkOrderTaskInstructionId,
+					ParentId,
+					IsParent,
+					InstructionTitle,
+					ChildSequenceNumber,
+					REPLACE(REPLACE(ISNULL(InstructionDetails,''), '<p>', ''),'</p>','<br />') as InstructionDetails,
+					ChildTechId,
+					ChildTechName,
+					ChildTechUpdatedDate,
+					ChildInspectorId,
+					ChildInspectorName,
+					ChildInspectorUpdatedDate,
+					PrintInWO,
+					PrintInWOQ,
+					SrNo
+				FROM RecursiveCTE
+				ORDER BY SrNo;
 			END
 		COMMIT  TRANSACTION
 

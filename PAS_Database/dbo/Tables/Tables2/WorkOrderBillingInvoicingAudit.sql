@@ -89,6 +89,7 @@
     [LastSyncDate]                       DATETIME2 (7)   NULL,
     [SyncToken]                          VARCHAR (200)   NULL,
     [isCreatedFromQuote]                 BIT             NULL,
+    [IsQuickBookGeneratedInvoice]        BIT             NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([BillingInvoicingAuditId] ASC),
     FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );

@@ -32,51 +32,57 @@ BEGIN
   
 	BEGIN TRY  
 	BEGIN TRANSACTION  
-	BEGIN    
+	BEGIN
 		DECLARE @TaskTypes NVARCHAR(MAX) = '';
+		DECLARE @WorkOrderFormTypeId BIT;
 
-		SELECT @TaskTypes = TaskTypes FROM DBO.WorkOrderSettings WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND WorkOrderTypeId = @WorkOrderTypeId;
-
-		IF OBJECT_ID(N'tempdb..#DefaultTask') IS NOT NULL
+		SELECT @WorkOrderFormTypeId = WorkOrderFormTypeId FROM DBO.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId;
+		
+		IF (ISNULL(@WorkOrderFormTypeId, 0) = 1)
 		BEGIN
-			DROP TABLE #DefaultTask
-		END
+			SELECT @TaskTypes = TaskTypes FROM DBO.WorkOrderSettings WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND WorkOrderTypeId = @WorkOrderTypeId;
 
-		CREATE TABLE #DefaultTask
-		(
-			ID bigint NOT NULL IDENTITY,
-			TaskId BIGINT NULL
-		)
+			IF OBJECT_ID(N'tempdb..#DefaultTask') IS NOT NULL
+			BEGIN
+				DROP TABLE #DefaultTask
+			END
 
-		INSERT INTO #DefaultTask ([TaskId])
-		SELECT Item FROM DBO.SPLITSTRING(@TaskTypes, ',');
+			CREATE TABLE #DefaultTask
+			(
+				ID bigint NOT NULL IDENTITY,
+				TaskId BIGINT NULL
+			)
 
-		DECLARE @SequenceNo AS INT = 0;
-		DECLARE @LoopID AS INT;
-		DECLARE @TotCount AS INT;
+			INSERT INTO #DefaultTask ([TaskId])
+			SELECT Item FROM DBO.SPLITSTRING(@TaskTypes, ',');
 
-		SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #DefaultTask;
+			DECLARE @SequenceNo AS INT = 0;
+			DECLARE @LoopID AS INT;
+			DECLARE @TotCount AS INT;
 
-		WHILE (@LoopID <= @TotCount)
-		BEGIN
-			SET @SequenceNo = @SequenceNo + 1;
-			DECLARE @WorkOrderTaskId BIGINT = 0;
+			SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #DefaultTask;
 
-			INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
-			[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName])
-			SELECT @WorkOrderId,@WorkFlowWorkOrderId,T.[TaskId],[MasterCompanyId],@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
-			@WorkOrderPartNoId,@SequenceNo,NULL,NULL,NULL,NULL,T.[Description]
-			FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
+			WHILE (@LoopID <= @TotCount)
+			BEGIN
+				SET @SequenceNo = @SequenceNo + 1;
+				DECLARE @WorkOrderTaskId BIGINT = 0;
 
-			SELECT @WorkOrderTaskId = SCOPE_IDENTITY();
+				INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+				[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName])
+				SELECT @WorkOrderId,@WorkFlowWorkOrderId,T.[TaskId],[MasterCompanyId],@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
+				@WorkOrderPartNoId,@SequenceNo,NULL,NULL,NULL,NULL,T.[Description]
+				FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
 
-			INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],
-			[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-			SELECT @WorkOrderTaskId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-			NULL,NULL,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-			FROM DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
+				SELECT @WorkOrderTaskId = SCOPE_IDENTITY();
 
-			SET @LoopID = @LoopID + 1;
+				INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],
+				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+				SELECT @WorkOrderTaskId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+				NULL,NULL,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
+				FROM DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
+
+				SET @LoopID = @LoopID + 1;
+			END
 		END
 	END  
 	COMMIT  TRANSACTION  

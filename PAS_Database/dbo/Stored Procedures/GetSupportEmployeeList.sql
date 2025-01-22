@@ -11,6 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/11/2024  Ekta Chandegra     Created
+	2    17/01/2025  Ekta Chandegra     Retrieve support user email
+
 
 exec dbo.GetSupportEmployeeList 
 
@@ -27,7 +29,8 @@ BEGIN
 		BEGIN
 			SELECT DISTINCT
 			EMP.EmployeeId AS VALUE,
-			EMP.FirstName + ' ' + EMP.LastName AS Label
+			EMP.FirstName + ' ' + EMP.LastName AS Label,
+			EMP.Email
 			FROM [dbo].[Employee] EMP WITH (NOLOCK)
 			LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON  EMP.EmployeeId = EUR.EmployeeId
 			LEFT JOIN [dbo].[UserRole] UR WITH (NOLOCK) ON EUR.RoleId = UR.Id 

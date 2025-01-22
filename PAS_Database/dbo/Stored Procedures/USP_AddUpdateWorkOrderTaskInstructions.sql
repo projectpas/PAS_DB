@@ -122,7 +122,7 @@ BEGIN
 				IF (ISNULL(@OldParentId, 0) > 0)
 				BEGIN
 					UPDATE DBO.WorkOrderTaskInstruction
-					SET ParentId = (SELECT WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId),
+					SET ParentId = (SELECT TOP 1 WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId),
 					SequenceNumber = (@MaxSequence + 1)
 					WHERE WorkOrderTaskInstructionId = @InsertedWorkOrderTaskInstructionId;
 				END

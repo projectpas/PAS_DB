@@ -10,6 +10,8 @@
     [IsDeleted]       BIT             DEFAULT ((0)) NOT NULL,
     [Memo]            NVARCHAR (MAX)  NULL,
     [Description]     VARCHAR (500)   NULL,
+    [TaxRateRef]      VARCHAR (50)    NULL,
+    [TxnTaxCodeRef]   VARCHAR (50)    NULL,
     CONSTRAINT [PK__Percent__E43F6D963F493CDE] PRIMARY KEY CLUSTERED ([PercentId] ASC),
     CONSTRAINT [FK_Percent_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_Percent] UNIQUE NONCLUSTERED ([PercentValue] ASC, [MasterCompanyId] ASC)

@@ -18,6 +18,9 @@
     1    12/22/2022   Subhash Saliya		Created
 	2	 03/08/2024   Bhargav Saliya     Change Order By Desc to Asc
 	3	 06/24/2024   Abhishek Jirawla   Adding memo
+	4	 01/16/2025	  Moin Bloch		 Modified (Added TaskId For Kit)
+	5	 01/17/2025	  Moin Bloch		 Modified (Added @WorkOrderFormTypeId from WO Kit)
+
      
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -32,16 +35,21 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN  
+		--BEGIN TRANSACTION
+		--	BEGIN  
 
 			DECLARE @WorkflowWorkOrderId BIGINT = 0
-			DECLARE @WorkOrderQuoteId BIGINT = 0
+			DECLARE @WorkOrderQuoteId BIGINT = 0			
+			DECLARE @WorkOrderId BIGINT = 0
+			DECLARE @WorkOrderFormTypeId BIT = 0; 			
 
-			SELECT @WorkflowWorkOrderId=WorkflowWorkOrderId,@WorkOrderQuoteId=WorkOrderQuoteId FROM DBO.WorkOrderQuoteDetails WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId= @workOrderQuoteDetailsId
+			SELECT @WorkflowWorkOrderId=WorkflowWorkOrderId,@WorkOrderQuoteId=WorkOrderQuoteId FROM dbo.WorkOrderQuoteDetails WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId= @workOrderQuoteDetailsId
 
-				 SELECT 
-					    im.PartNumber,
+			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId
+
+			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+			
+			SELECT      im.PartNumber,
                         im.PartDescription,
                         im.ManufacturerName,
 						'' as AltPartNumber,
@@ -64,7 +72,8 @@ BEGIN
                         wom.ItemClassificationId,
                         wom.ItemMasterId,
                        wom.TaskId,
-					   ts.Description as TaskName,
+					   --ts.Description as TaskName,
+					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
                        wom.HeaderMarkupId,
@@ -89,17 +98,18 @@ BEGIN
 					   wom.UpdatedDate,
 					   wom.IsActive,
 					   wom.IsDeleted
-				FROM DBO.WorkOrderQuoteMaterial wom WITH(NOLOCK)
-					INNER JOIN DBO.WorkOrderQuoteDetails wq  WITH(NOLOCK) on wq.WorkOrderQuoteDetailsId = wom.WorkOrderQuoteDetailsId
-					INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
-					LEFT JOIN DBO.Provision p WITH(NOLOCK) on p.ProvisionId = wom.ProvisionId
-					LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wom.ConditionCodeId
-					LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = wom.UnitOfMeasureId
-					LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) on ic.ItemClassificationId = wom.ItemClassificationId
-					LEFT JOIN DBO.Task ts  WITH(NOLOCK) on ts.TaskId = wom.TaskId
-					LEFT JOIN DBO.MaterialMandatories ms  WITH(NOLOCK) on ms.Id = wom.MaterialMandatoriesId
-					INNER JOIN DBO.WorkOrderWorkFlow wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
-					INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
+				FROM [dbo].[WorkOrderQuoteMaterial] wom WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderQuoteDetails] wq  WITH(NOLOCK) ON wq.WorkOrderQuoteDetailsId = wom.WorkOrderQuoteDetailsId
+					INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON im.ItemMasterId = wom.ItemMasterId
+					 LEFT JOIN [dbo].[Provision] p WITH(NOLOCK) ON p.ProvisionId = wom.ProvisionId
+					 LEFT JOIN [dbo].[Condition] c WITH(NOLOCK) ON c.ConditionId = wom.ConditionCodeId
+					 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = wom.UnitOfMeasureId
+					 LEFT JOIN [dbo].[ItemClassification] ic WITH(NOLOCK) ON ic.ItemClassificationId = wom.ItemClassificationId
+					 LEFT JOIN [dbo].[Task] ts  WITH(NOLOCK) ON ts.TaskId = wom.TaskId
+					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
+					 LEFT JOIN [dbo].[MaterialMandatories] ms  WITH(NOLOCK) ON ms.Id = wom.MaterialMandatoriesId
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
+					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
 				WHERE wom.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) --order by wom.CreatedDate desc
 
 				UNION ALL
@@ -123,8 +133,9 @@ BEGIN
                         0 as WorkOrderQuoteMaterialId,
                         im.ItemClassificationId as ItemClassificationId,
                         wom.ItemMasterId,
-                       0 as TaskId,
-					   '' as TaskName,
+                       wom.TaskId,
+					   --'' as TaskName,
+					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
                        wom.HeaderMarkupId,
@@ -149,21 +160,21 @@ BEGIN
 					   wom.UpdatedDate,
 					   wom.IsActive,
 					   wom.IsDeleted
-				FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
-					LEFT JOIN DBO.WorkOrderQuoteDetails wq  WITH(NOLOCK) on wq.WorkOrderQuoteId = wom.WorkOrderQuoteId
-					INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
-					LEFT JOIN DBO.Provision p WITH(NOLOCK) on p.ProvisionId = im.ProvisionId
-					LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-					LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = im.StockUnitOfMeasureId
-					LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) on ic.ItemClassificationId = im.ItemClassificationId
-					--LEFT JOIN DBO.Task ts  WITH(NOLOCK) on ts.TaskId = wom.TaskId
-					--LEFT JOIN DBO.MaterialMandatories ms  WITH(NOLOCK) on ms.Id = wom.MaterialMandatoriesId
-					INNER JOIN DBO.WorkOrderWorkFlow wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
-					INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
-				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  and wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) order by wom.CreatedDate asc
+				FROM [dbo].[WorkOrderQuoteMaterialKitMapping] wom WITH(NOLOCK)
+					 LEFT JOIN [dbo].[WorkOrderQuoteDetails] wq  WITH(NOLOCK) ON wq.WorkOrderQuoteId = wom.WorkOrderQuoteId
+					INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON im.ItemMasterId = wom.ItemMasterId
+					 LEFT JOIN [dbo].[Provision] p WITH(NOLOCK) ON p.ProvisionId = im.ProvisionId
+					 LEFT JOIN [dbo].[KitMaster] KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
+					 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = im.StockUnitOfMeasureId
+					 LEFT JOIN [dbo].[ItemClassification] ic WITH(NOLOCK) ON ic.ItemClassificationId = im.ItemClassificationId
+					 LEFT JOIN [dbo].[Task] ts  WITH(NOLOCK) ON ts.TaskId = wom.TaskId
+					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wom.TaskId
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
+					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
+				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) ) order by wom.CreatedDate asc
                 
-			END
-		COMMIT  TRANSACTION
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

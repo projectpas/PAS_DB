@@ -18,6 +18,7 @@
     1    02/22/2021   Subhash Saliya Created
 	2    06/28/2021   Hemant Saliya  Added Tarnsation And Content Managment
 	3    08/12/2024   Devendra Shekh  changed uom Description to ShortName
+	4	 01/17/2025	  Moin Bloch	  Modified (Added @WorkOrderFormTypeId from WO)
 
      
  EXECUTE [GetWorkFlowWorkOrderFreightList] 140, null,0
@@ -34,9 +35,13 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
   BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN
-				Select	
+		--BEGIN TRANSACTION
+		--	BEGIN
+		    DECLARE @WorkOrderFormTypeId BIT = 0; 			
+
+			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+								   
+				SELECT	
 					wf.Amount,
                     wf.CreatedBy,
                     wf.CreatedDate,
@@ -47,37 +52,39 @@ BEGIN
                     wf.ShipViaId,
                     wf.UpdatedBy,
                     wf.UpdatedDate,
-                    wf.Weight,
+                    wf.[Weight],
                     wf.WorkFlowWorkOrderId,
                     wf.WorkOrderFreightId,
                     wf.WorkOrderId,
-                    sv.Name As ShipVia,
+                    sv.[Name] AS ShipVia,
                     wf.TaskId,
-                    ISNULL(ts.Description,'') as TaskName,
-                    wf.Length,
+                   -- ISNULL(ts.Description,'') as TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+                    wf.[Length],
                     wf.Width,
                     wf.Height,
                     wf.UOMId,
                     wf.DimensionUOMId,
                     wf.CurrencyId,
-                    ISNULL(uom.ShortName,'') as UOM,
+                    ISNULL(uom.ShortName,'') AS UOM,
                     ISNULL(duom.ShortName,'') DimensionUOM,
-                    cur.Code as Currency
-				FROM dbo.WorkOrderFreight wf WITH(NOLOCK)
-					JOIN dbo.ShippingVia sv WITH(NOLOCK) on wf.ShipViaId = sv.ShippingViaId
-				    JOIN dbo.Task ts WITH(NOLOCK) on wf.TaskId = ts.TaskId
-					LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on wf.UOMId = uom.UnitOfMeasureId
-					LEFT JOIN dbo.UnitOfMeasure duom  WITH(NOLOCK) on wf.DimensionUOMId = duom.UnitOfMeasureId
-					LEFT JOIN dbo.Currency cur WITH(NOLOCK) on wf.CurrencyId = cur.CurrencyId
-				WHERE wf.IsDeleted = @IsDeleted AND wf.WorkFlowWorkOrderId = @wfwoId and wf.MasterCompanyId=@masterCompanyId
-			END
-		COMMIT  TRANSACTION
+                    cur.Code AS Currency
+				FROM [dbo].[WorkOrderFreight] wf WITH(NOLOCK)
+					JOIN [dbo].[ShippingVia] sv WITH(NOLOCK) ON wf.ShipViaId = sv.ShippingViaId
+				    LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON wf.TaskId = ts.TaskId
+					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wf.TaskId
+					LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
+					LEFT JOIN [dbo].[UnitOfMeasure] duom  WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId
+					LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON wf.CurrencyId = cur.CurrencyId
+				WHERE wf.IsDeleted = @IsDeleted AND wf.WorkFlowWorkOrderId = @wfwoId AND wf.MasterCompanyId=@masterCompanyId
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
+				--ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

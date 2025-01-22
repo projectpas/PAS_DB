@@ -25,7 +25,7 @@
 	12   26-12-2024   Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
 	13   02-01-2025   Amit Ghediya		Modified to get part level Available & onhnad qty after reserve.
 	14   09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
-     
+	14   17-01-2025   RAJESH GAMI		Modified to get Revised PN.     
 -- EXEC [DBO].[GetSalesOrderPartView] 1603,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -178,7 +178,10 @@ BEGIN
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.[Weight] ELSE part.[Weight] END [Weight],
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeLength ELSE part.SizeLength END SizeLength,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeWidth ELSE part.SizeWidth END SizeWidth,
-		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight
+		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight,
+
+		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
+		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId

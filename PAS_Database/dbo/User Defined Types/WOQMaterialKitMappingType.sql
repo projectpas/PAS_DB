@@ -21,5 +21,8 @@
     [BillingAmount]           DECIMAL (18, 2) NULL,
     [BillingRate]             DECIMAL (18, 2) NULL,
     [HeaderMarkupId]          BIGINT          NULL,
-    [BillingMethodId]         INT             NULL);
+    [BillingMethodId]         INT             NULL,
+    [TaskId]                  BIGINT          NULL);
+
+
 

@@ -17,8 +17,9 @@
 	1										
 	2    09/20/2023   Devendra Shekh        pick ticket qty issue resovled 
 	3    09/20/2023   Devendra Shekh        changes for partwise data
+	3    01/21/2025   HEMANT SALIYA         Updated for Get Pickticket Data
 
-EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@ConditionId=10,@WorkOrderId=3555,@SubWorkOrderId=222,@IsMultiplePickTicket=0,@SubWOPartNoId=231
+EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=102553,@ConditionId=111,@WorkOrderId=4776,@SubWorkOrderId=641,@IsMultiplePickTicket=0,@SubWOPartNoId=627, @SubWorkOrderMaterialsId = 224
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchSubWOStockLinePickTicketPop_WO]
 	@ItemMasterIdlist BIGINT, 
@@ -244,7 +245,7 @@ BEGIN
 							 ,Smf.Name as StkLineManufacturer
 							 ,0 AS IsKitType
 					FROM DBO.ItemMaster im WITH (NOLOCK)
-					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
+					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
 						--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 						--						THEN @ConditionId ELSE sl.ConditionId 
 						--						END
@@ -315,7 +316,7 @@ BEGIN
 						,Smf.Name as StkLineManufacturer
 						,1 AS IsKitType
 					FROM DBO.ItemMaster im WITH (NOLOCK)
-						JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
+						JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) 
 							--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 							--						THEN @ConditionId ELSE sl.ConditionId 
 							--						END

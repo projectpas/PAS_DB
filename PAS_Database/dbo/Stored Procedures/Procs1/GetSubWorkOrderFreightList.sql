@@ -18,26 +18,29 @@
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Subhash Saliya Created
     2    06/25/2021   Hemant Saliya  Added SQL Standards
+    3	 01/17/2025	  Moin Bloch	 Modified (Added @WorkOrderFormTypeId from WO)     
 
  EXECUTE [GetSubWorkOrderFreightList] 27,0
 **************************************************************/ 
 
 CREATE PROCEDURE [dbo].[GetSubWorkOrderFreightList]
-
 @subWOPartNoId bigint = null,
 @IsDeleted bit= null,
 @masterCompanyId int= null
 AS
 BEGIN
-
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-  SET NOCOUNT ON  
-
+  SET NOCOUNT ON
   	BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN
-				Select	
-					wf.Amount,
+		
+			DECLARE @WorkOrderFormTypeId BIT = 0; 
+			DECLARE @WorkOrderId BIGINT = 0; 
+
+			SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWOPartNoId] = @subWOPartNoId;
+
+			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+		
+			SELECT	wf.Amount,
                     wf.CreatedBy,
                     wf.CreatedDate,
                     wf.IsActive,
@@ -47,37 +50,37 @@ BEGIN
                     wf.ShipViaId,
                     wf.UpdatedBy,
                     wf.UpdatedDate,
-                    wf.Weight,
+                    wf.[Weight],
                     wf.SubWOPartNoId,
                     wf.SubWorkOrderFreightId,
                     wf.WorkOrderId,
                     wf.SubWorkOrderId,
-                    sv.Name As ShipVia,
+                    sv.[Name] AS ShipVia,
                     wf.TaskId,
-                    ISNULL(ts.Description,'') as TaskName,
-                    wf.Length,
+                    --ISNULL(ts.[Description],'') AS TaskName,
+					CASE WHEN @WorkOrderFormTypeId = 1 THEN  ISNULL(WOT.[TaskName],'')  ELSE ISNULL(ts.[Description],'') END AS TaskName,
+                    wf.[Length],
                     wf.Width,
                     wf.Height,
                     wf.UOMId,
                     wf.DimensionUOMId,
                     wf.CurrencyId,
-                    ISNULL(uom.Description,'') as UOM,
-                    ISNULL(duom.Description,'') DimensionUOM,
-                    cur.Code as Currency					
-				FROM dbo.SubWorkOrderFreight wf WITH(NOLOCK)
-					JOIN dbo.ShippingVia sv WITH(NOLOCK) on wf.ShipViaId = sv.ShippingViaId
-				    JOIN dbo.Task ts WITH(NOLOCK) on wf.TaskId = ts.TaskId
-					LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on wf.UOMId = uom.UnitOfMeasureId
-					LEFT JOIN dbo.UnitOfMeasure duom WITH(NOLOCK) on wf.DimensionUOMId = duom.UnitOfMeasureId
-					LEFT JOIN dbo.Currency cur WITH(NOLOCK) on wf.CurrencyId = cur.CurrencyId
-				WHERE wf.IsDeleted = @IsDeleted AND wf.SubWOPartNoId = @subWOPartNoId and wf.MasterCompanyId=@masterCompanyId
-			END
-		COMMIT  TRANSACTION
-
+                    ISNULL(uom.[Description],'') AS UOM,
+                    ISNULL(duom.[Description],'') DimensionUOM,
+                    cur.Code AS Currency					
+				FROM [dbo].[SubWorkOrderFreight] wf WITH(NOLOCK)
+					JOIN [dbo].[ShippingVia] sv WITH(NOLOCK) ON wf.ShipViaId = sv.ShippingViaId
+				    LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON wf.TaskId = ts.TaskId
+					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wf.TaskId
+					LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
+					LEFT JOIN [dbo].[UnitOfMeasure] duom WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId
+					LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON wf.CurrencyId = cur.CurrencyId
+				WHERE wf.IsDeleted = @IsDeleted AND wf.SubWOPartNoId = @subWOPartNoId AND wf.MasterCompanyId=@masterCompanyId
+				
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				ROLLBACK TRAN;
+				--ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetSubWorkOrderFreightList' 

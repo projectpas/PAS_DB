@@ -38,6 +38,7 @@
     [EmployeeExpIds]          VARCHAR (100)   NULL,
     [EmailSignature]          NVARCHAR (MAX)  NULL,
     [EmailSignatureLogo]      NVARCHAR (MAX)  NULL,
+    [UserSignature]           NVARCHAR (MAX)  NULL,
     [TimeZoneId]              BIGINT          NULL,
     [CurrencyFormatId]        BIGINT          NULL,
     [DecimalPrecisionId]      BIGINT          NULL,
@@ -46,6 +47,8 @@
     [TextTransformId]         BIGINT          NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 
 
 

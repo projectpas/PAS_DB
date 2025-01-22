@@ -287,19 +287,33 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,igls.[StockInventoryName]      
 			AS InventoryGLSettingName      
 			,stl.GlAccountName AS  InventoryGLAccName      
+			,stl.GoodsReceivedNotInvoicesGLAccId  
 			,stl.GoodsReceivedNotInvoicesGLAccName        
-			,stl.WorkInProgressGLAccName        
+			,stl.WorkInProgressGLAccId 
+			,stl.WorkInProgressGLAccName
+			,stl.InventoryToBillGLAccId 
 			,stl.InventoryToBillGLAccName        
+			,stl.FinishedGoodsGLAccId 
 			,stl.FinishedGoodsGLAccName        
+			,stl.InventoryExchAgreementGLAccId 
 			,stl.InventoryExchAgreementGLAccName        
+			,stl.InventoryReserveGLAccId
 			,stl.InventoryReserveGLAccName        
+			,stl.COGS_WorkOrderGLAccId
 			,stl.COGS_WorkOrderGLAccName        
+			,stl.COGS_SalesOrderGLAccId
 			,stl.COGS_SalesOrderGLAccName   
+			,stl.COGS_ExchSalesOrderGLAccId
 			,stl.COGS_ExchSalesOrderGLAccName   
+			,stl.COGS_QtyVarianceGLAccId
 			,stl.COGS_QtyVarianceGLAccName        
+			,stl.COGS_UnitCostVarianceGLAccId
 			,stl.COGS_UnitCostVarianceGLAccName        
+			,stl.RevenueMroGLAccId
 			,stl.RevenueMroGLAccName        
+			,stl.RevenueSoGLAccId
 			,stl.RevenueSoGLAccName        
+			,stl.RevenueExchGLAccId
 			,stl.RevenueExchGLAccName   
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]

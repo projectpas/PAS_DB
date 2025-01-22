@@ -3385,6 +3385,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddUpdateWorkOrderTaskInstructions.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOTaskInstructionsByWOTaskId.sql" />
+    <Build Include="dbo\Views\vw_legalEntity.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

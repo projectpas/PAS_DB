@@ -123,7 +123,7 @@ BEGIN
 		[VendorName] NVARCHAR(100),
 		[VendorCode] NVARCHAR(100),
 		[Status] NVARCHAR(100),
-		[RequestedBy] NVARCHAR(50),
+		[RequestedBy] NVARCHAR(100),
 		[ApprovedBy] NVARCHAR(100),
 		[QuantityOrdered] NVARCHAR(100),
 		[QuantityBackOrdered] NVARCHAR(100),

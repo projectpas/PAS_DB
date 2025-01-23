@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1   28/07/2023 Bhargav Saliya   This stored procedure is used to get Time Zone
 	2   22/04/2024 Abhishek Jirawla Adding asset module to the list
+	3   23/01/2025 Bhargav Saliya Adding StockLine module to the list
      
 **************************************************************/
 
@@ -185,6 +186,16 @@ BEGIN
 				  WHERE EQ.ExchangeQuoteId = @ReferenceId
 			  END
 			  
+			  ELSE IF @ModuleId = (SELECT ModuleId  FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'StockLine')
+			  BEGIN
+
+				  SELECT  TZ.Description AS 'TimeZoneName', LE.LegalEntityId,
+				  SL.[StockLineId] AS ReferenceId,le.TimeZoneId
+				  FROM [Stockline] SL WITH(NOLOCK)
+				  LEFT JOIN [dbo].LegalEntity LE WITH(NOLOCK) ON SL.LegalEntityId = LE.LegalEntityId
+				  LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
+				  WHERE SL.[StockLineId] = @ReferenceId
+			  END
 			  END
 		COMMIT  TRANSACTION
 

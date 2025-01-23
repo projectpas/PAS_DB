@@ -16,7 +16,8 @@
  ** --   --------     -------			--------------------------------            
     1    10/27/2023   Vishal Suthar		Added Stored Procedure History
     2    10/27/2023   Vishal Suthar		Added New Parameter @PurchaseOrderPartId 
-    2    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
+    3    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
+    4    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
   
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
 r
@@ -37,25 +38,25 @@ BEGIN
 	BEGIN
 		IF(@isParentData = '1')
 		BEGIN			
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE) AS ReceivedDate,
+			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME) AS ReceivedDate,
 				CASE WHEN MAX(POP.WorkOrderId) > 1 THEN 3 WHEN MAX(POP.SalesOrderId) > 1 THEN 2 ELSE 1 END AS Modules FROM [dbo].[Stockline] sl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 				INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=i.ItemMasterId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
-				GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE)
+				GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME)
 			UNION
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate as date) as ReceivedDate,
+			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate as DATETIME) as ReceivedDate,
 				CASE WHEN MAX(POP.WorkOrderId) >1 THEN 3 when MAX(POP.SalesOrderId) > 1 THEN 2 ELSE 1 END AS Modules 
 				FROM [dbo].[NonStockInventory] sl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMasterNonStock] i WITH(NOLOCK) ON i.MasterPartId = sl.MasterPartId
 				LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=sl.MasterPartId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
-				GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE)
+				GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME)
 			UNION
-			SELECT sl.ReceiverNumber, CAST(sl.ReceivedDate AS DATE) AS ReceivedDate, 1 AS Modules FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber, CAST(sl.ReceivedDate AS DATETIME) AS ReceivedDate, 1 AS Modules FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
 				INNER JOIN [dbo].[Asset] i WITH(NOLOCK) ON i.AssetRecordId = sl.AssetRecordId
 				WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-				GROUP BY sl.ReceiverNumber, CAST(sl.ReceivedDate AS DATE) ORDER BY Modules DESC			
+				GROUP BY sl.ReceiverNumber, CAST(sl.ReceivedDate AS DATETIME) ORDER BY Modules DESC			
 		END
 		IF(@isParentData = '0')
 		BEGIN

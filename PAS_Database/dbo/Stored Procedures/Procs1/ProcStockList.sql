@@ -29,7 +29,8 @@
 	12   17/07/2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	13   22/07/2024   Vishal Suthar     Commented above change as for the performance issue
 	14   22/07/2024   Rajesh Gami       Optimized for Performance Issue
-	14   25/07/2024   Rajesh Gami       Remove inner query for the get WorkOrderStage due to performance issue
+	15   25/07/2024   Rajesh Gami       Remove inner query for the get WorkOrderStage due to performance issue
+	16   21/01/2025   Abhishek Jirawala Stockline listing SP optimisation
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
 @PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,
@@ -151,11 +152,12 @@ BEGIN
 	  BEGIN        
 	   ;WITH Result AS(        
 	   SELECT DISTINCT stl.StockLineId,            
-		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
-		(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        
+		(ISNULL(stl.PartNumber,'')) 'MainPartNumber',        
+		(ISNULL(stl.PNDescription,'')) 'PartDescription',        
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
-		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
+		--(ISNULL(rPart.PartNumber,'')) 'RevisedPN',    
+		stl.RevicedPNNumber 'RevisedPN',
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
 		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
@@ -178,7 +180,7 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		im.ItemTypeId,        
+		stl.ItemTypeId,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -201,23 +203,18 @@ BEGIN
 		stl.WorkOrderId,        
 		stl.SubWorkOrderId,        
 		stl.WorkOrderNumber,        
-	   stl.Location,      
-	   stl.LocationId,
-	   Stl.Site,
-	   Stl.SiteId,
-	   lot.LotNumber,
-	   (ISNULL(ct.Name,'')) 'CustomerName',
+	    stl.Location,      
+	    stl.LocationId,
+	    Stl.Site,
+	    Stl.SiteId,
+	    Stl.LotNumber,
+	    Stl.CustomerName 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
 	   '' AS WorkOrderStage --Remove Workorderstage due to performance issue  
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
-		  INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId         
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		  LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
-		  LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
-		  LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
-		  LEFT JOIN dbo.Customer ct WITH (NOLOCK) ON ct.CustomerId = stl.CustomerId
 		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
@@ -402,11 +399,11 @@ BEGIN
 	  BEGIN        
 	   ;WITH Result AS(        
 	   SELECT DISTINCT stl.StockLineId,            
-		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
-		(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        
+		(ISNULL(stl.PartNumber,'')) 'MainPartNumber',        
+		(ISNULL(stl.PNDescription,'')) 'PartDescription',        
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
-		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
+		(ISNULL(RevicedPNNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
 		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
@@ -429,7 +426,7 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		--(ISNULL(stl.GlAccountName,'')) 'GlAccountName',         
-		im.ItemTypeId,        
+		stl.ItemTypeId,       
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -454,23 +451,18 @@ BEGIN
 		stl.WorkOrderNumber,      
 		stl.Location,    
 		stl.LocationId,   
-		lot.LotNumber,
+		stl.LotNumber,
 		Stl.Site,
 		Stl.SiteId,
-		(ISNULL(ct.Name,'')) 'CustomerName',
+		stl.CustomerName 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,
 		'' as WorkOrderStage        
       
-		FROM  DBO.StockLine stl WITH (NOLOCK)        
-		 INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId         
+		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		 LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
-		 LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
-		 LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId
-		 LEFT JOIN dbo.Customer ct WITH (NOLOCK) ON ct.CustomerId = stl.CustomerId
-		 WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
+		WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
   
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
@@ -657,12 +649,12 @@ BEGIN
 	  BEGIN        
 		  ;WITH Result AS(        
 		 SELECT DISTINCT stl.StockLineId,            
-		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
+		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(IMAl.PartNumber,'')) 'MainPartNumber',       
-		(ISNULL(im.partnumber,'')) 'PartNumber',    
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(stl.partnumber,'')) 'PartNumber',    
+		(ISNULL(stl.PNDescription,'')) 'PartDescription',        
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
-		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
+		(ISNULL(RevicedPNNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
 		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
@@ -685,7 +677,7 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		im.ItemTypeId,        
+		stl.ItemTypeId,        
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -709,7 +701,7 @@ BEGIN
 		stl.WorkOrderNumber,        
 	   stl.Location,      
 	   stl.LocationId,
-	   lot.LotNumber,
+	   stl.LotNumber,
 	    Stl.Site,
 	   Stl.SiteId,
 	   ISNULL(stl.CustomerId,0) as CustomerId,
@@ -722,9 +714,6 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId     
-	   LEFT JOIN DBO.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId     
-	   LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
@@ -907,12 +896,12 @@ BEGIN
 	  BEGIN        
 	   ;WITH Result AS(        
 	   SELECT DISTINCT stl.StockLineId,            
-		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
+		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(IMAl.PartNumber,'')) 'MainPartNumber',        
-		(ISNULL(im.partnumber,'')) 'PartNumber',    
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(stl.partnumber,'')) 'PartNumber',    
+		(ISNULL(stl.PNDescription,'')) 'PartDescription',        
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
-		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
+		(ISNULL(stl.RevicedPNNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
 		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
@@ -934,7 +923,7 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		im.ItemTypeId,        
+		stl.ItemTypeId,        
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -959,7 +948,7 @@ BEGIN
 		stl.WorkOrderNumber,      
 		stl.Location,    
 		stl.LocationId,    
-		lot.LotNumber,
+		stl.LotNumber,
 		Stl.Site,
 		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,
@@ -972,9 +961,6 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId     
-	   LEFT JOIN DBO.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId     
-	   LEFT JOIN DBO.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    

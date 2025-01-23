@@ -18,6 +18,7 @@
 	6    20/03/2024   Abhishek Jirawla Added reserve Quantity and history when a stock is transfered Inter/Intra company and transfer Customer Stock
 	7    01/04/2024   Abhishek Jirawla Added unreserve the quantity when deleted is true
 	8    24/09/2024   RAJESH GAMI      Added @BulkStkLineAdjHeaderId(Adjement number as a reference) into stockline history 
+	9    22/01/2025   AMIT GHEDIYA     Handle Stockline update when delete item.
 *******************************************************************************/
 CREATE PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
 	@BulkStkLineAdjHeaderId BIGINT,
@@ -58,10 +59,12 @@ BEGIN
 				@BulkStockAdjusmentStocklineId BIGINT,
 				@BulkStockModuleId INT, 
 				@OldQuantity INT,
-				@UpdatedQuantity INT;
+				@UpdatedQuantity INT,
+				@StatusId INT;
 
 		SELECT @ModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='BulkStocklineAdjustmnet';
 		SELECT @BulkStockModuleId = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
+		SELECT @StatusId = [Id] FROM [DBO].[StocklineAdjustmentStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 
 	    IF OBJECT_ID(N'tempdb..#tmpBulkStockLineAdjustmentDetails') IS NOT NULL
 		BEGIN
@@ -338,16 +341,23 @@ BEGIN
 				UPDATE [dbo].[BulkStockLineAdjustmentDetails] SET IsActive = 0,IsDeleted = 1 
 				WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 
-				DECLARE @DeletedQty INT
+				DECLARE @DeletedQty INT,@StocklineAdjustmentStatusId BIGINT = 0;
 
-				SELECT @BulkStockAdjusmentStocklineId = StocklineId, @DeletedQty = NewQty FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+				--Get data for get adjustment status
+				SELECT @StocklineAdjustmentStatusId = StatusId FROM [dbo].[BulkStockLineAdjustment] WITH(NOLOCK) WHERE [BulkStkLineAdjId] = @BulkStkLineAdjHeaderId;
 
-				UPDATE Stockline
-				SET QuantityReserved = QuantityReserved - @NewQty,
-					QuantityAvailable = QuantityAvailable + @NewQty
-				WHERE StockLineId = @BulkStockAdjusmentStocklineId
+				SELECT @BulkStockAdjusmentStocklineId = StocklineId, @DeletedQty = NewQty FROM [dbo].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 
-				EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 3, @NewQty, @UpdatedBy;
+				--If Adjustment Posted then it will be update
+				IF(@StatusId = @StocklineAdjustmentStatusId)
+				BEGIN
+					UPDATE Stockline
+					SET QuantityReserved = QuantityReserved - @NewQty,
+						QuantityAvailable = QuantityAvailable + @NewQty
+					WHERE StockLineId = @BulkStockAdjusmentStocklineId
+
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 3, @NewQty, @UpdatedBy;
+				END
 			END
 
 			SET @MasterLoopID = @MasterLoopID - 1;

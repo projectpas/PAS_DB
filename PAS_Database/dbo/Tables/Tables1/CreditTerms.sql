@@ -2,7 +2,7 @@
     [CreditTermsId]         INT             IDENTITY (1, 1) NOT NULL,
     [Name]                  VARCHAR (30)    NOT NULL,
     [PercentId]             DECIMAL (18, 2) NOT NULL,
-    [Days]                  TINYINT         NOT NULL,
+    [Days]                  TINYINT         CONSTRAINT [df_Days] DEFAULT ((0)) NOT NULL,
     [NetDays]               TINYINT         NOT NULL,
     [Memo]                  NVARCHAR (MAX)  NULL,
     [MasterCompanyId]       INT             NOT NULL,
@@ -21,6 +21,8 @@
     CONSTRAINT [FK_CreditTerms_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CreditTerms] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

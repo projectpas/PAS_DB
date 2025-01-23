@@ -35,6 +35,11 @@ BEGIN
 	BEGIN
 		DECLARE @TaskTypes NVARCHAR(MAX) = '';
 		DECLARE @WorkOrderFormTypeId BIT;
+		DECLARE @StatusCode VARCHAR(100), @TemplateBody VARCHAR(MAX);
+		DECLARE @ModuleId INT, @SubModuleId INT;
+
+		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15;
+		SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderTask';
 
 		SELECT @WorkOrderFormTypeId = WorkOrderFormTypeId FROM DBO.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 		
@@ -66,6 +71,7 @@ BEGIN
 			BEGIN
 				SET @SequenceNo = @SequenceNo + 1;
 				DECLARE @WorkOrderTaskId BIGINT = 0;
+				DECLARE @TaskName VARCHAR(500);
 
 				INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 				[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName])
@@ -73,13 +79,24 @@ BEGIN
 				@WorkOrderPartNoId,@SequenceNo,NULL,NULL,NULL,NULL,T.[Description]
 				FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
 
+				SELECT @TaskName = T.[Description] FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID)
+
 				SELECT @WorkOrderTaskId = SCOPE_IDENTITY();
 
 				INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],
-				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PrintInWO],[PrintInWOQ])
 				SELECT @WorkOrderTaskId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-				NULL,NULL,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-				FROM DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
+				T.Descrepancy,T.Resolution,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,T.IsPrintInWO,T.IsPrintInWOQ
+				FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
+
+				-- Add Entry in History Table
+				SET @StatusCode = 'CreateWorkOrderTask';
+
+				SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+				SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+
+				EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, '', @TaskName, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
 
 				SET @LoopID = @LoopID + 1;
 			END

@@ -11,7 +11,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** --   --------    -------         --------------------------------
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
 ** 2    06/07/2023  MOIN BLOCH       Increased Notes Length 350 to 1370
-
+** 3    21/01/20254 RAJESH GAMI      Return WorkOrderFormTypeId
 EXEC GetWorkOrderPrintPdfData 4933,'ADMIN ADMIN'
 
 **************************************************************/
@@ -107,7 +107,8 @@ FROM Dbo.ItemMaster imtt WITH(NOLOCK) INNER JOIN Dbo.Nha_Tla_Alt_Equ_ItemMapping
    WHERE nhatae.ItemMasterId = imt.ItemMasterId              
    AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
    FOR XML PATH('')              
-   ), 1, 1, '')              
+   ), 1, 1, ''),
+   Wo.WorkOrderFormTypeId as IsWorkOrderFormType
 FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId

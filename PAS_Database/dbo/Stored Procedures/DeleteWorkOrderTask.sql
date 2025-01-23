@@ -14,16 +14,37 @@
 EXEC [DeleteWorkOrderTask] 3
 **************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteWorkOrderTask]
-	@WorkOrderTaskId BIGINT
+	@WorkOrderTaskId BIGINT,
+	@UpdatedBy VARCHAR(100)
 AS
 	BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
+		DECLARE @StatusCode VARCHAR(100), @TemplateBody VARCHAR(MAX);
+		DECLARE @TaskName VARCHAR(500);
+		DECLARE @ModuleId INT, @SubModuleId INT, @MasterCompanyId INT;
+		DECLARE @WorkOrderId BIGINT, @WorkOrderPartNoId BIGINT;
+
+		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15;
+		SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderTask';
+
+		SELECT @TaskName = WOT.TaskName, @WorkOrderId = WOT.WorkOrderId, @WorkOrderPartNoId = WOT.WorkOrderPartNumberId, @MasterCompanyId = WOT.MasterCompanyId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId
+
 		/* Teardown deletion */
 		DELETE FROM DBO.WorkOrderTask WHERE WorkOrderTaskId = @WorkOrderTaskId;
 			
 		/* Work Order Task */
 		DELETE FROM DBO.WorkOrderTaskDetails WHERE WorkOrderTaskId = @WorkOrderTaskId;
+
+		/* Add Entry in History Table */
+		SET @StatusCode = 'DeleteWorkOrderTask';
+
+		SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode;
+
+		SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+
+		EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @TaskName, '', @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy, NULL, @UpdatedBy, NULL
+
 	COMMIT TRANSACTION
 
 	END TRY

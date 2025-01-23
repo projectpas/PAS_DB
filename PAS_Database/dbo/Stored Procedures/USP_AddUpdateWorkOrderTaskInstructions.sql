@@ -42,6 +42,12 @@ BEGIN
 		DECLARE @MaxSequence INT;
 		DECLARE @InsertedWorkOrderTaskInstructionId BIGINT = 0;
 		DECLARE @TaskMasterLoopID AS INT;
+		DECLARE @StatusCode VARCHAR(100), @TemplateBody VARCHAR(MAX), @TaskName VARCHAR(250), @InstructionTitleNew VARCHAR(MAX);
+		DECLARE @ModuleId INT, @SubModuleId INT;
+		DECLARE @WorkOrderPartNumberId BIGINT;
+
+		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15;
+		SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderTask';
 
 		IF OBJECT_ID(N'tempdb..#TaskMaster') IS NOT NULL
 		BEGIN
@@ -112,6 +118,20 @@ BEGIN
 
 				SET @InsertedWorkOrderTaskInstructionId = SCOPE_IDENTITY();
 				
+				/* START: Add Entry in History Table */
+				SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+
+				SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+				SELECT @InstructionTitleNew = Title FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
+
+				SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+				SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+				SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitleNew,''));
+
+				EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitleNew, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+				/* END: Add Entry in History Table */
+
 				SELECT TOP 1 @WorkOrderId = WorkOrderId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
 
 				SELECT @MaxSequence = ISNULL(MAX(WOTI.SequenceNumber), 0)
@@ -122,7 +142,7 @@ BEGIN
 				IF (ISNULL(@OldParentId, 0) > 0)
 				BEGIN
 					UPDATE DBO.WorkOrderTaskInstruction
-					SET ParentId = (SELECT WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId),
+					SET ParentId = (SELECT TOP 1 WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId),
 					SequenceNumber = (@MaxSequence + 1)
 					WHERE WorkOrderTaskInstructionId = @InsertedWorkOrderTaskInstructionId;
 				END
@@ -143,11 +163,23 @@ BEGIN
 			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 			SELECT @WorkOrderTaskId, NULL, 1, @InstructionTitle, (@MaxSequence + 1), @InstructionDetails, @TechId, @TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
 			@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0;
+
+			/* START: Add Entry in History Table */
+			SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+
+			SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitle,''));
+
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitle, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+			/* END: Add Entry in History Table */
 		END
 	END
 	ELSE IF (@IsAddChildNode = 1)
 	BEGIN
-		PRINT 'IsAddChildNode'
 		-- Find the maximum sequence number under the specific parent
         DECLARE @MaxSequenceNumber INT;
         SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
@@ -162,10 +194,22 @@ BEGIN
 			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 		VALUES (@WorkOrderTaskId, @WorkOrderTaskInstructionId, 0, @InstructionTitle, @NewSequenceNumber, @InstructionDetails, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, 
 			@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0);
+
+		/* START: Add Entry in History Table */
+		SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+
+		SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+
+		SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+		SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+		SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitle,''));
+
+		EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitle, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+		/* END: Add Entry in History Table */
 	END
 	ELSE
 	BEGIN
-		PRINT 'Update'
 		UPDATE DBO.WorkOrderTaskInstruction
 		SET [InstructionTitle] = @InstructionTitle,
 		[InstructionDetails] = @InstructionDetails,

@@ -92,13 +92,13 @@ BEGIN
 
 	DECLARE @TaskName VARCHAR(256),@PartNum VARCHAR(256),@PartDesc VARCHAR(256),@Condition VARCHAR(256),
 
-	@RequestType  VARCHAR(256),@Provision  VARCHAR(256),@ItemClassification  VARCHAR(256),@UOM  VARCHAR(256),@StockType VARCHAR(256) 
+	@RequestType  VARCHAR(256),@Provision  VARCHAR(256),@ItemClassification  VARCHAR(256),@UOM  VARCHAR(256),@StockType VARCHAR(256), @WorkOrderFormTypeId BIT,@WorkOrderId BIGINT
 
 
 
 	SELECT @ItemMasterId=ItemMasterId,@TaskId=TaskId,@ConditionId=ConditionCodeId,@MaterialMandatoriesId =MaterialMandatoriesId ,
 
-	@ProvisionId=ProvisionId,@ItemClassificationId=ItemClassificationId,@UOMId=UnitOfMeasureId
+	@ProvisionId=ProvisionId,@ItemClassificationId=ItemClassificationId,@UOMId=UnitOfMeasureId,@WorkOrderId=WorkOrderId
 
 	
 
@@ -116,11 +116,16 @@ BEGIN
 
 	FROM ItemMaster WHERE ItemMasterId=@ItemMasterId
 
+	SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 
-
-	SELECT @TaskName=Description FROM Task WHERE TaskId=@TaskId
-
-	 
+	IF(@WorkOrderFormTypeId=1)
+	BEGIN		
+		SELECT @TaskName=[TaskName] FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkOrderTaskId]=@TaskId;
+	END
+	ELSE
+	BEGIN 
+		SELECT @TaskName=[Description] FROM [dbo].[Task]  WITH(NOLOCK) WHERE [TaskId]=@TaskId;
+	END
 
 	SELECT @Condition=Description FROM Condition WHERE ConditionId=@ConditionId
 

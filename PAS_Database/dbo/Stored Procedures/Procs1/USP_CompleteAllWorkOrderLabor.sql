@@ -13,6 +13,7 @@
     1    June/01/2023   Vishal Suthar	Created 
 	2    June/28/2024   Hemant Saliya	Updated for Aounting Entry for Close all Labor 
 	3    June/30/2024	Devendra Shekh	Modified For Same JE Changes
+	4    22-Jan-2025	Devendra Shekh	Modified (allowing Accounting Entry for Teardown WO)
 
 EXEC USP_CompleteAllWorkOrderLabor 3395
 **************************************************************/
@@ -33,6 +34,7 @@ BEGIN
 				DECLARE @totalMinutes INT, @laborTaskStatus varchar(50);
 				DECLARE @CustomerWOTypeId INT= 0;
 				DECLARE @InternalWOTypeId INT= 0;
+				DECLARE @TeardownWOTypeId INT= 0;
 				DECLARE @DistributionCode VARCHAR(50);
 				DECLARE @DistributionMasterId BIGINT;
 
@@ -46,6 +48,7 @@ BEGIN
 
 				SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 				SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+				SELECT TOP 1 @TeardownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Teardown'
 
 				SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOLABORTAB')
 
@@ -255,7 +258,7 @@ BEGIN
 							PRINT '7.1'
 						END
 
-						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+						IF(ISNULL(@WOTypeId, 0) IN (@InternalWOTypeId, @TeardownWOTypeId) AND ISNULL(@IsAccountByPass, 0) = 0)
 						BEGIN
 							PRINT '8'
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
@@ -288,7 +291,7 @@ BEGIN
 					END
 				END
 
-				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @IWOBatchCount > 0)
+				IF(ISNULL(@WOTypeId, 0) IN (@InternalWOTypeId, @TeardownWOTypeId) AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @IWOBatchCount > 0)
 				BEGIN
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 					BEGIN

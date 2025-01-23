@@ -3384,6 +3384,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddUpdateWorkOrderTaskInstructions.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOTaskInstructionsByWOTaskId.sql" />
+    <Build Include="dbo\Views\vw_legalEntity.sql" />
     <Build Include="dbo\Stored Procedures\GetDepositDistributionNonPOVendorProforma.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOTaskInstructionSequenceNumber.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonWorkOrderQuoteFormTypePrintView.sql" />

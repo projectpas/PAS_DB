@@ -18,7 +18,23 @@ CREATE   PROCEDURE [dbo].[DeleteWorkOrderTaskInstruction]
 AS
 	BEGIN
 	BEGIN TRY
-		DELETE FROM DBO.WorkOrderTaskInstruction WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId;
+		WITH CTE AS (
+			-- Anchor member: Start with the record to be deleted
+			SELECT WorkOrderTaskInstructionId
+			FROM DBO.WorkOrderTaskInstruction WITH (NOLOCK)
+			WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+
+			UNION ALL
+
+			-- Recursive member: Get all child records
+			SELECT w.WorkOrderTaskInstructionId
+			FROM DBO.WorkOrderTaskInstruction w WITH (NOLOCK)
+			INNER JOIN CTE c
+			ON w.ParentId = c.WorkOrderTaskInstructionId
+		)
+		-- Delete all identified records
+		DELETE FROM DBO.WorkOrderTaskInstruction
+		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM CTE);
 	END TRY
 	BEGIN CATCH
 			IF @@trancount > 0

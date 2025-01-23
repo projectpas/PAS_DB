@@ -18,6 +18,7 @@
     2    01/10/2024   Vishal Suthar Modified to make use of New SO Part Tables
     3    11/12/2024   Vishal Suthar Fixed issues with listing the proper stocklines for reservation
     4    11/13/2024   Vishal Suthar Fixed issues with stockline after unreserve
+    5    01/22/2025   Abhishek Jirawla Pick Ticket Mismatch
      
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1269
 **************************************************************/
@@ -190,9 +191,13 @@ BEGIN
 		AltPartMasterPartId,
 		EquPartMasterPartId,
 		QtyToReserve,
-		CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
+		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
 		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END
-		END QtyToBeReserved,
+		END)
+		---
+		--(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+		--  WHERE SOSI.SalesOrderPartId = SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)
+		)QtyToBeReserved,
 		QuantityReserved,
 		TotalReserved,
 		QuantityAvailable, 
@@ -206,9 +211,16 @@ BEGIN
 		LotId,
 		IsLotQty FROM FinalReserveList 
 		WHERE 
-		(CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
-		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END
-		END) > 0;
+		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
+			CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved 
+			ELSE (QuantityOnOrder - QuantityReserved - (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+				WHERE SOSI.SalesOrderPartId = SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) END
+		END)
+		---
+		--(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+		--  WHERE SOSI.SalesOrderPartId = SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)
+		) 
+		> 0;
 	END
 	COMMIT  TRANSACTION
 	END TRY    

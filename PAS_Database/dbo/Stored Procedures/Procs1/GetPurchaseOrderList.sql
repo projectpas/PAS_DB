@@ -22,6 +22,7 @@
 	06	15-Jan-2025		Hemant Saliya		Resolved Duplicate issue
 	07	16-Jan-2025		Bhargav Saliya		Resolved Purchase Order count issue
 	08	21-Jan-2025		Bhargav Saliya		When we attached WO with PO Part That time select Multiple/WO Number
+	09  23-Jan-2025		Bhargav Saliya		Resolved Shorting issue
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
     
@@ -310,12 +311,12 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='status')  THEN status END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='status')  THEN status END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityOrdered')  THEN quantityOrdered END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityOrdered')  THEN quantityOrdered END DESC, 
-			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityReceived')  THEN quantityReceived END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityReceived')  THEN quantityReceived END DESC, 
-			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN quantityBackOrdered END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN quantityBackOrdered END DESC, 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityOrdered')  THEN cast(quantityOrdered as bigint) END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityOrdered')  THEN cast(quantityOrdered as bigint) END DESC, 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityReceived')  THEN cast(quantityReceived as bigint) END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityReceived')  THEN cast(quantityReceived as bigint) END DESC, 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='workOrderNumType')  THEN workOrderNumType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderNumType')  THEN workOrderNumType END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='repairOrderNumberType')  THEN repairOrderNumberType END ASC,
@@ -446,7 +447,14 @@ BEGIN
 	  CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,
-	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC      
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC,
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityOrdered')  THEN cast(quantityOrdered as bigint) END ASC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityOrdered')  THEN cast(quantityOrdered as bigint) END DESC, 
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityReceived')  THEN cast(quantityReceived as bigint) END ASC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityReceived')  THEN cast(quantityReceived as bigint) END DESC, 
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END ASC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END DESC 
+
 	  OFFSET @RecordFrom ROWS       
 	  FETCH NEXT @PageSize ROWS ONLY      
  END      

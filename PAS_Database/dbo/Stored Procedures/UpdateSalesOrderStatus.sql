@@ -13,6 +13,7 @@
  ** --   --------     -------			--------------------------------          
     1    19-11-2024   AMIT GHEDIYA		Created 
 	2    05-12-2024   AMIT GHEDIYA		Updated logic for multiple stockline
+	3    23-01-2025   Abhishek Jirawla	Updated logic to select Qty resquested instead of SalesOrderId	
 
 -- EXEC [UpdateSalesOrderStatus] 1316,11,1
 ************************************************************************/
@@ -33,7 +34,7 @@ BEGIN
 				@SOBillingInvoicingId BIGINT,
 				@SoBillingItemCount BIGINT;
 
-			SELECT @SoPartDataCount = COUNT([SalesOrderId]) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+			SELECT @SoPartDataCount = ISNULL(SUM(QtyRequested), 0) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
 			IF(ISNULL(@IsFromShipping,0) > 0)
 			BEGIN
@@ -42,7 +43,7 @@ BEGIN
 					SELECT @SalesOrderShippingId = [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 					
 					--Check for multiple shipping
-					SELECT @SoShippingItemCount = COUNT(DISTINCT [SalesOrderPartId]) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] = @SalesOrderShippingId;
+					SELECT @SoShippingItemCount = ISNULL(SUM(QtyShipped), 0) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] IN (SELECT [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0);
 					IF(ISNULL(@SoShippingItemCount,0) = ISNULL(@SoPartDataCount,0))
 					BEGIN 
 						 UPDATE [DBO].[SalesOrder]

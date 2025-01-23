@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------            
 	1
     2    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
+	3    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
   
 -- EXEC GetReceiverStockROPNLabel 1110,'0','0','0','RecNo-000004'
 
@@ -34,17 +35,17 @@ BEGIN
 	BEGIN TRY
 		IF(@isParentData = '1')
 		BEGIN
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			WHERE RepairOrderId=@RepairOrderId and IsParent=1
-			GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE)
+			GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME)
 
 			UNION
 
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE) AS ReceivedDate FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME) AS ReceivedDate FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[Asset] i WITH(NOLOCK) ON i.AssetRecordId = sl.AssetRecordId
 			WHERE RepairOrderId = @RepairOrderId 
-			GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE);
+			GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATETIME);
 		END
 		IF(@isParentData = '0')
 		BEGIN

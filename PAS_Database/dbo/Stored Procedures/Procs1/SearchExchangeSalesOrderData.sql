@@ -14,6 +14,7 @@
  ** --   --------     -------           --------------------------------            
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    25/09/2023   Rajesh Gami	     Add Exchange Vendor Related Change(Add new Vendor Join and return flag IsVendor)
+	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderData]
 -- Add the parameters for the stored procedure here
@@ -104,6 +105,29 @@ BEGIN
 			End
 			DECLARE @MSModuleID INT = 19; -- Exchange SalesOrder Management Structure Module ID
 		-- Insert statements for procedure here
+		DECLARE @EmpLegalEntiyId BIGINT = 0;
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SELECT * INTO #TempResult FROM (SELECT DISTINCT EQ.ExchangeSalesOrderId,
 			       EQ.ExchangeSalesOrderNumber, 
 				   EXQ.ExchangeQuoteNumber, 
@@ -126,8 +150,10 @@ BEGIN
 			      ISNULL(IM.partnumber,'') AS 'PartNumberType', 
 				  ISNULL(im.PartDescription,'') AS 'PartDescription', 
 				  ISNULL(im.PartDescription,'') AS 'PartDescriptionType',
-			      EQ.CreatedDate, 
-				  EQ.UpdatedDate, 
+			      --EQ.CreatedDate, 
+				  --EQ.UpdatedDate, 
+				  (Cast(DBO.ConvertUTCtoLocal(EQ.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+				  (Cast(DBO.ConvertUTCtoLocal(EQ.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 				  EQ.UpdatedBy, 
 				  EQ.CreatedBy, 
 				  ISNULL(SP.EstimatedShipDate, '0001-01-01') AS 'EstimateShipDate', 

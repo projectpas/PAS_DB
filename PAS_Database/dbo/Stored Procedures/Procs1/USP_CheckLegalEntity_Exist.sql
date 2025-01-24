@@ -17,6 +17,7 @@
     1   28/07/2023 Bhargav Saliya   This stored procedure is used to get Time Zone
 	2   22/04/2024 Abhishek Jirawla Adding asset module to the list
 	3   23/01/2025 Bhargav Saliya Adding StockLine module to the list
+	4   24/01/2025 Bhargav Saliya Add EmployeeId
      
 **************************************************************/
 
@@ -24,7 +25,8 @@
 CREATE   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
-@ReferenceId bigint
+@ReferenceId bigint,
+@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -189,12 +191,14 @@ BEGIN
 			  ELSE IF @ModuleId = (SELECT ModuleId  FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'StockLine')
 			  BEGIN
 
-				  SELECT  TZ.Description AS 'TimeZoneName', LE.LegalEntityId,
+				  SELECT  COALESCE(ETZ.[Description],TZ.[Description]) AS 'TimeZoneName', LE.LegalEntityId,
 				  SL.[StockLineId] AS ReferenceId,le.TimeZoneId
 				  FROM [Stockline] SL WITH(NOLOCK)
+				  LEFT JOIN [dbo].[Employee] E WITH(NOLOCK) ON E.EmployeeId = @EmployeeId
+				  LEFT JOIN [dbo].TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 				  LEFT JOIN [dbo].LegalEntity LE WITH(NOLOCK) ON SL.LegalEntityId = LE.LegalEntityId
 				  LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
-				  WHERE SL.[StockLineId] = @ReferenceId
+				  WHERE SL.[StockLineId] = @ReferenceId AND E.EmployeeId = @EmployeeId
 			  END
 			  END
 		COMMIT  TRANSACTION

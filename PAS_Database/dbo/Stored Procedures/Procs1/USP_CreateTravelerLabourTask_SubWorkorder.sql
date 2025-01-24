@@ -16,7 +16,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/22/2022   Subhash Saliya  Created
-	2    01/09/2025   Moin Bloch 	  ADDED [StandardHours],[StandardMinute]	
+	2    01/09/2025   Moin Bloch 	  ADDED [StandardHours],[StandardMinute]
+	3	 01/23/2024	  Moin Bloch	  Modified (check table for WorkOrderFormTypeId)
+
      
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44
 **************************************************************/
@@ -50,7 +52,13 @@ BEGIN
 				DECLARE @TaskStatusId AS BIGINT = 0;
 				DECLARE @IstravelerTask bit =0
 				DECLARE @ManagementStructureId bigint=0
-                
+				DECLARE @WorkOrderFormTypeId BIT = 0; 
+				
+				SELECT @WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WO WITH(NOLOCK)	WHERE WO.[WorkOrderId] = @WorkOrderId;
+
+				IF(@WorkOrderFormTypeId = 0)
+				BEGIN
+				                
 				SELECT TOP 1 @ManagementStructureId= ManagementStructureId FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartId
                 
 				SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=SubWorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK)  WHERE SubWOPartNoId=@SubWOPartNoId
@@ -74,8 +82,7 @@ BEGIN
 				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND IsVersionIncrease=0
 				 END
 
-
-	            IF(@Traveler_setupid >0 AND @IstravelerTask=1)
+	             IF(@Traveler_setupid >0 AND @IstravelerTask=1)
 	              begin
 	              
 	                IF(NOT EXISTS (SELECT 1 FROM [dbo].[SubWorkOrderLaborHeader] WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId))
@@ -166,9 +173,7 @@ BEGIN
 	              END
 	   
 	          
-					  	  
-
-	          
+				END	          
                 
 			END
 		COMMIT  TRANSACTION

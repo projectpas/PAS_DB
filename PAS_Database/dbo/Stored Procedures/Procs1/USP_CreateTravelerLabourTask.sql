@@ -19,6 +19,7 @@
  ** --   --------     -------  --------------------------------            
     1    12/22/2022   Subhash Saliya  Created
 	2    01/09/2025   Moin Bloch 	  ADDED [StandardHours],[StandardMinute]
+	3	 01/23/2024	  Moin Bloch	  Modified (check table for WorkOrderFormTypeId)
 
        
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44  
@@ -52,6 +53,12 @@ BEGIN
     DECLARE @TaskStatusId AS BIGINT = 0;  
     declare @IstravelerTask bit =0  
     declare @ManagementStructureId bigint=0  
+	DECLARE @WorkOrderFormTypeId BIT = 0; 
+				
+	SELECT @WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WO WITH(NOLOCK)	WHERE WO.[WorkOrderId] = @WorkOrderId;
+
+	IF(@WorkOrderFormTypeId = 0)
+	BEGIN
                   
     SELECT TOP 1 @ManagementStructureId= ManagementStructureId,@ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId  
     
@@ -156,7 +163,8 @@ BEGIN
 								  LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
 								  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
                   END  
-               END  
+               END 
+	  END
    END  
   COMMIT  TRANSACTION  
   

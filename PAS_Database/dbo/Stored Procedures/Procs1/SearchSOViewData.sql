@@ -14,6 +14,7 @@
     1    04/08/2023  Ekta Chandegara     Convert text into uppercase
 	2    06/26/2024  AMIT GHEDIYA        Added orderby for RequestedDate,EstimatedShipDate
 	3    20-09-2024  Shrey Chandegara	 ADD New Column in list (@ContractReference)
+	4	 22-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
  -- Add the parameters for the stored procedure here    
@@ -59,7 +60,30 @@ BEGIN
  BEGIN TRY    
   BEGIN TRANSACTION    
    BEGIN    
-    DECLARE @RecordFrom int;    
+    DECLARE @RecordFrom int;  
+	DECLARE @EmpLegalEntiyId BIGINT = 0;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
     SET @RecordFrom = (@PageNumber - 1) * @PageSize;    
     IF @IsDeleted is null    
     Begin    
@@ -103,7 +127,12 @@ BEGIN
       ,SO.OpenDate, SOQ.OpenDate AS 'QuoteDate', C.CustomerId, C.Name, SO.CustomerReference, C.CustomerCode, MST.Name as 'Status',    
       B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson,CT.CustomerTypeName,    
       SO.ShippedDate,   
-      A.SoAmount, SO.CreatedDate, SO.UpdatedDate, SO.StatusId, SO.CreatedBy, SO.UpdatedBy    
+      A.SoAmount,
+	  --SO.CreatedDate,
+	  --SO.UpdatedDate,
+	  (Cast(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+	  (Cast(DBO.ConvertUTCtoLocal(SO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+	  SO.StatusId, SO.CreatedBy, SO.UpdatedBy    
       from dbo.SalesOrder SO WITH (NOLOCK) Inner Join MasterSalesOrderStatus MST on SO.StatusId = MST.Id    
       Inner Join Customer C WITH (NOLOCK) on SO.CustomerId = C.CustomerId    
       Inner Join CustomerType CT WITH (NOLOCK) on SO.AccountTypeId = CT.CustomerTypeId    

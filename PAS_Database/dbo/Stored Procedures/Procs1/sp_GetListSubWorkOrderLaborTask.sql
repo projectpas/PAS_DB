@@ -19,6 +19,7 @@
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    01/08/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
+	4	 22/01/2025	  Moin Bloch		Modified (Added WorkOrderTask Table For conditionally check table for Task)
      
  EXECUTE [sp_GetListSubWorkOrderLaborTask] 34, 39
 **************************************************************/
@@ -31,6 +32,11 @@ BEGIN
 		BEGIN TRY
 		 -- BEGIN TRANSACTION
 			--BEGIN
+			DECLARE	@WorkOrderId BIGINT = NULL   
+			DECLARE @WorkOrderFormTypeId BIT = 0; 
+			SELECT @WorkOrderId = WorkOrderId FROM [dbo].[SubWorkOrderLaborHeader] WITH(NOLOCK) WHERE [SubWorkOrderLaborHeaderId] = @SubWorkOrderLaborHeaderId;
+			SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
+			
 				              SELECT wol.AdjustedHours,
                                      wol.Adjustments,
 									 wol.StandardHours,
@@ -64,10 +70,12 @@ BEGIN
 									 CASE WHEN (SELECT COUNT(SubWorkOrderLaborTrackingId) FROM DBO.SubWorkOrderLaborTracking wolt WITH(NOLOCK) WHERE wolt.SubWorkOrderLaborId = wol.SubWorkOrderLaborId) > 0 THEN wol.IsBegin ELSE NULL END AS IsBeginTemp,
 									 CASE WHEN wop.IsTraveler = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.SubWorkOrderLaborId,1)) ELSE wol.[Hours] END AS [Hours],
 									 emp.FirstName + ' '+ emp.LastName AS EmployeeName,
-									 task.[Description] AS Task,
+									 --task.[Description] AS Task,
+									 CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE task.[Description] END AS Task,
 									 expr.[Description] AS Expertise
 				FROM [dbo].[SubWorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
+					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId
 					LEFT JOIN [dbo].[ExpertiseType] expr WITH(NOLOCK) ON expr.ExpertiseTypeId = wol.ExpertiseId
 					LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = wol.EmployeeId
 					INNER JOIN [dbo].[SubWorkOrderLaborHeader] lh WITH(NOLOCK) ON lh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId 

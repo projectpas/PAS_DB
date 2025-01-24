@@ -18,18 +18,24 @@
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    01/03/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
+	4    21/01/2025   Moin Bloch     Added [WorkOrderFormTypeId]
 	
  EXECUTE [sp_GetWorkOrderLaborTaskList] 3814
 **************************************************************/
-CREATE       Procedure [dbo].[sp_GetWorkOrderLaborTaskList]
-@WorkOrderLaborHeaderId  bigint
+CREATE PROCEDURE [dbo].[sp_GetWorkOrderLaborTaskList]
+@WorkOrderLaborHeaderId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 		BEGIN TRY
-		 -- BEGIN TRANSACTION
-			--BEGIN					
+	
+				DECLARE @WorkOrderId BIGINT = 0
+				DECLARE @WorkOrderFormTypeId BIT = 0
+				SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkOrderLaborHeaderId] = @WorkOrderLaborHeaderId
+
+				SELECT @WorkOrderFormTypeId = [WorkOrderFormTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+
 				SELECT CAST(wol.AdjustedHours AS DECIMAL(18,2)) AdjustedHours,
                        wol.Adjustments,
                        wol.BillableId,
@@ -59,7 +65,8 @@ BEGIN
 					   CASE WHEN (SELECT COUNT(WorkOrderLaborTrackingId) FROM DBO.WorkOrderLaborTracking wolt WITH(NOLOCK) WHERE wolt.WorkOrderLaborId= wol.WorkOrderLaborId) >0 THEN wol.IsBegin ELSE NULL END AS IsBeginTemp,
 					   CASE WHEN wop.IsTraveler = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.WorkOrderLaborId,0)) ELSE wol.[Hours] END AS [Hours],
 					   emp.FirstName + ' '+ emp.LastName AS EmployeeName,
-					   task.[Description] AS Task,
+					   --task.[Description] AS Task,
+					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE task.[Description] END AS Task,
 					   expr.[Description] AS Expertise,
 					   wol.[StandardHours],
 					   wol.[StandardMinute],
@@ -67,20 +74,18 @@ BEGIN
 					   wol.[VarianceMinute]
 				FROM [dbo].[WorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
+					LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId
 					LEFT JOIN [dbo].[ExpertiseType] expr WITH(NOLOCK) ON expr.ExpertiseTypeId = wol.ExpertiseId
 					LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = wol.EmployeeId
 					INNER JOIN [dbo].[WorkOrderLaborHeader] woh WITH(NOLOCK) ON woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = woh.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
 				WHERE wol.WorkOrderLaborHeaderId = @WorkOrderLaborHeaderId AND wol.IsDeleted = 0  ORDER BY IsBeginTemp DESC
-		--END
-		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				--ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

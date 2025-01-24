@@ -362,20 +362,9 @@ BEGIN
 				PRINT '1.2' 
 				PRINT GETUTCDATE();
 								
-				--DECLARE @PostRRBatchCursor AS CURSOR;
-				--SET @PostRRBatchCursor = CURSOR FOR	
-
-				--SELECT [StocklineId],[InvoicedQty],[InvoicedUnitCost],[JournalTypeName],[CreatedBy],[Module],[JournalBatchHeaderId],[StockType],
-				--	[Packagingid],[EmployeeId],[id],[ReceivingReconciliationDetailId],[RecordId] FROM #RRPostType
-				--OPEN @PostRRBatchCursor;
-				--FETCH NEXT FROM @PostRRBatchCursor INTO @StocklineId,@InvoicedQty,@InvoicedUnitCost,@JournalTypeName,@CreatedBy,@Module,@JournalBatchHeaderId,@StockType,@Packagingid,@EmployeeId,@id,@ReceivingReconciliationDetailId,@RecordId;
-				--	WHILE @@FETCH_STATUS = 0
-				--	BEGIN
-
-
 					SELECT @TotalCounts = COUNT(RecordId) FROM #RRPostType;
 
-					WHILE @count<= @TotalCounts
+					WHILE @count < @TotalCounts
 					BEGIN
 						PRINT '1.3' 
 						PRINT GETUTCDATE();
@@ -619,12 +608,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, 
-										--	StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '',
-										--	@Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
-									
 									END
 									------- Goods Received Not Invoiced (GRNI)-------
 

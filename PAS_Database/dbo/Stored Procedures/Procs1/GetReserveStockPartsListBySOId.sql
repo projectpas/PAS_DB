@@ -12,13 +12,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/08/2021   Vishal Suthar Modified the logic
-    2    01/10/2024   Vishal Suthar Modified to make use of New SO Part Tables
-    3    11/12/2024   Vishal Suthar Fixed issues with listing the proper stocklines for reservation
-    4    11/13/2024   Vishal Suthar Fixed issues with stockline after unreserve
-    5    01/22/2025   Abhishek Jirawla Pick Ticket Mismatch
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/08/2021   Vishal Suthar		Modified the logic
+    2    01/10/2024   Vishal Suthar		Modified to make use of New SO Part Tables
+    3    11/12/2024   Vishal Suthar		Fixed issues with listing the proper stocklines for reservation
+    4    11/13/2024   Vishal Suthar		Fixed issues with stockline after unreserve
+    5    01/22/2025   Abhishek Jirawla  Pick Ticket Mismatch
+	6    01/24/2025   AMIT GHEDIYA		Fixed for get Reserved list after qty adjust.
      
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1269
 **************************************************************/
@@ -79,7 +80,8 @@ BEGIN
 		sl.QuantityAvailable, 
 		sl.QuantityOnHand, 
 		--ISNULL(Stk.QtyOrder, 0) QuantityOnOrder, 
-		ISNULL((SELECT ISNULL(StkV1.QtyOrder, 0) FROM DBO.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId AND StkV1.StockLineId = SL.StockLineId), 0) QuantityOnOrder, 
+		ISNULL(sop.QtyRequested, 0) QuantityOnOrder,
+		--ISNULL((SELECT ISNULL(StkV1.QtyOrder, 0) FROM DBO.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId AND StkV1.StockLineId = SL.StockLineId), 0) QuantityOnOrder, 
 		sl.StockLineId,
 		sl.StockLineNumber, 
 		sl.ControlNumber,

@@ -14,6 +14,7 @@
     1    04/08/2023  Ekta Chandegara     Convert text into uppercase
 	2    06/26/2024  AMIT GHEDIYA        Added orderby for RequestedDate,EstimatedShipDate
 	3    20-09-2024  Shrey Chandegara	 ADD New Column in list (@ContractReference)
+	4	 22-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 ************************************************************************/  
 CREATE    PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
  -- Add the parameters for the stored procedure here  
@@ -58,6 +59,29 @@ BEGIN
   BEGIN TRANSACTION  
    BEGIN  
     DECLARE @RecordFrom int;  
+	DECLARE @EmpLegalEntiyId BIGINT = 0;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
     SET @RecordFrom = (@PageNumber-1) * @PageSize;  
     IF @IsDeleted is null  
     Begin  
@@ -91,7 +115,11 @@ BEGIN
     , C.CustomerId, C.Name as 'CustomerName', MST.Name as 'Status', ISNULL(SPC.NetSaleAmount, 0) as 'QuoteAmount',  
     ISNULL(SPC.UnitCost, 0) as 'UnitCost', ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'RequestedDate', ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'RequestedDateType', SO.StatusId, SO.CustomerReference, IsNull(P.Description, '') as 'Priority', IsNull(P.Description, '') as 'PriorityType', (E.FirstName+' '+E.LastName)as SalesPerson,  
     IsNull(IM.partnumber,'') as 'PartNumber',M.Name As 'ManufacturerType', IsNull(IM.partnumber,'') as 'PartNumberType', IsNull(im.PartDescription,'') as 'PartDescription', IsNull(im.PartDescription,'') as 'PartDescriptionType',  
-    SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimatedShipDate', ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimatedShipDateType', ISNULL(SP.PromisedDate, '0001-01-01') as 'PromisedDate',  
+    --SO.CreatedDate,
+	--SO.UpdatedDate,
+	 (Cast(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+	  (Cast(DBO.ConvertUTCtoLocal(SO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+	SO.UpdatedBy, SO.CreatedBy, ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimatedShipDate', ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimatedShipDateType', ISNULL(SP.PromisedDate, '0001-01-01') as 'PromisedDate',  
     ISNULL(SO.ShippedDate, '0001-01-01') as 'ShippedDate',   
     SO.IsDeleted, --dbo.GenearteVersionNumber(SO.Version) as 'VersionNumber'  
     SOQ.VersionNumber  

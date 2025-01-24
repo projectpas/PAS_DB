@@ -118,19 +118,23 @@ BEGIN
 
 				SET @InsertedWorkOrderTaskInstructionId = SCOPE_IDENTITY();
 				
-				/* START: Add Entry in History Table */
-				SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+				IF EXISTS (SELECT TOP 1 1 FROM #TaskMaster WHERE [ParentId] IS NULL AND ID = @TaskMasterLoopID)
+				BEGIN
+					/* START: Add Entry in History Table */
+					SET @StatusCode = 'CreateWorkOrderTaskInstruction';
 
-				SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
-				SELECT @InstructionTitleNew = Title FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
+					SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+				
+					SELECT @InstructionTitleNew = InstructionTitle FROM DBO.WorkOrderTaskInstruction WITH (NOLOCK) WHERE WorkOrderTaskInstructionId = @InsertedWorkOrderTaskInstructionId;
 
-				SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+					SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
-				SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
-				SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitleNew,''));
+					SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+					SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitleNew,''));
 
-				EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitleNew, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
-				/* END: Add Entry in History Table */
+					EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitleNew, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+					/* END: Add Entry in History Table */
+				END
 
 				SELECT TOP 1 @WorkOrderId = WorkOrderId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
 

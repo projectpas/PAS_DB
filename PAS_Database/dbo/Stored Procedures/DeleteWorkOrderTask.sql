@@ -45,6 +45,18 @@ AS
 
 		EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @TaskName, '', @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy, NULL, @UpdatedBy, NULL
 
+		-- Rearrange the SequenceNumbers for the remaining rows
+		UPDATE WorkOrderTask
+		SET SequenceNumber = NewSequence.SequenceNumber
+		FROM WorkOrderTask
+		INNER JOIN (
+			SELECT WorkOrderTaskId,
+				   ROW_NUMBER() OVER (ORDER BY SequenceNumber) AS SequenceNumber
+			FROM WorkOrderTask
+			WHERE WorkOrderId = @WorkOrderId
+		) AS NewSequence
+		ON WorkOrderTask.WorkOrderTaskId = NewSequence.WorkOrderTaskId;
+
 	COMMIT TRANSACTION
 
 	END TRY

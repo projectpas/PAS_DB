@@ -18,11 +18,12 @@
      2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
 	 3    17/01/2025	AMIT GHEDIYA		Handle mutiple invoiced data with laytest invoiced.
 
-EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0
+EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0,0
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
     @SalesOrderId BIGINT,
-	@ItemMasterId BIGINT = NULL
+	@ItemMasterId BIGINT = NULL,
+	@isFromShipping BIT = 0
 AS
 BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -74,12 +75,16 @@ BEGIN
 			   stl.ControlNumber,
 			   stl.MasterCompanyId,
 			   im.ManufacturerName,
-			   ISNULL((SELECT ISNULL(sobii.NoofPieces, 0) 
-			   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
-			   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-			   WHERE sobi.SalesOrderId = @SalesOrderId AND ISNULL(sobi.IsProforma, 0) = 0
-			   AND sobii.StockLineId = stl.StockLineId
-			   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) AS NoofPieces
+			   CASE WHEN 
+				   @isFromShipping = 0
+			   THEN 
+				   ISNULL((SELECT ISNULL(sobii.NoofPieces, 0) 
+				   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
+				   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+				   WHERE sobi.SalesOrderId = @SalesOrderId AND ISNULL(sobi.IsProforma, 0) = 0
+				   AND sobii.StockLineId = stl.StockLineId
+				   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) 
+				ELSE 0 END AS NoofPieces
 		FROM [DBO].[SalesOrder] so WITH(NOLOCK)
 		JOIN [DBO].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		JOIN [DBO].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId

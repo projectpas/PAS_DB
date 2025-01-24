@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    07/06/2023   Moin Bloch     Created
+    2    24 Jan 2025  Bhargav Saliya  Change The DataType DATE To DATETIME for UTC Conversation
 *******************************************************************************
 EXEC GetReceiverStockRMAPNLabel 113,1,1,1,''
 *******************************************************************************/
@@ -25,10 +26,10 @@ BEGIN
 	BEGIN TRY
 		IF(@IsParent = '1')
 		BEGIN
-			SELECT SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATE) AS [ReceivedDate] FROM [dbo].[Stockline] SL WITH(NOLOCK)
+			SELECT SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME) AS [ReceivedDate] FROM [dbo].[Stockline] SL WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = SL.[ItemMasterId]
 			WHERE [VendorRMAId] = @VendorRMAId AND [IsParent] = 1
-			GROUP BY SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATE)
+			GROUP BY SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME)
 		END
 		IF(@IsParent = '0')
 		BEGIN

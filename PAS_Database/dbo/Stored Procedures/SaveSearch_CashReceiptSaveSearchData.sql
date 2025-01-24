@@ -33,12 +33,12 @@ CREATE   PROCEDURE [dbo].[SaveSearch_CashReceiptSaveSearchData]
 	@InvoiceDate DATETIME = NULL,
 	@ReferenceNum VARCHAR(150) = NULL,
 	@BatchRef VARCHAR(150) = NULL,
-	@OriginalAmount DECIMAL(18, 2) = NULL,
-	@AmountPaid DECIMAL(18, 2) = NULL,
-	@RemainAmount DECIMAL(18, 2) = NULL,
-	@DiscAmount DECIMAL(18, 2) = NULL,
-	@BankFees DECIMAL(18, 2) = NULL,
-	@OtherAdj DECIMAL(18, 2) = NULL,
+	@OriginalAmount VARCHAR(100) = NULL,
+	@AmountPaid VARCHAR(100) = NULL,
+	@RemainAmount VARCHAR(100) = NULL,
+	@DiscAmount VARCHAR(100) = NULL,
+	@BankFees VARCHAR(100) = NULL,
+	@OtherAdj VARCHAR(100) = NULL,
 	@AccountPeriod VARCHAR(150) = NULL,
 	@Currency VARCHAR(150) = NULL,
 	@PaymentMethod VARCHAR(150) = NULL,
@@ -146,6 +146,11 @@ AS
 					  DROP TABLE #finalResult    
 					END 
 
+					IF OBJECT_ID('tempdb..#TempTotalAmount') IS NOT NULL
+					BEGIN
+						DROP TABLE #TempTotalAmount;
+					END
+
 					CREATE TABLE #tmpCash
 					(
 						ID BIGINT NOT NULL IDENTITY,
@@ -170,6 +175,13 @@ AS
 						PostDate DATETIME NULL,
 						BankAccount VARCHAR(100) NULL,
 						CntrlNum VARCHAR(150) NULL,
+						[MastercompanyId] [int] NULL,
+						[TotalOriginalAmount] VARCHAR(25) NULL,
+						[TotalAmountPaid] VARCHAR(25) NULL,
+						[TotalRemainAmount] VARCHAR(25) NULL,
+						[TotalDiscAmount] VARCHAR(25) NULL,
+						[TotalBankFees] VARCHAR(25) NULL,
+						[TotalOtherAdj] VARCHAR(25) NULL,
 						level1 VARCHAR(MAX)  NULL,
 						level2 VARCHAR(MAX)  NULL,
 						level3 VARCHAR(MAX)  NULL,
@@ -182,9 +194,21 @@ AS
 						level10 VARCHAR(MAX) NULL
 					)
 
+					CREATE TABLE #TempTotalAmount
+					(
+						[Id] [bigint] IDENTITY(1,1),
+						[MastercompanyId] [int] NULL,
+						[TotalOriginalAmount] [varchar](25) NULL,
+						[TotalAmountPaid] [varchar](25) NULL,
+						[TotalRemainAmount] [varchar](25) NULL,
+						[TotalDiscAmount] [varchar](25) NULL,
+						[TotalBankFees] [varchar](25) NULL,
+						[TotalOtherAdj] [varchar](25) NULL
+					)
+
 					INSERT INTO #tmpCash (ReceiptId,Customer, InvoiceNum, InvoiceDate, ReferenceNum, BatchRef, OriginalAmount, AmountPaid, RemainAmount, DiscAmount, BankFees, OtherAdj,
-								AccountPeriod, Currency, PaymentMethod, PaymentRef, PaymentDate, InvoiceType, PostDate, BankAccount, CntrlNum,level1, level2, level3, level4,
-								level5, level6, level7, level8, level9, level10
+								AccountPeriod, Currency, PaymentMethod, PaymentRef, PaymentDate, InvoiceType, PostDate, BankAccount, CntrlNum,MastercompanyId,level1, level2, level3, level4,
+								level5, level6, level7, level8, level9, level10,TotalOriginalAmount,TotalAmountPaid,TotalRemainAmount,TotalDiscAmount,TotalBankFees,TotalOtherAdj
 								) 
 
 					SELECT DISTINCT
@@ -209,6 +233,7 @@ AS
 						ISNULL(CP.PostedDate,''),
 						LB.BankAccountNumber,
 						CP.CntrlNum,
+						CP.MasterCompanyId,
 						UPPER(MSD.Level1Name) AS level1,  
 			            UPPER(MSD.Level2Name) AS level2, 
 			            UPPER(MSD.Level3Name) AS level3, 
@@ -218,7 +243,13 @@ AS
 			            UPPER(MSD.Level7Name) AS level7, 
 			            UPPER(MSD.Level8Name) AS level8, 
 			            UPPER(MSD.Level9Name) AS level9, 
-			            UPPER(MSD.Level10Name) AS level10
+			            UPPER(MSD.Level10Name) AS level10,
+						'',
+						'',
+						'',
+						'',
+						'',
+						''
 					FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
 						INNER JOIN [dbo].[InvoicePayments] IPS WITH(NOLOCK) ON IPS.ReceiptId = CP.ReceiptId AND IPS.IsDeleted = 0 AND IPS.IsActive = 1
 						INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CP.ReceiptId = CPD.ReceiptId AND CPD.IsDeleted = 0 AND CPD.IsActive = 1
@@ -270,6 +301,16 @@ AS
 
 					SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 					SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
+
+					INSERT INTO #TempTotalAmount([MastercompanyId], [TotalOriginalAmount],[TotalAmountPaid],[TotalRemainAmount],[TotalDiscAmount],[TotalBankFees],[TotalOtherAdj])
+					SELECT MastercompanyId,   
+					FORMAT(SUM(OriginalAmount), 'N', 'en-us') TotalOriginalAmount,
+					FORMAT(SUM(AmountPaid), 'N', 'en-us') TotalAmountPaid,
+					FORMAT(SUM(RemainAmount), 'N', 'en-us') TotalRemainAmount,
+					FORMAT(SUM(DiscAmount), 'N', 'en-us') TotalDiscAmount,
+					FORMAT(SUM(BankFees), 'N', 'en-us') TotalBankFees,
+					FORMAT(SUM(OtherAdj), 'N', 'en-us') TotalOtherAdj
+					FROM #tmpCash GROUP BY MastercompanyId
 					
 					UPDATE #tmpCash SET BatchRef = batchRs.BatchName
 					FROM
@@ -282,6 +323,15 @@ AS
 					GROUP BY BH.BatchName
 					) batchRs
 
+					UPDATE #tmpCash SET TotalOriginalAmount = total.TotalOriginalAmount,TotalRemainAmount = total.TotalRemainAmount,TotalAmountPaid = total.TotalAmountPaid,
+										TotalDiscAmount = total.TotalDiscAmount,TotalBankFees = total.TotalBankFees,TotalOtherAdj = total.TotalOtherAdj
+					FROM
+					(SELECT 
+						TH.TotalOriginalAmount,TH.TotalRemainAmount,TH.TotalAmountPaid,TH.TotalDiscAmount,TH.TotalBankFees,TH.TotalOtherAdj
+					FROM #tmpCash tmp
+					INNER JOIN #TempTotalAmount TH WITH(NOLOCK) ON TH.MastercompanyId = tmp.MastercompanyId
+					) total
+
 					SELECT * INTO #finalResult
 					FROM #tmpCash
 					 WHERE (
@@ -290,12 +340,12 @@ AS
 							(ISNULL(@InvoiceDate, '') = '' OR CAST([InvoiceDate] AS DATE) =  CAST(@InvoiceDate AS DATE) ) AND 
 							(ISNULL(@ReferenceNum,'') ='' OR [ReferenceNum]  LIKE '%' +@ReferenceNum +'%') AND
 							(ISNULL(@BatchRef,'') ='' OR [BatchRef]  LIKE '%' +@BatchRef +'%') AND
-							(ISNULL(CAST(@OriginalAmount AS VARCHAR),'') ='' OR CAST([OriginalAmount] AS VARCHAR) LIKE '%' +CAST(@OriginalAmount AS VARCHAR)+'%') AND
-							(ISNULL(CAST(@AmountPaid AS VARCHAR),'') ='' OR CAST([AmountPaid] AS VARCHAR) LIKE '%' +CAST(@AmountPaid AS VARCHAR) +'%') AND
-							(ISNULL(CAST(@RemainAmount AS VARCHAR),'') ='' OR CAST([RemainAmount] AS VARCHAR) LIKE '%' +CAST(@RemainAmount AS VARCHAR)+'%') AND
-							(ISNULL(CAST(@DiscAmount AS VARCHAR),'') ='' OR CAST([DiscAmount] AS VARCHAR) LIKE '%' +CAST(@DiscAmount AS VARCHAR)+'%') AND
-							(ISNULL(CAST(@BankFees AS VARCHAR),'') ='' OR CAST([BankFees] AS VARCHAR) LIKE '%' +CAST(@BankFees AS VARCHAR)+'%') AND
-							(ISNULL(CAST(@OtherAdj AS VARCHAR),'') ='' OR CAST([OtherAdj] AS VARCHAR) LIKE '%' +CAST(@OtherAdj AS VARCHAR)+'%') AND
+							(ISNULL(@OriginalAmount,'') ='' OR CAST([OriginalAmount] AS VARCHAR) LIKE '%' + @OriginalAmount +'%') AND
+							(ISNULL(@AmountPaid,'') ='' OR CAST([AmountPaid] AS VARCHAR) LIKE '%' +@AmountPaid +'%') AND
+							(ISNULL(@RemainAmount,'') ='' OR CAST([RemainAmount] AS VARCHAR) LIKE '%' +@RemainAmount+'%') AND
+							(ISNULL(@DiscAmount ,'') ='' OR CAST([DiscAmount] AS VARCHAR) LIKE '%' + @DiscAmount +'%') AND
+							(ISNULL(@BankFees ,'') ='' OR CAST([BankFees] AS VARCHAR) LIKE '%' + @BankFees +'%') AND
+							(ISNULL(@OtherAdj ,'') ='' OR CAST([OtherAdj] AS VARCHAR) LIKE '%' + @OtherAdj +'%') AND
 							(ISNULL(@AccountPeriod,'') ='' OR [AccountPeriod]  LIKE '%' +@AccountPeriod +'%') AND
 							(ISNULL(@Currency,'') ='' OR [Currency]  LIKE '%' +@Currency +'%') AND
 							(ISNULL(@PaymentMethod,'') ='' OR [PaymentMethod]  LIKE '%' +@PaymentMethod +'%') AND

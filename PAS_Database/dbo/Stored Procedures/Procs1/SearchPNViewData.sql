@@ -13,7 +13,7 @@
  ** --   --------     -------			 --------------------------------            
     1    07/08/2023   Ekta Chandegra     Convert text into uppercase
 	2	 11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
-
+	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchPNViewData]  
  -- Add the parameters for the stored procedure here  
@@ -55,6 +55,29 @@ BEGIN
   BEGIN TRANSACTION  
    BEGIN  
     DECLARE @RecordFrom int;  
+	DECLARE @EmpLegalEntiyId BIGINT = 0;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
     SET @RecordFrom = (@PageNumber-1)*@PageSize;  
     IF @IsDeleted is null  
     Begin  
@@ -93,9 +116,14 @@ BEGIN
    -- Insert statements for procedure here  
    ;With Result AS(  
     Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',ISNULL(SPC.NetSaleAmount,0) as 'QuoteAmount',  
-    SOQ.CreatedDate,SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(P.Description,'') as 'Priority',IsNull(P.Description,'') as 'PriorityType',(E.FirstName+' '+E.LastName)as SalesPerson,  
+    --SOQ.CreatedDate,
+	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(P.Description,'') as 'Priority',IsNull(P.Description,'') as 'PriorityType',(E.FirstName+' '+E.LastName)as SalesPerson,  
     IsNull(IM.partnumber,'') as 'PartNumber',M.Name As 'ManufacturerType',IsNull(IM.partnumber,'') as 'PartNumberType',IsNull(im.PartDescription,'') as 'PartDescription',IsNull(im.PartDescription,'') as 'PartDescriptionType',  
-    Ct.CustomerTypeName as 'CustomerType',SO.SalesOrderNumber,SOPC.NetSaleAmount as 'SoAmount',SOQ.UpdatedDate,SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber'  
+    Ct.CustomerTypeName as 'CustomerType',SO.SalesOrderNumber,SOPC.NetSaleAmount as 'SoAmount',
+	--SOQ.UpdatedDate,
+	(Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+	(Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber'  
     from DBO.SalesOrderQuote SOQ WITH (NOLOCK)  
     Inner Join DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id  
     Inner Join DBO.Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId  

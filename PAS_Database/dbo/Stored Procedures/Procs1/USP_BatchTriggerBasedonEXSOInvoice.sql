@@ -22,7 +22,7 @@
 	7    19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
 	8	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	9	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	10	 21/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
+	10	 23/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -615,7 +615,7 @@ BEGIN
 								   @GlAccountNumber = [AccountCode],
 								   @GlAccountName = [AccountName]
 							FROM [dbo].[GLAccount] WITH(NOLOCK)
-							WHERE [GLAccountId] = @InventoryGLSettingId
+							WHERE [GLAccountId] = @InventoryGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 													    
 				    		INSERT INTO [dbo].[CommonBatchDetails]

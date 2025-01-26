@@ -104,8 +104,8 @@ BEGIN
 					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) on wl.TaskId = WOT.WorkOrderTaskId
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
-					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId --AND ISNULL(WOTI.PrintInWO,0) = 1
-					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 --AND ISNULL(WOTD.PrintInWO,0) = 1
+					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWO,0) = 1
+					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOTD.PrintInWO,0) = 1
 					
 				),
 				RecursiveCTE AS (				

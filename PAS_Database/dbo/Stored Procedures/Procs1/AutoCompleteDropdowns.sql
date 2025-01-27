@@ -22,6 +22,7 @@
 	5    31/12/2024   Devendra Shekh	Added field IsSerialized for ItemMaster Table
 	6    03/01/2025   Moin Bloch  	    Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
 	7    10/01/2025   Sahdev Saliya     Added Defult site as per setting while add new item 
+	8    24/01/2025   Sahdev Saliya     Added According To The Default Site Management Structure When Adding New items  
     
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1      
@@ -204,12 +205,18 @@ AS BEGIN
                                   FROM dbo.LotConsignment LC
                                   WHERE LC.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND LC.ConsignmentNumber like '%'+@Parameter3+'%'
                          END
-						  IF(@TableName='Site')BEGIN
-                             SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized
+						 ELSE IF(@TableName='Site')BEGIN
+                             SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized,
+							 STUFF((SELECT ', ' + CAST(ManagementStructureId AS VARCHAR(100)) [text()]
+							 FROM ManagementSite WITH(NOLOCK)
+							 WHERE SiteId = IM.SiteId FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') List_Output
                              FROM dbo.Site IM WITH(NOLOCK)
-                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.Name like '%'+@Parameter3+'%'
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(im.IsActive, 1)=1 AND ISNULL(im.IsDeleted, 0)=0 AND Im.Name like '%'+@Parameter3+'%'
                              UNION
-                             SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized
+                             SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized,
+							 STUFF((SELECT ', ' + CAST(ManagementStructureId AS VARCHAR(100)) [text()]
+							 FROM ManagementSite WITH(NOLOCK)
+							 WHERE SiteId = IM.SiteId FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') List_Output
                              FROM dbo.Site IM WITH(NOLOCK)
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.SiteId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          END

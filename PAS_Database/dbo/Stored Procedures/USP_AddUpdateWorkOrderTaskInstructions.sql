@@ -75,80 +75,125 @@ BEGIN
 
 		IF (ISNULL(@InstructionListId, '') <> '')
 		BEGIN
+			-- Temporary table to store mapping of old TaskInstructionId to new WorkOrderTaskInstructionId
+			DECLARE @IdMapping TABLE (
+				TaskInstructionId INT,
+				WorkOrderTaskInstructionId INT
+			);
+			
+			-- CTE to get the hierarchy of tasks based on @InstructionListId
 			;WITH RecursiveCTE AS (
 				SELECT * 
 				FROM DBO.TaskInstructionMaster WITH (NOLOCK)
 				WHERE TaskInstructionId IN (SELECT Item FROM DBO.SPLITSTRING(@InstructionListId, ','))
-    
+				AND IsDeleted = 0
+
 				UNION ALL
-    
+
 				SELECT t.*
 				FROM DBO.TaskInstructionMaster t WITH (NOLOCK)
 				INNER JOIN RecursiveCTE r
 				ON t.ParentId = r.TaskInstructionId
+				WHERE t.IsDeleted = 0
 			)
 
-			INSERT INTO #TaskMaster ([TaskInstructionId],[Title],[Description],[TaskId],[SequenceNumber],[ParentId],[IsParent],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
-			[UpdatedDate],[IsActive],[IsDeleted])
-			SELECT [TaskInstructionId],[Title],[Description],[TaskId],[SequenceNumber],[ParentId],[IsParent],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
-			[UpdatedDate],[IsActive],[IsDeleted]
-			FROM RecursiveCTE ORDER BY ParentId DESC;
-		
-			SELECT @TaskMasterLoopID = MAX(ID) FROM #TaskMaster;
+			SELECT 
+				TaskInstructionId, 
+				Title, 
+				ParentId, 
+				IsParent, 
+				SequenceNumber,
+				[Description]
+			INTO #TempTaskInstructions
+			FROM RecursiveCTE
+			ORDER BY ISNULL(ParentId, TaskInstructionId), SequenceNumber;
 
-			WHILE (@TaskMasterLoopID > 0)
+			-- Cursor to process records in the correct parent-child sequence
+			DECLARE TaskCursor CURSOR FOR
+			SELECT 
+				TaskInstructionId, 
+				Title, 
+				ParentId, 
+				IsParent, 
+				SequenceNumber,
+				[Description]
+			FROM #TempTaskInstructions;
+
+			-- Variables to hold row data
+			DECLARE @TaskInstructionId INT,
+					@Title NVARCHAR(MAX),
+					@Description NVARCHAR(MAX),
+					@ParentId INT,
+					@IsParent BIT,
+					@SequenceNumber INT,
+					@NewParentId INT;
+
+			OPEN TaskCursor;
+			FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @Title, @ParentId, @IsParent, @SequenceNumber, @Description;
+
+			WHILE @@FETCH_STATUS = 0
 			BEGIN
-				DECLARE @OldTaskInstructionId BIGINT = 0;
-				DECLARE @OldParentId BIGINT = 0;
-				DECLARE @OldTitle VARCHAR(8000) = NULL;
-				DECLARE @OldDescription VARCHAR(MAX) = NULL;
-
-				SELECT @OldTaskInstructionId = TaskInstructionId, @OldParentId = ParentId FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
-
-				IF (ISNULL(@OldParentId, 0) > 0)
+				-- Get the new ParentId from mapping if the current record has a ParentId
+				SET @NewParentId = NULL;
+				IF @ParentId IS NOT NULL
 				BEGIN
-					SELECT @OldTitle = Title, @OldDescription = [Description] FROM DBO.TaskInstructionMaster WITH (NOLOCK) WHERE TaskInstructionId = @OldParentId;
+					SELECT @NewParentId = WorkOrderTaskInstructionId FROM @IdMapping WHERE TaskInstructionId = @ParentId;
 				END
 
-				INSERT INTO DBO.WorkOrderTaskInstruction ([WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
-				[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-				SELECT @WorkOrderTaskId, [ParentId], [IsParent], Title, [SequenceNumber], [Description],@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
-				@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-				FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
+				-- Insert the record into WorkOrderTaskInstruction table
+				INSERT INTO WorkOrderTaskInstruction (
+					WorkOrderTaskId, 
+					ParentId, 
+					IsParent, 
+					InstructionTitle, 
+					SequenceNumber,
+					[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+				)
+				VALUES (
+					@WorkOrderTaskId, 
+					@NewParentId, 
+					@IsParent, 
+					@Title, 
+					@SequenceNumber,
+					@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+					@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
+				);
 
-				SET @InsertedWorkOrderTaskInstructionId = SCOPE_IDENTITY();
+				-- Get the newly generated ID
+				DECLARE @NewWorkOrderTaskInstructionId INT = SCOPE_IDENTITY();
+
+				-- Store the mapping of TaskInstructionId to the new WorkOrderTaskInstructionId
+				INSERT INTO @IdMapping (TaskInstructionId, WorkOrderTaskInstructionId)
+				VALUES (@TaskInstructionId, @NewWorkOrderTaskInstructionId);
+
+				IF (@ParentId IS NULL)
+				BEGIN
+					/* START: Add Entry in History Table */
+					SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+
+					SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
 				
-				/* START: Add Entry in History Table */
-				SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+					SELECT @InstructionTitleNew = InstructionTitle FROM DBO.WorkOrderTaskInstruction WITH (NOLOCK) WHERE WorkOrderTaskInstructionId = @NewWorkOrderTaskInstructionId;
 
-				SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
-				SELECT @InstructionTitleNew = Title FROM #TaskMaster WHERE ID = @TaskMasterLoopID;
+					SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
-				SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+					SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+					SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitleNew,''));
 
-				SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
-				SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitleNew,''));
-
-				EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitleNew, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
-				/* END: Add Entry in History Table */
-
-				SELECT TOP 1 @WorkOrderId = WorkOrderId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
-
-				SELECT @MaxSequence = ISNULL(MAX(WOTI.SequenceNumber), 0)
-				FROM DBO.WorkOrderTaskInstruction WOTI WITH (NOLOCK)
-				INNER JOIN DBO.WorkOrderTask WOT WITH (NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId AND WOTI.IsParent = 1
-				WHERE WOT.WorkOrderId = @WorkOrderId;
-
-				IF (ISNULL(@OldParentId, 0) > 0)
-				BEGIN
-					UPDATE DBO.WorkOrderTaskInstruction
-					SET ParentId = (SELECT TOP 1 WorkOrderTaskInstructionId FROM DBO.WorkOrderTaskInstruction WHERE InstructionTitle = @OldTitle AND InstructionDetails = @OldDescription AND WorkOrderTaskId = @WorkOrderTaskId),
-					SequenceNumber = (@MaxSequence + 1)
-					WHERE WorkOrderTaskInstructionId = @InsertedWorkOrderTaskInstructionId;
+					EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitleNew, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+					/* END: Add Entry in History Table */
 				END
 
-				SET @TaskMasterLoopID = @TaskMasterLoopID - 1;
+				-- Move to the next record
+				FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @Title, @ParentId, @IsParent, @SequenceNumber, @Description;
 			END
+
+			CLOSE TaskCursor;
+			DEALLOCATE TaskCursor;
+
+			-- Clean up the temporary table
+			DROP TABLE #TempTaskInstructions;
 		END
 		ELSE
 		BEGIN

@@ -17,6 +17,7 @@
 	6	12/12/2024		Devendra Shekh			Resolved Records Count Issue
 	7	12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
     9	01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	10	01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
 
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
@@ -230,6 +231,7 @@ SET NOCOUNT ON
 		 	[Employeename] [varchar](256) NULL,
 		 	[RONextDlvrDate] [datetime2] NULL,
 		 	[RepairOrderNumber] [varchar](150) NULL,
+			[RepairOrderId] [bigint] NULL,
 		 	[Figure] [nvarchar](250) NULL,
 		 	[Item] [nvarchar](250) NULL,
 		 	[StockLineFigure] [nvarchar](250) NULL,
@@ -446,7 +448,7 @@ SET NOCOUNT ON
 								[StocklineQtytobeReserved],[StocklineQuantityTurnIn], [StocklineQtyToTurnIn], [StocklineQtyRemaining], [Quantity], [ConditionCodeId], [StocklineConditionCodeId],[UnitOfMeasureId], 
 								[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
-								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
+								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId],[Figure], [Item], [StockLineFigure], [StockLineItem],
 								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 				SELECT DISTINCT   
 					IM.PartNumber,  
@@ -586,7 +588,9 @@ SET NOCOUNT ON
 					Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 					ROP.EstRecordDate 'RONextDlvrDate',  
 					--RO.RepairOrderNumber
-					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS RepairOrderId
+					
 					,WOM.Figure Figure
 					,WOM.Item Item
 					,MSTL.Figure StockLineFigure
@@ -660,7 +664,7 @@ SET NOCOUNT ON
 								[StocklineQtytobeReserved],[StocklineQuantityTurnIn], [StocklineQtyToTurnIn], [StocklineQtyRemaining], [Quantity], [ConditionCodeId], [StocklineConditionCodeId],[UnitOfMeasureId], 
 								[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
-								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
+								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId], [Figure], [Item], [StockLineFigure], [StockLineItem],
 								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 				SELECT DISTINCT   
 					IM.PartNumber,  
@@ -798,7 +802,8 @@ SET NOCOUNT ON
 					Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 					ROP.EstRecordDate 'RONextDlvrDate',  
 					--RO.RepairOrderNumber
-					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId'					
 					,WOM.Figure Figure
 					,WOM.Item Item
 					,MSTL.Figure StockLineFigure
@@ -874,7 +879,7 @@ SET NOCOUNT ON
 								[StocklineQtytobeReserved],[StocklineQuantityTurnIn], [StocklineQtyToTurnIn], [StocklineQtyRemaining], [Quantity], [ConditionCodeId], [StocklineConditionCodeId],[UnitOfMeasureId], 
 								[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
-								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
+								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId], [Figure], [Item], [StockLineFigure], [StockLineItem],
 								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 				SELECT DISTINCT   
 				  IM.PartNumber,  
@@ -1014,7 +1019,8 @@ SET NOCOUNT ON
 				  Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 				  ROP.EstRecordDate 'RONextDlvrDate',  
 				  --RO.RepairOrderNumber
-				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
+				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
+				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId	END AS 'RepairOrderId'
 				  ,WOM.Figure Figure
 				  ,WOM.Item Item
 				  ,MSTL.Figure StockLineFigure
@@ -1086,7 +1092,7 @@ SET NOCOUNT ON
 							[StocklineQtytobeReserved],[StocklineQuantityTurnIn], [StocklineQtyToTurnIn], [StocklineQtyRemaining], [Quantity], [ConditionCodeId], [StocklineConditionCodeId],[UnitOfMeasureId], 
 							[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 							[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
-							[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
+							[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId], [Figure], [Item], [StockLineFigure], [StockLineItem],
 							[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 			 SELECT DISTINCT   
 				  IM.PartNumber,  
@@ -1224,7 +1230,8 @@ SET NOCOUNT ON
 				  Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
 				  ROP.EstRecordDate 'RONextDlvrDate',  
 				  --RO.RepairOrderNumber,
-				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber'
+				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
+				  CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId	END AS 'RepairOrderId'
 				  ,WOM.Figure Figure
 				  ,WOM.Item Item
 				  ,MSTL.Figure StockLineFigure
@@ -1352,6 +1359,7 @@ SET NOCOUNT ON
 					CASE WHEN (@SortOrder=1 and @SortColumn='controlId')  THEN controlId END ASC, 
 					CASE WHEN (@SortOrder=1 and @SortColumn='costDate')  THEN costDate END ASC, 
 					CASE WHEN (@SortOrder=1 and @SortColumn='repairOrderNumber')  THEN repairOrderNumber END ASC, 
+					CASE WHEN (@SortOrder=1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END ASC, 
 					CASE WHEN (@SortOrder=1 and @SortColumn='roNextDlvrDate')  THEN roNextDlvrDate END ASC, 
 					CASE WHEN (@SortOrder=1 and @SortColumn='receiver')  THEN receiver END ASC, 
 					CASE WHEN (@SortOrder=1 and @SortColumn='stockLineFigure')  THEN stockLineFigure END ASC, 
@@ -1413,6 +1421,7 @@ SET NOCOUNT ON
 					CASE WHEN (@SortOrder=-1 and @SortColumn='controlId')  THEN controlId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='costDate')  THEN costDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='repairOrderNumber')  THEN repairOrderNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='roNextDlvrDate')  THEN roNextDlvrDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='receiver')  THEN receiver END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='stockLineFigure')  THEN stockLineFigure END DESC,

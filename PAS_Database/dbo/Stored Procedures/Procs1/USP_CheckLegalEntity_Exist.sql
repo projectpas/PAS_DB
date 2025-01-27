@@ -21,7 +21,7 @@
      
 **************************************************************/
 
- --EXEC [USP_CheckLegalEntity_Exist] 15,3685
+ --EXEC [USP_CheckLegalEntity_Exist] 22,184425,207
 CREATE   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
@@ -33,6 +33,13 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT @CurrntEmpTimeZoneDesc = ISNULL(ETZ.[Description],'') FROM [dbo].[Employee] E WITH(NOLOCK)
+				INNER JOIN [dbo].TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				WHERE E.EmployeeId = @EmployeeId
+
+
 		BEGIN TRANSACTION
 			  BEGIN 
 			   IF @ModuleId = (SELECT ModuleId FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'Asset')
@@ -191,14 +198,12 @@ BEGIN
 			  ELSE IF @ModuleId = (SELECT ModuleId  FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'StockLine')
 			  BEGIN
 
-				  SELECT  COALESCE(ETZ.[Description],TZ.[Description]) AS 'TimeZoneName', LE.LegalEntityId,
+				  SELECT  COALESCE(@CurrntEmpTimeZoneDesc,TZ.[Description]) AS 'TimeZoneName', LE.LegalEntityId,
 				  SL.[StockLineId] AS ReferenceId,le.TimeZoneId
 				  FROM [Stockline] SL WITH(NOLOCK)
-				  LEFT JOIN [dbo].[Employee] E WITH(NOLOCK) ON E.EmployeeId = @EmployeeId
-				  LEFT JOIN [dbo].TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 				  LEFT JOIN [dbo].LegalEntity LE WITH(NOLOCK) ON SL.LegalEntityId = LE.LegalEntityId
 				  LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
-				  WHERE SL.[StockLineId] = @ReferenceId AND E.EmployeeId = @EmployeeId
+				  WHERE SL.[StockLineId] = @ReferenceId 
 			  END
 			  END
 		COMMIT  TRANSACTION

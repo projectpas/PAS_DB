@@ -254,7 +254,7 @@ SET NOCOUNT ON
 				END
 
 				/* Remove/Modify Pick Ticket on Un-Reserve  */
-				IF (@isReserveOrUnreserve = 0)
+				IF (@IsFromShipping = 0 AND @isReserveOrUnreserve = 0)
 				BEGIN
 					IF OBJECT_ID(N'tempdb..#tmpSOPickTicket') IS NOT NULL
 					BEGIN

@@ -20,8 +20,9 @@
     4    11/13/2024   Vishal Suthar		Fixed issues with stockline after unreserve
     5    01/22/2025   Abhishek Jirawla  Pick Ticket Mismatch
 	6    01/24/2025   AMIT GHEDIYA		Fixed for get Reserved list after qty adjust.
+	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
      
- exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1269
+ exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1810
 **************************************************************/
 CREATE    PROC [dbo].[GetReserveStockPartsListBySOId]
 	@SalesOrderId  BIGINT,
@@ -76,12 +77,17 @@ BEGIN
 		 ISNULL(sop.QtyReserved, 0) - 
 		 (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
 		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved,
+		  (ISNULL(sop.QtyRequested, 0) - 
+		 ISNULL(sop.QtyReserved, 0) - 
+		 (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+		 INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+		 INNER JOIN DBO.SOPickTicket SOPick ON SOPick.SOPickTicketId = SOSI.SOPickTicketId
+		  WHERE SOPick.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND SOS.SalesOrderId = @SalesOrderId)) AS StkQtyToBeReserved,
 		ISNULL(sop.QtyReserved, 0) AS QuantityReserved,
 		sl.QuantityAvailable, 
 		sl.QuantityOnHand, 
-		--ISNULL(Stk.QtyOrder, 0) QuantityOnOrder, 
-		ISNULL(sop.QtyRequested, 0) QuantityOnOrder,
-		--ISNULL((SELECT ISNULL(StkV1.QtyOrder, 0) FROM DBO.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId AND StkV1.StockLineId = SL.StockLineId), 0) QuantityOnOrder, 
+		ISNULL((SELECT ISNULL(Part.QtyRequested, 0) FROM DBO.SalesOrderPartV1 Part WITH (NOLOCK) WHERE Part.SalesOrderPartId = SOP.SalesOrderPartId), 0) PartQuantityOnOrder, 
+		ISNULL((SELECT ISNULL(StkV1.QtyOrder, 0) FROM DBO.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId AND StkV1.StockLineId = SL.StockLineId), 0) QuantityOnOrder, 
 		sl.StockLineId,
 		sl.StockLineNumber, 
 		sl.ControlNumber,
@@ -96,7 +102,6 @@ BEGIN
 		SOP.IsLotAssigned AS IsLotQty
 		FROM DBO.SalesOrder SO WITH (NOLOCK)
 		LEFT JOIN SalesOrderPartsWithTotalQtyOrder SOP ON SO.SalesOrderId = SOP.SalesOrderId
-		--INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 		INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
@@ -125,6 +130,7 @@ BEGIN
 		SOP.QtyReserved,
 		Stk.QtyReserved,
 		SOP.SalesOrderPartId,
+		Stk.SalesOrderStocklineId,
 		sl.StockLineId,
 		sl.StockLineNumber, 
 		sl.ControlNumber,
@@ -160,8 +166,8 @@ BEGIN
 		EquPartMasterPartId,
 		QtyToReserve,
 		CASE WHEN (QuantityOnOrder IS NOT NULL AND ISNULL(QuantityOnOrder, 0) > 0 AND ISNULL(QuantityOnOrder, 0) < QtyToBeReserved) THEN (ISNULL(QuantityOnOrder, 0) - ISNULL(Stk.QtyReserved, 0)) ELSE QtyToBeReserved END QtyToBeReserved,
-		--Quantity - ISNULL(Stk.QtyReserved, 0) AS QtyToBeReserved,
-		--CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN ISNULL(Stk.QtyReserved, 0) ELSE QuantityReserved END QuantityReserved,
+		PartQuantityOnOrder,
+		StkQtyToBeReserved,
 		ISNULL(Stk.QtyReserved, 0) QuantityReserved,
 		ISNULL(QuantityReserved, 0) TotalReserved,
 		QuantityAvailable, 
@@ -194,17 +200,16 @@ BEGIN
 		EquPartMasterPartId,
 		QtyToReserve,
 		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
-		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (QuantityOnOrder - QuantityReserved) END
+		CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved ELSE (PartQuantityOnOrder - QuantityReserved) END
 		END)
-		---
-		--(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-		--  WHERE SOSI.SalesOrderPartId = SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)
-		)QtyToBeReserved,
+		) QtyToBeReserved,
+		StkQtyToBeReserved,
 		QuantityReserved,
 		TotalReserved,
 		QuantityAvailable, 
 		QuantityOnHand, 
 		QuantityOnOrder, 
+		PartQuantityOnOrder,
 		StockLineId,
 		StockLineNumber, 
 		ControlNumber,
@@ -214,15 +219,14 @@ BEGIN
 		IsLotQty FROM FinalReserveList 
 		WHERE 
 		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
-			CASE WHEN (QuantityReserved - QuantityOnOrder) > 0 THEN QtyToBeReserved 
-			ELSE (QuantityOnOrder - QuantityReserved - (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-				WHERE SOSI.SalesOrderPartId = SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) END
-		END)
-		---
-		--(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-		--  WHERE SOSI.SalesOrderPartId = SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)
-		) 
-		> 0;
+			CASE WHEN (QuantityReserved - PartQuantityOnOrder) > 0 THEN QtyToBeReserved 
+			ELSE (PartQuantityOnOrder - QuantityReserved - (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) 
+			FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+			INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+			INNER JOIN DBO.SOPickTicket SOPick ON SOPick.SOPickTicketId = SOSI.SOPickTicketId
+			INNER JOIN DBO.SalesOrderStocklineV1 Stk ON Stk.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
+			WHERE  Stk.StockLineId = StockLineId AND SOSI.SalesOrderPartId = FinalReserveList.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) END
+		END)) > 0;
 	END
 	COMMIT  TRANSACTION
 	END TRY    

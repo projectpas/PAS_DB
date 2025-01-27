@@ -16,7 +16,7 @@
  ** --   --------     -------			--------------------------------
     1    01/01/2025   Vishal Suthar		Created
 
-EXEC [dbo].[USP_GetWOTaskInstructions] 274
+EXEC [dbo].[USP_GetWOTaskInstructions] 283
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWOTaskInstructions]
 	@TaskId bigint = 0
@@ -27,11 +27,11 @@ BEGIN
 	BEGIN TRY
 		IF (ISNULL(@TaskId, 0) = 0)
 		BEGIN
-			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE ParentId IS NULL;
+			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE ParentId IS NULL AND IsDeleted = 0;
 		END
 		ELSE
 		BEGIN
-			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE TaskId = @TaskId AND ParentId IS NULL;
+			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE TaskId = @TaskId AND ParentId IS NULL AND IsDeleted = 0;
 		END
 	END TRY
 	BEGIN CATCH

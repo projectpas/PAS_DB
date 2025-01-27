@@ -18,6 +18,7 @@
     1    01/03/2023    Subhash Saliya			Created
 	2    02/21/2023	   Hemant Saliya			Updaetd to Upper Case
   	3    21-JAN-2025   RAJESH GAMI			    Modified to add logic for the get TASK based on the WorkOrderFormTypeId condition.
+	4    27-JAN-2025   RAJESH GAMI			    remove the condition PrintInWO for the WorkOrderFormType, Need to display all the task and information.
 -- EXEC [USP_GetLaborMainTaskList] 692,682
 **************************************************************/
 

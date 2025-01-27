@@ -33,7 +33,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 	@UpdatedBy VARCHAR(100) = NULL,
 	@MasterCompanyId INT = NULL,
 	@IsUnreservedAction BIT = 0,
-	@IsFromShipping BIT = 0
+	@IsFromShipping BIT = 0,
+	@isReserveOrUnreserve BIT = NULL
 )
 AS
 BEGIN
@@ -247,109 +248,104 @@ SET NOCOUNT ON
 					WHERE SalesOrderPartId = @SalesOrderPartId;
 				END
 
-				/* Remove/Modify Pick Ticket on Un-Reserve  */
-				--IF (@IsUnreservedAction = 1)
-				--BEGIN
-				--	IF OBJECT_ID(N'tempdb..#tmpSOPickTicket') IS NOT NULL
-				--	BEGIN
-				--		DROP TABLE #tmpSOPickTicket 
-				--	END
-				
-				--	CREATE TABLE #tmpSOPickTicket 
-				--	(
-				--		 ID BIGINT NOT NULL IDENTITY, 
-				--		 SalesOrderPartId BIGINT NULL,
-				--		 SalesOrderStocklineId BIGINT NULL,
-				--		 StocklineId BIGINT NULL,
-				--		 QtyToReserve INT NULL,
-				--		 QtyToShip INT NULL,
-				--		 QtyPtickTicketRemove INT NULL,
-				--	)
-
-				--	INSERT INTO #tmpSOPickTicket (SalesOrderPartId, SalesOrderStocklineId, StocklineId, QtyToReserve, QtyToShip)
-				--	SELECT SalesOrderPartId, SalesOrderStocklineId, StockLineId, QtyReserved,
-				--	(SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WITH (NOLOCK) WHERE SalesOrderPartId = sos.SalesOrderPartId AND SalesOrderId = @SalesOrderId AND StocklineId = sos.StockLineId)
-				--	FROM dbo.SalesOrderStocklineV1 sos WHERE sos.SalesOrderPartId = @SalesOrderPartId
-
-				--	UPDATE #tmpSOPickTicket SET QtyPtickTicketRemove = ISNULL(QtyToShip, 0) -  ISNULL(QtyToReserve, 0) FROM #tmpSOPickTicket;
-
-
-				--	IF OBJECT_ID(N'tempdb..#tmpremovePT') IS NOT NULL
-				--	BEGIN
-				--		DROP TABLE #tmpremovePT 
-				--	END
-				
-				--	CREATE TABLE #tmpremovePT 
-				--	(
-				--		ID BIGINT NOT NULL IDENTITY, 
-				--		SalesOrderPartId BIGINT NULL,
-				--		SalesOrderStocklineId BIGINT NULL,
-				--		StocklineId BIGINT NULL,
-				--		QtyToReserve INT NULL,
-				--		QtyToShip INT NULL,
-				--		QtyPtickTicketRemove INT NULL,
-				--		PickTicketId BIGINT NULL,
-				--		PickTicketQtyToShip INT NULL,
-				--	)
-					
-				--	INSERT INTO #tmpremovePT  SELECT  TMP.SalesOrderPartId, TMP.SalesOrderStocklineId, TMP.StocklineId, TMP.QtyToReserve, TMP.QtyToShip, TMP.QtyPtickTicketRemove, SOP.SOPickTicketId, SOP.QtyToShip FROM dbo.SOPickTicket SOP INNER JOIN  #tmpSOPickTicket TMP
-				--	ON TMP.SalesOrderPartId = SOP.SalesOrderPartId AND TMP.SalesOrderStocklineId = SOP.SalesOrderPartStocklineId WHERE TMP.QtyPtickTicketRemove > 0 AND  SOP.QtyToShip > 0 ORDER BY SOP.SOPickTicketId
-		
-				--	DECLARE @LoopID AS INT;
-				--	SELECT  @LoopID = MAX(ID) FROM #tmpremovePT;
-
-				--	DECLARE @PickTicketId BIGINT = 0;
-				--	DECLARE @QtyRemove BIGINT = 0;
-				--	DECLARE @QtyAvilable BIGINT = 0;
-				--	DECLARE @PTQtytoShip BIGINT = 0;
-
-				--	WHILE (@LoopID > 0)
-				--	BEGIN
-				--		SELECT @PickTicketId = PickTicketId, @QtyRemove = QtyPtickTicketRemove, @QtyAvilable = PickTicketQtyToShip FROM #tmpremovePT WHERE ID = @LoopID;
-
-				--		IF @QtyRemove = 0 
-				--		BEGIN
-				--		   SET @QtyAvilable = 0
-				--		END 
-
-				--		IF @QtyRemove >= @QtyAvilable 
-				--		BEGIN
-				--			SET  @PTQtytoShip =  @QtyAvilable 
-				--			SET @QtyRemove = @QtyRemove - @QtyAvilable
-				--		END
-				--		ELSE
-				--		BEGIN
-				--			SET  @PTQtytoShip = @QtyRemove
-				--			SET @QtyRemove  = @PTQtytoShip
-				--		END 
-				
-				--		UPDATE #tmpremovePT SET QtyPtickTicketRemove = @QtyRemove
-								
-				--		UPDATE dbo.SOPickTicket SET QtyToShip = (QtyToShip - @PTQtytoShip) WHERE SOPickTicketId = @PickTicketId;
-
-				--		--Bypass from Shipping
-				--		IF(@IsFromShipping = 0)
-				--		BEGIN
-				--			DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
-				--		END
-				
-				--		SET @LoopID = @LoopID - 1;
-				--	END
-
-				--	IF OBJECT_ID(N'tempdb..#tmpremovePT') IS NOT NULL
-				--	BEGIN
-				--		DROP TABLE #tmpremovePT 
-				--	END
-
-				--	IF OBJECT_ID(N'tempdb..#tmpSOPickTicket') IS NOT NULL
-				--	BEGIN
-				--		DROP TABLE #tmpSOPickTicket 
-				--	END
-				--END
-
 				IF OBJECT_ID(N'tempdb..#SOPartCostDetails') IS NOT NULL
 				BEGIN
 					DROP TABLE #SOPartCostDetails
+				END
+
+				/* Remove/Modify Pick Ticket on Un-Reserve  */
+				IF (@isReserveOrUnreserve = 0)
+				BEGIN
+					IF OBJECT_ID(N'tempdb..#tmpSOPickTicket') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpSOPickTicket 
+					END
+				
+					CREATE TABLE #tmpSOPickTicket 
+					(
+						 ID BIGINT NOT NULL IDENTITY, 
+						 SalesOrderPartId BIGINT NULL,
+						 SalesOrderStocklineId BIGINT NULL,
+						 StocklineId BIGINT NULL,
+						 QtyToReserve INT NULL,
+						 QtyToShip INT NULL,
+						 QtyPtickTicketRemove INT NULL,
+					)
+
+					INSERT INTO #tmpSOPickTicket (SalesOrderPartId, SalesOrderStocklineId, StocklineId, QtyToReserve, QtyToShip)
+					SELECT SalesOrderPartId, SalesOrderStocklineId, StockLineId, QtyReserved,
+					(SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WITH (NOLOCK) WHERE SalesOrderPartStocklineId = sos.SalesOrderStocklineId AND SalesOrderId = @SalesOrderId AND StocklineId = sos.StockLineId)
+					FROM dbo.SalesOrderStocklineV1 sos WHERE sos.SalesOrderPartId = @SalesOrderPartId
+
+					UPDATE #tmpSOPickTicket SET QtyPtickTicketRemove = ISNULL(QtyToShip, 0) -  ISNULL(QtyToReserve, 0) FROM #tmpSOPickTicket;
+
+					IF OBJECT_ID(N'tempdb..#tmpremovePT') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpremovePT 
+					END
+				
+					CREATE TABLE #tmpremovePT 
+					(
+						ID BIGINT NOT NULL IDENTITY, 
+						SalesOrderPartId BIGINT NULL,
+						SalesOrderStocklineId BIGINT NULL,
+						StocklineId BIGINT NULL,
+						QtyToReserve INT NULL,
+						QtyToShip INT NULL,
+						QtyPtickTicketRemove INT NULL,
+						PickTicketId BIGINT NULL,
+						PickTicketQtyToShip INT NULL,
+					)
+					
+					INSERT INTO #tmpremovePT  SELECT  TMP.SalesOrderPartId, TMP.SalesOrderStocklineId, TMP.StocklineId, TMP.QtyToReserve, TMP.QtyToShip, TMP.QtyPtickTicketRemove, SOP.SOPickTicketId, SOP.QtyToShip FROM dbo.SOPickTicket SOP INNER JOIN  #tmpSOPickTicket TMP
+					ON TMP.SalesOrderPartId = SOP.SalesOrderPartId AND TMP.SalesOrderStocklineId = SOP.SalesOrderPartStocklineId WHERE TMP.QtyPtickTicketRemove > 0 AND  SOP.QtyToShip > 0 ORDER BY SOP.SOPickTicketId
+		
+					DECLARE @LoopID AS INT;
+					SELECT  @LoopID = MAX(ID) FROM #tmpremovePT;
+
+					DECLARE @PickTicketId BIGINT = 0;
+					DECLARE @QtyRemove BIGINT = 0;
+					DECLARE @QtyAvilable BIGINT = 0;
+					DECLARE @PTQtytoShip BIGINT = 0;
+
+					WHILE (@LoopID > 0)
+					BEGIN
+						SELECT @PickTicketId = PickTicketId, @QtyRemove = QtyPtickTicketRemove, @QtyAvilable = PickTicketQtyToShip FROM #tmpremovePT WHERE ID = @LoopID;
+
+						IF @QtyRemove = 0 
+						BEGIN
+						   SET @QtyAvilable = 0
+						END 
+
+						IF @QtyRemove >= @QtyAvilable 
+						BEGIN
+							SET  @PTQtytoShip =  @QtyAvilable 
+							SET @QtyRemove = @QtyRemove - @QtyAvilable
+						END
+						ELSE
+						BEGIN
+							SET  @PTQtytoShip = @QtyRemove
+							SET @QtyRemove  = @PTQtytoShip
+						END 
+				
+						UPDATE #tmpremovePT SET QtyPtickTicketRemove = @QtyRemove
+								
+						UPDATE dbo.SOPickTicket SET QtyToShip = (QtyToShip - @PTQtytoShip) WHERE SOPickTicketId = @PickTicketId;
+
+						DELETE FROM dbo.SOPickTicket WHERE QtyToShip = 0 AND SOPickTicketId = @PickTicketId;
+				
+						SET @LoopID = @LoopID - 1;
+					END
+
+					IF OBJECT_ID(N'tempdb..#tmpremovePT') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpremovePT 
+					END
+
+					IF OBJECT_ID(N'tempdb..#tmpSOPickTicket') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpSOPickTicket 
+					END
 				END
 
 				EXEC [DBO].[USP_UpdateSOCostDetails] @SalesOrderId, @UpdatedBy, @MasterCompanyId;

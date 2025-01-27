@@ -18,7 +18,7 @@
     1    01/03/2023    Subhash Saliya			Created
 	2    02/21/2023	   Hemant Saliya			Updaetd to Upper Case
   	3    21-JAN-2025   RAJESH GAMI			    Modified to add logic for the get TASK based on the WorkOrderFormTypeId condition.
-	4    27-JAN-2025   RAJESH GAMI			    remove the condition PrintInWO for the WorkOrderFormType, Need to display all the task and information.
+	4    27-JAN-2025   RAJESH GAMI			    remove the condition PrintInWO for the WorkOrderFormType, Need to display all the task and information..
 -- EXEC [USP_GetLaborMainTaskList] 692,682
 **************************************************************/
 
@@ -105,8 +105,8 @@ BEGIN
 					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) on wl.TaskId = WOT.WorkOrderTaskId
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
-					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWO,0) = 1
-					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOTD.PrintInWO,0) = 1
+					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId -- --AND ISNULL(WOTI.PrintInWO,0) = 1
+					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 --AND ISNULL(WOTD.PrintInWO,0) = 1
 					
 				),
 				RecursiveCTE AS (				

@@ -18,6 +18,7 @@
 	2   22/04/2024 Abhishek Jirawla Adding asset module to the list
 	3   23/01/2025 Bhargav Saliya Adding StockLine module to the list
 	4   24/01/2025 Bhargav Saliya Add EmployeeId
+	5   28/01/2025 Devendra Shekh	Modified (Handling Null @CurrntEmpTimeZoneDesc )
      
 **************************************************************/
 
@@ -198,7 +199,7 @@ BEGIN
 			  ELSE IF @ModuleId = (SELECT ModuleId  FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'StockLine')
 			  BEGIN
 
-				  SELECT  COALESCE(@CurrntEmpTimeZoneDesc,TZ.[Description]) AS 'TimeZoneName', LE.LegalEntityId,
+				  SELECT CASE WHEN ISNULL(@CurrntEmpTimeZoneDesc, '') = '' THEN TZ.[Description] ELSE @CurrntEmpTimeZoneDesc END AS 'TimeZoneName', LE.LegalEntityId,
 				  SL.[StockLineId] AS ReferenceId,le.TimeZoneId
 				  FROM [Stockline] SL WITH(NOLOCK)
 				  LEFT JOIN [dbo].LegalEntity LE WITH(NOLOCK) ON SL.LegalEntityId = LE.LegalEntityId

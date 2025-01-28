@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_UpdateReceivingReconciliationStocklineAdjustments]             
  ** Author:   
  ** Description: This stored procedure is used to update  Stockline Adjustment,Freight Adjustment,Tax Adjustment
@@ -11,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
 	1    09/10/2023   Moin Bloch    Created 
 	2    06/11/2023   Moin Bloch    Modified(added FreightAdjustmentPerUnit And TaxAdjustmentPerUnit) 
+	3    28/01/2025   Moin Bloch    Modified(Removed POUnitCost & RoUnitCost update in stockline)
 	       
 EXEC [dbo].[USP_UpdateReceivingReconciliationStocklineAdjustments] 118
 
@@ -111,10 +113,10 @@ BEGIN
 					   SET SL.[Adjustment] = ISNULL(SL.[Adjustment], 0) + (ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0)),
 						   SL.[FreightAdjustment] = ISNULL(SL.[FreightAdjustment],0) + ISNULL(@FreightAdjustment,0),
 				  	       SL.[TaxAdjustment] = ISNULL(SL.[TaxAdjustment],0) + ISNULL(@TaxAdjustment,0),					      
-						   SL.[PurchaseOrderUnitCost] = CASE WHEN @Type = 1 THEN (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@AdjUnitCost,0)) ELSE @PurchaseOrderUnitCost END,
-				           SL.[RepairOrderUnitCost] = CASE WHEN @Type = 2 THEN (ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0)) ELSE @RepairOrderUnitCost END,				     					
+						   --SL.[PurchaseOrderUnitCost] = CASE WHEN @Type = 1 THEN (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@AdjUnitCost,0)) ELSE @PurchaseOrderUnitCost END,
+				           --SL.[RepairOrderUnitCost] = CASE WHEN @Type = 2 THEN (ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0)) ELSE @RepairOrderUnitCost END,				     					
 						   SL.[UnitCost] = (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0) + ISNULL(@AdjUnitCost,0) + ISNULL(@FreightAdjustment,0) + ISNULL(@TaxAdjustment,0))
-				      FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;					  
+				      FROM [dbo].[Stockline] SL WHERE SL.[StockLineId] = @StocklineId;	
 				END
 				IF(UPPER(@StockType) = 'NONSTOCK')
 				BEGIN

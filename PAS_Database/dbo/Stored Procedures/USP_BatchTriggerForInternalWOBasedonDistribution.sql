@@ -16,6 +16,7 @@
 	5	11/04/2024		Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	6	13/01/2025		Devendra Shekh		Modify (StockLine GL selection Changes)
 	7	22/01/2025		Devendra Shekh		Modify (Changes for WIP GL for WOSETTLEMENTTAB)
+	8	28/01/2025		Devendra Shekh		Modify (Reverse Entry Issue Resolved)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
@@ -1717,9 +1718,9 @@ BEGIN
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											VALUES
 												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
-												CASE WHEN @CrDrType = 1 THEN @StkExtendedCost ELSE 0 END,
-												CASE WHEN @CrDrType = 1 THEN 0 ELSE @StkExtendedCost END
+												CASE WHEN @CrDrType = 0 THEN 1 ELSE 0 END,
+												CASE WHEN @CrDrType = 0 THEN @StkExtendedCost ELSE 0 END,
+												CASE WHEN @CrDrType = 0 THEN 0 ELSE @StkExtendedCost END
 												,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@ReferenceId,@ReferenceModule)
 					    
 											SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()

@@ -34,6 +34,7 @@
 	22	 08/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 	23	 20/01/2025   RAJESH GAMI		  Commented the [UpdateStocklineBatchDetailsColumnsWithId] execution due to performance
 	24	 20/01/2025   RAJESH GAMI		  UnCommented the [UpdateStocklineBatchDetailsColumnsWithId] SP
+	25	 27/01/2025   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -359,12 +360,9 @@ BEGIN
 				[Module] = CASE WHEN @DisCode = 'ReconciliationPO' THEN 'ReconciliationPO' ELSE 'ReconciliationRO' END,
 				[JournalBatchHeaderId] = @JournalBatchHeaderId
 
-				PRINT '1.2' 
-				PRINT GETUTCDATE();
-								
 					SELECT @TotalCounts = COUNT(RecordId) FROM #RRPostType;
 
-					WHILE @count < @TotalCounts
+					WHILE @count <= @TotalCounts
 					BEGIN
 						PRINT '1.3' 
 						PRINT GETUTCDATE();
@@ -381,8 +379,8 @@ BEGIN
 								@id = [id],
 								@ReceivingReconciliationDetailId = [ReceivingReconciliationDetailId],
 								@RecordId = [RecordId] 
-						FROM #RRPostType WHERE RecordId = @TotalCounts
-						
+						FROM #RRPostType WHERE RecordId = @count
+
 						DECLARE @PieceItemmasterId bigint=0;
 						DECLARE @PiecePNId bigint=0;
 						DECLARE @PiecePN varchar(200);
@@ -575,8 +573,6 @@ BEGIN
 										SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -637,8 +633,6 @@ BEGIN
 										SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -670,8 +664,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Accounts Payable --------
 
@@ -761,8 +753,6 @@ BEGIN
 										SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -794,10 +784,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails]([JournalBatchDetailId], [JournalBatchHeaderId], [VendorId], [VendorName], [ItemMasterId], [PartId], [PartNumber], [PoId], [PONum], [RoId], [RONum],[StocklineId], [StocklineNumber],
-										--	        [Consignment], [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	   '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
@@ -816,8 +802,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -849,10 +833,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails]([JournalBatchDetailId], [JournalBatchHeaderId], [VendorId], [VendorName], [ItemMasterId], [PartId], [PartNumber], [PoId], [PONum], [RoId], [RONum],[StocklineId], [StocklineNumber],
-										--	        [Consignment], [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	   '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 									END
 									------- Stock - Inventory -----
 
@@ -890,7 +870,6 @@ BEGIN
 										SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
 										-----  Accounting MS Entry  -----
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
 										UPDATE #TMPCommonBatchDetail
 										SET 
@@ -923,10 +902,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Goods Received Not Invoiced (GRNI)------
 
@@ -960,8 +935,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -993,10 +966,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
-										PRINT '1.6' 
-										PRINT GETUTCDATE();
 									END
 									------- Accounts Payable -------
 							END
@@ -1106,8 +1075,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1139,10 +1106,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
@@ -1161,8 +1124,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1194,10 +1155,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									PRINT '1.9' 
 									PRINT GETUTCDATE();
@@ -1230,14 +1187,11 @@ BEGIN
 											CASE WHEN @QtyVariance > 0 THEN 1 ELSE 0 END,
 											CASE WHEN @QtyVariance > 0 THEN ABS(@QtyVariance) ELSE 0 END,
 											CASE WHEN @QtyVariance > 0 THEN 0 ELSE ABS(@QtyVariance) END,
-											--1,ABS(@QtyVariance),0,
 											@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 															 
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
 										-----  Accounting MS Entry  -----
-
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
 										UPDATE #TMPCommonBatchDetail
 										SET 
@@ -1270,10 +1224,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									IF(ABS(@PriceVariance) > 0)
@@ -1306,8 +1256,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1339,11 +1287,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									PRINT '1.10' 
@@ -1383,8 +1326,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1416,10 +1357,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Goods Received Not Invoiced (GRNI)-------
 									------- Accounts Payable ------
@@ -1455,8 +1392,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1488,11 +1423,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									PRINT '1.12' 
 									PRINT GETUTCDATE();
@@ -1505,6 +1435,7 @@ BEGIN
 						END
 						ELSE IF(UPPER(@ModuleName)=UPPER('ReconciliationRO'))
 						BEGIN
+							--SELECT 'ReconciliationRO'
 							SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROGRNI') 
@@ -1557,7 +1488,6 @@ BEGIN
 
 							SET @Desc='Receiving RO-'+@RepairOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber
 							SET @Amount=(ISNULL(@StocklineQtyAvail, 0)* @Amount);
-								
 									
 							IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice = ISNULL(@RRUnitPrice, 0))
 							BEGIN
@@ -1590,8 +1520,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1623,11 +1551,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-
-										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId ,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Goods Received Not Invoiced (GRNI)------
 
@@ -1659,8 +1582,6 @@ BEGIN
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
 										-----  Accounting MS Entry  -----
-
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1692,10 +1613,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Accounts Payable -------
 
@@ -1767,7 +1684,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1799,10 +1715,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
@@ -1821,8 +1733,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1854,10 +1764,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									------- Goods Received Not Invoiced (GRNI)-------
@@ -1892,8 +1798,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1925,10 +1829,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Goods Received Not Invoiced (GRNI)-------
 
@@ -1964,7 +1864,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -1996,8 +1895,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Accounts Payable ------
 							END
@@ -2070,7 +1967,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -2102,10 +1998,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									IF(ISNULL(@Amount,0) < 0)
@@ -2124,8 +2016,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -2157,17 +2047,12 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, 
-										--Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, 
-										--'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									------- Stock - Inventory -----
 
 									------- VAR - Cost/Qty - COGS ------
 									SET @Amount=((@RRUnitPrice - @POROUnitPrice) * (@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)));									
-									--SET @APTotalPrice = @APTotalPrice + @Amount
 									
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
@@ -2199,7 +2084,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -2231,10 +2115,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 
 									IF(ABS(@PriceVariance) > 0)
@@ -2266,8 +2146,6 @@ BEGIN
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
 										-----  Accounting MS Entry  -----
-
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -2484,6 +2362,9 @@ BEGIN
 				--CLOSE @PostRRBatchCursor
 				--DEALLOCATE @PostRRBatchCursor
 
+				--SELECT '#TMPCommonBatchDetail'
+				--SELECT * FROM #TMPCommonBatchDetail
+
 				PRINT 'Start Next Item' 
 				PRINT GETUTCDATE();
 
@@ -2574,6 +2455,9 @@ BEGIN
 				LEFT JOIN RepairOrder RO WITH(NOLOCK) ON RO.RepairOrderId = RCD.PurchaseOrderId AND [Type] = 2 AND RO.MasterCompanyId = @MasterCompanyId
 				LEFT JOIN VendorProformaInvoiceHeader VPH WITH(NOLOCK) ON VPH.ReferenceId = RO.RepairOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 0 AND VPH.MasterCompanyId = RO.MasterCompanyId
 				WHERE RO.MasterCompanyId = @MasterCompanyId
+
+				--Select * from #TMPVendorProformaInv
+
 				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
 				BEGIN
 					DECLARE @ProformaDistributionMasterId BIGINT;
@@ -2648,6 +2532,7 @@ BEGIN
 							JOIN #TMPVendorProformaInv TMPVP ON TMPCB.PoId = TMPVP.ReferenceId AND [Type] = 1
 						) GROUPtmp 
 					WHERE TMPBatchId = @CommonJournalBatchDetailId;
+
 					INSERT INTO #TMPCommonBatchDetail
 						([JournalBatchHeaderId],JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[GlAccountId],[GlAccountNumber],[GlAccountName] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[ReferenceId],[ReferenceNumber],[ReferenceName],
@@ -2665,9 +2550,12 @@ BEGIN
 							TMPCB.[FXRate],[ForeignCurrency], LineNumber, TMPCB.[CreatedBy],TMPCB.[UpdatedBy]
 				
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY();
-						
-					PRINT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail'
-					PRINT @CommonJournalBatchDetailId
+
+					--PRINT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail'
+					--PRINT @CommonJournalBatchDetailId
+
+					--SELECT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail'
+					--SELECT * FROM #TMPCommonBatchDetail
 
 					UPDATE #TMPCommonBatchDetail
 					SET 
@@ -2733,7 +2621,8 @@ BEGIN
 			
 				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
 				BEGIN
-					DECLARE @PaybleDistributionSetupId BIGINT;
+					DECLARE @PayblePODistributionSetupId BIGINT;
+					DECLARE @PaybleRODistributionSetupId BIGINT;
 					DECLARE @DistributionSetupCode VARCHAR(100);
 					DECLARE @DistributionCodeName VARCHAR(100);
 
@@ -2747,9 +2636,13 @@ BEGIN
 						AND MasterCompanyId = @MasterCompanyId
 
 					--GET PAYBLE ID to reduce payble amt
-					SELECT TOP 1 @PaybleDistributionSetupId = ID
+					SELECT TOP 1 @PayblePODistributionSetupId = ID
 					FROM dbo.DistributionSetup WITH(NOLOCK)
 					WHERE UPPER(DistributionSetupCode)=UPPER('RECPOACCPAYABLE') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @ManagementStructureId
+
+					SELECT TOP 1 @PaybleRODistributionSetupId = ID
+					FROM dbo.DistributionSetup WITH(NOLOCK)
+					WHERE UPPER(DistributionSetupCode)=UPPER('RECROACCPAYABLE') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @ManagementStructureId
 
 					UPDATE #TMPBatchFinalResult SET CreditAmount = CreditAmount - ProformaAmount
 					FROM (
@@ -2760,7 +2653,7 @@ BEGIN
 						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
 					) GroupTmp WHERE GroupTmp.StockType = #TMPBatchFinalResult.StockType 
 						AND #TMPBatchFinalResult.PoId = GroupTmp.ReferenceId 
-						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleDistributionSetupId
+						AND #TMPBatchFinalResult.DistributionSetupId = @PayblePODistributionSetupId
 
 					UPDATE #TMPBatchFinalResult SET CreditAmount = CreditAmount - ProformaAmount
 					FROM (
@@ -2771,7 +2664,8 @@ BEGIN
 						GROUP BY TMPVP.StockType, TMPVP.ReferenceId, [Type] 
 					) GroupTmp WHERE GroupTmp.StockType = #TMPBatchFinalResult.StockType 
 						AND #TMPBatchFinalResult.RoId = GroupTmp.ReferenceId 
-						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleDistributionSetupId
+						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleRODistributionSetupId
+
 				END
 
 				PRINT '1.18.3' 
@@ -2784,12 +2678,12 @@ BEGIN
 					PRINT '1.18.4' 
 					PRINT GETUTCDATE();
 					PRINT @CurrentRecordId
-					--SELECT		JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
-					--			[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
-					--			[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
-					--			[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-					--			[LocalCurrency],[FXRate],[ForeignCurrency], [ReferenceModule]
-					--FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId;
+					SELECT		JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
+								[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
+								[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
+								[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
+								[LocalCurrency],[FXRate],[ForeignCurrency], [ReferenceModule]
+					FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId;
 
 
 					PRINT 'CommonJournalBatchDetailId : Insert Start'
@@ -2804,15 +2698,11 @@ BEGIN
 					FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId;
 			
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
-					--PRINT 'CommonJournalBatchDetailId : Insert End'
-					--PRINT @CommonJournalBatchDetailId
-					--PRINT GETUTCDATE();
+					PRINT 'CommonJournalBatchDetailId : Insert End'
+					PRINT @CommonJournalBatchDetailId
+					PRINT GETUTCDATE();
 
-					--PRINT '1.18.4.1' 
-
-					--SELECT	 JournalBatchDetailId,  UpdatedBy,
-					--		 ManagementStructureId,  MasterCompanyId
-					--FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId
+					PRINT '1.18.4.1' 
 
 					SELECT	@JournalBatchDetailId = JournalBatchDetailId, @UpdateBy = UpdatedBy,
 							@ManagementStructureId = ManagementStructureId, @MasterCompanyId = MasterCompanyId
@@ -2911,8 +2801,6 @@ BEGIN
 
 				 PRINT '1.18.9' 
 				 PRINT GETUTCDATE();
-
-				 --SELECT * FROM #TMPVendorProformaInv
 
 				 --UPDATE PO/RO Deposite Amount based on PO RO
 				 UPDATE PO SET DepositAmount = CASE WHEN ISNULL(DepositAmount, 0) >= ISNULL(ProformaAmount, 0) THEN  ISNULL(DepositAmount, 0) - ISNULL(ProformaAmount, 0) ELSE 0 END FROM dbo.PurchaseOrder PO WITH(NOLOCK) JOIN #TMPVendorProformaInv TMPVP  ON TMPVP.ReferenceId = PO.PurchaseOrderId WHERE TMPVP.[Type] = 1

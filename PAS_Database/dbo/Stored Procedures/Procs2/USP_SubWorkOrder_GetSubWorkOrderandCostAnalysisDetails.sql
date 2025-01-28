@@ -19,8 +19,10 @@
 	3    12/19/2023    Amit Ghediya		Updated (SubWOPartNoId added as param)	
 	4    12/22/2023    Amit Ghediya		Updated (get data from SWOkit also)	
 	5    12/27/2024   Hemnat Saliya		Update for Modify Work Order cost analysis Summary
+	6    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 4324, 641, false, 627     
+exec USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails @WorkOrderWorkflowId=4324,@WorkOrderId=4776,@IsSubWOFromWo=1,@SubWOPartNoId=0
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
 (
@@ -175,7 +177,7 @@ BEGIN
 						LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = SWOM.SubWorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 					WHERE SWOM.SubWorkOrderId = @MainSubWorkOrderId AND SWOM.IsDeleted = 0;
 
-				SELECT '1'
+				--SELECT '1'
 				--SELECT * FROM #tmpSubWorkOrderMaterials
 
 				--Insert SWOMK data
@@ -564,8 +566,8 @@ BEGIN
 			@BkOrderCost AS 'BackorderCost',
 			@RowMaterialTotalCost AS 'RowMaterialTotalCost',
 			@OutSideServiceCost AS 'OutsideCost',
-			@OverheadCost AS 'LaborCost',
-			@DirectLaborCost AS 'OverheadCost',
+			@OverheadCost AS 'OverheadCost',
+			@DirectLaborCost AS 'LaborCost',
 			@FreightCost AS 'FreightCost',
 			@ChargesCost AS 'ChargesCost',
 			@SubReservedCost AS 'SubReservedCost',

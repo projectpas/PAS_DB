@@ -21,6 +21,7 @@
 	4    08/18/2023   Hemnat Saliya		Corrected Balance issues
 	5    10/19/2023   Vishal Suthar		Fixed Backorder qty calculation
 	6    12/31/2024   Hemant Saliya		Update for Modify Work Order cost analysis Summary
+	7    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
 
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 4247, 4702     
 **************************************************************/
@@ -520,8 +521,8 @@ BEGIN
 			@BkOrderCost AS 'BackorderCost',
 			@RowMaterialTotalCost AS 'RowMaterialTotalCost',
 			@OutSideServiceCost AS 'OutsideCost',
-			@OverheadCost AS 'LaborCost',
-			@DirectLaborCost AS 'OverheadCost',
+			@OverheadCost AS 'OverheadCost',
+			@DirectLaborCost AS 'LaborCost',
 			@FreightCost AS 'FreightCost',
 			@ChargesCost AS 'ChargesCost',
 			@SubReservedCost AS 'SubReservedCost',

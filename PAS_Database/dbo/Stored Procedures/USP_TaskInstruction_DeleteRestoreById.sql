@@ -9,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    1st-JAN-2025		Devendra Shekh			Created
+    2    28-JAN-2025		Ekta Chandegra  		Update isDeleted value for parent
  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_TaskInstruction_DeleteRestoreById]
@@ -27,7 +28,7 @@ BEGIN
 					SET		IsDeleted = 1,
 							UpdatedBy = @UpdatedBy,
 							UpdatedDate = GETUTCDATE()
-					WHERE [TaskInstructionId] = @TaskInstructionId
+					WHERE [TaskInstructionId] = @TaskInstructionId OR [ParentId] = @TaskInstructionId
 				END
 				ELSE
 				BEGIN
@@ -35,7 +36,7 @@ BEGIN
 					SET		IsDeleted = 0,
 							UpdatedBy = @UpdatedBy,
 							UpdatedDate = GETUTCDATE()
-					WHERE [TaskInstructionId] = @TaskInstructionId
+					WHERE [TaskInstructionId] = @TaskInstructionId OR [ParentId] = @TaskInstructionId
 				END
 			END
 		END TRY    

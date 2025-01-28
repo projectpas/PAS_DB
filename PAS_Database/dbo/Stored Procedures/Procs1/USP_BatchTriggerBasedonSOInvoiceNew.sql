@@ -30,7 +30,7 @@
 	16	 12/03/2024  Vishal Suthar  Fixed accounting entry while shipping
 	17	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
 	18	 12/06/2024  Moin Bloch     Fixed Duplicate amount issue 
-	19	 06/01/2025  AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
+	19	 06/01/2025  AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level with single bill)
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -135,6 +135,7 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'SO';
 
+		DECLARE @GLStocklineId BIGINT = 0;
 		DECLARE @InventoryToBillGLAccId BIGINT = 0;
 		DECLARE @InventoryGLAccId BIGINT = 0;
 		DECLARE @COGSSalesOrderGLAccId BIGINT = 0;
@@ -306,14 +307,22 @@ BEGIN
 
 					SELECT @LotId = SL.LotId,
 						   @LotNumber = LO.[LotNumber],						  
-						   @StocklineNumber = SL.[StockLineNumber],
+						   @StocklineNumber = SL.[StockLineNumber]
+					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
+					  WHERE SL.[StockLineId] = @StocklineId;
+
+					SELECT @GLStocklineId = [StockLineId] 
+					FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) 
+					WHERE [SOBillingInvoicingId] = @InvoiceId;
+
+					SELECT @StocklineNumber = SL.[StockLineNumber],
 						   @InventoryToBillGLAccId = SL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
 						   @InventoryGLAccId = SL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
 						   @COGSSalesOrderGLAccId = SL.COGS_SalesOrderGLAccId,  -- For COGS EXc Sales Order Distribution (Billing)
 						   @RevenueSoGLAccId = SL.RevenueSoGLAccId -- For Revenue EXc SO Distribution (Billing)
 					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
-					  WHERE SL.[StockLineId] = @StocklineId;
+					  WHERE SL.[StockLineId] = @GLStocklineId;
 
 					SET @COGSDifference = (@PartUnitSalesPrice - @InoiceGrandTotal);
 					 

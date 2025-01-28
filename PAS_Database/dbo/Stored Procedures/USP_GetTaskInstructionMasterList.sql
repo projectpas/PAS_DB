@@ -9,16 +9,24 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    26-Dec-2024		Devendra Shekh			Created
+    2    27-Jan-2025		Ekta Chandegra			Add @IsDeleted parameter
+
+
+	exec dbo.USP_GetTaskInstructionMasterList @MasterCompanyId=1,@IsDeleted=1
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetTaskInstructionMasterList]
-	@MasterCompanyId bigint = NULL
+	@MasterCompanyId bigint = NULL,
+	@IsDeleted BIT
 AS
 BEGIN	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
-
+		IF @IsDeleted IS NULL  
+		Begin  
+		 Set @IsDeleted=0  
+		End  
 		;WITH CTE AS (
 			SELECT 
 			TIM.TaskInstructionId,
@@ -38,7 +46,7 @@ BEGIN
 			TIM.IsDeleted 
 			FROM dbo.TaskInstructionMaster TIM WITH(NOLOCK)
 			LEFT JOIN DBO.Task T WITH(NOLOCK) ON T.TaskId = TIM.TaskId
-			WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsActive = 1 AND TIM.IsDeleted = 0
+			WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.IsActive,0) = 1 AND ISNULL(TIM.IsDeleted,0) = @IsDeleted
 		)
 
 		SELECT * INTO #LeafTempTbl FROM CTE

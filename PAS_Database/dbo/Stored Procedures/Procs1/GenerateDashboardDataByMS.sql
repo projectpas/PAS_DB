@@ -21,6 +21,7 @@
 	8	 28 June 2024   Vishal Suthar		Added login entry in LogInLog table for employee when they login into the system
 	9    16 OCT 2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	10	 30 Oct 2024    HEMANT SALIYA		Verify the count 
+	11   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -51,6 +52,29 @@ BEGIN
 		DECLARE @SpeedQouteModuleID AS INT =27
 		DECLARE @EmployeeRoleID AS VARCHAR(MAX);
 
+		IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpSalesOrderUserRole
+		END
+		
+		SELECT * INTO #tmpSalesOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		FROM [dbo].SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @SalesOrderModuleID AND EUR.[EmployeeId] = @EmployeeId) AS SalesOrderUserRole
+
+
+		IF OBJECT_ID(N'tempdb..#tmpWorkOrderUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpWorkOrderUserRole
+		END
+		
+		SELECT * INTO #tmpWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		FROM [dbo].WorkOrderManagementStructureDetails MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @SpeedQouteModuleID AND EUR.[EmployeeId] = @EmployeeId) AS WorkOrderUserRole
+
 		INSERT INTO [dbo].[LogInLog]
            ([EmployeeId],[LogInTime],[LogOutTime],[IPAddress],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate])
         SELECT EmployeeId,GETDATE(),GETDATE(),'0',MasterCompanyId,FirstName + ' ' +LASTNAME,FirstName + ' ' +LASTNAME,GETDATE(),GETDATE()  
@@ -80,64 +104,64 @@ BEGIN
 
 		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
 
-		SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+		SELECT @PartsSaleBillingAmt = SUM(ISNULL(SOBII.PartCost, 0)) + SUM(ISNULL(SOBII.SalesTax, 0)) + SUM(ISNULL(SOBII.OtherTax, 0)) + SUM(ISNULL(SOPC.MiscCharges, 0))
+		FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
-			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOBII.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 		WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate)
 			AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 		GROUP BY CAST(InvoiceDate AS DATE)
 
 		SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber WOP WITH (NOLOCK) 
-			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
 		WHERE WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 										WHERE MasterCompanyId = @MasterCompanyId 
 										AND IsActive = 1 AND IsDeleted = 0)
 		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND
 		CONVERT(DATE, WOP.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE, WOP.CreatedDate) <= CONVERT(DATE, @SelectedDate) 
 
-		SELECT @PartsSaleWorkable = SUM(SOPC.NetSaleAmount) 
-		FROM DBO.SalesOrderPartV1 SOM WITH (NOLOCK) 
-				INNER JOIN DBO.SalesOrder SO ON SO.SalesOrderId = SOM.SalesOrderId
-				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=SOM.SalesOrderPartId and SOPC.IsDeleted=0
-				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-				INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-			WHERE SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
-			AND SOM.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
-			INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-			Where SOS.SalesOrderId = SO.SalesOrderId)
+		SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) + SUM(ISNULL(SOPC.MiscCharges,0)) 
+		FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
+				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
+				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
+				INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId
+				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
+			WHERE STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+			INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
+			Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1)
+			--SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
+			--AND SOM.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+			--INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+			--Where SOS.SalesOrderId = SO.SalesOrderId)
 			--AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) 
-			AND CONVERT(DATE, SO.CreatedDate) <= CONVERT(DATE, @SelectedDate)
+			AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @SelectedDate)
 			AND SO.MasterCompanyId = @MasterCompanyId
 
 		SELECT @WOQProcessed = COUNT(WOQD.WorkOrderQuoteId) FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK) 
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) on WOQD.WorkflowWorkOrderId = WOWF.WorkFlowWorkOrderId
 			INNER JOIN DBO.WorkOrderPartNumber WOP WITH (NOLOCK) on WOP.ID = WOWF.WorkOrderPartNoId
-			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
 		WHERE WOQ.SentDate IS NOT NULL
 			AND CONVERT(DATE, WOQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
 			AND WOQ.MasterCompanyId = @MasterCompanyId
 
 		SELECT @SQProcessed = COUNT(SQ.SpeedQuoteId) FROM DBO.SpeedQuote SQ WITH (NOLOCK) 
-			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID =@SpeedQouteModuleID AND MSD.ReferenceID = SQ.SpeedQuoteId
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SQ.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
 		WHERE SQ.StatusId IN (SELECT Id FROM MasterSpeedQuoteStatus Where [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
 			AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @SelectedDate) AND SQ.MasterCompanyId = @MasterCompanyId
 
 		SELECT @SOQProcessed = SUM(SOQM.NetSales) FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) 
 			INNER JOIN DBO.SOQuoteMarginSummary SOQM WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQM.SalesOrderQuoteId
 			INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.SalesOrderQuoteId
-			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderQouteModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SOQ.SalesOrderQuoteId
 		WHERE SOQA.CustomerApprovedDate IS NOT NULL
 			AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @SelectedDate) AND SOQ.MasterCompanyId = @MasterCompanyId
 

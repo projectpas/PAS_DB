@@ -19,6 +19,7 @@
 	7   11/04/2024		Vishal Suthar	Modified to make use of new SOQ new tables
 	8   01/16/2025		Bhargav Saliya 	Resolved Dashboard Amount issue (SO invoice)
 	9   01/22/2025		Bhargav Saliya 	Resolved Workable Backlog(More Info) PN Amount Issues [PN-10689]
+	10   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -47,6 +48,18 @@ BEGIN
 			SET @WOQApproveStatus = (SELECT WorkOrderQuoteStatusId FROM [dbo].[WorkOrderQuoteStatus] WHERE Description = 'Approved')
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+
+			IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #tmpSalesOrderUserRole
+			END
+		
+			SELECT * INTO #tmpSalesOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+			WHERE MSD.[ModuleID] = @SalesOrderModuleID AND EUR.[EmployeeId] = @EmployeeId) AS SalesOrderUserRole
+
 			print @DashboardType
 			IF (@DashboardType = 1)
 			BEGIN
@@ -102,24 +115,29 @@ BEGIN
 			BEGIN
 				;WITH Result AS (	
 					SELECT DISTINCT
-					item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-					sobii.GrandTotal,
-					cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-					FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)
-					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
-					LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON so.SalesPersonId = emp.EmployeeId
+					IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,STL.StocklineId,
+					ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOPC.MiscCharges, 0) AS 'GrandTotal',
+					cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
+					FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
+
+					INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
+					INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 17 AND MSD.ReferenceID = SO.SalesOrderId  
+					INNER JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
+					INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+					INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsProforma, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SalesOrderPartId
+					INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOBIII.StockLineId = SOV.StockLineId 
+					INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
+					INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
+					INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
+					LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+					LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
+					LEFT JOIN dbo.workorder WO WITH (NOLOCK)  ON STL.workorderid = WO.workorderid 
+					LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid
 					LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-					LEFT JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId
-					INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sop.SalesOrderPartId = sobii.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0
-					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
-					LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON sop.ItemMasterId = item.ItemMasterId
-					INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+
 					WHERE sobi.IsActive = 1
 					AND sobi.IsDeleted = 0
-					AND ISNULL(stk.StockLineId, 0) > 0
+					AND ISNULL(SOV.StockLineId, 0) > 0
 					AND CONVERT(DATE, sobi.InvoiceDate) = CONVERT(DATE, @Date)
 					AND sobi.MasterCompanyId = @MasterCompanyId
 					AND ISNULL(sobi.IsProforma,0) = 0
@@ -145,15 +163,15 @@ BEGIN
 										AND IsActive = 1 AND IsDeleted = 0)
 				AND wop.IsActive = 1
 				AND wop.IsDeleted = 0
-				AND CONVERT(DATE, wop.CreatedDate) >= CONVERT(DATE, @BacklogStartDt)
+				AND CONVERT(DATE, wop.CreatedDate) = CONVERT(DATE, @Date)
 				AND wop.MasterCompanyId = @MasterCompanyId
 			END
 			ELSE IF (@DashboardType = 5)
 			BEGIN
 				SELECT 
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SUM(ISNULL(SOPC.NetSaleAmount,0)) + SUM(ISNULL(SOPC.MiscCharges,0)) AS GrandTotal,
-				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				SUM(ISNULL(SOPC.UnitSalesPrice,0)) + SUM(ISNULL(SOPC.MiscCharges,0)) AS GrandTotal,
+				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,STKV.StockLineId
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
@@ -161,19 +179,20 @@ BEGIN
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId
+				--INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.StockLineId = STKV.StockLineId AND SOBII.IsVersionIncrease = 0
+				--LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOBI.InvoiceStatus != 'Invoiced' AND SOBI.IsVersionIncrease = 0
+				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 				WHERE
-				SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
-				AND SOP.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
-					INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-					Where SOS.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = @MasterCompanyId)
+				--SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
+				STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+					INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
+					Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1)
 				AND SO.IsActive = 1
 				AND SO.IsDeleted = 0
-				AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt)
+				AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @Date)
 				AND SO.MasterCompanyId = @MasterCompanyId
-				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName
+				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,STKV.StockLineId
 				ORDER BY SO.SalesOrderNumber
 			END
 			ELSE IF (@DashboardType = 6)
@@ -241,9 +260,7 @@ BEGIN
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOQP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SOQ.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderQouteModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
-	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SOQ.SalesOrderQuoteId
 				WHERE
 				SOQA.CustomerApprovedDate IS NOT NULL
 				AND SOQ.IsActive = 1

@@ -166,7 +166,8 @@ BEGIN
 						iM.COGS_UnitCostVarianceGLAccId,
 						iM.RevenueMroGLAccId,
 						iM.RevenueSoGLAccId,
-						iM.RevenueExchGLAccId
+						iM.RevenueExchGLAccId,
+						COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

@@ -9,14 +9,16 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    20-Jan-2025		Ekta Chandegra			Created
+    2    27-Jan-2025		Ekta Chandegra			Add @IsDeleted parameter
 
 
-	EXEC GetTaskInstructionMasterListById @TaskInstructionId=3,@TaskId=0
+	EXEC GetTaskInstructionMasterListById @TaskInstructionId=3,@TaskId=0,@IsDeleted=0
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetTaskInstructionMasterListById]
 	@TaskInstructionId BIGINT = NULL,
-	@TaskId BIGINT = NULL
+	@TaskId BIGINT = NULL,
+	@IsDeleted BIT
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -36,7 +38,7 @@ BEGIN
 		FROM [dbo].[TaskInstructionMaster] TIM  WITH(NOLOCK)
 		WHERE TIM.TaskInstructionId = @TaskInstructionId 
 		AND ISNULL(TIM.IsActive,0) = 1
-		AND ISNULL(TIM.IsDeleted,0) = 0
+		AND ISNULL(TIM.IsDeleted,0) = @IsDeleted
 
 		SELECT 
 		TSK.TaskId,

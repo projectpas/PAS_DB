@@ -22,6 +22,7 @@
 	9    16 OCT 2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	10	 30 Oct 2024    HEMANT SALIYA		Verify the count 
 	11   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
+	12   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -44,12 +45,12 @@ BEGIN
 		DECLARE @SQProcessed AS INT;
 		DECLARE @SOQProcessed AS DECIMAL(20, 2);
 		DECLARE @BacklogStartDt AS DateTime;
-		DECLARE @RecevingModuleID AS INT =1;
-		DECLARE @wopartModuleID AS INT =12
-		DECLARE @woqModuleID AS INT =15
-		DECLARE @SalesOrderModuleID AS INT =17
-		DECLARE @SalesOrderQouteModuleID AS INT =18
-		DECLARE @SpeedQouteModuleID AS INT =27
+		DECLARE @RecevingModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'RecevingCustomer');;
+		DECLARE @wopartModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'WorkOrderMPN');
+		DECLARE @woqModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'WorkOrderQuote');
+		DECLARE @SalesOrderModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrder');
+		DECLARE @SalesOrderQouteModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrderQuote');
+		DECLARE @SpeedQouteModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SpeedQuote');
 		DECLARE @EmployeeRoleID AS VARCHAR(MAX);
 
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
@@ -123,8 +124,34 @@ BEGIN
 		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND
 		CONVERT(DATE, WOP.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE, WOP.CreatedDate) <= CONVERT(DATE, @SelectedDate) 
 
-		SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) 
-		FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+		--SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) 
+
+		IF OBJECT_ID(N'tempdb..#tmpNonInvoiceDashboard') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpNonInvoiceDashboard
+		END
+
+		CREATE TABLE #tmpNonInvoiceDashboard (
+		[PartNumber] VARCHAR(50),
+		[PartDescription] VARCHAR(MAX),
+		[Condition] VARCHAR(256),
+		[ItemGroup] VARCHAR(250),
+		[GrandTotal] BIGINT,
+		[CustomerName] VARCHAR(256),
+		[SalesOrderNumber] VARCHAR(256),
+		[SalesPerson] VARCHAR(100),
+		[SalesOrderId] BIGINT,
+		[SalesOrderPartId] BIGINT,
+		[MasterCompanyId] int
+		)
+
+		INSERT INTO #tmpNonInvoiceDashboard ([PartNumber],[PartDescription],[Condition],[ItemGroup],[GrandTotal],[CustomerName],[SalesOrderNumber],[SalesPerson],[SalesOrderId],[SalesOrderPartId],[MasterCompanyId])
+	
+		SELECT 
+				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+				SUM(ISNULL(SOPC.UnitSalesPrice,0))  AS GrandTotal,
+				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
+				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderStockLineCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 				INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId AND STKV.SalesOrderStocklineId = SOPC.SalesOrderStocklineId
@@ -133,16 +160,34 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
-			WHERE STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-			INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
-			Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1)
-			--SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
-			--AND SOM.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
-			--INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-			--Where SOS.SalesOrderId = SO.SalesOrderId)
-			--AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) 
-			AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @SelectedDate)
-			AND SO.MasterCompanyId = @MasterCompanyId
+				WHERE
+				STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+					INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
+					Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1) AND
+				 SO.IsActive = 1
+				AND SO.IsDeleted = 0
+				AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, '2025-01-29 00:00:00')
+				AND SO.MasterCompanyId = 1
+				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
+				ORDER BY SO.SalesOrderNumber
+
+		UPDATE TMP
+		SET TMP.GrandTotal = ISNULL(TMP.GrandTotal,0) + ISNULL(partAmount.MiscCharges,0) - ISNULL(billedData.MiscCharges,0)
+		FROM #tmpNonInvoiceDashboard TMP
+		OUTER APPLY (
+			SELECT SUM(ISNULL(sopc.MiscCharges,0)) AS MiscCharges FROM DBO.SalesOrderPartCost sopc WITH (NOLOCK) 
+					
+						Where sopc.SalesOrderId = TMP.SalesOrderId AND sopc.SalesOrderPartId = TMP.SalesOrderPartId and  TMP.MasterCompanyId = 1
+			) AS partAmount
+
+		OUTER APPLY (
+			SELECT SUM(ISNULL(SOBII.MiscCharges,0)) AS MiscCharges FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+						INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
+						Where SOBI.SalesOrderId = TMP.SalesOrderId AND TMP.MasterCompanyId = 1
+			) AS billedData
+
+
+		select @PartsSaleWorkable = SUM(ISNULL(GrandTotal,0)) from #tmpNonInvoiceDashboard
 
 		SELECT @WOQProcessed = COUNT(WOQD.WorkOrderQuoteId) FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK) 
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId

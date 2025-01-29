@@ -34,7 +34,7 @@
 	22	 08/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 	23	 20/01/2025   RAJESH GAMI		  Commented the [UpdateStocklineBatchDetailsColumnsWithId] execution due to performance
 	24	 20/01/2025   RAJESH GAMI		  UnCommented the [UpdateStocklineBatchDetailsColumnsWithId] SP
-	25	 27/01/2025   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO
+	25	 29/01/2025   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO Partial Payment Handle
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -110,7 +110,9 @@ BEGIN
 			DECLARE @MaxRecordId BIGINT;
 			DECLARE @count INT = 0;		
 			DECLARE @TotalCounts INT = 0;
+			DECLARE @VendorProformaStatusId INT = 0;
 
+			SELECT @VendorProformaStatusId = VendorProformaInvoiceHeaderStatusId FROM dbo.VendorProformaInvoiceHeaderStatus WITH(NOLOCK) WHERE UPPER([Description]) = 'CLOSED'		
 
 			IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL    
 			BEGIN    
@@ -2481,9 +2483,10 @@ BEGIN
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT	MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
 								@GlAccountId, @GlAccountNumber, @GlAccountName, @JournalTypeId, [JournalTypeName], 
-								0, 0, MAX([ExtendedPrice]) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
+								0, 0, MAX(ISNULL(PO.[DepositAmount], 0)) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
 								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
 					FROM dbo.VendorProformaInvoicePartDetails VPIPD  WITH(NOLOCK)
+						JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON PO.VendorProformaInvoiceId = VPIPD.VendorProformaInvoiceId
 						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId 
 						JOIN GLAccount GL WITH(NOLOCK) ON VPIPD.GlAccountId = GL.GLAccountId
 						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.PoId = TMPVP.ReferenceId AND [Type] = 1
@@ -2493,8 +2496,8 @@ BEGIN
 
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY();
 								
-					PRINT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail 1.0'
-					PRINT @CommonJournalBatchDetailId
+					--PRINT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail 1.0'
+					--PRINT @CommonJournalBatchDetailId
 
 					UPDATE #TMPCommonBatchDetail
 					SET 
@@ -2537,11 +2540,12 @@ BEGIN
 						([JournalBatchHeaderId],JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[GlAccountId],[GlAccountNumber],[GlAccountName] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[ReferenceId],[ReferenceNumber],[ReferenceName],
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], LineNumber, TransactionDate, EntryDate, [CreatedBy],[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-					SELECT	MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
+					SELECT TOP 1 MAX(TMPCB.[JournalBatchHeaderId]), MAX(TMPCB.[JournalBatchDetailId]), JournalTypeNumber, CurrentNumber, @DistributionSetupId, @DistributionName,   
 								@GlAccountId, @GlAccountNumber, @GlAccountName, MAX([JournalTypeId]), [JournalTypeName], 
-								0, 0, MAX([ExtendedPrice]) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
+								0, 0, MAX(ISNULL(RO.[DepositAmount],0)) [CreditAmount], VPIPD.[ManagementStructureId], [ModuleName], VPIPD.LastMSLevel, VPIPD.AllMSlevels, VPIPD.[MasterCompanyId], TMPCB.[ReferenceId], TMPCB.[ReferenceNumber], TMPCB.[ReferenceName], 
 								[LocalCurrency],TMPCB.[FXRate],[ForeignCurrency],@ReferenceModule, LineNumber, MAX([TransactionDate]), MAX(TMPCB.[EntryDate]), TMPCB.[CreatedBy],TMPCB.[UpdatedBy], GETUTCDATE(),GETUTCDATE(),1,0
 					FROM dbo.VendorProformaInvoicePartDetails VPIPD  WITH(NOLOCK)
+						JOIN dbo.RepairOrder RO WITH(NOLOCK) ON RO.VendorProformaInvoiceId = VPIPD.VendorProformaInvoiceId
 						JOIN #TMPVendorProformaInv TMPVP ON VPIPD.VendorProformaInvoiceId = TMPVP.VendorProformaInvoiceId 
 						JOIN GLAccount GL  WITH(NOLOCK) ON VPIPD.GlAccountId = GL.GLAccountId
 						JOIN #TMPCommonBatchDetail TMPCB  ON TMPCB.RoId = TMPVP.ReferenceId AND [Type] = 2
@@ -2618,6 +2622,8 @@ BEGIN
 
 				PRINT '1.18.2' 
 				PRINT GETUTCDATE();
+				--SELECT * From #TMPBatchFinalResult
+
 			
 				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
 				BEGIN
@@ -2666,10 +2672,14 @@ BEGIN
 						AND #TMPBatchFinalResult.RoId = GroupTmp.ReferenceId 
 						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleRODistributionSetupId
 
+						--SELECT * From #TMPBatchFinalResult
+
 				END
 
 				PRINT '1.18.3' 
 				PRINT GETUTCDATE();
+
+				--SELECT * From #TMPBatchFinalResult
 
 				SELECT @TotalBatchRecords = MAX(BatchId), @CurrentRecordId = MIN(BatchId) FROM #TMPBatchFinalResult;
 
@@ -2678,13 +2688,6 @@ BEGIN
 					PRINT '1.18.4' 
 					PRINT GETUTCDATE();
 					PRINT @CurrentRecordId
-					SELECT		JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
-								[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
-								[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
-								[UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
-								[LocalCurrency],[FXRate],[ForeignCurrency], [ReferenceModule]
-					FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId;
-
 
 					PRINT 'CommonJournalBatchDetailId : Insert Start'
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -2698,9 +2701,9 @@ BEGIN
 					FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId;
 			
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
-					PRINT 'CommonJournalBatchDetailId : Insert End'
-					PRINT @CommonJournalBatchDetailId
-					PRINT GETUTCDATE();
+					--PRINT 'CommonJournalBatchDetailId : Insert End'
+					--PRINT @CommonJournalBatchDetailId
+					--PRINT GETUTCDATE();
 
 					PRINT '1.18.4.1' 
 
@@ -2805,6 +2808,12 @@ BEGIN
 				 --UPDATE PO/RO Deposite Amount based on PO RO
 				 UPDATE PO SET DepositAmount = CASE WHEN ISNULL(DepositAmount, 0) >= ISNULL(ProformaAmount, 0) THEN  ISNULL(DepositAmount, 0) - ISNULL(ProformaAmount, 0) ELSE 0 END FROM dbo.PurchaseOrder PO WITH(NOLOCK) JOIN #TMPVendorProformaInv TMPVP  ON TMPVP.ReferenceId = PO.PurchaseOrderId WHERE TMPVP.[Type] = 1
 				 UPDATE RO SET DepositAmount = CASE WHEN ISNULL(DepositAmount, 0) >= ISNULL(ProformaAmount, 0) THEN  ISNULL(DepositAmount, 0) - ISNULL(ProformaAmount, 0) ELSE 0 END FROM dbo.RepairOrder RO WITH(NOLOCK) JOIN #TMPVendorProformaInv TMPVP  ON TMPVP.ReferenceId = RO.RepairOrderId WHERE TMPVP.[Type] = 2
+				 
+				 IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
+				 BEGIN
+					UPDATE VendorProformaInvoiceHeader SET StatusId = @VendorProformaStatusId, UpdatedDate = GETUTCDATE() WHERE VendorProformaInvoiceId IN (SELECT VendorProformaInvoiceId FROM #TMPVendorProformaInv)
+				 END
+				 
 				 --AutoPost Batch
 				 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 				 BEGIN

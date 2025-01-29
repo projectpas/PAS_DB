@@ -104,7 +104,7 @@ BEGIN
 
 		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
 
-		SELECT @PartsSaleBillingAmt = SUM(ISNULL(SOBII.PartCost, 0)) + SUM(ISNULL(SOBII.SalesTax, 0)) + SUM(ISNULL(SOBII.OtherTax, 0)) + SUM(ISNULL(SOPC.MiscCharges, 0))
+		SELECT @PartsSaleBillingAmt = SUM(ISNULL(SOBII.PartCost, 0)) + SUM(ISNULL(SOBII.SalesTax, 0)) + SUM(ISNULL(SOBII.OtherTax, 0)) + SUM(ISNULL(SOBII.MiscCharges, 0))
 		FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
 			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
@@ -123,15 +123,15 @@ BEGIN
 		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND
 		CONVERT(DATE, WOP.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE, WOP.CreatedDate) <= CONVERT(DATE, @SelectedDate) 
 
-		SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) + SUM(ISNULL(SOPC.MiscCharges,0)) 
+		SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) 
 		FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
-				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+				INNER JOIN DBO.SalesOrderStockLineCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+				INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId AND STKV.SalesOrderStocklineId = SOPC.SalesOrderStocklineId
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
-				INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId
 				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 			WHERE STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 			INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0

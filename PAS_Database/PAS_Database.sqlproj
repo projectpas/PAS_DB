@@ -3430,6 +3430,7 @@
     <Build Include="dbo\Stored Procedures\GetTravelerTaskList.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForTravelerTask.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterDetailById.sql" />
+    <Build Include="dbo\Functions\CalculateTotalTime.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

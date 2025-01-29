@@ -20,6 +20,7 @@
     1    02/22/2021   Hemant Saliya Created
 	2    01/19/2022   Hemant Saliya Update Calculated Values
     3    01/09/2025   Moin Bloch    Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
+	4    01/29/2025   Moin Bloch    Update SET Hours
      
  EXECUTE USP_GetWorkOrderLaborAnalysisSummary 60, 67,false
 
@@ -88,6 +89,50 @@ SET NOCOUNT ON
 					END
 					if(@workOrderPartNoId > 0)
 					BEGIN   
+						 DECLARE @TotalRecord int = 0;   
+						 DECLARE @MinId BIGINT = 1;
+						 DECLARE @TotalHours DECIMAL(10,2) = 0
+						 DECLARE @TotalAdjHours DECIMAL(10,2) = 0						 
+
+						 IF OBJECT_ID(N'tempdb..#WorkOrderLaborAnalysisSummary') IS NOT NULL
+						 BEGIN
+							DROP TABLE #WorkOrderLaborAnalysisSummary
+						 END
+
+						 CREATE TABLE #WorkOrderLaborAnalysisSummary
+						 (
+							ID BIGINT NOT NULL IDENTITY, 							
+							[Hours] DECIMAL(10,2) NULL,
+							[Adjustments] DECIMAL(10,2) NULL									
+						 )  
+
+						 INSERT INTO #WorkOrderLaborAnalysisSummary ([Hours],[Adjustments])
+						 SELECT wl.[Hours],
+						        wl.[Adjustments]								
+							FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
+								JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId
+								JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
+								JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID								
+							WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
+
+						SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #WorkOrderLaborAnalysisSummary    
+
+						WHILE @MinId <= @TotalRecord
+						BEGIN	
+							DECLARE @Hours  DECIMAL(10,2) = 0
+							DECLARE @Adjustments DECIMAL(10,2) = 0
+							
+							SELECT @Hours = ISNULL([Hours],0),
+							       @Adjustments = ISNULL([Adjustments],0)								   		    
+							FROM #WorkOrderLaborAnalysisSummary WHERE ID = @MinId	
+							
+							SET @TotalHours = ISNULL(dbo.CalculateTotalTime(@Hours,@Adjustments),0)
+
+							SET @TotalAdjHours += @TotalHours						
+						 
+							SET @MinId = @MinId + 1
+						END
+						
 						;WITH CTE AS(
 						 	SELECT ISNULL(SUM(wfx.EstimatedHours),0) AS AdjustedHours,wo.WorkOrderId
 								FROM  dbo.WorkOrderPartNumber wop 
@@ -104,7 +149,8 @@ SET NOCOUNT ON
 								im.PartDescription,
 								im.RevisedPart AS RevisedPN,
 								CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-								ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+								--ISNULL(ISNULL(SUM(wl.[Hours]), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+								ISNULL(@TotalAdjHours,0) AS [Hours],
 								--ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(CTE.AdjustedHours,0)) AS [Adjustments],
 								ISNULL(SUM(wl.Adjustments),0) AS [Adjustments],
 							    ISNULL(CTE.AdjustedHours,0) AS [AdjustedHours],
@@ -131,9 +177,6 @@ SET NOCOUNT ON
 							GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,
 								c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours
 					END
-				
-		--	END
-		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

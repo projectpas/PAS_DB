@@ -105,12 +105,13 @@ BEGIN
 
 		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
 
-		SELECT @PartsSaleBillingAmt = SUM(ISNULL(SOBII.PartCost, 0)) + SUM(ISNULL(SOBII.SalesTax, 0)) + SUM(ISNULL(SOBII.OtherTax, 0)) + SUM(ISNULL(SOBII.MiscCharges, 0))
+		SELECT @PartsSaleBillingAmt = SUM(ISNULL(SOPC.NetSaleAmount,0))
+		--SUM(ISNULL(SOBII.PartCost, 0)) + SUM(ISNULL(SOBII.SalesTax, 0)) + SUM(ISNULL(SOBII.OtherTax, 0)) + SUM(ISNULL(SOBII.MiscCharges, 0))
 		FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
 			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOBII.SalesOrderPartId = SOP.SalesOrderPartId
-			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOBII.SalesOrderPartId
 			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 		WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate)
 			AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
@@ -136,7 +137,7 @@ BEGIN
 		[PartDescription] VARCHAR(MAX),
 		[Condition] VARCHAR(256),
 		[ItemGroup] VARCHAR(250),
-		[GrandTotal] BIGINT,
+		[GrandTotal] DECIMAL(18,2),
 		[CustomerName] VARCHAR(256),
 		[SalesOrderNumber] VARCHAR(256),
 		[SalesPerson] VARCHAR(100),
@@ -149,7 +150,7 @@ BEGIN
 	
 		SELECT 
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SUM(ISNULL(SOPC.UnitSalesPrice,0))  AS GrandTotal,
+				SUM(ISNULL(SOPC.NetSaleAmount,0))  AS GrandTotal,
 				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderStockLineCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
@@ -166,7 +167,7 @@ BEGIN
 					Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1) AND
 				 SO.IsActive = 1
 				AND SO.IsDeleted = 0
-				AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, '2025-01-29 00:00:00')
+				AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @SelectedDate)
 				AND SO.MasterCompanyId = 1
 				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 				ORDER BY SO.SalesOrderNumber
@@ -187,7 +188,7 @@ BEGIN
 			) AS billedData
 
 
-		select @PartsSaleWorkable = SUM(ISNULL(GrandTotal,0)) from #tmpNonInvoiceDashboard
+		select @PartsSaleWorkable = (ISNULL(GrandTotal,0)) from #tmpNonInvoiceDashboard
 
 		SELECT @WOQProcessed = COUNT(WOQD.WorkOrderQuoteId) FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK) 
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId

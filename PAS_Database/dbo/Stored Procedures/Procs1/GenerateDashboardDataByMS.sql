@@ -107,9 +107,9 @@ BEGIN
 
 		SELECT @PartsSaleBillingAmt = ISNULL(SUM(SOBII.PartCost),0) + ISNULL(SUM(SOBII.SalesTax),0) + ISNULL(SUM(SOBII.OtherTax),0) + ISNULL(SUM(SOBII.MiscCharges),0)
 		FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
-			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
-			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOBII.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
+			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsProforma, 0) = 0 AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 		WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate)
@@ -187,7 +187,7 @@ BEGIN
 			) AS billedData
 
 
-		select @PartsSaleWorkable = (ISNULL(GrandTotal,0)) from #tmpNonInvoiceDashboard
+		select @PartsSaleWorkable = ISNULL(SUM(GrandTotal),0) from #tmpNonInvoiceDashboard
 
 		SELECT @WOQProcessed = COUNT(WOQD.WorkOrderQuoteId) FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK) 
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId

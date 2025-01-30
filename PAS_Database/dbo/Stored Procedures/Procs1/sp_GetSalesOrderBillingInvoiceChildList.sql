@@ -47,6 +47,7 @@
 	30	 26/12/2024	  Vishal Suthar		Fixed the issue with tax calculation when part has multiple stockline and freight and charges are also applied
 	31   08-01-2025   Shrey Chandegara  Fixed Issue of costplus amount in salesorder billing.
 	32	 21/01/2025	  AMIT GHEDIYA		Fixed the billing data issue after shipping.
+	33	 30/01/2025	  Vishal Suthar		Fixed issue with the qty shipped after billing is completed
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
@@ -484,7 +485,18 @@ BEGIN
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
 					SELECT DISTINCT 
 						ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
-						0 AS SalesOrderShippingId,   
+						--0 AS SalesOrderShippingId,   
+						(CASE WHEN sobii.IsVersionIncrease = 1 then 
+						(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) 
+						ELSE 
+							(SELECT SOS.SalesOrderShippingId 
+							FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+							INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+							INNER JOIN DBO.SOPickTicket SOPICK WITH (NOLOCK) on SOPICK.SOPickTicketId = SOSI.SOPickTicketId
+							INNER JOIN DBO.SalesOrderStocklineV1 SOSB WITH (NOLOCK) ON SOSB.SalesOrderStocklineId = SOPICK.SalesOrderPartStocklineId
+							WHERE SOS.SalesOrderId = @SalesOrderId AND SOSB.SalesOrderStocklineId = STK.SalesOrderStocklineId
+							AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) END)
+						AS SalesOrderShippingId,
 						sobi.SOBillingInvoicingId,
 						sobii.SOBillingInvoicingItemId,
 						sobi.InvoiceDate,
@@ -516,7 +528,7 @@ BEGIN
 						stk.SalesOrderStocklineId,
 						cond.Description as 'Condition',   
 						CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-						0 AS 'SmentNo',
+						(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.SalesOrderShippingId > 0 THEN 1 ELSE 0 END) else 1 end) AS 'SmentNo',
 						--(ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
 						(ISNULL(SOSC.NetSaleAmount, 0)) AS TotalUnitCost,
 						sobii.VersionNo,
@@ -553,11 +565,12 @@ BEGIN
 					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId and SOP.ConditionId = @ConditionId
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyToBill = tmpcash.QtyToBill
-								FROM( SELECT ISNULL(SORR.QtyToReserve, 0)  QtyToBill, tmpSOBI.StockLineId
+								FROM( SELECT CASE WHEN SOSI.SalesOrderShippingId IS NOT NULL THEN ISNULL(SOSI.QtyShipped, 0) ELSE ISNULL(SORR.QtyToReserve, 0) END  QtyToBill, tmpSOBI.StockLineId
 										FROM DBO.SalesOrderReserveParts SORR WITH (NOLOCK)
 										JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON SORR.SalesOrderPartId = tmpSOBI.SalesOrderPartId 
 										AND SORR.StockLineId = tmpSOBI.StockLineId
 										AND SORR.SalesOrderId = @SalesOrderId
+										LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON tmpSOBI.SalesOrderShippingId = SOSI.SalesOrderShippingId
 								) tmpcash WHERE tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyBilled = tmpcash.NoofPieces

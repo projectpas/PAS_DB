@@ -117,8 +117,7 @@ BEGIN
 				;WITH Result AS (	
 					SELECT DISTINCT
 					IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
-					ISNULL(SUM(SOPC.NetSaleAmount),0) 'GrandTotal',
-					--SUM(ISNULL(SOBIII.PartCost, 0)) + SUM(ISNULL(SOBIII.SalesTax, 0)) + SUM(ISNULL(SOBIII.OtherTax, 0)) + SUM(ISNULL(SOBIII.MiscCharges, 0)) AS 'GrandTotal',
+					ISNULL(SUM(SOBIII.PartCost),0) + ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0) + ISNULL(SUM(SOBIII.MiscCharges),0) AS 'GrandTotal',
 					cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
 					FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 					INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
@@ -128,7 +127,7 @@ BEGIN
 					INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 					INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
 					INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
-					INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOBIII.SalesOrderPartId
+					LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 					LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
 					LEFT JOIN dbo.workorder WO WITH (NOLOCK)  ON STL.workorderid = WO.workorderid 
 					LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid

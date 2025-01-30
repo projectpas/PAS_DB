@@ -105,7 +105,7 @@ BEGIN
 
 		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
 
-		SELECT @PartsSaleBillingAmt = SUM(ISNULL(SOPC.NetSaleAmount,0))
+		SELECT @PartsSaleBillingAmt = ISNULL(SUM(SOPC.NetSaleAmount),0)
 		--SUM(ISNULL(SOBII.PartCost, 0)) + SUM(ISNULL(SOBII.SalesTax, 0)) + SUM(ISNULL(SOBII.OtherTax, 0)) + SUM(ISNULL(SOBII.MiscCharges, 0))
 		FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
@@ -150,7 +150,7 @@ BEGIN
 	
 		SELECT 
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SUM(ISNULL(SOPC.NetSaleAmount,0))  AS GrandTotal,
+				ISNULL(SUM(SOPC.NetSaleAmount),0) AS GrandTotal,
 				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderStockLineCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
@@ -176,13 +176,13 @@ BEGIN
 		SET TMP.GrandTotal = ISNULL(TMP.GrandTotal,0) + ISNULL(partAmount.MiscCharges,0) - ISNULL(billedData.MiscCharges,0)
 		FROM #tmpNonInvoiceDashboard TMP
 		OUTER APPLY (
-			SELECT SUM(ISNULL(sopc.MiscCharges,0)) AS MiscCharges FROM DBO.SalesOrderPartCost sopc WITH (NOLOCK) 
+			SELECT ISNULL(SUM(sopc.MiscCharges),0) AS MiscCharges FROM DBO.SalesOrderPartCost sopc WITH (NOLOCK) 
 					
 						Where sopc.SalesOrderId = TMP.SalesOrderId AND sopc.SalesOrderPartId = TMP.SalesOrderPartId and  TMP.MasterCompanyId = 1
 			) AS partAmount
 
 		OUTER APPLY (
-			SELECT SUM(ISNULL(SOBII.MiscCharges,0)) AS MiscCharges FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+			SELECT ISNULL(SUM(SOBII.MiscCharges),0) AS MiscCharges FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 						INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
 						Where SOBI.SalesOrderId = TMP.SalesOrderId AND TMP.MasterCompanyId = 1
 			) AS billedData

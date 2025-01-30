@@ -11,7 +11,7 @@
 ** --   --------     -------			----------------------
 	1   12/18/2024   Vishal Suthar		Created
 
-EXEC USP_GetWorkOrderTaskList 4670
+EXEC USP_GetWorkOrderTaskList 4875
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTaskList]
 (
@@ -49,7 +49,8 @@ BEGIN
 			WOT.UpdatedBy,
 			WOT.UpdatedDate,
 			WOTD.PrintInWO,
-			WOTD.PrintInWOQ
+			WOTD.PrintInWOQ,
+			CASE WHEN EXISTS (SELECT TOP 1 1 FROM DBO.Attachment ATT WITH (NOLOCK) INNER JOIN DBO.AttachmentModule ATTM WITH (NOLOCK) ON ATTM.AttachmentModuleId = ATT.ModuleId WHERE ATTM.[Name] = 'WorkOrderTask' AND ATT.ReferenceId = WOT.WorkOrderTaskId) THEN 1 ELSE 0 END AS IsDocumentAdded
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0

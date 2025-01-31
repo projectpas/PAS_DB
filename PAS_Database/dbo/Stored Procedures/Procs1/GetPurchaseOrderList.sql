@@ -23,12 +23,8 @@
 	07	16-Jan-2025		Bhargav Saliya		Resolved Purchase Order count issue
 	08	21-Jan-2025		Bhargav Saliya		When we attached WO with PO Part That time select Multiple/WO Number
 	09  23-Jan-2025		Bhargav Saliya		Resolved Shorting issue
--- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
-  
-    
-NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=98,@MasterCompanyId=11,@VendorId=NULL,@ViewType=N'poview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@RepairOrderNumbe
-  
-rType=NULL,@QuantityOrdered=NULL,@QuantityBackOrdered=NULL,@QuantityReceived=NULL      
+	10	31-Jan-2025		Hemant Saliya		Resolved WO number Display issue
+      
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@PageNumber int = 1,
@@ -149,8 +145,7 @@ BEGIN
 			INSERT INTO #TempPurchaseOrders ([PurchaseOrderId],[PurchaseOrderNumber],[PurchaseOrderNo],[OpenDate],[ClosedDate],[CreatedDate],[CreatedBy],[UpdatedDate],[UpdatedBy],
 								[IsActive],[IsDeleted],[StatusId],[VendorId],[VendorName],[VendorCode],[Status],[RequestedBy],[ApprovedBy],[QuantityOrdered],[QuantityBackOrdered],
 								[QuantityReceived],[PartNumberType],[ManufacturerType],[WorkOrderNumType],[SalesOrderNumberType],[RepairOrderNumberType],[WorkOrderNum],
-								[SalesOrderNumber],[RepairOrderNumber],[EstDeliveryType])
-				--;WITH Result AS(               
+								[SalesOrderNumber],[RepairOrderNumber],[EstDeliveryType])				              
 				SELECT DISTINCT PO.PurchaseOrderId,
 					PO.PurchaseOrderNumber,
 					PO.PurchaseOrderNumber AS PurchaseOrderNo,
@@ -177,8 +172,8 @@ BEGIN
 					'' WorkOrderNumType,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumberType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumberType', 
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNum', 
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumber', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(ISNULL(POP.WorkOrderId, 0)) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNum', 
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(ISNULL(POP.SalesOrderId, 0)) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumber', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumber', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'
 
@@ -202,8 +197,8 @@ BEGIN
 					PO.VendorCode,  
 					PO.[Status],
 					PO.Requisitioner,
-					PO.ApprovedBy
-				--)   
+					PO.ApprovedBy				 
+	
 	UPDATE TMP
 	SET TMP.WorkOrderNumType = WODATA.WorkOrderNumType
 	FROM #TempPurchaseOrders TMP
@@ -215,7 +210,7 @@ BEGIN
 		LEFT JOIN [dbo].[PurchaseOrderPartReference] PORW  WITH (NOLOCK) ON POPW.PurchaseOrderPartRecordId = PORW.PurchaseOrderPartId AND POPW.PurchaseOrderId = PORW.PurchaseOrderId
 		LEFT JOIN [dbo].WorkOrder WON WITH (NOLOCK) ON PORW.ReferenceId = WON.WorkOrderId
 		WHERE	POPW.PurchaseOrderPartRecordId = PORW.PurchaseOrderPartId AND POPW.PurchaseOrderId = PORW.PurchaseOrderId
-				AND POPW.isParent=1  AND TMP.PurchaseOrderId = POPW.PurchaseOrderId  
+				AND POPW.isParent=1  AND TMP.PurchaseOrderId = POPW.PurchaseOrderId AND PORW.ModuleId = 1 -- FOR WO Module
 				GROUP BY PORW.ModuleId
 		) AS WODATA
 	
@@ -352,8 +347,6 @@ BEGIN
 			PO.ApprovedBy,
 			POP.PartNumber,
 			POP.PartNumber as PartNumberType,
-			--M.[Name] AS Manufacturer,
-			--M.[Name] AS ManufacturerType, 
 			POP.Manufacturer AS Manufacturer,
 			POP.Manufacturer AS ManufacturerType,
 			POP.SalesOrderNo AS SalesOrderNumber,

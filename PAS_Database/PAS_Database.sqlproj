@@ -3431,6 +3431,8 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForTravelerTask.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterDetailById.sql" />
     <Build Include="dbo\Functions\CalculateTotalTime.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingGLAccountList.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewGLAccountSyncPendingListForCreate.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

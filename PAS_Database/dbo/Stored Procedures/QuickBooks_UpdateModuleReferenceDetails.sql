@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    20-Jan-2025   Devendra Shekh	Created
+	2    23-Jan-2025   Devendra Shekh	Modified (added Change for JOURNALENTRY)
      
  EXECUTE [QuickBooks_UpdateModuleReferenceDetails] 1, 10, '150'
 **************************************************************/ 
@@ -31,13 +32,14 @@ BEGIN
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;
 		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0;
-		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT;
+		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @JournalEntryModuleId INT;
 
 		SELECT @CustomerModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER';
 		SELECT @VendorModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'VENDOR';
 		SELECT @InvModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'INVOICE';
 		SELECT @CustomerPaymentModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMERPAYMENT';
 		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
+		SELECT @JournalEntryModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'JOURNALENTRY';
 
 		SELECT @WOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -77,12 +79,17 @@ BEGIN
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CustomerPaymentModuleId) 
 		BEGIN
-			UPDATE CustomerPaymentDetails SET IsUpdated = 1 WHERE ReceiptId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
+			UPDATE [dbo].[CustomerPaymentDetails] SET IsUpdated = 1 WHERE ReceiptId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CreditTermModuleId) 
 		BEGIN
 			UPDATE [dbo].[CreditTerms] SET IsUpdated = 1 WHERE CreditTermsId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
+		END
+
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CreditTermModuleId) 
+		BEGIN
+			UPDATE [dbo].[CommonBatchDetails] SET IsUpdated = 1 WHERE CommonJournalBatchDetailId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
 		END
 
 	END TRY    

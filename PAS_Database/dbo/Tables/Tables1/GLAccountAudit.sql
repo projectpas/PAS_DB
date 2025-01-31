@@ -24,7 +24,11 @@
     [Threshold]                   DECIMAL (18, 2) NULL,
     [IsManualJEReference]         BIT             NULL,
     [ReferenceTypeId]             INT             NULL,
-    [SubLedgerId]                 INT             NULL
+    [SubLedgerId]                 INT             NULL,
+    [QuickBooksReferenceId]       VARCHAR (200)   NULL,
+    [IsUpdated]                   BIT             NULL,
+    [LastSyncDate]                DATETIME2 (7)   NULL,
+    [SyncToken]                   VARCHAR (200)   NULL
 );
 
 

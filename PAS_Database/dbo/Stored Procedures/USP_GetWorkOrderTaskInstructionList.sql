@@ -10,98 +10,182 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   01/02/2025   Vishal Suthar		Created
-
+	2   03/Fwb/2025  RAJESH GAMI		added @WorkOrderPartNumberId and their functionality
 EXEC USP_GetWorkOrderTaskInstructionList 4674, 0, 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTaskInstructionList]
 (
 	@WorkOrderId BIGINT,
 	@WorkOrderTaskId BIGINT = NULL,
-	@FetchTaskOrInstruction BIT = 0
+	@FetchTaskOrInstruction BIT = 0,
+	@WorkOrderPartNumberId BIGINT = 0
 )
 AS
 BEGIN
 	BEGIN TRY 
 	BEGIN
-		
-		IF (ISNULL(@FetchTaskOrInstruction, 0) = 0)
+		IF(@WorkOrderPartNumberId > 0)
 		BEGIN
-			;WITH CTE AS (
-				SELECT DISTINCT
-				WOT.WorkOrderTaskId,
-				WOT.WorkOrderId,
-				WOT.WorkOrderPartNumberId,
-				WOT.WorkFlowWorkOrderId,
-				WOT.TaskId,
-				WOT.SequenceNumber,
-				WOT.OpenDate,
-				WOT.OpenBy,
-				WOT.IsIncludeInPrint,
-				WOT.HasInstruction,
-				WOT.TaskName,
-				WOTD.TechId,
-				WOTD.TechName,
-				WOTD.TechUpdatedDate,
-				WOTD.InspectorId,
-				WOTD.InspectorName,
-				WOTD.InspectorUpdatedDate,
-				WOTD.Descrepancy,
-				WOTD.Resolution,
-				WOT.MasterCompanyId,
-				WOT.CreatedBy,
-				WOT.CreatedDate,
-				WOT.UpdatedBy,
-				WOT.UpdatedDate
-				FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
-				INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
-				INNER JOIN dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId
-				WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
-			)
+				IF (ISNULL(@FetchTaskOrInstruction, 0) = 0)
+				BEGIN
+					;WITH CTE AS (
+						SELECT DISTINCT
+						WOT.WorkOrderTaskId,
+						WOT.WorkOrderId,
+						WOT.WorkOrderPartNumberId,
+						WOT.WorkFlowWorkOrderId,
+						WOT.TaskId,
+						WOT.SequenceNumber,
+						WOT.OpenDate,
+						WOT.OpenBy,
+						WOT.IsIncludeInPrint,
+						WOT.HasInstruction,
+						WOT.TaskName,
+						WOTD.TechId,
+						WOTD.TechName,
+						WOTD.TechUpdatedDate,
+						WOTD.InspectorId,
+						WOTD.InspectorName,
+						WOTD.InspectorUpdatedDate,
+						WOTD.Descrepancy,
+						WOTD.Resolution,
+						WOT.MasterCompanyId,
+						WOT.CreatedBy,
+						WOT.CreatedDate,
+						WOT.UpdatedBy,
+						WOT.UpdatedDate
+						FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
+						INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+						INNER JOIN dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId
+						WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND WOT.WorkOrderPartNumberId = @WorkOrderPartNumberId
+					)
 
-			SELECT * INTO #LeafTaskTempTbl FROM CTE
+					SELECT * INTO #LeafTaskTempTbl FROM CTE
 
-			SELECT * FROM #LeafTaskTempTbl ORDER BY SequenceNumber;
+					SELECT * FROM #LeafTaskTempTbl ORDER BY SequenceNumber;
+				END
+				ELSE
+				BEGIN
+					;WITH CTE AS (
+						SELECT 
+						WOTI.WorkOrderTaskInstructionId,
+						WOTI.WorkOrderTaskId,
+						WOTI.ParentId,
+						WOTI.IsParent,
+						WOT.TaskId,
+						WOT.TaskName,
+						WOTI.InstructionTitle,
+						WOTI.SequenceNumber,
+						WOTI.InstructionDetails,
+						WOTI.TechId,
+						WOTI.TechName,
+						WOTI.TechUpdatedDate,
+						WOTI.InspectorId,
+						WOTI.InspectorName,
+						WOTI.InspectorUpdatedDate,
+						WOTI.PrintInWO,
+						WOTI.PrintInWOQ,
+						WOTI.MasterCompanyId,
+						WOTI.CreatedBy,
+						WOTI.UpdatedBy,
+						WOTI.CreatedDate,
+						WOTI.UpdatedDate,
+						WOTI.IsActive,
+						WOTI.IsDeleted 
+						FROM dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK)
+						INNER JOIN dbo.WorkOrderTask WOT WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+						WHERE WOT.WorkOrderId = @WorkOrderId
+						AND WOTI.WorkOrderTaskId = @WorkOrderTaskId
+						AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND WOT.WorkOrderPartNumberId = @WorkOrderPartNumberId
+					)
+
+					SELECT * INTO #LeafTempTbl FROM CTE
+
+					SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
+			END
 		END
 		ELSE
 		BEGIN
-			;WITH CTE AS (
-				SELECT 
-				WOTI.WorkOrderTaskInstructionId,
-				WOTI.WorkOrderTaskId,
-				WOTI.ParentId,
-				WOTI.IsParent,
-				WOT.TaskId,
-				WOT.TaskName,
-				WOTI.InstructionTitle,
-				WOTI.SequenceNumber,
-				WOTI.InstructionDetails,
-				WOTI.TechId,
-				WOTI.TechName,
-				WOTI.TechUpdatedDate,
-				WOTI.InspectorId,
-				WOTI.InspectorName,
-				WOTI.InspectorUpdatedDate,
-				WOTI.PrintInWO,
-				WOTI.PrintInWOQ,
-				WOTI.MasterCompanyId,
-				WOTI.CreatedBy,
-				WOTI.UpdatedBy,
-				WOTI.CreatedDate,
-				WOTI.UpdatedDate,
-				WOTI.IsActive,
-				WOTI.IsDeleted 
-				FROM dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK)
-				INNER JOIN dbo.WorkOrderTask WOT WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
-				WHERE WOT.WorkOrderId = @WorkOrderId
-				AND WOTI.WorkOrderTaskId = @WorkOrderTaskId
-				AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
-			)
+			IF (ISNULL(@FetchTaskOrInstruction, 0) = 0)
+				BEGIN
+					;WITH CTE AS (
+						SELECT DISTINCT
+						WOT.WorkOrderTaskId,
+						WOT.WorkOrderId,
+						WOT.WorkOrderPartNumberId,
+						WOT.WorkFlowWorkOrderId,
+						WOT.TaskId,
+						WOT.SequenceNumber,
+						WOT.OpenDate,
+						WOT.OpenBy,
+						WOT.IsIncludeInPrint,
+						WOT.HasInstruction,
+						WOT.TaskName,
+						WOTD.TechId,
+						WOTD.TechName,
+						WOTD.TechUpdatedDate,
+						WOTD.InspectorId,
+						WOTD.InspectorName,
+						WOTD.InspectorUpdatedDate,
+						WOTD.Descrepancy,
+						WOTD.Resolution,
+						WOT.MasterCompanyId,
+						WOT.CreatedBy,
+						WOT.CreatedDate,
+						WOT.UpdatedBy,
+						WOT.UpdatedDate
+						FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
+						INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+						INNER JOIN dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId
+						WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
+					)
 
-			SELECT * INTO #LeafTempTbl FROM CTE
+					SELECT * INTO #LeafTempTblELSETbls FROM CTE
 
-			SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
-		END
-	END
+					SELECT * FROM #LeafTempTblELSETbls ORDER BY SequenceNumber;
+				END
+				ELSE
+				BEGIN
+					;WITH CTE AS (
+						SELECT 
+						WOTI.WorkOrderTaskInstructionId,
+						WOTI.WorkOrderTaskId,
+						WOTI.ParentId,
+						WOTI.IsParent,
+						WOT.TaskId,
+						WOT.TaskName,
+						WOTI.InstructionTitle,
+						WOTI.SequenceNumber,
+						WOTI.InstructionDetails,
+						WOTI.TechId,
+						WOTI.TechName,
+						WOTI.TechUpdatedDate,
+						WOTI.InspectorId,
+						WOTI.InspectorName,
+						WOTI.InspectorUpdatedDate,
+						WOTI.PrintInWO,
+						WOTI.PrintInWOQ,
+						WOTI.MasterCompanyId,
+						WOTI.CreatedBy,
+						WOTI.UpdatedBy,
+						WOTI.CreatedDate,
+						WOTI.UpdatedDate,
+						WOTI.IsActive,
+						WOTI.IsDeleted 
+						FROM dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK)
+						INNER JOIN dbo.WorkOrderTask WOT WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+						WHERE WOT.WorkOrderId = @WorkOrderId
+						AND WOTI.WorkOrderTaskId = @WorkOrderTaskId
+						AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
+					)
+
+					SELECT * INTO #LeafTempTblELSETbl FROM CTE
+
+					SELECT * FROM #LeafTempTblELSETbl ORDER BY SequenceNumber;
+				END
+	
+			END
+	   END
 	END TRY
 	BEGIN CATCH
 		SELECT        

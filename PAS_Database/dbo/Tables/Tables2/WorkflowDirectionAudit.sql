@@ -2,9 +2,9 @@
     [WorkflowDirectionAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [WorkflowDirectionId]      BIGINT         NOT NULL,
     [WorkflowId]               BIGINT         NOT NULL,
-    [Action]                   VARCHAR (50)   NOT NULL,
-    [Description]              VARCHAR (500)  NULL,
-    [Sequence]                 VARCHAR (50)   NULL,
+    [Action]                   NVARCHAR (MAX) NOT NULL,
+    [Description]              NVARCHAR (MAX) NOT NULL,
+    [Sequence]                 VARCHAR (100)  NOT NULL,
     [Memo]                     NVARCHAR (MAX) NULL,
     [TaskId]                   BIGINT         NULL,
     [MasterCompanyId]          INT            NOT NULL,
@@ -17,6 +17,9 @@
     [Order]                    INT            NULL,
     [WFParentId]               BIGINT         NULL,
     [IsVersionIncrease]        BIT            NULL,
+    [TaskName]                 VARCHAR (200)  NULL,
     CONSTRAINT [PK_WorkflowDirectionAudit] PRIMARY KEY CLUSTERED ([WorkflowDirectionAuditId] ASC)
 );
+
+
 

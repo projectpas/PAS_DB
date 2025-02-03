@@ -46,36 +46,57 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @RecordFrom int;
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM
+						dbo.Employee E WITH (NOLOCK)
+					LEFT JOIN
+						dbo.TimeZone ETZ WITH (NOLOCK)
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN
+						dbo.LegalEntity LE WITH (NOLOCK)
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN
+						dbo.TimeZone LTZ WITH (NOLOCK)
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 					SET @RecordFrom = (@PageNumber-1)*@PageSize;
 					IF @IsDeleted is null
 					Begin
 						Set @IsDeleted=0
 					End
-					print @IsDeleted	
+					print @IsDeleted
 					IF @SortColumn is null
 					Begin
 						Set @SortColumn=Upper('CreatedDate')
-					End 
+					End
 					Else
-					Begin 
+					Begin
 						Set @SortColumn=Upper(@SortColumn)
 					End
 
 					If @QuoteAmount=0
-					Begin 
+					Begin
 						Set @QuoteAmount=null
 					End
-					
+
 					If @SoAmount=0
-					Begin 
+					Begin
 						Set @SoAmount=null
 					End
 
 
 					If @StatusID=0
-					Begin 
+					Begin
 						Set @StatusID=null
-					End 
+					End
 
 					If @Status='0'
 					Begin
@@ -87,7 +108,9 @@ BEGIN
 				Select DISTINCT SOQ.SpeedQuoteId,SOQ.SpeedQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',C.CustomerCode, MST.Name as 'Status',
 				--ISNULL(SP.NetSales,0) as 'QuoteAmount',
 				ISNULL(SP.UnitSalePrice,0) as 'QuoteAmount',
-				SOQ.CreatedDate,SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,
+				--SOQ.CreatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+				SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,
 				--IsNull(P.Description,'') as 'Priority',IsNull(P.Description,'') as 'PriorityType',
 				(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(IM.partnumber,'') as 'PartNumberType',IsNull(im.PartDescription,'') as 'PartDescription',IsNull(im.PartDescription,'') as 'PartDescriptionType',
@@ -97,7 +120,9 @@ BEGIN
 				--SOP.UnitSalePrice as 'SoAmount',
 				SOQ.QuoteExpireDate,SOQ.AccountTypeName,SOQ.LeadSourceReference,
 				SOQ.LeadSourceName,P.PercentValue as 'Probability',
-				SOQ.UpdatedDate,SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',cn.Code as 'ConditionCode', cn.Code as 'ConditionCodeType'
+				--SOQ.UpdatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+				SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',cn.Code as 'ConditionCode', cn.Code as 'ConditionCodeType'
 				--,(select count(*) fron SpeedQuoteExclusionPart spe where spe.SpeedQuoteId = SOQ.SpeedQuoteId) as 'count'
 				from SpeedQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSpeedQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
@@ -122,7 +147,7 @@ BEGIN
 			QuoteExpireDate,AccountTypeName,LeadSourceReference,
 			LeadSourceName,Probability,CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,ConditionCode,ConditionCodeType from Result
 				Where (
-					(@GlobalFilter <>'' AND ((SpeedQuoteNumber like '%' +@GlobalFilter+'%' ) OR 
+					(@GlobalFilter <>'' AND ((SpeedQuoteNumber like '%' +@GlobalFilter+'%' ) OR
 							--(SalesOrderNumber like '%' +@GlobalFilter+'%') OR
 							(CustomerName like '%' +@GlobalFilter+'%') OR
 							(CustomerCode like '%' +@GlobalFilter+'%') OR
@@ -134,7 +159,7 @@ BEGIN
 							(ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 							(CustomerReference like '%' +@GlobalFilter+'%') OR
 							(@VersionNumber like '%'+@GlobalFilter+'%') OR
-							(CustomerType like '%' +@GlobalFilter+'%') OR 
+							(CustomerType like '%' +@GlobalFilter+'%') OR
 							(CreatedBy like '%' +@GlobalFilter+'%') OR
 							(UpdatedBy like '%' +@GlobalFilter+'%') OR
 							(LeadSourceName like '%' +@GlobalFilter+'%') OR
@@ -143,8 +168,8 @@ BEGIN
 							(LeadSourceReference like '%' +@GlobalFilter+'%') OR
 							(ConditionCodeType like '%' +@GlobalFilter+'%')
 							))
-							OR   
-							(@GlobalFilter='' AND (IsNull(@SpeedQuoteNumber,'') ='' OR SpeedQuoteNumber like  '%'+ @SpeedQuoteNumber+'%') and 
+							OR
+							(@GlobalFilter='' AND (IsNull(@SpeedQuoteNumber,'') ='' OR SpeedQuoteNumber like  '%'+ @SpeedQuoteNumber+'%') and
 							(IsNull(@CustomerName,'') ='' OR CustomerName like  '%'+@CustomerName+'%') and
 							(IsNull(@CustomerCode,'') ='' OR CustomerCode like  '%'+@CustomerCode+'%') and
 							(IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%') and
@@ -179,7 +204,7 @@ BEGIN
 					QuoteExpireDate,AccountTypeName,LeadSourceReference,
 					LeadSourceName,Probability,
 					CreatedDate,UpdatedDate, CreatedBy,UpdatedBy, NumberOfItems,ConditionCode,ConditionCodeType from FinalResult, ResultCount
-				ORDER BY  
+				ORDER BY
 				 CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='SPEEDQUOTENUMBER')  THEN SpeedQuoteNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END ASC,
@@ -225,25 +250,25 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END Desc
-					OFFSET @RecordFrom ROWS 
+					OFFSET @RecordFrom ROWS
 					FETCH NEXT @PageSize ROWS ONLY
 					Print @SortOrder
 
 			END
 			COMMIT  TRANSACTION
 
-		END TRY    
-		BEGIN CATCH      
+		END TRY
+		BEGIN CATCH
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'SearchSpeedQuotePNViewData' 
+              , @AdhocComments     VARCHAR(150)    = 'SearchSpeedQuotePNViewData'
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-              exec spLogException 
+              exec spLogException
                        @DatabaseName           =  @DatabaseName
                      , @AdhocComments          =  @AdhocComments
                      , @ProcedureParameters	   =  @ProcedureParameters

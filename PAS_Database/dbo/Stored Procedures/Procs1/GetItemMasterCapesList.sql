@@ -6,6 +6,7 @@
     1    No-Data
 	2.   28/05/2024   Amit Ghediya     Update for get Item Details from Item Master table.
 	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	3    30/01/2025   Ayushi Patel      converted the date into utc (created , updated, verified) , Added a case to get timeZone
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetItemMasterCapesList]
 @PageNumber int = NULL,
@@ -43,8 +44,28 @@ BEGIN
 		DECLARE @ModuleId int =8;
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		--SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -74,11 +95,14 @@ BEGIN
 				CASE WHEN imc.IsVerified = 1 THEN 'Yes' ELSE 'No' END AS isVerified,
 				(ISNULL(UPPER(imc.[VerifiedBy]),'')) 'verifiedBy',
 				imc.VerifiedById AS 'verifiedById',
-				imc.VerifiedDate AS 'verifiedDate',
+				--imc.VerifiedDate AS 'verifiedDate',
+				(Cast(DBO.ConvertUTCtoLocal(imc.VerifiedDate, @CurrntEmpTimeZoneDesc) as Date)) verifiedDate,
 				imc.[Memo] AS 'memo',
 				imc.AddedDate AS 'addedDate',
-				imc.CreatedDate AS 'createdDate',
-				imc.UpdatedDate AS 'updatedDate',
+				--imc.CreatedDate AS 'createdDate',
+				--imc.UpdatedDate AS 'updatedDate',
+				(Cast(DBO.ConvertUTCtoLocal(imc.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(imc.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 				UPPER(imc.CreatedBy) AS 'createdBy',
 				UPPER(imc.UpdatedBy) AS 'updatedBy',                               
 				imc.IsActive AS  'isActive',

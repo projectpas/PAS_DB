@@ -13,7 +13,8 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
     1    09 Nov 2023   BHARGAV SALIYA               Created
-    2    21 Now 2023   BHARGAV SALIYA               MappingItemMasterId                                              
+    2    21 Now 2023   BHARGAV SALIYA               MappingItemMasterId 
+	3    31/01/2025	   Ayushi Patel					converted the date into utc (created , updated) , Added a case to get timeZone
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AssemplyDetailsByAssemplyId]
 @PageNumber int = NULL,
@@ -37,7 +38,8 @@ CREATE     PROCEDURE [dbo].[USP_AssemplyDetailsByAssemplyId]
 @CreatedDate datetime = NULL,
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
-@IsDeleted bit = NULL
+@IsDeleted bit = NULL,
+@EmployeeId bigint
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -47,6 +49,26 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -89,8 +111,10 @@ BEGIN
 						WS.WorkScopeCode AS WorkScope,
 						PS.Description AS Provision,
 						AP.Memo,
-						AP.CreatedDate,
-						AP.UpdatedDate,
+						--AP.CreatedDate,
+						--AP.UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(AP.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(AP.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 						Upper(AP.CreatedBy) AS CreatedBy,
 						Upper(AP.UpdatedBy) AS UpdatedBy,
 						AP.IsActive,

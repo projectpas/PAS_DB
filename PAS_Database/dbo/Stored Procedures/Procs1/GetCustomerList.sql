@@ -1,27 +1,27 @@
-﻿/*************************************************************           
- ** File:   [GetCustomerList]           
+﻿/*************************************************************
+ ** File:   [GetCustomerList]
  ** Author:   Ameet Prajapati
- ** Description: Get Search Data for Customer List    
- ** Purpose:         
- ** Date:   14-Dec-2020        
-          
- ** PARAMETERS: @POId varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** Description: Get Search Data for Customer List
+ ** Purpose:
+ ** Date:   14-Dec-2020
+
+ ** PARAMETERS: @POId varchar(60)
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author		Change Description
+ ** --   --------     -------		--------------------------------
     1    12/14/2020   Hemant Saliya Created
 	2    12/17/2020   Updated Like for General Filter
     3    03/13/2024   Ekta Chandegra Add master company on join
     4    10/18/2024   Devendra Shekh Add fields related to quickBooks
+	5    15/01/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
 
-     
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
-**************************************************************/ 
+**************************************************************/
 CREATE   PROCEDURE [dbo].[GetCustomerList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
@@ -48,48 +48,69 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@QuickBooksReferenceId  varchar(200)=null,
 	@isSynced  varchar(20)=null,
 	@LastSyncDate datetime=null,
-	@MasterCompanyId bigint = NULL
+	@MasterCompanyId bigint = NULL,
+	@EmployeeId bigint
 
 AS
 BEGIN
-	
+
 	SET NOCOUNT ON;
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-	
+
 
 		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit=1
 		DECLARE @Count Int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM
+				dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN
+				dbo.TimeZone ETZ WITH (NOLOCK)
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN
+				dbo.LegalEntity LE WITH (NOLOCK)
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN
+				dbo.TimeZone LTZ WITH (NOLOCK)
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
 			SET @IsDeleted=0
-		END				
+		END
 		IF @SortColumn IS NULL
 		BEGIN
 			SET @SortColumn=UPPER('CreatedDate')
-		END 
+		END
 		Else
-		BEGIN 
+		BEGIN
 			SET @SortColumn=UPPER(@SortColumn)
 		END
 		IF @StatusID=0
-		BEGIN 
+		BEGIN
 			SET @IsActive=0
-		END 
+		END
 		ELSE IF @StatusID=1
-		BEGIN 
+		BEGIN
 			SET @IsActive=1
-		END 
+		END
 		ELSE IF @StatusID=2
-		BEGIN 
+		BEGIN
 			SET @IsActive=NULL
 		END
 		DECLARE @CustomerModule INT=1;
 		   ;WITH Result AS(
-			SELECT	
-					C.CustomerId, 
+			SELECT
+					C.CustomerId,
 					C.[Name],
 					C.CustomerCode,
 					C.Email,
@@ -105,9 +126,11 @@ BEGIN
 					(ISNULL(E.FirstName,'')+' '+ISNULL(E.LastName,'')) AS 'SalesPersonPrimary',
 					C.IsActive,
 					C.IsDeleted,
-					C.CreatedDate,
+					--C.CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(C.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
 					C.CreatedBy,
-					C.UpdatedDate,
+					--C.UpdatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(C.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 					C.UpdatedBy,
 					CA.[Description] AS CustomerType,
 					C.IsTrackScoreCard,
@@ -123,7 +146,7 @@ BEGIN
 					LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=C.CustomerId AND CC.IsDefaultContact=1
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
-					AND C.MasterCompanyId=@MasterCompanyId	
+					AND C.MasterCompanyId=@MasterCompanyId
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (
@@ -139,10 +162,10 @@ BEGIN
 					(QuickBooksReferenceId LIKE '%' +@GlobalFilter+'%') OR
 					(isSynced LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%')
 					))
-					OR   
-					(@GlobalFilter='' AND (ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND 
+					OR
+					(@GlobalFilter='' AND (ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
 					(ISNULL(@CutomerCode,'') ='' OR CustomerCode LIKE '%' + @CutomerCode+'%') AND
 					(ISNULL(@Email,'') ='' OR Email LIKE '%' + @Email+'%') AND
 					(ISNULL(@City,'') ='' OR City LIKE '%' + @City+'%') AND
@@ -161,10 +184,10 @@ BEGIN
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
 
-			Select @Count = COUNT(CustomerId) FROM #TempResult			
+			Select @Count = COUNT(CustomerId) FROM #TempResult
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult
-			ORDER BY  
+			ORDER BY
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='EMAIL')  THEN Email END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='City')  THEN City END ASC,
@@ -201,17 +224,17 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSYNCED')  THEN isSynced END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC
 
-			OFFSET @RecordFrom ROWS 
+			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY
-	END TRY    
-	BEGIN CATCH      
+	END TRY
+	BEGIN CATCH
 
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 			,@AdhocComments VARCHAR(150) = 'GetCustomerList'
 			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100))
-			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
+			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100))
 			   + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
 			   + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
 			   + '@Parameter5 = ''' + CAST(ISNULL(@StatusID, '') AS varchar(100))
@@ -231,7 +254,7 @@ BEGIN
 			  + '@Parameter19 = ''' + CAST(ISNULL(@CreatedBy  , '') AS varchar(100))
 			  + '@Parameter20 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
 			  + '@Parameter21 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
-			  + '@Parameter22 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))  			                                           
+			  + '@Parameter22 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName
@@ -242,6 +265,6 @@ BEGIN
 
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
 
-		RETURN (1);           
+		RETURN (1);
 	END CATCH
 END

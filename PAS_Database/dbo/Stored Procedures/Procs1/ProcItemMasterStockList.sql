@@ -15,6 +15,7 @@
    
     2    23 Nov 2023    BHARGAV SALIYA               Add HasSubAssy  
 	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	4    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -40,7 +41,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@EmployeeId bigint
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -50,8 +52,29 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		--SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -103,8 +126,10 @@ BEGIN
 					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER' 
 										 ELSE 'OEM'
 									END),                       
-					   im.CreatedDate,
-                       im.UpdatedDate,
+					   --im.CreatedDate,
+                       --im.UpdatedDate,
+					   (Cast(DBO.ConvertUTCtoLocal(im.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+					   (Cast(DBO.ConvertUTCtoLocal(im.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 					   im.CreatedBy,
                        im.UpdatedBy,	
 					   im.IsDeleted

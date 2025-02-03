@@ -8,22 +8,23 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author		Change Description              
- ** --   --------     -------		-------------------------------            
-	2    01/06/2023   Satish Gohil  Modify (convert GETDATE() to GETUTCDATE())
-	3    24/07/2023   Satish Gohil  Modify(Formatted and set name to distribution code in condition and dynamic cr/dr set)
-	3    11/08/2023   Satish Gohil  Modify(Set stock type wise distribution entry)
-	4    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
-	5    23/11/2023   Moin Bloch    Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
-	6    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
-	7    14/12/2023   Moin Bloch    Modify(Skip Record If Sockline Exists)
-	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
-	9    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
-	10   19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
-	11	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
-	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
-	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	14	 16/12/2024   Abhishek Jirawla Updated @Amount in Asset at the time of PO Recieving (It should only give unit price and not extended price)
+ ** PR   Date         Author			   Change Description              
+ ** --   --------     -------			   -------------------------------            
+	2    01/06/2023   Satish Gohil		   Modify (convert GETDATE() to GETUTCDATE())
+	3    24/07/2023   Satish Gohil		   Modify(Formatted and set name to distribution code in condition and dynamic cr/dr set)
+	4    11/08/2023   Satish Gohil		   Modify(Set stock type wise distribution entry)
+	5    18/08/2023   Moin Bloch		   Modify(Added Accounting MS Entry)
+	6    23/11/2023   Moin Bloch		   Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
+	7    27/11/2023   Moin Bloch		   Modify(Added LotId and LotNumber)
+	8    14/12/2023   Moin Bloch		   Modify(Skip Record If Sockline Exists)
+	9    02/20/2024	  HEMANT SALIYA		   Updated for Restrict Accounting Entry by Master Company
+	10    07/24/2024  AMIT GHEDIYA		   Updated new Destribution.
+	11   19/09/2024	  AMIT GHEDIYA		   Added for AutoPost Batch
+	12	 09/10/2024	  Devendra Shekh	   Added new fields for [CommonBatchDetails]
+	13   10/10/2023   Moin Bloch		   Modify(Fixed combination Asset & Part Issue)
+	14	 11/04/2024   Devendra Shekh	   Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	15	 16/12/2024   Abhishek Jirawla     Updated @Amount in Asset at the time of PO Recieving (It should only give unit price and not extended price)
+	16	 30/01/2025   AMIT GHEDIYA		   Modify(get Distribution based on new settings from stockline level)
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -144,6 +145,8 @@ BEGIN
 		DECLARE @TotalRecord INT = 0;   
 		DECLARE @RPOReferenceModule VARCHAR(100) = 'RPO';
 		DECLARE @ASSETReferenceModule VARCHAR(100) = 'ASSET';
+
+		DECLARE @InventoryGLAccId BIGINT = 0;
 
 		DECLARE @MinId BIGINT = 1;    
 
@@ -397,7 +400,20 @@ BEGIN
 										 @IsAutoPost = ISNULL(IsAutoPost,0)
 							        FROM dbo.DistributionSetup WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTKINV') 
-							        AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+							        AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
+							
+							--GET STOCKLINE GLACCOUNT.
+							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+						    WHERE SL.[StockLineId] = @StocklineId;
+
+							--GET GL Accounting Data from GLAccout based on stockline
+							SELECT @GlAccountId = [GLAccountId],
+								   @GlAccountNumber = [AccountCode],
+								   @GlAccountName = [AccountName]
+							FROM [dbo].[GLAccount] WITH(NOLOCK)
+							WHERE [GLAccountId] = @InventoryGLAccId
+							AND [MasterCompanyId] = @MasterCompanyId;
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
@@ -509,7 +525,20 @@ BEGIN
 							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
 							@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPONONSTKINV')
-							AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+							AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId;
+
+							--GET STOCKLINE GLACCOUNT.
+							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+						    WHERE SL.[StockLineId] = @StocklineId;
+
+							--GET GL Accounting Data from GLAccout based on stockline
+							SELECT @GlAccountId = [GLAccountId],
+								   @GlAccountNumber = [AccountCode],
+								   @GlAccountName = [AccountName]
+							FROM [dbo].[GLAccount] WITH(NOLOCK)
+							WHERE [GLAccountId] = @InventoryGLAccId
+							AND [MasterCompanyId] = @MasterCompanyId;
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId

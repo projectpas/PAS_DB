@@ -19,7 +19,7 @@
 	5    22/11/2024   Moin Bloch   Updated Changed logic of Qty
 	6    25/11/2024   Moin Bloch   Updated Changed logic of Qty Avail TO OH
 	7    27/12/2024   Moin Bloch   Updated Added LegalEntityId
-         
+    8    03/Feb/2025  RAJESH GAMI  Added QuantityAdjustment while Increase or Decrease the QTY.   
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CycleCount_UpdateStockline_DetailsById]
@@ -110,6 +110,7 @@ BEGIN
 				   SET [QuantityOnHand] = @CountedQuantity,
 				       [QuantityAvailable] = ISNULL([QuantityAvailable],0) - @DifferenceQty,
 					   [Quantity] = ISNULL([Quantity],0) - @DifferenceQty,
+					   QuantityAdjustment = ISNULL(QuantityAdjustment,0) - @DifferenceQty,
 					   [UpdatedBy] = @UpdatedBy,
 					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId; 
@@ -133,7 +134,8 @@ BEGIN
 				       [QuantityAvailable] = ISNULL([QuantityAvailable],0) + @DifferenceQty,
 					   [Quantity] = ISNULL([Quantity],0) + @DifferenceQty,
 					   [UpdatedBy] = @UpdatedBy,
-					   [UpdatedDate] = GETUTCDATE()
+					   [UpdatedDate] = GETUTCDATE(),
+					    QuantityAdjustment = ISNULL(QuantityAdjustment,0) + @DifferenceQty
 				 WHERE [StockLineId] = @StockLineId; 
 								
 				-- StockLine History

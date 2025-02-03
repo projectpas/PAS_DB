@@ -28,6 +28,7 @@
 	12   29/10/2024   AMIT GHEDIYA		Handle bypass accounting entry.
 	13	 11/05/2024	  Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 15/01/2025   AMIT GHEDIYA		Modify(get Distribution based on new settings from stockline level)
+	15   03/Feb/2025  RAJESH GAMI		Added QuantityAdjustment while Increase or Decrease the QTY.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -331,6 +332,7 @@ BEGIN
 					IF(@DetailQtyAdjustment > 0)
 					BEGIN
 						UPDATE Stockline SET Quantity = (@Quantity + @DetailQtyAdjustment), QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),
+							   QuantityAdjustment = ISNULL(QuantityAdjustment,0) + ISNULL(@DetailQtyAdjustment,0),
 							   [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Qty Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> Qty Adjusted From Stockline Adjustment </p>' END, 
 							   UpdatedBy = @UpdateBy,
 							   UpdatedDate = GETUTCDATE() 
@@ -344,6 +346,7 @@ BEGIN
 					ELSE
 					BEGIN
 						UPDATE Stockline SET Quantity = (@Quantity - ABS(@DetailQtyAdjustment)), QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),
+							   QuantityAdjustment = ISNULL(QuantityAdjustment,0) - ABS(ISNULL(@DetailQtyAdjustment,0)),
 							   [Memo] = CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Qty Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> Qty Adjusted From Stockline Adjustment </p>' END,  --@memo + '<p> Qty Adjusted From Stockline Adjustment </p>', 
 							   UpdatedBy = @UpdateBy,
 							   UpdatedDate = GETUTCDATE()

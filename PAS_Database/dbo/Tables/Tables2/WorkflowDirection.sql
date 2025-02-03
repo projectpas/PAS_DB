@@ -1,9 +1,9 @@
 ﻿CREATE TABLE [dbo].[WorkflowDirection] (
     [WorkflowDirectionId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [WorkflowId]          BIGINT         NOT NULL,
-    [Action]              VARCHAR (50)   NOT NULL,
-    [Description]         VARCHAR (500)  NULL,
-    [Sequence]            VARCHAR (50)   NULL,
+    [Action]              NVARCHAR (MAX) NOT NULL,
+    [Description]         NVARCHAR (MAX) NOT NULL,
+    [Sequence]            VARCHAR (100)  NOT NULL,
     [Memo]                NVARCHAR (MAX) NULL,
     [TaskId]              BIGINT         NULL,
     [MasterCompanyId]     INT            NOT NULL,
@@ -16,9 +16,12 @@
     [Order]               INT            NULL,
     [WFParentId]          BIGINT         NULL,
     [IsVersionIncrease]   BIT            NULL,
+    [TaskName]            VARCHAR (200)  NULL,
     CONSTRAINT [PK_WorkflowDirection] PRIMARY KEY CLUSTERED ([WorkflowDirectionId] ASC),
     CONSTRAINT [FK_WorkFlowDirection_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 
@@ -45,3 +48,17 @@ BEGIN
 	SET NOCOUNT ON;
 
 END
+GO
+CREATE TRIGGER trg_UpdateTaskName
+ON WorkFlowDirection
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE wfd
+    SET wfd.TaskName = t.Description
+    FROM WorkFlowDirection wfd
+    INNER JOIN inserted i ON wfd.WorkflowDirectionId = i.WorkflowDirectionId
+    INNER JOIN Task t ON i.TaskId = t.TaskId;
+END;

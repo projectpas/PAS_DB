@@ -13,6 +13,7 @@
  ** --   --------		-------			--------------------------------          
     1    15-July-2024   Hemant Saliya	Created (Save QuickBooks Params Detaiils for Logging)
     2    27-Nov-2024	Devendra Shekh	Modified (added new fields SubModuleName,SubReferenceId)
+    3	 03-Feb-2025	Devendra Shekh	Modified (Using [AccountingModule] table for Accounting Modules)
      
  EXECUTE [QuickBooks_SaveRequestParamsDetails] 1, 10, '150'
 **************************************************************/ 
@@ -33,7 +34,7 @@ BEGIN
 	BEGIN TRY
 
 		DECLARE @ModuleName VARCHAR(200);
-		SELECT @ModuleName = ModuleName FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = @ModuleId
+		SELECT @ModuleName = AccountingModuleName FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE AccountingModuleId = @ModuleId
 
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 

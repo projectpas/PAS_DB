@@ -52,7 +52,8 @@ BEGIN
 			WOT.UpdatedBy,
 			WOT.UpdatedDate,
 			WOTD.PrintInWO,
-			WOTD.PrintInWOQ
+			WOTD.PrintInWOQ,
+				CASE WHEN EXISTS (SELECT TOP 1 1 FROM DBO.Attachment ATT WITH (NOLOCK) INNER JOIN DBO.AttachmentModule ATTM WITH (NOLOCK) ON ATTM.AttachmentModuleId = ATT.ModuleId WHERE ATTM.[Name] = 'WorkOrderTask' AND ATT.ReferenceId = WOT.WorkOrderTaskId) THEN 1 ELSE 0 END AS IsDocumentAdded
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOT.WorkOrderPartNumberId,0) = @WorkOrderPartNumberId
@@ -89,7 +90,8 @@ BEGIN
 			WOT.UpdatedBy,
 			WOT.UpdatedDate,
 			WOTD.PrintInWO,
-			WOTD.PrintInWOQ
+			WOTD.PrintInWOQ,
+				CASE WHEN EXISTS (SELECT TOP 1 1 FROM DBO.Attachment ATT WITH (NOLOCK) INNER JOIN DBO.AttachmentModule ATTM WITH (NOLOCK) ON ATTM.AttachmentModuleId = ATT.ModuleId WHERE ATTM.[Name] = 'WorkOrderTask' AND ATT.ReferenceId = WOT.WorkOrderTaskId) THEN 1 ELSE 0 END AS IsDocumentAdded
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0

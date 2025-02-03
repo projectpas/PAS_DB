@@ -17,6 +17,7 @@
 	4    20/11/2024          Moin Bloch          Fixe Entry @AccountingCalendarId Wise 
 	5    05/12/2024          Moin Bloch          Added @IsAccountByPass Flag
 	7    27/12/2024          Moin Bloch          Updated Added LegalEntityId
+	8    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
 
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
@@ -88,7 +89,8 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CycleCount';
-		DECLARE @JEflag BIT = 0
+		DECLARE @JEflag BIT = 0;
+		DECLARE @InventoryGLAccId BIGINT = 0;
 		
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -419,6 +421,19 @@ BEGIN
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 						WHERE UPPER([DistributionSetupCode]) = UPPER('INVENTORYCYCLECOUNT') 
 						 AND [DistributionMasterId] = @DistributionMasterId;
+
+				 --GET STOCKLINE GLACCOUNT.
+				 SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+				    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+				    WHERE SL.[StockLineId] = @StocklineId;
+				 
+				 --GET GL Accounting Data from GLAccout based on stockline
+				 SELECT @GlAccountId = [GLAccountId],
+				 	    @GlAccountNumber = [AccountCode],
+				 	    @GlAccountName = [AccountName]
+				 FROM [dbo].[GLAccount] WITH(NOLOCK)
+				 WHERE [GLAccountId] = @InventoryGLAccId
+				 AND [MasterCompanyId] = @MasterCompanyId; 
 
 				 INSERT INTO [dbo].[CommonBatchDetails]([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],
 							 [DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],

@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [QuickBooks_UpdateCustomerReferenceDetails]           
+ ** File:   [QuickBooks_UpdateReferenceDetails]           
  ** Author:   Hemant Saliya
  ** Description: Update QuickBooks Customer Id In PAS    
  ** Purpose:         
@@ -16,6 +16,7 @@
     3    18-Nov-2024   Devendra Shekh	Modified (Update syncToken)
     4    27-Nov-2024   Devendra Shekh	Modified (added Change for Cash Receipt/CustomerPayment)
     5    28-Nov-2024   Devendra Shekh	Modified (added Change for CreditTerms)
+    6    30-Jan-2025   Devendra Shekh	Modified (added Change for GLAccount)
      
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
@@ -36,13 +37,14 @@ BEGIN
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;
 		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0;
-		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT;
+		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT;
 
 		SELECT @CustomerModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER';
 		SELECT @VendorModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'VENDOR';
 		SELECT @InvModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'INVOICE';
 		SELECT @CustomerPaymentModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMERPAYMENT';
 		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
+		SELECT @GLAccountModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'GLACCOUNT';
 
 		SELECT @WOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -82,12 +84,17 @@ BEGIN
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CustomerPaymentModuleId) 
 		BEGIN
-			UPDATE CustomerPaymentDetails SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CustomerPaymentDetailsId = @ReferenceId			
+			UPDATE [dbo].[CustomerPaymentDetails] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CustomerPaymentDetailsId = @ReferenceId			
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CreditTermModuleId) 
 		BEGIN
 			UPDATE [dbo].[CreditTerms] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CreditTermsId = @ReferenceId	
+		END
+
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @GLAccountModuleId) 
+		BEGIN
+			UPDATE [dbo].[GLAccount] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE GLAccountId = @ReferenceId			
 		END
 
 		UPDATE dbo.AccountingIntegrationSettings SET [LastRun] = GETUTCDATE(), [UpdatedDate] = GETUTCDATE() WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId;

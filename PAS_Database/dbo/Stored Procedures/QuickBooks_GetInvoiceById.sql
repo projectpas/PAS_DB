@@ -12,6 +12,7 @@
  ** PR   Date			Author					Change Description            
  ** --   --------		-------					--------------------------------          
     1   18-Nov-2024		Devendra Shekh			Created
+	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
      
  exec dbo.QuickBooks_GetInvoiceById @QuickBooksReferenceId=N'185',@MasterCompanyId=1
 **************************************************************/ 
@@ -28,7 +29,7 @@ BEGIN
 		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0;
 		DECLARE @InvModuleName VARCHAR(200) = '';
 
-		SELECT @InvModuleId = ModuleId, @InvModuleName = ModuleName FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Invoice';
+		SELECT @InvModuleId = AccountingModuleId, @InvModuleName = AccountingModuleName FROM [dbo].[AccountingModule] WITH(NOLOCK) WHERE AccountingModuleName = 'Invoice';
 		SELECT @WOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @ExchModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';

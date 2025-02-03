@@ -3437,7 +3437,7 @@
 
     <Build Include="dbo\Stored Procedures\USP_GetDateTimeByTimeZone.sql" />
     <Build Include="dbo\Stored Procedures\GetEmployeeTimeZone.sql" />
-
+    <Build Include="dbo\Tables\AccountingModule.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

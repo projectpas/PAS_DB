@@ -12,6 +12,7 @@
  ** PR   Date			Author					Change Description            
  ** --   --------		-------					--------------------------------          
     1   09-Jan-2025		Devendra Shekh			Created
+	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
      
  EXECUTE [QuickBooks_GetUpdatePendingSOInvoiceList] 1
 **************************************************************/ 
@@ -30,7 +31,7 @@ BEGIN
 		DECLARE @InvModuleId INT = 0, @SOModuleId INT = 0;
 		DECLARE @InvModuleName VARCHAR(200) = '';
 
-		SELECT @InvModuleId = ModuleId, @InvModuleName = ModuleName FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'INVOICE';
+		SELECT @InvModuleId = AccountingModuleId, @InvModuleName = AccountingModuleName FROM [dbo].[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'INVOICE';
 		SELECT @SOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER';
 
 		IF OBJECT_ID('tempdb..#InvoiceResults') IS NOT NULL

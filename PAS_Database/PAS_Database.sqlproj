@@ -3436,6 +3436,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetDateTimeByTimeZone.sql" />
     <Build Include="dbo\Stored Procedures\GetEmployeeTimeZone.sql" />
     <Build Include="dbo\Tables\AccountingModule.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ChekDuplicateValueForUpload.sql" />
+    <Build Include="dbo\Stored Procedures\CheckAlternatePartExists.sql" />
+    <Build Include="dbo\User Defined Types\NhaTlaAlterValidateType.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderProformaInvoicingPdfData.sql" />
   </ItemGroup>
   <ItemGroup>

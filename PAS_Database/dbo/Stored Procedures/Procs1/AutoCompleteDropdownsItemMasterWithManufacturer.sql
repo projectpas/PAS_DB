@@ -18,6 +18,7 @@
 	4    07/26/2024   Vishal Suthar		Modified StartWith condition and removed join with stockline table to improve the performance
 	5    08/12/2024   Devendra Shekh	Modified to select UnitOfMeasure
 	6    09/06/2024   Moin Bloch	    Modified (Added Site,WareHouse,LocationId,ShelfId,BinId,IsExpirationDateAvailable)	
+	7    30/01/2025   Shrey Chandegara  Modified due to add itemgroup
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '',1,20,'',1  
@@ -67,12 +68,14 @@ BEGIN
 		  Im.LocationId,
 		  Im.ShelfId,
 		  Im.BinId,
-		  Im.IsExpirationDateAvailable
+		  Im.IsExpirationDateAvailable,
+		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
      
 	 UNION   
@@ -106,12 +109,14 @@ BEGIN
 		  Im.LocationId,
 		  Im.ShelfId,
 		  Im.BinId,
-		  Im.IsExpirationDateAvailable
+		  Im.IsExpirationDateAvailable,
+		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
 	 ORDER BY Label      
    End  
@@ -145,12 +150,14 @@ BEGIN
 		  Im.LocationId,
 		  Im.ShelfId,
 		  Im.BinId,
-		  Im.IsExpirationDateAvailable
+		  Im.IsExpirationDateAvailable,
+		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
     
 	UNION   
@@ -183,12 +190,14 @@ BEGIN
 		  Im.LocationId,
 		  Im.ShelfId,
 		  Im.BinId,
-		  Im.IsExpirationDateAvailable
+		  Im.IsExpirationDateAvailable,
+		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
     ORDER BY Label   
    END  

@@ -10,8 +10,9 @@
  ** --   --------			-------				--------------------------------            
     1    23-Dec-2024		Devendra Shekh			Created
 	2    06-Jan-2025		Devendra Shekh			Added MasterCompanyId for Delete [UploadModuleData]
+	3    24-01-2025         Shrey Chandegara        Modify due to add functionality for Alternate Part
  
-exec USP_SaveCommonUploadData_ByModuleId @ModuleId=2,@UserName=N'DEVENDRASILVER MICKSILVER',@MasterCompanyId=1
+exec USP_SaveCommonUploadData_ByModuleId @ModuleId=3,@UserName=N'SHREY CHANDEGARA',@MasterCompanyId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
@@ -50,6 +51,8 @@ BEGIN
 		DECLARE @ModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL;
+		DECLARE @AlterModule AS BIGINT;
+		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 
 		CREATE TABLE #uploadDataResults (
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
@@ -100,7 +103,7 @@ BEGIN
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,  IMF.IsAutoGenerate, IMF.IsModuleTableColumn,
 						IMF.DropdownListType, IMF.DropdownListTable, IMF.DropdownListId, IMF.DropdownListValue, IMF.DropdownListValueId,
-						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus  
+						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus 
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
@@ -173,9 +176,18 @@ BEGIN
 						WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
 						WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 			FROM #ImportFields        
-			WHERE ISNULL(IsModuleTableColumn, 0) = 1
+			WHERE ISNULL(IsModuleTableColumn, 0) = 1 
 
-			SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
+			IF(@ModuleId = @AlterModule)
+			BEGIN
+				SET @RefFieldName += ' , MappingType, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += '1, '
+			END
+			ELSE
+			BEGIN
+				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
+			END
+			print @RefFieldName;
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')

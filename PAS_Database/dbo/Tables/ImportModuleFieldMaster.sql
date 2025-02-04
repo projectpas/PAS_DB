@@ -28,6 +28,12 @@
     [UpdatedDate]               DATETIME2 (7)  CONSTRAINT [DF_ImportModuleFieldMaster_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                  BIT            CONSTRAINT [DF__ImportModuleFieldMaster__IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT            CONSTRAINT [DF__ImportModuleFieldMaster__IsDeleted] DEFAULT ((0)) NOT NULL,
+    [ReferenceColumn]           VARCHAR (150)  NULL,
+    [IsChekColumnReference]     BIT            NULL,
+    [ChekDuplticateRef1]        VARCHAR (150)  NULL,
+    [ChekDuplticateRef2]        VARCHAR (150)  NULL,
     CONSTRAINT [PK_ImportModuleFieldMaster] PRIMARY KEY CLUSTERED ([ImportModuleFieldMasterId] ASC)
 );
+
+
 

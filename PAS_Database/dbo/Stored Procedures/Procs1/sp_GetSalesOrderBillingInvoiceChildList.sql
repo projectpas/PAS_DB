@@ -48,6 +48,7 @@
 	31   08-01-2025   Shrey Chandegara  Fixed Issue of costplus amount in salesorder billing.
 	32	 21/01/2025	  AMIT GHEDIYA		Fixed the billing data issue after shipping.
 	33	 30/01/2025	  Vishal Suthar		Fixed issue with the qty shipped after billing is completed
+	34	 03/02/2025	  Vishal Suthar		Fixed issue with the qty shipped after billing and shipping is completed
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
@@ -478,6 +479,7 @@ BEGIN
 				END
 				ELSE
 				BEGIN
+					PRINT '2.1.1'
 					INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
 					SalesOrderShippingId,SOBillingInvoicingId , SOBillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
@@ -570,7 +572,8 @@ BEGIN
 										JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON SORR.SalesOrderPartId = tmpSOBI.SalesOrderPartId 
 										AND SORR.StockLineId = tmpSOBI.StockLineId
 										AND SORR.SalesOrderId = @SalesOrderId
-										LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON tmpSOBI.SalesOrderShippingId = SOSI.SalesOrderShippingId
+										LEFT JOIN DBO.SOPickTicket SOPick WITH (NOLOCK) ON tmpSOBI.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
+										LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOPick.SOPickTicketId = SOSI.SOPickTicketId
 								) tmpcash WHERE tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyBilled = tmpcash.NoofPieces

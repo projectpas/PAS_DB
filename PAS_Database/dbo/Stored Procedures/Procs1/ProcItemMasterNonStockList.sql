@@ -20,7 +20,8 @@ CREATE PROCEDURE [dbo].[ProcItemMasterNonStockList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@EmployeeId bigint
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -30,6 +31,26 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -68,8 +89,10 @@ BEGIN
 					   CAST(im.UnitCost AS varchar) 'UnitCost',					  
 					   CAST(im.ListPrice AS varchar) 'ListPrice',
 					   im.IsActive,					                       
-					   im.CreatedDate,
-                       im.UpdatedDate,
+					   --im.CreatedDate,
+                       --im.UpdatedDate,
+					   (Cast(DBO.ConvertUTCtoLocal(im.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+					   (Cast(DBO.ConvertUTCtoLocal(im.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 					   im.CreatedBy,
                        im.UpdatedBy,	
 					   im.IsDeleted

@@ -21,6 +21,7 @@ Exec [ReverseWorkOrder]
 ** 10   04/26/2024	HEMANT SALIYA	     Updated for Re-Open WO Changes
 ** 11   05/16/2024  Hemant Saliya		 Handle for Do not allow to reverse Billing Entry Multiple Time
 ** 12   01/15/2025  Hemant Saliya		 Reverse Billing Entry
+** 13   02/05/2025  Hemant Saliya        Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -125,39 +126,42 @@ AS
 					BEGIN	
 						PRINT 'Update Work Order Billing Status to Re-Generate Invoice'
 						/* Update Work Order Billing Status to Re-Generate Invoice */
+
+						/* Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005 */
+
 						UPDATE WorkOrderBillingInvoicing SET 
 							InvoiceStatus = 'Reviewed', 
 							InvoiceFilePath = '', 
 							WorkOrderShippingId = Null,
-							UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
-							TotalWorkOrderCost = 0,
-							TotalWorkOrderCostPlus = 0,
-							MaterialCost = 0,
-							MaterialCostPlus = 0,
-							LaborOverHeadCost = 0,
-							LaborOverHeadCostPlus = 0,
-							MiscChargesCost = 0,
-							MiscChargesCostPlus = 0,
-							FreightCost = 0,
-							FreightCostPlus = 0,
-							RemainingAmount = 0,
-							SalesTax = 0,
-							OtherTax = 0,
-							SubTotal = 0,
-							GrandTotal = 0
+							UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+							--TotalWorkOrderCost = 0,
+							--TotalWorkOrderCostPlus = 0,
+							--MaterialCost = 0,
+							--MaterialCostPlus = 0,
+							--LaborOverHeadCost = 0,
+							--LaborOverHeadCostPlus = 0,
+							--MiscChargesCost = 0,
+							--MiscChargesCostPlus = 0,
+							--FreightCost = 0,
+							--FreightCostPlus = 0,
+							--RemainingAmount = 0,
+							--SalesTax = 0,
+							--OtherTax = 0,
+							--SubTotal = 0,
+							--GrandTotal = 0
 						WHERE BillingInvoicingId = @BillingInvoicingId
 
-						UPDATE WorkOrderBillingInvoicingItem SET 
-							UnitPrice = 0, 
-							MaterialCost = 0,
-							LaborCost = 0,
-							MiscCharges = 0,
-							Freight = 0, 
-							SubTotal = 0,
-							SalesTax = 0,
-							OtherTax = 0,
-							GrandTotal = 0
-						WHERE BillingInvoicingId = @BillingInvoicingId
+						--UPDATE WorkOrderBillingInvoicingItem SET 
+						--	UnitPrice = 0, 
+						--	MaterialCost = 0,
+						--	LaborCost = 0,
+						--	MiscCharges = 0,
+						--	Freight = 0, 
+						--	SubTotal = 0,
+						--	SalesTax = 0,
+						--	OtherTax = 0,
+						--	GrandTotal = 0
+						--WHERE BillingInvoicingId = @BillingInvoicingId
 
 					END
 

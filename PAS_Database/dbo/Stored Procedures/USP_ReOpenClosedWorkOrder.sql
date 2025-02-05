@@ -12,6 +12,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 1    05/10/2024  Hemant Saliya		 Re-Open Closed WO
 ** 2    05/16/2024  Hemant Saliya		 Handle for Do not allow to reverse Billing Entry Multiple Time
 ** 3    01/13/2025  Hemant Saliya		 Reverse Billing Entry
+** 4    02/05/2025  Hemant Saliya        Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
@@ -150,42 +151,43 @@ AS
 				IF(ISNULL(@BillingInvoicingId,0) > 0)
 				BEGIN
 					/* Update Work Order Billing Status to Re-Generate Invoice */
+					/* Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005 */
 					UPDATE WorkOrderBillingInvoicing SET 
 						InvoiceStatus = 'Pending', 
 						InvoiceFilePath = '', 
 						--InvoiceDate = Null,
 						WorkOrderShippingId = Null,
-						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
-						TotalWorkOrderCost = 0,
-						TotalWorkOrderCostPlus = 0,
-						MaterialCost = 0,
-						MaterialCostPlus = 0,
-						LaborOverHeadCost = 0,
-						LaborOverHeadCostPlus = 0,
-						MiscChargesCost = 0,
-						MiscChargesCostPlus = 0,
-						FreightCost = 0,
-						FreightCostPlus = 0,
-						RemainingAmount = 0,
-						SalesTax = 0,
-						OtherTax = 0,
-						SubTotal = 0,
-						GrandTotal = 0
+						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+						--TotalWorkOrderCost = 0,
+						--TotalWorkOrderCostPlus = 0,
+						--MaterialCost = 0,
+						--MaterialCostPlus = 0,
+						--LaborOverHeadCost = 0,
+						--LaborOverHeadCostPlus = 0,
+						--MiscChargesCost = 0,
+						--MiscChargesCostPlus = 0,
+						--FreightCost = 0,
+						--FreightCostPlus = 0,
+						--RemainingAmount = 0,
+						--SalesTax = 0,
+						--OtherTax = 0,
+						--SubTotal = 0,
+						--GrandTotal = 0
 						--IsVersionIncrease = 1
 					WHERE BillingInvoicingId = @BillingInvoicingId
 
-					UPDATE WorkOrderBillingInvoicingItem SET 
-						--IsVersionIncrease = 1 , 
-						UnitPrice = 0, 
-						MaterialCost = 0,
-						LaborCost = 0,
-						MiscCharges = 0,
-						Freight = 0, 
-						SubTotal = 0,
-						SalesTax = 0,
-						OtherTax = 0,
-						GrandTotal = 0
-					WHERE BillingInvoicingId = @BillingInvoicingId
+					--UPDATE WorkOrderBillingInvoicingItem SET 
+					--	--IsVersionIncrease = 1 , 
+					--	UnitPrice = 0, 
+					--	MaterialCost = 0,
+					--	LaborCost = 0,
+					--	MiscCharges = 0,
+					--	Freight = 0, 
+					--	SubTotal = 0,
+					--	SalesTax = 0,
+					--	OtherTax = 0,
+					--	GrandTotal = 0
+					--WHERE BillingInvoicingId = @BillingInvoicingId
 				END 
 
 				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, isLocked = 0, WorkOrderStatusId = @WorkOrderStatusId, WorkOrderStageId = @WorkOrderStageId WHERE ID = @workOrderPartNoId;

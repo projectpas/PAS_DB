@@ -26,7 +26,8 @@
 	10   08/28/2024   Devendra Shekh		JE Number reset to Zero Issue resolved
 	11   20/09/2024	  AMIT GHEDIYA			Added for AutoPost Batch
 	12	 09/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
-	13	 04/11/2024		 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	13	 04/11/2024	  Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	14	 03/02/2025	  Amit Ghediya			Modify(get Distribution based on new settings from stockline level)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
 (
@@ -96,6 +97,7 @@ BEGIN
 		DECLARE @VENDORRMASHIPPINGReferenceModule VARCHAR(100) = 'VENDOR RMA - SHIPPING';
 		DECLARE @VENDORRMAPRODUCTREPLACEDReferenceModule VARCHAR(100) = 'VENDOR-RMA-PRODUCT-REPLACED';
 		DECLARE @ReferenceModule VARCHAR(100) = '';
+		DECLARE @InventoryGLAccId BIGINT = 0;
 
 		--SET @DistributionCodeName = 'VendorRMA';
 
@@ -330,6 +332,19 @@ BEGIN
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
 				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
 				 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'VRMASC-PI' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
+				 				 
+				 --GET STOCKLINE GLACCOUNT.
+				 SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+				    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+				    WHERE SL.[StockLineId] = @stklineId;
+				 
+				 --GET GL Accounting Data from GLAccout based on stockline
+				 SELECT @GlAccountId = [GLAccountId],
+				 	   @GlAccountNumber = [AccountCode],
+				 	   @GlAccountName = [AccountName]
+				 FROM [dbo].[GLAccount] WITH(NOLOCK)
+				 WHERE [GLAccountId] = @InventoryGLAccId
+				 AND [MasterCompanyId] = @MasterCompanyId;
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

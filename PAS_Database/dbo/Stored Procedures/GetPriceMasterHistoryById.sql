@@ -14,26 +14,51 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/10/2024  Ekta Chandegra     Created
+	2    04/02/2025  Ayushi Patel       converted the date into utc (created , updated) , Added a case to get timeZone
      
 -- exec [dbo].[GetPriceMasterHistoryById] @ItemMasterPurchaseSaleId=716
 ************************************************************************/
 
 
 CREATE    PROCEDURE [dbo].[GetPriceMasterHistoryById]
-@ItemMasterPurchaseSaleId BIGINT = NULL
-
+@ItemMasterPurchaseSaleId BIGINT = NULL,
+@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		BEGIN
 			SELECT ModuleName,RefferenceNumber,PartNumber,PNDescription,Manufacturer,
 			ConditionName,PP_UOMName,PP_CurrencyName,PP_VendorListPrice,PP_PurchaseDiscPerc,
 			PP_PurchaseDiscAmount,PP_UnitPurchasePrice,SalePriceSelectName,SP_FSP_UOMName,
 			SP_FSP_CurrencyName,SP_FSP_FlatPriceAmount,SP_CalSPByPP_MarkUpPercOnListPrice,
-			SP_CalSPByPP_MarkUpAmount,SP_CalSPByPP_UnitSalePrice, CreatedBy, CreatedDate,
-			UpdatedDate,UpdatedBy, IsActive, IsDeleted
+			SP_CalSPByPP_MarkUpAmount,SP_CalSPByPP_UnitSalePrice, CreatedBy,
+			--CreatedDate,
+			--UpdatedDate,
+			(Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
+			(Cast(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
+			UpdatedBy, IsActive, IsDeleted
 			FROM [dbo].[PriceMasterHistory] WITH (NOLOCK)
 			WHERE ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId
 			ORDER BY UpdatedDate DESC

@@ -13,16 +13,38 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
     1    22 Nov 2023   BHARGAV SALIYA               Created
-    2    24 Nov 2023   BHARGAV SALIYA               Part Description issue  Resolve                          
+    2    24 Nov 2023   BHARGAV SALIYA               Part Description issue  Resolve 
+	3    05/02/2025	   Ayushi Patel					converted the date into utc (created , updated) , Added a case to get timeZone
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetAssemplyAuditDetailsByAssemplyId]
-@AssemplyId bigint
+@AssemplyId bigint,
+@EmployeeId bigint
 AS
 BEGIN	
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
 		BEGIN TRY
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		BEGIN TRANSACTION
 			BEGIN 
 				SELECT DISTINCT
@@ -40,8 +62,10 @@ BEGIN
 						WS.WorkScopeCode AS WorkScope,
 						PS.Description AS Provision,
 						APL.Memo,
-						APL.CreatedDate,
-						APL.UpdatedDate,
+						--APL.CreatedDate,
+						--APL.UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(APL.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(APL.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
 						Upper(APL.CreatedBy) AS CreatedBy,
 						Upper(APL.UpdatedBy) AS UpdatedBy,
 						APL.IsActive,

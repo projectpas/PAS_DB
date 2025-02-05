@@ -18,6 +18,7 @@
 	2    10/04/2023   Hemant Saliya		Condition Group Changes
 	3    11/23/2023   Moin Bloch		Changed QtyReserved + QtyIssued - SUM(QtyToShip) IN IsMPNPickTicket = 0
 	4    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
+	5    02/05/2024   Devendra Shekh	Multiple MPN with Same Part Number issue Resolved
 
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
@@ -243,9 +244,9 @@ BEGIN
 									--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 									--						THEN @ConditionId ELSE sl.ConditionId 
 									--						END
-								LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
-								LEFT JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wop.ID = wowf.WorkFlowWorkOrderId
-								LEFT JOIN DBO.WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
+								INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
+								INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wop.ID = wowf.WorkOrderPartNoId
+								INNER JOIN DBO.WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
 								LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId = sl.ConditionId
 								LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 								LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
@@ -453,9 +454,9 @@ BEGIN
 									AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
 															THEN @ConditionId ELSE sl.ConditionId 
 															END
-								LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
-								LEFT JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wop.ID = wowf.WorkFlowWorkOrderId
-								LEFT JOIN DBO.WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
+								INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
+								INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wop.ID = wowf.WorkOrderPartNoId
+								INNER JOIN DBO.WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
 								LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId = sl.ConditionId
 								LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 								LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
@@ -467,8 +468,7 @@ BEGIN
 								INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 										AND Smf.StockLineId = sl.StockLineId
 								WHERE 
-								im.ItemMasterId = @ItemMasterIdlist AND 
-								so.WorkOrderId = @WorkOrderId
+								im.ItemMasterId = @ItemMasterIdlist AND so.WorkOrderId = @WorkOrderId AND wop.ID = @WorkFlowWorkOrderId
 							END
 				END
 						

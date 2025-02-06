@@ -18,8 +18,11 @@
     [IsIncludeInPrint]      BIT           NULL,
     [HasInstruction]        BIT           NULL,
     [TaskName]              VARCHAR (200) NULL,
+    [IsFromWorkFlow]        BIT           NULL,
     CONSTRAINT [PK_WorkOrderTaskAudit] PRIMARY KEY CLUSTERED ([WorkOrderTaskAuditId] ASC)
 );
+
+
 
 
 

@@ -11,6 +11,7 @@
  ** --   --------     -------			--------------------------------          
     1					Unknown				Created
     2    10/18/2024		Devendra Shekh		Add fields related to quickBooks
+	3    02/06/2025     Sahdev Saliya       Added a case to get timeZone 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
@@ -35,7 +36,8 @@ CREATE   PROCEDURE [dbo].[ProcVendorList]
 @QuickBooksReferenceId  varchar(200)=null,
 @isSynced  varchar(20)=null,
 @LastSyncDate datetime=null,
-@MasterCompanyId bigint=NULL
+@MasterCompanyId bigint=NULL,
+@EmployeeId bigint
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -45,6 +47,26 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+	     SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -84,9 +106,9 @@ BEGIN
 					(ISNULL(AD.City,'')) 'City',
                     (ISNULL(AD.StateOrProvince, '')) 'StateOrProvince',
 					(ISNULL(CON.FirstName, '') + ' ' + ISNULL(CON.LastName, '')) 'VendorPhoneContact',                   
-                    V.CreatedDate,
+					case when CAST(V.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(V.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
                     V.CreatedBy,
-                    V.UpdatedDate,
+					case when CAST(V.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(V.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
                     V.UpdatedBy,                   			                  
 				    V.IsDeleted,
 					V.IsActive,

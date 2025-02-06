@@ -17,10 +17,13 @@
     [IsIncludeInPrint]      BIT           NULL,
     [HasInstruction]        BIT           NULL,
     [TaskName]              VARCHAR (200) NULL,
+    [IsFromWorkFlow]        BIT           NULL,
     CONSTRAINT [PK_WorkOrderTask] PRIMARY KEY CLUSTERED ([WorkOrderTaskId] ASC),
     CONSTRAINT [FK_WorkOrderTask_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderTask_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

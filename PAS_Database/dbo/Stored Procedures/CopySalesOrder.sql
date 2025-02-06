@@ -17,6 +17,7 @@
     2    07/01/2025		EKTA CHANDEGRA	 Retrieve Specific columns from [dbo].[SalesOrderPartV1]
     3    10/01/2025		EKTA CHANDEGRA	 Insert values in [dbo].[SalesOrder] based on selected customer
     4    16/01/2025		EKTA CHANDEGRA	 Add QtyReserved value 0 
+    5    06/02/2025		EKTA CHANDEGRA	 Add changes for can reserve stockline
 
 exec dbo.CopySalesOrder @SalesOrderId=1730,@CreatedBy=N'EKTA CHANDEGARA',@TransferSOApproval=1,
 @CustomerId=85,@CustomerReference=N'test',@FunctionalCurrencyId=3,@ForeignExchangeRate=1.000000,
@@ -423,9 +424,9 @@ BEGIN
 
 							SELECT 
 							@CurrentSOPartId,SOSTLV1.[StockLineId],SOSTLV1.[ConditionId],SOSTLV1.[QtyOrder],0,SOSTLV1.[QtyAvailable],
-							 SOSTLV1.[QtyOH],SOSTLV1.[CustomerRequestDate],SOSTLV1.[PromisedDate],SOSTLV1.[EstimatedShipDate],1,SOSTLV1.[MasterCompanyId],
-							 SOSTLV1.[CreatedBy],GETDATE(),SOSTLV1.[UpdatedBy],GETDATE(),SOSTLV1.[IsActive],SOSTLV1.[IsDeleted],SOSTLV1.[StocklineNumber],
-						     SOSTLV1.[ConditionName],SOSTLV1.[StatusName],SOSTLV1.[Notes],IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],
+							 SOSTLV1.[QtyOH],NULL,NULL,NULL,3,SOSTLV1.[MasterCompanyId],
+							 SOSTLV1.[CreatedBy],GETDATE(),SOSTLV1.[UpdatedBy],GETDATE(),SOSTLV1.[IsActive],SOSTLV1.[IsDeleted],NULL,
+						     NULL,NULL,NULL,IMEI.[ExportECCN],IMEI.[HSCODE],IMEI.[ExportWeight],IMEI.[ExportSizeLength],IMEI.[ExportSizeWidth],IMEI.[ExportSizeHeight],
 							 SOSTLV1.[ReferenceNumber],SOSTLV1.[PriorityId]
 							FROM [dbo].[SalesOrderStocklineV1] SOSTLV1 WITH(NOLOCK)
 							INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOSTLV1.SalesOrderPartId

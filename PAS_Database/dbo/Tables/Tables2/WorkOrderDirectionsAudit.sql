@@ -3,8 +3,8 @@
     [WorkOrderDirectionId]      BIGINT         NOT NULL,
     [WorkOrderId]               BIGINT         NOT NULL,
     [WorkFlowWorkOrderId]       BIGINT         NOT NULL,
-    [Action]                    VARCHAR (256)  NULL,
-    [DirectionName]             VARCHAR (256)  NULL,
+    [Action]                    NVARCHAR (MAX) NULL,
+    [DirectionName]             NVARCHAR (MAX) NULL,
     [Sequence]                  INT            NULL,
     [Memo]                      NVARCHAR (MAX) NULL,
     [TaskId]                    BIGINT         NOT NULL,
@@ -18,4 +18,6 @@
     [IsFromWorkFlow]            BIT            NULL,
     CONSTRAINT [PK_WorkOrderDirectionsAudit] PRIMARY KEY CLUSTERED ([WorkOrderDirectionAuditId] ASC)
 );
+
+
 

@@ -21,8 +21,11 @@
     [UpdatedDate]                DATETIME2 (7)  NULL,
     [IsActive]                   BIT            NULL,
     [IsDeleted]                  BIT            NULL,
+    [IsFromWorkFlow]             BIT            NULL,
     CONSTRAINT [PK_WorkOrderTaskInstruction] PRIMARY KEY CLUSTERED ([WorkOrderTaskInstructionId] ASC)
 );
+
+
 
 
 

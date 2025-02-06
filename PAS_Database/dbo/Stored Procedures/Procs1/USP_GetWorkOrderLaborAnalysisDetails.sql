@@ -29,7 +29,7 @@ CREATE PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisDetails]
 (    
 @WorkOrderId BIGINT = NULL,   
 @WorkOrderPartNoId BIGINT  = NULL,
-@IsDetailView BIT = false
+@IsDetailView BIT = 0
 )    
 AS    
 BEGIN    
@@ -40,6 +40,9 @@ SET NOCOUNT ON
 	BEGIN TRY
 		--BEGIN TRANSACTION
 		--	BEGIN  
+				DECLARE @WorkOrderFormTypeId BIT = 0;
+				SELECT @WorkOrderFormTypeId = [WorkOrderFormTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+
 				IF(@WorkOrderPartNoId = 0)
 				BEGIN
 					SELECT 
@@ -59,7 +62,8 @@ SET NOCOUNT ON
 						wo.WorkOrderNum,
 						ws.Stage,
 						st.[Description] AS [Status],
-						t.[Description] AS [Action],
+						--t.[Description] AS [Action],
+						CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE t.[Description] END AS [Action],
 						ex.[Description] AS Expertise,
 						emp.FirstName + ' ' + emp.LastName AS EmployeeName,
 						wl.EmployeeId
@@ -74,12 +78,13 @@ SET NOCOUNT ON
 						JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 						JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 						JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
-						JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
 						JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
+						LEFT JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
+						LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wl.TaskId
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1
 					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
-						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId
+						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,WOT.[TaskName]
 				END
 				IF(@WorkOrderPartNoId > 0)
 				BEGIN
@@ -100,7 +105,8 @@ SET NOCOUNT ON
 						wo.WorkOrderNum,
 						ws.Stage,
 						st.[Description] AS [Status],
-						t.[Description] AS [Action],
+					    CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE t.[Description] END AS [Action],
+						--t.[Description] AS [Action],
 						ex.[Description] AS Expertise,
 						emp.FirstName + ' ' + emp.LastName AS EmployeeName,
 						wl.EmployeeId
@@ -115,12 +121,13 @@ SET NOCOUNT ON
 						JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 						JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 						JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
-						JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
 						JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
+						LEFT JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
+						LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wl.TaskId
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1
 					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage, BillableId,
-						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId
+						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,WOT.[TaskName]
 				END
 				
 		--	END

@@ -353,7 +353,7 @@ BEGIN
 							LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 							LEFT JOIN DBO.InvoiceType INV WITH(NOLOCK) on INV.InvoiceTypeId = wobi.InvoiceTypeId
 						WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartId 
-						AND (ISNULL(wop.IsFinishGood, 0) = 1)
+						--AND (ISNULL(wop.IsFinishGood, 0) = 1)
 						GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
 							wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 							sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,

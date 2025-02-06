@@ -11,6 +11,7 @@
  ** --   --------     -------		 --------------------------------
     1    12/24/2024   Vishal Suthar	 Created
     2    01/17/2025   Vishal Suthar	 Added History for Add and Update
+    3    02/06/2025   Ekta Chandegra Added Task Resolution History for Add and Update instead of Descrepancy
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
@@ -125,7 +126,7 @@ BEGIN
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldResolution##', ISNULL(@OldResolution,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewResolution##', ISNULL(@Resolution,''));
 
-			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, @OldDescrepancy, @Descrepancy, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, @OldResolution, @Resolution, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
 		END
 
 		SELECT @WorkOrderTaskId AS WorkOrderTaskId;

@@ -26,7 +26,8 @@ CREATE   PROCEDURE [dbo].[GetVendorCapesList]
 	@MasterCompanyId bigint=NULL,
 	@ConditionId int=null,
 	@CostDate datetime=null,
-	@ManufacturerName  varchar(50)=null
+	@ManufacturerName  varchar(50)=null,
+	@EmployeeId bigint
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -36,6 +37,25 @@ BEGIN
 		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit=1
 		DECLARE @Count Int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -90,13 +110,13 @@ BEGIN
 					ct.CapabilityTypeDesc AS CapabilityTypeName,
 					vc.TAT,
 					vc.Cost,
-					vc.CostDate,
+					CAST(vc.CostDate as date) CostDate,
 					vc.Memo,
 					vc.IsActive,
 					vc.IsDeleted,
-					vc.CreatedDate,
+					case when CAST(vc.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(vc.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
 					vc.CreatedBy,
-					vc.UpdatedDate,
+					case when CAST(vc.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(vc.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 					vc.UpdatedBy
 					,ct.ConditionId
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)

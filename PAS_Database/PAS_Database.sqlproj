@@ -3440,6 +3440,7 @@
     <Build Include="dbo\Stored Procedures\CheckAlternatePartExists.sql" />
     <Build Include="dbo\User Defined Types\NhaTlaAlterValidateType.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderProformaInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CopyWorkflowDetailsToWorkOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

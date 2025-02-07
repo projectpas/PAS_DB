@@ -6,19 +6,45 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------		--------------------------------          
-	1    12/18/2024   BHARGAV SALIA	     Created
-	exec USP_GetWorkOrderSettingsAudit @WorkOrderSettingsId = 2
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+	1    12/18/2024   BHARGAV SALIA			Created
+	2    02/06/2025   Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone
+
+	exec USP_GetWorkOrderSettingsAudit @WorkOrderSettingsId = 2, @EmployeeId = 215
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderSettingsAudit]
-    @WorkOrderSettingsId INT
+    @WorkOrderSettingsId INT,
+	@EmployeeId BIGINT
 AS
 BEGIN
 		SET NOCOUNT ON;	
 		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRY
+			DECLARE @EmpLegalEntiyId BIGINT = 0;
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+			SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+				
+				SELECT 
 			    wos.AuditWorkOrderSettingId,
 			    wos.WorkOrderSettingId,
 			    wos.WorkOrderTypeId,
@@ -26,9 +52,15 @@ BEGIN
 			    wos.MasterCompanyId,
 			    wos.IsActive,
 			    wos.CreatedBy,
-			    wos.CreatedDate,
+			    --wos.CreatedDate,
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(wos.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wos.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(wos.CreatedDate AS DATETIME)) END CreatedDate,
 			    wos.UpdatedBy,
-			    wos.UpdatedDate,
+			    --wos.UpdatedDate,
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(wos.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wos.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(wos.UpdatedDate AS DATETIME)) END UpdatedDate,
 			    wos.Dualreleaselanguage,
 			    wos.LaborlogoffHours,
 

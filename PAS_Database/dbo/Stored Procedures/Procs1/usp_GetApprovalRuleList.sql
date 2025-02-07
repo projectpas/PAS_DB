@@ -9,19 +9,22 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/09/2023  Amit Ghediya   Update UserRole select based on ApprovalRule.  
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/09/2023  Amit Ghediya		Update UserRole select based on ApprovalRule.  
+	2    05/02/2025  Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone.
      
---exec [dbo].[usp_GetApprovalRuleList]
+exec [dbo].[usp_GetApprovalRuleList] @MasterCompanyId=1,@TaskID=2,@IsDeleted=0,@Status=N'Active',@StatusID=1,@EmployeeId=93
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetApprovalRuleList]
---@EmployeeId BIGINT,
+
 @MasterCompanyId int = null,
 @TaskID BIGINT,
 @IsDeleted bit = null,
 @Status varchar(50)=null,
-@StatusID bit
+@StatusID bit,
+@EmployeeId BIGINT
+
 AS
 BEGIN
 	
@@ -30,6 +33,29 @@ BEGIN
 		BEGIN TRY
 			BEGIN TRANSACTION
 				BEGIN
+				DECLARE @EmpLegalEntiyId BIGINT = 0;
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 					IF(@Status = 'All')
 					BEGIN
 						SELECT DISTINCT AP.ApprovalRuleId,
@@ -41,10 +67,16 @@ BEGIN
 								AP.UpperValue,
 								AP.Memo,
 								EMP.FirstName + ' ' + EMP.LastName AS Approver,
-								AP.CreatedDate,
+								--AP.CreatedDate,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(AP.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(AP.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+								ELSE (CAST(AP.CreatedDate AS DATE)) END CreatedDate,
 								AP.CreatedBy,
 								AP.UpdatedBy,
-								AP.UpdatedDate,
+								--AP.UpdatedDate,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(AP.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(AP.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+								ELSE (CAST(AP.UpdatedDate AS DATE)) END UpdatedDate,
 								AP.IsActive,
 								AP.IsDeleted,
 								--MSD.LastMSLevel,
@@ -73,10 +105,16 @@ BEGIN
 								AP.UpperValue,
 								AP.Memo,
 								EMP.FirstName + ' ' + EMP.LastName AS Approver,
-								AP.CreatedDate,
+								--AP.CreatedDate,							
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(AP.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(AP.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+								ELSE (CAST(AP.CreatedDate AS DATE)) END CreatedDate,
 								AP.CreatedBy,
 								AP.UpdatedBy,
-								AP.UpdatedDate,
+								--AP.UpdatedDate,								
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(AP.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(AP.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+								ELSE (CAST(AP.UpdatedDate AS DATE)) END UpdatedDate,
 								AP.IsActive,
 								AP.IsDeleted,
 								--MSD.LastMSLevel,

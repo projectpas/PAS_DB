@@ -10,6 +10,7 @@
  ** --   --------		-------				--------------------------------          
     1					Unknow				Created
 	2    08/12/2024		Devendra Shekh		workFlowNum issue for History resolved, UTCDate Change For New WorkFlow
+	3    10-Feb-2025	Devendra Shekh		Modified (changes for create new WorkflowDirection)
 
      
 EXEC [dbo].[CopyWorkFlowRecord] 97, 'ADMIN User', 0
@@ -39,6 +40,9 @@ BEGIN
 				declare @materialCount int =(Select count(*) from dbo.WorkflowMaterial WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 				declare @measurementsCount int =(Select count(*) from dbo.WorkflowMeasurement WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 				declare @publicationCount int =(Select count(*) from dbo.WorkflowPublications WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
+
+				DECLARE @WorkflowDirectionType [WorkflowDirectionType];
+				DECLARE @TotalDirectionRecords BIGINT = 0;
 
 				--SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount, WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
 				--UPDATE #tempTable SET CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
@@ -106,9 +110,13 @@ BEGIN
 					END
 					IF(@directionCount >0)
 					BEGIN
-						SELECT WorkflowId, [Action], [Description], [Sequence], Memo, TaskId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, [Order], WFParentId, IsVersionIncrease INTO #tempTable3 FROM dbo.WorkFlowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
+						SELECT [WorkflowDirectionId], WorkflowId, [Action], [Description], [Sequence], Memo, TaskId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, [Order], WFParentId, IsVersionIncrease, [TaskName], [ParentId], [IsParent], [IsTaskDetails] INTO #tempTable3 FROM dbo.WorkFlowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
 						UPDATE #tempTable3 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
-						INSERT INTO dbo.WorkFlowDirection SELECT * FROM #tempTable3
+						INSERT INTO @WorkflowDirectionType 
+						SELECT	[WorkflowDirectionId], [WorkflowId], [Action],[Description], [Sequence], [Memo], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],
+								[UpdatedDate], [IsActive], [IsDeleted], [Order], [WFParentId], [IsVersionIncrease], [TaskName], [ParentId], [IsParent], [IsTaskDetails]
+						FROM #tempTable3
+						--INSERT INTO dbo.WorkFlowDirection SELECT * FROM #tempTable3
 						DROP TABLE #tempTable3
 					END
 					IF(@equipmentCount >0)
@@ -152,6 +160,12 @@ BEGIN
 						UPDATE #tempTable9 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 						INSERT INTO dbo.WorkflowPublications SELECT * FROM #tempTable9
 						DROP TABLE #tempTable9
+					END
+
+					SELECT @TotalDirectionRecords = COUNT(WorkflowDirectionId) FROM @WorkflowDirectionType;
+					IF(ISNULL(@TotalDirectionRecords, 0) > 0)
+					BEGIN
+						EXEC [dbo].[USP_CreateNewVersionWorkFlowTaskInstructionMaster] @WorkflowDirectionType
 					END
 
 					SET @returnOut = 'S';

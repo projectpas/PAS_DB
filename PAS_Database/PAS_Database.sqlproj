@@ -3447,7 +3447,8 @@
     <Build Include="dbo\Stored Procedures\USP_SaveWorkFlowTaskInstructionMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkFlowTaskInstructionMasterList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CopyWorkflowDetailsToWorkOrder.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_CreateNewVersionWorkFlowTaskInstructionMaster.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowDirectionType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

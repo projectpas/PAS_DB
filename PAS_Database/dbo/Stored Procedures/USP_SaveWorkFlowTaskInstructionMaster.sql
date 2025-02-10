@@ -9,6 +9,7 @@
  ** PR   Date				Author  					Change Description              
  ** --   --------			-------					--------------------------------            
     1    07-Feb-2025		Devendra Shekh					Created
+    2    10-Feb-2025		Devendra Shekh					Modified (Checking TaskId as Well While Getting Max Sequence)
 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
@@ -47,7 +48,7 @@ BEGIN
 
 			SELECT @MaxSequence = ISNULL(MAX(TIM.Sequence), 0)
 			FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
-			WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsParent = 1 AND TIM.WorkflowId = @WorkflowId;
+			WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsParent = 1 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
 			INSERT INTO DBO.WorkFlowDirection ([WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
 			[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])
@@ -60,7 +61,7 @@ BEGIN
 			DECLARE @MaxSequenceNumber INT;
 			SELECT @MaxSequenceNumber = ISNULL(MAX(Sequence), 0)
 			FROM DBO.WorkFlowDirection
-			WHERE ParentId = @WorkflowDirectionId AND WorkflowId = @WorkflowId;
+			WHERE ParentId = @WorkflowDirectionId AND WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
 			-- Determine the new sequence number for the child
 			DECLARE @NewSequenceNumber INT = @MaxSequenceNumber + 1;

@@ -1,0 +1,669 @@
+﻿/*************************************************************
+ ** File:   [USP_CopyWorkflowDetailsToWorkOrder]
+ ** Author: HEMANT SALIYA
+ ** Description: This stored procedure is used to Copy Work flow to Work Order
+ ** Purpose:
+ ** Date:   01/20/2025
+    
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History               
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------   
+	1    02/07/2025   HEMANT SALIYA		Initial Drafted
+
+declare @p10 nvarchar(1000)
+set @p10=NULL
+exec sp_executesql N'EXEC dbo.[USP_CopyWorkflowDetailsToWorkOrder] @WorkOrderId, @WorkflowId, @MasterCompanyId, @workOrderPartNumberId, @createdBy, @createdById, @ListItem, @ErrorMessage OUTPUT',N'@WorkOrderId BIGINT,@WorkflowId BIGINT,@MasterCompanyId int,@workOrderPartNumberId BIGINT,@createdBy nvarchar(200),@createdById BIGINT,@ListItem nvarchar(200),@ErrorMessage nvarchar(1000) output',@WorkOrderId=4878,@WorkflowId=103,@MasterCompanyId=1,@workOrderPartNumberId=4446,@createdBy=N'ADMIN User',@createdById=2,@ListItem=N'Materials,Labor,Tools,Charges',@ErrorMessage=@p10 output
+select @p10
+**************************************************************/
+CREATE   PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
+	@WorkOrderId BIGINT = 0,
+	@WorkflowId BIGINT = 0,
+	@MasterCompanyId INT = 0,
+	@workOrderPartNumberId BIGINT = 0,
+	@createdBy VARCHAR(200) = NULL,
+	@createdById BIGINT = 0,
+	@ListItem VARCHAR(200) = NULL,
+	@ErrorMessage VARCHAR(1000) OUTPUT
+AS
+BEGIN
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+SET NOCOUNT ON;
+	BEGIN TRY
+		BEGIN TRANSACTION
+		BEGIN
+			DECLARE @Materials NVARCHAR(50), @Labor NVARCHAR(50), @Tools NVARCHAR(50), @Charges NVARCHAR(50), @Directions NVARCHAR(50), @PartIgnored NVARCHAR(50) = '';
+			DECLARE @SplitTable TABLE (Item NVARCHAR(MAX));
+
+			INSERT INTO @SplitTable (Item)
+			SELECT Item FROM DBO.SPLITSTRING(@ListItem, ',');
+
+			IF EXISTS (SELECT 1 FROM @SplitTable WHERE Item LIKE '%Materials%')
+			BEGIN
+				SET @Materials = 'Materials';
+			END
+
+			IF EXISTS (SELECT 1 FROM @SplitTable WHERE Item LIKE '%Labor%')
+			BEGIN
+				SET @Labor = 'Labor';
+			END
+
+			IF EXISTS (SELECT 1 FROM @SplitTable WHERE Item LIKE '%Tools%')
+			BEGIN
+				SET @Tools = 'Tools';
+			END
+
+			IF EXISTS (SELECT 1 FROM @SplitTable WHERE Item LIKE '%Charges%')
+			BEGIN
+				SET @Charges = 'Charges';
+			END
+
+			IF EXISTS (SELECT 1 FROM @SplitTable WHERE Item LIKE '%Directions%')
+			BEGIN
+				SET @Directions = 'Directions';
+			END
+
+			PRINT '@Charges'
+			PRINT @Charges
+
+			IF (@WorkOrderPartNumberId > 0)
+			BEGIN
+				PRINT '@WorkOrderPartNumberId > 0';
+
+				IF (@WorkOrderId > 0)
+				BEGIN
+					PRINT '@WorkOrderId > 0'
+					DECLARE @WorkFlowWorkOrderId BIGINT;
+					SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM DBO.WorkOrderWorkFlow WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkOrderPartNoId = @workOrderPartNumberId;
+
+					IF EXISTS (SELECT TOP 1 1 FROM DBO.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1 AND (WorkflowExpirationDate IS NULL OR CAST(WorkflowExpirationDate AS date) >= GETUTCDATE()))
+					BEGIN
+						PRINT 'IF EXISTS (SELECT TOP 1 1 FROM DBO.Workflow'
+						DECLARE @IsMaterialsAllreadyCopied BIT = 0;
+						DECLARE @IsChargesAllreadyCopied BIT = 0;
+						DECLARE @IsExpertiseAlreadyCopied BIT = 0;
+						DECLARE @IsEquipmentsAlreadyCopied BIT = 0;
+						DECLARE @IsDirectionsAllreadyCopied BIT = 0;						
+						DECLARE @LaborHeaderId BIGINT;
+
+						SELECT TOP 1 @LaborHeaderId = WorkOrderLaborHeaderId
+						FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(IsDeleted, 0) = 0;
+
+						-- Check if expertise has already been copied
+						IF @LaborHeaderId IS NOT NULL
+						BEGIN
+							SELECT TOP 1 @IsExpertiseAlreadyCopied = CAST(IsFromWorkFlow AS BIT)
+							FROM DBO.WorkOrderLabor WITH (NOLOCK) WHERE WorkOrderLaborHeaderId = @LaborHeaderId AND ISNULL(IsFromWorkFlow, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
+						END
+
+						SELECT TOP 1 @IsEquipmentsAlreadyCopied = CAST(IsFromWorkFlow AS BIT)
+						FROM DBO.WorkOrderAssets WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(IsFromWorkFlow, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
+
+						SELECT TOP 1 @IsMaterialsAllreadyCopied = CAST(IsFromWorkFlow AS BIT) FROM DBO.WorkOrderMaterials WITH (NOLOCK)
+						WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(IsFromWorkFlow, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
+
+						SELECT TOP 1 @IsChargesAllreadyCopied = CAST(IsFromWorkFlow AS BIT)
+						FROM DBO.WorkOrderCharges WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(IsFromWorkFlow, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
+
+						SELECT TOP 1 @IsDirectionsAllreadyCopied = CAST(WTI.IsFromWorkFlow AS BIT)
+						FROM DBO.WorkOrderTask WOT WITH (NOLOCK) JOIN dbo.WorkOrderTaskInstruction WTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WTI.WorkOrderTaskId
+						WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(WTI.IsFromWorkFlow, 0) = 1 AND ISNULL(WTI.IsDeleted, 0) = 0;
+
+						UPDATE DBO.WorkOrderWorkFlow
+						SET WorkOrderId = @WorkOrderId,
+							UpdatedDate = GETUTCDATE(),
+							UpdatedBy = @createdBy,
+							IsActive = 1,
+							IsDeleted = 0,
+							MasterCompanyId = @MasterCompanyId
+						WHERE WorkOrderId = @WorkOrderId AND WorkOrderPartNoId = @workOrderPartNumberId;
+
+						UPDATE WOWF
+						SET BERThresholdAmount = workFlow.BERThresholdAmount,
+							ChangedPartNumberId = workFlow.ChangedPartNumberId,
+							CostOfNew = workFlow.CostOfNew,
+							CostOfReplacement = workFlow.CostOfReplacement,
+							CurrencyId = workFlow.CurrencyId,
+							CustomerId = workFlow.CustomerId,
+							FixedAmount = workFlow.FixedAmount,
+							IsCalculatedBERThreshold = workFlow.IsCalculatedBERThreshold,
+							IsFixedAmount = workFlow.IsFixedAmount,
+							IsPercentageOfNew = workFlow.IsPercentageOfNew,
+							IsPercentageOfReplacement = workFlow.IsPercentageOfReplacement,
+							ItemMasterId = workFlow.ItemMasterId,
+							Memo = workFlow.Memo,
+							OtherCost = workFlow.OtherCost,
+							PercentageOfNew = workFlow.PercentageOfNew,
+							PercentageOfReplacement = workFlow.PercentageOfReplacement,
+							Version = workFlow.Version,
+							WorkflowDescription = workFlow.WorkflowDescription,
+							WorkflowCreateDate = workFlow.WorkflowCreateDate,
+							WorkflowExpirationDate = workFlow.WorkflowExpirationDate,
+							WorkflowId = workFlow.WorkflowId
+						FROM DBO.WorkOrderWorkFlow WOWF
+							INNER JOIN DBO.Workflow workFlow ON WOWF.WorkflowId = workFlow.WorkflowId
+						WHERE WOWF.WorkflowId = @WorkflowId;
+
+						PRINT '@IsChargesAllreadyCopied'
+						PRINT @IsChargesAllreadyCopied
+
+						IF (@IsChargesAllreadyCopied <> 1 AND @Charges = 'Charges')
+						BEGIN
+							PRINT '@IsChargesAllreadyCopied <> 1 AND @Charges = Charges'
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							BEGIN
+								PRINT 'IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)'
+								INSERT INTO DBO.WorkOrderCharges (CreatedBy,CreatedDate,IsActive,IsDeleted,ChargesTypeId,MasterCompanyId,Quantity,UpdatedBy,UpdatedDate,VendorId,
+								WorkOrderId,WorkFlowWorkOrderId,Description,ExtendedCost,IsFromWorkFlow,TaskId,UnitCost,ReferenceNo)
+								SELECT 
+									@CreatedBy AS CreatedBy,
+									GETUTCDATE() AS CreatedDate,
+									1 AS IsActive,
+									0 AS IsDeleted,
+									CAST(WorkflowChargeTypeId AS INT) AS ChargesTypeId,
+									CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+									ISNULL(CAST(Quantity AS INT), 0) AS Quantity,
+									@CreatedBy AS UpdatedBy,
+									GETUTCDATE() AS UpdatedDate,
+									VendorId AS VendorId,
+									@WorkOrderId AS WorkOrderId,
+									@WorkFlowWorkOrderId AS WorkFlowWorkOrderId,
+									[Description] AS Description,
+									ISNULL(ExtendedCost, 0) AS ExtendedCost,
+									1 AS IsFromWorkFlow,
+									TaskId AS TaskId,
+									ISNULL(UnitCost, 0) AS UnitCost,
+									'' AS ReferenceNo
+								FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+
+								UPDATE woc
+								SET woc.IsFromWorkFlow = 1
+								FROM DBO.WorkOrderCharges woc
+								JOIN DBO.WorkflowChargesList wfc ON wfc.WorkflowId = @WorkflowId 
+									AND woc.WorkOrderId = @WorkOrderId AND woc.MasterCompanyId = @MasterCompanyId
+									AND woc.ChargesTypeId = CAST(wfc.WorkflowChargeTypeId AS INT) AND woc.TaskId = wfc.TaskId;
+							END
+						END
+
+						IF (@IsEquipmentsAlreadyCopied <> 1 AND @Tools = 'Tools')
+						BEGIN
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowEquipmentList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							BEGIN
+								INSERT INTO DBO.WorkOrderAssets (AssetRecordId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,MasterCompanyId,Quantity,WorkOrderId,
+								WorkFlowWorkOrderId,TaskId)
+								SELECT 
+									wfe.AssetId AS AssetRecordId,
+									@createdBy AS CreatedBy,
+									@createdBy AS UpdatedBy,
+									GETUTCDATE() AS CreatedDate,
+									GETUTCDATE() AS UpdatedDate,
+									1 AS IsActive,
+									0 AS IsDeleted,
+									@masterCompanyId AS MasterCompanyId,
+									COALESCE(wfe.Quantity, 0) AS Quantity,
+									@workOrderId AS WorkOrderId,
+									@WorkFlowWorkOrderId AS WorkFlowWorkOrderId,
+									wfe.TaskId AS TaskId
+								FROM DBO.WorkflowEquipmentList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+
+								UPDATE woa
+								SET woa.IsFromWorkFlow = 1
+								FROM DBO.WorkOrderAssets woa
+								JOIN DBO.WorkflowEquipmentList wfe ON wfe.WorkflowId = @WorkflowId 
+									AND woa.WorkOrderId = @workOrderId AND woa.MasterCompanyId = @masterCompanyId
+									AND woa.AssetRecordId = wfe.AssetId AND woa.TaskId = wfe.TaskId;
+							END
+						END
+
+						IF (@IsExpertiseAlreadyCopied <> 1 AND @Labor = 'Labor')
+						BEGIN
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							BEGIN
+								INSERT INTO DBO.WorkOrderExpertise (CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,WorkOrderId,MasterCompanyId,ExpertiseTypeId,EstimatedHours,
+								WorkFlowWorkOrderId,TaskId)
+								SELECT 
+									@createdBy AS CreatedBy,
+									@createdBy AS UpdatedBy,
+									GETUTCDATE() AS CreatedDate,
+									GETUTCDATE() AS UpdatedDate,
+									1 AS IsActive,
+									0 AS IsDeleted,
+									@workOrderId AS WorkOrderId,
+									@masterCompanyId AS MasterCompanyId,
+									CAST(wfe.ExpertiseTypeId AS INT) AS ExpertiseTypeId,
+									wfe.EstimatedHours AS EstimatedHours,
+									@WorkFlowWorkOrderId AS WorkFlowWorkOrderId,
+									wfe.TaskId AS TaskId
+								FROM DBO.WorkflowExpertiseList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+
+								UPDATE woe
+								SET woe.IsFromWorkFlow = 1
+								FROM DBO.WorkOrderExpertise woe
+								JOIN DBO.WorkflowExpertiseList wfe ON wfe.WorkflowId = @WorkflowId 
+									AND woe.WorkOrderId = @workOrderId AND woe.MasterCompanyId = @masterCompanyId
+									AND woe.ExpertiseTypeId = wfe.ExpertiseTypeId AND woe.TaskId = wfe.TaskId;
+							END
+						END
+
+						IF (@IsMaterialsAllreadyCopied <> 1 AND @Materials = 'Materials')
+						BEGIN
+							DECLARE @IsDER BIT, @IsPMA BIT;
+
+							SELECT @IsDER = ISNULL(IsDER, 0), @IsPMA = ISNULL(IsPMA, 0) FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNumberId;
+
+							DECLARE @ItemMasterId BIGINT, @PartNumber NVARCHAR(MAX)
+
+							DECLARE material_cursors CURSOR FOR
+							SELECT ItemMasterId FROM DBO.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+
+							OPEN material_cursors
+							FETCH NEXT FROM material_cursors INTO @ItemMasterId
+
+							WHILE @@FETCH_STATUS = 0
+							BEGIN
+								IF(@IsDER = 1 AND @IsPMA = 1)
+								BEGIN
+									SELECT TOP 1 @PartNumber = PartNumber
+									FROM ItemMaster WITH (NOLOCK)
+									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
+
+									IF(ISNULL(@PartNumber, '') <> '')
+										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
+								END
+
+								IF (@IsDER = 0 AND @IsPMA = 1)
+								BEGIN
+									SELECT TOP 1 @PartNumber = PartNumber
+									FROM ItemMaster WITH (NOLOCK)
+									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
+
+									IF(ISNULL(@PartNumber, '') <> '')
+										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
+								END
+
+								-- If IsDER = 1 and IsPMA = 0
+								IF @IsDER = 1 AND @IsPMA = 0
+								BEGIN
+									SELECT TOP 1 @PartNumber = PartNumber
+									FROM ItemMaster WITH (NOLOCK)
+									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
+
+									IF(ISNULL(@PartNumber, '') <> '')
+										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
+								END
+
+								FETCH NEXT FROM material_cursors INTO @ItemMasterId
+							END
+
+							CLOSE material_cursors
+							DEALLOCATE material_cursors
+
+							IF LEN(@PartIgnored) > 0
+							BEGIN
+								SET @PartIgnored = 'Customer has resticted PMA or DER Part. So, Following Part Number are ignored while Transfer : ' + LEFT(@PartIgnored, LEN(@PartIgnored) - 1)
+							END
+
+							DECLARE @ProvisionId BIGINT;
+							DECLARE @ProvisionEnum_REPLACE VARCHAR(100) = 'REPLACE';
+
+							--SET @workOrderPartNumberId = 1;
+							--SET @workOrderId = 1;
+							--SET @masterCompanyId = 1;
+							--SET @createdBy = 1;
+
+							SELECT TOP 1 @ProvisionId = ProvisionId FROM DBO.Provision WITH (NOLOCK)
+							WHERE StatusCode = @ProvisionEnum_REPLACE AND ISNULL(IsActive, 0) = 1 AND ISNULL(isDeleted, 0) = 0 ;
+
+							PRINT '@ProvisionId'
+							PRINT @ProvisionId
+							-- Fetch MaterialMandatories
+							DECLARE @MaterialMandatories TABLE (Id BIGINT, Name NVARCHAR(MAX))
+							INSERT INTO @MaterialMandatories
+							SELECT Id, UPPER(Name) FROM MaterialMandatories WHERE ISNULL(IsDeleted, 0) = 0
+
+							-- Cursor to iterate over materialList
+							DECLARE @ConditionCodeId BIGINT, @Item NVARCHAR(MAX),
+									@Figure NVARCHAR(MAX), @TaskId BIGINT, @Quantity INT, 
+									@UnitCost DECIMAL(18,2), @ExtendedCost DECIMAL(18,2), 
+									@MaterialMandatoriesName NVARCHAR(MAX), @Memo NVARCHAR(MAX),
+									@IsDeferred BIT
+
+							DECLARE newmaterial_cursors CURSOR FOR
+							SELECT ItemMasterId, ConditionCodeId, Item, Figure, TaskId, Quantity, UnitCost, ExtendedCost, MaterialMandatoriesName, Memo, IsDeferred
+							FROM DBO.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+
+							OPEN newmaterial_cursors
+							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred
+
+							WHILE @@FETCH_STATUS = 0
+							BEGIN
+								DECLARE @IsIgnorePartExist BIT = 0, @WorkOrderMaterialsId BIGINT
+
+								SELECT TOP 1 @WorkFlowWorkOrderId = WorkFlowWorkOrderId
+								FROM DBO.WorkOrderWorkFlow WITH (NOLOCK)
+								WHERE WorkOrderPartNoId = @workOrderPartNumberId AND WorkOrderId = @workOrderId
+
+								SELECT TOP 1 @WorkOrderMaterialsId = WorkOrderMaterialsId
+								FROM DBO.WorkOrderMaterials WITH (NOLOCK)
+								WHERE WorkOrderId = @workOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+								AND MasterCompanyId = @masterCompanyId AND ItemMasterId = @ItemMasterId
+								AND ConditionCodeId = @ConditionCodeId AND Item = @Item AND Figure = @Figure AND TaskId = @TaskId;
+
+								SELECT @IsDER = ISNULL(IsDER, 0), @IsPMA = ISNULL(IsPMA, 0) FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNumberId;
+
+								IF (@IsDER = 1 AND @IsPMA = 1)
+								BEGIN
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1))
+										SET @IsIgnorePartExist = 1
+								END
+								ELSE IF (@IsDER = 0 AND @IsPMA = 1)
+								BEGIN
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1)
+										SET @IsIgnorePartExist = 1
+								END
+								ELSE IF (@IsDER = 1 AND @IsPMA = 0)
+								BEGIN
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1)
+										SET @IsIgnorePartExist = 1
+								END
+
+								IF (@IsIgnorePartExist = 0)
+								BEGIN
+									IF (ISNULL(@WorkOrderMaterialsId, 0) > 0)
+									BEGIN
+										-- Update existing material
+										UPDATE DBO.WorkOrderMaterials
+										SET Quantity = ISNULL(Quantity, 0) + ISNULL(@Quantity, 0),
+											ExtendedCost = (ISNULL(Quantity, 0) + ISNULL(@Quantity, 0)) * ISNULL(@UnitCost, 0),
+											UpdatedBy = @createdBy
+										WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+									END
+									ELSE
+									BEGIN
+										-- Insert new material
+										INSERT INTO DBO.WorkOrderMaterials (CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, 
+																		IsActive, IsDeleted, MasterCompanyId, WorkOrderId, WorkFlowWorkOrderId, 
+																		ItemMasterId, TaskId, ConditionCodeId, MaterialMandatoriesId, 
+																		ItemClassificationId, Quantity, UnitOfMeasureId, UnitCost, ExtendedCost, 
+																		Memo, IsDeferred, ProvisionId, Figure, Item, IsFromWorkFlow)
+										SELECT @createdBy, @createdBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 
+											   @masterCompanyId, @workOrderId, @WorkFlowWorkOrderId, @ItemMasterId, @TaskId, @ConditionCodeId, 
+											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
+											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, @UnitCost, @ExtendedCost, 
+											   @Memo, @IsDeferred, @ProvisionId, @Figure, @Item, 1
+										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+									END
+								END
+
+								UPDATE DBO.WorkOrderMaterials SET IsFromWorkFlow = 1 WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
+
+								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred
+							END
+
+							CLOSE newmaterial_cursors
+							DEALLOCATE newmaterial_cursors
+						END
+
+						IF (@IsExpertiseAlreadyCopied <> 1 AND @Labor = 'Labor')
+						BEGIN
+							DECLARE @TaskStatusId BIGINT, @EmployeeId BIGINT, @ManagementStructureId INT, @LaborHoursId INT, @laborHoursMedthodId INT, @WorkOrderLaborHeaderId BIGINT;
+							
+							SELECT TOP 1 @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM DBO.WorkOrderWorkFlow WITH (NOLOCK)
+							WHERE WorkOrderPartNoId = @workOrderPartNumberId AND WorkOrderId = @workOrderId
+
+							SELECT TOP 1 @TaskStatusId = TaskStatusId FROM DBO.TaskStatus WITH (NOLOCK) WHERE [Description] = 'PENDING' AND MasterCompanyId = @MasterCompanyId
+							SELECT TOP 1 @EmployeeId = EmployeeId FROM DBO.Employee WITH (NOLOCK) WHERE FirstName = 'TBD' AND MasterCompanyId = @MasterCompanyId
+							SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNumberId AND MasterCompanyId = @MasterCompanyId
+							SELECT TOP 1 @LaborHoursId = ISNULL(LaborHoursId, 1), @laborHoursMedthodId = ISNULL(laborHoursMedthodId, 1) FROM DBO.LaborOHSettings WITH (NOLOCK) WHERE ManagementStructureId = @ManagementStructureId AND MasterCompanyId = @MasterCompanyId
+
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId)
+							BEGIN
+								PRINT ''
+								SELECT @WorkOrderLaborHeaderId = WorkOrderLaborHeaderId FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId
+								
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+								BEGIN
+									INSERT INTO DBO.WorkOrderLabor (CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted, ExpertiseId,MasterCompanyId,[Hours],AdjustedHours,BurdaenRatePercentageId,
+									BurdenRateAmount,DirectLaborOHCost,TotalCostPerHour,TotalCost, Memo, TaskId,TaskStatusId, EmployeeId, BillableId, IsFromWorkFlow, WorkOrderLaborHeaderId, StandardHours, StandardMinute, StatusChangedDate)
+									SELECT 
+										@createdBy AS CreatedBy,
+										@createdBy AS UpdatedBy,
+										GETUTCDATE() AS CreatedDate,
+										GETUTCDATE() AS UpdatedDate,
+										1 AS IsActive,
+										0 AS IsDeleted,
+										CAST(wfe.ExpertiseTypeId AS INT) AS ExpertiseId,
+										@masterCompanyId AS MasterCompanyId,
+										wfe.EstimatedHours AS [Hours],
+										wfe.EstimatedHours AS AdjustedHours,
+										wfe.OverheadburdenPercentId AS BurdaenRatePercentageId,
+										ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0) AS BurdenRateAmount,
+										ISNULL(wfe.LaborDirectRate, 0) AS DirectLaborOHCost,
+										ISNULL(wfe.LaborDirectRate, 0) + ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0) AS TotalCostPerHour,
+										--Calculate Hour and Minutes and total Cost
+										ISNULL((LEFT(CAST(wfe.EstimatedHours AS varchar(100)), CHARINDEX('.', CAST(wfe.EstimatedHours AS varchar(100))) - 1)) * (ISNULL(wfe.LaborDirectRate, 0) + ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0))  
+										 + (((RIGHT(CAST(wfe.EstimatedHours AS varchar(100)), LEN(CAST(wfe.EstimatedHours AS varchar(100))) - CHARINDEX('.', CAST(wfe.EstimatedHours AS varchar(100))))) * 100) / 60) * (ISNULL(wfe.LaborDirectRate, 0) + ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0)), 0) 
+										AS TotalCost,
+										wfe.memo,
+										wfe.TaskId AS TaskId,
+										@TaskStatusId AS TaskStatusId,
+										NULL AS EmployeeId,
+										1 AS BillableId,
+										1 AS IsFromWorkFlow,
+										@WorkOrderLaborHeaderId AS WorkOrderLaborHeaderId,
+										T.StandardHours,
+										T.StandardMinute,
+										GETUTCDATE() AS StatusChangedDate
+									FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK) 
+										JOIN dbo.Task T ON T.TaskId = wfe.TaskId
+									WHERE WorkflowId = @WorkflowId;
+
+									UPDATE woe
+									SET woe.IsFromWorkFlow = 1
+									FROM DBO.WorkOrderExpertise woe
+									JOIN DBO.WorkflowExpertiseList wfe ON wfe.WorkflowId = @WorkflowId 
+										AND woe.WorkOrderId = @workOrderId AND woe.MasterCompanyId = @masterCompanyId
+										AND woe.ExpertiseTypeId = wfe.ExpertiseTypeId AND woe.TaskId = wfe.TaskId;
+								END
+								ELSE 
+								BEGIN
+									DECLARE @ExpertiseId BIGINT;
+									SELECT TOP 1 @ExpertiseId = CAST(wfe.ExpertiseTypeId AS INT) FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK) WHERE WorkflowId = @WorkflowId;
+
+									INSERT INTO dbo.workOrderLaborHeader(WorkOrderId,WorkFlowWorkOrderId,DataEnteredBy,HoursorClockorScan,WorkOrderHoursType,
+											MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,ExpertiseId,EmployeeId,WOPartNoId)
+									SELECT @WorkOrderId, @WorkFlowWorkOrderId, @createdById AS DataEnteredBy, @laborHoursMedthodId AS HoursorClockorScan, @LaborHoursId As WorkOrderHoursType,
+											@MasterCompanyId, @createdBy AS CreatedBy, @createdBy AS UpdatedBy,GETUTCDATE() AS CreatedDate,GETUTCDATE() AS UpdatedDate,
+											1 AS IsActive, 0 AS IsDeleted, @ExpertiseId, @createdById, @workOrderPartNumberId
+
+									SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
+
+									INSERT INTO DBO.WorkOrderLabor (CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted, ExpertiseId,MasterCompanyId,[Hours],AdjustedHours, BurdaenRatePercentageId,
+									BurdenRateAmount,DirectLaborOHCost,TotalCostPerHour,TotalCost, Memo, TaskId,TaskStatusId, EmployeeId, BillableId, IsFromWorkFlow, WorkOrderLaborHeaderId,StandardHours, StandardMinute, StatusChangedDate)
+									SELECT 
+										@createdBy AS CreatedBy,
+										@createdBy AS UpdatedBy,
+										GETUTCDATE() AS CreatedDate,
+										GETUTCDATE() AS UpdatedDate,
+										1 AS IsActive,
+										0 AS IsDeleted,
+										CAST(wfe.ExpertiseTypeId AS INT) AS ExpertiseId,
+										@masterCompanyId AS MasterCompanyId,
+										wfe.EstimatedHours AS [Hours],
+										wfe.EstimatedHours AS AdjustedHours,
+										wfe.OverheadburdenPercentId AS BurdaenRatePercentageId,
+										ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0) AS BurdenRateAmount,
+										ISNULL(wfe.LaborDirectRate, 0) AS DirectLaborOHCost,
+										ISNULL(wfe.LaborDirectRate, 0) + ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0) AS TotalCostPerHour,
+										--Calculate Hour and Minutes and total Cost
+										ISNULL((LEFT(CAST(wfe.EstimatedHours AS varchar(100)), CHARINDEX('.', CAST(wfe.EstimatedHours AS varchar(100))) - 1)) * (ISNULL(wfe.LaborDirectRate, 0) + ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0))  
+										 + (((RIGHT(CAST(wfe.EstimatedHours AS varchar(100)), LEN(CAST(wfe.EstimatedHours AS varchar(100))) - CHARINDEX('.', CAST(wfe.EstimatedHours AS varchar(100))))) * 100) / 60) * (ISNULL(wfe.LaborDirectRate, 0) + ISNULL((ISNULL(wfe.OverheadBurden, 0) * ISNULL(wfe.LaborDirectRate, 0)) / 100, 0)), 0) 
+										AS TotalCost,
+										wfe.memo,
+										wfe.TaskId AS TaskId,
+										@TaskStatusId AS TaskStatusId,
+										NULL AS EmployeeId,
+										1 AS BillableId,
+										1 AS IsFromWorkFlow,
+										@WorkOrderLaborHeaderId AS WorkOrderLaborHeaderId,
+										T.StandardHours,
+										T.StandardMinute,
+										GETUTCDATE() AS StatusChangedDate
+									FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK)  
+										JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = wfe.TaskId 
+									WHERE WorkflowId = @WorkflowId;
+
+									UPDATE woe
+									SET woe.IsFromWorkFlow = 1
+									FROM DBO.WorkOrderExpertise woe
+									JOIN DBO.WorkflowExpertiseList wfe ON wfe.WorkflowId = @WorkflowId 
+										AND woe.WorkOrderId = @workOrderId AND woe.MasterCompanyId = @masterCompanyId
+										AND woe.ExpertiseTypeId = wfe.ExpertiseTypeId AND woe.TaskId = wfe.TaskId;
+								END
+							END
+						END
+					
+						IF (@IsDirectionsAllreadyCopied <> 1 AND @Materials = 'Directions')
+						BEGIN
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							BEGIN
+								PRINT 'IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)'
+								DECLARE @WorkOrderTaskId BIGINT;
+								DECLARE @TotalCounts INT = 0;
+								DECLARE @Count INT = 1;
+								DECLARE @WorkFlowTaskId BIGINT;
+
+								IF OBJECT_ID(N'tempdb..#tmpWorkOrderMaterialsKit') IS NOT NULL
+								BEGIN
+								DROP TABLE #tmpWorkflowDirectionTask
+								END
+			
+								CREATE TABLE #tmpWorkflowDirectionTask
+								(
+									ID BIGINT NOT NULL IDENTITY, 
+									[TaskId] [bigint] NOT NULL,
+									[WorkflowId] [bigint] NOT NULL,
+								)
+									
+								INSERT INTO #tmpWorkflowDirectionTask(TaskId, WorkflowId)
+								SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowDirection WFD WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+
+								SELECT @TotalCounts = COUNT(ID) FROM #tmpWorkflowDirectionTask;
+
+								WHILE @Count<= @TotalCounts
+								BEGIN
+									
+									SELECT DISTINCT @WorkFlowTaskId = TaskId FROM #tmpWorkflowDirectionTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ID = ISNULL(@Count, 0)
+
+									INSERT INTO DBO.WorkOrderTask(WorkOrderId,WorkFlowWorkOrderId,TaskId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,
+										WorkOrderPartNumberId,SequenceNumber,IsIncludeInPrint,HasInstruction,TaskName,IsFromWorkFlow)
+									SELECT
+										@WorkOrderId, 
+										@WorkFlowWorkOrderId,
+										WFD.TaskId,
+										CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+										@CreatedBy AS CreatedBy,
+										@CreatedBy AS UpdatedBy,
+										GETUTCDATE() AS CreatedDate,
+										GETUTCDATE() AS UpdatedDate,
+										1 AS IsActive,
+										0 AS IsDeleted,
+										@workOrderPartNumberId AS WorkOrderPartNumberId,
+										WFD.[Sequence] AS SequenceNumber,
+										T.IsPrintInWO AS IsIncludeInPrint,
+										0 as HasInstruction,
+										T.[Description] as TaskName,
+										1 AS IsFromWorkFlow
+									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
+										JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId            -- Here Need to add condition for Parent Task 
+
+									SELECT @WorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
+
+									INSERT INTO dbo.WorkOrderTaskDetails(WorkOrderTaskId,Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,PrintInWO)
+									SELECT @WorkOrderTaskId, 
+										WFD.[Action] AS Descrepancy, 
+										WFD.[Description] AS Resolution,
+										0 as HasInstruction,
+										CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+										@CreatedBy AS CreatedBy,
+										@CreatedBy AS UpdatedBy,
+										GETUTCDATE() AS CreatedDate,
+										GETUTCDATE() AS UpdatedDate, 
+										1 AS IsActive,	
+										0 AS IsDeleted,
+										T.IsPrintInWO AS IsIncludeInPrint
+									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
+										JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId       -- Here Need to add condition for Parent Task
+
+									INSERT INTO dbo.WorkOrderTaskInstruction(WorkOrderTaskId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
+									SELECT @WorkOrderTaskId, 
+										WFD.ParentId,
+										ISNULL(WFD.IsParent, 0),
+										WFD.[Action] AS InstructionTitle, 
+										WFD.[Sequence] AS SequenceNumber, 
+										WFD.[Description] AS InstructionDetails,
+										T.IsPrintInWO AS PrintInWO,
+										CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+										@CreatedBy AS CreatedBy,
+										@CreatedBy AS UpdatedBy,
+										GETUTCDATE() AS CreatedDate,
+										GETUTCDATE() AS UpdatedDate, 
+										1 AS IsActive,	
+										0 AS IsDeleted,
+										1 AS IsFromWorkFlow
+									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
+										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId
+
+									SET @count = @count + 1;
+								END
+
+							END
+						END
+					
+					END
+				END
+			END
+		END
+		COMMIT TRANSACTION
+	END TRY
+BEGIN CATCH
+SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
+   IF @@trancount > 0
+    PRINT 'ROLLBACK'
+	CLOSE material_cursors
+	DEALLOCATE material_cursors
+
+	CLOSE newmaterial_cursors
+	DEALLOCATE newmaterial_cursors
+    ROLLBACK TRAN;
+    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+        , @AdhocComments     VARCHAR(150)    = 'USP_CopyWorkflowDetailsToWorkOrder'
+        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@WorkOrderId AS varchar(10)) ,'') +''
+        , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+        exec spLogException
+                @DatabaseName           =  @DatabaseName
+                , @AdhocComments          =  @AdhocComments
+                , @ProcedureParameters    =  @ProcedureParameters
+                , @ApplicationName        =  @ApplicationName
+                , @ErrorLogID             =  @ErrorLogID OUTPUT;
+        RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+        RETURN(1);
+  END CATCH
+END

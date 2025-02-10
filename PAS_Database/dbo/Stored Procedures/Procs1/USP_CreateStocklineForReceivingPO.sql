@@ -28,6 +28,7 @@
 	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType), And manage NULL value 
 	13   20-12-2024   Moin Bloch        Fixed Asset Inventory Partial Receive issue
     14   17-JAN-2025  RAJESH GAMI       Fixed Asset Inventory to insert RRQty by default as 1 instead of 0
+	15   07/01/2025   Ayushi Patel      cast PP_LastPurchaseDiscDate dateTime into Date
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -908,7 +909,7 @@ BEGIN
                                     GETUTCDATE(),
                                     @PP_PurchaseDiscPerc,
                                     @PP_PurchaseDiscAmount,
-                                    GETUTCDATE(),
+                                    CAST(GETUTCDATE() as date),
                                     @PP_UnitPurchasePrice,
                                     NULL,
                                     NULL,

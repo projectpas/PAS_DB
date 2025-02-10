@@ -12,9 +12,9 @@
     1    12/24/2024   Vishal Suthar	 Created
     2    01/17/2025   Vishal Suthar	 Added History for Add and Update
     3    02/06/2025   Ekta Chandegra Added Task Resolution History for Add and Update instead of Descrepancy
-
+    4    10/Feb/2025  RAJESH GAMI    Added @IsPrintInspector,@IsPrintTechnician
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
+CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@WorkOrderTaskId BIGINT,
 	@WorkOrderId BIGINT,
 	@WorkFlowWorkOrderId BIGINT,
@@ -37,7 +37,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@CreatedBy VARCHAR(100) = NULL,
 	@MasterCompanyId BIGINT = NULL,
 	@PrintInWO BIT = NULL,
-	@PrintInWOQ BIT = NULL
+	@PrintInWOQ BIT = NULL,
+	@IsPrintInspector BIT = NULL,
+	@IsPrintTechnician BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -66,9 +68,9 @@ BEGIN
 		SET @InsertedWorkOrderTaskId = SCOPE_IDENTITY();
 
 		INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],[Descrepancy],
-		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted], [PrintInWO], [PrintInWOQ])
+		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted], [PrintInWO], [PrintInWOQ],IsPrintInspector,IsPrintTechnician)
 		SELECT @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
-		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ;
+		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ,@IsPrintInspector,@IsPrintTechnician;
 
 		-- Add Entry in History Table
 		SET @StatusCode = 'CreateWorkOrderTask';
@@ -99,7 +101,9 @@ BEGIN
 		TechName = @TechName,
 		TechUpdatedDate = @TechUpdatedDate,
 		[PrintInWO] = @PrintInWO,
-		[PrintInWOQ] = @PrintInWOQ
+		[PrintInWOQ] = @PrintInWOQ,
+		IsPrintInspector = @IsPrintInspector,
+		[IsPrintTechnician] = @IsPrintTechnician
 		WHERE WorkOrderTaskId = @WorkOrderTaskId;
 
 		-- Add Entry in History Table

@@ -1,7 +1,4 @@
-﻿            
-            
-              
-/*************************************************************                         
+﻿/*************************************************************                         
  ** File:   [[usp_GetGLDetailsByInventoryClass]]                         
  ** Author:   Bhavesh Raval                
  ** Description: Get GL Details By Inventory Class/Attribute               
@@ -19,6 +16,7 @@
  ** --   --------     -------    --------------------------------                        
      1    07-01-25    Bhavesh Raval   Get Glaaccount by InventoryGlSettingId    
      2    21-01-25    Bhavesh Raval   Remove Name and Notes Columns              
+     3    10-02-25    Bhargav Saliya  Get Glaaccount fromm the ItemMaster and added [dbo]             
 **************************************************************/              
 --exec  [dbo].[usp_GetGLDetailsByInventoryClass] 1             
              
@@ -37,7 +35,8 @@ BEGIN
  -- (select TOP 1 GLAccountId from ItemMaster IM where IM.InventoryGLSettingId =I.InventoryGLSettingId)       
   I.InventoryGLAccId AS InventoryGLAccId,      
  -- (select GLAccount from ItemMaster IM where IM.InventoryGLSettingId =I.InventoryGLSettingId)      
-    GL1.AccountCode + '-' + GL1.AccountName AS InventoryGLAccName,              
+    --GL1.AccountCode + '-' + GL1.AccountName AS InventoryGLAccName,  GLAccount            
+   IM.GLAccount AS InventoryGLAccName,              
    I.GoodsReceivedNotInvoicesGLAccId,           
    GL2.AccountCode + '-' + GL2.AccountName AS GoodsReceivedNotInvoicesGLAccName,              
    I.WorkInProgressGLAccId,           
@@ -72,39 +71,24 @@ BEGIN
    I.UpdatedDate,          
    I.IsActive,          
    I.IsDeleted            
-  FROM           
-   InventoryGLSetting I WITH (NOLOCK)          
-  LEFT JOIN          
-   GLAccount GL1 WITH (NOLOCK) ON I.InventoryGLAccId = GL1.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL2 WITH (NOLOCK) ON I.GoodsReceivedNotInvoicesGLAccId = GL2.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL3 WITH (NOLOCK) ON I.WorkInProgressGLAccId = GL3.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL4 WITH (NOLOCK) ON I.InventoryToBillGLAccId = GL4.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL5 WITH (NOLOCK) ON I.FinishedGoodsGLAccId = GL5.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL6 WITH (NOLOCK) ON I.InventoryExchAgreementGLAccId = GL6.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL7 WITH (NOLOCK) ON I.InventoryReserveGLAccId = GL7.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL8 WITH (NOLOCK) ON I.COGS_WorkOrderGLAccId = GL8.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL9 WITH (NOLOCK) ON I.COGS_SalesOrderGLAccId = GL9.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL10 WITH (NOLOCK) ON I.COGS_QtyVarianceGLAccId = GL10.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL11 WITH (NOLOCK) ON I.COGS_UnitCostVarianceGLAccId = GL11.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL12 WITH (NOLOCK) ON I.RevenueMroGLAccId = GL12.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL13 WITH (NOLOCK) ON I.RevenueSoGLAccId = GL13.GLAccountId           
-  LEFT JOIN           
-   GLAccount GL14 WITH (NOLOCK) ON I.RevenueExchGLAccId = GL14.GLAccountId     
-    LEFT JOIN           
-   GLAccount GL15 WITH (NOLOCK) ON I.COGS_ExchSalesOrderGLAccId = GL15.GLAccountId     
-  
+  FROM [dbo].InventoryGLSetting I WITH (NOLOCK)          
+	LEFT JOIN [dbo].GLAccount GL1 WITH (NOLOCK) ON I.InventoryGLAccId = GL1.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL2 WITH (NOLOCK) ON I.GoodsReceivedNotInvoicesGLAccId = GL2.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL3 WITH (NOLOCK) ON I.WorkInProgressGLAccId = GL3.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL4 WITH (NOLOCK) ON I.InventoryToBillGLAccId = GL4.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL5 WITH (NOLOCK) ON I.FinishedGoodsGLAccId = GL5.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL6 WITH (NOLOCK) ON I.InventoryExchAgreementGLAccId = GL6.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL7 WITH (NOLOCK) ON I.InventoryReserveGLAccId = GL7.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL8 WITH (NOLOCK) ON I.COGS_WorkOrderGLAccId = GL8.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL9 WITH (NOLOCK) ON I.COGS_SalesOrderGLAccId = GL9.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL10 WITH (NOLOCK) ON I.COGS_QtyVarianceGLAccId = GL10.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL11 WITH (NOLOCK) ON I.COGS_UnitCostVarianceGLAccId = GL11.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL12 WITH (NOLOCK) ON I.RevenueMroGLAccId = GL12.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL13 WITH (NOLOCK) ON I.RevenueSoGLAccId = GL13.GLAccountId           
+	LEFT JOIN [dbo].GLAccount GL14 WITH (NOLOCK) ON I.RevenueExchGLAccId = GL14.GLAccountId     
+    LEFT JOIN [dbo].GLAccount GL15 WITH (NOLOCK) ON I.COGS_ExchSalesOrderGLAccId = GL15.GLAccountId     
+	INNER JOIN [dbo].Stockline STK WITH (NOLOCK) ON I.InventoryGLSettingId = STK.InventoryGLSettingId  
+	INNER JOIN [dbo].ItemMaster IM WITH (NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId  
   WHERE           
    I.InventoryGLSettingId = @InventoryGLSettingId          
           

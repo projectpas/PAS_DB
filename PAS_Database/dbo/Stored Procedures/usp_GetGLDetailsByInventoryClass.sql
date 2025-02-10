@@ -35,7 +35,6 @@ BEGIN
  -- (select TOP 1 GLAccountId from ItemMaster IM where IM.InventoryGLSettingId =I.InventoryGLSettingId)       
   I.InventoryGLAccId AS InventoryGLAccId,      
  -- (select GLAccount from ItemMaster IM where IM.InventoryGLSettingId =I.InventoryGLSettingId)      
-    --GL1.AccountCode + '-' + GL1.AccountName AS InventoryGLAccName,  GLAccount            
    IM.GLAccount AS InventoryGLAccName,              
    I.GoodsReceivedNotInvoicesGLAccId,           
    GL2.AccountCode + '-' + GL2.AccountName AS GoodsReceivedNotInvoicesGLAccName,              

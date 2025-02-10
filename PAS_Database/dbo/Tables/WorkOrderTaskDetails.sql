@@ -21,8 +21,12 @@
     [IsDeleted]              BIT           NULL,
     [PrintInWO]              BIT           NULL,
     [PrintInWOQ]             BIT           NULL,
+    [IsPrintInspector]       BIT           NULL,
+    [IsPrintTechnician]      BIT           NULL,
     CONSTRAINT [PK_WorkOrderTaskDetails] PRIMARY KEY CLUSTERED ([WorkOrderTaskDetailsId] ASC)
 );
+
+
 
 
 

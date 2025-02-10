@@ -23,16 +23,9 @@
 	6    03/01/2025   Moin Bloch  	    Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
 	7    10/01/2025   Sahdev Saliya     Added Defult site as per setting while add new item 
 	8    24/01/2025   Sahdev Saliya     Added According To The Default Site Management Structure When Adding New items  
-    
+    9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
 --select * from dbo.Employee      
---EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1      
---select * from dbo.Customer      
---EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,'50','',1      
---EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','',1,10      
---EXEC AutoCompleteDropdowns 'AssetStatus','AssetStatusId','Name','',0,200,'12'      
---EXEC AutoCompleteDropdowns 'Customer','CustomerId','Name','',1,'0','0',1      
---EXEC AutoCompleteDropdowns 'MasterParts','MasterPartId','PartNumber','',1,'20','0',1  
---EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','fa',0,0,'0',5  
+--EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns] 
 	@TableName VARCHAR(50) = NULL, 
@@ -80,11 +73,11 @@ AS BEGIN
             END
             ELSE IF(@TableName='Task')BEGIN
                      IF(@Parameter4=1)BEGIN
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
                          UNION
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Sequence asc
@@ -268,11 +261,11 @@ AS BEGIN
             END
             ELSE IF(@TableName='Task')BEGIN
                      IF(@Parameter4=1)BEGIN
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
                          UNION
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Sequence asc

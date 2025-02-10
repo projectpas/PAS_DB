@@ -31,9 +31,15 @@
     [ReferenceId]            BIGINT        NULL,
     [ReferenceModuleId]      INT           NULL,
     [ControlNumber]          VARCHAR (150) NULL,
+    [QuickBooksReferenceId]  VARCHAR (200) NULL,
+    [IsUpdated]              BIT           NULL,
+    [LastSyncDate]           DATETIME2 (7) NULL,
+    [SyncToken]              VARCHAR (200) NULL,
     CONSTRAINT [PK_NonPOInvoiceHeader] PRIMARY KEY CLUSTERED ([NonPOInvoiceId] ASC),
     CONSTRAINT [FK_NonPOInvoiceHeader_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

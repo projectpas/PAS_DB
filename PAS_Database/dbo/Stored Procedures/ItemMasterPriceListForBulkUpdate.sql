@@ -22,7 +22,8 @@
 CREATE      PROCEDURE [dbo].[ItemMasterPriceListForBulkUpdate]
 (
 	@ItemMasterId BIGINT,
-	@MasterCompanyId BIGINT
+	@MasterCompanyId BIGINT,
+  @EmployeeId bigint
 )
 AS
 BEGIN
@@ -33,6 +34,7 @@ BEGIN
 			SET @ItemMasterId = NULL      
 		  END 
 	BEGIN TRY 
+
 		SELECT DISTINCT 
 		IM.ItemMasterId,
 		IM.PartNumber,

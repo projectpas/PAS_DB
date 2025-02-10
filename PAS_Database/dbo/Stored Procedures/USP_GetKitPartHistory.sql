@@ -11,7 +11,8 @@
  **************************************************************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
-    1    28-02-2024   Shrey Chandegara    Created  
+    1    28-02-2024   Shrey Chandegara    Created 
+	2    05/02/2025   Ayushi Patel		  converted the date into utc (created , updated) , Added a case to get timeZone
        
 -- EXEC USP_GetKitPartHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
@@ -33,7 +34,8 @@ CREATE       PROCEDURE [dbo].[USP_GetKitPartHistory]
  @UpdatedDate  DATETIME=null,  
  @CreatedBy VARCHAR(50)=null,  
  @UpdatedBy VARCHAR(50)=null,
- @IsFromKitHeader BIT=0
+ @IsFromKitHeader BIT=0,
+ @EmployeeId bigint
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -43,7 +45,27 @@ BEGIN
    BEGIN  
    DECLARE @RecordFrom INT;  
     SET @RecordFrom = (@PageNumber-1) * @PageSize;  
-      
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
     IF @SortColumn is null  
     BEGIN  
      SET @SortColumn=Upper('CreatedDate')  
@@ -66,9 +88,11 @@ BEGIN
 				 HS.[HistoryText],  
 				 HS.[FieldsName],  
 				 HS.[CreatedBy],  
-				 HS.[CreatedDate],  
+				 --HS.[CreatedDate],
+				 case when CAST(HS.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(HS.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
 				 HS.[UpdatedBy],  
-				 HS.[UpdatedDate]   
+				 --HS.[UpdatedDate]
+				 case when CAST(HS.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
 				FROM DBO.[History] HS WITH (NOLOCK)  
 				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
 				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
@@ -136,9 +160,11 @@ BEGIN
 				 HS.[HistoryText],  
 				 HS.[FieldsName],  
 				 HS.[CreatedBy],  
-				 HS.[CreatedDate],  
+				 --HS.[CreatedDate],
+				 case when CAST(HS.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(HS.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
 				 HS.[UpdatedBy],  
-				 HS.[UpdatedDate]   
+				 --HS.[UpdatedDate]
+				 case when CAST(HS.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
 				FROM DBO.[History] HS WITH (NOLOCK)  
 				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
 				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  

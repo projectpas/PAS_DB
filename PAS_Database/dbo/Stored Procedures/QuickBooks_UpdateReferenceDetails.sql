@@ -17,6 +17,7 @@
     4    27-Nov-2024   Devendra Shekh	Modified (added Change for Cash Receipt/CustomerPayment)
     5    28-Nov-2024   Devendra Shekh	Modified (added Change for CreditTerms)
     6    30-Jan-2025   Devendra Shekh	Modified (added Change for GLAccount)
+    7    06-Feb-2025   Abhishek Jirawla	Modified (added Change for Non PO)
      
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
@@ -36,8 +37,8 @@ BEGIN
 	BEGIN TRY
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;
-		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0;
-		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT;
+		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0, @NonPOModuleId INT = 0;
+		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT, @BillModuleId INT;
 
 		SELECT @CustomerModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER';
 		SELECT @VendorModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'VENDOR';
@@ -45,10 +46,13 @@ BEGIN
 		SELECT @CustomerPaymentModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMERPAYMENT';
 		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
 		SELECT @GLAccountModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'GLACCOUNT';
+		SELECT @BillModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'Bill';
 
 		SELECT @WOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @ExchModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+
+		SELECT @NonPOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'NonPOInvoice';
 		SET @ReferenceModuleId =  ISNULL(@ReferenceModuleId, 0);
 
 		-- FOR QuickBooks
@@ -80,6 +84,11 @@ BEGIN
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @ExchModuleId = @ReferenceModuleId) 
 		BEGIN
 			UPDATE [dbo].[ExchangeSalesOrderBillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE SOBillingInvoicingId = @ReferenceId			
+		END
+
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @BillModuleId AND @NonPOModuleId = @ReferenceModuleId) 
+		BEGIN
+			UPDATE [dbo].[NonPOInvoiceHeader] SET QuickBooksReferenceId = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE NonPOInvoiceId = @ReferenceId			
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CustomerPaymentModuleId) 

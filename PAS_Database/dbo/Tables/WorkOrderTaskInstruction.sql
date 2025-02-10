@@ -32,12 +32,18 @@
 
 
 
+
+
 GO
 CREATE   TRIGGER [dbo].[Trg_WorkOrderTaskInstructionAudit] ON [dbo].[WorkOrderTaskInstruction]
    AFTER INSERT,UPDATE  
 AS   
 BEGIN  
  INSERT INTO [dbo].[WorkOrderTaskInstructionAudit]  
- SELECT * FROM INSERTED  
+ SELECT [WorkOrderTaskInstructionId],[WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle], 
+		[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],
+		[InspectorId],[InspectorName],[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],
+		[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+ FROM INSERTED  
  SET NOCOUNT ON;  
 END

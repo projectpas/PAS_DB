@@ -1,9 +1,9 @@
 ﻿CREATE TABLE [dbo].[WorkflowDirection] (
     [WorkflowDirectionId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [WorkflowId]          BIGINT         NOT NULL,
-    [Action]              NVARCHAR (MAX) NOT NULL,
-    [Description]         NVARCHAR (MAX) NOT NULL,
-    [Sequence]            VARCHAR (100)  NOT NULL,
+    [Action]              NVARCHAR (MAX) NULL,
+    [Description]         NVARCHAR (MAX) NULL,
+    [Sequence]            VARCHAR (100)  NULL,
     [Memo]                NVARCHAR (MAX) NULL,
     [TaskId]              BIGINT         NULL,
     [MasterCompanyId]     INT            NOT NULL,
@@ -17,6 +17,9 @@
     [WFParentId]          BIGINT         NULL,
     [IsVersionIncrease]   BIT            NULL,
     [TaskName]            VARCHAR (200)  NULL,
+    [ParentId]            BIGINT         NULL,
+    [IsParent]            BIT            NULL,
+    [IsTaskDetails]       BIT            NULL,
     CONSTRAINT [PK_WorkflowDirection] PRIMARY KEY CLUSTERED ([WorkflowDirectionId] ASC),
     CONSTRAINT [FK_WorkFlowDirection_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );

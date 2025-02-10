@@ -32,6 +32,8 @@
 );
 
 
+
+
 GO
 
 CREATE TRIGGER [dbo].[Trg_EmailAudit]
@@ -52,7 +54,7 @@ BEGIN
 
 
 	DECLARE @event_type varchar(42)
-	DECLARE @EmialId bigint
+	DECLARE @EmailId bigint
    IF EXISTS(SELECT * FROM inserted)
      IF EXISTS(SELECT * FROM deleted)
     SELECT @event_type = 'update'
@@ -64,16 +66,38 @@ BEGIN
    ELSE
     --no rows affected - cannot determine event
     SELECT @event_type = 'unknown'
-	SELECT @EmialId = EmailId FROM INSERTED
+	SELECT @EmailId = EmailId FROM INSERTED
 
+	--Get Employee Email for CC email.
+	DECLARE @EmployeeId BIGINT = 0,
+			@ContactById BIGINT = 0,
+			@EmployeeEmail VARCHAR(200),
+			@CCEmail VARCHAR(200);
+	SELECT @ContactById = ISNULL([ContactById],0), @CCEmail = ISNULL([CC],'') FROM [DBO].[Email] WHERE [EmailId] = @EmailId;
 
-	if(@event_type ='insert')
-	begin
-	  update Email set EmailStatusId=1 where EmailId=@EmialId
-	end
+	IF(@ContactById > 0)
+	BEGIN
+		SELECT @EmployeeEmail = ISNULL([Email],'') FROM [DBO].[Employee] WHERE [EmployeeId] = @ContactById;
+	END
+
+	IF(@event_type ='insert')
+	BEGIN
+		IF(@EmployeeEmail != '')
+		BEGIN
+			IF(@CCEmail != '')
+			BEGIN
+				 UPDATE [DBO].[Email] SET [EmailStatusId] = 1,[CC] = [CC] + ',' + @EmployeeEmail WHERE [EmailId] = @EmailId;
+			END
+			ELSE
+			BEGIN
+				 UPDATE [DBO].[Email] SET [EmailStatusId] = 1,[CC] = @EmployeeEmail WHERE [EmailId] = @EmailId;
+			END
+		END
+		ELSE
+		BEGIN
+			UPDATE [DBO].[Email] SET [EmailStatusId] = 1 WHERE [EmailId] = @EmailId;
+		END
+	END
 
 	SET NOCOUNT ON;
-
-
-
 END

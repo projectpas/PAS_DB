@@ -14,18 +14,40 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16-07-2024  Shrey Chandegara     Created
+	2    10-02-2025  Sahdev Saliya        Added a case to get timeZone
+
 -- EXEC GetVendorRFQPOChargesList 8,0,2
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetVendorRFQPOChargesList]
 @VendorRFQPOId BIGINT,
 @IsDeleted bit,
-@Opr int
+@Opr int,
+@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-	BEGIN TRY	
+	BEGIN TRY
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 	IF(@Opr=1)
 	BEGIN
 	SELECT 
@@ -48,8 +70,8 @@ BEGIN
       ,PO.[RefNum]
       ,PO.[CreatedBy]
       ,PO.[UpdatedBy]
-      ,PO.[CreatedDate]
-      ,PO.[UpdatedDate]
+	  ,case when CAST(PO.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(PO.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate
+	  ,case when CAST(PO.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(PO.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
       ,PO.[IsActive]
       ,PO.[IsDeleted]
       ,PO.[HeaderMarkupPercentageId]
@@ -89,8 +111,8 @@ BEGIN
       ,POA.[RefNum]
       ,POA.[CreatedBy]
       ,POA.[UpdatedBy]
-      ,POA.[CreatedDate]
-      ,POA.[UpdatedDate]
+	  ,case when CAST(POA.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(POA.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate
+	  ,case when CAST(POA.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(POA.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
       ,POA.[IsActive]
       ,POA.[IsDeleted]
       ,POA.[HeaderMarkupPercentageId]

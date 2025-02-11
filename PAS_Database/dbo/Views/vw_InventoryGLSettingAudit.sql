@@ -1,17 +1,11 @@
 ﻿
-
-
-
-
-
-
-CREATE       VIEW [dbo].[vw_InventoryGLSettingAudit]
+CREATE        VIEW [dbo].[vw_InventoryGLSettingAudit]
 AS
 SELECT InventoryGLSettingAuditId  AS PkID,
 InventoryGLSettingId AS ID,
-IGS.StockInventoryName AS [Inventory Name],
-GLInv.AccountName AS [Inventory Account],
-GLGoods.AccountName AS [GRN Invoices],
+IGS.StockInventoryName AS [Item Accounting Type],
+GLInv.AccountName AS [Acquired GL Account],
+GLGoods.AccountName AS [GRNI],
 GLWip.AccountName AS [WIP],
 GLTobill.AccountName AS [Inventory To Bill],
 GLFisnish.AccountName AS [Finished Goods],
@@ -19,12 +13,12 @@ GLExch.AccountName AS [Inventory-Exchange Agreement],
 GLRes.AccountName AS [Inventory Reserve],
 GLWo.AccountName AS [Cost Of Goods Sold (COGS)-Work Order],
 GLSo.AccountName AS [Cost Of Goods Sold (COGS)-Sales Order],
-GLExSo.AccountName AS [Cost Of Goods Sold (COGS)-Exch Sales Order],
+GLExSo.AccountName AS [Cost Of Goods Sold (COGS)-Exchange Sales Order],
 GLQty.AccountName AS [Cost Of Goods Sold (COGS)-Qty Variance],
 GLUc.AccountName AS [Cost Of Goods Sold (COGS)-Unit Cost Variance],
 GLMro.AccountName AS [Revenue-MRO],
-GLMisc.AccountName AS [Revenue-Misc],
-GLRso.AccountName AS [Revenue-SO],
+GLRso.AccountName AS [Revenue-Sales Order],
+GLMisc.AccountName AS [Revenue-Sales Order Exchange],
 IGS.CreatedBy AS [Created By], IGS.UpdatedBy AS [Updated By],
 IGS.CreatedDate AS [Created Date], IGS.UpdatedDate AS [Updated Date],
 IGS.Memo, IGS.IsActive AS [Is Active], IGS.IsDeleted AS [Is Deleted]

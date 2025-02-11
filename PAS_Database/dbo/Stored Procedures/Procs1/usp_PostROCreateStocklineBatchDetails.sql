@@ -22,6 +22,7 @@
 	11	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
 	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	14	 11/02/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -62,6 +63,10 @@ BEGIN
 					DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 					DECLARE @RROReferenceModule VARCHAR(100) = 'RRO';
 					DECLARE @ASSETReferenceModule VARCHAR(100) = 'ASSET';
+
+					DECLARE @InventoryGLAccId BIGINT = 0;
+					DECLARE @RepairOrderPartRecordId BIGINT = 0;
+					DECLARE @GlStocklineId BIGINT = 0;
 
 					IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 					BEGIN    
@@ -174,15 +179,15 @@ BEGIN
 						  SELECT @AssetStockType = [StockType] FROM #StocklinePostType WHERE [ID] = @MinId;				
 
 						  IF(UPPER(@AssetStockType) = 'ASSET')
-					  BEGIN
-						   SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
-						   WHERE UPPER(DistributionCode)= UPPER('ASSETACQUISITION');
-					  END
-					  ELSE
-					  BEGIN
-							SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
-							WHERE UPPER(DistributionCode)= UPPER('ReceivingROStockline');
-					  END
+						  BEGIN
+							   SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
+							   WHERE UPPER(DistributionCode)= UPPER('ASSETACQUISITION');
+						  END
+						  ELSE
+						  BEGIN
+								SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
+								WHERE UPPER(DistributionCode)= UPPER('ReceivingROStockline');
+						  END
 					  					  
 						  SELECT @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
 						  SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
@@ -203,7 +208,7 @@ BEGIN
 						  IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 						  BEGIN
 							  IF(@JournalTypeCode ='RRO' OR @JournalTypeCode = 'AST-AC')
-							  BEGIN
+							  BEGIN 
 									  SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
 									  FROM EntityStructureSetup est WITH(NOLOCK) 
 										JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
@@ -342,7 +347,7 @@ BEGIN
 									WHILE @@FETCH_STATUS = 0
 									BEGIN
 									  IF(UPPER(@DistributionCode) = UPPER('ReceivingROStockline') AND UPPER(@StockType) = 'STOCK')
-									  BEGIN
+									  BEGIN 
 										  SELECT @VendorId=ST.VendorId,
 												 @ReferenceId=ST.StockLineId,
 												 @PurchaseOrderId=ST.PurchaseOrderId,
@@ -395,12 +400,34 @@ BEGIN
 										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
 										  FROM dbo.DistributionSetup WITH(NOLOCK)  
 										  WHERE UPPER(DistributionSetupCode) = UPPER('RROSTKINV') AND MasterCompanyId = @MasterCompanyId
-										  AND DistributionMasterId = @DistributionMasterId
+										  AND DistributionMasterId = @DistributionMasterId;										
 
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId
+										WHERE SL.StockLineId=@StocklineId;
+										
+										--GET STOCKLINE GLACCOUNT.
+										SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
+										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+										WHERE SL.[StockLineId] = @StocklineId;
+
+										SELECT @GlStocklineId = ROP.StockLineId -- For PARTS StocklineId.
+										FROM [dbo].[RepairOrderPart] ROP WITH(NOLOCK)					 
+										WHERE ROP.[RepairOrderPartRecordId] = @RepairOrderPartRecordId;
+
+										--GET STOCKLINE GLACCOUNT.
+										SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+										WHERE SL.[StockLineId] = @GlStocklineId;
+										
+										--GET GL Accounting Data from GLAccout based on stockline
+										SELECT @GlAccountId = [GLAccountId],
+											   @GlAccountNumber = [AccountCode],
+											   @GlAccountName = [AccountName]
+										FROM [dbo].[GLAccount] WITH(NOLOCK)
+										WHERE [GLAccountId] = @InventoryGLAccId
+										AND [MasterCompanyId] = @MasterCompanyId;
 
 										--Check is allow to AutoPost
 										IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -414,7 +441,7 @@ BEGIN
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											 VALUES
-												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@STKGlAccountId ,@STKGlAccountNumber ,@STKGlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,

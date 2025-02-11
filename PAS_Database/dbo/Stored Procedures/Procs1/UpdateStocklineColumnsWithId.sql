@@ -21,6 +21,7 @@
 	5    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
     6    24/12/2024   BHAVESH RAVAL   For the UpdateGLAccount Details in Stockline Table 
 	7    09/01/2025   BHAVESH RAVAL   For the add new column in COGS_ExchSalesOrderGLAcc 
+	8    11/02/2025   Bhargav Saliya  Update GL Account
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -55,7 +56,7 @@ BEGIN
 								
 				UPDATE SL SET 
 					SL.Condition = CN.[Description],
-					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName ELSE SL.glAccountname END,
+					--SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName ELSE SL.glAccountname END,
 					SL.UnitOfMeasure = ISNULL(um.ShortName,''),
 					SL.Manufacturer = ISNULL(MF.[Name],''),
 					SL.Site = ISNULL(S.[Name],''),
@@ -166,6 +167,7 @@ BEGIN
 					SET
 					SL.InventoryGLSettingId=I.InventoryGLSettingId,
 					 SL.GLAccountId=IM.GLAccountId,
+					 SL.GlAccountName = GA.AccountCode+'-'+ GA.AccountName,
 					 SL.InventoryGLAccName = GA.AccountCode+'-'+ GA.AccountName, 
 					SL.GoodsReceivedNotInvoicesGLAccId = I.GoodsReceivedNotInvoicesGLAccId,
 					SL.GoodsReceivedNotInvoicesGLAccName = GL2.AccountCode + '-' + GL2.AccountName,

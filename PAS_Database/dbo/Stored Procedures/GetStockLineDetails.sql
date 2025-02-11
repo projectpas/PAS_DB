@@ -17,6 +17,7 @@
     1    09/09/2024  MOIN BLOCH 		Created
 	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
     3    21-01-25    Bhavesh Raval   Remove Name and Notes Columns 
+	4	 11/02/2025	 Bhargav Saliya  get InventoryGLAccName Changes
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -286,7 +287,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.InventoryGLSettingId      
 			,igls.[StockInventoryName]      
 			AS InventoryGLSettingName      
-			,stl.GlAccountName AS  InventoryGLAccName      
+			,stl.InventoryGLAccName AS  InventoryGLAccName      
 			,stl.GoodsReceivedNotInvoicesGLAccId  
 			,stl.GoodsReceivedNotInvoicesGLAccName        
 			,stl.WorkInProgressGLAccId 

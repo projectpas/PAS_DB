@@ -43,31 +43,15 @@
 
 
 
+
+
 GO
-
-
-----------------------------------------------
-
 CREATE   TRIGGER [dbo].[Trg_WorkOrderBillingInvoicingItemAudit]
-
    ON  [dbo].[WorkOrderBillingInvoicingItem]
-
    AFTER INSERT,UPDATE
-
 AS 
-
 BEGIN
-
- 
-
 	INSERT INTO [dbo].[WorkOrderBillingInvoicingItemAudit] 
-
-    SELECT * 
-
-	FROM INSERTED 
-
+    SELECT * FROM INSERTED 
 	SET NOCOUNT ON;
-
-
-
 END

@@ -19,6 +19,7 @@
 	2    02/21/2023	   Hemant Saliya			Updaetd to Upper Case
   	3    21-JAN-2025   RAJESH GAMI			    Modified to add logic for the get TASK based on the WorkOrderFormTypeId condition.
 	4    27-JAN-2025   RAJESH GAMI			    remove the condition PrintInWO for the WorkOrderFormType, Need to display all the task and information..
+	5    11-FEB-2025   RAJESH GAMI			    implemented IsPrintInspector IsPrintTechnician in traver print
 -- EXEC [USP_GetLaborMainTaskList] 692,682
 **************************************************************/
 
@@ -100,7 +101,9 @@ BEGIN
 						ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
 						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ,
 						wl.WorkOrderLaborId as WorkOrderLaborId,
-						wl.[TaskId]
+						wl.[TaskId],
+						ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
+						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
 					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) on wl.TaskId = WOT.WorkOrderTaskId
@@ -157,7 +160,8 @@ BEGIN
 					ChildInspectorUpdatedDate,
 					SrNo,
 					1 as IsWorkOrderFormType,
-					IsIncludeInPrint
+					IsIncludeInPrint,
+					IsPrintInspector,IsPrintTechnician
 				FROM RecursiveCTE
 				ORDER BY SrNo;
 
@@ -198,15 +202,15 @@ BEGIN
 					'' AS ChildInspectorUpdatedDate,
 					0 AS SrNo,
 					0 as IsWorkOrderFormType,
-					0 as IsIncludeInPrint
+					0 as IsIncludeInPrint,
+					CASE WHEN MAX(CAST(ISNULL(T.IsPrintInspector,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintInspector,
+					CASE WHEN MAX(CAST(ISNULL(T.IsPrintTechnician,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintTechnician
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
 					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					Left Join Task T WITH(NOLOCK) on T.TaskId= wl.TaskId
 					Left Join Traveler_Setup_Task TTS WITH(NOLOCK) on TTS.TaskId= wl.TaskId and Traveler_SetupId= @Traveler_setupid
 					where wl.IsDeleted=0 and wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId group by  wl.[TaskId] order by Sequence asc
-				 END
-
-				
+				 END				
                 
 			END
 		COMMIT  TRANSACTION

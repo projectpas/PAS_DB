@@ -45,8 +45,11 @@
     [ShortDateTimeFormatId]   BIGINT          NULL,
     [LongDateTimeFormatId]    BIGINT          NULL,
     [TextTransformId]         BIGINT          NULL,
+    [IsIncludeInCC]           BIT             NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 
 
 

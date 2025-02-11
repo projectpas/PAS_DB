@@ -1,5 +1,10 @@
 ﻿
-CREATE            VIEW [dbo].[vw_InventoryGLSetting]
+
+
+
+
+
+CREATE           VIEW [dbo].[vw_InventoryGLSetting]
 AS
 SELECT IGS.InventoryGLSettingId,
 IGS.StockInventoryName,
@@ -30,9 +35,9 @@ GLUc.AccountName AS COGS_UnitCostVarianceGLAccName,
 IGS.RevenueMroGLAccId,
 GLMro.AccountName AS RevenueMroGLAccName,
 IGS.RevenueSoGLAccId,
-GLRso.AccountName AS RevenueSoGLAccName,
+GLMisc.AccountName AS RevenueSoGLAccName,
 IGS.RevenueExchGLAccId,
-GLMisc.AccountName AS RevenueExchGLAccName,
+GLGoods.AccountName AS RevenueExchGLAccName,
 IGS.MasterCompanyId, IGS.CreatedBy, IGS.UpdatedBy, IGS.CreatedDate, IGS.UpdatedDate,IGS.Memo, IGS.IsActive, IGS.IsDeleted
 FROM [DBO].[InventoryGLSetting] IGS WITH (NOLOCK)  
  LEFT JOIN [DBO].[view_GLAccount] GLInv WITH (NOLOCK) ON IGS.InventoryGLAccId = GLInv.GLAccountId 

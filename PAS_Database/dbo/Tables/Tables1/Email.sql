@@ -34,6 +34,8 @@
 
 
 
+
+
 GO
 
 CREATE TRIGGER [dbo].[Trg_EmailAudit]
@@ -46,15 +48,12 @@ AS
 
 BEGIN
 
-
-
 	INSERT INTO [dbo].[EmailAudit]
 
 	SELECT * FROM INSERTED
 
-
 	DECLARE @event_type varchar(42)
-	DECLARE @EmailId bigint
+	DECLARE @EmailId bigint,@EmailAuditId bigint;
    IF EXISTS(SELECT * FROM inserted)
      IF EXISTS(SELECT * FROM deleted)
     SELECT @event_type = 'update'
@@ -68,29 +67,34 @@ BEGIN
     SELECT @event_type = 'unknown'
 	SELECT @EmailId = EmailId FROM INSERTED
 
+	SELECT @EmailAuditId = SCOPE_IDENTITY();
+
 	--Get Employee Email for CC email.
 	DECLARE @EmployeeId BIGINT = 0,
 			@ContactById BIGINT = 0,
 			@EmployeeEmail VARCHAR(200),
-			@CCEmail VARCHAR(200);
+			@CCEmail VARCHAR(200),
+			@IsIncludeInCC BIT;
 	SELECT @ContactById = ISNULL([ContactById],0), @CCEmail = ISNULL([CC],'') FROM [DBO].[Email] WHERE [EmailId] = @EmailId;
 
 	IF(@ContactById > 0)
 	BEGIN
-		SELECT @EmployeeEmail = ISNULL([Email],'') FROM [DBO].[Employee] WHERE [EmployeeId] = @ContactById;
+		SELECT @EmployeeEmail = ISNULL([Email],''),@IsIncludeInCC = ISNULL([IsIncludeInCC],0) FROM [DBO].[Employee] WHERE [EmployeeId] = @ContactById;
 	END
 
 	IF(@event_type ='insert')
 	BEGIN
-		IF(@EmployeeEmail != '')
+		IF(@EmployeeEmail != '' AND @IsIncludeInCC > 0)
 		BEGIN
 			IF(@CCEmail != '')
 			BEGIN
 				 UPDATE [DBO].[Email] SET [EmailStatusId] = 1,[CC] = [CC] + ',' + @EmployeeEmail WHERE [EmailId] = @EmailId;
+				 UPDATE [DBO].[EmailAudit] SET [EmailStatusId] = 1,[CC] = [CC] + ',' + @EmployeeEmail WHERE [EmailAuditId] = @EmailAuditId;
 			END
 			ELSE
 			BEGIN
 				 UPDATE [DBO].[Email] SET [EmailStatusId] = 1,[CC] = @EmployeeEmail WHERE [EmailId] = @EmailId;
+				 UPDATE [DBO].[EmailAudit] SET [EmailStatusId] = 1,[CC] = @EmployeeEmail WHERE [EmailAuditId] = @EmailAuditId;
 			END
 		END
 		ELSE

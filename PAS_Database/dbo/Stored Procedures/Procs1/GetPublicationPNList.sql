@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Hemant Saliya Created
 	2    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
+	3    11/02/2025   Sahdev Saliya    Added new field PublishedByName
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
@@ -30,6 +31,7 @@ CREATE   PROCEDURE [dbo].[GetPublicationPNList]
 @Description  varchar(50)=null,
 @PublicationType varchar(50)=null,
 @PublishedBy varchar(50)=null,
+@PublishedByName varchar(50)=null,
 @VerifiedBy varchar(50)=null,
 @RevisionDate datetime=null,
 @CreatedDate datetime=null,
@@ -98,7 +100,8 @@ BEGIN
 					   p.PublicationId,
 					   p.[Description],
 					   pt.[Name] AS PublicationType,
-					   pemp.ModuleName AS PublishedBy,					   
+					   pemp.ModuleName AS PublishedBy,
+					   M.[Name] AS PublishedByName,
 					   p.RevisionDate AS RevisionDate,					   
 					   p.NextReviewDate AS NextReviewDate,
 					   p.ExpirationDate AS ExpirationDate,					   
@@ -134,6 +137,7 @@ BEGIN
 				  LEFT JOIN [dbo].[Location] loc WITH (NOLOCK) ON p.LocationId = loc.LocationId
 				  LEFT JOIN [dbo].[Module] pemp WITH (NOLOCK) ON p.PublishedById = pemp.ModuleId 
 				  LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON im.ManufacturerId = MF.ManufacturerId
+	              LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON p.PublishedByRefId = M.ManufacturerId
 				  WHERE p.IsDeleted = @IsDeleted AND
 				        (@IsActive is null or p.IsActive = @IsActive)  
 						AND p.MasterCompanyId = @MasterCompanyId
@@ -149,6 +153,7 @@ BEGIN
 					([Description] LIKE '%' +@GlobalFilter+'%') OR	
 					(PublicationType LIKE '%' +@GlobalFilter+'%') OR
 					(PublishedBy LIKE '%' +@GlobalFilter+'%') OR
+					(PublishedByName LIKE '%' +@GlobalFilter+'%') OR
 					([Location] LIKE '%' +@GlobalFilter+'%') OR					
 					(VerifiedBy LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
@@ -164,6 +169,7 @@ BEGIN
 					(ISNULL(@Description,'') ='' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@PublicationType,'') ='' OR PublicationType LIKE '%' + @PublicationType + '%') AND
 					(ISNULL(@PublishedBy,'') ='' OR PublishedBy LIKE '%' + @PublishedBy + '%') AND
+					(ISNULL(@PublishedByName,'') ='' OR @PublishedByName LIKE '%' + @PublishedByName + '%') AND
 					(ISNULL(@RevisionDate,'') ='' OR CAST(RevisionDate AS Date) = CAST(@RevisionDate AS date)) AND					
 					(ISNULL(@NextReviewDate,'') ='' OR CAST(NextReviewDate AS Date) = CAST(@NextReviewDate AS date)) AND
 					(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date) = CAST(@ExpirationDate AS date)) AND
@@ -194,6 +200,8 @@ BEGIN
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublicationType')  THEN PublicationType END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='PublishedBy')  THEN PublishedBy END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublishedBy')  THEN PublishedBy END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='PublishedByName')  THEN PublishedByName END ASC,
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublishedByName')  THEN PublishedByName END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='RevisionDate')  THEN RevisionDate END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='RevisionDate')  THEN RevisionDate END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='NextReviewDate')  THEN NextReviewDate END ASC,

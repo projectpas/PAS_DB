@@ -19,6 +19,7 @@
 	2    09/24/2021   Deep Patel    Add multiple part view changes.....
 	3    13/06/2024   Shrey Chandegara  Remove OUTER APPLY
 	4    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
+	5    11/02/2025   Sahdev Saliya    Added new field PublishedByName
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -32,6 +33,7 @@ CREATE   PROCEDURE [dbo].[GetPublicationViewList]
 @Description varchar(50)=null,
 @PublicationType varchar(50)=null,
 @PublishedBy varchar(50)=null,
+@PublishedByName varchar(50)=null,
 @VerifiedBy varchar(50)=null,
 @RevisionDate datetime=null,
 @CreatedDate datetime=null,
@@ -97,6 +99,7 @@ BEGIN
 						pu.[Description],
 						pt.[Name] AS PublicationType,
 						pemp.ModuleName  AS PublishedBy,
+						M.[Name] AS PublishedByName,
 						pu.RevisionDate AS RevisionDate,
 						pu.RevisionNum,
 						pu.NextReviewDate AS NextReviewDate,
@@ -129,7 +132,8 @@ BEGIN
 					   INNER JOIN  [dbo].[PublicationType] pt WITH (NOLOCK) ON pU.PublicationTypeId = pt.PublicationTypeId
                         LEFT JOIN  [dbo].[Employee] e WITH (NOLOCK) ON pu.VerifiedBy = e.EmployeeId    
                         LEFT JOIN  [dbo].[Location] loc WITH (NOLOCK) ON pu.LocationId = loc.LocationId              
-                        LEFT JOIN  [dbo].[Module] pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId  
+                        LEFT JOIN  [dbo].[Module] pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId 
+						LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON pu.PublishedByRefId = M.ManufacturerId
 				  WHERE pu.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
 				 PartCTE AS (
                 SELECT 
@@ -197,7 +201,7 @@ BEGIN
 									),			
 						Results AS(
 						Select M.PublicationRecordId, PublicationId,M.[Description] as 'Description',
-							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',M.RevisionDate AS RevisionDate,
+							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',M.PublishedByName as 'PublishedByName',M.RevisionDate AS RevisionDate,
 							   M.RevisionNum as 'RevisionNum',M.NextReviewDate AS NextReviewDate,
 									M.ExpirationDate AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy',M.VerifiedDate AS VerifiedDate,
 									M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.IsActive,M.IsDeleted, PT.PartNumber, PT.PartNumberType as 'PartNos',
@@ -219,6 +223,7 @@ BEGIN
 					([Description] LIKE '%' +@GlobalFilter+'%') OR	
 					(PublicationType LIKE '%' +@GlobalFilter+'%') OR
 					(PublishedBy LIKE '%' +@GlobalFilter+'%') OR
+					(PublishedByName LIKE '%' +@GlobalFilter+'%') OR
 					([Location] LIKE '%' +@GlobalFilter+'%') OR					
 					(VerifiedBy LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
@@ -234,6 +239,7 @@ BEGIN
 					(ISNULL(@Description,'') ='' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@PublicationType,'') ='' OR PublicationType LIKE '%' + @PublicationType + '%') AND
 					(ISNULL(@PublishedBy,'') ='' OR PublishedBy LIKE '%' + @PublishedBy + '%') AND
+					(ISNULL(@PublishedByName,'') ='' OR @PublishedByName LIKE '%' + @PublishedByName + '%') AND
 					(ISNULL(@RevisionDate,'') ='' OR CAST(RevisionDate AS Date) = CAST(@RevisionDate AS date)) AND					
 					(ISNULL(@NextReviewDate,'') ='' OR CAST(NextReviewDate AS Date) = CAST(@NextReviewDate AS date)) AND
 					(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date) = CAST(@ExpirationDate AS date)) AND
@@ -264,6 +270,8 @@ BEGIN
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublicationType')  THEN PublicationType END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='PublishedBy')  THEN PublishedBy END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublishedBy')  THEN PublishedBy END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='PublishedByName')  THEN PublishedByName END ASC,
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublishedByName')  THEN PublishedByName END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='RevisionDate')  THEN RevisionDate END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='RevisionDate')  THEN RevisionDate END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='NextReviewDate')  THEN NextReviewDate END ASC,

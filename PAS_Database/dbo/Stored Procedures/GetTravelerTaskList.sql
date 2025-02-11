@@ -14,7 +14,7 @@
     1    21/01/2025   Moin Bloch		Created
 
 	EXEC dbo.GetTravelerTaskList 10,1,'CreatedDate',-1,'','','','','',0,1,2
-
+	exec dbo.GetTravelerTaskList @PageSize=15,@PageNumber=1,@SortColumn=default,@SortOrder=-1,@GlobalFilter=N'',@WONumber=default,@EmployeeName=default,@TaskStatusName=default,@TaskName=default,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=219
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[GetTravelerTaskList]
@@ -38,7 +38,7 @@ BEGIN
 		DECLARE @RecordFrom INT;
 		DECLARE @IsActive BIT=1
 		DECLARE @Count INT;
-						
+		
 		SET @RecordFrom = (@PageNumber-1) * @PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -56,7 +56,11 @@ BEGIN
 		BEGIN TRY
 
 			;With Result AS(
-				SELECT wol.[AdjustedHours],
+				SELECT woh.[WorkOrderId],	
+				      wfwo.[WorkOrderPartNoId],
+					   woh.[WorkFlowWorkOrderId],
+				        wo.[WorkOrderNum],
+				       wol.[AdjustedHours],
                        wol.[Adjustments],
                        wol.[BillableId],
                        wol.[CreatedBy],
@@ -66,55 +70,60 @@ BEGIN
                        wol.[ExpertiseId],
                        wol.[TaskStatusId],
 					   TS.[Description] [TaskStatusName],
-                       wol.[StatusChangedDate],
-					   --wol.[IsActive],
-        --               wol.[IsDeleted],
+                       wol.[StatusChangedDate],					   
                        wol.[IsFromWorkFlow],
                        wol.[Memo],
                        wol.[StartDate],
                        wol.[TaskId],
-					   --wol.[UpdatedBy],
-        --               wol.[UpdatedDate],
-                       wol.[WorkOrderLaborHeaderId],
-                       wol.[WorkOrderLaborId],
-                       --wol.[DirectLaborOHCost],
-                       --wol.[BurdaenRatePercentageId],
-                       --wol.[BurdenRateAmount],
+					   wol.[WorkOrderLaborHeaderId],
+                       wol.[WorkOrderLaborId],                    
                        wol.[TotalCostPerHour],
                        wol.[TotalCost],
 					   wol.[IsBegin],
 					   CASE WHEN (SELECT COUNT([WorkOrderLaborTrackingId]) FROM [dbo].[WorkOrderLaborTracking] wolt WITH(NOLOCK) WHERE wolt.[WorkOrderLaborId] = wol.[WorkOrderLaborId]) > 0 THEN wol.[IsBegin] ELSE NULL END AS [IsBeginTemp],
-					   --CASE WHEN wop.[IsTraveler] = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.WorkOrderLaborId,0)) ELSE wol.[Hours] END AS [Hours],
-					   emp.[FirstName] + ' '+ emp.[LastName] AS EmployeeName,					  
+					  --CASE WHEN wop.[IsTraveler] = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.WorkOrderLaborId,0)) ELSE wol.[Hours] END AS [Hours],					   
+					   emp.[FirstName] + ' '+ emp.[LastName] AS EmployeeName,
 					   CASE WHEN WO.[WorkOrderFormTypeId] = 1 THEN WOT.[TaskName] ELSE task.[Description] END AS Task,
 					   expr.[Description] AS Expertise,
+					   ISNULL(CAST(FLOOR(wol.[Hours]) AS VARCHAR),0) AS LaborHours,  
+					   ISNULL(CAST(RIGHT(wol.[Hours], 2) AS VARCHAR),0) AS LaborMinutes,
+					   ISNULL(CAST(FLOOR(wol.[Adjustments]) AS VARCHAR),0) AS AdjustmentsHours,  
+					   ISNULL(CAST(RIGHT(wol.[Adjustments], 2) AS VARCHAR),0) AS AdjustmentsMinutes,
+					   ISNULL(CAST(FLOOR(wol.[AdjustedHours]) AS VARCHAR),0) AS AdjustedHour,  
+					   ISNULL(CAST(RIGHT(wol.[AdjustedHours], 2) AS VARCHAR),0) AS AdjustedMinute,
 					   wol.[StandardHours],
 					   wol.[StandardMinute],
 					   wol.[VarianceHours],
-					   wol.[VarianceMinute],
-					    wo.[WorkOrderNum]
+					   wol.[VarianceMinute],		
+					   woh.[DataEnteredBy],
+					   deb.[FirstName] + ' ' + deb.[LastName] AS DataEnteredByName,			
+					   ISNULL(wop.[IsTraveler],0) IsTraveler,
+					   woh.[HoursorClockorScan]
 				FROM [dbo].[WorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
 					LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId
-					LEFT JOIN [dbo].[ExpertiseType] expr WITH(NOLOCK) ON expr.ExpertiseTypeId = wol.ExpertiseId
-					LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = wol.EmployeeId
+					LEFT JOIN [dbo].[EmployeeExpertise] expr WITH(NOLOCK) ON expr.EmployeeExpertiseId = wol.ExpertiseId
+					LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = wol.EmployeeId					
 					LEFT JOIN [dbo].[TaskStatus] TS  WITH(NOLOCK) ON TS.TaskStatusId = wol.TaskStatusId
 					INNER JOIN [dbo].[WorkOrderLaborHeader] woh WITH(NOLOCK) ON woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
+					LEFT JOIN  [dbo].[Employee] deb WITH(NOLOCK) ON deb.EmployeeId = woh.DataEnteredBy
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = woh.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 	
 					INNER JOIN [dbo].[WorkOrder] WO  WITH(NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-				WHERE (wol.MasterCompanyId = @MasterCompanyId AND wol.[IsActive] = 1 AND wol.[IsDeleted] = 0)
+				WHERE (wol.[MasterCompanyId] = @MasterCompanyId AND wol.[IsActive] = 1 AND wol.[IsDeleted] = 0)
 			), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
 			
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND
 					(([WorkOrderNum] LIKE '%' +@GlobalFilter+'%' ) OR 
-					([EmployeeName] LIKE '%' +@GlobalFilter+'%') OR
+					([EmployeeName] LIKE '%' +@GlobalFilter+'%') OR					
 					([TaskStatusName] LIKE '%' +@GlobalFilter+'%') OR
+					([Expertise] LIKE '%' +@GlobalFilter+'%') OR					
+					([DataEnteredByName] LIKE '%' +@GlobalFilter+'%') OR					
 					([Task] LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@WONumber,'') ='' OR [WorkOrderNum] LIKE '%' + @WONumber+'%') AND 
-					(ISNULL(@EmployeeName,'') ='' OR [EmployeeName] LIKE '%' + @EmployeeName+'%') AND
+					(ISNULL(@EmployeeName,'') ='' OR [EmployeeName] LIKE '%' + @EmployeeName+'%') AND					
 					(ISNULL(@TaskStatusName,'') ='' OR [TaskStatusName] LIKE '%' + @TaskStatusName+'%') AND
 					(ISNULL(@TaskName,'') ='' OR [Task] LIKE '%' + @TaskName+'%')))
 
@@ -140,7 +149,6 @@ BEGIN
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-					PRINT 'ROLLBACK'                
 					 DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetTravelerTaskList' 

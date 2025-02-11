@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_AddEdit_WorkOrderTurnArroundTime]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA   
@@ -20,6 +21,7 @@
 	3	 06/24/2024   Abhishek Jirawla   Adding memo
 	4	 01/16/2025	  Moin Bloch		 Modified (Added TaskId For Kit)
 	5	 01/17/2025	  Moin Bloch		 Modified (Added @WorkOrderFormTypeId from WO Kit)
+	6	 02/10/2025	  Moin Bloch		 Modified (Added condition @WorkOrderQuoteDetailsId in [WorkOrderQuoteDetails] from duplicate WO Kit)
 
      
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
@@ -161,7 +163,7 @@ BEGIN
 					   wom.IsActive,
 					   wom.IsDeleted
 				FROM [dbo].[WorkOrderQuoteMaterialKitMapping] wom WITH(NOLOCK)
-					 LEFT JOIN [dbo].[WorkOrderQuoteDetails] wq  WITH(NOLOCK) ON wq.WorkOrderQuoteId = wom.WorkOrderQuoteId
+					 LEFT JOIN [dbo].[WorkOrderQuoteDetails] wq  WITH(NOLOCK) ON wq.WorkOrderQuoteId = wom.WorkOrderQuoteId AND wq.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId
 					INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON im.ItemMasterId = wom.ItemMasterId
 					 LEFT JOIN [dbo].[Provision] p WITH(NOLOCK) ON p.ProvisionId = im.ProvisionId
 					 LEFT JOIN [dbo].[KitMaster] KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 

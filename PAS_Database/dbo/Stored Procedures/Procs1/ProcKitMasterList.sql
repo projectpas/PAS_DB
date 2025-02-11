@@ -23,7 +23,8 @@ CREATE   PROCEDURE [dbo].[ProcKitMasterList]
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL,
 @listtype varchar(50) = NULL,
-@WorkScopeName varchar(50) = NULL
+@WorkScopeName varchar(50) = NULL,
+@EmployeeId bigint
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -33,6 +34,28 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+						print(@CurrntEmpTimeZoneDesc)
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 		IF @IsDeleted IS NULL
@@ -87,8 +110,10 @@ BEGIN
 							--WHERE KIM.KitId = kitm.KitId AND KIM.IsDeleted = 0) AS StocklineUnitCost,
 					  0 AS StocklineUnitCost,
 					  kitm.IsActive,
-					  kitm.CreatedDate,
-                      kitm.UpdatedDate,
+					  --kitm.CreatedDate,
+                      --kitm.UpdatedDate,
+					  case when CAST(kitm.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(kitm.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
+					  case when CAST(kitm.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(kitm.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 					  kitm.CreatedBy,
                       kitm.UpdatedBy,
 					  kitm.IsDeleted
@@ -159,6 +184,10 @@ BEGIN
 			FETCH NEXT @PageSize ROWS ONLY
 		END TRY
 	BEGIN CATCH	
+	SELECT ERROR_NUMBER() AS ErrorNumber,ERROR_STATE() AS ErrorState, ERROR_SEVERITY() AS ErrorSeverity,ERROR_PROCEDURE() AS ErrorProcedure, ERROR_LINE() AS ErrorLine,ERROR_MESSAGE() AS ErrorMessage;
+		IF @@trancount > 0
+			PRINT 'ROLLBACK'
+			ROLLBACK TRAN;
 		     DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

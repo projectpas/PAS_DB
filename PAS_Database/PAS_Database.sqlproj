@@ -3442,7 +3442,13 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderProformaInvoicingPdfData.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewBillListForCreateBill.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetBillDetailsForUpdateBill.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WorkFlowTaskInstruction_DeleteRestoreById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkFlowTaskInstructionSequenceNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkFlowTaskInstructionMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkFlowTaskInstructionMasterList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CopyWorkflowDetailsToWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateNewVersionWorkFlowTaskInstructionMaster.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowDirectionType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

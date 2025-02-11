@@ -14,22 +14,21 @@
  **************************************************************
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------   
-	1    02/07/2025   HEMANT SALIYA		Initial Drafted
+	1    02/10/2025   HEMANT SALIYA		Initial Drafted
 
-declare @p10 nvarchar(1000)
-set @p10=NULL
-exec sp_executesql N'EXEC dbo.[USP_CopyWorkflowDetailsToWorkOrder] @WorkOrderId, @WorkflowId, @MasterCompanyId, @workOrderPartNumberId, @createdBy, @createdById, @ListItem, @ErrorMessage OUTPUT',N'@WorkOrderId BIGINT,@WorkflowId BIGINT,@MasterCompanyId int,@workOrderPartNumberId BIGINT,@createdBy nvarchar(200),@createdById BIGINT,@ListItem nvarchar(200),@ErrorMessage nvarchar(1000) output',@WorkOrderId=4878,@WorkflowId=103,@MasterCompanyId=1,@workOrderPartNumberId=4446,@createdBy=N'ADMIN User',@createdById=2,@ListItem=N'Materials,Labor,Tools,Charges',@ErrorMessage=@p10 output
-select @p10
+exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
+@ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
+@WorkOrderId=8205,@WorkflowId=44,@WorkOrderPartNumberId=7834,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N'Materials,Charges,Directions'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
 	@WorkOrderId BIGINT = 0,
 	@WorkflowId BIGINT = 0,
-	@MasterCompanyId INT = 0,
-	@workOrderPartNumberId BIGINT = 0,
-	@createdBy VARCHAR(200) = NULL,
-	@createdById BIGINT = 0,
-	@ListItem VARCHAR(200) = NULL,
-	@ErrorMessage VARCHAR(1000) OUTPUT
+	@WorkOrderPartNumberId BIGINT = 0,
+	@MasterCompanyId INT = 0,	
+	@CreatedBy VARCHAR(200) = NULL,
+	@CreatedById BIGINT = 0,
+	@ListItem VARCHAR(200) = NULL
+	--@ErrorMessage VARCHAR(1000) OUTPUT
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -192,6 +191,7 @@ SET NOCOUNT ON;
 
 						IF (@IsEquipmentsAlreadyCopied <> 1 AND @Tools = 'Tools')
 						BEGIN
+							PRINT 'Tools'
 							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowEquipmentList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
 							BEGIN
 								INSERT INTO DBO.WorkOrderAssets (AssetRecordId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,MasterCompanyId,Quantity,WorkOrderId,
@@ -222,6 +222,7 @@ SET NOCOUNT ON;
 
 						IF (@IsExpertiseAlreadyCopied <> 1 AND @Labor = 'Labor')
 						BEGIN
+							PRINT 'Labor'
 							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
 							BEGIN
 								INSERT INTO DBO.WorkOrderExpertise (CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,WorkOrderId,MasterCompanyId,ExpertiseTypeId,EstimatedHours,
@@ -252,6 +253,7 @@ SET NOCOUNT ON;
 
 						IF (@IsMaterialsAllreadyCopied <> 1 AND @Materials = 'Materials')
 						BEGIN
+							PRINT 'Materials'
 							DECLARE @IsDER BIT, @IsPMA BIT;
 
 							SELECT @IsDER = ISNULL(IsDER, 0), @IsPMA = ISNULL(IsPMA, 0) FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNumberId;
@@ -411,6 +413,7 @@ SET NOCOUNT ON;
 
 						IF (@IsExpertiseAlreadyCopied <> 1 AND @Labor = 'Labor')
 						BEGIN
+							PRINT 'Expertise'
 							DECLARE @TaskStatusId BIGINT, @EmployeeId BIGINT, @ManagementStructureId INT, @LaborHoursId INT, @laborHoursMedthodId INT, @WorkOrderLaborHeaderId BIGINT;
 							
 							SELECT TOP 1 @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM DBO.WorkOrderWorkFlow WITH (NOLOCK)
@@ -423,9 +426,9 @@ SET NOCOUNT ON;
 
 							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId)
 							BEGIN
-								PRINT ''
-								SELECT @WorkOrderLaborHeaderId = WorkOrderLaborHeaderId FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId
 								
+								SELECT @WorkOrderLaborHeaderId = WorkOrderLaborHeaderId FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId
+								PRINT @WorkOrderLaborHeaderId
 								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
 								BEGIN
 									INSERT INTO DBO.WorkOrderLabor (CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted, ExpertiseId,MasterCompanyId,[Hours],AdjustedHours,BurdaenRatePercentageId,
@@ -528,7 +531,8 @@ SET NOCOUNT ON;
 							END
 						END
 					
-						IF (@IsDirectionsAllreadyCopied <> 1 AND @Materials = 'Directions')
+						PRINT @IsDirectionsAllreadyCopied
+						IF (@IsDirectionsAllreadyCopied <> 1 AND @Directions = 'Directions')
 						BEGIN
 							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
 							BEGIN
@@ -602,11 +606,39 @@ SET NOCOUNT ON;
 										JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
 									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId       -- Here Need to add condition for Parent Task
 
-									INSERT INTO dbo.WorkOrderTaskInstruction(WorkOrderTaskId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+									IF OBJECT_ID(N'tempdb..#tmpWorkflowDirection') IS NOT NULL
+									BEGIN
+									DROP TABLE #tmpWorkflowDirection
+									END
+			
+									CREATE TABLE #tmpWorkflowDirection
+									(
+										ID BIGINT NOT NULL IDENTITY, 
+										[WorkOrderTaskId] [BIGINT] NOT NULL,
+										[WorkflowDirectionId] [BIGINT] NOT NULL,
+										[ParentId] [BIGINT] NULL,
+										[IsParent] BIT NULL,
+										[InstructionTitle] VARCHAR(MAX) NULL,
+										[SequenceNumber] VARCHAR(100) NULL,
+										[InstructionDetails] VARCHAR(MAX) NULL,
+										[PrintInWO] BIT NULL,
+										[MasterCompanyId] [INT] NULL,
+										[CreatedBy] VARCHAR(100) NULL,
+										[UpdatedBy] VARCHAR(100) NULL,
+										[CreatedDate] DATETIME NULL,
+										[UpdatedDate] DATETIME NULL,
+										[IsActive] BIT NULL,
+										[IsDeleted] BIT NULL,										
+										[IsFromWorkFlow] BIT NULL,
+										[NewParentId] [BIGINT] NULL,
+									)
+									
+									INSERT INTO #tmpWorkflowDirection(WorkOrderTaskId,WorkflowDirectionId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
 												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
-									SELECT @WorkOrderTaskId, 
+									SELECT @WorkOrderTaskId AS WorkOrderTaskId, 
+										WFD.WorkflowDirectionId AS WorkflowDirectionId,
 										WFD.ParentId,
-										ISNULL(WFD.IsParent, 0),
+										ISNULL(WFD.IsParent, 0) AS IsParent,
 										WFD.[Action] AS InstructionTitle, 
 										WFD.[Sequence] AS SequenceNumber, 
 										WFD.[Description] AS InstructionDetails,
@@ -618,10 +650,38 @@ SET NOCOUNT ON;
 										GETUTCDATE() AS UpdatedDate, 
 										1 AS IsActive,	
 										0 AS IsDeleted,
-										1 AS IsFromWorkFlow
+										1 AS IsFromWorkFlow									
 									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
 										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
-									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId
+									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId AND ISNULL(WFD.IsActive, 0) = 1 AND ISNULL(WFD.IsDeleted, 0) = 0
+									ORDER BY ISNULL(WFD.IsParent, 0) DESC, WFD.ParentId ASC, WFD.[Sequence] ASC
+
+									DECLARE @TotalRecords BIGINT = 0, @CurrentRecordId BIGINT = 1, @NewOrderTaskInstId BIGINT, @ParentWorkflowDirectionId BIGINT;
+
+									SELECT @TotalRecords = COUNT([ID]) FROM #tmpWorkflowDirection;
+
+									WHILE(ISNULL(@TotalRecords, 0) >= ISNULL(@CurrentRecordId, 0))
+									BEGIN
+										
+										SELECT @ParentWorkflowDirectionId = WorkflowDirectionId  FROM #tmpWorkflowDirection WHERE ID = @CurrentRecordId
+
+										INSERT INTO WorkOrderTaskInstruction(WorkOrderTaskId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
+										SELECT WorkOrderTaskId,NewParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow
+										FROM #tmpWorkflowDirection WHERE ID = @CurrentRecordId
+
+										SET @NewOrderTaskInstId = SCOPE_IDENTITY();
+
+										UPDATE #tmpWorkflowDirection SET NewParentId  = @NewOrderTaskInstId FROM #tmpWorkflowDirection WHERE ParentId = @ParentWorkflowDirectionId
+
+										SET @CurrentRecordId += 1;
+									END
+
+									IF OBJECT_ID(N'tempdb..#tmpWorkflowDirection') IS NOT NULL
+									BEGIN
+									DROP TABLE #tmpWorkflowDirection
+									END
 
 									SET @count = @count + 1;
 								END

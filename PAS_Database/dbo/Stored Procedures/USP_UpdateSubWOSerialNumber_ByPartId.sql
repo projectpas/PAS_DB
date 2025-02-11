@@ -12,6 +12,7 @@
  ** PR   	Date			Author					Change Description            
  ** --   	--------		-------				--------------------------------     
 	1		05/29/2024		Devendra Shekh			CREATED
+	2		02/11/2024		Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
 	
 	EXEC [USP_UpdateSubWOSerialNumber_ByPartId] 'testSr44',238,'Admin User'
 **************************************************************/ 
@@ -45,7 +46,8 @@ BEGIN
 				END
 
 				UPDATE SWOP 
-				SET SWOP.UpdatedBy = @UserName, SWOP.UpdatedDate = GETUTCDATE() , SWOP.islocked = CASE WHEN ISNULL(SWOP.islocked, 0) = 1 THEN 0 ELSE SWOP.islocked END
+				SET SWOP.UpdatedBy = @UserName, SWOP.UpdatedDate = GETUTCDATE(), SWOP.islocked = CASE WHEN ISNULL(SWOP.islocked, 0) = 1 THEN 0 ELSE SWOP.islocked END,
+				SWOP.[RevisedSerialNumber] = @NewSerialNumber
 				FROM [dbo].[SubWorkOrderPartNumber] SWOP WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
 
 				UPDATE WRO 

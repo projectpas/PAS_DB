@@ -13,6 +13,7 @@
  ** --   --------     -------  --------------------------------               
 	1    17-12-2024   Moin Bloch   Created
 	2    19-12-2024   Moin Bloch   Update for 8130 form islock data 
+	3    11-02-2025   Moin Bloch   Update for 8130 serial number when update 
     
 -- EXEC [dbo].[Update8130LockUnlockDetails] 573,559    
 **************************************************************/ 
@@ -21,7 +22,8 @@ CREATE   PROCEDURE [dbo].[Update8130LockUnlockDetails]
 @WorkOrderPartNoId BIGINT,
 @SubWorkOrderId BIGINT,
 @SubWOPartNoId BIGINT,
-@IsWorkOrder BIT
+@IsWorkOrder BIT,
+@SerialNumber VARCHAR(50)=''
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -32,15 +34,15 @@ BEGIN
 	
 	DECLARE @WorkOrderSettlementId INT = 0;
 	SELECT @WorkOrderSettlementId = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Release Certs (e.g. 8130) Reviewed';
-
+	
 	IF(@IsWorkOrder=1)
 	BEGIN
-		UPDATE [dbo].[Work_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId;  
+		UPDATE [dbo].[Work_ReleaseFrom_8130] SET [IsLocked] = 0, [Batchnumber] = @SerialNumber,[PDFPath] = NULL WHERE [WorkorderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId;  
 		UPDATE [dbo].[WorkOrderSettlementDetails] SET [IsMastervalue] = 0 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [WorkOrderId] = @WorkorderId AND [workOrderPartNoId] = @workOrderPartNoId; 
 	END
 	ELSE
-	BEGIN		
-		UPDATE [dbo].[SubWorkOrder_ReleaseFrom_8130] SET [IsLocked] = 0 WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
+	BEGIN	
+		UPDATE [dbo].[SubWorkOrder_ReleaseFrom_8130] SET [IsLocked] = 0,[PDFPath] = NULL,[Batchnumber] = @SerialNumber  WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;  
 		UPDATE [dbo].[SubWorkOrderSettlementDetails] SET [IsMastervalue] = 0 WHERE [WorkOrderSettlementId] = @WorkOrderSettlementId AND [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId;
 	END
 	

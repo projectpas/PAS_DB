@@ -18,6 +18,7 @@
 	6    05/29/2024   Devendra Shekh			Stk Join changed to SWPT from SWO and adde ControlNumber to select
 	7    11/20/2024   Sahdev Saliya             Added New Field WorkOrderPartNumberId
 	8    12/12/2024   Moin Bloch                Updated For Getting Top 1 SubReleaseFromId due to error
+	9 	 02/11/2024	  Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -191,7 +192,8 @@ BEGIN
 						IM.RevisedPart AS 'RevisedPartNo',
 						SWO.WorkOrderMaterialsId,
 						SWO.StockLineId,
-						ISNULL(SL.SerialNumber, '') AS 'SerialNumber',
+						--ISNULL(SL.SerialNumber, '') AS 'SerialNumber',
+						CASE WHEN SWPT.[RevisedSerialNumber] IS NOT NULL THEN SWPT.[RevisedSerialNumber] ELSE SL.[SerialNumber] END AS 'SerialNumber',
 						SWO.IsActive,
 						SWO.IsDeleted,
 						SWO.CreatedDate,
@@ -234,14 +236,14 @@ BEGIN
 					([WorkScope] LIKE '%' + @GlobalFilter+'%') OR
 					([RevisedPartNo] LIKE '%' + @GlobalFilter+'%') OR
 					([SerialNumber] LIKE '%' + @GlobalFilter+'%') OR
-					(SubWOStatus LIKE '%' + @GlobalFilter+'%') OR
-					(OriginalCondition LIKE '%' + @GlobalFilter+'%') OR
-					(UpdatedCondition LIKE '%' + @GlobalFilter+'%') OR
-					(IsTransferredToParentWO LIKE '%' + @GlobalFilter+'%') OR
-					(OriginalStockLineNumber LIKE '%' + @GlobalFilter+'%') OR
-					(UpdatedStockLineNumber LIKE '%' + @GlobalFilter+'%') OR
-					(CreatedBy LIKE '%' + @GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' + @GlobalFilter+'%'))) OR   
+					([SubWOStatus] LIKE '%' + @GlobalFilter+'%') OR
+					([OriginalCondition] LIKE '%' + @GlobalFilter+'%') OR
+					([UpdatedCondition] LIKE '%' + @GlobalFilter+'%') OR
+					([IsTransferredToParentWO] LIKE '%' + @GlobalFilter+'%') OR
+					([OriginalStockLineNumber] LIKE '%' + @GlobalFilter+'%') OR
+					([UpdatedStockLineNumber] LIKE '%' + @GlobalFilter+'%') OR
+					([CreatedBy] LIKE '%' + @GlobalFilter+'%') OR
+					([UpdatedBy] LIKE '%' + @GlobalFilter+'%'))) OR   
 					(@GlobalFilter ='' AND (ISNULL(@SubWorkOrderNo,'') ='' OR [SubWorkOrderNo] LIKE '%' + @SubWorkOrderNo+'%') AND
 					(ISNULL(@MasterPartNo,'') ='' OR [MasterPartNo] LIKE '%' + @MasterPartNo + '%') AND	
 					(ISNULL(@MasterPartDescription,'') ='' OR [MasterPartDescription] LIKE '%' + @MasterPartDescription + '%') AND	

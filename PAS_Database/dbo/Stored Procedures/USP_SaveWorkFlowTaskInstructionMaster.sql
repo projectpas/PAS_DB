@@ -10,6 +10,7 @@
  ** --   --------			-------					--------------------------------            
     1    07-Feb-2025		Devendra Shekh					Created
     2    10-Feb-2025		Devendra Shekh					Modified (Checking TaskId as Well While Getting Max Sequence)
+    3    11-Feb-2025		Devendra Shekh					Modified (Copying TaskInstructionMaster Data if @InstructionListId has value)
 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
@@ -33,7 +34,8 @@ CREATE   PROCEDURE [dbo].[USP_SaveWorkFlowTaskInstructionMaster]
     @IsDeleted BIT,
 	@IsAddChildNode BIT = NULL,
 	@IsTaskDetails BIT = NULL,
-	@WorkflowId BIGINT = NULL
+	@WorkflowId BIGINT = NULL,
+	@InstructionListId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -43,17 +45,115 @@ BEGIN
 
 		IF (ISNULL(@WorkflowDirectionId, 0) = 0)
 		BEGIN
-			DECLARE @MaxSequence INT;
-			DECLARE @InsertedWorkflowDirectionId BIGINT = 0;
+			IF (ISNULL(@InstructionListId, '') <> '')
+			BEGIN
 
-			SELECT @MaxSequence = ISNULL(MAX(TIM.Sequence), 0)
-			FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
-			WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsParent = 1 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
+				IF OBJECT_ID(N'tempdb..#TempTaskInstructions') IS NOT NULL
+				BEGIN
+					DROP TABLE #TempTaskInstructions
+				END
 
-			INSERT INTO DBO.WorkFlowDirection ([WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
-			[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])
-			SELECT @WorkflowId, @Title, @Description, ISNULL(@TaskId, 0), (@MaxSequence + 1), NULL, 1, 
-			@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsTaskDetails;
+				-- Temporary table to store mapping of old TaskInstructionId to new WorkflowDirectionId
+				DECLARE @IdMapping TABLE (
+					TaskInstructionId INT,
+					WorkflowDirectionId INT
+				);
+			
+				-- CTE to get the hierarchy of tasks based on @InstructionListId
+				;WITH RecursiveCTE AS (
+					SELECT * 
+					FROM DBO.TaskInstructionMaster WITH (NOLOCK)
+					WHERE TaskInstructionId IN (SELECT Item FROM DBO.SPLITSTRING(@InstructionListId, ','))
+					AND IsDeleted = 0
+
+					UNION ALL
+
+					SELECT t.*
+					FROM DBO.TaskInstructionMaster t WITH (NOLOCK)
+					INNER JOIN RecursiveCTE r
+					ON t.ParentId = r.TaskInstructionId
+					WHERE t.IsDeleted = 0
+				)
+
+				SELECT 
+					TaskInstructionId, 
+					Title, 
+					ParentId, 
+					IsParent, 
+					SequenceNumber,
+					[Description]
+				INTO #TempTaskInstructions
+				FROM RecursiveCTE
+				ORDER BY ISNULL(ParentId, TaskInstructionId), SequenceNumber;
+
+				-- Cursor to process records in the correct parent-child sequence
+				DECLARE TaskCursor CURSOR FOR
+				SELECT 
+					TaskInstructionId, 
+					Title, 
+					ParentId, 
+					IsParent, 
+					SequenceNumber,
+					[Description]
+				FROM #TempTaskInstructions;
+
+				-- Variables to hold row data
+				DECLARE @TaskInstructionId INT,
+						@InstructionTitle NVARCHAR(MAX),
+						@InstructionkDescription NVARCHAR(MAX),
+						@InstructionParentId INT,
+						@IsInstructionParent BIT,
+						@InstructionSequenceNumber INT,
+						@NewParentId INT;
+
+				OPEN TaskCursor;
+				FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @InstructionTitle, @InstructionParentId, @IsInstructionParent, @InstructionSequenceNumber, @InstructionkDescription;
+
+				WHILE @@FETCH_STATUS = 0
+				BEGIN
+					-- Get the new ParentId from mapping if the current record has a ParentId
+					SET @NewParentId = NULL;
+					IF @InstructionParentId IS NOT NULL
+					BEGIN
+						SELECT @NewParentId = WorkflowDirectionId FROM @IdMapping WHERE TaskInstructionId = @InstructionParentId;
+					END
+
+					-- Insert the record into WorkFlowDirection table
+					INSERT INTO DBO.WorkFlowDirection (
+						[WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
+						[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails]
+					)
+					VALUES (
+						@WorkflowId, @InstructionTitle, @InstructionkDescription, @TaskId, @InstructionSequenceNumber, @NewParentId, @IsInstructionParent,
+						@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 0
+					);
+
+					-- Get the newly generated ID
+					DECLARE @NewWorkflowDirectionId INT = SCOPE_IDENTITY();
+
+					-- Store the mapping of TaskInstructionId to the new WorkflowDirectionId
+					INSERT INTO @IdMapping (TaskInstructionId, WorkflowDirectionId)
+					VALUES (@TaskInstructionId, @NewWorkflowDirectionId);
+
+					-- Move to the next record
+					FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @InstructionTitle, @InstructionParentId, @IsInstructionParent, @InstructionSequenceNumber, @InstructionkDescription;
+				END
+
+			END
+			ELSE
+			BEGIN
+				DECLARE @MaxSequence INT;
+				DECLARE @InsertedWorkflowDirectionId BIGINT = 0;
+
+				SELECT @MaxSequence = ISNULL(MAX(TIM.Sequence), 0)
+				FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
+				WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsParent = 1 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
+
+				INSERT INTO DBO.WorkFlowDirection ([WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
+				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])
+				SELECT @WorkflowId, @Title, @Description, ISNULL(@TaskId, 0), (@MaxSequence + 1), NULL, 1, 
+				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsTaskDetails;
+			END
 		END
 		ELSE IF (@IsAddChildNode = 1)
 		BEGIN

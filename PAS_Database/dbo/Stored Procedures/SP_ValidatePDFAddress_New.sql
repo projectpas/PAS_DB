@@ -14,9 +14,9 @@
 ***************************************************************************/ 
 CREATE   PROCEDURE [dbo].[SP_ValidatePDFAddress_New]
 (
-    @Address1 NVARCHAR(255),
-    @Address2 NVARCHAR(255),
-    @Address3 NVARCHAR(255),
+    @Address1 NVARCHAR(MAX),
+    @Address2 NVARCHAR(MAX),
+    @Address3 NVARCHAR(MAX),
     @City NVARCHAR(255),
     @StateOrProvince NVARCHAR(255),
     @PostalCode NVARCHAR(50),

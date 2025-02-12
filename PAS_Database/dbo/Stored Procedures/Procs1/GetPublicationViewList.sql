@@ -19,7 +19,7 @@
 	2    09/24/2021   Deep Patel    Add multiple part view changes.....
 	3    13/06/2024   Shrey Chandegara  Remove OUTER APPLY
 	4    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
-	5    11/02/2025   Sahdev Saliya    Added new field PublishedByName
+	5    12/02/2025   Sahdev Saliya    Added new field PublishedByName
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -99,7 +99,19 @@ BEGIN
 						pu.[Description],
 						pt.[Name] AS PublicationType,
 						pemp.ModuleName  AS PublishedBy,
-						M.[Name] AS PublishedByName,
+						CASE WHEN pu.PublishedById = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Vendor') THEN (select TOP 1 V.VendorName from [dbo].Publication PC WITH(NOLOCK)
+																																		inner join  [dbo].Vendor V WITH(NOLOCK) ON V.VendorId = PC.PublishedByRefId
+																																	WHERE PC.PublishedById = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Vendor')
+																																		 AND PC.PublishedByRefId = pu.PublishedByRefId) 
+																																ELSE      
+					   CASE
+							WHEN pu.PublishedById = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Manufacturer') THEN (select TOP 1 M.Name from [dbo].Publication PC WITH(NOLOCK)
+																																		inner join  [dbo].Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = PC.PublishedByRefId
+																																	WHERE PC.PublishedById = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Manufacturer')
+																																		 AND PC.PublishedByRefId = pu.PublishedByRefId) 
+							ELSE pu.PublishedByOthers END
+						END AS PublishedByName,
+					    pu.PublishedByOthers,
 						pu.RevisionDate AS RevisionDate,
 						pu.RevisionNum,
 						pu.NextReviewDate AS NextReviewDate,
@@ -133,7 +145,6 @@ BEGIN
                         LEFT JOIN  [dbo].[Employee] e WITH (NOLOCK) ON pu.VerifiedBy = e.EmployeeId    
                         LEFT JOIN  [dbo].[Location] loc WITH (NOLOCK) ON pu.LocationId = loc.LocationId              
                         LEFT JOIN  [dbo].[Module] pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId 
-						LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON pu.PublishedByRefId = M.ManufacturerId
 				  WHERE pu.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
 				 PartCTE AS (
                 SELECT 

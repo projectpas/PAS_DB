@@ -15,7 +15,7 @@
  ** --   --------     -------				--------------------------------          
 	1    08/21/2023   Devendra Shekh		  Created
 	2    08/22/2023   Devendra Shekh		  few changes for filter
-
+	3	 11/02/2025   Ayushi  Patel           converted the date into utc (updated,created) , Added a case to get timeZone
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPNTileKitPartList]
 	@PageNumber int = 1,
@@ -37,7 +37,8 @@ CREATE   PROCEDURE [dbo].[GetPNTileKitPartList]
 	@IsDeleted bit = 0,
 	@MasterCompanyId bigint = NULL,
 	@ItemMasterId bigint = NULL,
-	@conditionIds VARCHAR(250) = NULL
+	@conditionIds VARCHAR(250) = NULL,
+	@EmployeeId bigint
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -45,6 +46,27 @@ BEGIN
 		DECLARE @RecordFrom int;
 		DECLARE @Count Int;		
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		print @RecordFrom
@@ -77,8 +99,10 @@ BEGIN
 					  (SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.KitId AND kimm.IsDeleted = 0) AS Qty,
 					  kitm.IsActive,
 					  kitm.Memo,
-					  kitm.CreatedDate,
-                      kitm.UpdatedDate,
+					  --kitm.CreatedDate,
+                      --kitm.UpdatedDate,
+					  case when CAST(kitm.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(kitm.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
+					  case when CAST(kitm.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(kitm.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 					  kitm.CreatedBy,
                       kitm.UpdatedBy,
 					  kitm.IsDeleted,

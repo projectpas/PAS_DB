@@ -10,19 +10,44 @@
  ** --   --------			-------				--------------------------------            
     1    26-Dec-2024		Devendra Shekh			Created
     2    27-Jan-2025		Ekta Chandegra			Add @IsDeleted parameter
+	3    11-Feb-2025		Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone 
 
-
-	exec dbo.USP_GetTaskInstructionMasterList @MasterCompanyId=1,@IsDeleted=1
+	exec dbo.USP_GetTaskInstructionMasterList @MasterCompanyId=1,@IsDeleted=1,@EmployeeId=226
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetTaskInstructionMasterList]
 	@MasterCompanyId bigint = NULL,
-	@IsDeleted BIT
+	@IsDeleted BIT,
+	@EmployeeId BIGINT
 AS
 BEGIN	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
+		DECLARE @EmpLegalEntiyId BIGINT = 0;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
 		IF @IsDeleted IS NULL  
 		Begin  
 		 Set @IsDeleted=0  
@@ -40,8 +65,14 @@ BEGIN
 			TIM.MasterCompanyId,
 			TIM.CreatedBy,
 			TIM.UpdatedBy,
-			TIM.CreatedDate,
-			TIM.UpdatedDate,
+			--TIM.CreatedDate,
+			--TIM.UpdatedDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(TIM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(TIM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(TIM.CreatedDate AS DATETIME)) END CreatedDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(TIM.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(TIM.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(TIM.UpdatedDate AS DATETIME)) END UpdatedDate,
 			TIM.IsActive,
 			TIM.IsDeleted 
 			FROM dbo.TaskInstructionMaster TIM WITH(NOLOCK)

@@ -162,6 +162,10 @@
     [RevenueSoGLAccName]                VARCHAR (255)   NULL,
     [RevenueExchGLAccName]              VARCHAR (255)   NULL,
     [COGS_ExchSalesOrderGLAccName]      VARCHAR (255)   NULL,
+    [QuickBooksReferenceId]             VARCHAR (200)   NULL,
+    [IsUpdated]                         BIT             NULL,
+    [LastSyncDate]                      DATETIME2 (7)   NULL,
+    [SyncToken]                         VARCHAR (200)   NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

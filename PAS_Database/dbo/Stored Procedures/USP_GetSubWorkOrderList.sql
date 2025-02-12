@@ -19,6 +19,8 @@
 	7    11/20/2024   Sahdev Saliya             Added New Field WorkOrderPartNumberId
 	8    12/12/2024   Moin Bloch                Updated For Getting Top 1 SubReleaseFromId due to error
 	9 	 02/11/2024	  Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
+	10 	 02/12/2024	  Moin Bloch			    Modified (Added [IsFinishGood] For show hide edit SerialNumber icon )
+	
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -209,7 +211,8 @@ BEGIN
 						SL.StockLineNumber AS 'OriginalStockLineNumber',
 						SL.StockLineNumber AS 'UpdatedStockLineNumber',
 						ISNULL(SL.ControlNumber, '') AS 'ControlNumber',
-						tmpSub.SubReleaseFromId
+						tmpSub.SubReleaseFromId,
+						ISNULL(SWPT.IsFinishGood,0) IsFinishGood
 			   FROM [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK)
 				INNER JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = SWPT.SubWorkOrderId
 				---INNER JOIN [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK) 

@@ -1136,7 +1136,7 @@ SET NOCOUNT ON;
 
 										SELECT @WorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
-										INSERT INTO dbo.WorkOrderTaskDetails(WorkOrderTaskId,Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,PrintInWO)
+										INSERT INTO dbo.WorkOrderTaskDetails(WorkOrderTaskId,Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,PrintInWO, PrintInWOQ, IsPrintInspector,IsPrintTechnician)
 										SELECT TOP 1 
 											@WorkOrderTaskId, 
 											WFD.[Action] AS Descrepancy, 
@@ -1149,7 +1149,10 @@ SET NOCOUNT ON;
 											GETUTCDATE() AS UpdatedDate, 
 											1 AS IsActive,	
 											0 AS IsDeleted,
-											T.IsPrintInWO AS IsIncludeInPrint
+											T.IsPrintInWO AS IsIncludeInPrint,											
+											T.IsPrintInWOQ AS IsPrintInWOQ,
+											T.IsPrintInspector AS IsPrintInspector,
+											T.IsPrintTechnician AS IsPrintTechnician
 										FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
 											JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
 										WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId       -- Here Need to add condition for Parent Task

@@ -17,7 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Hemant Saliya Created
 	2    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
-	3    11/02/2025   Sahdev Saliya    Added new field PublishedByName
+	3    13/02/2025   Sahdev Saliya    Added new field PublishedByName
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
@@ -61,6 +61,10 @@ BEGIN
 		DECLARE @RecordFrom int;
 		Declare @IsActive bit = 1
 		DECLARE @Count Int;
+		DECLARE @ManufactureTypeId int;
+		DECLARE @VendorTypeId int;
+		SET @VendorTypeId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Vendor')
+		SET @ManufactureTypeId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Manufacturer')
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		IF @IsDeleted is null
 		Begin
@@ -101,7 +105,7 @@ BEGIN
 					   p.[Description],
 					   pt.[Name] AS PublicationType,
 					   pemp.ModuleName AS PublishedBy,
-					   M.[Name] AS PublishedByName,
+					   CASE WHEN p.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN p.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(p.PublishedByOthers,'') END  AS PublishedByName,
 					   p.RevisionDate AS RevisionDate,					   
 					   p.NextReviewDate AS NextReviewDate,
 					   p.ExpirationDate AS ExpirationDate,					   
@@ -137,7 +141,8 @@ BEGIN
 				  LEFT JOIN [dbo].[Location] loc WITH (NOLOCK) ON p.LocationId = loc.LocationId
 				  LEFT JOIN [dbo].[Module] pemp WITH (NOLOCK) ON p.PublishedById = pemp.ModuleId 
 				  LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON im.ManufacturerId = MF.ManufacturerId
-	              LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON p.PublishedByRefId = M.ManufacturerId
+				  LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON p.PublishedByRefId = M.ManufacturerId
+				  LEFT JOIN [dbo].[Vendor] V with (NOLOCK) ON p.PublishedByRefId = V.VendorId
 				  WHERE p.IsDeleted = @IsDeleted AND
 				        (@IsActive is null or p.IsActive = @IsActive)  
 						AND p.MasterCompanyId = @MasterCompanyId

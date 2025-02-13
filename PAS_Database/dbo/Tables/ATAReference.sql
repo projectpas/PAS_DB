@@ -12,3 +12,16 @@
     CONSTRAINT [FK_ATAReference_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+
+
+GO
+CREATE   TRIGGER [dbo].[Trg_ATAReference]
+   ON  [dbo].[ATAReference]
+   AFTER INSERT,DELETE,UPDATE
+AS 
+BEGIN
+	INSERT INTO ATAReferenceAudit 
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

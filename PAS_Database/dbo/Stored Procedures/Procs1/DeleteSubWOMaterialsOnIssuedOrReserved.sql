@@ -14,6 +14,8 @@
 ** 2    07-11-2023		Hemnat Saliya		Updated - Added Kit Delete option
 ** 3    16/10/2024      RAJESH GAMI         Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 ** 4    29/10/2024      RAJESH GAMI         Un Mapped WO if there is no other material link with the same workorder in the Same PO (Updated)
+** 5    13-02-2025		Hemnat Saliya		Updated - Re_calculate MPN Cost
+
 EXEC DeleteSubWOMaterialsOnIssuedOrReserved 91
 **************************************************************/ 
 
@@ -88,6 +90,16 @@ BEGIN
 					SET @LooPId +=1 
 				END
 			END
+
+			DECLARE @WorkOrderId BIGINT;
+			DECLARE @MasterCompanyId INT;
+			DECLARE @UpdatedBy VARCHAR(100);
+			
+
+			SELECT @WorkOrderId = WorkOrderId, @MasterCompanyId = MasterCompanyId,  @UpdatedBy = UpdatedBy FROM SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId
+
+			EXEC UpdateSubWorkOrderMPNCostDetail  @workOrderId = @WorkOrderId,  @subWorkOrderId = @SubWorkOrderId, @subWOPartNoId = @SubWOPartNoId, @updatedBy = @UpdatedBy, @masterCompanyId = @MasterCompanyId;
+
 			
 			IF OBJECT_ID(N'tempdb..##TempSubWOtbl') IS NOT NULL
 				BEGIN

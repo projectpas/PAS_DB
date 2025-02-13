@@ -3465,6 +3465,8 @@
     <Build Include="dbo\Tables\ATAReference.sql" />
     <Build Include="dbo\Tables\ATAReferenceAudit.sql" />
     <Build Include="dbo\Views\vw_ATAReferenceAudit.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CalculateSubWorkOrderCostsDetail.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateSubWorkOrderMPNCostDetail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

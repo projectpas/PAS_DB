@@ -54,8 +54,11 @@
     [WorkOrderFormTypeId]        INT            NULL,
     [TaskTypes]                  NVARCHAR (500) NULL,
     [IsWoAlwaysOrOndemandId]     INT            NULL,
+    [Is813013aeOr14ae]           INT            DEFAULT ((1)) NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
+
+
 
 
 

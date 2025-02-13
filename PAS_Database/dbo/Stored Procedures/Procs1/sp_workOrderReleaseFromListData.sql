@@ -20,6 +20,8 @@
 	7    12/13/2024   Moin Bloch     Removed Static Value
 	8    12/16/2024   Moin Bloch     Updated For Get FormType Name
 	9    12/31/2024   Devendra Shekh Updated For Get FormType and WOFormType Name
+	10   02/12/2025   Moin Bloch     Updated For Get Is813013aeOr14ae
+	
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
@@ -97,6 +99,7 @@ BEGIN
 					  ,wro.[EmployeeId]
 					  ,wro.[FormTypeId]
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
+				      ,wro.Is813013aeOr14ae
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -162,6 +165,7 @@ BEGIN
 					  ,wro.[EmployeeId]
 					  ,wro.[FormTypeId]
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
+				      ,wro.Is813013aeOr14ae
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  

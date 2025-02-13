@@ -21,6 +21,7 @@
 	3    02/02/2024   Devendra Shekh	Updated for revised Part Panry and Condition
 	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
 	5    12/31/2024   Devendra Shekh Updated For Get FormType and Batchnumber Name
+	6    02/13/2025   Moin Bloch     Updated For Get Is813013aeOr14ae Flag
      
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
@@ -89,6 +90,7 @@ BEGIN
 					  ,wop.[IsFinishGood] AS IsFinishGood
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
 					  ,wop.ManagementStructureId as ManagementStructureId   
+					  ,ISNULL(wro.Is813013aeOr14ae,1) Is813013aeOr14ae
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
 					   LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  

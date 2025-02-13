@@ -3452,6 +3452,16 @@
     <Build Include="dbo\Stored Procedures\SP_ValidatePDFAddress_New.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewItemListForCreateItem.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetItemDetailsForUpdateItem.sql" />
+    <Build Include="dbo\Tables\WorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddWorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingCreditMemo.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCreditMemo.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditMemoById.sql" />
+    <Build Include="dbo\Tables\PublicationTemplateAudit.sql" />
+    <Build Include="dbo\Tables\PublicationTemplate.sql" />
+    <Build Include="dbo\Views\vw_PublicationTemplateSettingAudit.sql" />
+    <Build Include="dbo\Views\vw_PublicationTemplateSetting.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

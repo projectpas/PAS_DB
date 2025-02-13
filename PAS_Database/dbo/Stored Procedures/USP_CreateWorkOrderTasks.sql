@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_CreateWorkOrderTasks]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to insert default tasks in work order
@@ -16,7 +15,8 @@
  ** PR   Date			Author			Change Description              
  ** --   --------		-------			-----------------------
     1    12/17/2024		Vishal Suthar		Created
-	1    12/Feb/2025	RAJESH GAMI			Added IsPrintInspector,IsPrintTechnician
+	2    12/Feb/2025	RAJESH GAMI			Added IsPrintInspector,IsPrintTechnician
+	3    12/Feb/2025	Devendra Shekh		Skipping insert for #DefaultTask if @TaskTypes is Empty 
 -- EXEC [USP_CreateWorkOrderTasks] 44
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderTasks]
@@ -59,8 +59,11 @@ BEGIN
 				TaskId BIGINT NULL
 			)
 
-			INSERT INTO #DefaultTask ([TaskId])
-			SELECT Item FROM DBO.SPLITSTRING(@TaskTypes, ',');
+			IF(ISNULL(@TaskTypes, '') != '')
+			BEGIN
+				INSERT INTO #DefaultTask ([TaskId])
+				SELECT Item FROM DBO.SPLITSTRING(@TaskTypes, ',');
+			END
 
 			DECLARE @SequenceNo AS INT = 0;
 			DECLARE @LoopID AS INT;

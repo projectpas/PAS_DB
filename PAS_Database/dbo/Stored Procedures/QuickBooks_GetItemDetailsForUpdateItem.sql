@@ -57,9 +57,9 @@ BEGIN
 				IM.QuickBooksReferenceId AS ItemQuickBooksReferenceId,
 				IM.SyncToken
 			FROM ItemMaster IM
-				INNER JOIN GLAccount GLIncome ON IM.InventoryToBillGLAccId = GLIncome.GLAccountId
+				INNER JOIN GLAccount GLIncome ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
 				INNER JOIN GLAccount GLAsset ON IM.GLAccountId = GLAsset.GLAccountId
-				INNER JOIN GLAccount GLExpense ON IM.GoodsReceivedNotInvoicesGLAccId = GLExpense.GLAccountId
+				INNER JOIN GLAccount GLExpense ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
 			WHERE ISNULL(IM.QuickBooksReferenceId, '') != '' AND IM.ItemMasterId = @ReferenceId AND IM.MasterCompanyId = @MasterCompanyId
 		
 		END

@@ -17,6 +17,13 @@
     [UpdatedDate]                      DATETIME2 (7)  NULL,
     [IsActive]                         BIT            NOT NULL,
     [IsDeleted]                        BIT            NOT NULL,
+    [ATAReferenceId]                   BIGINT         NULL,
+    [ATAReference]                     VARCHAR (250)  NULL,
+    [Level1]                           VARCHAR (50)   NULL,
+    [Level2]                           VARCHAR (50)   NULL,
+    [Level3]                           VARCHAR (50)   NULL,
     CONSTRAINT [PK_ItemMasterAircraftMappingAudit] PRIMARY KEY CLUSTERED ([AuditItemMasterAircraftMappingId] ASC)
 );
+
+
 

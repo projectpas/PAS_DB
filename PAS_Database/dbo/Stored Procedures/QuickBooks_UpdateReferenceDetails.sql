@@ -50,7 +50,7 @@ BEGIN
 		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
 		SELECT @GLAccountModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'GLACCOUNT';
 		SELECT @BillModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'BILL';
-		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASEORDER';
+		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASE ORDER';
 		SELECT @ItemModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'ITEMMASTER';
 		SELECT @CreditMemoModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITMEMO';
 
@@ -107,10 +107,10 @@ BEGIN
 			UPDATE [dbo].[GLAccount] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE GLAccountId = @ReferenceId			
 		END
 
-		--IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId) 
-		--BEGIN
-		--	UPDATE Item SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE ItemId = @ReferenceId			
-		--END
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId) 
+		BEGIN
+			UPDATE PurchaseOrder SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE PurchaseOrderId = @ReferenceId			
+		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @ItemModuleId) 
 		BEGIN

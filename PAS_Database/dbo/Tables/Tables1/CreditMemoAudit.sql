@@ -54,6 +54,10 @@
     [CustomerRefundId]        BIGINT          NULL,
     [IsUsedInVendorPayment]   BIT             NULL,
     [InvoiceTypeId]           INT             NULL,
+    [QuickBooksReferenceId]   VARCHAR (200)   NULL,
+    [IsUpdated]               BIT             NULL,
+    [LastSyncDate]            DATETIME2 (7)   NULL,
+    [SyncToken]               VARCHAR (200)   NULL,
     CONSTRAINT [PK_CreditMemoAudit] PRIMARY KEY CLUSTERED ([CreditMemoHeaderAuditId] ASC)
 );
 

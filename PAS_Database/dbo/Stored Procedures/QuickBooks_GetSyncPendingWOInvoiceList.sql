@@ -13,6 +13,7 @@
  ** --   --------		-------					--------------------------------          
     1   09-Jan-2025		Devendra Shekh			Created
 	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
+	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
      
  EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 4771, 4336
  EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 4772, 0
@@ -89,6 +90,7 @@ BEGIN
 			[FreightCost] DECIMAL(13,2) NULL,
 			[TotalWorkOrder] BIT NULL,
 			[PercentValue] DECIMAL(13,2) NULL,
+			[ItemQuickBooksReferenceId] VARCHAR(200) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -100,7 +102,7 @@ BEGIN
 				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue])
+				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId])
 				SELECT	WOBI.BillingInvoicingId,
 						WOBI.InvoiceNo,
 						WOBII.WOBillingInvoicingItemId,
@@ -149,7 +151,8 @@ BEGIN
 						ISNULL(WOBII.MiscCharges, 0),
 						ISNULL(WOBII.Freight, 0),
 						ISNULL(WOBI.TotalWorkOrder, 0),
-						ISNULL(P.PercentValue, 0)
+						ISNULL(P.PercentValue, 0),
+						IM.QuickBooksReferenceId
 				FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
 					JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
@@ -170,7 +173,7 @@ BEGIN
 				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue])
+				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId])
 				SELECT	WOBI.BillingInvoicingId,
 						WOBI.InvoiceNo,
 						WOBII.WOBillingInvoicingItemId,
@@ -219,7 +222,8 @@ BEGIN
 						ISNULL(WOBII.MiscCharges, 0),
 						ISNULL(WOBII.Freight, 0),
 						ISNULL(WOBI.TotalWorkOrder, 0),
-						ISNULL(P.PercentValue, 0)
+						ISNULL(P.PercentValue, 0),
+						IM.QuickBooksReferenceId
 				FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
 					JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
@@ -239,7 +243,7 @@ BEGIN
 			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
 					[DueDate], [Tags], [Product], [PartNumber], [PartNumber] + ' - ' + [PartDescription] AS [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
 			FROM #InvoiceResults
 			WHERE [TotalWorkOrder] = 1
 
@@ -250,7 +254,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Material Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MaterialCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
 			FROM #InvoiceResults 
 			WHERE MaterialCost > 0 AND [TotalWorkOrder] = 0
 
@@ -261,7 +265,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Labor Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [LaborCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
 			FROM #InvoiceResults
 			WHERE LaborCost > 0 AND [TotalWorkOrder] = 0
 
@@ -272,7 +276,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Misc Charges Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MiscCharges] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
 			FROM #InvoiceResults
 			WHERE MiscCharges > 0 AND [TotalWorkOrder] = 0
 
@@ -283,7 +287,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Freight Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [FreightCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
 			FROM #InvoiceResults
 			WHERE FreightCost > 0 AND [TotalWorkOrder] = 0
 

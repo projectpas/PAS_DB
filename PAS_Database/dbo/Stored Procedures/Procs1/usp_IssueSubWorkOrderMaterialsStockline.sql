@@ -14,6 +14,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** 3    08/28/2023  Moin Bloch       Added Subworkorder Material Batch Entry Code
 ** 4    10/08/2024  RAJESH GAMI      Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
+** 6    02/13/2025	Hemnat Saliya	 Updated - Re_calculate MPN Cost
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -68,6 +69,7 @@ BEGIN
 					DECLARE @issued BIT = 1
 					DECLARE @Amount decimal(18,2) = 0
 					DECLARE @ModuleName varchar(200)='SWOP-PartsIssued'
+					DECLARE @SubWorkOrderId BIGINT;
 
 					DECLARE @HistorySubWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT,
 								@historySubWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
@@ -474,6 +476,10 @@ BEGIN
 
 						SET @slcount = @slcount + 1;
 					END;
+
+					SELECT @SubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderPartNumber SWP WITH(NOLOCK) WHERE SubWOPartNoId = @SubWorkOrderPartNoId
+
+					EXEC UpdateSubWorkOrderMPNCostDetail  @workOrderId = @WorkOrderId,  @subWorkOrderId = @SubWorkOrderId, @subWOPartNoId = @SubWorkOrderPartNoId, @updatedBy = @UpdateBy, @masterCompanyId = @MasterCompanyId;
 
 					SELECT * FROM #tmpIgnoredStockline
 

@@ -35,7 +35,7 @@ BEGIN
 	BEGIN TRY
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;
-		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0, @NonPOModuleId INT = 0;
+		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0, @NonPOModuleId INT = 0, @PurchaseOrderModuleId INT = 0, @RepairOrderModuleId INT = 0;
 		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @JournalEntryModuleId INT, @BillModuleId INT, @POModuleId INT, @ItemModuleId INT, @CreditMemoModuleId INT;
 
 		SELECT @CustomerModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER';
@@ -45,7 +45,7 @@ BEGIN
 		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
 		SELECT @JournalEntryModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'JOURNALENTRY';
 		SELECT @BillModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'BILL';
-		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASE ORDER';
+		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASEORDER';
 		SELECT @ItemModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'ITEMMASTER';
 		SELECT @CreditMemoModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITMEMO';
 
@@ -54,6 +54,8 @@ BEGIN
 		SELECT @ExchModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
 
 		SELECT @NonPOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'NonPOInvoice';
+		SELECT @PurchaseOrderModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
+		SELECT @RepairOrderModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'RepairOrder';
 		SET @ReferenceModuleId =  ISNULL(@ReferenceModuleId, 0);
 
 		-- FOR QuickBooks
@@ -102,9 +104,14 @@ BEGIN
 			UPDATE [dbo].[CreditTerms] SET IsUpdated = 1 WHERE CreditTermsId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
 		END
 
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId) 
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId AND @PurchaseOrderModuleId = @ReferenceModuleId) 
 		BEGIN
 			UPDATE [dbo].[PurchaseOrder] SET IsUpdated = 1 WHERE PurchaseOrderId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
+		END
+
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId AND @RepairOrderModuleId = @ReferenceModuleId) 
+		BEGIN
+			UPDATE [dbo].[RepairOrder] SET IsUpdated = 1 WHERE RepairOrderId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @ItemModuleId) 

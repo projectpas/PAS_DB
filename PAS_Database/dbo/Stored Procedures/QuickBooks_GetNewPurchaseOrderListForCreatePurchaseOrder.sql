@@ -17,13 +17,21 @@
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder]
 	@IntegrationTypeId INT = NULL,
-	@MasterCompanyId INT = NULL
+	@MasterCompanyId INT = NULL,
+	@ReferenceId BIGINT = NULL,
+	@ReferenceModuleId INT = NULL
 AS
 BEGIN
-	DECLARE @InvModuleId INT = 0;
+	DECLARE @InvModuleId INT = 0, @POModuleId INT = 0, @POModuleName VARCHAR(200) = '', @ROModuleId INT = 0, @ROModuleName VARCHAR(200) = '';
 	DECLARE @InvModuleName VARCHAR(200) = '';
+	DECLARE @POGLAccountId BIGINT, @ROGLAccountId BIGINT;
+	
+	SELECT @InvModuleId = AccountingModuleId, @InvModuleName = AccountingModuleName FROM [dbo].[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'PurchaseOrder';
+	SELECT @POModuleId = ModuleId, @POModuleName = ModuleName FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'PurchaseOrder';
+	SELECT @ROModuleId = ModuleId, @ROModuleName = ModuleName FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'RepairOrder';
 
-	SELECT @InvModuleId = AccountingModuleId, @InvModuleName = AccountingModuleName FROM [dbo].[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'Purchase Order';
+	SELECT @ROGLAccountId = GlAccountId FROM DistributionSetup WHERE DistributionMasterId = (SELECT ID FROM DistributionMaster WHERE Name = 'ReceivingROStockline') AND MasterCompanyId = 1 AND DistributionSetupCode = 'RROACCPAYABLE'
+	SELECT @POGLAccountId = GlAccountId FROM DistributionSetup WHERE DistributionMasterId = (SELECT ID FROM DistributionMaster WHERE Name = 'ReceivingPOStockline') AND MasterCompanyId = 1 AND DistributionSetupCode = 'RPOACCPAYABLE'
 
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
@@ -32,7 +40,10 @@ BEGIN
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-				SELECT PO.PurchaseOrderId AS PurchaseOrderId,
+			IF(ISNULL(@ReferenceModuleId, 0) = ISNULL(@POModuleId, 0)) 
+			BEGIN
+				SELECT PO.PurchaseOrderId AS ReferenceId,
+					PO.PurchaseOrderNumber AS ReferenceNumber,
 					VN.QuickBooksReferenceId AS VendorValue,
 					VN.VendorName AS VendorName,
 					POP.PurchaseOrderPartRecordId,
@@ -42,32 +53,83 @@ BEGIN
 					POP.UnitCost,
 					SUM(ISNULL(POP.ExtendedCost, 0)) AS TotalAmt,
 					POP.QuantityOrdered,
-					'Accounts Payable (A/P)' AS POAPAccountName,
-					CAST('33' AS VARCHAR) AS POAPAccountValue,
+					GL.AccountName AS POAPAccountName,
+					GL.QuickBooksReferenceId AS POAPAccountValue,
 					--GL.QuickBooksReferenceId AS POAPAccountValue,
 					--GL.AccountName AS POAPAccountName,
 					ISNULL(POP.ExtendedCost, 0) AS Amount,
 					@InvModuleName AS ModuleName,
 					@InvModuleId AS ModuleId,
 					PO.MasterCompanyId,
-					PO.UpdatedBy
+					PO.UpdatedBy,
+					@POModuleId AS ReferenceModuleId,
+					@POModuleName AS ReferenceModuleName
 				FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
-					--LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = PO.GlAccountId
-				WHERE ISNULL(PO.QuickBooksReferenceId, 0) = 0 AND ISNULL(PO.IsUpdated, 0) = 1 AND PO.MasterCompanyId = @MasterCompanyId
+					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
+				WHERE ISNULL(PO.QuickBooksReferenceId, 0) = 0 AND ISNULL(PO.IsUpdated, 0) = 1 AND PO.PurchaseOrderId = @ReferenceId AND PO.MasterCompanyId = @MasterCompanyId
 				GROUP BY PO.PurchaseOrderId,
+					PO.PurchaseOrderNumber,
 					VN.QuickBooksReferenceId,
 					VN.VendorName,
 					POP.PurchaseOrderPartRecordId,
 					IM.QuickBooksReferenceId,
+					GL.AccountName,
+					GL.QuickBooksReferenceId,
 					POP.PartNumber,
 					POP.UnitCost,
 					POP.ExtendedCost,
 					POP.QuantityOrdered,
 					PO.MasterCompanyId,
 					PO.UpdatedBy
+			END
+			ELSE IF(ISNULL(@ReferenceModuleId, 0) = ISNULL(@ROModuleId, 0)) 
+			BEGIN
+				SELECT RO.RepairOrderId AS ReferenceId,
+					RO.RepairOrderNumber AS ReferenceNumber,
+					VN.QuickBooksReferenceId AS VendorValue,
+					VN.VendorName AS VendorName,
+					ROP.RepairOrderPartRecordId,
+					IM.QuickBooksReferenceId AS IMQuickBooksReferenceId,
+					ROP.PartNumber,
+					--POP.PartDescription,
+					ROP.UnitCost,
+					SUM(ISNULL(ROP.ExtendedCost, 0)) AS TotalAmt,
+					ROP.QuantityOrdered,
+					GL.AccountName AS POAPAccountName,
+					GL.QuickBooksReferenceId AS POAPAccountValue,
+					--GL.QuickBooksReferenceId AS POAPAccountValue,
+					--GL.AccountName AS POAPAccountName,
+					ISNULL(ROP.ExtendedCost, 0) AS Amount,
+					@InvModuleName AS ModuleName,
+					@InvModuleId AS ModuleId,
+					RO.MasterCompanyId,
+					RO.UpdatedBy,
+					@ROModuleId AS ReferenceModuleId,
+					@ROModuleName AS ReferenceModuleName
+				FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
+					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId
+					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
+					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
+					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+				WHERE ISNULL(RO.QuickBooksReferenceId, 0) = 0 AND ISNULL(RO.IsUpdated, 0) = 1 AND RO.RepairOrderId = @ReferenceId AND RO.MasterCompanyId = @MasterCompanyId
+				GROUP BY RO.RepairOrderId,
+					RO.RepairOrderNumber,
+					VN.QuickBooksReferenceId,
+					VN.VendorName,
+					ROP.RepairOrderPartRecordId,
+					IM.QuickBooksReferenceId,
+					GL.AccountName,
+					GL.QuickBooksReferenceId,
+					ROP.PartNumber,
+					ROP.UnitCost,
+					ROP.ExtendedCost,
+					ROP.QuantityOrdered,
+					RO.MasterCompanyId,
+					RO.UpdatedBy
+			END
 		END
 	END TRY    
 	BEGIN CATCH      

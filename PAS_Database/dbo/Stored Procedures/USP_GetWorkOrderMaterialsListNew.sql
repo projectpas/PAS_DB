@@ -30,7 +30,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 	@SortOrder int,  
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,
-	@ShowPendingToIssue BIT  = 0
+	@ShowPendingToIssue BIT  = 0,
+	@IsDownload BIT = 0
 )    
 AS    
 BEGIN    
@@ -247,7 +248,7 @@ SET NOCOUNT ON
 					[ItemMasterId] [bigint] NULL,
 					[ItemClassificationId] [bigint] NULL,
 					[PurchaseUnitOfMeasureId] [bigint] NULL,
-					[Memo] [nvarchar](MAX) NULL,
+					[Memo] [nvarchar](2000) NULL,
 					[IsDeferred] [bit] NULL,
 					[TaskId] [bigint] NULL,
 					[TaskName] [varchar](200) NULL,
@@ -453,10 +454,32 @@ SET NOCOUNT ON
 					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
 				END
 				
-				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
-				ORDER BY tmp.WorkFlowWorkOrderId ASC
-				OFFSET @RecordFrom ROWS   
-				FETCH NEXT @Local_PageSize ROWS ONLY
+				CREATE TABLE #TMPWOMaterialResultListData (
+					WorkOrderMaterialsId INT,
+					WorkFlowWorkOrderId INT,
+					WorkOrderMaterialsKitMappingId INT,
+					IsKit BIT
+				);
+				IF (ISNULL(@IsDownload,0) = 1)
+					BEGIN 
+						PRINT 'ab'
+						INSERT INTO #TMPWOMaterialResultListData ([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+
+						SELECT tmp.WorkOrderMaterialsId,tmp.WorkFlowWorkOrderId,tmp.WorkOrderMaterialsKitMappingId,tmp.IsKit  FROM #TMPWOMaterialParentListData tmp 
+						ORDER BY tmp.WorkFlowWorkOrderId ASC
+					END
+				ELSE
+					BEGIN
+					PRINT'bc'
+					PRINT @Local_PageSize;
+						INSERT INTO #TMPWOMaterialResultListData ([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+
+						SELECT  tmp.WorkOrderMaterialsId,tmp.WorkFlowWorkOrderId,tmp.WorkOrderMaterialsKitMappingId,tmp.IsKit  FROM #TMPWOMaterialParentListData tmp
+						ORDER BY tmp.WorkFlowWorkOrderId ASC
+						OFFSET @RecordFrom ROWS   
+						FETCH NEXT @Local_PageSize ROWS ONLY
+					END
+				
 				--Inserting Data For Parent Level- For Pagination : End
 
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)

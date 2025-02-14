@@ -3469,6 +3469,7 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder.sql" />
     <Build Include="dbo\Stored Procedures\usp_CalculateSubWorkOrderCostsDetail.sql" />
     <Build Include="dbo\Stored Procedures\UpdateSubWorkOrderMPNCostDetail.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetPurchaseOrderById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

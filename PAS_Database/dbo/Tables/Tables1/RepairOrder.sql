@@ -55,6 +55,10 @@
     [DepositAmount]           DECIMAL (18, 2) NULL,
     [VendorProformaInvoiceNo] VARCHAR (150)   NULL,
     [VendorProformaInvoiceId] BIGINT          NULL,
+    [QuickBooksReferenceId]   VARCHAR (200)   NULL,
+    [IsUpdated]               BIT             NULL,
+    [LastSyncDate]            DATETIME2 (7)   NULL,
+    [SyncToken]               VARCHAR (200)   NULL,
     CONSTRAINT [PK_RepairOrder] PRIMARY KEY CLUSTERED ([RepairOrderId] ASC),
     CONSTRAINT [FK_RepairOrder_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_RepairOrder_CreditTermsId] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -65,6 +69,8 @@
     CONSTRAINT [FK_RepairOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId]),
     CONSTRAINT [FK_RepairOrder_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

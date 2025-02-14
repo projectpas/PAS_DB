@@ -247,7 +247,7 @@ SET NOCOUNT ON
 					[ItemMasterId] [bigint] NULL,
 					[ItemClassificationId] [bigint] NULL,
 					[PurchaseUnitOfMeasureId] [bigint] NULL,
-					[Memo] [nvarchar](2000) NULL,
+					[Memo] [nvarchar](MAX) NULL,
 					[IsDeferred] [bit] NULL,
 					[TaskId] [bigint] NULL,
 					[TaskName] [varchar](200) NULL,

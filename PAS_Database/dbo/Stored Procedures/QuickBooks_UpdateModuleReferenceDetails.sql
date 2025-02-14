@@ -45,7 +45,7 @@ BEGIN
 		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
 		SELECT @JournalEntryModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'JOURNALENTRY';
 		SELECT @BillModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'BILL';
-		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASEORDER';
+		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASE ORDER';
 		SELECT @ItemModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'ITEMMASTER';
 		SELECT @CreditMemoModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITMEMO';
 
@@ -102,10 +102,10 @@ BEGIN
 			UPDATE [dbo].[CreditTerms] SET IsUpdated = 1 WHERE CreditTermsId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
 		END
 
-		--IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId) 
-		--BEGIN
-		--	UPDATE [dbo].[Item] SET IsUpdated = 1 WHERE ItemId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
-		--END
+		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId) 
+		BEGIN
+			UPDATE [dbo].[PurchaseOrder] SET IsUpdated = 1 WHERE PurchaseOrderId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
+		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @ItemModuleId) 
 		BEGIN

@@ -49,7 +49,7 @@ BEGIN
 					POP.PurchaseOrderPartRecordId,
 					IM.QuickBooksReferenceId AS IMQuickBooksReferenceId,
 					POP.PartNumber,
-					--POP.PartDescription,
+					POP.PartDescription,
 					POP.UnitCost,
 					SUM(ISNULL(POP.ExtendedCost, 0)) AS TotalAmt,
 					POP.QuantityOrdered,
@@ -58,6 +58,15 @@ BEGIN
 					--GL.QuickBooksReferenceId AS POAPAccountValue,
 					--GL.AccountName AS POAPAccountName,
 					ISNULL(POP.ExtendedCost, 0) AS Amount,
+					PO.VendorContactEmail,
+					UPPER(AA.AddressId) AS AddressId,
+					UPPER(AA.Line1) AS AddressLine1,
+					UPPER(AA.Line2) AS AddressLine2,
+					UPPER(AA.City) AS City,
+					UPPER(AA.StateOrProvince) StateOrProvince,
+					AA.PostalCode,
+					AA.CountryId,
+					UPPER(AA.Country) Country,
 					@InvModuleName AS ModuleName,
 					@InvModuleId AS ModuleId,
 					PO.MasterCompanyId,
@@ -69,6 +78,7 @@ BEGIN
 					LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
 					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
+					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @POModuleId AND AA.ReffranceId = PO.PurchaseOrderId AND AA.IsShippingAdd = 1
 				WHERE ISNULL(PO.QuickBooksReferenceId, 0) = 0 AND ISNULL(PO.IsUpdated, 0) = 1 AND PO.PurchaseOrderId = @ReferenceId AND PO.MasterCompanyId = @MasterCompanyId
 				GROUP BY PO.PurchaseOrderId,
 					PO.PurchaseOrderNumber,
@@ -79,8 +89,18 @@ BEGIN
 					GL.AccountName,
 					GL.QuickBooksReferenceId,
 					POP.PartNumber,
+					POP.PartDescription,
 					POP.UnitCost,
 					POP.ExtendedCost,
+					PO.VendorContactEmail,
+					AA.AddressId,
+					AA.Line1,
+					AA.Line2,
+					AA.City,
+					AA.StateOrProvince,
+					AA.PostalCode,
+					AA.CountryId,
+					AA.Country,
 					POP.QuantityOrdered,
 					PO.MasterCompanyId,
 					PO.UpdatedBy
@@ -94,7 +114,7 @@ BEGIN
 					ROP.RepairOrderPartRecordId,
 					IM.QuickBooksReferenceId AS IMQuickBooksReferenceId,
 					ROP.PartNumber,
-					--POP.PartDescription,
+					ROP.PartDescription,
 					ROP.UnitCost,
 					SUM(ISNULL(ROP.ExtendedCost, 0)) AS TotalAmt,
 					ROP.QuantityOrdered,
@@ -103,6 +123,15 @@ BEGIN
 					--GL.QuickBooksReferenceId AS POAPAccountValue,
 					--GL.AccountName AS POAPAccountName,
 					ISNULL(ROP.ExtendedCost, 0) AS Amount,
+					RO.VendorContactEmail,
+					UPPER(AA.AddressId) AS AddressId,
+					UPPER(AA.Line1) AS AddressLine1,
+					UPPER(AA.Line2) AS AddressLine2,
+					UPPER(AA.City) AS City,
+					UPPER(AA.StateOrProvince) StateOrProvince,
+					AA.PostalCode,
+					AA.CountryId,
+					UPPER(AA.Country) Country,
 					@InvModuleName AS ModuleName,
 					@InvModuleId AS ModuleId,
 					RO.MasterCompanyId,
@@ -114,6 +143,7 @@ BEGIN
 					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
 					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @ROModuleId AND AA.ReffranceId = RO.RepairOrderId AND AA.IsShippingAdd = 1
 				WHERE ISNULL(RO.QuickBooksReferenceId, 0) = 0 AND ISNULL(RO.IsUpdated, 0) = 1 AND RO.RepairOrderId = @ReferenceId AND RO.MasterCompanyId = @MasterCompanyId
 				GROUP BY RO.RepairOrderId,
 					RO.RepairOrderNumber,
@@ -124,8 +154,18 @@ BEGIN
 					GL.AccountName,
 					GL.QuickBooksReferenceId,
 					ROP.PartNumber,
+					ROP.PartDescription,
 					ROP.UnitCost,
 					ROP.ExtendedCost,
+					RO.VendorContactEmail,
+					AA.AddressId,
+					AA.Line1,
+					AA.Line2,
+					AA.City,
+					AA.StateOrProvince,
+					AA.PostalCode,
+					AA.CountryId,
+					AA.Country,
 					ROP.QuantityOrdered,
 					RO.MasterCompanyId,
 					RO.UpdatedBy

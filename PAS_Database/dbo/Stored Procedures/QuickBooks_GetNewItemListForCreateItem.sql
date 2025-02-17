@@ -34,7 +34,7 @@ BEGIN
 		BEGIN
 			SELECT IM.ItemMasterId, 
 				IM.partnumber, 
-				CASE WHEN UPPER(im.ItemGroup) = 'N/A' THEN '' ELSE im.ItemGroup + ' ' END + IM.PartDescription,
+				IM.PartDescription,
 				IM.ManufacturerId,
 				IM.ManufacturerName,
 				--CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  

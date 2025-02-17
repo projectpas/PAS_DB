@@ -20,6 +20,7 @@
 	4    12/11/2024   Devendra Shekh	 Modified(added LastSycDate to select)
 	5    17/12/2024   Devendra Shekh	 Modified(added Changes for Credit Terms)
 	6	 03/02/2025	  Devendra Shekh	 Modified (Using [AccountingModule] table for Accounting Modules)
+	7	 17/02/2025	  Devendra Shekh	 Modified (added @IsDeleted param and using [DisplayTitle] for ModuleName )
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -43,7 +44,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@Interval int = NULL,
 	@TotalCount int = NULL,
 	@PendingSyncRecords int = NULL,
-	@SyncRecords int = NULL
+	@SyncRecords int = NULL,
+	@IsDeleted bit = NUll
 AS
 BEGIN
 	
@@ -180,7 +182,7 @@ BEGIN
 					ACI.LastRun,
 					ACI.Interval,
 					ACI.ModuleId,
-					ACI.ModuleName,
+					ACI.[DisplayTitle] AS ModuleName,
 					ACI.MasterCompanyId,			
 					CASE  
 						WHEN ACI.ModuleId = @CustomerModuleId THEN ISNULL(SR.CustQuickBookCount, 0)
@@ -215,13 +217,15 @@ BEGIN
 					ACI.IsDeleted,
 					ACS.RedirectUrl,
 					'Connect' AS [IntigrationStatus],
-					ACI.LastRun AS LastSycDate
+					ACI.LastRun AS LastSycDate,
+					ISNULL(ACI.AllowBulkSync, 0) AS AllowBulkSync
 			FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 					LEFT JOIN #InsertedSyncRecords SR WITH (NOLOCK) ON SR.MasterCompanyId = ACI.MasterCompanyId 
 					LEFT JOIN #InsertedPendingSyncRecords PSR WITH (NOLOCK) ON PSR.MasterCompanyId = ACI.MasterCompanyId
 					LEFT JOIN #InsertedTotalRecords TR WITH (NOLOCK) ON TR.MasterCompanyId = ACI.MasterCompanyId
 					LEFT JOIN dbo.AccountingIntegrationSetup ACS WITH (NOLOCK) ON ACS.MasterCompanyId = ACI.MasterCompanyId AND ACS.IntegrationId = ACI.IntegrationId
-			WHERE ACI.MasterCompanyId = @MasterCompanyId --AND ( AND (@IsActive IS NULL OR ACI.IsActive = @IsActive))
+			WHERE	ACI.MasterCompanyId = @MasterCompanyId --AND ( AND (@IsActive IS NULL OR ACI.IsActive = @IsActive))
+					AND (@IsDeleted IS NULL OR @IsDeleted = ACI.IsDeleted)
 			), ResultCount AS(SELECT COUNT(AccountingIntegrationSettingsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND ((IntegrationWith LIKE '%' +@GlobalFilter+'%') OR

@@ -560,14 +560,14 @@ SET NOCOUNT ON;
 									@Figure NVARCHAR(MAX), @TaskId BIGINT, @Quantity INT, 
 									@UnitCost DECIMAL(18,2), @ExtendedCost DECIMAL(18,2), 
 									@MaterialMandatoriesName NVARCHAR(MAX), @Memo NVARCHAR(MAX),
-									@IsDeferred BIT
+									@IsDeferred BIT, @WorkflowMaterialListId BIGINT
 
 							DECLARE newmaterial_cursors CURSOR FOR
-							SELECT ItemMasterId, ConditionCodeId, Item, Figure, TaskId, Quantity, UnitCost, ExtendedCost, MaterialMandatoriesName, Memo, IsDeferred
+							SELECT ItemMasterId, ConditionCodeId, Item, Figure, TaskId, Quantity, UnitCost, ExtendedCost, MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
 							FROM DBO.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
 
 							OPEN newmaterial_cursors
-							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred
+							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
 
 							WHILE @@FETCH_STATUS = 0
 							BEGIN
@@ -692,13 +692,13 @@ SET NOCOUNT ON;
 											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
 											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, @UnitCost, @ExtendedCost, 
 											   @Memo, @IsDeferred, @ProvisionId, @Figure, @Item, 1
-										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId;
+										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId;
 									END
 								END
 
 								UPDATE DBO.WorkOrderMaterials SET IsFromWorkFlow = 1 WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
-								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred
+								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
 							END
 
 							CLOSE newmaterial_cursors

@@ -355,7 +355,7 @@ BEGIN
 							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsId   
 							FROM dbo.WorkOrderMaterials WOM  WITH(NOLOCK)
 							JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
-							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0 AND WOM.MasterCompanyId = WOMS.MasterCompanyId
 							GROUP BY WOM.WorkOrderMaterialsId
 						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)	
 						

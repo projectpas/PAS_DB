@@ -15,7 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------   
 	1    02/10/2025   HEMANT SALIYA		Initial Drafted
-	1    02/11/2025   HEMANT SALIYA		Handel for Task Based or Teardown Based.
+	2    02/17/2025   HEMANT SALIYA		Handel for Task Based or Teardown Based.
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -199,7 +199,8 @@ SET NOCOUNT ON;
 												1 AS IsActive,
 												0 AS IsDeleted,
 												@workOrderPartNumberId AS WorkOrderPartNumberId,
-												(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+												--(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+												ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
 												T.IsPrintInWO AS IsIncludeInPrint,											
 												0 as HasInstruction,
 												T.[Description] as TaskName,
@@ -359,7 +360,7 @@ SET NOCOUNT ON;
 											1 AS IsActive,
 											0 AS IsDeleted,
 											@workOrderPartNumberId AS WorkOrderPartNumberId,
-											(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+											ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
 											T.IsPrintInWO AS IsIncludeInPrint,											
 											0 as HasInstruction,
 											T.[Description] as TaskName,
@@ -599,7 +600,7 @@ SET NOCOUNT ON;
 												1 AS IsActive,
 												0 AS IsDeleted,
 												@workOrderPartNumberId AS WorkOrderPartNumberId,
-												(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+												ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
 												T.IsPrintInWO AS IsIncludeInPrint,											
 												0 as HasInstruction,
 												T.[Description] as TaskName,
@@ -772,7 +773,7 @@ SET NOCOUNT ON;
 													1 AS IsActive,
 													0 AS IsDeleted,
 													@workOrderPartNumberId AS WorkOrderPartNumberId,
-													(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+													ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
 													T.IsPrintInWO AS IsIncludeInPrint,											
 													0 as HasInstruction,
 													T.[Description] as TaskName,
@@ -946,7 +947,7 @@ SET NOCOUNT ON;
 													1 AS IsActive,
 													0 AS IsDeleted,
 													@workOrderPartNumberId AS WorkOrderPartNumberId,
-													(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+													ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
 													T.IsPrintInWO AS IsIncludeInPrint,											
 													0 as HasInstruction,
 													T.[Description] as TaskName,
@@ -1125,7 +1126,7 @@ SET NOCOUNT ON;
 											1 AS IsActive,
 											0 AS IsDeleted,
 											@workOrderPartNumberId AS WorkOrderPartNumberId,
-											(SELECT ISNULL(MAX([SequenceNumber]), 0) + 1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId) ,
+											ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
 											T.IsPrintInWO AS IsIncludeInPrint,
 											0 as HasInstruction,
 											T.[Description] as TaskName,

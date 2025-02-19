@@ -9,7 +9,7 @@
     [NTE]                        VARCHAR (30)    NULL,
     [Quantity]                   INT             NOT NULL,
     [StockLineId]                BIGINT          NOT NULL,
-    [CMMId]                      BIGINT          NULL,
+    [CMMIds]                     VARCHAR (256)   NULL,
     [WorkflowId]                 BIGINT          NULL,
     [WorkOrderStageId]           BIGINT          NOT NULL,
     [WorkOrderStatusId]          BIGINT          NOT NULL,
@@ -71,8 +71,8 @@
     [ManufacturerName]           VARCHAR (250)   NULL,
     [TechName]                   VARCHAR (100)   NULL,
     [EmployeeStation]            VARCHAR (100)   NULL,
+    [PublicationNo]              VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_WorkOrderPartNumber] PRIMARY KEY CLUSTERED ([ID] ASC),
-    CONSTRAINT [FK_WorkOrderPartNumber_CMMId] FOREIGN KEY ([CMMId]) REFERENCES [dbo].[Publication] ([PublicationRecordId]),
     CONSTRAINT [FK_WorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderPartNumber_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderPartNumber_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -108,8 +108,9 @@
 
 
 
-GO
 
+
+GO
 
 ----------------------------------------------
 
@@ -139,7 +140,7 @@ BEGIN
 
 	SELECT @ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@ConditionId=ConditionId,
 
-	@StockLineId=StockLineId,@PublicationId=CMMId,@WorkflowId=WorkflowId,@StageId=WorkOrderStageId,@StatusId=WorkOrderStatusId,
+	@StockLineId=StockLineId,@WorkflowId=WorkflowId,@StageId=WorkOrderStageId,@StatusId=WorkOrderStatusId,
 
 	@PriorityId=WorkOrderPriorityId,@TechId=TechnicianId,@TechStationId=TechStationId
 
@@ -186,7 +187,7 @@ BEGIN
 
 	SELECT @StockLineNum=StockLineNumber,@SerialNum=SerialNumber  FROM Stockline WHERE StockLineId=@StockLineId
 
-	SELECT @PublicationNum=PublicationId FROM Publication WHERE PublicationRecordId=@PublicationId
+	--SELECT @PublicationNum=PublicationId FROM Publication WHERE PublicationRecordId=@PublicationId
 
 	SELECT @WorkflowNum=WorkOrderNumber FROM Workflow WHERE WorkflowId=@WorkflowId
 
@@ -221,7 +222,7 @@ BEGIN
 
       ,[StockLineId]
 
-      ,[CMMId]
+      ,[CMMIds]
 
       ,[WorkflowId]
 
@@ -345,7 +346,7 @@ BEGIN
 
       ,[StockLineId]
 
-      ,[CMMId]
+      ,[CMMIds]
 
       ,[WorkflowId]
 
@@ -405,7 +406,7 @@ BEGIN
 
 	,@PartNum,@PartDesc,@RevisedPartNum,@ItemGroup,@CustRefNo,@MangLevel1,@MangLevel2,@MangLevel3,@MangLevel4,
 
-	@Condition,@StockLineNum,@SerialNum,@PublicationNum,@WorkflowNum,@Stage,@Status,@Priority,@TechName,@TechStation
+	@Condition,@StockLineNum,@SerialNum,PublicationNo,@WorkflowNum,@Stage,@Status,@Priority,@TechName,@TechStation
 
 	  ,[WorkOrderStatus]
 

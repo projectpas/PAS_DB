@@ -16,6 +16,8 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 5	17 Sep 2024 Bhargav Saliya      address convert into single string value
 ** 6    08 Nov 2024 Sahdev Saliya       Added New Field RevisedSerialNumber
 ** 7    11 Feb 2025 RAJESH GAMI         Change the call function to store procedure (For the merge address) due to performance
+** 8    17/02/2025  Moin Bloch          Updated (Added Publication PublicationNo)
+
 EXEC RPT_GetWorkOrderPrintPdfData 4398,3937
 
 **************************************************************/
@@ -162,7 +164,8 @@ BEGIN
 			wo.UpdatedDate,            
 			  CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN UPPER(con.Description) ELSE UPPER(wosc.conditionName) END as ReceivedCond,            
 			  UPPER(wop.WorkScope) as WorkScope,            
-			  UPPER(Pub.PublicationId) as PublicationName,            
+			  --UPPER(Pub.PublicationId) as PublicationName, 
+			  UPPER(wop.PublicationNo) as PublicationName, 			  
 			  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
 			  @TravelerName as TravelerName        
 			  ,Isnull(wost.IsManualForm,0) as IsManualForm    
@@ -197,7 +200,7 @@ BEGIN
 			LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
 			LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
 			LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = wop.ConditionId            
-			LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
+			--LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
 			LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 			LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
 			LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    

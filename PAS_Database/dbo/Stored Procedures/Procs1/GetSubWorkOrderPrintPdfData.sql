@@ -12,6 +12,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
 ** 2    12/21/2023  Devendra Shekh   sub print form issue resolved
 ** 3    20/02/2024  Shrey Chandegara  Updated for Technum is getting wrong.
+** 4    17/02/2025   Moin Bloch       Updated (Added Publication PublicationNo)
 
 EXEC GetSubWorkOrderPrintPdfData 573,559
 
@@ -102,7 +103,8 @@ AS
 				wo.UpdatedDate,            
 				  CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN UPPER(con.Description) ELSE UPPER(wosc.conditionName) END as ReceivedCond,            
 				  UPPER(wop.WorkScope) as WorkScope,            
-				  UPPER(Pub.PublicationId) as PublicationName,            
+				  --UPPER(Pub.PublicationId) as PublicationName, 
+				  UPPER(wop.PublicationNo) as PublicationName, 
 				  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
 				  @TravelerName as TravelerName,        
 				  Isnull(wost.IsManualForm,0) as IsManualForm,    
@@ -138,7 +140,7 @@ AS
 				LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
 				LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
 				LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = wop.ConditionId            
-				LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
+				--LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
 				LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 				LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
 				LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    

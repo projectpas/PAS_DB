@@ -19,6 +19,7 @@
 	8	12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
 	9	01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	10  17-02-2025      Shrey Chandegara        Modified Due to Add @IsDownload.
+	11  18-02-2025      Shrey Chandegara        Modified Due to Add @IsParent
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -32,7 +33,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,
 	@ShowPendingToIssue BIT  = 0,
-	@IsDownload BIT = 0
+	@IsDownload BIT = 0,
+	@IsParent BIT = 0
 )    
 AS    
 BEGIN    
@@ -1445,7 +1447,10 @@ SET NOCOUNT ON
 				@IsFullyIssued AS IsFullyIssued,
 				ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost
 				FROM #finalMaterialListResult FR
-				WHERE @IsDownload = 0 OR FR.StockLineNumber IS NOT NULL
+				WHERE --@IsDownload = 0 OR FR.StockLineNumber IS NOT NULL
+				(@IsDownload = 1 AND @IsParent = 0 AND FR.StockLineNumber IS NOT NULL)
+			    OR (@IsDownload = 1 AND @IsParent = 1)
+				OR @IsDownload = 0
 				ORDER BY    
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC
 					,CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partNumber')  THEN partNumber END ASC,  

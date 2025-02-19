@@ -24,6 +24,7 @@
 	7    10/01/2025   Sahdev Saliya     Added Defult site as per setting while add new item 
 	8    24/01/2025   Sahdev Saliya     Added According To The Default Site Management Structure When Adding New items  
     9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
+   10    19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -213,6 +214,11 @@ AS BEGIN
                              FROM dbo.Site IM WITH(NOLOCK)
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.SiteId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          END
+						 ELSE IF(@TableName = 'TaxType') BEGIN
+							  SELECT TY.TaxTypeId as Value, TY.Description as Label, TY.Code
+								 FROM dbo.TaxType TY WITH(NOLOCK)
+							  WHERE TY.MasterCompanyId=@MasterCompanyId AND TY.IsActive = 1 AND TY.IsDeleted = 0;
+						 END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  

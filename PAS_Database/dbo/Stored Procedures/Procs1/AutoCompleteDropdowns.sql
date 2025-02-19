@@ -25,6 +25,7 @@
 	8    24/01/2025   Sahdev Saliya     Added According To The Default Site Management Structure When Adding New items  
     9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
 	10   14/Feb/2025  RAJESH GAMI  	    Return fields: PublicationTemplate  for PublicationType Table
+	11   19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -247,6 +248,11 @@ AS BEGIN
                                   WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                   ORDER BY PublicationTypeId DESC
                          END
+						  ELSE IF(@TableName = 'TaxType') BEGIN
+							  SELECT TY.TaxTypeId as Value, TY.Description as Label, TY.Code
+								 FROM dbo.TaxType TY WITH(NOLOCK)
+							  WHERE TY.MasterCompanyId=@MasterCompanyId AND TY.IsActive = 1 AND TY.IsDeleted = 0;
+						 END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -498,5 +504,5 @@ AS BEGIN
         EXEC spLogException @DatabaseName=@DatabaseName, @AdhocComments=@AdhocComments, @ProcedureParameters=@ProcedureParameters, @ApplicationName=@ApplicationName, @ErrorLogID=@ErrorLogID OUTPUT;
         RAISERROR('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
         RETURN (1);
-    END CATCH
+    END CATCH
 END

@@ -372,7 +372,7 @@ BEGIN
 							   ,[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid]
 							   ,[RevisedPartNumber],[RevisedPartDescription],[IsTraveler])
 							SELECT @InsertedWorkOrderId, @WorkScopeId, DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), CAST(WO.EntryDate AS DATETIME2), DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)),
-								DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), @NTE, (CAST(ISNULL(WO.KitQty, 0) AS INT)), @StockLineId,(CAST(ISNULL(@CMMId, NULL) AS VARCHAR(100))), @WorkflowId, @WorkOrderStageId, @WorkOrderStatusId,
+								DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), @NTE, (CAST(ISNULL(WO.KitQty, 0) AS INT)), @StockLineId,(CAST(ISNULL(@CMMId, NULL) AS VARCHAR(256))), @WorkflowId, @WorkOrderStageId, @WorkOrderStatusId,
 								@PriorityId, @IsPma, @IsDER, @StationId, @TATDaysStandard, @FromMasterComanyID, @UserName, @UserName,
 								CAST(WO.EntryDate AS DATETIME2), CAST(WO.EntryDate AS DATETIME2), 1, 0, @ItemMaster_Id, NULL, @ConditionId, 0,
 								NULL, @ManagementStructureId, 0, NULL, @WorkScopeName, 0, CAST(WO.EntryDate AS DATETIME2),

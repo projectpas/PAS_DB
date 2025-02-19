@@ -11,7 +11,7 @@
     [NTE]                     INT            NULL,
     [Quantity]                INT            NOT NULL,
     [StockLineId]             BIGINT         NULL,
-    [CMMId]                   BIGINT         NULL,
+    [CMMIds]                  VARCHAR (256)  NULL,
     [WorkflowId]              BIGINT         NULL,
     [SubWorkOrderStageId]     BIGINT         NOT NULL,
     [SubWorkOrderStatusId]    BIGINT         NOT NULL,
@@ -42,8 +42,8 @@
     [IsTransferredToParentWO] BIT            NULL,
     [RevisedStockLineId]      BIGINT         NULL,
     [RevisedSerialNumber]     VARCHAR (50)   NULL,
+    [PublicationNo]           VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumber] PRIMARY KEY CLUSTERED ([SubWOPartNoId] ASC),
-    CONSTRAINT [FK_SubWorkOrderPartNumber_CMM] FOREIGN KEY ([CMMId]) REFERENCES [dbo].[Publication] ([PublicationRecordId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -59,6 +59,8 @@
     CONSTRAINT [FK_SubWorkOrderPartNumber_Workflow] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 
@@ -95,3 +97,34 @@ BEGIN
 
 
 END
+GO
+CREATE TRIGGER trg_Update_PublicationNo_SubWOPartNumber
+ON SubWorkOrderPartNumber
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @TempCMM TABLE (
+        SubWOPartNoId BIGINT,
+        CMMId BIGINT
+    );
+
+    -- Insert split CMMIds into the temporary table
+    INSERT INTO @TempCMM (SubWOPartNoId, CMMId)
+    SELECT s.SubWOPartNoId, value
+    FROM inserted s
+    CROSS APPLY STRING_SPLIT(s.CMMIds, ',');
+
+
+    UPDATE s
+    SET s.PublicationNo = STUFF((
+        SELECT ',' + p.PublicationId
+        FROM @TempCMM t
+        INNER JOIN Publication p ON t.CMMId = p.PublicationRecordId
+        WHERE t.SubWOPartNoId = s.SubWOPartNoId
+        FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '')
+    FROM SubWorkOrderPartNumber s
+    INNER JOIN inserted i ON s.SubWOPartNoId = i.SubWOPartNoId;
+
+END;

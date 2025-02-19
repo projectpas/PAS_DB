@@ -19,7 +19,7 @@
 	2    07/19/2021   Hemant Saliya Added SP Call for WO Status Update
 	3    10/16/2024   Moin Bloch    Updated RevisedPartDescription if not exists
 	4    10/21/2024   Devendra Shekh	added Fields for WPN update
-     
+    5    14/Feb/2025  RAJESH GAMI	added PublicationNo in WO Part Number
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
 
@@ -126,7 +126,18 @@ BEGIN
 					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WPN.[RevisedItemmasterid]
 					WHERE WPN.[ID] = @WorkOrderPartNumberId
-				END		
+				END
+								
+				UPDATE WOPN
+					SET WOPN.PublicationNo = (
+						SELECT STRING_AGG(P.PublicationId, ',') 
+						FROM Publication P
+						WHERE 
+							WOPN.CMMIds IS NOT NULL AND 
+							(WOPN.CMMIds = CAST(P.PublicationRecordId AS VARCHAR) OR
+							 ',' + WOPN.CMMIds + ',' LIKE '%,' + CAST(P.PublicationRecordId AS VARCHAR) + ',%')
+					)
+					FROM WorkOrderPartNumber WOPN;
 
 			END
 		COMMIT  TRANSACTION

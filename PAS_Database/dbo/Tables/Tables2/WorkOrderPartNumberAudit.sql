@@ -10,7 +10,7 @@
     [NTE]                        VARCHAR (30)    NULL,
     [Quantity]                   INT             NOT NULL,
     [StockLineId]                BIGINT          NOT NULL,
-    [CMMId]                      BIGINT          NULL,
+    [CMMIds]                     VARCHAR (256)   NULL,
     [WorkflowId]                 BIGINT          NULL,
     [WorkOrderStageId]           BIGINT          NOT NULL,
     [WorkOrderStatusId]          BIGINT          NOT NULL,
@@ -82,8 +82,11 @@
     [WorkOrderStage]             VARCHAR (150)   NULL,
     [ManufacturerName]           VARCHAR (250)   NULL,
     [EmployeeStation]            VARCHAR (100)   NULL,
+    [PublicationNo]              VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

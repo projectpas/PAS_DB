@@ -15,7 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    12/28/2023   Vishal Suthar		Created
-  
+    2    17/02/2025   Moin Bloch        Updated (Added Publication CMMIds)
 
 declare @p5 int
 set @p5=NULL
@@ -364,7 +364,7 @@ BEGIN
 							SELECT TOP 1 @ManagementStructureId = MS.ManagementStructureId FROM DBO.ManagementStructure MS WHERE [MasterCompanyId] = @FromMasterComanyID;
 
 							INSERT INTO [dbo].[WorkOrderPartNumber]([WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate]
-							   ,[EstimatedCompletionDate],[NTE],[Quantity],[StockLineId],[CMMId],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId]
+							   ,[EstimatedCompletionDate],[NTE],[Quantity],[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId]
 							   ,[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],[UpdatedBy]
 							   ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent]
 							   ,[RevisedPartId],[ManagementStructureId],[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate]
@@ -372,7 +372,7 @@ BEGIN
 							   ,[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid]
 							   ,[RevisedPartNumber],[RevisedPartDescription],[IsTraveler])
 							SELECT @InsertedWorkOrderId, @WorkScopeId, DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), CAST(WO.EntryDate AS DATETIME2), DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)),
-								DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), @NTE, (CAST(ISNULL(WO.KitQty, 0) AS INT)), @StockLineId, @CMMId, @WorkflowId, @WorkOrderStageId, @WorkOrderStatusId,
+								DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), @NTE, (CAST(ISNULL(WO.KitQty, 0) AS INT)), @StockLineId,(CAST(ISNULL(@CMMId, NULL) AS VARCHAR(256))), @WorkflowId, @WorkOrderStageId, @WorkOrderStatusId,
 								@PriorityId, @IsPma, @IsDER, @StationId, @TATDaysStandard, @FromMasterComanyID, @UserName, @UserName,
 								CAST(WO.EntryDate AS DATETIME2), CAST(WO.EntryDate AS DATETIME2), 1, 0, @ItemMaster_Id, NULL, @ConditionId, 0,
 								NULL, @ManagementStructureId, 0, NULL, @WorkScopeName, 0, CAST(WO.EntryDate AS DATETIME2),

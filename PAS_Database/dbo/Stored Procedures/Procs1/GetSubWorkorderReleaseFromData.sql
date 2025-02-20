@@ -21,6 +21,7 @@ EXEC [GetSubWorkorderReleaseFromData]
    10	31/12/2024  Devendra Shekh   Replaced NA with Empty String for Batchnumber
    11   18/02/2025  Moin Bloch       Updated (Added Publication CMMIds)
    12   19/02/2025  Moin Bloch       Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise)
+   13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
     
 EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
     
@@ -75,6 +76,11 @@ BEGIN
 		FROM [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) 
 		WHERE wop.[SubWOPartNoId] = @SubWOPartNoId AND [MasterCompanyId] = @MasterCompanyId
 
+		IF(@CMMIds = '')
+		BEGIN
+			SET @CMMIds = NULL
+		END
+
 		IF(@CMMIds IS NOT NULL)
 		BEGIN
 			INSERT INTO #tmprCMMIDsDetails ([CMMId])
@@ -127,7 +133,14 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SELECT TOP 1 @EmailBody = [EmailBody] FROM [dbo].[PublicationTemplate] PT WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId		
+			IF(@CMMIds IS NOT NULL)
+			BEGIN
+				SELECT TOP 1 @EmailBody = [EmailBody] FROM [dbo].[PublicationTemplate] PT WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId	
+			END
+			ELSE
+			BEGIN
+				SELECT @EmailBody = '';
+			END
 		END
 
 		IF(@MasterCompanyId <> @ECMasterCompanyId AND @MasterCompanyId <> @NeoMasterCompanyId)

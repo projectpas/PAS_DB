@@ -16,6 +16,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 5    27/12/2024      Devendra Shekh      Resolved Design Issue while Print form
 ** 6    18/02/2025      Moin Bloch          Updated (Added Publication CMMIds)
 ** 7    19/02/2025      Moin Bloch          Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise)
+** 8    20/02/2025      Moin Bloch          Updated (Checked @CMMIds Empty)
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 **************************************************************/ 
@@ -67,6 +68,11 @@ BEGIN
 		SELECT @CMMIds = wop.[CMMIds]
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 		WHERE wop.[ID]=@workOrderPartNumberId AND [MasterCompanyId] = @MasterCompanyId
+
+		IF(@CMMIds = '')
+		BEGIN
+			SET @CMMIds = NULL
+		END
 
 		IF(@CMMIds IS NOT NULL)
 		BEGIN
@@ -122,7 +128,14 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SELECT TOP 1 @EmailBody = [EmailBody] FROM [dbo].[PublicationTemplate] PT WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId		
+			IF(@CMMIds IS NOT NULL)
+			BEGIN
+				SELECT TOP 1 @EmailBody = [EmailBody] FROM [dbo].[PublicationTemplate] PT WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId	
+			END
+			ELSE
+			BEGIN
+				SELECT @EmailBody = '';
+			END
 		END
 
 		IF(@MasterCompanyId <> @ECMasterCompanyId AND @MasterCompanyId <> @NeoMasterCompanyId)

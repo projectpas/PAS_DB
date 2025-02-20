@@ -10,13 +10,14 @@
     [UpdatedDate]          DATETIME2 (7)  CONSTRAINT [ATAChapter_DC_UDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]             BIT            CONSTRAINT [ATAChapter_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT            CONSTRAINT [ATAChapter_DC_Delete] DEFAULT ((0)) NOT NULL,
-    [ATAChapterCategoryId] INT            NOT NULL,
+    [ATAChapterCategoryId] INT            NULL,
     CONSTRAINT [ATA_Chapter] PRIMARY KEY CLUSTERED ([ATAChapterId] ASC),
     CONSTRAINT [FK_ATAChapter_ATAChapterCategory] FOREIGN KEY ([ATAChapterCategoryId]) REFERENCES [dbo].[ATAChapterCategory] ([ATAChapterCategoryId]),
     CONSTRAINT [FK_ATAChapter_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [Unique_ATAChapterCode] UNIQUE NONCLUSTERED ([ATAChapterCode] ASC, [MasterCompanyId] ASC),
-    CONSTRAINT [Unique_ATAChapterName] UNIQUE NONCLUSTERED ([ATAChapterName] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [Unique_ATAChapterCode] UNIQUE NONCLUSTERED ([ATAChapterCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

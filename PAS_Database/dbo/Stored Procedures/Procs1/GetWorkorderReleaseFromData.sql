@@ -20,7 +20,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 9    27/12/2024  Devendra Shekh   Resolved Design Issue while Print form
 ** 10	31/12/2024  Devendra Shekh   Replace NA with Empty String for BatchNumber
 ** 11   14/02/2025  Moin Bloch       Updated (Added Publication CMMIds)
-** 12   19/02/2025  Moin Bloch       Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise)
+** 12   19/02/2025  Moin Bloch       Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise checked @CMMIds Empty)
+** 13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
 **************************************************************/ 
@@ -67,6 +68,11 @@ BEGIN
 		SELECT @CMMIds = wop.[CMMIds]
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 		WHERE wop.[WorkOrderId] = @WorkOrderId AND wop.[ID]=@workOrderPartNumberId AND [MasterCompanyId] = @MasterCompanyId
+
+		IF(@CMMIds = '')
+		BEGIN
+			SET @CMMIds = NULL
+		END
 
 		IF(@CMMIds IS NOT NULL)
 		BEGIN
@@ -119,8 +125,15 @@ BEGIN
 			END
 		END
 		ELSE
-		BEGIN
-			SELECT TOP 1 @EmailBody = [EmailBody] FROM [dbo].[PublicationTemplate] PT WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId		
+		BEGIN			
+			IF(@CMMIds IS NOT NULL)
+			BEGIN
+				SELECT TOP 1 @EmailBody = [EmailBody] FROM [dbo].[PublicationTemplate] PT WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId	
+			END
+			ELSE
+			BEGIN
+				SELECT @EmailBody = '';
+			END
 		END
 
 		IF(@MasterCompanyId <> @ECMasterCompanyId AND @MasterCompanyId <> @NeoMasterCompanyId)
@@ -314,8 +327,8 @@ BEGIN
 					--	+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 					--	+ '</div>') Remarks,  
 						 (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
-						+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-						+ '</div>' FooterRemarks,  
+					   + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
+					   + '</div>' FooterRemarks,  
 						UPPER(le.EASALicense) AS EASALicense,  
 						@EmailBody AS EmailBody
 			FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   

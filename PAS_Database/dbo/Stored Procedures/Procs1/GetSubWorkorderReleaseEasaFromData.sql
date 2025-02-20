@@ -9,12 +9,16 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN  
+		--BEGIN TRANSACTION
+		--	BEGIN  
 				    DECLARE @WorkOrderSettlementId INT;
 				    DECLARE @ManagementStructureId INT;
 					DECLARE @WopartId INT;
 				    DECLARE @MSModuleId INT;
+					DECLARE @CMMIds VARCHAR(200) = NULL;			
+					DECLARE @IsMultiple BIT = NULL;
+					DECLARE @EmailBody NVARCHAR(MAX)=''
+					DECLARE @MasterCompanyId INT;  
 				    SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
 					SELECT @WorkOrderSettlementId = WS.WorkOrderSettlementId FROM DBO.WorkOrderSettlement WS WITH (NOLOCK) 
@@ -23,7 +27,61 @@ BEGIN
 			        SELECT @WopartId = WS.ID,@ManagementStructureId=ws.ManagementStructureId FROM DBO.SubWorkOrderPartNumber sWS WITH (NOLOCK) inner join WorkOrderPartNumber ws on sws.WorkOrderId=ws.WorkOrderId 
 					WHERE sWS.SubWorkOrderId = @SubWorkOrderId
 
-				SELECT 
+					IF OBJECT_ID(N'tempdb..#tmprCMMIDsDetails') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmprCMMIDsDetails
+					END		
+		
+					CREATE TABLE #tmprCMMIDsDetails
+					(
+						[ID] BIGINT NOT NULL IDENTITY, 
+						[CMMId] BIGINT NULL
+					)
+
+					SELECT @CMMIds = wop.[CMMIds]
+					FROM [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) 
+					WHERE wop.[SubWOPartNoId]=@SubWOPartNoId 
+
+					IF(@CMMIds IS NOT NULL)
+					BEGIN
+						INSERT INTO #tmprCMMIDsDetails ([CMMId])
+						SELECT [PublicationRecordId] --(SELECT Item FROM DBO.SPLITSTRING(wop.CMMIds, ',')) AS cmmids 
+						FROM [dbo].[Publication] WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
+					END	
+
+					IF(@CMMIds IS NOT NULL)
+					BEGIN			
+						IF CHARINDEX(',', @CMMIds) > 0
+						BEGIN
+							SET @IsMultiple = 1
+						END
+						ELSE
+						BEGIN
+							SET @IsMultiple = 0
+						END
+					END
+
+					IF(@CMMIds IS NOT NULL)
+					BEGIN
+						IF(@IsMultiple = 1)
+						BEGIN
+							SELECT @EmailBody = [EmailBody] FROM 
+								[dbo].[PublicationTemplate] PT WITH(NOLOCK) 
+								WHERE [MasterCompanyId] = @MasterCompanyId AND [PublicationTypeId] = 0
+						END
+						ELSE
+						BEGIN
+							SELECT @EmailBody = [EmailBody]
+								FROM [dbo].[Publication] PC WITH(NOLOCK)
+								LEFT JOIN [dbo].[PublicationTemplate] PT WITH(NOLOCK) ON PT.[PublicationTypeId] = PC.[PublicationTypeId] and PT.[IsActive] = 1 AND PT.[IsDeleted] = 0
+								WHERE PC.[PublicationRecordId] = CAST(@CMMIds AS BIGINT) AND PC.[MasterCompanyId] = @MasterCompanyId 
+						END		
+					END
+
+					IF(@IsMultiple IS NULL OR @IsMultiple = 0 )
+					BEGIN
+
+					SELECT 
 						le.CompanyName as OrganizationName, 
 						ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince as OrganizationAddress ,
 						swo.SubWorkOrderNo as InvoiceNo,
@@ -49,8 +107,7 @@ BEGIN
 					    0 as is8130from,
 					    wop.CustomerRequestDate as ReceivedDate,
 						@ManagementStructureId as ManagementStructureId,
-						((CASE WHEN wop.CMMId is not null and wop.CMMId >0 THEN 
-						
+						((CASE WHEN @CMMIds IS NOT NULL THEN 						
 						'<p>' + ('Publication Id: ' + isnull(pub.PublicationId,0)) +'</p>' 
 					   +'<p>'+(CASE WHEN pub.PublishedById = 2 THEN 'Published By: ' + isnull(ven.VendorName,'-')
 								WHEN pub.PublishedById = 3 THEN 'Published By: ' +  isnull(mf.Name,'-')
@@ -74,18 +131,19 @@ BEGIN
 						LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
 						LEFT JOIN dbo.SubWorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9
 						LEFT JOIN dbo.ItemMaster ims WITH(NOLOCK) on ims.ItemMasterId = wosc.RevisedItemmasterid  
-						LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
+						LEFT JOIN DBO.Publication pub WITH(NOLOCK) on  pub.PublicationRecordId = @CMMIds
 					    LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 					    LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId
 					WHERE wop.SubWorkOrderId = @SubWorkOrderId and wop.SubWOPartNoId=@SubWOPartNoId
-			END
-		COMMIT  TRANSACTION
+
+					END
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
+				PRINT 'ROLLBACK'				
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetSubWorkorderReleaseEasaFromData' 

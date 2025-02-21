@@ -22,6 +22,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 11   14/02/2025  Moin Bloch       Updated (Added Publication CMMIds)
 ** 12   19/02/2025  Moin Bloch       Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise checked @CMMIds Empty)
 ** 13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
+** 14   21/02/2025  Moin Bloch       Updated (Fixed Condition Issue)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
 **************************************************************/ 
@@ -179,17 +180,14 @@ BEGIN
 					  le.CompanyName AS OrganizationName,  
 					  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
 					  wo.WorkOrderNum AS InvoiceNo,  
-					  '1' AS ItemName,  
-					  --Commented By Hemant to Get Updated Details From Work Order Part Number
-					  --CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,  
-					  --CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber,  
+					  '1' AS ItemName,  					  
 					  wop.RevisedPartDescription AS [Description],
 					  wop.RevisedPartNumber AS PartNumber,  
 					  wop.CustomerReference AS Reference,  
 					  wop.Quantity AS Quantity,  
 					  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 								ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status],
+					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 					  '' as Certifies,   
 					  0 AS approved ,  
 					  0 AS Nonapproved,  
@@ -205,7 +203,8 @@ BEGIN
 					  wop.ReceivedDate,  
 					  wop.ManagementStructureId AS ManagementStructureId, 
 					  @IsMultiple AS IsMultiple,				 
-					  UPPER(wosc.conditionName) AS ConditionName,
+					  --UPPER(wosc.conditionName) AS ConditionName,
+					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
@@ -269,17 +268,14 @@ BEGIN
 				  le.CompanyName AS OrganizationName,  
 				  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
 				  wo.WorkOrderNum AS InvoiceNo,  
-				  '1' AS ItemName,  
-				  --Commented By Hemant to Get Updated Details From Work Order Part Number
-				  --CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,  
-				  --CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber,  
+				  '1' AS ItemName,  				  
 				  wop.RevisedPartDescription AS [Description],
 				  wop.RevisedPartNumber AS PartNumber,  
 				  wop.CustomerReference AS Reference,  
 				  wop.Quantity AS Quantity,  
 				  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 							ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status],
+				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 				  '' as Certifies,   
 				  0 AS approved ,  
 				  0 AS Nonapproved,  
@@ -295,7 +291,8 @@ BEGIN
 				  wop.ReceivedDate,  
 				  wop.ManagementStructureId AS ManagementStructureId, 	
 				  @IsMultiple AS IsMultiple,				
-				  UPPER(wosc.conditionName) AS ConditionName,
+				  --UPPER(wosc.conditionName) AS ConditionName,
+				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
@@ -366,7 +363,7 @@ BEGIN
 					  wop.Quantity AS Quantity,  
 					  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 								ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status],
+					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 					  '' as Certifies,   
 					  0 AS approved ,  
 					  0 AS Nonapproved,  
@@ -381,8 +378,8 @@ BEGIN
 					  1 AS is8130from ,  
 					  wop.ReceivedDate,  
 					  wop.ManagementStructureId AS ManagementStructureId, 
-					  @IsMultiple AS IsMultiple,				 
-					  UPPER(wosc.conditionName) AS ConditionName,
+					  @IsMultiple AS IsMultiple,				 					  
+					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	

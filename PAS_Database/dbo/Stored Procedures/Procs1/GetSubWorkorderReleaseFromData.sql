@@ -194,8 +194,8 @@ BEGIN
 				  CASE WHEN ISNULL(wopn.CustomerReference, '') = '' THEN '-'
 					   ELSE wopn.CustomerReference END AS Reference,    
 				  wop.Quantity as Quantity,    
-				  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then '' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
-				  wosc.conditionName AS [status],    
+				  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then '' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    				
+				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 				  '' AS Certifies,     
 				  0 AS approved ,    
 				  0 AS Nonapproved,    
@@ -211,8 +211,8 @@ BEGIN
 				  --wopn.CustomerRequestDate AS ReceivedDate,    
 				  wopn.ReceivedDate,
 				  @ManagementStructureId AS ManagementStructureId,  
-				  @IsMultiple AS IsMultiple,				 
-				  UPPER(wosc.conditionName) AS ConditionName,
+				  @IsMultiple AS IsMultiple,
+				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
@@ -268,7 +268,8 @@ BEGIN
 				   LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId    
 				   LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedById = mf.ManufacturerId    
 				   LEFT JOIN [dbo].[WorkOrderPartNumber] wopn  WITH(NOLOCK) ON wopn.ID = swo.WorkOrderPartNumberId    
-				   LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId               
+				   LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId     
+				   LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 			 WHERE wop.SubWorkOrderId = @SubWorkOrderId AND wop.SubWOPartNoId=@SubWOPartNoId    
 			END
 			ELSE
@@ -292,8 +293,8 @@ BEGIN
 				  CASE WHEN ISNULL(wopn.CustomerReference, '') = '' THEN '-'
 					   ELSE wopn.CustomerReference END AS Reference,    
 				  wop.Quantity as Quantity,    
-				  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then '' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
-				  wosc.conditionName AS [status],    
+				  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then '' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    				 
+				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 				  '' AS Certifies,     
 				  0 AS approved ,    
 				  0 AS Nonapproved,    
@@ -309,8 +310,8 @@ BEGIN
 				  --wopn.CustomerRequestDate AS ReceivedDate,    
 				  wopn.ReceivedDate,
 				  @ManagementStructureId AS ManagementStructureId,  
-				  @IsMultiple AS IsMultiple,				 
-				  UPPER(wosc.conditionName) AS ConditionName,
+				  @IsMultiple AS IsMultiple,
+				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
@@ -367,7 +368,8 @@ BEGIN
 				   LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId    
 				   LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedById = mf.ManufacturerId    
 				   LEFT JOIN [dbo].[WorkOrderPartNumber] wopn  WITH(NOLOCK) ON wopn.ID = swo.WorkOrderPartNumberId    
-				   LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId               
+				   LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId  
+				   LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 			 WHERE wop.SubWorkOrderId = @SubWorkOrderId AND wop.SubWOPartNoId=@SubWOPartNoId  
 
 			END  
@@ -388,7 +390,7 @@ BEGIN
 					   ELSE wopn.CustomerReference END AS Reference,    
 				  wop.Quantity as Quantity,    
 				  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then '' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
-				  wosc.conditionName AS [status],    
+				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],				  
 				  '' AS Certifies,     
 				  0 AS approved ,    
 				  0 AS Nonapproved,    
@@ -405,7 +407,7 @@ BEGIN
 				  wopn.ReceivedDate,
 				  @ManagementStructureId AS ManagementStructureId,  
 				  @IsMultiple AS IsMultiple,				 
-				  UPPER(wosc.conditionName) AS ConditionName,
+				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
@@ -444,7 +446,8 @@ BEGIN
 				   LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId    
 				   LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedById = mf.ManufacturerId    
 				   LEFT JOIN [dbo].[WorkOrderPartNumber] wopn  WITH(NOLOCK) ON wopn.ID = swo.WorkOrderPartNumberId    
-				   LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId               
+				   LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId    
+				   LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 			 WHERE wop.SubWorkOrderId = @SubWorkOrderId AND wop.SubWOPartNoId=@SubWOPartNoId   
 		END
   END TRY        
@@ -454,9 +457,9 @@ BEGIN
     ROLLBACK TRAN;    
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
-              , @AdhocComments     VARCHAR(150)    = 'GetSubWorkorderReleaseFromData'     
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SubWorkOrderId, '') + '''    
-                @Parameter2 = ' + ISNULL(@SubWOPartNoId ,'') +''    
+              , @AdhocComments     VARCHAR(150)    = 'GetSubWorkorderReleaseFromData'                    
+		      , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SubWorkOrderId, '') AS VARCHAR(100))
+			                                       + '@Parameter2 = ''' + CAST(ISNULL(@SubWOPartNoId, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
               exec spLogException     

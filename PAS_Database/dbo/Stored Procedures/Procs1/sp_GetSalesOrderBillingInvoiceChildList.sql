@@ -488,16 +488,25 @@ BEGIN
 					SELECT DISTINCT 
 						ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 						--0 AS SalesOrderShippingId,   
-						(CASE WHEN sobii.IsVersionIncrease = 1 then 
-						(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) 
-						ELSE 
-							(SELECT SOS.SalesOrderShippingId 
-							FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
-							INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-							INNER JOIN DBO.SOPickTicket SOPICK WITH (NOLOCK) on SOPICK.SOPickTicketId = SOSI.SOPickTicketId
-							INNER JOIN DBO.SalesOrderStocklineV1 SOSB WITH (NOLOCK) ON SOSB.SalesOrderStocklineId = SOPICK.SalesOrderPartStocklineId
-							WHERE SOS.SalesOrderId = @SalesOrderId AND SOSB.SalesOrderStocklineId = STK.SalesOrderStocklineId
-							AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) END)
+						(CASE 
+							WHEN sobii.IsVersionIncrease = 1 THEN 
+								ISNULL((
+									SELECT TOP 1 SOS.SalesOrderShippingId 
+									FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+									WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId
+								), 0)
+							ELSE 
+								ISNULL((
+									SELECT TOP 1 SOS.SalesOrderShippingId 
+									FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+									INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+									INNER JOIN DBO.SOPickTicket SOPICK WITH (NOLOCK) ON SOPICK.SOPickTicketId = SOSI.SOPickTicketId
+									INNER JOIN DBO.SalesOrderStocklineV1 SOSB WITH (NOLOCK) ON SOSB.SalesOrderStocklineId = SOPICK.SalesOrderPartStocklineId
+									WHERE SOS.SalesOrderId = @SalesOrderId 
+									AND SOSB.SalesOrderStocklineId = STK.SalesOrderStocklineId
+									AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId
+								), 0) 
+						END)
 						AS SalesOrderShippingId,
 						sobi.SOBillingInvoicingId,
 						sobii.SOBillingInvoicingItemId,

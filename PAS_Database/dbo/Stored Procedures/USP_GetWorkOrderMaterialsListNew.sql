@@ -18,6 +18,8 @@
 	7	12/12/2024		Devendra Shekh			Resolved Records Count Issue
 	8	12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
 	9	01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	10  17-02-2025      Shrey Chandegara        Modified Due to Add @IsDownload.
+	11  18-02-2025      Shrey Chandegara        Modified Due to Add @IsParent
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -30,7 +32,9 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 	@SortOrder int,  
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,
-	@ShowPendingToIssue BIT  = 0
+	@ShowPendingToIssue BIT  = 0,
+	@IsDownload BIT = 0,
+	@IsParent BIT = 0
 )    
 AS    
 BEGIN    
@@ -247,7 +251,7 @@ SET NOCOUNT ON
 					[ItemMasterId] [bigint] NULL,
 					[ItemClassificationId] [bigint] NULL,
 					[PurchaseUnitOfMeasureId] [bigint] NULL,
-					[Memo] [nvarchar](2000) NULL,
+					[Memo] [nvarchar](MAX) NULL,
 					[IsDeferred] [bit] NULL,
 					[TaskId] [bigint] NULL,
 					[TaskName] [varchar](200) NULL,
@@ -453,10 +457,29 @@ SET NOCOUNT ON
 					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
 				END
 				
-				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
-				ORDER BY tmp.WorkFlowWorkOrderId ASC
-				OFFSET @RecordFrom ROWS   
-				FETCH NEXT @Local_PageSize ROWS ONLY
+				CREATE TABLE #TMPWOMaterialResultListData (
+					WorkOrderMaterialsId INT,
+					WorkFlowWorkOrderId INT,
+					WorkOrderMaterialsKitMappingId INT,
+					IsKit BIT
+				);
+				IF (ISNULL(@IsDownload,0) = 1)
+					BEGIN 
+						INSERT INTO #TMPWOMaterialResultListData ([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+
+						SELECT tmp.WorkOrderMaterialsId,tmp.WorkFlowWorkOrderId,tmp.WorkOrderMaterialsKitMappingId,tmp.IsKit  FROM #TMPWOMaterialParentListData tmp 
+						ORDER BY tmp.WorkFlowWorkOrderId ASC
+					END
+				ELSE
+					BEGIN
+						INSERT INTO #TMPWOMaterialResultListData ([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+
+						SELECT  tmp.WorkOrderMaterialsId,tmp.WorkFlowWorkOrderId,tmp.WorkOrderMaterialsKitMappingId,tmp.IsKit  FROM #TMPWOMaterialParentListData tmp
+						ORDER BY tmp.WorkFlowWorkOrderId ASC
+						OFFSET @RecordFrom ROWS   
+						FETCH NEXT @Local_PageSize ROWS ONLY
+					END
+				
 				--Inserting Data For Parent Level- For Pagination : End
 
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
@@ -1423,7 +1446,11 @@ SET NOCOUNT ON
 				@IsFullyReserved AS IsFullyReserved,
 				@IsFullyIssued AS IsFullyIssued,
 				ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost
-				FROM #finalMaterialListResult
+				FROM #finalMaterialListResult FR
+				WHERE --@IsDownload = 0 OR FR.StockLineNumber IS NOT NULL
+				(@IsDownload = 1 AND @IsParent = 0 AND FR.StockLineNumber IS NOT NULL)
+			    OR (@IsDownload = 1 AND @IsParent = 1)
+				OR @IsDownload = 0
 				ORDER BY    
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC
 					,CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partNumber')  THEN partNumber END ASC,  

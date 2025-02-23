@@ -47,6 +47,7 @@ BEGIN
 		DECLARE @ReferenceNumber VARCHAR(100) = '';
 		DECLARE @SubReferenceNumber VARCHAR(100) = '';
 		DECLARE @ActionType VARCHAR(100) = '';
+		DECLARE @IsSerialized BIT = 0;
 
 		DECLARE @CustStockActionId as BIGINT = 0;
 		SELECT @CustStockActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-From-CustStock'
@@ -59,7 +60,7 @@ BEGIN
 		SELECT @ReferenceNumber = [dbo].[udfGetModuleReferenceByModuleId] (@ModuleId, @ReferenceId, 1);
 		SELECT @SubReferenceNumber = [dbo].[udfGetModuleReferenceByModuleId] (@SubModuleId, @SubRefferenceId, 2);
 
-		SELECT @StkLineNumber = StockLineNumber, @MasterCompanyId = MasterCompanyId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
+		SELECT @StkLineNumber = StockLineNumber, @MasterCompanyId = MasterCompanyId, @IsSerialized = isSerialized FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
 
 		SELECT @HistoryNote = StkAct.Template FROM DBO.[StklineHistory_Action] StkAct WITH (NOLOCK) WHERE StkAct.ActionId = @ActionId;
 
@@ -79,7 +80,14 @@ BEGIN
 			UPDATE DBO.[Stockline] SET [Memo] = @HistoryNote WHERE StockLineId = @StocklineId
 		END
 
-		EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
+		IF (@ActionId = 8 AND ISNULL(@IsSerialized, 0) = 0 AND @Qty > 200)
+		BEGIN
+			PRINT '';
+		END
+		ELSE
+		BEGIN
+			EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
+		END
 	END
     COMMIT TRANSACTION
   END TRY

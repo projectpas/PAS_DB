@@ -1,0 +1,25 @@
+﻿CREATE TABLE [dbo].[WorkOrderTaskHistory] (
+    [WorkOrderTaskHistoryId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [WorkOrderTaskId]        BIGINT         NOT NULL,
+    [TaskName]               VARCHAR (200)  NULL,
+    [Descrepancy]            VARCHAR (MAX)  NULL,
+    [Resolution]             VARCHAR (MAX)  NULL,
+    [TechId]                 BIGINT         NULL,
+    [TechName]               VARCHAR (100)  NULL,
+    [TechUpdatedDate]        DATETIME2 (7)  NULL,
+    [InspectorId]            BIGINT         NULL,
+    [InspectorName]          VARCHAR (100)  NULL,
+    [InspectorUpdatedDate]   DATETIME2 (7)  NULL,
+    [PrintInWO]              BIT            NULL,
+    [PrintInWOQ]             BIT            NULL,
+    [IsParent]               BIT            NULL,
+    [ParentId]               BIGINT         NULL,
+    [InstructionTitle]       VARCHAR (8000) NULL,
+    [InstructionDetails]     VARCHAR (MAX)  NULL,
+    [SequenceNumber]         INT            NULL,
+    [IsActive]               BIT            NULL,
+    [IsDeleted]              BIT            NULL,
+    [UpdatedBy]              VARCHAR (256)  NULL,
+    [UpdatedDate]            DATETIME2 (7)  NULL
+);
+

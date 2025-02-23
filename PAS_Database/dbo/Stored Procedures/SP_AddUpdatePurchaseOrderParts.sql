@@ -1,8 +1,4 @@
-﻿
-
-
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -20,6 +16,7 @@
 	4	 11/04/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 	5	 15/11/2024	  RAJESH GAMI			Handle the NULL value of WOMaterialID when its 0
 	6	 12/12/2024	  AYUSHI PATEL			change the status of approval process based on isModified
+	7	 19/02/2025	  Vishal Suthar			Optimized by removing the call to update stockline draft to outside the while loop
 ************************************************************************/
 CREATE        PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -34,7 +31,6 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN -->>>>> Start: Main Transaction 
-
 			DECLARE @TotalPartsCount int = 0,@TotalSplitPartsCount int = 0, @PartLoopId int = 1, @SplitPartLoopId int = 0,@ManagementStructureId BIGINT,@ManagementStructureIdSplit BIGINT;
 			DECLARE @ModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE LOWER(ModuleName) ='popart' AND ISNULL(IsDeleted,0) = 0)
 			DECLARE @NewPartId BIGINT = 0, @PurchaseOrderPartRecordId BIGINT, @IsDeletedPart BIT = 0,@PurchaseOrderId BIGINT,@PurchaseOrderNumber VARCHAR(100),@EmployeeID BIGINT;
@@ -171,7 +167,6 @@ BEGIN
 								WHERE PART.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId
 
 							EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordId,@ManagementStructureId,@MasterCompanyId,@userName,@userName,@ModuleId,4, 0
-                            EXEC dbo.sp_UpdateStocklineDraftForPurchaseOrder @PurchaseOrderId	                                                     
 						END -->>>>> END:2 ELSE @IsDeletedPart = 1
 					END -->>>>> END:1 @PurchaseOrderPartRecordId > 0
 					ELSE
@@ -401,10 +396,10 @@ BEGIN
 				
 /* ----------------------------START:  SPLIT PART Functionality ---------------------------------- */
 					SET @SplitPartLoopId = 1;
-						IF OBJECT_ID(N'tempdb..#tmpPoSplitParts') IS NOT NULL    
-						BEGIN    
-							DROP TABLE #tmpPoSplitParts
-						END
+					IF OBJECT_ID(N'tempdb..#tmpPoSplitParts') IS NOT NULL    
+					BEGIN    
+						DROP TABLE #tmpPoSplitParts
+					END
 					SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
 					SET @TotalSplitPartsCount = (SELECT COUNT(PoSplitPartSrNum) FROM #tmpPoSplitParts)
 					--SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res					
@@ -760,9 +755,10 @@ BEGIN
 			 SELECT * FROM #tmpPoSplitAllPartList
 
 /* ----------------------------START:  Update PO Details ---------------------------------- */				
-			IF(@PurchaseOrderId >0)
+			IF (@PurchaseOrderId > 0)
 			BEGIN
-				EXEC sp_UpdatePurchaseOrderDetail @PurchaseOrderId
+				EXEC sp_UpdatePurchaseOrderDetail @PurchaseOrderId;
+				EXEC dbo.sp_UpdateStocklineDraftForPurchaseOrder @PurchaseOrderId;
 			END
 
 		END -->>>>> End: Main Transaction 

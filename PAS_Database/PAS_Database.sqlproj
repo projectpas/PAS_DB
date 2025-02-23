@@ -3452,6 +3452,24 @@
     <Build Include="dbo\Stored Procedures\SP_ValidatePDFAddress_New.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewItemListForCreateItem.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetItemDetailsForUpdateItem.sql" />
+    <Build Include="dbo\Tables\WorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddWorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingCreditMemo.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetSyncPendingCreditMemo.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetCreditMemoById.sql" />
+    <Build Include="dbo\Tables\PublicationTemplateAudit.sql" />
+    <Build Include="dbo\Tables\PublicationTemplate.sql" />
+    <Build Include="dbo\Views\vw_PublicationTemplateSettingAudit.sql" />
+    <Build Include="dbo\Views\vw_PublicationTemplateSetting.sql" />
+    <Build Include="dbo\Tables\ATAReference.sql" />
+    <Build Include="dbo\Tables\ATAReferenceAudit.sql" />
+    <Build Include="dbo\Views\vw_ATAReferenceAudit.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CalculateSubWorkOrderCostsDetail.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateSubWorkOrderMPNCostDetail.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetPurchaseOrderById.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertWorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionHistoryById.sql" />
@@ -3465,5 +3483,6 @@
     <None Include="Snapshots\PAS_SPRINT_50.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_51.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_52.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_53.dacpac" />
   </ItemGroup>
 </Project>

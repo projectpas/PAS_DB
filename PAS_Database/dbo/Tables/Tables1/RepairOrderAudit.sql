@@ -56,12 +56,10 @@
     [DepositAmount]           DECIMAL (18, 2) NULL,
     [VendorProformaInvoiceNo] VARCHAR (150)   NULL,
     [VendorProformaInvoiceId] BIGINT          NULL,
+    [QuickBooksReferenceId]   VARCHAR (200)   NULL,
+    [IsUpdated]               BIT             NULL,
+    [LastSyncDate]            DATETIME2 (7)   NULL,
+    [SyncToken]               VARCHAR (200)   NULL,
     CONSTRAINT [PK_RepairOrderAudit] PRIMARY KEY CLUSTERED ([RepairOrderAuditId] ASC)
 );
-
-
-
-
-
-
 

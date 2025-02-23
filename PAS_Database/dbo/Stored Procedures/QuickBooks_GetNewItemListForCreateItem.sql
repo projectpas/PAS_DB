@@ -34,7 +34,7 @@ BEGIN
 		BEGIN
 			SELECT IM.ItemMasterId, 
 				IM.partnumber, 
-				CASE WHEN UPPER(im.ItemGroup) = 'N/A' THEN '' ELSE im.ItemGroup + ' ' END + IM.PartDescription,
+				IM.PartDescription,
 				IM.ManufacturerId,
 				IM.ManufacturerName,
 				--CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  
@@ -54,9 +54,9 @@ BEGIN
 				IM.MasterCompanyId,
 				IM.UpdatedBy
 			FROM ItemMaster IM
-				INNER JOIN GLAccount GLIncome ON IM.InventoryToBillGLAccId = GLIncome.GLAccountId
+				INNER JOIN GLAccount GLIncome ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
 				INNER JOIN GLAccount GLAsset ON IM.GLAccountId = GLAsset.GLAccountId
-				INNER JOIN GLAccount GLExpense ON IM.GoodsReceivedNotInvoicesGLAccId = GLExpense.GLAccountId
+				INNER JOIN GLAccount GLExpense ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
 			WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsDeleted = 0 AND IM.IsActive = 1 AND ISNULL(IM.QuickBooksReferenceId, 0) = 0 AND ISNULL(IM.IsUpdated, 0) = 1
 		END
 	END TRY    

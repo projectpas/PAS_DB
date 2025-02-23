@@ -16,6 +16,12 @@
     [UpdatedDate]                 DATETIME2 (7)  NULL,
     [IsActive]                    BIT            NOT NULL,
     [IsDeleted]                   BIT            NOT NULL,
+    [ATAReferenceId]              BIGINT         NULL,
+    [ATAReference]                VARCHAR (250)  NULL,
+    [Level1]                      VARCHAR (50)   NULL,
+    [Level2]                      VARCHAR (50)   NULL,
+    [Level3]                      VARCHAR (50)   NULL,
+    [ATAChapterId]                BIGINT         NULL,
     CONSTRAINT [PK_PNACMapping] PRIMARY KEY CLUSTERED ([ItemMasterAircraftMappingId] ASC),
     CONSTRAINT [FK_ItemMasterAircraftMapping_AircraftDashNumber] FOREIGN KEY ([DashNumberId]) REFERENCES [dbo].[AircraftDashNumber] ([DashNumberId]),
     CONSTRAINT [FK_ItemMasterAircraftMapping_AircraftModel] FOREIGN KEY ([AircraftModelId]) REFERENCES [dbo].[AircraftModel] ([AircraftModelId]),
@@ -24,6 +30,10 @@
     CONSTRAINT [FK_ItemMasterAircraftMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [IMAM_Unique] UNIQUE NONCLUSTERED ([ItemMasterId] ASC, [AircraftTypeId] ASC, [AircraftModelId] ASC, [DashNumberId] ASC, [MasterCompanyId] ASC)
 );
+
+
+
+
 
 
 GO

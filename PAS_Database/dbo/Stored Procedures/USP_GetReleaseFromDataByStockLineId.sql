@@ -17,6 +17,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 6    18/02/2025      Moin Bloch          Updated (Added Publication CMMIds)
 ** 7    19/02/2025      Moin Bloch          Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise)
 ** 8    20/02/2025      Moin Bloch          Updated (Checked @CMMIds Empty)
+** 9    24/02/2025      Moin Bloch          Updated (Renamed FotterRemarks TO FooterRemarks)
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 **************************************************************/ 
@@ -222,7 +223,7 @@ BEGIN
 			   (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			  + '</div>' AS FotterRemarks,   
+			  + '</div>' AS FooterRemarks,   
 			   Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],
@@ -321,7 +322,7 @@ BEGIN
 			    (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			  + '</div>' AS FotterRemarks, 
+			  + '</div>' AS FooterRemarks, 
 			  Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],
@@ -401,7 +402,7 @@ BEGIN
 			  (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			  + '</div>' AS FotterRemarks,   
+			  + '</div>' AS FooterRemarks,   
 			   Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],

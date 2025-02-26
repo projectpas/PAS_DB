@@ -1,4 +1,7 @@
-﻿/*************************************************************             
+﻿
+
+
+/*************************************************************             
  ** File:   [GetWorkOrderPrintPdfData]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Work order Print  Details      
@@ -13,16 +16,15 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    06/02/2020   Subhash Saliya Created  
-	2	 01/16/2025	  Moin Bloch	 Modified (Added TaskId In Type)
-       
+ ** PR   Date			Author				ChangeDescription              
+ ** --   --------		-------				--------------------------------            
+    1    06/02/2020		Subhash Saliya		Created  
+	2	 01/16/2025		Moin Bloch			Modified (Added TaskId In Type)
+    3	 26 FEB 2025	RAJESH GAMI			Update the WorkOrderQuoteDetails COST
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
 
-
-CREATE       PROCEDURE [dbo].[usp_SavePostKitforWOQ]
+CREATE         PROCEDURE [dbo].[usp_SavePostKitforWOQ]
 	@tbl_KITPartType WOQMaterialKitMappingType READONLY
 AS
 BEGIN
@@ -35,7 +37,7 @@ BEGIN
 			BEGIN
 				DROP TABLE #KITPartType 
 			END
-			
+	
 			CREATE TABLE #KITPartType 
 			(
 				ID BIGINT NOT NULL IDENTITY, 
@@ -65,7 +67,7 @@ BEGIN
 	            [BillingName] [varchar](50) NULL,
 	            [MarkUp] [varchar](50) NULL,
 				[IsInsert] [bit] NULL,
-				[TaskId] [bigint] NULL,
+				[TaskId] [bigint] NULL
 			)
 
 				
@@ -123,7 +125,25 @@ BEGIN
 				LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON p.PercentId = kim.MarkupPercentageId 
 			 WHERE t.WOQMaterialKitMappingId > 0;
 
-			 	
+			/********************** Update the WorkOrderQuoteDetails COST **************************/ 
+			PRINT 'Test'
+			IF((SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType) =1)
+			BEGIN
+			PRINT 'Test----'
+					DECLARE @TotalMaterialCost decimal(18,2)=0, @TotalKitCost decimal(18,2)=0,@WorkOrderWorkflowId BIGINT = (SELECT TOP 1 WorkflowWorkOrderId FROM @tbl_KITPartType), @WorkOrderQuoteDetailsId BIGINT =0,@TotalAmount decimal(18,2)=0 ;
+			DECLARE @WorkOrderQuoteId BIGINT = (SELECT TOP 1 WorkOrderQuoteId FROM @tbl_KITPartType), @MasterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM @tbl_KITPartType)
+			DECLARE @IsUpdateQuoteDetail BIGINT = (SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType);
+
+				SET @WorkOrderQuoteDetailsId = (SELECT TOP 1  WOQD.WorkOrderQuoteDetailsId
+				FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK) 
+					JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOQD.WorkflowWorkOrderId = WOWF.WorkFlowWorkOrderId AND WOQD.WOPartNoId = WOWF.WorkOrderPartNoId
+				WHERE WOQD.WorkflowWorkOrderId = @WorkOrderWorkflowId AND WOQD.IsVersionIncrease = 0 AND WOWF.WorkOrderPartNoId = WOQD.WOPartNoId AND WOQD.WorkOrderQuoteId= @WorkOrderQuoteId AND WOQD.MasterCompanyId = @MasterCompanyId)
+				SET @TotalMaterialCost = (SELECT SUM(ISNULL(BillingAmount,0)) FROM DBO.WorkOrderQuoteMaterial WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
+				SET @TotalKitCost = (SELECT SUM(ISNULL(BillingAmount,0)) FROM [dbo].[WorkOrderQuoteMaterialKitMapping] kim WITH (NOLOCK) WHERE WorkflowWorkOrderId = @WorkOrderWorkflowId AND WorkOrderQuoteId = @WorkOrderQuoteId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
+				SET @TotalAmount = ISNULL(@TotalMaterialCost,0.00) +  ISNULL(@TotalKitCost,0.00)
+				UPDATE  dbo.WorkOrderQuoteDetails SET MaterialFlatBillingAmount=@TotalAmount ,MaterialBilling=@TotalAmount,MaterialRevenue=@TotalAmount WHERE  WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
+			END
+			
 			END
 			COMMIT TRANSACTION
 		END TRY    

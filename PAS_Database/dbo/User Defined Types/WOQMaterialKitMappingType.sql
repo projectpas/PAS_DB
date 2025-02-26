@@ -22,7 +22,10 @@
     [BillingRate]             DECIMAL (18, 2) NULL,
     [HeaderMarkupId]          BIGINT          NULL,
     [BillingMethodId]         INT             NULL,
-    [TaskId]                  BIGINT          NULL);
+    [TaskId]                  BIGINT          NULL,
+    [IsUpdateQuoteDetail]     BIT             NULL);
+
+
 
 
 

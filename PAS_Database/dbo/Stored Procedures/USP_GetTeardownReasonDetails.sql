@@ -13,6 +13,7 @@
  ** --   --------		-------					--------------------------------          
     1   25-Feb-2025		Devendra Shekh			Created
 	2   25-Feb-2025		Hemant Saliya			Updated for Get Revised Condition
+	3   26-Feb-2025		Devendra Shekh			Updated to Get Revised PartNumber
 	
  EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1
 **************************************************************/ 
@@ -37,7 +38,7 @@ BEGIN
 		SELECT @NeoSourceCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';
 
 		SELECT @ConditionName = CASE WHEN WOP.RevisedConditionId > 0 THEN ISNULL(C.Code, '') ELSE ISNULL(CD.Code, '') END, 		
-		@CMMIds = ISNULL(WOP.CMMIds, ''), @CurrentSerialNumber = ISNULL(CurrentSerialNumber, ''), @RevisedSerialNumber = ISNULL(RevisedSerialNumber, ''), @PartNumber = ISNULL(PartNumber, '')
+		@CMMIds = ISNULL(WOP.CMMIds, ''), @CurrentSerialNumber = ISNULL(CurrentSerialNumber, ''), @RevisedSerialNumber = ISNULL(RevisedSerialNumber, ''), @PartNumber = COALESCE(RevisedPartNumber,PartNumber, '')
 		FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
 		LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOP.RevisedConditionId
 		LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON CD.ConditionId = WOP.ConditionId

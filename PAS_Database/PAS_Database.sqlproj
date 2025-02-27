@@ -3473,6 +3473,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WOQ_Output.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTeardownReasonDetails.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
+    <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

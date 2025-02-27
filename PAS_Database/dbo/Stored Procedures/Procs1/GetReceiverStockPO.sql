@@ -24,7 +24,7 @@
 r
 exec dbo.GetReceiverStockPO @PurchaseOrderId=2014,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetReceiverStockPO]
+CREATE    PROCEDURE [dbo].[GetReceiverStockPO]
 	@PurchaseOrderId bigint,
 	@isParentData varchar(10),
 	@ItemMasterId bigint,
@@ -79,9 +79,6 @@ BEGIN
 			      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
 				  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
 				  lc.[Name] as 'LocationName' ,
-				--CASE WHEN POP.WorkOrderId > 1 THEN 3 when POP.SalesOrderId >1 then 2 ELSE 1 END as Modules,
-				--CASE WHEN POP.WorkOrderId > 1 THEN 'WO' when POP.SalesOrderId > 1 then 'SO' ELSE 'STOCK' END as ModuleName,				
-				--CASE WHEN POP.WorkOrderId > 1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber
 				  CASE WHEN sd.WOQty > 0 THEN 3 WHEN sd.SOQty > 0 THEN 2 ELSE 1 END AS Modules,
 				  CASE WHEN sd.WOQty > 0 THEN 'WO' WHEN sd.SOQty > 0 THEN 'SO' ELSE 'STOCK' END AS ModuleName,				
 				  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
@@ -90,11 +87,8 @@ BEGIN
 				  sl.TraceableToName
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			--INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=i.ItemMasterId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 			INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
 			LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
-			--LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON popr.ModuleId = 3 AND popr.ReferenceId = so.SalesOrderId 
-			--LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON popr.ModuleId = 1 AND popr.ReferenceId = wo.WorkOrderId 
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN  [dbo].[Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
@@ -103,60 +97,10 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			--AND sl.ItemMasterId = @ItemMasterId 
-			--AND sl.ConditionId = @ConditionId
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 and sl.isSerialized = 1
 
 			UNION
 
-			--SELECT i.ItemMasterId,
-			--	  sl.ConditionId,
-			--	  sl.PurchaseUnitOfMeasureId,
-			--	   i.partnumber,
-			--	   i.PartDescription,
-			--	  sl.Condition,
-			--	  sl.UnitOfMeasure,
-			--      sl.StockLineId,
-			--	  sl.StockLineNumber,
-			--	  sl.SerialNumber,
-			--	  --sl.Quantity as Qty,
-			--	  --CASE WHEN sd.WOQty > 0 THEN sd.WOQty WHEN sd.SOQty > 0 THEN sd.SOQty WHEN sd.ForStockQty > 0 THEN sd.ForStockQty ELSE sl.Quantity END AS Qty,	
-			--	  popr.ReservedQty AS Qty,
-			--	  sl.ControlNumber,
-			--	  sl.IdNumber,
-			--	  sl.ReceiverNumber,
-			--	  cast(sl.ReceivedDate as date) as ReceivedDate,
-			--      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
-			--	  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
-			--	  lc.[Name] as 'LocationName' ,
-			--	--CASE WHEN POP.WorkOrderId > 1 THEN 3 when POP.SalesOrderId >1 then 2 ELSE 1 END as Modules,
-			--	--CASE WHEN POP.WorkOrderId > 1 THEN 'WO' when POP.SalesOrderId > 1 then 'SO' ELSE 'STOCK' END as ModuleName,				
-			--	--CASE WHEN POP.WorkOrderId > 1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber
-			--	  CASE WHEN sd.WOQty > 0 THEN 3 WHEN sd.SOQty > 0 THEN 2 ELSE 1 END AS Modules,
-			--	  CASE WHEN sd.WOQty > 0 THEN 'WO' WHEN sd.SOQty > 0 THEN 'SO' ELSE 'STOCK' END AS ModuleName,				
-			--	  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
-			--	  sl.Manufacturer,
-			--	  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-			--	  sl.TraceableToName
-			--FROM [dbo].[Stockline] sl WITH(NOLOCK)
-			--INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			----INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=i.ItemMasterId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
-			--INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
-			----LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
-			----LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
-			--LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
-			--LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON popr.ModuleId = 3 AND popr.ReferenceId = so.SalesOrderId 
-			--LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON popr.ModuleId = 1 AND popr.ReferenceId = wo.WorkOrderId 
-			--LEFT JOIN  [dbo].[Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
-			--LEFT JOIN  [dbo].[Warehouse] w WITH(NOLOCK) ON w.WarehouseId = sl.WarehouseId
-			--LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
-			--LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
-			--LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
-			--WHERE sl.PurchaseOrderId=@PurchaseOrderId
-			----AND sl.ItemMasterId = @ItemMasterId 
-			----AND sl.ConditionId = @ConditionId
-			--AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 and sl.isSerialized = 0 
-			
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
 				  sl.PurchaseUnitOfMeasureId,
@@ -167,10 +111,7 @@ BEGIN
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
-				  --sl.Quantity as Qty,
 				  CASE WHEN sd.WOQty > 0 THEN sd.WOQty WHEN sd.SOQty > 0 THEN sd.SOQty WHEN sd.ForStockQty > 0 THEN sd.ForStockQty ELSE sl.Quantity END AS Qty,	
-				  --CASE WHEN sd.WOQty > 0 THEN popr.ReservedQty WHEN sd.SOQty > 0 THEN popr.ReservedQty ELSE sd.ForStockQty END AS Qty,
-				  --popr.ReservedQty AS Qty,
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,
@@ -178,9 +119,6 @@ BEGIN
 			      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
 				  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
 				  lc.[Name] as 'LocationName' ,
-				--CASE WHEN POP.WorkOrderId > 1 THEN 3 when POP.SalesOrderId >1 then 2 ELSE 1 END as Modules,
-				--CASE WHEN POP.WorkOrderId > 1 THEN 'WO' when POP.SalesOrderId > 1 then 'SO' ELSE 'STOCK' END as ModuleName,				
-				--CASE WHEN POP.WorkOrderId > 1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber
 				  CASE WHEN sd.WOQty > 0 THEN 3 WHEN sd.SOQty > 0 THEN 2 ELSE 1 END AS Modules,
 				  CASE WHEN sd.WOQty > 0 THEN 'WO' WHEN sd.SOQty > 0 THEN 'SO' ELSE 'STOCK' END AS ModuleName,				
 				  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
@@ -189,21 +127,16 @@ BEGIN
 				  sl.TraceableToName
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			--INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=i.ItemMasterId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 			INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
 			LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
-			--LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON popr.ModuleId = 3 AND popr.ReferenceId = so.SalesOrderId 
-			--LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON popr.ModuleId = 1 AND popr.ReferenceId = wo.WorkOrderId 
 			LEFT JOIN  [dbo].[Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
 			LEFT JOIN  [dbo].[Warehouse] w WITH(NOLOCK) ON w.WarehouseId = sl.WarehouseId
 			LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			--AND sl.ItemMasterId = @ItemMasterId 
-			--AND sl.ConditionId = @ConditionId
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 and sl.isSerialized = 0 
 
 			UNION
@@ -218,7 +151,6 @@ BEGIN
 			      sl.StockLineId,
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
-				  --sl.Quantity as Qty,
 				  sd.ForStockQty AS Qty,	
 				  sl.ControlNumber,
 				  sl.IdNumber,
@@ -227,9 +159,6 @@ BEGIN
 			      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
 				  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
 				  lc.[Name] as 'LocationName' ,
-				--CASE WHEN POP.WorkOrderId > 1 THEN 3 when POP.SalesOrderId >1 then 2 ELSE 1 END as Modules,
-				--CASE WHEN POP.WorkOrderId > 1 THEN 'WO' when POP.SalesOrderId > 1 then 'SO' ELSE 'STOCK' END as ModuleName,				
-				--CASE WHEN POP.WorkOrderId > 1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber
 				  1 AS Modules,
 				  'STOCK' AS ModuleName,				
 				  '' AS ReferenceNumber,
@@ -238,7 +167,6 @@ BEGIN
 				  sl.TraceableToName
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			--INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=i.ItemMasterId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 			INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
@@ -248,8 +176,6 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			--AND sl.ItemMasterId = @ItemMasterId 
-			--AND sl.ConditionId = @ConditionId
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 					   
 			UNION
@@ -313,7 +239,6 @@ BEGIN
 				    '' AS TraceableToName
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) 
 			LEFT JOIN [dbo].[UnitOfMeasure]  UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
-			--LEFT JOIN PurchaseOrderPart POP WITH(NOLOCK) on POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ass=sl.AssetRecordId
 			WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
 			AND sl.ReceiverNumber = @ReceiverNumber Order by Modules desc
 		END

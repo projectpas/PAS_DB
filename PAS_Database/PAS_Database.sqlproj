@@ -3478,6 +3478,7 @@
     <Build Include="dbo\User Defined Types\WorkFlowTaskType.sql" />
     <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
     <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -177,7 +177,7 @@ SET NOCOUNT ON;
 									)
 									
 									INSERT INTO #tmpWorkFlowTask(TaskId, WorkflowId)
-									SELECT TaskId, WorkflowId FROM dbo.WorkFlowTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId ORDER BY SequenceNumber ASC
+									SELECT TaskId, WorkflowId FROM dbo.WorkFlowTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 ORDER BY SequenceNumber ASC
 
 									SELECT @TaskTotalCounts = COUNT(ID) FROM #tmpWorkFlowTask;
 

@@ -9,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    27-Feb-2025		Devendra Shekh			Created
+    2    28-Feb-2025		Devendra Shekh			Added New Fields([Descrepancy], [Resolution], [IsVersionIncrease])
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveWorkFlowMappingDetails]
@@ -30,6 +31,9 @@ BEGIN
 				@TaskId bigint,
 				@TaskDescription varchar(200),
 				@SequenceNumber int,
+				@Descrepancy nvarchar(max),
+				@Resolution nvarchar(max),
+				@IsVersionIncrease bit,
 				@MasterCompanyId int,
 				@CreatedBy varchar(256),
 				@UpdatedBy varchar(256);
@@ -46,6 +50,9 @@ BEGIN
 			[TaskId] [bigint] NULL,
 			[TaskDescription] [varchar](200) NULL,
 			[SequenceNumber] [int] NULL,
+			[Descrepancy] [nvarchar](MAX) NULL,
+			[Resolution] [nvarchar](MAX) NULL,
+			[IsVersionIncrease] [bit] NULL,
 			[MasterCompanyId] [int] NULL,
 			[CreatedBy] [varchar](256) NULL,
 			[CreatedDate] [datetime2](7) NULL,
@@ -58,9 +65,9 @@ BEGIN
 		IF(ISNULL(@SequenceUpdate, 0) = 0)
 		BEGIN
 			INSERT INTO #TempWorkFlowTasks
-			([WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [MasterCompanyId], 
+			([WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId], 
 			[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
-			SELECT	[WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [MasterCompanyId],
+			SELECT	[WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId],
 					[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
 			FROM @tbl_WorkFlowTaskType
 			WHERE [TaskId] IN (SELECT value FROM STRING_SPLIT(@WorkFlowTaskIds, ',')) ;
@@ -68,13 +75,12 @@ BEGIN
 		ELSE 
 		BEGIN
 			INSERT INTO #TempWorkFlowTasks
-			([WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [MasterCompanyId], 
+			([WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId], 
 			[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
-			SELECT	[WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [MasterCompanyId],
+			SELECT	[WorkFlowTaskId], [WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId],
 					[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
 			FROM @tbl_WorkFlowTaskType
 		END
-		
 
 		SELECT @rowCount = COUNT(RecordId), @currentRow = MIN(RecordId) FROM #TempWorkFlowTasks;
 
@@ -87,6 +93,9 @@ BEGIN
 				@TaskId = TaskId,
 				@TaskDescription = TaskDescription,
 				@SequenceNumber = SequenceNumber,
+				@Descrepancy = Descrepancy,
+				@Resolution = Resolution,
+				@IsVersionIncrease = IsVersionIncrease,
 				@MasterCompanyId = MasterCompanyId,
 				@CreatedBy = CreatedBy,
 				@UpdatedBy = UpdatedBy
@@ -95,16 +104,19 @@ BEGIN
 
 			IF(@currentRow = 1 AND ISNULL(@SequenceUpdate, 0) = 0)
 			BEGIN
-				DELETE FROM [dbo].[WorkFlowTask] WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkFlowId] = @WorkFlowId AND [TaskId] NOT IN (SELECT value FROM STRING_SPLIT(@WorkFlowTaskIds, ','))
+				DELETE FROM [dbo].[WorkFlowTask] WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkFlowId] = @WorkFlowId AND [TaskId] NOT IN (SELECT value FROM STRING_SPLIT(@WorkFlowTaskIds, ',')) AND ISNULL([IsVersionIncrease], 0) = 0
 			END
 
-			IF EXISTS (SELECT [WorkFlowTaskId] FROM [dbo].[WorkFlowTask] WHERE [MasterCompanyId] = @MasterCompanyId AND [TaskId] = @TaskId AND [WorkFlowId] = @WorkFlowId)
+			IF EXISTS (SELECT [WorkFlowTaskId] FROM [dbo].[WorkFlowTask] WHERE [MasterCompanyId] = @MasterCompanyId AND [TaskId] = @TaskId AND [WorkFlowId] = @WorkFlowId AND [WorkFlowTaskId] = @WorkFlowTaskId)
 			BEGIN
 				UPDATE [dbo].[WorkFlowTask]
 				SET	[SequenceNumber] = CASE WHEN ISNULL(@SequenceNumber, 0) = 0 THEN [SequenceNumber] ELSE @SequenceNumber END,
+					[Descrepancy] = @Descrepancy,
+					[Resolution] = @Resolution,
+					[IsVersionIncrease] = @IsVersionIncrease,
 					[UpdatedBy] = @UpdatedBy,
 					[UpdatedDate] = GETUTCDATE()					
-				WHERE	[MasterCompanyId] = @MasterCompanyId AND [TaskId] = @TaskId AND [WorkFlowId] = @WorkFlowId;
+				WHERE	[MasterCompanyId] = @MasterCompanyId AND [TaskId] = @TaskId AND [WorkFlowId] = @WorkFlowId AND [WorkFlowTaskId] = @WorkFlowTaskId;
 			END
 			ELSE
 			BEGIN
@@ -115,12 +127,14 @@ BEGIN
 				
 				SET @SequenceNumber = CASE WHEN ISNULL(@SequenceNumber, 0) > ISNULL(@MaxSequence, 0) THEN @SequenceNumber ELSE ISNULL(@MaxSequence, 0) + 1 END;
 
+				SELECT @Descrepancy = [Descrepancy], @Resolution = [Resolution] FROM [dbo].[Task] WITH(NOLOCK) WHERE [TaskId] = @TaskId AND [MasterCompanyId] = @MasterCompanyId;
+
 				INSERT INTO [dbo].[WorkFlowTask]
-				(	[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [MasterCompanyId],
+				(	[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId],
 					[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
 				)
 				VALUES
-				(	@WorkFlowId, @WorkFlowNumber, @TaskId, @TaskDescription, @SequenceNumber, @MasterCompanyId,
+				(	@WorkFlowId, @WorkFlowNumber, @TaskId, @TaskDescription, @SequenceNumber, @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
 					@CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0
 				);
 			END

@@ -3482,6 +3482,8 @@
     <Build Include="dbo\Tables\WorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertWorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteHistory.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteFreightHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

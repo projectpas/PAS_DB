@@ -185,55 +185,58 @@ SET NOCOUNT ON;
 									BEGIN
 										SELECT DISTINCT @WorkFlowTasksId = TaskId FROM #tmpWorkFlowTask WHERE WorkflowId = @WorkflowId AND ID = ISNULL(@TaskCount, 0)
 
-										INSERT INTO DBO.WorkOrderTask(WorkOrderId,WorkFlowWorkOrderId,TaskId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,
+										IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId AND TaskId = @WorkFlowTasksId)
+										BEGIN
+											INSERT INTO DBO.WorkOrderTask(WorkOrderId,WorkFlowWorkOrderId,TaskId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,
 														WorkOrderPartNumberId,SequenceNumber,IsIncludeInPrint,HasInstruction,TaskName,IsFromWorkFlow)
-												SELECT TOP 1
-													@WorkOrderId, 
-													@WorkFlowWorkOrderId,
-													WFT.TaskId,
-													CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
-													@CreatedBy AS CreatedBy,
-													@CreatedBy AS UpdatedBy,
-													GETUTCDATE() AS CreatedDate,
-													GETUTCDATE() AS UpdatedDate,
-													1 AS IsActive,
-													0 AS IsDeleted,
-													@workOrderPartNumberId AS WorkOrderPartNumberId,
-													ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
-													T.IsPrintInWO AS IsIncludeInPrint,											
-													0 as HasInstruction,
-													T.[Description] as TaskName,
-													1 AS IsFromWorkFlow
-												FROM dbo.WorkFlowTask WFT WITH (NOLOCK) 
-													JOIN dbo.Task T WITH (NOLOCK) ON WFT.TaskId = T.TaskId
-												WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId       
+											SELECT TOP 1
+												@WorkOrderId, 
+												@WorkFlowWorkOrderId,
+												WFT.TaskId,
+												CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+												@CreatedBy AS CreatedBy,
+												@CreatedBy AS UpdatedBy,
+												GETUTCDATE() AS CreatedDate,
+												GETUTCDATE() AS UpdatedDate,
+												1 AS IsActive,
+												0 AS IsDeleted,
+												@workOrderPartNumberId AS WorkOrderPartNumberId,
+												ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
+												T.IsPrintInWO AS IsIncludeInPrint,											
+												0 as HasInstruction,
+												T.[Description] as TaskName,
+												1 AS IsFromWorkFlow
+											FROM dbo.WorkFlowTask WFT WITH (NOLOCK) 
+												JOIN dbo.Task T WITH (NOLOCK) ON WFT.TaskId = T.TaskId
+											WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId       
 
-												SELECT @WorkOrderTasksId = SCOPE_IDENTITY(); --Need to check for Multiple Records
+											SELECT @WorkOrderTasksId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
-												INSERT INTO dbo.WorkOrderTaskDetails(WorkOrderTaskId,Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,
-															IsActive,IsDeleted,PrintInWO, PrintInWOQ, IsPrintInspector,IsPrintTechnician)
-												SELECT TOP 1 
-													@WorkOrderTasksId, 
-													WFT.Descrepancy AS Descrepancy, 
-													WFT.Resolution AS Resolution,
-													0 as HasInstruction,
-													CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
-													@CreatedBy AS CreatedBy,
-													@CreatedBy AS UpdatedBy,
-													GETUTCDATE() AS CreatedDate,
-													GETUTCDATE() AS UpdatedDate, 
-													1 AS IsActive,	
-													0 AS IsDeleted,
-													T.IsPrintInWO AS IsIncludeInPrint,
-													T.IsPrintInWOQ AS IsPrintInWOQ,
-													T.IsPrintInspector AS IsPrintInspector,
-													T.IsPrintTechnician AS IsPrintTechnician
-												FROM dbo.WorkFlowTask WFT WITH (NOLOCK) 
-													JOIN dbo.Task T WITH (NOLOCK) ON WFT.TaskId = T.TaskId
-												WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId
-
-											SET @TaskCount = @TaskCount + 1;
+											INSERT INTO dbo.WorkOrderTaskDetails(WorkOrderTaskId,Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,
+														IsActive,IsDeleted,PrintInWO, PrintInWOQ, IsPrintInspector,IsPrintTechnician)
+											SELECT TOP 1 
+												@WorkOrderTasksId, 
+												WFT.Descrepancy AS Descrepancy, 
+												WFT.Resolution AS Resolution,
+												0 as HasInstruction,
+												CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+												@CreatedBy AS CreatedBy,
+												@CreatedBy AS UpdatedBy,
+												GETUTCDATE() AS CreatedDate,
+												GETUTCDATE() AS UpdatedDate, 
+												1 AS IsActive,	
+												0 AS IsDeleted,
+												T.IsPrintInWO AS IsIncludeInPrint,
+												T.IsPrintInWOQ AS IsPrintInWOQ,
+												T.IsPrintInspector AS IsPrintInspector,
+												T.IsPrintTechnician AS IsPrintTechnician
+											FROM dbo.WorkFlowTask WFT WITH (NOLOCK) 
+												JOIN dbo.Task T WITH (NOLOCK) ON WFT.TaskId = T.TaskId
+											WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId
 										END
+
+										SET @TaskCount = @TaskCount + 1;
+									END
 
 									IF OBJECT_ID(N'tempdb..#tmpWorkFlowTask') IS NOT NULL
 									BEGIN

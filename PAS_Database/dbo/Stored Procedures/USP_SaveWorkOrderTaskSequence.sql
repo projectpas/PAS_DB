@@ -9,6 +9,7 @@
  ** PR   Date				Author  		Change Description              
  ** --   --------			-------			--------------------------------            
     1    28-Feb-2025		Vishal Suthar	Created
+    2    04-Mar-2025		Vishal Suthar	Added WO Task History
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_SaveWorkOrderTaskSequence]
@@ -49,6 +50,9 @@ BEGIN
 
 		WHILE @currentRow <= @rowCount
 		BEGIN
+			DECLARE @OldSequence INT = 0;
+			SELECT @OldSequence = SequenceNumber FROM [dbo].[WorkOrderTask] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkOrderTaskId] = @WorkOrderTaskId
+
 			SELECT
 				@WorkOrderTaskId = WorkOrderTaskId,
 				@TaskId = TaskId,
@@ -58,11 +62,31 @@ BEGIN
 			FROM #TempWorkOrderTasks
 			WHERE [RecordId] = @currentRow;
 
-			UPDATE [dbo].[WorkOrderTask]
-			SET	[SequenceNumber] = @SequenceNumber,
-				[UpdatedBy] = @UpdatedBy,
-				[UpdatedDate] = GETUTCDATE()					
-			WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkOrderTaskId] = @WorkOrderTaskId;
+			IF (@OldSequence <> @SequenceNumber)
+			BEGIN
+				INSERT INTO [dbo].[WorkOrderTaskHistory]
+				(
+					[WorkOrderTaskId], [TaskName], [Descrepancy], [Resolution], [TechId], 
+					[TechName], [TechUpdatedDate], [InspectorId], [InspectorName], [InspectorUpdatedDate],
+					[PrintInWO], [PrintInWOQ], [IsParent], [ParentId], [InstructionTitle], [InstructionDetails],
+					[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate]
+				)
+				SELECT 
+					@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
+					WOTD.[TechName], WOTD.[TechUpdatedDate], WOTD.[InspectorId], WOTD.[InspectorName], WOTD.[InspectorUpdatedDate],
+					WOTD.[PrintInWO], WOTD.[PrintInWOQ], NULL, NULL, NULL, NULL,
+					WOT.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted], WOT.UpdatedBy, GETUTCDATE()
+				FROM
+					[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
+				LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId
+				WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+
+				UPDATE [dbo].[WorkOrderTask]
+				SET	[SequenceNumber] = @SequenceNumber,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE()					
+				WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkOrderTaskId] = @WorkOrderTaskId;
+			END
 
 			SET @currentRow = @currentRow + 1;
 		END

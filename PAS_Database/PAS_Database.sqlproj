@@ -3481,6 +3481,9 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskSequence.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderTaskDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetTemplateTaskInstructionById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

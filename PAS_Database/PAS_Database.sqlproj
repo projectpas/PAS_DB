@@ -3490,6 +3490,8 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteHistory.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteFreightHistory.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\CreateSalesOrderQuoteChargesDetails.sql" />
+    <Build Include="dbo\User Defined Types\SalesOrderQuoteChargesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

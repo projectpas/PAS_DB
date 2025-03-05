@@ -178,7 +178,7 @@ BEGIN
 					IsPrintInspector,IsPrintTechnician
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
-				ORDER BY SrNo;
+				ORDER BY SequenceNumber;
 					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber ASC
 				 END
 				 ELSE

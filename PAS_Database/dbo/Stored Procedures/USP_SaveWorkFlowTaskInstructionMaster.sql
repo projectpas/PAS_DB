@@ -11,6 +11,7 @@
     1    07-Feb-2025		Devendra Shekh					Created
     2    10-Feb-2025		Devendra Shekh					Modified (Checking TaskId as Well While Getting Max Sequence)
     3    11-Feb-2025		Devendra Shekh					Modified (Copying TaskInstructionMaster Data if @InstructionListId has value)
+    4    05-March-2025		Devendra Shekh					Modified (Description related Issue resolved while add new)
 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
@@ -117,6 +118,8 @@ BEGIN
 					BEGIN
 						SELECT @NewParentId = WorkflowDirectionId FROM @IdMapping WHERE TaskInstructionId = @InstructionParentId;
 					END
+
+					SET @InstructionkDescription = CASE WHEN ISNULL(@Description, '') = '' THEN @InstructionkDescription ELSE @Description END;
 
 					-- Insert the record into WorkFlowDirection table
 					INSERT INTO DBO.WorkFlowDirection (

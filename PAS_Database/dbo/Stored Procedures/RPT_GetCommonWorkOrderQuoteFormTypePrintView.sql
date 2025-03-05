@@ -142,7 +142,7 @@ BEGIN
 					PrintInWOQ,
 					SrNo
 				FROM RecursiveCTE
-				ORDER BY SrNo;
+				ORDER BY SequenceNumber;
 			END
 		COMMIT  TRANSACTION
 

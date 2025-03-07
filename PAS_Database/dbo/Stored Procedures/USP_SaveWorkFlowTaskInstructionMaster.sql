@@ -126,7 +126,7 @@ BEGIN
 						FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
 						WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
-						SET @InstructionSequenceNumber = CASE WHEN ISNULL(@InstructionSequenceNumber, 0) = 1 THEN @InstructionSequenceNumber ELSE ISNULL(@InstructionSequenceNumber, 0) + 1 END;
+						SET @InstructionSequenceNumber = ISNULL(@InstructionSequenceNumber, 0) + 1;
 					END
 
 					SET @InstructionkDescription = CASE WHEN ISNULL(@Description, '') = '' THEN @InstructionkDescription ELSE @Description END;

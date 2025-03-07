@@ -14,7 +14,8 @@
  3	 10/10/2023		Nainshi Joshi		Add DebitAmount and CreditAmount  
  4   19/10/2023     Nainshi Joshi		Add PostedDate
  5   03/11/2023     Devendra Shekh		glaccount in-active issue resolved
- 5   02/09/2024     Hemant Saliya		Added Sub Ladger
+ 6   02/09/2024     Hemant Saliya		Added Sub Ladger
+ 7   04-March-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -38,7 +39,8 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @IsDeleted bit = null,   
  @CreatedBy varchar(50)=null,    
  @UpdatedBy varchar(50)=null,    
- @MasterCompanyId int = null
+ @MasterCompanyId int = null,
+ @EmployeeId bigint = Null
 )  
 AS    
 BEGIN  
@@ -46,6 +48,29 @@ BEGIN
 	 SET NOCOUNT ON;    
 		 BEGIN TRY  
 		 BEGIN  
+		 DECLARE @EmpLegalEntiyId BIGINT = 0;				
+		 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 			  DECLARE @RecordFrom int;  
 			  DECLARE @Count Int;  
 			  SET @RecordFrom = (@PageNumber-1) * @PageSize;  
@@ -76,7 +101,13 @@ BEGIN
 				GL.IsActive,GL.IsDeleted,GL.CreatedBy,GL.UpdatedBy,  
 				GL.AccountCode 'AccountCodeNum',  
 				SL.[Name] As 'SubLedger',
-				GL.CreatedDate,GL.UpdatedDate,(ISNULL(Batch.DebitAmount, 0) + ISNULL(ManualBatch.DebitAmount, 0)) AS DebitAmount,  
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(GL.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(GL.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(GL.CreatedDate AS DATETIME)) END CreatedDate,
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(GL.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(GL.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(GL.UpdatedDate AS DATETIME)) END UpdatedDate,
+				(ISNULL(Batch.DebitAmount, 0) + ISNULL(ManualBatch.DebitAmount, 0)) AS DebitAmount,  
 				(ISNULL(Batch.CreditAmount, 0) + ISNULL(ManualBatch.CreditAmount, 0)) AS CreditAmount,ISNULL(Batch.PostedDate, 0) AS PostedDate,
 				CASE WHEN ISNULL(GL.InterCompany,0) = 1 THEN 'Yes' ELSE 'No' END AS 'InterCompany',  
 				CASE WHEN (Batch.GLCount > 0 OR ManualBatch.GLCount > 0) THEN 1 ELSE 0 END AS 'GlAccAdded',  

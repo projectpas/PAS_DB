@@ -7,25 +7,49 @@
 **************************************************************             
 ** Change History             
 **************************************************************             
-** PR   Date         Author			Change Description              
-** --   --------     -------		--------------------------------            
-	1   21/07/2023   Satish Gohil		Created
-	2   29/11/2023   Devendra Shekh		added order by AccountCode
-	3   30/11/2023   Devendra Shekh		order by AccountCode issue resolved
-	4   12/12/2023   Moin Bloch		    order by AccountCode issue resolved
-	5   01Mar2023    Rajesh Gami		GLMapping Sequence related change
+** PR   Date			Author				Change Description              
+** --   --------		-------				--------------------------------            
+	1   21/07/2023		Satish Gohil		Created
+	2   29/11/2023		Devendra Shekh		added order by AccountCode
+	3   30/11/2023		Devendra Shekh		order by AccountCode issue resolved
+	4   12/12/2023		Moin Bloch		    order by AccountCode issue resolved
+	5   01Mar2023		Rajesh Gami			GLMapping Sequence related change
+	6   05-March-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 
-    USP_GetLeafNodeList 50,1
+    USP_GetLeafNodeList 1,1,226
 **************************************************************/ 
-Create     PROCEDURE [dbo].[USP_GetLeafNodeList](   
+CREATE     PROCEDURE [dbo].[USP_GetLeafNodeList](   
 	@ReportingStructureId BIGINT,
-	@masterCompanyId INT
+	@masterCompanyId INT,
+	@EmployeeId BIGINT
 )
 AS
 BEGIN
 	BEGIN TRY 
 	BEGIN
-		
+		DECLARE @EmpLegalEntiyId BIGINT = 0;				
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		;WITH CTE
 		AS(
 			SELECT 
@@ -33,9 +57,13 @@ BEGIN
 			l.IsLeafNode,GL.AccountCode + '-' + GL.AccountName 'GLAccount',
 			L.MasterCompanyId,
 			L.CreatedBy,
-			L.CreatedDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(L.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(L.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(L.CreatedDate AS DATETIME)) END CreatedDate,
 			L.UpdatedBy,
-			L.UpdatedDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(L.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(L.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(L.UpdatedDate AS DATETIME)) END UpdatedDate,
 			L.ReportingStructureId,
 			CASE WHEN ISNULL(GLM.GLAccountLeafNodeMappingId,0) = 0 THEN 0 ELSE glm.GLAccountLeafNodeMappingId END 'GlMappingId',
 			L.IsPositive,

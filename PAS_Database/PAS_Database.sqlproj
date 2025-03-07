@@ -3484,6 +3484,7 @@
     <Build Include="dbo\Stored Procedures\GetWorkOrderTaskInstructionById.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderTaskDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetTemplateTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsDownload.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

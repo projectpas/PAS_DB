@@ -127,6 +127,7 @@ BEGIN
 						WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
 						SET @InstructionSequenceNumber = ISNULL(@InstructionSequenceNumber, 0) + 1;
+						SET @IsInstructionParent = 1;
 					END
 
 					SET @InstructionkDescription = CASE WHEN ISNULL(@Description, '') = '' THEN @InstructionkDescription ELSE @Description END;

@@ -17,7 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/04/2020   Subhash Saliya Created
 	2   17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-
+	3   17/02/2025    Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone
      
 --  EXEC [Proc_GetNonStockList] 1
 **************************************************************/
@@ -74,6 +74,28 @@ BEGIN
 		DECLARE @MSModuelId INT = 11; -- For Non Stockline
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		DECLARE @CurrntEeTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEeTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;	
 		
 		IF @SortColumn IS NULL
@@ -115,6 +137,7 @@ BEGIN
 						   (ISNULL(stl.NonStockInventoryNumber,'')) 'NonStockInventoryNumber', 						   
 						   (ISNULL(stl.Condition,'')) AS  'Condition', 					   
 						   (ISNULL(stl.ReceivedDate,'')) AS  'ReceivedDate',
+               --case when CAST((ISNULL(stl.ReceivedDate,'')) as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.ReceivedDate, @CurrntEeTimeZoneDesc) as Date))end ReceivedDate,
 						   (ISNULL(stl.OrderDate,''))AS  'OrderDate',					  
 						   (ISNULL(stl.EntryDate,'')) AS 'EntryDate',
 						   (ISNULL(stl.MfgExpirationDate,'')) AS 'MfgExpirationDate',
@@ -138,7 +161,8 @@ BEGIN
 						   stl.VendorName,
 						   stl.Requisitioner,
 						   stl.ReceiverNumber,
-						   stl.UpdatedDate,					   
+						   --stl.UpdatedDate,
+						   case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEeTimeZoneDesc) as Date))end UpdatedDate,
 						   stl.UpdatedBy,
 						   MSD.LastMSLevel,
 						   MSD.AllMSlevels	
@@ -268,6 +292,7 @@ BEGIN
 						   (ISNULL(stl.NonStockInventoryNumber,'')) 'NonStockInventoryNumber', 						   
 						   (ISNULL(stl.Condition,'')) AS  'Condition', 					   
 						   (ISNULL(stl.ReceivedDate,'')) AS  'ReceivedDate',
+               --case when CAST((ISNULL(stl.ReceivedDate,'')) as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.ReceivedDate, @CurrntEeTimeZoneDesc) as Date))end ReceivedDate,
 						   (ISNULL(stl.OrderDate,''))AS  'OrderDate',					  
 						   (ISNULL(stl.EntryDate,'')) AS 'EntryDate',
 						   (ISNULL(stl.MfgExpirationDate,'')) AS 'MfgExpirationDate',
@@ -291,7 +316,8 @@ BEGIN
 						   stl.VendorName,
 						   stl.Requisitioner,
 						   stl.ReceiverNumber,
-						   stl.UpdatedDate,					   
+						   --stl.UpdatedDate,	
+						   case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEeTimeZoneDesc) as Date))end UpdatedDate,
 						   stl.UpdatedBy,
 						   MSD.LastMSLevel,
 						   MSD.AllMSlevels	

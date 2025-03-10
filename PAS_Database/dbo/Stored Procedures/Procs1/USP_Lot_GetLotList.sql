@@ -12,6 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    03/04/2023   Rajesh Gami     Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	3    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList] 
@@ -39,7 +40,8 @@ CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@CreatedDate datetime = NULL,
 	@UpdatedBy  varchar(50) = NULL,
 	@UpdatedDate  datetime = NULL,
-	@MasterCompanyId bigint = NULL	
+	@MasterCompanyId bigint = NULL,
+	@EmployeeId bigint
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -49,6 +51,26 @@ BEGIN
 	BEGIN
 		DECLARE @Count Int;
 		DECLARE @RecordFrom int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		IF @SortColumn IS NULL
@@ -72,7 +94,8 @@ BEGIN
 			   ,ISNULL((Select top 1 ISNULL(VendorId,0) from dbo.PurchaseOrder po WITH(NOLOCK) Where po.LotId = Lt.LotId AND ISNULL(po.IsDeleted,0) = 0),0) AS VendorId
 			   ,(Select top 1 ISNULL(ven.VendorName,'') from dbo.PurchaseOrder po WITH(NOLOCK) INNER JOIN dbo.Vendor ven WITH(NOLOCK) on po.VendorId = ven.VendorId Where po.LotId = Lt.LotId AND ISNULL(po.IsDeleted,0) = 0) AS VendorName
 			   ,ISNULL((Select top 1 ISNULL(PurchaseOrderNumber,'') from dbo.PurchaseOrder po WITH(NOLOCK) Where po.LotId = Lt.LotId AND ISNULL(po.IsDeleted,0) = 0),'') AS ReferenceNumber
-			   ,LT.[CreatedDate] OpenDate
+			   --,LT.[CreatedDate] OpenDate
+			   , case when CAST(LT.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LT.[CreatedDate], @CurrntEmpTimeZoneDesc) as Date))end OpenDate
 			   ,ISNULL(LT.OriginalCost,0.00)OriginalCost
 			   ,LT.LotStatusId
 			   ,S.StatusName

@@ -14,16 +14,39 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    16/12/2024		EKTA CHANDEGRA	 Created  
+	2    27/02/2025     Ayushi Patel     converted the date into utc (created , updated) , Added a case to get timeZone
 
  EXEC GetSalesOrderQuoteChargesHistory 281 
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteChargesHistory]
-    @SalesOrderQuoteChargesId BIGINT
+    @SalesOrderQuoteChargesId BIGINT,
+	@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	SET NOCOUNT ON;   
 	BEGIN TRY
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SELECT DISTINCT
 			soc.AuditSalesOrderQuoteChargesId,
 			soc.SalesOrderQuoteChargesId,
@@ -44,14 +67,16 @@ BEGIN
 			ISNULL(soc.BillingAmount,0) AS BillingAmount,
 			ISNULL(soc.MarkupPercentageId,0) AS MarkupPercentageId,
 			soc.CreatedBy,
-			soc.CreatedDate,
+			--soc.CreatedDate,
+			case when CAST(soc.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(soc.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
 			soc.IsActive,
 			soc.IsDeleted,
 			soc.MasterCompanyId,
 			soc.HeaderMarkupId,
 			soc.HeaderMarkupPercentageId,
 			soc.UpdatedBy,
-			soc.UpdatedDate,
+			--soc.UpdatedDate,
+			case when CAST(soc.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(soc.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
 			ISNULL(soc.RefNum,'') AS RefNum,
 			ISNULL(gl.AccountName, '') AS GLAccountName,
 			ISNULL(uom.ShortName, '') AS UOMName

@@ -11,12 +11,13 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    04-10-2024		AMIT GHEDIYA		Created
-
+	2    13/02/2025   Ayushi Patel      converted the date into utc (TransactionDate , EntryDate) , Added a case to get timeZone
 ************************/ 
 --[dbo].[GetStocklineBatchAccountingDetailsById] 181156
 -- =============================================
 CREATE    PROCEDURE [dbo].[GetStocklineBatchAccountingDetailsById]
-@ReferenceId BIGINT 
+@ReferenceId BIGINT ,
+@EmployeeId bigint
 AS
 BEGIN	
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -26,6 +27,27 @@ BEGIN
 
 	DECLARE @STKMSModuleId INT = 0
 	SELECT @STKMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 
 	SELECT CBD.CommonJournalBatchDetailId
 			,CBD.[JournalBatchDetailId] 
@@ -33,8 +55,10 @@ BEGIN
 			,CBD.[GlAccountId]  
 			,CBD.[GlAccountNumber]  
 			,UPPER(CBD.[GlAccountName]) AS [GlAccountName] 
-			,CBD.[TransactionDate]  
-			,CBD.[EntryDate] 
+			--,CBD.[TransactionDate]  
+			--,CBD.[EntryDate]
+			,case when CAST(CBD.[TransactionDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(CBD.[TransactionDate], @CurrntEmpTimeZoneDesc) as Date))end TransactionDate
+			,case when CAST(CBD.[EntryDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(CBD.[EntryDate], @CurrntEmpTimeZoneDesc) as Date))end EntryDate
 			,CBD.[JournalTypeId]  
             ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(CBD.JournalTypeNumber)) as JournalTypeName
 			,UPPER(CBD.JournalTypeNumber) as JournalNumber

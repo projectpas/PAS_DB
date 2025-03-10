@@ -31,6 +31,7 @@
 	14   22/07/2024   Rajesh Gami       Optimized for Performance Issue
 	15   25/07/2024   Rajesh Gami       Remove inner query for the get WorkOrderStage due to performance issue
 	16   21/01/2025   Abhishek Jirawala Stockline listing SP optimisation
+	17   12/02/2025   Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
 @PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,
@@ -106,7 +107,27 @@ BEGIN
 	  DECLARE @Count Int;        
 	  DECLARE @IsActive bit;        
 	  DECLARE @ISCS bit;        
-	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL;        
+	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL; 
+	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 	  SET @RecordFROM = (@PageNumber-1)*@PageSize;         
 	  SET @MSModuelId = 2;   -- For Stockline        
         
@@ -187,7 +208,8 @@ BEGIN
 		stl.PartCertificationNumber,        
 		stl.CertifiedBy,        
 		stl.CertifiedDate,        
-		stl.UpdatedDate,                
+		--stl.UpdatedDate,
+		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -433,7 +455,8 @@ BEGIN
 		stl.PartCertificationNumber,        
 		stl.CertifiedBy,        
 		stl.CertifiedDate,        
-		stl.UpdatedDate,                
+		--stl.UpdatedDate, 
+		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -683,7 +706,8 @@ BEGIN
 		stl.CreatedBy,        
 		stl.PartCertificationNumber,        
 		stl.CertifiedBy,          stl.CertifiedDate,        
-		stl.UpdatedDate,                
+		--stl.UpdatedDate,  
+		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -930,7 +954,8 @@ BEGIN
 		stl.PartCertificationNumber,        
 		stl.CertifiedBy,        
 		stl.CertifiedDate,        
-		stl.UpdatedDate,                
+		--stl.UpdatedDate, 
+		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        

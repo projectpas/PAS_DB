@@ -16,7 +16,8 @@
  ** --   --------		-------------	--------------------------------          
     01	 03-July-2023	Vishal Suthar	Removed script of "MULTIPLE" hover over
 	02	 30-Dec-2024	Abhishek Jirawla MULTIPLE checking was improper so corrected it and Performance changes implemented
-	02	 03-Mar-2025	Bhargav Saliya   Get New isStkLable value
+	03	 03-Mar-2025	Bhargav Saliya   Get New isStkLable value
+	04   10-March-2025  Sahdev Saliya   Added a case to get timeZone
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=100,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'OPEN',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=205,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL
 **************************************************************/
@@ -60,6 +61,25 @@ BEGIN
 		DECLARE @ItemTypeAsset Int;
 		DECLARE @ItemTypeStock Int;
 		DECLARE @ItemTypeNonStock Int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		SELECT @ItemTypeStock = ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE [name] = 'Stock'
 		SELECT @ItemTypeNonStock = ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE [name] = 'Non-Stock'
@@ -103,9 +123,9 @@ BEGIN
 				   RO.RepairOrderNumber AS RepairOrderNo,				   
 			       RO.OpenDate,
 				   RO.ClosedDate,
-				   RO.CreatedDate,
+				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
 				   RO.CreatedBy,
-				   RO.UpdatedDate,
+				   case when CAST(RO.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 				   RO.UpdatedBy,
 				   RO.IsActive,
 				   RO.IsDeleted,
@@ -257,9 +277,9 @@ BEGIN
 				   RO.RepairOrderNumber AS RepairOrderNo,				   
 			       RO.OpenDate,
 				   RO.ClosedDate,
-				   RO.CreatedDate,
+				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
 				   RO.CreatedBy,
-				   RO.UpdatedDate,
+				   case when CAST(RO.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 				   RO.UpdatedBy,
 				   RO.IsActive,
 				   RO.IsDeleted,

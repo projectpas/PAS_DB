@@ -10,7 +10,8 @@
  ** PR   Date         Author  			Change Description              
  ** --   --------     -------			--------------------------------            
     1    04/01/2024   Vishal Suthar		Created
-    2    24/02/2024   Ekta Chandegra	Convert date from UTC to Local
+    2    24/02/2025   Ekta Chandegra	Convert date from UTC to Local
+    3    05/03/2025   Bhargav Saliya	Cast the "ATAChapterCode" column as INT
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
@@ -121,6 +122,7 @@ BEGIN
     SET @Orderby = ' ORDER BY '
     IF (ISNULL(@SortColumn, '') = '')
     BEGIN
+	print 'step-1'
 		IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'SequenceNo')
 			SET @Orderby += ' SequenceNo ASC '
 		ELSE
@@ -128,9 +130,18 @@ BEGIN
     END
     ELSE
     BEGIN
-      SET @Orderby += CASE WHEN @SortOrder = 1 THEN 't.' + @SortColumn + ' ASC '
-                       ELSE 't.' + @SortColumn + ' DESC '
-                      END
+
+		IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND @SortColumn = 'ATAChapterCode')
+		BEGIN
+			SET @Orderby = ' ORDER BY CASE WHEN TRY_CAST(t.' + QUOTENAME(@SortColumn) + ' AS INT) IS NOT NULL THEN 1 ELSE 2 END, TRY_CAST(t.' + QUOTENAME(@SortColumn) + ' AS INT) ' 
+			+ CASE WHEN @SortOrder = 1 THEN 'ASC' ELSE 'DESC' END + ', t.' + QUOTENAME(@SortColumn) + ' ' + CASE WHEN @SortOrder = 1 THEN 'ASC' ELSE 'DESC' END;
+		END
+		ELSE
+		BEGIN
+		  SET @Orderby += CASE WHEN @SortOrder = 1 THEN 't.' + @SortColumn + ' ASC '
+						   ELSE 't.' + @SortColumn + ' DESC '
+						  END
+		END
     END
 
     SET @Orderby += ' OFFSET ' + CAST(@RecordFrom AS varchar) + ' ROWS FETCH NEXT ' + CAST(@PageSize AS VARCHAR) + ' ROWS ONLY '

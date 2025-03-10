@@ -105,10 +105,10 @@ BEGIN
 
 		WHILE(ISNULL(@TotalRecords, 0) >= ISNULL(@CurrentRecord, 0))
 		BEGIN
-
 			TRUNCATE TABLE #DynamicKeyValue;
 
 			SET @Erorr = '';
+			SET @ColumnReferenceId = '';
 
 			SELECT @UploadRecord = [UploadRecord] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
@@ -123,13 +123,14 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
+			--ORDER BY IMF.DisplaySortOrder ASC
 
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
-
+			
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
 
-				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue,@IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = ReferenceColumn
+				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = ''
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '')
@@ -142,16 +143,55 @@ BEGIN
 					BEGIN
 						UPDATE #ImportFields SET DropdownListValueId = CAST(@DropdownListValueId AS VARCHAR) WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
-					SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
+					--SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
 				END
 
 				SET @CurrentRow += 1;
 			END
 
+			UPDATE TMP
+			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+										ELSE ''
+										END,
+				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
+			FROM #ImportFields IMF WITH(NOLOCK)
+			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
+			WHERE IMF.[ModuleId] = @ModuleId
+			--SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
+ 
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
+				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue,@IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = ReferenceColumn
+				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
+				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '' AND ISNULL(@ColumnReferenceId, '') != '' AND ISNULL(@IsChekColumnReference, 0) = 1)
+				BEGIN
+					PRINT @CurrentRow
+					DECLARE @RSDropdownListValueId VARCHAR(100) = NULL;
+					SET @DropdownLFieldValue = UPPER(TRIM(@DropdownLFieldValue))
+					EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @RSDropdownListValueId OUTPUT;
+					IF(ISNULL(@RSDropdownListValueId, '') != '')
+					BEGIN
+						UPDATE #ImportFields SET DropdownListValueId = CAST(@RSDropdownListValueId AS VARCHAR) WHERE ImportModuleFieldMasterId = @CurrentRow;
+					END
+					ELSE
+					BEGIN
+						UPDATE #ImportFields SET DropdownListValueId = '' WHERE ImportModuleFieldMasterId = @CurrentRow;;
+					END
+					
+					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
+				END
+				SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
+				SET @CurrentRow += 1;
+			END
+			  
+			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
+			WHILE(@TotalRow >= @CurrentRow)
+			BEGIN
 				SELECT	@ChekDuplticateRef1 = ChekDuplticateRef1, @ChekDuplticateRef2 = ChekDuplticateRef2, @DropdownListTable = DropdownListTable				
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
@@ -161,7 +201,6 @@ BEGIN
 					SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef2;
 
 					EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId,  @IsDuplicate = @IsDuplicate OUTPUT;
-					
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 
@@ -175,10 +214,10 @@ BEGIN
 			END
 
 			UPDATE TMP
-			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
+													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' and ' + CASE WHEN IMF.ModuleId = @AlterModule AND IMF.ReferenceColumn = 'ManufacturerId' THEN 'Manufacturer' ELSE IMF.ReferenceColumn END
 										ELSE ''
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END

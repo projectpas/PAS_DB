@@ -32,8 +32,7 @@
     [IsChekColumnReference]     BIT            NULL,
     [ChekDuplticateRef1]        VARCHAR (150)  NULL,
     [ChekDuplticateRef2]        VARCHAR (150)  NULL,
+    [DisplaySortOrder]          INT            NULL,
     CONSTRAINT [PK_ImportModuleFieldMaster] PRIMARY KEY CLUSTERED ([ImportModuleFieldMasterId] ASC)
 );
-
-
 

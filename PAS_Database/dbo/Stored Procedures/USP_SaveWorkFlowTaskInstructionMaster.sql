@@ -11,6 +11,8 @@
     1    07-Feb-2025		Devendra Shekh					Created
     2    10-Feb-2025		Devendra Shekh					Modified (Checking TaskId as Well While Getting Max Sequence)
     3    11-Feb-2025		Devendra Shekh					Modified (Copying TaskInstructionMaster Data if @InstructionListId has value)
+    4    05-March-2025		Devendra Shekh					Modified (Description related Issue resolved while add new)
+    5    06-March-2025		Devendra Shekh					Modified ([Sequence] related Issue resolved)
 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
@@ -117,7 +119,19 @@ BEGIN
 					BEGIN
 						SELECT @NewParentId = WorkflowDirectionId FROM @IdMapping WHERE TaskInstructionId = @InstructionParentId;
 					END
+					
+					IF EXISTS (SELECT 1 FROM DBO.SPLITSTRING(@InstructionListId, ',') WHERE Item = @TaskInstructionId)
+					BEGIN
+						SELECT @InstructionSequenceNumber = ISNULL(MAX(TIM.Sequence), 0)
+						FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
+						WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
+						SET @InstructionSequenceNumber = ISNULL(@InstructionSequenceNumber, 0) + 1;
+						SET @IsInstructionParent = 1;
+					END
+
+					SET @InstructionkDescription = CASE WHEN ISNULL(@Description, '') = '' THEN @InstructionkDescription ELSE @Description END;
+				
 					-- Insert the record into WorkFlowDirection table
 					INSERT INTO DBO.WorkFlowDirection (
 						[WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
@@ -147,7 +161,7 @@ BEGIN
 
 				SELECT @MaxSequence = ISNULL(MAX(TIM.Sequence), 0)
 				FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
-				WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsParent = 1 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
+				WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
 				INSERT INTO DBO.WorkFlowDirection ([WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])

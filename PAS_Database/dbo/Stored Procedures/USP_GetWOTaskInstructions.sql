@@ -15,23 +15,36 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    01/01/2025   Vishal Suthar		Created
-
-EXEC [dbo].[USP_GetWOTaskInstructions] 283
+    2    05 MAR 2025   RAJESH GAMI		Added Parameter: MasterCompanyId and Change the logic based on recenlty change in TaskInstructionMaster Screen.
+EXEC [dbo].[USP_GetWOTaskInstructions] 0,1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWOTaskInstructions]
-	@TaskId bigint = 0
+Create     PROCEDURE [dbo].[USP_GetWOTaskInstructions]
+	@TaskId bigint = 0,
+	@MasterCompanyId INT 
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+			IF OBJECT_ID(N'tempdb..#TmpWOTaskTbl') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #TmpWOTaskTbl
+			END
+			IF OBJECT_ID(N'tempdb..#TmpWOWithoutTaskTbl') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #TmpWOWithoutTaskTbl
+			END
 		IF (ISNULL(@TaskId, 0) = 0)
 		BEGIN
-			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE ParentId IS NULL AND IsDeleted = 0;
+			SELECT TaskInstructionId INTO #TmpWOWithoutTaskTbl FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE ParentId IS NULL AND IsDeleted = 0 AND MasterCompanyId = @MasterCompanyId
+			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) 
+				   WHERE ParentId IN(SELECT TaskInstructionId FROM #TmpWOWithoutTaskTbl) AND IsDeleted = 0 AND MasterCompanyId = @MasterCompanyId;
 		END
 		ELSE
 		BEGIN
-			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE TaskId = @TaskId AND ParentId IS NULL AND IsDeleted = 0;
+			SELECT TaskInstructionId INTO #TmpWOTaskTbl FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) WHERE ParentId IS NULL AND IsDeleted = 0 AND MasterCompanyId = @MasterCompanyId AND TaskId = @TaskId
+			SELECT TIM.TaskInstructionId, TIM.Title, TIM.Description, TIM.SequenceNumber FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK) 
+				   WHERE TaskId = @TaskId AND  ParentId IN(SELECT TaskInstructionId FROM #TmpWOTaskTbl) AND IsDeleted = 0;
 		END
 	END TRY
 	BEGIN CATCH

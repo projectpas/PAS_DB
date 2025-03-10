@@ -67,7 +67,7 @@ BEGIN
 				 IF(@IsWorkOrderFormType = 1)
 				 BEGIN
 					;WITH CTE AS (
-					SELECT 
+					SELECT DISTINCT
 						ISNULL(WOT.WorkOrderTaskId, 0) AS WorkOrderTaskId,
 						ISNULL(WOT.WorkOrderId, 0) AS WorkOrderId,
 						ISNULL(WOT.WorkOrderPartNumberId, 0) AS WorkOrderPartNumberId,
@@ -106,7 +106,7 @@ BEGIN
 						WOTI.InspectorUpdatedDate AS ChildInspectorUpdatedDate,
 						ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
 						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ,
-						wl.WorkOrderLaborId as WorkOrderLaborId,
+						0 as WorkOrderLaborId,
 						wl.[TaskId],
 						ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
 						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician
@@ -116,13 +116,12 @@ BEGIN
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId -- --AND ISNULL(WOTI.PrintInWO,0) = 1
 					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 --AND ISNULL(WOTD.PrintInWO,0) = 1
-					
 				),
 				RecursiveCTE AS (				
 					SELECT 
 						c.*
 						--,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS SrNo
+						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
 						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
 						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
@@ -134,8 +133,10 @@ BEGIN
 						--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
 						--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS Seq
 						 CAST(r.SrNo + '.' + 
-             CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) 
-             AS NVARCHAR(MAX)) AS SrNo
+							 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+							 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+							 )
+							 AS SrNo
 					FROM CTE c
 					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 				)
@@ -177,7 +178,7 @@ BEGIN
 					IsPrintInspector,IsPrintTechnician
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
-				ORDER BY SrNo;
+				ORDER BY SequenceNumber;
 					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber ASC
 				 END
 				 ELSE

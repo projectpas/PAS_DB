@@ -3484,6 +3484,14 @@
     <Build Include="dbo\Stored Procedures\GetWorkOrderTaskInstructionById.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderTaskDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetTemplateTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsDownload.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewBillPaymentListForCreateBillPayment.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetBillPaymentDetailsForUpdateBillPayment.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetBillPaymentById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_UpdateModuleCountDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetBillingPerformaInvoicingDetails.sql" />
+    <Build Include="dbo\Tables\InvoicePaymentMapping.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertWorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionHistoryById.sql" />
@@ -3503,5 +3511,6 @@
     <None Include="Snapshots\PAS_SPRINT_51.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_52.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_53.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_53_Minor.dacpac" />
   </ItemGroup>
 </Project>

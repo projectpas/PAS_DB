@@ -20,24 +20,48 @@
 	5    10/05/2023  Moin Bloch           Added IsUpdated
 	6    16/07/2024  Sahdev Saliya        Added (AccountingPeriod)
 	7    25/07/2024  Sahdev Saliya        Set JournalTypeNumber Order by desc
+	8    05/03/2025  Ayushi Patel		  converted the date into utc (TransactionDate , EntryDate) , Added a case to get timeZone
 
 -- exec GetAccountingDetailsViewById 531   
 ************************/   
 CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewById]    
-@SalesOrderId bigint    
+@SalesOrderId bigint,
+@EmployeeId bigint
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
- BEGIN TRY        
+ BEGIN TRY   
+ DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
    BEGIN       
      SELECT JBH.[BatchName]    
                  ,JBD.[LineNumber]    
                  ,JBD.[GlAccountId]    
                  ,JBD.[GlAccountNumber]    
                  ,UPPER(JBD.[GlAccountName]) AS [GlAccountName]    
-                 ,JBD.[TransactionDate]    
-                 ,JBD.[EntryDate]    
+                 --,JBD.[TransactionDate]
+				 ,case when CAST(JBD.[TransactionDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(JBD.[TransactionDate], @CurrntEmpTimeZoneDesc) as datetime))end TransactionDate
+                 --,JBD.[EntryDate]  
+				 ,case when CAST(JBD.[EntryDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) as Date))end EntryDate
                  ,SBD.[SalesOrderId]    
                  ,SBD.[SalesOrderNumber]    
                  ,SBD.[PartId]    

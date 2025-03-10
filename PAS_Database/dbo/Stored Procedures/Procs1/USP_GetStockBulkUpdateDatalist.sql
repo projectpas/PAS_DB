@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/14/2023  Amit Ghediya     Created
+	2    20/02/2025   Ayushi Patel    converted the date into utc (created , updated) , Added a case to get timeZone
      
 -- EXEC USP_GetStockBulkUpdateDatalist
 ************************************************************************/
@@ -30,7 +31,8 @@ CREATE     PROCEDURE [dbo].[USP_GetStockBulkUpdateDatalist]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,	
-	@MasterCompanyId bigint=NULL
+	@MasterCompanyId bigint=NULL,
+	@EmployeeId bigint
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -40,6 +42,26 @@ BEGIN
 		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit=1
 		DECLARE @Count Int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -58,9 +80,11 @@ BEGIN
 			SELECT	DISTINCT
 					StkF.StockLineBulkUploadFileId AS 'StockLineBulkUploadFileId',
 					StkF.FileName AS 'FileName',
-					StkF.CreatedDate,
+					--StkF.CreatedDate,
+					case when CAST(StkF.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(StkF.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
 					StkF.CreatedBy,
-					StkF.UpdatedDate,
+					--StkF.UpdatedDate,
+					case when CAST(StkF.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(StkF.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
 					StkF.UpdatedBy
 				FROM dbo.StockLineBulkUploadFile StkF  WITH (NOLOCK)
 					WHERE StkF.MasterCompanyId = @MasterCompanyId
@@ -89,14 +113,18 @@ BEGIN
 		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
-        CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY		
 
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH
+    SELECT ERROR_NUMBER() AS ErrorNumber,ERROR_STATE() AS ErrorState, ERROR_SEVERITY() AS ErrorSeverity,ERROR_PROCEDURE() AS ErrorProcedure, ERROR_LINE() AS ErrorLine,ERROR_MESSAGE() AS ErrorMessage;
+		IF @@trancount > 0
+			PRINT 'ROLLBACK'
+			ROLLBACK TRAN;
              DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

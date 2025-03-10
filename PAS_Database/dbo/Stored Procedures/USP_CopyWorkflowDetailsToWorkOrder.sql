@@ -1298,7 +1298,7 @@ SET NOCOUNT ON;
 									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
 										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
 									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId AND ISNULL(WFD.IsActive, 0) = 1 AND ISNULL(WFD.IsDeleted, 0) = 0
-									ORDER BY ISNULL(WFD.IsParent, 0) DESC, WFD.ParentId ASC, WFD.[Sequence] ASC
+									ORDER BY WFD.[Sequence] ASC,  WFD.ParentId ASC,ISNULL(WFD.IsParent, 0) DESC
 
 									DECLARE @TotalRecords BIGINT = 0, @CurrentRecordId BIGINT = 1, @NewOrderTaskInstId BIGINT, @ParentWorkflowDirectionId BIGINT;
 

@@ -24,6 +24,7 @@
 	08	21-Jan-2025		Bhargav Saliya		When we attached WO with PO Part That time select Multiple/WO Number
 	09  23-Jan-2025		Bhargav Saliya		Resolved Shorting issue
 	10	31-Jan-2025		Hemant Saliya		Resolved WO number Display issue
+	11  26-02-2025      Shrey Chandegara    Modified due to datetime issue.
       
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -92,6 +93,26 @@ BEGIN
 	BEGIN    
 		DROP TABLE #tmpPurchaseOrderUserRole
 	END
+
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM
+				dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN
+				dbo.TimeZone ETZ WITH (NOLOCK)
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN
+				dbo.LegalEntity LE WITH (NOLOCK)
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN
+				dbo.TimeZone LTZ WITH (NOLOCK)
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		
 	SELECT * INTO #tmpPurchaseOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
 	FROM [dbo].PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK)
@@ -151,9 +172,9 @@ BEGIN
 					PO.PurchaseOrderNumber AS PurchaseOrderNo,
 					PO.OpenDate,
 					PO.ClosedDate,
-					PO.CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(PO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
 					PO.CreatedBy,
-					PO.UpdatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(PO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 					PO.UpdatedBy,
 					PO.IsActive,
 					PO.IsDeleted,
@@ -332,9 +353,9 @@ BEGIN
 			PO.PurchaseOrderNumber AS PurchaseOrderNo,
 			PO.OpenDate,
 			PO.ClosedDate,
-			PO.CreatedDate,
+			(Cast(DBO.ConvertUTCtoLocal(PO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
 			PO.CreatedBy,
-			PO.UpdatedDate,
+			(Cast(DBO.ConvertUTCtoLocal(PO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 			PO.UpdatedBy,
 			PO.IsActive,
 			PO.IsDeleted,

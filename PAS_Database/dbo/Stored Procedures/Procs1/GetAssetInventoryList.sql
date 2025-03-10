@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAssetInventoryList]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get list of Asset Inventory List   
@@ -19,6 +18,7 @@
 	2    11/06/2024   Abhishek Jirawla Returning data in upper case
 	3    05/12/2024   Abhishek Jirawla Adding cost, accumalated depreciation and net book value
 	4	 12/12/2024	  Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
+	5    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
      
 --  EXEC [GetAssetInventoryList] 
 **************************************************************/
@@ -77,6 +77,26 @@ BEGIN
 		DECLARE @Count INT;
 		DECLARE @AssetInventoryCheckInStatus BIGINT = 0; 
 		SELECT @AssetInventoryCheckInStatus = AssetAvailableStatusId FROM AssetAvailableStatus WHERE (Status = 'CHECKED IN TO WO' OR Status = 'Unavailable - In Use')
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM
+				dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN
+				dbo.TimeZone ETZ WITH (NOLOCK)
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN
+				dbo.LegalEntity LE WITH (NOLOCK)
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN
+				dbo.TimeZone LTZ WITH (NOLOCK)
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		IF OBJECT_ID(N'tempdb..#tmpAssetUserRole') IS NOT NULL    
 		BEGIN    
@@ -150,8 +170,10 @@ BEGIN
 								UPPER(asm.level3) AS DivName,
 								UPPER(asm.level4) AS DeptName,
 								UPPER(asm.MasterCompanyId) AS MasterCompanyId,
-								asm.CreatedDate AS CreatedDate,
-								asm.UpdatedDate AS UpdatedDate,
+								(Cast(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+								(Cast(DBO.ConvertUTCtoLocal(asm.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+								--asm.CreatedDate AS CreatedDate,
+								--asm.UpdatedDate AS UpdatedDate,
 								UPPER(asm.CreatedBy) AS CreatedBy,
 								UPPER(asm.UpdatedBy) AS UpdatedBy ,
 								asm.IsActive AS IsActive,

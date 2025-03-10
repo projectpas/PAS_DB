@@ -3492,6 +3492,7 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateModuleCountDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetBillingPerformaInvoicingDetails.sql" />
     <Build Include="dbo\Tables\InvoicePaymentMapping.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderShipping.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

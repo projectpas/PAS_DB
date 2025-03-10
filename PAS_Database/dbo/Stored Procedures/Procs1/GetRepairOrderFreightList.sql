@@ -13,17 +13,39 @@
  ** --   --------     -------		--------------------------------          
     1    11/10/2022  Deep Patel     Created
 	2    07/08/2024  Shrey Chandegara Updated for change history order.
+	3    10/03/2025  Sahdev Saliya  Added a case to get timeZone
+
 -- EXEC GetRepairOrderFreightList 8,0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderFreightList]
 @RepairOrderId bigint,
 @IsDeleted bit,
-@Opr int
+@Opr int,
+@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-	BEGIN TRY	
+	BEGIN TRY
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 	IF(@Opr=1)
 	BEGIN
 	SELECT [RepairOrderFreightId]
@@ -55,8 +77,10 @@ BEGIN
           ,[MasterCompanyId]
           ,[CreatedBy]
           ,[UpdatedBy]
-          ,[CreatedDate]
-          ,[UpdatedDate]
+          --,[CreatedDate]
+		  ,case when CAST(CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate
+          --,[UpdatedDate]
+		  ,case when CAST(UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
           ,[IsActive]
           ,[IsDeleted]
 		  ,[LineNum]
@@ -94,8 +118,10 @@ BEGIN
           ,[MasterCompanyId]
           ,[CreatedBy]
           ,[UpdatedBy]
-          ,[CreatedDate]
-          ,[UpdatedDate]
+          --,[CreatedDate]
+		  ,case when CAST(CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate
+          --,[UpdatedDate]
+		  ,case when CAST(UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
           ,[IsActive]
           ,[IsDeleted]
 		  ,[LineNum]

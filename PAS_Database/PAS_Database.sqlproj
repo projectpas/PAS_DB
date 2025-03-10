@@ -3492,6 +3492,8 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateModuleCountDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetBillingPerformaInvoicingDetails.sql" />
     <Build Include="dbo\Tables\InvoicePaymentMapping.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateWorkOrderStage.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderShipping.sql" />
     <Build Include="dbo\Tables\WorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertWorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionHistoryById.sql" />

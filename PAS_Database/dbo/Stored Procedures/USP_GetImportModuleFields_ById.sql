@@ -10,6 +10,7 @@
 ** PR   Date				Author					Change Description  
 ** --   --------			-------					--------------------------------
 ** 1	3rd-DEC-2024		Devendra Shekh			Created
+** 2    21-02-2024          Shrey Chandegara        Modifiy due to add column [DisplaySortOrder]
 
 exec USP_GetImportModuleFields_ById 1
 ************************************************************************/
@@ -54,6 +55,7 @@ BEGIN
 					,[UpdatedDate]
 					,[IsActive]
 					,[IsDeleted]	
+					,ISNULL([DisplaySortOrder],0) AS DisplaySortOrder
 			FROM [dbo].[ImportModuleFieldMaster]
 			WHERE [ModuleId] = @ModuleId
 		END

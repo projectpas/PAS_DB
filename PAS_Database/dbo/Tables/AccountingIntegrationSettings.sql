@@ -15,8 +15,9 @@
     [IsDeleted]                       BIT           NOT NULL,
     [AllowBulkSync]                   BIT           NULL,
     [DisplayTitle]                    VARCHAR (200) NULL,
+    [SyncRecords]                     BIGINT        NULL,
+    [PendingSyncRecords]              BIGINT        NULL,
+    [TotalRecords]                    BIGINT        NULL,
     CONSTRAINT [PK_AccountingIntegrationSettings] PRIMARY KEY CLUSTERED ([AccountingIntegrationSettingsId] ASC)
 );
-
-
 

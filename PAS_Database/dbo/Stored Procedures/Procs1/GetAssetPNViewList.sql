@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAssetPNViewList]
  ** Author:   
  ** Description: This stored procedure is used to Get Asset List PN View
@@ -17,6 +15,7 @@
  ** --   --------     -------				--------------------------------          
     1    									Created
     2	 06/10/2024  Abhishek Jirawla		Returning upper case data
+	3    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	
 
 ************************************************************************/
@@ -62,6 +61,27 @@ BEGIN
   Declare @IsActive bit = 1 
   DECLARE @ModuleID varchar(500) ='40,41'
   Declare @Count Int;  
+
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM
+			dbo.Employee E WITH (NOLOCK)
+		LEFT JOIN
+			dbo.TimeZone ETZ WITH (NOLOCK)
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN
+			dbo.LegalEntity LE WITH (NOLOCK)
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN
+			dbo.TimeZone LTZ WITH (NOLOCK)
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
   SET @RecordFrom = (@PageNumber - 1) * @PageSize;  
   IF @IsDeleted is null  
   Begin  
@@ -112,8 +132,10 @@ BEGIN
     UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
     UPPER(asty.AssetAttributeTypeName) AS AssetType,   
     UPPER(asm.MasterCompanyId) AS MasterCompanyId,  
-    asm.CreatedDate AS CreatedDate,  
-    asm.UpdatedDate AS UpdatedDate,  
+	(Cast(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+	(Cast(DBO.ConvertUTCtoLocal(asm.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+    --asm.CreatedDate AS CreatedDate,  
+    --asm.UpdatedDate AS UpdatedDate,  
     UPPER(asm.CreatedBy) AS CreatedBy,  
     UPPER(asm.UpdatedBy) AS UpdatedBy ,  
     asm.IsActive AS IsActive,  

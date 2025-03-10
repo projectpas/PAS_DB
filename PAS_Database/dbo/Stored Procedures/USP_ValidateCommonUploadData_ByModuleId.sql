@@ -53,10 +53,9 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT;
     
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
-		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -201,18 +200,14 @@ BEGIN
 					SELECT	@DuplicateRefeValue1 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef1;
 					SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef2;
 
-					EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
-					
+					EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId,  @IsDuplicate = @IsDuplicate OUTPUT;
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 
 						SET DuplicateErrorMsg = CASE	WHEN @ModuleId = @AlterModule THEN 'Entered PN and Alterate PN Already Exits!'
-														WHEN @ModuleId = @GLModule THEN 'Entered Account Code Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
-
-
 				END
 
 				SET @CurrentRow += 1;
@@ -222,7 +217,7 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
-													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
+													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' and ' + CASE WHEN IMF.ModuleId = @AlterModule AND IMF.ReferenceColumn = 'ManufacturerId' THEN 'Manufacturer' ELSE IMF.ReferenceColumn END
 										ELSE ''
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END

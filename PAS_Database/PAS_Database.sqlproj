@@ -3494,6 +3494,7 @@
     <Build Include="dbo\Tables\InvoicePaymentMapping.sql" />
     <Build Include="dbo\Stored Procedures\UpdateWorkOrderStage.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkflowtransferData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

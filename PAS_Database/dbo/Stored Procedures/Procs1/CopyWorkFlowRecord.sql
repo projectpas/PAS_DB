@@ -11,6 +11,7 @@
     1					Unknow				Created
 	2    08/12/2024		Devendra Shekh		workFlowNum issue for History resolved, UTCDate Change For New WorkFlow
 	3    10-Feb-2025	Devendra Shekh		Modified (changes for create new WorkflowDirection)
+	4    28-Feb-2025	Devendra Shekh		Modified (changes for create new WorkFlowTask)
 
      
 EXEC [dbo].[CopyWorkFlowRecord] 97, 'ADMIN User', 0
@@ -40,6 +41,7 @@ BEGIN
 				declare @materialCount int =(Select count(*) from dbo.WorkflowMaterial WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 				declare @measurementsCount int =(Select count(*) from dbo.WorkflowMeasurement WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 				declare @publicationCount int =(Select count(*) from dbo.WorkflowPublications WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
+				declare @workFlowTaskCount int =(Select count(*) from dbo.WorkFlowTask WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 
 				DECLARE @WorkflowDirectionType [WorkflowDirectionType];
 				DECLARE @TotalDirectionRecords BIGINT = 0;
@@ -160,6 +162,13 @@ BEGIN
 						UPDATE #tempTable9 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 						INSERT INTO dbo.WorkflowPublications SELECT * FROM #tempTable9
 						DROP TABLE #tempTable9
+					END
+					IF(@workFlowTaskCount >0)
+					BEGIN
+						SELECT	[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [WFParentId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted] INTO #tempTable10 FROM [dbo].[WorkFlowTask] WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
+						UPDATE #tempTable10 SET [WorkFlowId] = @newWorkFlowId, CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
+						INSERT INTO [dbo].[WorkFlowTask] SELECT * FROM #tempTable10
+						DROP TABLE #tempTable10
 					END
 
 					SELECT @TotalDirectionRecords = COUNT(WorkflowDirectionId) FROM @WorkflowDirectionType;

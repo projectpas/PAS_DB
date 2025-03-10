@@ -10,7 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    26-Dec-2024		Devendra Shekh			Created
     2    27-Jan-2025		Ekta Chandegra			Add @IsDeleted parameter
-
+    2    04-Mar-2025		RAJESH GAMI      		Sequence Number logic change (Group by Task)
 
 	exec dbo.USP_GetTaskInstructionMasterList @MasterCompanyId=1,@IsDeleted=1
 
@@ -27,31 +27,35 @@ BEGIN
 		Begin  
 		 Set @IsDeleted=0  
 		End  
-		;WITH CTE AS (
-			SELECT 
-			TIM.TaskInstructionId,
-			TIM.ParentId,
-			TIM.IsParent,
-			TIM.TaskId,
-			T.[Description] TaskName,
-			TIM.Title InstructionTitle,
-			TIM.SequenceNumber,
-			TIM.[Description] InstructionDetails,
-			TIM.MasterCompanyId,
-			TIM.CreatedBy,
-			TIM.UpdatedBy,
-			TIM.CreatedDate,
-			TIM.UpdatedDate,
-			TIM.IsActive,
-			TIM.IsDeleted 
-			FROM dbo.TaskInstructionMaster TIM WITH(NOLOCK)
-			LEFT JOIN DBO.Task T WITH(NOLOCK) ON T.TaskId = TIM.TaskId
-			WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.IsActive,0) = 1 AND ISNULL(TIM.IsDeleted,0) = @IsDeleted
-		)
+			;WITH CTE AS (
+				SELECT 
+					TIM.TaskInstructionId,
+					TIM.ParentId,
+					TIM.IsParent,
+					TIM.TaskId,
+					T.[Description] TaskName,
+					TIM.Title InstructionTitle,
+					TIM.SequenceNumber AS SequenceNumber,
+					TIM.[Description] InstructionDetails,
+					TIM.MasterCompanyId,
+					TIM.CreatedBy,
+					TIM.UpdatedBy,
+					TIM.CreatedDate,
+					TIM.UpdatedDate,
+					TIM.IsActive,
+					TIM.IsDeleted,
+					DENSE_RANK() OVER (ORDER BY TIM.TaskId) AS TaskSrNo
+				FROM dbo.TaskInstructionMaster TIM WITH(NOLOCK)
+				LEFT JOIN DBO.Task T WITH(NOLOCK) 
+					ON T.TaskId = TIM.TaskId
+				WHERE TIM.MasterCompanyId = @MasterCompanyId 
+					AND ISNULL(TIM.IsActive, 0) = 1 
+					AND ISNULL(TIM.IsDeleted, 0) = @IsDeleted
 
-		SELECT * INTO #LeafTempTbl FROM CTE
+			)
 
-		SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
+			SELECT 	* INTO #LeafTempTbl FROM CTE;			
+			SELECT * FROM #LeafTempTbl ORDER BY TaskId,SequenceNumber;
 		
 	END TRY    
 	BEGIN CATCH      

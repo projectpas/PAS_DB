@@ -10,7 +10,8 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-	1    15-05-2024    Moin Bloch   created
+	1    15-05-2024    Moin Bloch		created
+	2    28-02-2025    Hemant Saliya	Added Task Options
 **************************************************************/  
 -- =============================================
 -- EXEC [dbo].[USP_GetTransferTemplateList] 47
@@ -22,8 +23,8 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		DECLARE @Charges BIT = 0,@Tools BIT = 0,@Labor BIT = 0,@Material BIT = 0,@Directions BIT = 0,@Exclusions BIT = 0,@Measurements  BIT = 0,@Publications  BIT = 0;
-		DECLARE @ChargesCount INT = 0,@EquipmentsCount INT = 0,@ExpertiseCount INT = 0,@MaterialsCount INT = 0,@DirectionsCount INT = 0,@ExclusionsCount INT = 0,@MeasurementsCount  INT = 0,@PublicationsCount INT = 0;
+		DECLARE @Charges BIT = 0,@Tools BIT = 0,@Labor BIT = 0,@Material BIT = 0,@Directions BIT = 0,@Exclusions BIT = 0,@Measurements  BIT = 0,@Publications  BIT = 0, @Task  BIT = 0;
+		DECLARE @ChargesCount INT = 0,@EquipmentsCount INT = 0,@ExpertiseCount INT = 0,@MaterialsCount INT = 0,@DirectionsCount INT = 0, @TaskCount INT = 0, @ExclusionsCount INT = 0,@MeasurementsCount  INT = 0,@PublicationsCount INT = 0;
 
 		SELECT  @ChargesCount = COUNT([WorkflowChargesListId]) FROM [dbo].[WorkflowChargesList] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND [IsDeleted] = 0;
 				
@@ -40,6 +41,8 @@ BEGIN
 		SELECT @MeasurementsCount = COUNT([WorkflowMeasurementId]) FROM [dbo].[WorkflowMeasurement] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND [IsDeleted] = 0;
 		
 		SELECT @PublicationsCount = COUNT([WorkflowPublicationsId]) FROM [dbo].[WorkflowPublications] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND [IsDeleted] = 0;
+
+		SELECT @TaskCount = COUNT([WorkFlowTaskId]) FROM [dbo].[WorkFlowTask] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND [IsDeleted] = 0;
           			
 		IF(@ChargesCount > 0)
 		BEGIN
@@ -73,6 +76,10 @@ BEGIN
 		BEGIN
 			SET @Publications = 1;
 		END
+		IF(@TaskCount > 0)
+		BEGIN
+			SET @Task = 1;
+		END
 				
 		SELECT @Charges 'Charges',
 		       @Tools 'Tools',
@@ -81,7 +88,8 @@ BEGIN
 			   @Directions 'Directions',
 			   @Exclusions 'Exclusions',
 			   @Measurements 'Measurements',
-			   @Publications 'Publications'
+			   @Publications 'Publications',
+			   @Task 'Task'
 				
 	END TRY    
 	BEGIN CATCH      

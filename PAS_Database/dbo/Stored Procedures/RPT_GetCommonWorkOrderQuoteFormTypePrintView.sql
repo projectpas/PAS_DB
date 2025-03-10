@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [RPT_GetCommonWorkOrderQuoteFormTypePrintView]       
  ** Author: RAJESH GAMI
  ** Description: This stored procedure is used retrieve Common Work Order Quote Fomr Type for SSRS report
@@ -19,6 +20,7 @@
     2    16 JAN 2025  RAJESH GAMI			Updated to print only instruction which has PrintInWOQ is enabled    
 	3    21 JAN 2025  RAJESH GAMI			Updated to print only Task which has PrintInWO is enabled
 	4    21 JAN 2025  RAJESH GAMI			Added workOrderPartNoId in the parameter and functional
+	6    05-MAR-2025   RAJESH GAMI			Sequence Number Change
 RPT_GetCommonWorkOrderQuoteFormTypePrintView 4769, 4028, 4316
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderQuoteFormTypePrintView]
@@ -82,14 +84,20 @@ BEGIN
 				RecursiveCTE AS (				
 					SELECT 
 						c.*,
-						CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						--CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
 					WHERE c.ParentId = 0
 					UNION ALL
 				
 					SELECT 
 						c.*,
-						CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+						--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+						 CAST(r.SrNo + '.' + 
+							 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+							 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+							 )
+							 AS SrNo
 					FROM CTE c
 					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 				)
@@ -134,7 +142,7 @@ BEGIN
 					PrintInWOQ,
 					SrNo
 				FROM RecursiveCTE
-				ORDER BY SrNo;
+				ORDER BY SequenceNumber;
 			END
 		COMMIT  TRANSACTION
 

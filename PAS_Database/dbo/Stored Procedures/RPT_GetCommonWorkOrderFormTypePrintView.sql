@@ -19,6 +19,7 @@
     2    16 JAN 2025  RAJESH GAMI			Updated to print only Instruction which has PrintInWO is enabled 
 	3    21 JAN 2025  RAJESH GAMI			Updated to print only Task which has PrintInWO is enabled
 	4    21 JAN 2025  RAJESH GAMI			Added workOrderPartNoId in the parameter and functional
+	5    03-MAR-2025   RAJESH GAMI			Sequence Number Change
 -- EXEC  [dbo].[RPT_GetCommonWorkOrderFormTypePrintView] 4769
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderFormTypePrintView]
@@ -78,16 +79,51 @@ BEGIN
 					WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOTD.PrintInWO,0) = 1 AND ISNULL(WOT.WorkOrderPartNumberId,0) = @workOrderPartNoId
 				),
 				RecursiveCTE AS (				
+					--SELECT 
+					--	c.*,
+					--	CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+					--FROM CTE c
+					--WHERE c.ParentId = 0
+					--UNION ALL
+				
+					--SELECT 
+					--	c.*,
+					--	CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+					--FROM CTE c
+					--INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
+					--SELECT 
+					--	c.*
+					--	,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+					--	--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS SrNo
+					--FROM CTE c
+					--WHERE c.ParentId = 0
+					--UNION ALL
+				
+					--SELECT 
+					--	c.*,
+					--	CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+					--FROM CTE c
+					--INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
+
 					SELECT 
-						c.*,
-						CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						c.*
+						--,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
 					WHERE c.ParentId = 0
 					UNION ALL
 				
 					SELECT 
 						c.*,
-						CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+						--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+						--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS Seq
+						 CAST(r.SrNo + '.' + 
+							 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+							 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+							 )
+							 AS SrNo
 					FROM CTE c
 					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 				)
@@ -132,7 +168,7 @@ BEGIN
 					PrintInWOQ,
 					SrNo
 				FROM RecursiveCTE
-				ORDER BY SrNo;
+				ORDER BY SequenceNumber;
 			END
 		COMMIT  TRANSACTION
 

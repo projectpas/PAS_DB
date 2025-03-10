@@ -1,4 +1,19 @@
-﻿CREATE       PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
+﻿/***************************************************************  
+ ** File:   [USP_EmailDetailsForCustomer_WorkOrderStageChange]            
+ ** Author:   
+ ** Description: 
+ ** Purpose:           
+ ** Date:   
+            
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author  			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    -				UNKNOWN
+    2    20-Feb-2025   Bhargav Saliya	Handle NULL Value
+
+**************************************************************/
+CREATE       PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
 @WorkOrderId BIGINT,
 @WorkOrderStageId BIGINT,
 @WorkOrderPartNumberId BIGINT
@@ -17,13 +32,14 @@ BEGIN
 					SELECT 
 							SL.PartNumber AS 'MPN',
 							SL.PNDescription AS 'MPNDescription',
-							SL.SerialNumber,
+							ISNULL(SL.SerialNumber,'') SerialNumber,
 							WOPN.Quantity,
 							WO.WorkOrderNum AS 'WONum',
 							WOPN.CustomerReference AS 'CustRef',
 							WOS.Stage AS 'PreviousStage',
 							WOSD.Stage AS 'UpdatedStage',
-							WOPN.EstimatedShipDate 'EstShipDate',
+							--WOPN.EstimatedShipDate 'EstShipDate',
+							CASE WHEN WOPN.EstimatedShipDate IS NOT NULL THEN WOPN.EstimatedShipDate ELSE '' END AS EstShipDate,
 							WS.WorkScopeCode 'Workscope',
 							WOPN.MasterCompanyId
 								From [dbo].[WorkOrderPartNumber] WOPN WITH(NOLOCK)

@@ -13,6 +13,7 @@
     1    05/04/2023   Amit Ghediya     Created
 	2    21/11/2023   Amit Ghediya     Updated for get lotout unitcost & ext Cost amount for trans out.
 	3	 20 jun 2024  Bhargav Saliya   Remove UPPER case for the memo
+	4    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
 **************************************************************
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -64,6 +65,28 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @RecordFrom int;
 		DECLARE @MSModuelId int,@LotMSModuelId int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		SET @MSModuelId = 2;   -- For Stockline
 		SET @LotMSModuelId = 42 -- For LOT
@@ -103,7 +126,8 @@ BEGIN
 					,UPPER(MSD.AllMSlevels) AllMSlevels
 					,UPPER(stl.UnitOfMeasure) AS Uom
 				    ,UPPER(stl.ControlNumber) AS CntrlNumber
-					,ind.CreatedDate AS AddedDate
+					--,ind.CreatedDate AS AddedDate
+					,case when CAST(ind.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(ind.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end AddedDate
 					,stl.TraceableToName
 					,stl.TaggedByName
 					,stl.TagDate
@@ -248,7 +272,8 @@ BEGIN
 					,UPPER(MSD.AllMSlevels) AllMSlevels
 					,UPPER(stl.UnitOfMeasure) AS Uom
 				    ,UPPER(stl.ControlNumber) AS CntrlNumber
-					,ind.CreatedDate AS AddedDate
+					--,ind.CreatedDate AS AddedDate
+					,case when CAST(ind.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(ind.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end AddedDate
 					,stl.TraceableToName
 					,stl.TaggedByName
 					,stl.TagDate

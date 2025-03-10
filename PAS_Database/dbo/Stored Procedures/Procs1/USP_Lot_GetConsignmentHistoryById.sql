@@ -17,7 +17,8 @@
 EXEC USP_Lot_GetConsignmentHistoryById 12  
 **************************************************************/  
 CREATE      PROCEDURE [dbo].[USP_Lot_GetConsignmentHistoryById]   
-@ConsignmentId bigint =0  
+@ConsignmentId bigint =0,
+@EmployeeId bigint
 AS  
 BEGIN  
 --[dbo].[USP_Lot_GetConsignmentSetupById]  10  
@@ -25,7 +26,28 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
   BEGIN TRY  
   BEGIN TRANSACTION  
- BEGIN          
+ BEGIN 
+ DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
   IF (@ConsignmentId >0)  
   BEGIN  
   SELECT DISTINCT
@@ -34,7 +56,8 @@ BEGIN
       ,LC.ConsignmentId  
       ,UPPER(LT.LotNumber) LotNumber  
       ,UPPER(LT.LotName) LotName  
-      ,LC.[CreatedDate] CreatedDate  
+      --,LC.[CreatedDate] CreatedDate
+	  ,case when CAST(LC.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LC.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate
       , (CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN' WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' ELSE '' END) HowCalculate  
       --,ISNULL(LC.PerAmount,0.00)CalculateValue  
       ,(CASE WHEN ISNULL(LC.IsFixedAmount,0) = 1 THEN ISNULL(LC.PerAmount,0.00) ELSE (SELECT ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)) END) AS CalculateValue  
@@ -44,7 +67,8 @@ BEGIN
       ,LC.[MasterCompanyId]  
       ,LC.[CreatedBy]  
       ,ISNULL(lc.IsFixedAmount,0)AS IsFixedAmount
-	  ,LC.[UpdatedDate] UpdatedDate
+	  --,LC.[UpdatedDate] UpdatedDate
+	  ,case when CAST(LC.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LC.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
 	  ,LC.[updatedBy]  
     FROM   
     dbo.LotConsignmentAudit LC  

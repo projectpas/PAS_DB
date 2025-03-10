@@ -20,13 +20,15 @@
 	7    18-12-2024    RAJESH GAMI		Skip the record if WO,RO,SO,Exch deleted
 	8    19-12-2024    RAJESH GAMI		Add MastercompanyId in the managementstructure JOIN
 	9    26-12-2024    RAJESH GAMI		Modified WPN to check RO is closed or not
+  10   13/02/2025    Ayushi Patel   converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
 CREATE  PROCEDURE [dbo].[GetStocklineReservedIssuedReportByStocklineId]
 @StocklineId BIGINT,
 @DisplayType INT NULL,
-@MasterCompanyId INT NULL
+@MasterCompanyId INT NULL,
+@EmployeeId bigint
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -46,6 +48,26 @@ BEGIN
 	  DECLARE @RMAReplaced INT;
 	  DECLARE @RMARefunded INT;
 	  DECLARE @RMACancel INT, @AdjPostedStatusId INT;
+	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 	  SET @WOCloseStatusId = (SELECT Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE Description = 'Closed')
 	  SET @ROClosedStatusId = (SELECT ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
 	  SET @ExchClosedStatusId = (SELECT ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
@@ -143,9 +165,11 @@ BEGIN
 					UPPER(SLM.Level8Name) AS level8, 
 					UPPER(SLM.Level9Name) AS level9, 
 					UPPER(SLM.Level10Name) AS level10,
-					WOP.CreatedDate  ReservationDate,
+					--WOP.CreatedDate  ReservationDate,
+					case when CAST(WOP.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(WOP.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end ReservationDate,
 					WOP.CreatedBy ReservedBy,
-					WOP.CreatedDate  IssuedDate,
+					--WOP.CreatedDate  IssuedDate,
+					case when CAST(WOP.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(WOP.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end IssuedDate,
 					WOP.CreatedBy IssuedBy,
 					ISNULL(SL.Quantity,0) as Quantity,
 					ISNULL(SL.QuantityOnHand,0) as QuantityOnHand,
@@ -155,7 +179,8 @@ BEGIN
 					'' as Comments,
 					WO.WorkOrderId as ReferenceId,
 					SL.Manufacturer,
-					WOP.CreatedDate  ReservedIssuedDate,
+					--WOP.CreatedDate  ReservedIssuedDate,
+					case when CAST(WOP.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(WOP.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end ReservedIssuedDate,
 					WOP.CreatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
 				FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId

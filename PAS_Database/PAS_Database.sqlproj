@@ -3486,8 +3486,12 @@
     <Build Include="dbo\Stored Procedures\GetTemplateTaskInstructionById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsDownload.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewBillPaymentListForCreateBillPayment.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetBillPaymentDetailsForUpdateBillPayment.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetBillPaymentById.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateModuleCountDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetBillingPerformaInvoicingDetails.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

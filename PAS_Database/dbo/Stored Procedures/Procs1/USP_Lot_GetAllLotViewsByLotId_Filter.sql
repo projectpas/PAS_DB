@@ -15,7 +15,7 @@
 	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	4    19 Nov 2024  RAJESH GAMI		Added condition for PNSoldView (If revised the invoice then show the latest on)
-     
+    5    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -95,7 +95,8 @@ CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@LotId bigint, 
 	@Type VARCHAR(50) = '',
 	@IsAvailableQty BIT = 0,
-	@MasterCompanyId int
+	@MasterCompanyId int,
+	@EmployeeId bigint
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -107,6 +108,27 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN		
 				DECLARE @Count Int;
 				DECLARE @RecordFrom int, @AvailableQty int = 0;
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 				SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 				IF @IsAvailableQty = 1 AND UPPER(@Type) = UPPER('PNInStockView')
@@ -260,7 +282,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,im.ManufacturerName
-				,sobi.InvoiceDate InvoiceDate,
+				--,sobi.InvoiceDate InvoiceDate,
+				,case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
@@ -1091,7 +1114,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,c.Description AS Condition
 				,'SOLD' AS Status
 				,So.CustomerName
-				,sobi.InvoiceDate
+				--,sobi.InvoiceDate
+        ,case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate
 				,ltCal.Qty Qty
 				,ltCal.SalesUnitPrice UnitPrice
 				,ltCal.ExtSalesUnitPrice ExtendedPrice		
@@ -1691,7 +1715,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(ven.VendorId,0) VendorId			
 				,ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.PurchaseOrderFreight PF WITH(NOLOCK) WHERE PF.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) AS FreightCost
 				,ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.PurchaseOrderCharges PC WITH(NOLOCK) WHERE PC.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) AS ChargesCost
-				,Po.CreatedDate AS PoDate
+				--,Po.CreatedDate AS PoDate
+        ,case when CAST(Po.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(Po.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PoDate
 				,po.PurchaseOrderNumber AS PoNum			
 				,part.PartNumber
 				,part.PartDescription
@@ -1719,7 +1744,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,ISNULL(ven.VendorId,0) VendorId			
 					,ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.RepairOrderFreight PF WITH(NOLOCK) WHERE PF.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) AS FreightCost
 					,ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.RepairOrderCharges PC WITH(NOLOCK) WHERE PC.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) AS ChargesCost
-					,ro.CreatedDate AS PoDate
+					--,ro.CreatedDate AS PoDate
+          ,case when CAST(ro.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(ro.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PoDate
 					,ro.RepairOrderNumber AS PoNum			
 					,part.PartNumber
 					,part.PartDescription

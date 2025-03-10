@@ -23,6 +23,7 @@
 	7    20/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
 	8	 09/10/2024			 Devendra Shekh			Added new fields for [CommonBatchDetails]
 	9	 11/04/2024			 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+    10	 17/02/2025			 AMIT GHEDIYA		    Modify(get Distribution based on new settings from stockline level)
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
@@ -105,6 +106,7 @@ BEGIN
 		DECLARE @CurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'STOCKLINE';
+		DECLARE @ReserveInventoryAccId BIGINT = 0;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -253,6 +255,19 @@ BEGIN
 			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
 			 FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE')  --WHERE UPPER(Name) =UPPER('COGS / Inventory Reserve') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
+
+			 --GET STOCKLINE GLACCOUNT.
+			 SELECT @ReserveInventoryAccId = SL.InventoryReserveGLAccId -- For INVENTORY/ACCOUNTS PAYABLE Distribution.
+			    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+			 WHERE SL.[StockLineId] = @StocklineId;
+			 
+			 --GET GL Accounting Data from GLAccout based on stockline
+			 SELECT @GlAccountId = [GLAccountId],
+			 	    @GlAccountNumber = [AccountCode],
+			 	    @GlAccountName = [AccountName]
+			 FROM [dbo].[GLAccount] WITH(NOLOCK)
+			 WHERE [GLAccountId] = @ReserveInventoryAccId
+			 AND [MasterCompanyId] = @MasterCompanyId;
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

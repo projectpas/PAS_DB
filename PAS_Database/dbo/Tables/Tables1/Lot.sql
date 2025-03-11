@@ -14,7 +14,7 @@
     [ConsignmentId]         BIGINT          NULL,
     [EmployeeId]            BIGINT          NOT NULL,
     [ManagementStructureId] BIGINT          NOT NULL,
-    [LegalEntityId]         BIGINT          NULL,
+    [LegalEntityIds]        NVARCHAR (MAX)  NULL,
     [MasterCompanyId]       INT             CONSTRAINT [DF_Lot_MasterCompanyId] DEFAULT ((1)) NOT NULL,
     [CreatedBy]             VARCHAR (256)   NOT NULL,
     [UpdatedBy]             VARCHAR (256)   NOT NULL,
@@ -29,4 +29,6 @@
     CONSTRAINT [PK_Lot] PRIMARY KEY CLUSTERED ([LotId] ASC),
     CONSTRAINT [FK_Lot_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId])
 );
+
+
 

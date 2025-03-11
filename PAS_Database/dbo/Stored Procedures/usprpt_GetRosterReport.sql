@@ -43,7 +43,7 @@ BEGIN
 	@IsDownload BIT = NULL,
 	@ModuleID INT = 0;
 
-    SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule where ModuleName = 'EmployeeGeneralInfo');
+	SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM [DBO].ManagementStructureModule WITH (NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
 
   BEGIN TRY 
       
@@ -73,7 +73,7 @@ BEGIN
 
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
-		  SELECT @PageSize=COUNT(*)
+		  SELECT @PageSize=COUNT(EMP.EmployeeId)
 		   FROM DBO.Employee EMP WITH (NOLOCK)  
            INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = @ModuleID AND EMS.ReferenceID = EMP.EmployeeId
 	       LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = EMS.EntityMSID

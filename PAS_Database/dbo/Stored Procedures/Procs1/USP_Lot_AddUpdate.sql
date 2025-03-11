@@ -69,40 +69,40 @@ BEGIN
 
 		  SET @LotNumber = (SELECT * FROM [DBO].[udfGenerateCodeNumber](CAST(@Nummber AS BIGINT) + 1, @codePrefix,@codeSufix));
 		  print '1'		  
-		  --INSERT INTO [dbo].[Lot]([LotNumber],[LotName],[VendorId],[ReferenceNumber],[OpenDate],[OriginalCost],[LotStatusId],[ObtainFromTypeId]
-				--			     ,[ObtainFromId],[TraceableToTypeId],[TraceableToId],[ConsignmentId],[EmployeeId],[ManagementStructureId]
-				--				 ,[LegalEntityIds],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-    --                      VALUES (@LotNumber,@LotName,@VendorId,@ReferenceNumber,@OpenDate,@OriginalCost,@LotStatusId,@ObtainFromTypeId,
-    --                              @ObtainFromId,@TraceableToTypeId,@TraceableToId,@ConsignmentId,@EmployeeId,@ManagementStructureId,
-				--				  @LegalEntityId,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0);	
-		  --SET @LotId = @@IDENTITY;
+		  INSERT INTO [dbo].[Lot]([LotNumber],[LotName],[VendorId],[ReferenceNumber],[OpenDate],[OriginalCost],[LotStatusId],[ObtainFromTypeId]
+							     ,[ObtainFromId],[TraceableToTypeId],[TraceableToId],[ConsignmentId],[EmployeeId],[ManagementStructureId]
+								 ,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+                          VALUES (@LotNumber,@LotName,@VendorId,@ReferenceNumber,@OpenDate,@OriginalCost,@LotStatusId,@ObtainFromTypeId,
+                                  @ObtainFromId,@TraceableToTypeId,@TraceableToId,@ConsignmentId,@EmployeeId,@ManagementStructureId,
+								  @LegalEntityId,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0);	
+		  SET @LotId = @@IDENTITY;
 		  
-		  --INSERT INTO [dbo].[LotDetail] ([LotId],[VendorCode],[VendorName],[LotStatusName],[ObtainFromName],
-		  --            [TraceableToName],[ConsignmentNumber],[ConsigneeName],[EmployeeName])
-    --            SELECT @LotId,V.[VendorCode],V.[VendorName],S.[StatusName],
-				--       CASE WHEN LO.[ObtainFromTypeId] = @AppModuleCustomerId THEN CU.[Name] 
-				--		    WHEN LO.[ObtainFromTypeId] = @AppModuleVendorId THEN VE.[VendorName]
-				--		    WHEN LO.[ObtainFromTypeId] = @AppModuleCompanyId THEN CO.[Name]	
-				--		    WHEN LO.[ObtainFromTypeId] = @AppModuleOthersId THEN @ObtainFromName
-				--	   END,
-				--	   CASE WHEN LO.[TraceableToTypeId] = @AppModuleCustomerId THEN CUT.[Name] 
-				--		    WHEN LO.[TraceableToTypeId] = @AppModuleVendorId THEN VET.[VendorName]
-				--		    WHEN LO.[TraceableToTypeId] = @AppModuleCompanyId THEN CTT.[Name]	
-				--		    WHEN LO.[TraceableToTypeId] = @AppModuleOthersId THEN @TraceableToName
-				--	   END,
-				--	   LC.ConsignmentNumber,LC.ConsigneeName,(R.[FirstName] + ' ' + R.[LastName])
-				--FROM [dbo].[Lot] LO WITH(NOLOCK)
-				--	 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON LO.[VendorId] = V.[VendorId] 
-				--	 LEFT JOIN [dbo].[Employee] R WITH(NOLOCK) ON LO.[EmployeeId] = R.[EmployeeId]
-				--	 LEFT JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LO.[LotStatusId] = S.[LotStatusId]
-				--	 LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.[CustomerId] = LO.[ObtainFromId]
-				--	 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = LO.[ObtainFromId]
-				--	 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = LO.[ObtainFromId]
-				--	 LEFT JOIN [dbo].[Customer] CUT WITH (NOLOCK) ON CUT.[CustomerId] = LO.[TraceableToId]
-				--	 LEFT JOIN [dbo].[Vendor] VET WITH (NOLOCK) ON VET.[VendorId] = LO.[TraceableToId]
-				--	 LEFT JOIN [dbo].[LegalEntity] CTT WITH (NOLOCK) ON CTT.[LegalEntityId] = LO.[TraceableToId]
-				--	 LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LO.ConsignmentId = LC.ConsignmentId
-    --            WHERE LO.[LotId] = @LotId; 
+		  INSERT INTO [dbo].[LotDetail] ([LotId],[VendorCode],[VendorName],[LotStatusName],[ObtainFromName],
+		              [TraceableToName],[ConsignmentNumber],[ConsigneeName],[EmployeeName])
+                SELECT @LotId,V.[VendorCode],V.[VendorName],S.[StatusName],
+				       CASE WHEN LO.[ObtainFromTypeId] = @AppModuleCustomerId THEN CU.[Name] 
+						    WHEN LO.[ObtainFromTypeId] = @AppModuleVendorId THEN VE.[VendorName]
+						    WHEN LO.[ObtainFromTypeId] = @AppModuleCompanyId THEN CO.[Name]	
+						    WHEN LO.[ObtainFromTypeId] = @AppModuleOthersId THEN @ObtainFromName
+					   END,
+					   CASE WHEN LO.[TraceableToTypeId] = @AppModuleCustomerId THEN CUT.[Name] 
+						    WHEN LO.[TraceableToTypeId] = @AppModuleVendorId THEN VET.[VendorName]
+						    WHEN LO.[TraceableToTypeId] = @AppModuleCompanyId THEN CTT.[Name]	
+						    WHEN LO.[TraceableToTypeId] = @AppModuleOthersId THEN @TraceableToName
+					   END,
+					   LC.ConsignmentNumber,LC.ConsigneeName,(R.[FirstName] + ' ' + R.[LastName])
+				FROM [dbo].[Lot] LO WITH(NOLOCK)
+					 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON LO.[VendorId] = V.[VendorId] 
+					 LEFT JOIN [dbo].[Employee] R WITH(NOLOCK) ON LO.[EmployeeId] = R.[EmployeeId]
+					 LEFT JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LO.[LotStatusId] = S.[LotStatusId]
+					 LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.[CustomerId] = LO.[ObtainFromId]
+					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = LO.[ObtainFromId]
+					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = LO.[ObtainFromId]
+					 LEFT JOIN [dbo].[Customer] CUT WITH (NOLOCK) ON CUT.[CustomerId] = LO.[TraceableToId]
+					 LEFT JOIN [dbo].[Vendor] VET WITH (NOLOCK) ON VET.[VendorId] = LO.[TraceableToId]
+					 LEFT JOIN [dbo].[LegalEntity] CTT WITH (NOLOCK) ON CTT.[LegalEntityId] = LO.[TraceableToId]
+					 LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LO.ConsignmentId = LC.ConsignmentId
+                WHERE LO.[LotId] = @LotId; 
 
 		   UPDATE [DBO].[CodePrefixes] SET [CurrentNummber] = (@Nummber + 1) WHERE [CodePrefixId] = @CodePrefixId AND [MasterCompanyId] = @MasterCompanyId;
 		   
@@ -130,41 +130,41 @@ BEGIN
 			      ,[ConsignmentId] = @ConsignmentId
 			      ,[EmployeeId] = @EmployeeId
 			      ,[ManagementStructureId] = @ManagementStructureId
-			      --,[LegalEntityId] = @LegalEntityId			   
+			      ,[LegalEntityId] = @LegalEntityId			   
 			      ,[UpdatedBy] = @CreatedBy			     
 			      ,[UpdatedDate] = GETUTCDATE()			      
 			 WHERE [LotId] = @LotId; 
 			 
-    --        UPDATE LOD
-    --           SET [VendorCode] =  V.[VendorCode]
-    --              ,[VendorName] = V.[VendorName]
-    --              ,[LotStatusName] = S.[StatusName]
-    --              ,[ObtainFromName] = CASE WHEN LO.[ObtainFromTypeId] = @AppModuleCustomerId THEN CU.[Name] 
-				--		                   WHEN LO.[ObtainFromTypeId] = @AppModuleVendorId THEN VE.[VendorName]
-				--		                   WHEN LO.[ObtainFromTypeId] = @AppModuleCompanyId THEN CO.[Name]	
-				--		                   WHEN LO.[ObtainFromTypeId] = @AppModuleOthersId THEN @ObtainFromName
-				--	                  END
-    --              ,[TraceableToName] = CASE WHEN LO.[TraceableToTypeId] = @AppModuleCustomerId THEN CUT.[Name] 
-				--		    WHEN LO.[TraceableToTypeId] = @AppModuleVendorId THEN VET.[VendorName]
-				--		    WHEN LO.[TraceableToTypeId] = @AppModuleCompanyId THEN CTT.[Name]	
-				--		    WHEN LO.[TraceableToTypeId] = @AppModuleOthersId THEN @TraceableToName
-				--	   END
-    --              ,[ConsignmentNumber] = LC.ConsignmentNumber
-    --              ,[ConsigneeName] = LC.ConsigneeName
-    --              ,[EmployeeName] = (R.[FirstName] + ' ' + R.[LastName])
-    --          FROM [dbo].[LotDetail] LOD 
-			 --INNER JOIN [dbo].[Lot] LO WITH(NOLOCK) ON LOD.[LotId] = LO.[LotId] 		  
-			 --LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON LO.[VendorId] = V.[VendorId] 
-			 --LEFT JOIN [dbo].[Employee] R WITH(NOLOCK) ON LO.[EmployeeId] = R.[EmployeeId]
-			 --LEFT JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LO.[LotStatusId] = S.[LotStatusId]
-			 -- LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.[CustomerId] = LO.[ObtainFromId]
-		  --    LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = LO.[ObtainFromId]
-		  --    LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = LO.[ObtainFromId]
-		  --    LEFT JOIN [dbo].[Customer] CUT WITH (NOLOCK) ON CU.[CustomerId] = LO.[TraceableToId]
-		  --    LEFT JOIN [dbo].[Vendor] VET WITH (NOLOCK) ON VE.[VendorId] = LO.[TraceableToId]
-		  --    LEFT JOIN [dbo].[LegalEntity] CTT WITH (NOLOCK) ON CO.[LegalEntityId] = LO.[TraceableToId]
-			 -- LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LO.ConsignmentId = LC.ConsignmentId
-			 --  WHERE LOD.[LotId] = @LotId; 
+            UPDATE LOD
+               SET [VendorCode] =  V.[VendorCode]
+                  ,[VendorName] = V.[VendorName]
+                  ,[LotStatusName] = S.[StatusName]
+                  ,[ObtainFromName] = CASE WHEN LO.[ObtainFromTypeId] = @AppModuleCustomerId THEN CU.[Name] 
+						                   WHEN LO.[ObtainFromTypeId] = @AppModuleVendorId THEN VE.[VendorName]
+						                   WHEN LO.[ObtainFromTypeId] = @AppModuleCompanyId THEN CO.[Name]	
+						                   WHEN LO.[ObtainFromTypeId] = @AppModuleOthersId THEN @ObtainFromName
+					                  END
+                  ,[TraceableToName] = CASE WHEN LO.[TraceableToTypeId] = @AppModuleCustomerId THEN CUT.[Name] 
+						    WHEN LO.[TraceableToTypeId] = @AppModuleVendorId THEN VET.[VendorName]
+						    WHEN LO.[TraceableToTypeId] = @AppModuleCompanyId THEN CTT.[Name]	
+						    WHEN LO.[TraceableToTypeId] = @AppModuleOthersId THEN @TraceableToName
+					   END
+                  ,[ConsignmentNumber] = LC.ConsignmentNumber
+                  ,[ConsigneeName] = LC.ConsigneeName
+                  ,[EmployeeName] = (R.[FirstName] + ' ' + R.[LastName])
+              FROM [dbo].[LotDetail] LOD 
+			 INNER JOIN [dbo].[Lot] LO WITH(NOLOCK) ON LOD.[LotId] = LO.[LotId] 		  
+			 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON LO.[VendorId] = V.[VendorId] 
+			 LEFT JOIN [dbo].[Employee] R WITH(NOLOCK) ON LO.[EmployeeId] = R.[EmployeeId]
+			 LEFT JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LO.[LotStatusId] = S.[LotStatusId]
+			  LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.[CustomerId] = LO.[ObtainFromId]
+		      LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = LO.[ObtainFromId]
+		      LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = LO.[ObtainFromId]
+		      LEFT JOIN [dbo].[Customer] CUT WITH (NOLOCK) ON CU.[CustomerId] = LO.[TraceableToId]
+		      LEFT JOIN [dbo].[Vendor] VET WITH (NOLOCK) ON VE.[VendorId] = LO.[TraceableToId]
+		      LEFT JOIN [dbo].[LegalEntity] CTT WITH (NOLOCK) ON CO.[LegalEntityId] = LO.[TraceableToId]
+			  LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LO.ConsignmentId = LC.ConsignmentId
+			   WHERE LOD.[LotId] = @LotId; 
 
 			EXEC [dbo].[USP_Lot_AddUpdateMSDetails] @LotId,@ManagementStructureId,@AppModuleId,@MasterCompanyId,@CreatedBy,@CreatedBy,2,0;
 					

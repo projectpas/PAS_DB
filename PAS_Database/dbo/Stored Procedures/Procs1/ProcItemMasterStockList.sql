@@ -17,6 +17,7 @@
 	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	4    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
 	5	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
+	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -43,7 +44,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL,
-@EmployeeId bigint
+@EmployeeId bigint,
+@IsUpdated BIT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -136,7 +138,7 @@ BEGIN
 					   im.IsDeleted
 			   FROM dbo.ItemMaster im WITH (NOLOCK)		
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
-					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	
+					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))		
 			), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR

@@ -40,7 +40,10 @@ BEGIN
 	@Level8 VARCHAR(MAX) = NULL,
 	@Level9 VARCHAR(MAX) = NULL,
 	@Level10 VARCHAR(MAX) = NULL,
-	@IsDownload BIT = NULL
+	@IsDownload BIT = NULL,
+	@ModuleID INT = 0;
+
+    SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule where ModuleName = 'EmployeeGeneralInfo');
 
   BEGIN TRY 
       
@@ -72,7 +75,7 @@ BEGIN
 		BEGIN 
 		  SELECT @PageSize=COUNT(*)
 		   FROM DBO.Employee EMP WITH (NOLOCK)  
-           INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = 47 AND EMS.ReferenceID = EMP.EmployeeId
+           INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = @ModuleID AND EMS.ReferenceID = EMP.EmployeeId
 	       LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = EMS.EntityMSID
 	       LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId
 	       LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId	
@@ -124,7 +127,7 @@ BEGIN
 		UPPER(EMS.Level9Name) AS level9, 
 		UPPER(EMS.Level10Name) AS level10   
       FROM DBO.Employee EMP WITH (NOLOCK)  
-	  INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = 47 AND EMS.ReferenceID = EMP.EmployeeId
+	  INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = @ModuleID AND EMS.ReferenceID = EMP.EmployeeId
 	  LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = EMS.EntityMSID
 	  LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId
 	  LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId

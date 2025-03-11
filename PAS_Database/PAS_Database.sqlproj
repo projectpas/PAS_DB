@@ -3504,6 +3504,7 @@
     <Build Include="dbo\User Defined Types\SalesOrderQuoteChargesType.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkflowtransferData.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetRosterReport.sql" />
+    <Build Include="Security\sa.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

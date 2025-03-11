@@ -66,7 +66,7 @@ BEGIN
   
 	IF ISNULL(@PageSize,0)=0
 	BEGIN 
-		SELECT @PageSize=COUNT(*)
+		SELECT @PageSize=COUNT(E.EmployeeId)
 		FROM DBO.Employee E WITH (NOLOCK)
 			INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
 			LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID

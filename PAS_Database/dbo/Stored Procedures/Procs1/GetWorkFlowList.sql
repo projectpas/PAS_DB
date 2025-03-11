@@ -45,7 +45,7 @@ CREATE   PROCEDURE [dbo].[GetWorkFlowList]
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
 	@MasterCompanyId int,
-	@TemplateDescription varchar(50)=null
+	@TemplateDescription varchar(500)=null
 
 AS
 BEGIN

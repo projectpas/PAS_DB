@@ -12,7 +12,7 @@
     2    27-Jan-2025		Ekta Chandegra			Add @IsDeleted parameter
     3    04-Mar-2025		RAJESH GAMI      		Sequence Number logic change (Group by Task)
 	4    10-Mar-2025		Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone
-
+    5    11-Mar-2025		RAJESH GAMI      		IsDefaultInstruction Added
 	exec dbo.USP_GetTaskInstructionMasterList @MasterCompanyId=1,@IsDeleted=1
 
 **************************************************************/
@@ -74,7 +74,9 @@ BEGIN
 					ELSE (CAST(TIM.UpdatedDate AS DATETIME)) END UpdatedDate,
 					TIM.IsActive,
 					TIM.IsDeleted,
-					DENSE_RANK() OVER (ORDER BY TIM.TaskId) AS TaskSrNo
+					DENSE_RANK() OVER (ORDER BY TIM.TaskId) AS TaskSrNo,
+					ISNULL(IsDefaultInstruction,0)IsDefaultInstruction,
+					ISNULL(IsParentInstruction,0)IsParentInstruction
 				FROM dbo.TaskInstructionMaster TIM WITH(NOLOCK)
 				LEFT JOIN DBO.Task T WITH(NOLOCK) 
 					ON T.TaskId = TIM.TaskId

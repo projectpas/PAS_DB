@@ -10,7 +10,8 @@
  ** PR   Date         Author  			Change Description              
  ** --   --------     -------			--------------------------------            
     1    04/01/2024   Vishal Suthar		Created
-    2    Mar/05/2024   Bhargav Saliya	Cast the "ATAChapterCode" column as INT
+    2    24/02/2025   Ekta Chandegra	Convert date from UTC to Local
+    3    05/03/2025   Bhargav Saliya	Cast the "ATAChapterCode" column as INT
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
@@ -21,7 +22,9 @@ CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData]
 	@GlobalFilter VARCHAR(50) = NULL,
 	@xmlFilter XML,
 	@PageName VARCHAR(100) = NULL,
-	@MasterCompanyId INT = NULL
+	@MasterCompanyId INT = NULL,
+	@EmployeeId BIGINT 
+
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -34,6 +37,29 @@ BEGIN
     DECLARE @QueryFilterData AS VARCHAR(MAX)
     DECLARE @Erorr AS VARCHAR
     DECLARE @PrimaryColumn AS VARCHAR(100)
+
+	-- New declaration for Employee's TimeZone description
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+	-- Select the Employee's TimeZone description or fallback to LegalEntity's TimeZone
+	SELECT 
+		@CurrntEmpTimeZoneDesc = COALESCE(
+			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		)
+	FROM 
+		dbo.Employee E WITH (NOLOCK) 
+	LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+	LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+	LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE 
+		E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
     IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @PageName))
     BEGIN
@@ -61,6 +87,8 @@ BEGIN
               WHEN LOWER(FieldValue) = 'false' THEN 't.isDeleted = 0'
               ELSE 't.isDeleted = 1'
             END)
+		  WHEN FieldName = 'createdDate' THEN ' And CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
+		  WHEN FieldName = 'updatedDate' THEN ' And CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
           WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(createdby, '''') = '''' OR createdby LIKE ''%' + FieldValue + '%'')'
           WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(updatedby, '''') = '''' OR updatedby LIKE ''%' + FieldValue + '%'')'
           ELSE ' And (ISNULL(t.' + FieldName + ','''') ='''' OR t.' + FieldName + ' LIKE ''%' + FieldValue + '%'')'

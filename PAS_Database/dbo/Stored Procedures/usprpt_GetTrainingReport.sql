@@ -35,7 +35,7 @@ BEGIN
 		   @Level9 VARCHAR(MAX) = NULL,  
 		   @Level10 VARCHAR(MAX) = NULL ,
 		   @ModuleID INT = 0
-  SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule where ModuleName = 'EmployeeGeneralInfo');
+  SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
   BEGIN TRY  
       
 	SELECT   
@@ -130,7 +130,7 @@ BEGIN
 		UPPER(MSD.Level9Name) AS level9, 
 		UPPER(MSD.Level10Name) AS level10  
       FROM DBO.Employee E WITH (NOLOCK)
-	    INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 47 AND MSD.ReferenceID = E.EmployeeId
+	    INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
 		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
 		LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
 		LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId

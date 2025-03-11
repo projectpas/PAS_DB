@@ -3503,6 +3503,7 @@
     <Build Include="dbo\Stored Procedures\CreateSalesOrderQuoteChargesDetails.sql" />
     <Build Include="dbo\User Defined Types\SalesOrderQuoteChargesType.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkflowtransferData.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetRosterReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

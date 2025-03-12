@@ -14,6 +14,10 @@
     [UpdatedDate]            DATETIME2 (7)  CONSTRAINT [DF_TaskInstructionMasterAudit_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]               BIT            CONSTRAINT [DF__TaskInstructionMasterAudit__IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT            CONSTRAINT [DF__TaskInstructionMasterAudit__IsDeleted] DEFAULT ((0)) NOT NULL,
+    [IsDefaultInstruction]   BIT            NULL,
+    [IsParentInstruction]    BIT            NULL,
     CONSTRAINT [PK_TaskInstructionMasterAudit] PRIMARY KEY CLUSTERED ([TaskInstructionAuditId] ASC)
 );
+
+
 

@@ -3507,6 +3507,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetTrainingReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetCertificationReport.sql" />
     <Build Include="dbo\Stored Procedures\GetCreditTermListForIntegrationView.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateWorkFlowRecord.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

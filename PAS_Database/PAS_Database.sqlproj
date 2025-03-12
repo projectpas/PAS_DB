@@ -3515,6 +3515,7 @@
     <Build Include="dbo\Stored Procedures\GetWOPartNumberDetailsForWOForm.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveDefaultTemplateTaskInstruction.sql" />
     <Build Include="dbo\Functions\ConvertUtcToLocalTime.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateSalesOrderQuotePartsStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

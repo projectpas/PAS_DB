@@ -21,8 +21,9 @@
 	6    16/07/2024  Sahdev Saliya        Added (AccountingPeriod)
 	7    25/07/2024  Sahdev Saliya        Set JournalTypeNumber Order by desc
 	8    05/03/2025  Ayushi Patel		  converted the date into utc (TransactionDate , EntryDate) , Added a case to get timeZone
+	9    12-03-2025  Shrey Chandegara     Add @ModuleId because duplicate record coming in accounting(In this [SalesOrderManagementStructureDetails] table same ReferenceId with different ModuleId)
 
--- exec GetAccountingDetailsViewById 531   
+-- exec GetAccountingDetailsViewById 728,228   
 ************************/   
 CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewById]    
 @SalesOrderId bigint,
@@ -32,6 +33,8 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY   
+ DECLARE @ModuleId BIGINT = 0;
+ SET @ModuleId = (SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
 				SELECT 
@@ -123,7 +126,7 @@ BEGIN
      INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
      INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId         
      LEFT JOIN  [dbo].[SalesOrderBatchDetails] SBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=SBD.CommonJournalBatchDetailId       
-     LEFT JOIN  [dbo].[SalesOrderManagementStructureDetails] SSD WITH (NOLOCK) ON  SSD.ReferenceID = SBD.SalesOrderId    
+     LEFT JOIN  [dbo].[SalesOrderManagementStructureDetails] SSD WITH (NOLOCK) ON  SSD.ReferenceID = SBD.SalesOrderId AND SSD.ModuleID = @ModuleId     
      LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId     
      LEFT JOIN  [dbo].[EntityStructureSetup] ESP WITH(NOLOCK) ON JBD.ManagementStructureId = ESP.EntityStructureId    
      LEFT JOIN  [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID    

@@ -6,14 +6,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/15/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
-    2    06/21/2023   Vishal Suthar Updated the SP to include pick ticket even after invoice is created
-    3    10/15/2024   Vishal Suthar Modified SP to get Pick ticket stockline list from new SO Part tables
-    4    10/29/2024   Vishal Suthar Modified SP to get SalesOrderStocklineId
-    5    11/15/2024   Vishal Suthar Fixed issues with listing the stockline
-	6	 01/22/2025	  Abhishek Jirawla Fixed issue related to pick ticket display calculation
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/15/2023   Vishal Suthar		Updated the SP to handle invoice before shipping and versioning
+    2    06/21/2023   Vishal Suthar		Updated the SP to include pick ticket even after invoice is created
+    3    10/15/2024   Vishal Suthar		Modified SP to get Pick ticket stockline list from new SO Part tables
+    4    10/29/2024   Vishal Suthar		Modified SP to get SalesOrderStocklineId
+    5    11/15/2024   Vishal Suthar		Fixed issues with listing the stockline
+	6	 01/22/2025	  Abhishek Jirawla	Fixed issue related to pick ticket display calculation
+	7	 03/13/2025	  Vishal Suthar		Fixed issue with displaying picked records also in the multiple pick ticket create popup
 
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
@@ -77,7 +78,7 @@ BEGIN
 						 ,'S' AS MethodType
 						 ,CONVERT(BIT,0) AS PMA
 						 ,Smf.Name as StkLineManufacturer
-						 ,((sor.QtyToReserve + 
+						 ,((stk.QtyReserved + --sor.QtyToReserve + 
 						 (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 							INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 							INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
@@ -87,7 +88,7 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
 				LEFT JOIN DBO.SalesOrderPartV1 sop on sop.SalesOrderPartId = stk.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-				INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.SalesOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId  AND SOR.StockLineId = stk.StockLineId
+				INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = @SalesOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId  AND SOR.StockLineId = stk.StockLineId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
 				LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
@@ -99,7 +100,7 @@ BEGIN
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					so.SalesOrderId = @SalesOrderId AND 
-					((sor.QtyToReserve + 
+					((stk.QtyReserved + --sor.QtyToReserve + 
 					(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 

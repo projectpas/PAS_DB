@@ -878,11 +878,8 @@ BEGIN
 						   @TechnicianId = [TechnicianId]
 					  FROM #TempWorkOrderPartNumberDetails WHERE [PKID] = @MinIds;
 
-					DECLARE @IsPartClosed BIT = NULL;
 					DECLARE @IsPaymentReceived BIT = NULL;
 					
-					SELECT @IsPartClosed = ISNULL([IsClosed], 0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @ID 
-
 					SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.[RemainingAmount]),0) - ISNULL(SUM(WOBI.[GrandTotal]), 0)) = 0 THEN 0 ELSE 1 END 
 					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
 					JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 

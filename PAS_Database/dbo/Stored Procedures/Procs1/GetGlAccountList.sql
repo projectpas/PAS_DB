@@ -15,6 +15,7 @@
  4   19/10/2023     Nainshi Joshi		Add PostedDate
  5   03/11/2023     Devendra Shekh		glaccount in-active issue resolved
  5   02/09/2024     Hemant Saliya		Added Sub Ladger
+ 6   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -38,7 +39,8 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @IsDeleted bit = null,   
  @CreatedBy varchar(50)=null,    
  @UpdatedBy varchar(50)=null,    
- @MasterCompanyId int = null
+ @MasterCompanyId int = null,
+ @IsUpdated BIT = NULL
 )  
 AS    
 BEGIN  
@@ -107,7 +109,7 @@ BEGIN
 					GROUP BY cb.GlAccountId  
 				   ) AS ManualBatch  
 			   WHERE ((GL.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR GL.IsActive = @StatusID))  
-					AND GL.MasterCompanyId = @MasterCompanyId)  
+					AND GL.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(GL.IsUpdated,0) = ISNULL(@IsUpdated,0))) 	
   
 		  SELECT * INTO #TempResult FROM Result  
 			  WHERE(  

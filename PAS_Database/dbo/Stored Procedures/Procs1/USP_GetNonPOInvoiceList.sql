@@ -20,6 +20,7 @@
 	5    01/10/2024		Moin Bloch					    modified AllStatusId For All Records
 	6    01/16/2024		Moin Bloch					    modified InvoiceNumber From Detail Table To Header
 	7    12/27/2024     AMIT GHEDIYA					added COntrolNumber
+	8    07-03-2025     Shrey Chandegara				Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -51,7 +52,8 @@ CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @GLAccount varchar(100) = NULL,
 @NPONumber varchar(100) = NULL,
 @InvoiceNum  varchar(100) = NULL,
-@ControlNumber varchar(50)=null
+@ControlNumber varchar(50)=null,
+@IsUpdated BIT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -126,7 +128,7 @@ BEGIN
 				LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON NPD.GlAccountId = GL.GlAccountId
 
 				WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)	     
-					AND NPH.MasterCompanyId=@MasterCompanyId	
+					AND NPH.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(NPH.IsUpdated,0) = ISNULL(@IsUpdated,0))	 
 				GROUP BY NPH.NonPOInvoiceId,
 					NPH.VendorId,
 					NPH.VendorName,

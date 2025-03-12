@@ -25,6 +25,7 @@
 	09  23-Jan-2025		Bhargav Saliya		Resolved Shorting issue
 	10	31-Jan-2025		Hemant Saliya		Resolved WO number Display issue
 	11  26-02-2025      Shrey Chandegara    Modified due to datetime issue.
+	12  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
       
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -57,7 +58,8 @@ CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@RepairOrderNumberType varchar(50)=null,
 	@QuantityOrdered varchar(50)= null,
 	@QuantityBackOrdered varchar(50)= null,
-	@QuantityReceived varchar(50)= null      
+	@QuantityReceived varchar(50)= null,
+	@IsUpdated BIT = NULL      
 AS      
 BEGIN      
 	SET NOCOUNT ON;       
@@ -201,7 +203,7 @@ BEGIN
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
 				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
-				AND PO.MasterCompanyId = @MasterCompanyId      
+				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))      
 				GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,
 					PO.PurchaseOrderNumber,
 					PO.OpenDate,

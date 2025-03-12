@@ -19,6 +19,7 @@
     3    03/13/2024   Ekta Chandegra Add master company on join
     4    10/18/2024   Devendra Shekh Add fields related to quickBooks
 	5    15/01/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
+	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -49,7 +50,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@isSynced  varchar(20)=null,
 	@LastSyncDate datetime=null,
 	@MasterCompanyId bigint = NULL,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@IsUpdated BIT = NULL
 
 AS
 BEGIN
@@ -146,7 +148,7 @@ BEGIN
 					LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=C.CustomerId AND CC.IsDefaultContact=1
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
-					AND C.MasterCompanyId=@MasterCompanyId
+					AND C.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (

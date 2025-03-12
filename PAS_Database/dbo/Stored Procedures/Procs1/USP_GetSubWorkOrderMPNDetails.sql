@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSubWorkOrderMPNDetails]
  ** Author:   
  ** Description: This stored procedure is used to Get MPN details for Sub Work Order
@@ -16,6 +15,7 @@
  ** --   --------     -------				--------------------------------          
     1    Unknown							Created
     2    15/10/2024  Abhishek Jirawla		Modified to return blank instead of GETDATE() for Promise, Ship Date and Completion Date
+	3    17/02/2025  Moin Bloch             Updated (Added Publication CMMIds)
 
 ************************************************************************/
 -- EXEC [USP_GetSubWorkOrderMPNDetails] 1169,76771,721
@@ -30,8 +30,46 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
   SET NOCOUNT ON    
  BEGIN TRY  
-   BEGIN TRANSACTION  
-    BEGIN    
+   --BEGIN TRANSACTION  
+   -- BEGIN    
+        DECLARE @CMMIds VARCHAR(200) = NULL;	
+		DECLARE @IsMultiple BIT = NULL;
+		DECLARE @ExpirationDate DATETIME2(7) = NULL
+		
+		SELECT @CMMIds = wop.[CMMIds]
+		FROM [dbo].[WorkOrderMaterials] wom WITH(NOLOCK)
+		JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wom.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
+		JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
+		WHERE wom.WorkOrderMaterialsId = @workOrderMaterialsId
+		
+		IF(@CMMIds IS NOT NULL)
+		BEGIN			
+			IF CHARINDEX(',', @CMMIds) > 0
+			BEGIN
+				SET @IsMultiple = 1
+			END
+			ELSE
+			BEGIN
+				SET @IsMultiple = 0
+			END
+		END
+
+		IF(@CMMIds IS NOT NULL)
+		BEGIN
+			IF(@IsMultiple = 1)
+			BEGIN
+				SELECT @ExpirationDate = MAX(PC.ExpirationDate) FROM 
+					[dbo].[Publication] PC WITH(NOLOCK) 
+					WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
+			END
+			ELSE
+			BEGIN
+				SELECT @ExpirationDate = PC.ExpirationDate
+					FROM [dbo].[Publication] PC WITH(NOLOCK)
+					WHERE PC.[PublicationRecordId] = CAST(@CMMIds AS BIGINT) 
+			END		
+		END
+
         SELECT 
 				wom.WorkOrderMaterialsId,
                 im.PartNumber,
@@ -76,7 +114,7 @@ BEGIN
 					WHEN wop.WorkflowId > 0 THEN wf.WorkflowExpirationDate
 					ELSE NULL END AS 'WorkflowExpirationDate',
 				CASE
-					WHEN wop.CMMId > 0 THEN pc.ExpirationDate
+					WHEN @CMMIds IS NOT NULL THEN @ExpirationDate
 					ELSE NULL END AS 'publicatonExpirationDate',
 				CASE 
 					WHEN ws.WorkScopeCodeNew = 'OVERHAUL' OR ws.WorkScopeCodeNew = 'OH' THEN ISNULL(im.OverhaulHours,0)
@@ -95,12 +133,12 @@ BEGIN
 		JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
 		LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON wop.ReceivingCustomerWorkId = rc.ReceivingCustomerWorkId
 		LEFT JOIN [dbo].[Workflow] wf WITH(NOLOCK) ON wop.WorkflowId = wf.WorkflowId
-		LEFT JOIN [dbo].[Publication] pc WITH(NOLOCK) ON wop.CMMId = pc.PublicationRecordId
+		--LEFT JOIN [dbo].[Publication] pc WITH(NOLOCK) ON wop.CMMId = pc.PublicationRecordId
 		LEFT JOIN [dbo].[WorkScope] ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId AND ws.IsActive = 1 AND ws.IsDeleted = 0 
 		WHERE wom.WorkOrderMaterialsId = @workOrderMaterialsId
           
-    END  
-   COMMIT  TRANSACTION  
+   -- END  
+   --COMMIT  TRANSACTION  
   END TRY      
   BEGIN CATCH        
    IF @@trancount > 0  

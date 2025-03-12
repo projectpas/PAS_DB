@@ -22,8 +22,7 @@
     [Level1]                           VARCHAR (50)   NULL,
     [Level2]                           VARCHAR (50)   NULL,
     [Level3]                           VARCHAR (50)   NULL,
+    [ATAChapterId]                     BIGINT         NULL,
     CONSTRAINT [PK_ItemMasterAircraftMappingAudit] PRIMARY KEY CLUSTERED ([AuditItemMasterAircraftMappingId] ASC)
 );
-
-
 

@@ -18,12 +18,13 @@
     3    10/01/2025		EKTA CHANDEGRA	 Insert values in [dbo].[SalesOrder] based on selected customer
     4    16/01/2025		EKTA CHANDEGRA	 Add QtyReserved value 0 
     5    06/02/2025		EKTA CHANDEGRA	 Add changes for can reserve stockline
-
+    6    18/02/2025		VISHAL SUTHAR	 Modified to change SO Status to always OPEN when duplicated from any other status
+	9	 28/02/2024		Ayushi Patel	 Cast OpenDate As A Date
 exec dbo.CopySalesOrder @SalesOrderId=1730,@CreatedBy=N'EKTA CHANDEGARA',@TransferSOApproval=1,
 @CustomerId=85,@CustomerReference=N'test',@FunctionalCurrencyId=3,@ForeignExchangeRate=1.000000,
 @ReportCurrencyId=3,@EmployeeId=211
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[CopySalesOrder]
+CREATE     PROCEDURE [dbo].[CopySalesOrder]
 	@SalesOrderId BIGINT,
 	@CreatedBy VARCHAR(256),
 	@TransferSOApproval BIT,
@@ -44,9 +45,11 @@ BEGIN
 				DECLARE @MasterCompanyId INT;
 				DECLARE @CurrentNumber BIGINT;
 				DECLARE @OldSalesOrderId BIGINT;
+				DECLARE @OpenStatusId BIGINT;
 
 				-- Fetch salesView
 				SELECT TOP 1 * INTO #salesView FROM [dbo].[SalesOrder] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId;
+				SELECT @OpenStatusId = Id FROM [dbo].[MasterSalesOrderStatus] WITH (NOLOCK) WHERE UPPER(Name) = 'OPEN';
 
 				SELECT TOP 1 @MasterCompanyId = ISNULL(MasterCompanyId, 0)
 				FROM [dbo].[SalesOrder] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId;
@@ -156,11 +159,11 @@ BEGIN
 				 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 
 				 SELECT 
-				 SO.[Version],SO.[TypeId],GETDATE(),SO.[ShippedDate],SO.[NumberOfItems],@CustomerTypeId,@CustomerId,@CustomerContactId,
+				 SO.[Version],SO.[TypeId],cast(GETUTCDATE() as date),SO.[ShippedDate],SO.[NumberOfItems],@CustomerTypeId,@CustomerId,@CustomerContactId,
 				 @CustomerReference,SO.[CurrencyId],SO.[TotalSalesAmount],SO.[CustomerHold],SO.[DepositAmount],@BalanceDue,@PrimarySalesPersonId,
-				 SO.[AgentId],@CsrId,@EmployeeId,SO.[ApprovedById],SO.[ApprovedDate],SO.[Memo],SO.[StatusId],SO.[StatusChangeDate],
-				 SO.[Notes],@RestrictPMA,@RestrictDER,SO.[ManagementStructureId],@CustomerWarningID,@CreatedBy,GETDATE(),@CreatedBy,
-				 GETDATE(),SO.[MasterCompanyId],0,SO.[SalesOrderQuoteId],SO.[QtyRequested],SO.[QtyToBeQuoted],@SalesOrderNumber,
+				 SO.[AgentId],@CsrId,@EmployeeId,SO.[ApprovedById],SO.[ApprovedDate],SO.[Memo],@OpenStatusId,GETUTCDATE(),
+				 SO.[Notes],@RestrictPMA,@RestrictDER,SO.[ManagementStructureId],@CustomerWarningID,@CreatedBy,GETUTCDATE(),@CreatedBy,
+				 GETUTCDATE(),SO.[MasterCompanyId],0,SO.[SalesOrderQuoteId],SO.[QtyRequested],SO.[QtyToBeQuoted],@SalesOrderNumber,
 				 1,@ContractReference,SO.[TypeName],@CustomerTypeName,@CustomerName,@SalesPersonName,@CustomerServiceRepName,
 				 @CreatedBy,NULL,@WarningMessage,SO.[ManagementStructureName],@CreditLimit,@CreditTermsId,
 				 NULL,@CreditTermName,SO.[VersionNumber],SO.[TotalFreight],SO.[TotalCharges],SO.[FreightBilingMethodId],

@@ -24,6 +24,8 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 13   11/18/2024		 Devendra Shekh			Modified (handled null value for @ARConditionId)
 ** 14   11/22/2024		 Devendra Shekh			Modified (added fiels  ReservedById, ReservedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 15	12/20/2024		 Devendra Shekh			ExtendedCost Calculation issue Resolved
+** 16   03/06/2025		 HEMANT SALIYA	        UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
+
 EXEC USP_AutoReserveAllWorkOrderMaterials 4761,0,0,98,0
 exec sp_executesql N'exec USP_AutoReserveAllWorkOrderMaterials @WorkFlowWorkOrderId, @IncludeAlternate, @IncludeEquiv, @EmployeeId, @IncludeCustomerStk',N'@WorkFlowWorkOrderId bigint,@IncludeAlternate bit,@IncludeEquiv bit,@EmployeeId bigint,@IncludeCustomerStk bit',@WorkFlowWorkOrderId=4761,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=98,@IncludeCustomerStk=0
 **************************************************************/ 
@@ -82,7 +84,6 @@ BEGIN
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 					SET @ARConditionId = ISNULL(@ARConditionId,0);
 
-					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module					
 
@@ -100,6 +101,36 @@ BEGIN
 
 					INSERT INTO #ConditionGroup (ConditionId, ConditionGroup)
 					SELECT ConditionId, GroupCode FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
+
+					--#STEP : 0 UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
+					UPDATE dbo.WorkOrderMaterialStockLine 
+					SET Quantity = GropWOM.QuantityToReduce	
+					FROM(
+						SELECT (ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) -  ISNULL(SL.QuantityAvailable, 0)) AS QuantityToReduce,
+							WOM.WorkOrderMaterialsId, WOMS.WOMStockLineId,  WOMS.StockLineId  
+						FROM dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) 
+							JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
+							JOIN dbo.Stockline SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
+						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(WOMS.Quantity, 0) <>  ISNULL(WOMS.QtyIssued, 0) AND WOMS.ProvisionId = @ProvisionId
+						AND ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(SL.QuantityAvailable, 0)
+						AND WOMS.MasterCompanyId = @MasterCompanyId
+					) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterialStockLine.WorkOrderMaterialsId AND GropWOM.WOMStockLineId = dbo.WorkOrderMaterialStockLine.WOMStockLineId 
+							AND GropWOM.StockLineId = dbo.WorkOrderMaterialStockLine.StockLineId
+
+					--#STEP : 0 UPDATE THE EXISTING STOCKLINE KIT QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
+					UPDATE dbo.WorkOrderMaterialStockLineKit 
+					SET Quantity = GropWOM.QuantityToReduce	
+					FROM(
+						SELECT (ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) -  ISNULL(SL.QuantityAvailable, 0)) AS QuantityToReduce,
+							WOM.WorkOrderMaterialsKitId, WOMS.WorkOrderMaterialStockLineKitId,  WOMS.StockLineId  
+						FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) 
+							JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
+							JOIN dbo.Stockline SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
+						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(WOMS.Quantity, 0) <>  ISNULL(WOMS.QtyIssued, 0) AND WOMS.ProvisionId = @ProvisionId
+						AND ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(SL.QuantityAvailable, 0)
+						AND WOMS.MasterCompanyId = @MasterCompanyId
+					) GropWOM WHERE GropWOM.WorkOrderMaterialsKitId = dbo.WorkOrderMaterialStockLineKit.WorkOrderMaterialsKitId AND GropWOM.WorkOrderMaterialStockLineKitId = dbo.WorkOrderMaterialStockLineKit.WorkOrderMaterialStockLineKitId 
+							AND GropWOM.StockLineId = dbo.WorkOrderMaterialStockLineKit.StockLineId
 
 					--#STEP : 1 RESERVE EXISTING STOCKLINE					
 					SELECT  WOM.WorkOrderId,
@@ -355,7 +386,7 @@ BEGIN
 							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsId   
 							FROM dbo.WorkOrderMaterials WOM  WITH(NOLOCK)
 							JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
-							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0 AND WOM.MasterCompanyId = WOMS.MasterCompanyId
 							GROUP BY WOM.WorkOrderMaterialsId
 						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)	
 						

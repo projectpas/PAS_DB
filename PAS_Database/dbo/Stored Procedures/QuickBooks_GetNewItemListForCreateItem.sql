@@ -34,7 +34,7 @@ BEGIN
 		BEGIN
 			SELECT IM.ItemMasterId, 
 				IM.partnumber, 
-				CASE WHEN UPPER(im.ItemGroup) = 'N/A' THEN '' ELSE im.ItemGroup + ' ' END + IM.PartDescription,
+				IM.PartDescription,
 				IM.ManufacturerId,
 				IM.ManufacturerName,
 				--CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',  
@@ -42,7 +42,7 @@ BEGIN
 				--CAST(stl.UnitCost AS varchar) 'UnitCost',
 				CAST(0 AS varchar) AS 'QuantityOnHand',
 				CAST(0 AS varchar) AS 'QuantityAvailable',
-				(SELECT UnitCost FROM Stockline WHERE ItemMasterId = IM.ItemMasterId AND isDeleted = 0 AND isActive = 1 AND StocklineId = (SELECT MAX(StockLineId) FROM Stockline WHERE ItemMasterId = IM.ItemMasterId  AND isDeleted = 0 AND isActive = 1)) AS 'UnitCost',
+				(SELECT UnitCost FROM DBO.Stockline WITH(NOLOCK) WHERE ItemMasterId = IM.ItemMasterId AND isDeleted = 0 AND isActive = 1 AND StocklineId = (SELECT MAX(StockLineId) FROM DBO.Stockline WITH(NOLOCK) WHERE ItemMasterId = IM.ItemMasterId  AND isDeleted = 0 AND isActive = 1)) AS 'UnitCost',
 				GLIncome.QuickBooksReferenceId AS IncomeAccountId,
 				GLIncome.AccountName AS IncomeAccountName,
 				GLAsset.QuickBooksReferenceId AS AssetAccountId,
@@ -52,11 +52,12 @@ BEGIN
 				@InvModuleName AS ModuleName,
 				@InvModuleId AS ModuleId,
 				IM.MasterCompanyId,
-				IM.UpdatedBy
-			FROM ItemMaster IM
-				INNER JOIN GLAccount GLIncome ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
-				INNER JOIN GLAccount GLAsset ON IM.GLAccountId = GLAsset.GLAccountId
-				INNER JOIN GLAccount GLExpense ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
+				IM.UpdatedBy,
+				IM.CreatedDate
+			FROM DBO.ItemMaster IM WITH(NOLOCK)
+				INNER JOIN DBO.GLAccount GLIncome WITH(NOLOCK) ON IM.RevenueSoGLAccId = GLIncome.GLAccountId
+				INNER JOIN DBO.GLAccount GLAsset WITH(NOLOCK) ON IM.GLAccountId = GLAsset.GLAccountId
+				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
 			WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsDeleted = 0 AND IM.IsActive = 1 AND ISNULL(IM.QuickBooksReferenceId, 0) = 0 AND ISNULL(IM.IsUpdated, 0) = 1
 		END
 	END TRY    

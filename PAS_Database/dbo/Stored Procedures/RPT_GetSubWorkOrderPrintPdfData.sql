@@ -13,6 +13,7 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** 2    04/25/2024  Devendra Shekh  reading data for SubWOMpn in place of WOMpn
 ** 3    05/02/2024  Devendra Shekh  duplicate mpn for multiple wo mpn, issue resolved
 ** 4	18 Sep 2024 Bhargav Saliya  address convert into single string value
+** 5    17/02/2025  Moin Bloch      Updated (Added Publication PublicationNo)
 EXEC RPT_GetSubWorkOrderPrintPdfData 208,186
 
 **************************************************************/
@@ -25,8 +26,8 @@ AS
 	 SET NOCOUNT ON;              
              
 	  BEGIN TRY              
-	  BEGIN TRANSACTION              
-	   BEGIN            
+	  --BEGIN TRANSACTION              
+	  -- BEGIN            
 			DECLARE @WorkScopeId AS BIGINT = 0;            
 			DECLARE @ItemMasterId AS BIGINT = 0;         
 			DECLARE @WOPartNoId AS BIGINT = 0;  
@@ -137,7 +138,8 @@ AS
 				wo.UpdatedDate,            
 				  CASE WHEN ISNULL(swosc.conditionName,'') = '' THEN UPPER(con.Description) ELSE UPPER(swosc.conditionName) END as ReceivedCond,            
 				  UPPER(WSP.WorkScopeCodeNew) as WorkScope,            
-				  UPPER(Pub.PublicationId) as PublicationName,            
+				  --UPPER(Pub.PublicationId) as PublicationName,            
+				  UPPER(SWOPN.PublicationNo) as PublicationName,     
 				  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
 				  @TravelerName as TravelerName,        
 				  Isnull(wost.IsManualForm,0) as IsManualForm,    
@@ -173,15 +175,15 @@ AS
 				LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
 				--LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
 				LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = SWOPN.ConditionId            
-				LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = SWOPN.CMMId        
+				--LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = SWOPN.CMMId        
 				--LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 				LEFT JOIN dbo.SubWorkOrderSettlementDetails swosc WITH(NOLOCK) on SWOPN.SubWorkOrderId = swosc.SubWorkOrderId AND SWOPN.SubWOPartNoId = swosc.SubWOPartNoId AND swosc.WorkOrderSettlementId = 9        
 				LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = swosc.RevisedItemmasterid    
 				LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 				LEFT JOIN Dbo.WorkScope WSP WITH(NOLOCK) on WSP.WorkScopeId = SWOPN.SubWorkOrderScopeId 
 			WHERE SWO.SubWorkOrderId = @SubWorkorderId AND SWOPN.SubWOPartNoId = @SubWOPartNoId              
-	   END              
-	  COMMIT  TRANSACTION              
+	  -- END              
+	  --COMMIT  TRANSACTION              
              
   END TRY                  
   BEGIN CATCH                    

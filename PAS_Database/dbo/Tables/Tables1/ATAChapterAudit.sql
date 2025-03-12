@@ -11,7 +11,7 @@
     [UpdatedDate]          DATETIME2 (7) NOT NULL,
     [IsActive]             BIT           NOT NULL,
     [IsDeleted]            BIT           NOT NULL,
-    [ATAChapterCategoryId] INT           NOT NULL,
-    [ATAChapterCategory]   VARCHAR (256) NOT NULL
+    [ATAChapterCategoryId] INT           NULL,
+    [ATAChapterCategory]   VARCHAR (256) NULL
 );
 

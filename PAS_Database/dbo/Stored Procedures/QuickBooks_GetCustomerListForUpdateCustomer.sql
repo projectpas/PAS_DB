@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [GetCustomerList]           
+ ** File:   [QuickBooks_GetCustomerListForUpdateCustomer]           
  ** Author:   Hemant Saliya
  ** Description: Get Customer List to Create Customer in QuickBooks    
  ** Purpose:         
@@ -14,8 +14,9 @@
     1    04-July-2024   Hemant Saliya	Created
 	2    18-NOV-2024    Devendra Shekh	Modified(Added fields to select)
 	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
+	4    21-Feb-2025    Devendra Shekh	Modified(Added new fields Fax, TermQuickBooksReferenceId)
      
- EXECUTE [QuickBooks_GetCustomerListForUpdateCustomer] 1
+ EXECUTE [QuickBooks_GetCustomerListForUpdateCustomer] 1,1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_GetCustomerListForUpdateCustomer]
 	@IntegrationTypeId INT = NULL,
@@ -30,7 +31,7 @@ BEGIN
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-			SELECT [Name] As CompanyName, C.CustomerId, C.CustomerCode, C.QuickBooksReferenceId,
+			SELECT C.[Name] As CompanyName, C.CustomerId, C.CustomerCode, C.QuickBooksReferenceId,
 					CON.FirstName + ' ' + CON.LastName AS FullName,
 					CON.FirstName,
 					CON.LastName,
@@ -56,12 +57,16 @@ BEGIN
 					C.MasterCompanyId,
 					ISNULL(C.QuickBooksReferenceId, '') AS QuickBooksCustomerId,
 					ISNULL(C.CustomerURL, '') AS CustomerURL,
-					ISNULL(C.SyncToken, '0') AS SyncToken
+					ISNULL(C.SyncToken, '0') AS SyncToken,
+					CON.Fax,
+					CDT.QuickBooksReferenceId as TermQuickBooksReferenceId
 			FROM dbo.Customer C WITH(NOLOCK) 
 				JOIN dbo.CustomerContact CO WITH(NOLOCK) ON C.CustomerId = CO.CustomerId AND CO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON C.AddressId = AD.AddressId
 				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
+				LEFT JOIN dbo.[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId = C.CustomerId
+				LEFT JOIN dbo.[CreditTerms] CDT WITH (NOLOCK) ON CDT.CreditTermsId = CF.CreditTermsId
 			WHERE ISNULL(C.QuickBooksReferenceId, 0) != 0 AND ISNULL(C.IsUpdated, 0) = 1 AND C.MasterCompanyId = @MasterCompanyId  
 		END
 	END TRY    

@@ -11,9 +11,10 @@
  **************************************************************           
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
-    1    27-AUG-2024   Hemant Saliya	Created
-    2    18-NOV-2024   Devendra Shekh	Modified(Added fields to select)
-	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
+    1    27-AUG-2024	Hemant Saliya	Created
+    2    18-NOV-2024	Devendra Shekh	Modified(Added fields to select)
+	3    10-Jan-2025	Devendra Shekh	Modified(Added MasterCompanyId To Param)
+	4    21-Feb-2025    Devendra Shekh	Modified(Added new field TermQuickBooksReferenceId)
      
  EXECUTE [QuickBooks_GetNewVendorListForCreateVendor] 1
 **************************************************************/ 
@@ -53,12 +54,14 @@ BEGIN
 					AD.CountryId,
 					UPPER(CT.countries_name) Country,
 					V.UpdatedBy,
-					ISNULL(V.VendorURL, '') AS VendorURL
+					ISNULL(V.VendorURL, '') AS VendorURL,
+					CDT.QuickBooksReferenceId as TermQuickBooksReferenceId
 			FROM dbo.Vendor V WITH(NOLOCK) 
 				JOIN dbo.VendorContact CO WITH(NOLOCK) ON V.VendorId = CO.VendorId AND CO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON V.AddressId = AD.AddressId
-				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
+				LEFT JOIN dbo.[Countries] CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
+				LEFT JOIN dbo.[CreditTerms] CDT WITH (NOLOCK) ON CDT.CreditTermsId = V.CreditTermsId
 			WHERE ISNULL(V.QuickBooksReferenceId, 0) = 0 AND ISNULL(V.IsUpdated, 0) = 1 AND V.MasterCompanyId = @MasterCompanyId
 		END
 	END TRY    

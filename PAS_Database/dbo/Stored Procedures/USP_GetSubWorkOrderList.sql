@@ -20,7 +20,7 @@
 	8    12/12/2024   Moin Bloch                Updated For Getting Top 1 SubReleaseFromId due to error
 	9 	 02/11/2024	  Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
 	10 	 02/12/2024	  Moin Bloch			    Modified (Added [IsFinishGood] For show hide edit SerialNumber icon )
-	
+	11	 02/20/2024   Devendra Shekh			added New Stk Join to read Revised(Update) StockLineNumber 
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -209,7 +209,7 @@ BEGIN
 						CASE WHEN ISNULL(SWPT.IsTransferredToParentWO, 0) = 0 THEN 'NO' ELSE 'YES' END AS 'IsTransferredToParentWO',
 						CASE WHEN (ISNULL(WOMS.QtyReserved , 0) + ISNULL(WOMS.QtyIssued , 0)) > 0 OR ISNULL(WPN.IsClosed, 0) = 1   THEN 0 ELSE SWPT.IsClosed  END AS 'isAllowReOpen',
 						SL.StockLineNumber AS 'OriginalStockLineNumber',
-						SL.StockLineNumber AS 'UpdatedStockLineNumber',
+						RSL.StockLineNumber AS 'UpdatedStockLineNumber',
 						ISNULL(SL.ControlNumber, '') AS 'ControlNumber',
 						tmpSub.SubReleaseFromId,
 						ISNULL(SWPT.IsFinishGood,0) IsFinishGood
@@ -226,7 +226,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderStatus] STS WITH (NOLOCK) ON SWPT.SubWorkOrderStatusId = STS.Id
 				LEFT JOIN #tempSubWO tmpSub WITH (NOLOCK) ON SWO.SubWorkOrderId = tmpSub.SubWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.StockLineId = SWPT.RevisedStockLineId 
-				
+				LEFT JOIN [dbo].[Stockline] RSL WITH (NOLOCK) ON SWPT.RevisedStockLineId = RSL.StockLineId
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
 					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	AND SWO.WorkOrderPartNumberId = @WorkOrderPartNumberId

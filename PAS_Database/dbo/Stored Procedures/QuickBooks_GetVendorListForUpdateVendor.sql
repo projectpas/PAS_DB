@@ -12,8 +12,9 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    04-July-2024   Hemant Saliya	Created
-    2    12-Nov-2024   Devendra Shekh	Modified (Update AccountingIntegrationSettings LastRun, UpdatedDate)
+    2    12-Nov-2024	Devendra Shekh	Modified (Update AccountingIntegrationSettings LastRun, UpdatedDate)
 	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
+	4    21-Feb-2025    Devendra Shekh	Modified(Added new field TermQuickBooksReferenceId)
      
  EXECUTE [QuickBooks_GetVendorListForUpdateVendor] 1
 **************************************************************/ 
@@ -55,12 +56,14 @@ BEGIN
 					ISNULL(V.VendorURL, '') AS VendorURL,
 					V.MasterCompanyId,
 					V.UpdatedBy,
-					ISNULL(V.SyncToken, '0') AS SyncToken
+					ISNULL(V.SyncToken, '0') AS SyncToken,
+					CDT.QuickBooksReferenceId as TermQuickBooksReferenceId
 			FROM dbo.Vendor V WITH(NOLOCK) 
 				JOIN dbo.VendorContact VO WITH(NOLOCK) ON V.VendorId = VO.VendorId AND VO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON VO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON V.AddressId = AD.AddressId
-				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
+				LEFT JOIN dbo.[Countries] CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
+				LEFT JOIN dbo.[CreditTerms] CDT WITH (NOLOCK) ON CDT.CreditTermsId = V.CreditTermsId
 			WHERE ISNULL(V.QuickBooksReferenceId, 0) != 0 AND ISNULL(V.IsUpdated, 0) = 1 AND V.MasterCompanyId = @MasterCompanyId 
 		END
 	END TRY    

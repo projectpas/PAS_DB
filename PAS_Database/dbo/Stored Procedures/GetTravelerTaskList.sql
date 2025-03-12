@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    21/01/2025   Moin Bloch		Created
+    2    18/02/2025   Devendra Shekh    Added Memo to Filter/Sorting
 
 	EXEC dbo.GetTravelerTaskList 10,1,'CreatedDate',-1,'','','','','',0,1,2
 	exec dbo.GetTravelerTaskList @PageSize=15,@PageNumber=1,@SortColumn=default,@SortOrder=-1,@GlobalFilter=N'',@WONumber=default,@EmployeeName=default,@TaskStatusName=default,@TaskName=default,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=219
@@ -120,6 +121,7 @@ BEGIN
 					([TaskStatusName] LIKE '%' +@GlobalFilter+'%') OR
 					([Expertise] LIKE '%' +@GlobalFilter+'%') OR					
 					([DataEnteredByName] LIKE '%' +@GlobalFilter+'%') OR					
+					([Memo] LIKE '%' +@GlobalFilter+'%') OR					
 					([Task] LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@WONumber,'') ='' OR [WorkOrderNum] LIKE '%' + @WONumber+'%') AND 
@@ -136,12 +138,14 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='TASKSTATUSNAME')  THEN TaskStatusName END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='TASK')  THEN Task END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='Memo')  THEN Memo END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMPLOYEENAME')  THEN EmployeeName END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='TASKSTATUSNAME')  THEN TaskStatusName END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='TASK')  THEN Task END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN Memo END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

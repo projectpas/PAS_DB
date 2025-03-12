@@ -14,11 +14,15 @@
     1   09-Jan-2025		Devendra Shekh			Created
 	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
+	4   20-Feb-2025		Devendra Shekh			Modified (Managing UnitPrice for WO With Multiple Parts / reading Shipping Details)
+	5   21-Feb-2025		Devendra Shekh			Modified (Handling the Invoice With CostPlusType as 'Flat Rate')
+	6   25-Feb-2025		Devendra Shekh			Modified (Added Missing Address Details for Bill/Ship)
      
  EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 4771, 4336
- EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 4772, 0
+ EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 8317, 0
+ EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 8346, 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetSyncPendingWOInvoiceList]
+CREATE    PROCEDURE [dbo].[QuickBooks_GetSyncPendingWOInvoiceList]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,
@@ -38,6 +42,9 @@ BEGIN
 
 		IF OBJECT_ID('tempdb..#InvoiceResults') IS NOT NULL
 			DROP TABLE #InvoiceResults
+		
+		IF OBJECT_ID('tempdb..#InvoiceSyncData') IS NOT NULL
+			DROP TABLE #InvoiceSyncData
 
 		CREATE TABLE #InvoiceResults
 		(
@@ -91,6 +98,17 @@ BEGIN
 			[TotalWorkOrder] BIT NULL,
 			[PercentValue] DECIMAL(13,2) NULL,
 			[ItemQuickBooksReferenceId] VARCHAR(200) NULL,
+			[WorkOrderId] BIGINT NULL,
+			[CostPlusType] VARCHAR(20) NULL,
+			[WorkOrderPartId] BIGINT NULL, 
+			[ShipViaName] VARCHAR(300) NULL,
+			[ShipDate] DATETIME2 NULL,
+			[TrackingNo] VARCHAR(100) NULL,
+			[ReferenceNumber] VARCHAR(50) NULL,
+			[BillStateOrProvince] VARCHAR(50) NULL,
+			[BillCountry] VARCHAR(50) NULL,
+			[ShipStateOrProvince] VARCHAR(50) NULL,
+			[ShipCountry] VARCHAR(50) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -99,20 +117,16 @@ BEGIN
 			--Inserting Work Order Invoice Data
 			IF(ISNULL(@ReferencePartId, 0) > 0)
 			BEGIN
-				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
-				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId])
+				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+				[PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
+				[CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId], [TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef],
+				[MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId], [WorkOrderId], [CostPlusType],
+				[WorkOrderPartId], [ShipViaName], [ReferenceNumber])
 				SELECT	WOBI.BillingInvoicingId,
 						WOBI.InvoiceNo,
 						WOBII.WOBillingInvoicingItemId,
 						C.[Name] AS Customer,
 						C.Email AS CustomerEmail,
-						COALESCE(billToAddress.Line1, '') AS BillLine1,
-						COALESCE(billToAddress.Line2, '') AS BillLine2,
-						COALESCE(billToAddress.Line3, '') AS BillLine3,
-						COALESCE(billToAddress.City, '') AS BillCity,
-						COALESCE(billToAddress.PostalCode, '') AS BillPostalCode,
 						WO.CreditTerms AS PaymentTerms,
 						WOBI.PostedDate AS InvoieDate,
 						--CASE WHEN WOBI.PostedDate IS NULL THEN NULL ELSE DATEADD(DAY, 5, WOBI.PostedDate) END AS DueDate,
@@ -131,11 +145,6 @@ BEGIN
 						ISNULL(WOBI.GrandTotal, 0) AS GrandTotal,
 						ISNULL(WOBI.ProformaDeposit, 0) AS Deposit,
 						ISNULL(WOBII.SubTotal, 0) AS UnitPrice,
-						COALESCE(shipToAddress.Line1, '') AS ShipLine1,
-						COALESCE(shipToAddress.Line2, '') AS ShipLine2,
-						COALESCE(shipToAddress.Line3, '') AS ShipLine3,
-						COALESCE(shipToAddress.City, '') AS ShipCity,
-						COALESCE(shipToAddress.PostalCode, '') AS ShipPostalCode,
 						C.QuickBooksReferenceId as CustomerQuickBooksReferenceId, 
 						WOBI.QuickBooksReferenceId, 
 						WOBI.MasterCompanyId,
@@ -152,38 +161,40 @@ BEGIN
 						ISNULL(WOBII.Freight, 0),
 						ISNULL(WOBI.TotalWorkOrder, 0),
 						ISNULL(P.PercentValue, 0),
-						IM.QuickBooksReferenceId
+						IM.QuickBooksReferenceId,
+						WOBI.WorkOrderId,
+						ISNULL(WOBI.CostPlusType, ''),
+						WOBII.WorkOrderPartId,
+						sipVia.[Name],
+						WO.WorkOrderNum
 				FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
 					JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.WorkOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-					LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
-					LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-					LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
-					LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+					--LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
+					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
+					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
+					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.TaxRate
+					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBI.ShipviaId = sipVia.ShippingViaId
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(WOBI.SalesTax,0) + ISNULL(WOBI.OtherTax,0))*100 / ISNULL(WOBI.SubTotal,0))
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 						AND WOBII.WorkOrderPartId = @ReferencePartId AND WOBI.WorkOrderId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
 			END
 			ELSE
 			BEGIN
-				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
-				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId])
+				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+				[PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
+				[CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId], [TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef],
+				[MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId], [WorkOrderId], [CostPlusType], 
+				[WorkOrderPartId], [ShipViaName], [ReferenceNumber])
 				SELECT	WOBI.BillingInvoicingId,
 						WOBI.InvoiceNo,
 						WOBII.WOBillingInvoicingItemId,
 						C.[Name] AS Customer,
 						C.Email AS CustomerEmail,
-						COALESCE(billToAddress.Line1, '') AS BillLine1,
-						COALESCE(billToAddress.Line2, '') AS BillLine2,
-						COALESCE(billToAddress.Line3, '') AS BillLine3,
-						COALESCE(billToAddress.City, '') AS BillCity,
-						COALESCE(billToAddress.PostalCode, '') AS BillPostalCode,
 						WO.CreditTerms AS PaymentTerms,
 						WOBI.PostedDate AS InvoieDate,
 						--CASE WHEN WOBI.PostedDate IS NULL THEN NULL ELSE DATEADD(DAY, 5, WOBI.PostedDate) END AS DueDate,
@@ -201,12 +212,9 @@ BEGIN
 						ISNULL(WOBI.SubTotal, 0) AS SubTotal,
 						ISNULL(WOBI.GrandTotal, 0) AS GrandTotal,
 						ISNULL(WOBI.ProformaDeposit, 0) AS Deposit,
-						ISNULL(WOBII.SubTotal, 0) AS UnitPrice,
-						COALESCE(shipToAddress.Line1, '') AS ShipLine1,
-						COALESCE(shipToAddress.Line2, '') AS ShipLine2,
-						COALESCE(shipToAddress.Line3, '') AS ShipLine3,
-						COALESCE(shipToAddress.City, '') AS ShipCity,
-						COALESCE(shipToAddress.PostalCode, '') AS ShipPostalCode,
+						CASE	WHEN ISNULL(WOBI.TotalWorkOrder, 0) = 0	THEN ISNULL(WOBII.SubTotal, 0)
+								WHEN ISNULL(WOBI.TotalWorkOrder, 0) = 1 THEN 
+										CASE WHEN ISNULL(WOBII.SubTotal, 0) = 0 THEN ISNULL(WOBI.SubTotal, 0) ELSE ISNULL(WOBII.SubTotal, 0) END END AS UnitPrice,
 						C.QuickBooksReferenceId as CustomerQuickBooksReferenceId, 
 						WOBI.QuickBooksReferenceId, 
 						WOBI.MasterCompanyId,
@@ -223,72 +231,173 @@ BEGIN
 						ISNULL(WOBII.Freight, 0),
 						ISNULL(WOBI.TotalWorkOrder, 0),
 						ISNULL(P.PercentValue, 0),
-						IM.QuickBooksReferenceId
+						IM.QuickBooksReferenceId,
+						WOBI.WorkOrderId,
+						ISNULL(WOBI.CostPlusType, ''),
+						WOBII.WorkOrderPartId,
+						sipVia.[Name],
+						WO.WorkOrderNum
 				FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
 					JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.WorkOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-					LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
-					LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-					LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
-					LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+					--LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
+					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
+					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
+					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.TaxRate
+					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBI.ShipviaId = sipVia.ShippingViaId
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(WOBI.SalesTax,0) + ISNULL(WOBI.OtherTax,0))*100 / ISNULL(WOBI.SubTotal,0))
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 						AND WOBI.WorkOrderId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
 			END
 
-			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-					[DueDate], [Tags], [Product], [PartNumber], [PartNumber] + ' - ' + [PartDescription] AS [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
+			--Updating Shipping Details	: Start
+			UPDATE TMP
+			SET TMP.ShipDate = shipResult.ShipDate, TMP.TrackingNo = shipResult.AirwayBill
+			FROM #InvoiceResults TMP
+			OUTER APPLY(
+					SELECT WS.ShipDate, WS.AirwayBill
+					FROM [dbo].[WorkOrderShippingItem] WSIM WITH(NOLOCK)
+					LEFT JOIN [dbo].[WorkOrderShipping] WS WITH(NOLOCK) ON WS.WorkOrderShippingId= WSIM.WorkOrderShippingId
+					WHERE TMP.WorkOrderPartId = WSIM.WorkOrderPartNumId
+					GROUP BY WS.ShipDate, WS.AirwayBill
+			) shipResult
+			--Updating Shipping Details	: End
+
+			--Updating Address Details	: Start
+			UPDATE TMPAddr
+			SET	TMPAddr.BillLine1 = InvBillAddr.BillToAddressLine1,
+				TMPAddr.BillLine2 = InvBillAddr.BillToAddressLine2,
+				TMPAddr.BillCity = InvBillAddr.BillToCity,
+				TMPAddr.BillStateOrProvince = InvBillAddr.BillToState,
+				TMPAddr.BillPostalCode = InvBillAddr.BillToPostalCode,
+				TMPAddr.BillCountry = InvBillAddr.BillToCountry,
+
+				TMPAddr.ShipLine1 = InvShipAddr.ShipToAddressLine1,
+				TMPAddr.ShipLine2 = InvShipAddr.ShipToAddressLine2,
+				TMPAddr.ShipCity = InvShipAddr.ShipToCity,
+				TMPAddr.ShipStateOrProvince = InvShipAddr.ShipToState,
+				TMPAddr.ShipPostalCode = InvShipAddr.ShipToPostalCode,
+				TMPAddr.ShipCountry = InvShipAddr.ShipToCountry
+			FROM #InvoiceResults TMPAddr
+			OUTER APPLY (
+				SELECT	billToSite.SiteName AS BillToSiteName,
+						billToAddress.Line1 AS BillToAddressLine1,
+						billToAddress.Line2 AS BillToAddressLine2,
+						billToAddress.City AS BillToCity,
+						billToAddress.StateOrProvince AS BillToState,
+						billToAddress.PostalCode AS BillToPostalCode,
+						billToCountry.countries_name AS BillToCountry,
+						billToCustomer.[Name] AS BillToNameOfCustomer,
+						billToCustomer.Email AS BillToCustomerEmail
+				FROM [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK)
+				LEFT JOIN  [dbo].[Customer] billToCustomer WITH(NOLOCK) ON BI.SoldToCustomerId = billToCustomer.CustomerId
+				LEFT JOIN  [dbo].[CustomerBillingAddress] AS billToSite WITH(NOLOCK) ON BI.SoldToSiteId = billToSite.CustomerBillingAddressId
+				LEFT JOIN  [dbo].[Address] AS billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
+				LEFT JOIN  [dbo].[Countries] AS billToCountry WITH(NOLOCK) ON billToAddress.CountryId = billToCountry.countries_id
+				WHERE BI.BillingInvoicingId = TMPAddr.[InvoiceId]
+			) InvBillAddr
+			OUTER APPLY (
+				SELECT 
+					shipToSite.SiteName AS ShipToSiteName,
+					shipToAddress.Line1 AS ShipToAddressLine1,
+					shipToAddress.Line2 AS ShipToAddressLine2,
+					shipToAddress.City AS ShipToCity,
+					shipToAddress.StateOrProvince AS ShipToState,
+					shipToAddress.PostalCode AS ShipToPostalCode,
+					shipToCountry.countries_name AS ShipToCountry,
+					shipToCustomer.[Name] AS ShipToNameOfCustomer,
+					shipToCustomer.Email AS ShipToCustomerEmail
+				FROM [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK)
+				LEFT JOIN  [dbo].[Customer] shipToCustomer WITH(NOLOCK) ON BI.ShipToCustomerId = shipToCustomer.CustomerId
+				LEFT JOIN  [dbo].[CustomerDomensticShipping] AS shipToSite WITH(NOLOCK) ON BI.shipToSiteId = shipToSite.CustomerDomensticShippingId
+				LEFT JOIN  [dbo].[Address] AS shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+				LEFT JOIN  [dbo].[Countries] AS shipToCountry WITH(NOLOCK) ON shipToAddress.CountryId = shipToCountry.countries_id
+				WHERE BI.BillingInvoicingId = TMPAddr.[InvoiceId]
+			) InvShipAddr
+			--Updating Address Details	: End
+			
+			;With Result As(
+			SELECT	[InvoiceId], [InvoiceNo], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					--[PartNumber], [PartNumber] + ' - ' + [PartDescription] AS [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [BillingInvoicingItemId], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN 1 ELSE [BillingInvoicingItemId] END AS [BillingInvoicingItemId],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN [InvoiceNo] ELSE [PartNumber] END AS [PartNumber],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN [ReferenceNumber] + ' - ' + [InvoiceNo] + ' Flat Rate' ELSE [PartDescription] END AS [PartDescription],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN 1 ELSE [Quantity] END AS [Quantity],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN '1' ELSE [ItemQuickBooksReferenceId] END AS [ItemQuickBooksReferenceId], 
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN [SubTotal] ELSE [UnitPrice] END AS [UnitPrice],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN 0 ELSE [MaterialCost] END AS [MaterialCost], 
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN 0 ELSE [LaborCost] END AS [LaborCost],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN 0 ELSE [MiscCharges] END AS [MiscCharges],
+					CASE	WHEN UPPER([CostPlusType]) = 'FLAT RATE' THEN 0 ELSE [FreightCost] END AS [FreightCost],
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit],
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
-			FROM #InvoiceResults
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			FROM #InvoiceResults TMP 
+			)
+			
+			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					[PartNumber], [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],					
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit],
+					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			INTO #InvoiceSyncData
+			FROM Result
+			GROUP BY	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+						[PartNumber], [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],				
+						[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit],
+						[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
+						[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+
+			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					[PartNumber], [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], 
+					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			FROM #InvoiceSyncData
 			WHERE [TotalWorkOrder] = 1
 
 			UNION
 
-			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Material Cost' AS [PartDescription],
-					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MaterialCost] AS [UnitPrice], 
+			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					[PartNumber], [PartNumber] + ' - ' + 'Material Cost' AS [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [MaterialCost] AS [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit],
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
-			FROM #InvoiceResults 
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			FROM #InvoiceSyncData 
 			WHERE MaterialCost > 0 AND [TotalWorkOrder] = 0
 
 			UNION
 
-			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Labor Cost' AS [PartDescription],
-					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [LaborCost] AS [UnitPrice], 
+			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					[PartNumber], [PartNumber] + ' - ' + 'Labor Cost' AS [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [LaborCost] AS [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
-			FROM #InvoiceResults
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			FROM #InvoiceSyncData
 			WHERE LaborCost > 0 AND [TotalWorkOrder] = 0
 
 			UNION
 
-			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Misc Charges Cost' AS [PartDescription],
-					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MiscCharges] AS [UnitPrice], 
+			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					[PartNumber], [PartNumber] + ' - ' + 'Misc Charges Cost' AS [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [MiscCharges] AS [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],					
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit],
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
-			FROM #InvoiceResults
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			FROM #InvoiceSyncData
 			WHERE MiscCharges > 0 AND [TotalWorkOrder] = 0
 
 			UNION
 
-			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 
-					[DueDate], [Tags], [Product],
-					[PartNumber], [PartNumber] + ' - ' + 'Freight Cost' AS [PartDescription],
-					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [FreightCost] AS [UnitPrice], 
+			SELECT	[InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
+					[PartNumber], [PartNumber] + ' - ' + 'Freight Cost' AS [PartDescription], [Quantity], [ItemQuickBooksReferenceId], [FreightCost] AS [UnitPrice], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost],				
+					[SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit],
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [LaborCost], [MiscCharges], [FreightCost], [TotalWorkOrder], [PercentValue], [ItemQuickBooksReferenceId]
-			FROM #InvoiceResults
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [TotalWorkOrder], [PercentValue], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+			FROM #InvoiceSyncData
 			WHERE FreightCost > 0 AND [TotalWorkOrder] = 0
 
 		END

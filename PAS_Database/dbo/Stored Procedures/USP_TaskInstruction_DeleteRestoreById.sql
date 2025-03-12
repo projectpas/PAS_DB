@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_TaskInstruction_DeleteRestoreById]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to UPDATE delete State of TaskInstruction
@@ -11,7 +12,7 @@
     1    1st-JAN-2025		Devendra Shekh			Created
     2    28-JAN-2025		Ekta Chandegra  		Update isDeleted value for parent
     3    28-JAN-2025		Vishal Suthar  			Modified the logic of delete and restore with all it's child too
- 
+    4    06-MAR-2025		RAJESH GAMI  			Add condition while deleting the record (Hard delete)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_TaskInstruction_DeleteRestoreById]
 @TaskInstructionId bigint,
@@ -25,21 +26,32 @@ BEGIN
 			BEGIN 
 				IF(@IsDeleted = 0)
 				BEGIN
-					;WITH RecursiveCTE AS (
-						SELECT TaskInstructionId 
-						FROM DBO.TaskInstructionMaster WITH (NOLOCK)
-						WHERE TaskInstructionId = @TaskInstructionId
+					IF((SELECT TOP 1 ISNULL(SequenceNumber,0) FROM DBO.TaskInstructionMaster WITH (NOLOCK) WHERE TaskInstructionId =  @TaskInstructionId) = 0)
+					BEGIN
+						--UPDATE TaskInstructionMaster
+						--SET IsDeleted = 1
+						--WHERE TaskInstructionId = @TaskInstructionId;
+						DELETE FROM TaskInstructionMaster WHERE TaskInstructionId = @TaskInstructionId;
+					END
+					ELSE
+					BEGIN
+						;WITH RecursiveCTE AS (
+							SELECT TaskInstructionId 
+							FROM DBO.TaskInstructionMaster WITH (NOLOCK)
+							WHERE TaskInstructionId = @TaskInstructionId
 
-						UNION ALL
+							UNION ALL
 
-						SELECT TIM.TaskInstructionId
-						FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK)
-						INNER JOIN RecursiveCTE R ON TIM.ParentId = R.TaskInstructionId
-					)
+							SELECT TIM.TaskInstructionId
+							FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK)
+							INNER JOIN RecursiveCTE R ON TIM.ParentId = R.TaskInstructionId
+						)
+					DELETE FROM TaskInstructionMaster WHERE TaskInstructionId IN (SELECT TaskInstructionId FROM RecursiveCTE) AND SequenceNumber >0
+						--UPDATE TaskInstructionMaster
+						--SET IsDeleted = 1
+						--WHERE TaskInstructionId IN (SELECT TaskInstructionId FROM RecursiveCTE) AND SequenceNumber >0;
+					END
 					
-					UPDATE TaskInstructionMaster
-					SET IsDeleted = 1
-					WHERE TaskInstructionId IN (SELECT TaskInstructionId FROM RecursiveCTE);
 				END
 				ELSE
 				BEGIN
@@ -58,6 +70,11 @@ BEGIN
 					UPDATE TaskInstructionMaster
 					SET IsDeleted = 0
 					WHERE TaskInstructionId IN (SELECT TaskInstructionId FROM RecursiveCTE);
+					
+					DECLARE @TaskId BIGINT = (SELECT TOP 1 TaskId FROM dbo.TaskInstructionMaster WITH(NOLOCK) WHERE TaskInstructionId = @TaskInstructionId)
+					Update TaskInstructionMaster SET IsDeleted = 0  WHERE TaskId = @TaskId AND SequenceNumber = 0 AND IsParent = 1; 
+
+				
 				END
 			END
 		END TRY    

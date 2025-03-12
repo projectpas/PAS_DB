@@ -18,6 +18,10 @@
 	7	12/12/2024		Devendra Shekh			Resolved Records Count Issue
 	8	12/18/2024		Devendra Shekh			Modified (Calculating Total ExtendedCost)
 	9	01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	10  17-02-2025      Shrey Chandegara        Modified Due to Add @IsDownload.
+	11  18-02-2025      Shrey Chandegara        Modified Due to Add @IsParent
+    12  07-03-2025		Moin Bloch			    Modified (Added isKitItem)
+
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -31,7 +35,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,
 	@ShowPendingToIssue BIT  = 0,
-	@IsDownload BIT = 0
+	@IsDownload BIT = 0,
+	@IsParent BIT = 0
 )    
 AS    
 BEGIN    
@@ -286,7 +291,8 @@ SET NOCOUNT ON
 					[IsKitType] [bit] NULL,
 					[KitQty] [int] NULL,
 					[ExpectedSerialNumber] [varchar](250) NULL,
-					[IsExchangeTender] [bit] NULL
+					[IsExchangeTender] [bit] NULL,
+					[IsKitItem] [varchar](10) NULL
 				)
 
 				CREATE TABLE #tmpStocklineKit
@@ -462,7 +468,6 @@ SET NOCOUNT ON
 				);
 				IF (ISNULL(@IsDownload,0) = 1)
 					BEGIN 
-						PRINT 'ab'
 						INSERT INTO #TMPWOMaterialResultListData ([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
 
 						SELECT tmp.WorkOrderMaterialsId,tmp.WorkFlowWorkOrderId,tmp.WorkOrderMaterialsKitMappingId,tmp.IsKit  FROM #TMPWOMaterialParentListData tmp 
@@ -470,8 +475,6 @@ SET NOCOUNT ON
 					END
 				ELSE
 					BEGIN
-					PRINT'bc'
-					PRINT @Local_PageSize;
 						INSERT INTO #TMPWOMaterialResultListData ([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
 
 						SELECT  tmp.WorkOrderMaterialsId,tmp.WorkFlowWorkOrderId,tmp.WorkOrderMaterialsKitMappingId,tmp.IsKit  FROM #TMPWOMaterialParentListData tmp
@@ -497,7 +500,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
-								[IsExchangeTender])
+								[IsExchangeTender],[IsKitItem])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
 						IMS.PartNumber StocklinePartNumber,
@@ -697,6 +700,7 @@ SET NOCOUNT ON
 						,0 AS KitQty
 						,WOM.ExpectedSerialNumber AS ExpectedSerialNumber
 						,(CASE WHEN P.Description = @exchangeProvision  AND (SELECT count(1) FROM dbo.Stockline stk WITH(NOLOCK) WHERE stk.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)>0 THEN 1 ELSE 0 END)  AS IsExchangeTender
+					    ,'No' [IsKitItem]
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -738,7 +742,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
-								[IsExchangeTender])
+								[IsExchangeTender],[IsKitItem])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
 						IMS.PartNumber StocklinePartNumber,
@@ -929,6 +933,7 @@ SET NOCOUNT ON
 						,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,0  AS IsExchangeTender
+						,'Yes' [IsKitItem]
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -973,7 +978,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
-								[IsExchangeTender])
+								[IsExchangeTender],[IsKitItem])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
 						IMS.PartNumber StocklinePartNumber,
@@ -1172,6 +1177,7 @@ SET NOCOUNT ON
 						,0 AS KitQty
 						,WOM.ExpectedSerialNumber AS ExpectedSerialNumber
 						,(CASE WHEN P.Description = @exchangeProvision  AND (SELECT count(1) FROM dbo.Stockline stk WITH(NOLOCK) WHERE stk.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)>0 THEN 1 ELSE 0 END)  AS IsExchangeTender
+					    ,'No' [IsKitItem]
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -1213,7 +1219,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
 								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
-								[IsExchangeTender])
+								[IsExchangeTender],[IsKitItem])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
 						IMS.PartNumber StocklinePartNumber,
@@ -1404,6 +1410,7 @@ SET NOCOUNT ON
 						,ISNULL((SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId), 0) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,0  AS IsExchangeTender
+						,'Yes' [IsKitItem]
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -1446,7 +1453,11 @@ SET NOCOUNT ON
 				@IsFullyReserved AS IsFullyReserved,
 				@IsFullyIssued AS IsFullyIssued,
 				ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost
-				FROM #finalMaterialListResult
+				FROM #finalMaterialListResult FR
+				WHERE --@IsDownload = 0 OR FR.StockLineNumber IS NOT NULL
+				(@IsDownload = 1 AND @IsParent = 0 AND FR.StockLineNumber IS NOT NULL)
+			    OR (@IsDownload = 1 AND @IsParent = 1)
+				OR @IsDownload = 0
 				ORDER BY    
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC
 					,CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partNumber')  THEN partNumber END ASC,  
@@ -1509,6 +1520,8 @@ SET NOCOUNT ON
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='workOrderNumber')  THEN workOrderNumber END ASC, 
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='subWorkOrderNo')  THEN subWorkOrderNo END ASC, 
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='salesOrder')  THEN salesOrder END ASC, 
+				    CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='IsKitItem')  THEN IsKitItem END ASC, 
+
 
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='taskName')  THEN taskName END DESC,  
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='partNumber')  THEN partNumber END DESC,  
@@ -1570,7 +1583,10 @@ SET NOCOUNT ON
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stockLineItem')  THEN stockLineItem END DESC,
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='workOrderNumber')  THEN workOrderNumber END DESC,
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='subWorkOrderNo')  THEN subWorkOrderNo END DESC,
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='salesOrder')  THEN salesOrder END DESC;
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='salesOrder')  THEN salesOrder END DESC,
+				    CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='IsKitItem')  THEN IsKitItem END DESC;
+
+
 
 				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN

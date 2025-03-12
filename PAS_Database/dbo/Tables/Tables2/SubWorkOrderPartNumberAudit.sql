@@ -12,7 +12,7 @@
     [NTE]                     INT            NULL,
     [Quantity]                INT            NOT NULL,
     [StockLineId]             BIGINT         NULL,
-    [CMMId]                   BIGINT         NULL,
+    [CMMIds]                  VARCHAR (256)  NULL,
     [WorkflowId]              BIGINT         NULL,
     [SubWorkOrderStageId]     BIGINT         NOT NULL,
     [SubWorkOrderStatusId]    BIGINT         NOT NULL,
@@ -43,8 +43,11 @@
     [IsTransferredToParentWO] BIT            NULL,
     [RevisedStockLineId]      BIGINT         NULL,
     [RevisedSerialNumber]     VARCHAR (50)   NULL,
+    [PublicationNo]           VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([SubWOPartNoAuditId] ASC)
 );
+
+
 
 
 

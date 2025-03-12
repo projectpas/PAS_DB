@@ -44,8 +44,11 @@
     [EmployeeId]            BIGINT        NULL,
     [FormTypeId]            INT           NULL,
     [IsLocked]              BIT           NULL,
+    [Is813013aeOr14ae]      INT           DEFAULT ((1)) NULL,
     CONSTRAINT [PK_SubWorkOrder_ReleaseFrom_8130Audit] PRIMARY KEY CLUSTERED ([SubReleaseFromAuditId] ASC)
 );
+
+
 
 
 

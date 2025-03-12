@@ -19,7 +19,8 @@
  ** --   --------     -------			--------------------------------          
     1    04-Jan-2024   Hemant Saliya		Created
 	2    22-Jan-2024   Devendra Shekh		duplicate subowo issue resolved
-	2    10-Apr-2024   Bhargav saliya		Add SUB WORK ORDER Materials Module Name
+	3    10-Apr-2024   Bhargav saliya		Add SUB WORK ORDER Materials Module Name
+    4    17-Feb-2025   Moin Bloch           Updated (Added Publication CMMIds)
  EXECUTE [CreateSubWorkOrderForTenderStockline] 4007, 3494, 'ADMIN User'
 **************************************************************/ 
 
@@ -173,11 +174,11 @@ BEGIN
 						SET @SubWorkOrderId = SCOPE_IDENTITY(); 
 
 						INSERT INTO SubWorkOrderPartNumber(WorkOrderId,SubWorkOrderId,ItemMasterId,SubWorkOrderScopeId,EstimatedShipDate,CustomerRequestDate,PromisedDate,EstimatedCompletionDate,NTE,Quantity,StockLineId,
-								CMMId,WorkflowId,SubWorkOrderStageId,SubWorkOrderStatusId,SubWorkOrderPriorityId,IsPMA,IsDER,TechStationId,TATDaysStandard,TechnicianId,ConditionId,TATDaysCurrent,MasterCompanyId,CreatedBy,UpdatedBy,
-								CreatedDate,UpdatedDate,IsActive,IsDeleted,IsClosed,PDFPath,islocked,IsFinishGood,RevisedConditionId,CustomerReference,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO)
+								CMMIds,WorkflowId,SubWorkOrderStageId,SubWorkOrderStatusId,SubWorkOrderPriorityId,IsPMA,IsDER,TechStationId,TATDaysStandard,TechnicianId,ConditionId,TATDaysCurrent,MasterCompanyId,CreatedBy,UpdatedBy,
+								CreatedDate,UpdatedDate,IsActive,IsDeleted,IsClosed,PDFPath,islocked,IsFinishGood,RevisedConditionId,CustomerReference,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO,PublicationNo)
 						SELECT tmpWOM.WorkOrderId,@SubWorkOrderId, tmpWOM.ItemMasterId, Assy.WorkscopeId, EstimatedShipDate, CustomerRequestDate, PromisedDate, EstimatedCompletionDate, NTE, tmpWOM.Quantity, tmpWOM.StockLineId,
-								CMMId, WorkflowId, WOS.DefaultStageCodeId, WOS.DefaultStatusId, WOP.WorkOrderPriorityId, IsPMA, IsDER, TechStationId, TATDaysStandard, TechnicianId, tmpWOM.ConditionId, TATDaysCurrent, WOP.MasterCompanyId, WOP.CreatedBy, WOP.UpdatedBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,0,NULL,0,0,tmpWOM.ConditionId,CustomerReference,tmpWOM.ItemMasterId,ISNULL(WOS.IsTraveler, 0),ISNULL(WOS.IsManualForm, 0), NULL 
+								WOP.CMMIds, WorkflowId, WOS.DefaultStageCodeId, WOS.DefaultStatusId, WOP.WorkOrderPriorityId, IsPMA, IsDER, TechStationId, TATDaysStandard, TechnicianId, tmpWOM.ConditionId, TATDaysCurrent, WOP.MasterCompanyId, WOP.CreatedBy, WOP.UpdatedBy,
+								GETUTCDATE(),GETUTCDATE(),1,0,0,NULL,0,0,tmpWOM.ConditionId,CustomerReference,tmpWOM.ItemMasterId,ISNULL(WOS.IsTraveler, 0),ISNULL(WOS.IsManualForm, 0), NULL,WOP.PublicationNo 
 						FROM #tmpWorkOrderMaterials tmpWOM 
 							JOIN dbo.WorkOrderPartNumber WOP ON tmpWOM.WorkOrderPartNumberId = WOP.ID
 							JOIN dbo.Assemply Assy ON tmpWOM.ItemMasterId = Assy.MappingItemMasterId AND WOP.ItemMasterId = Assy.ItemMasterId AND Assy.ProvisionId = @SubWOProvisionID AND Assy.PopulateWoMaterialList = 1
@@ -242,15 +243,8 @@ BEGIN
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-					PRINT 'ROLLBACK'
                      ROLLBACK TRAN;
-					-- SELECT
-					--ERROR_NUMBER() AS ErrorNumber,
-					--ERROR_STATE() AS ErrorState,
-					--ERROR_SEVERITY() AS ErrorSeverity,
-					--ERROR_PROCEDURE() AS ErrorProcedure,
-					--ERROR_LINE() AS ErrorLine,
-					--ERROR_MESSAGE() AS ErrorMessage;
+					
 					 DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 				  , @AdhocComments     VARCHAR(150)    = 'CreateSubWorkOrderForTenderStockline' 

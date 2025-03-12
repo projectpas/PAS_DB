@@ -12,8 +12,9 @@
     1					Unknown				Created
     2    10/18/2024		Devendra Shekh		Add fields related to quickBooks
 	3    02/06/2025     Sahdev Saliya       Added a case to get timeZone 
+	4    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[ProcVendorList]
+CREATE    PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -37,7 +38,8 @@ CREATE   PROCEDURE [dbo].[ProcVendorList]
 @isSynced  varchar(20)=null,
 @LastSyncDate datetime=null,
 @MasterCompanyId bigint=NULL,
-@EmployeeId bigint
+@EmployeeId bigint,
+@IsUpdated BIT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -127,7 +129,7 @@ BEGIN
 						     FOR XML PATH('')), 1, 1, '') ClassificationName) A
 			                
 		 	  WHERE ((V.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR V.IsActive = @IsActive))
-			         AND V.MasterCompanyId=@MasterCompanyId		
+			         AND V.MasterCompanyId=@MasterCompanyId	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))	
 			), ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorCode LIKE '%' +@GlobalFilter+'%') OR

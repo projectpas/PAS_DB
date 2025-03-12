@@ -29,8 +29,8 @@ BEGIN
     -- Retrieve Customer Reference
 		DECLARE @CustomerReference NVARCHAR(255);
 		SELECT TOP 1 @CustomerReference = wop.CustomerReference
-		FROM WorkOrderShippingItem t
-		JOIN WorkOrderPartNumber wop ON t.WorkOrderPartNumId = wop.ID
+		FROM WorkOrderShippingItem t WITH(NOLOCK)
+		JOIN WorkOrderPartNumber wop WITH(NOLOCK) ON t.WorkOrderPartNumId = wop.ID
 		WHERE t.WorkOrderShippingId = @workOrderShippingId;
 
 		-- Retrieve Work Order Shipping Details

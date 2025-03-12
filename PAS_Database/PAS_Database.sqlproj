@@ -3507,6 +3507,10 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetTrainingReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetCertificationReport.sql" />
     <Build Include="dbo\Stored Procedures\MigrateWorkFlowRecord.sql" />
+    <Build Include="dbo\Tables\VendorAuditTypeAudit.sql" />
+    <Build Include="dbo\Tables\VendorAuditType.sql" />
+    <Build Include="dbo\Views\vw_VendorAuditTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_VendorAuditType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

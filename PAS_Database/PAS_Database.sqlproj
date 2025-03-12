@@ -3512,6 +3512,7 @@
     <Build Include="dbo\Tables\VendorAuditType.sql" />
     <Build Include="dbo\Views\vw_VendorAuditTypeAudit.sql" />
     <Build Include="dbo\Views\vw_VendorAuditType.sql" />
+    <Build Include="dbo\Functions\ConvertUtcToLocalTime.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

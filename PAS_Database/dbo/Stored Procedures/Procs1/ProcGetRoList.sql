@@ -18,6 +18,7 @@
 	02	 30-Dec-2024	Abhishek Jirawla MULTIPLE checking was improper so corrected it and Performance changes implemented
 	03	 03-Mar-2025	Bhargav Saliya   Get New isStkLable value
 	04   10-March-2025  Sahdev Saliya   Added a case to get timeZone
+	05   12-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=100,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'OPEN',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=205,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL
 **************************************************************/
@@ -49,7 +50,8 @@ CREATE     PROCEDURE [dbo].[ProcGetRoList]
 	@EstDeliveryType varchar(50) = null,
 	@ManufacturerType varchar(50) = null,
 	@SalesOrderNumberType varchar(50) = null,
-	@WorkOrderNumType varchar(50) = null
+	@WorkOrderNumType varchar(50) = null,
+	@IsUpdated BIT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -160,7 +162,7 @@ BEGIN
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-					RO.MasterCompanyId=@MasterCompanyId 
+					RO.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(RO.IsUpdated,0) = ISNULL(@IsUpdated,0))
 			GROUP BY RO.RepairOrderId,RO.RepairOrderNumber,RO.RepairOrderNumber,RO.OpenDate,RO.ClosedDate,RO.CreatedDate,RO.CreatedBy,
 				   RO.UpdatedDate,RO.UpdatedBy,RO.IsActive,RO.IsDeleted,RO.VendorId,RO.VendorName,RO.VendorCode,RO.StatusId,RO.[Status],
 				   RO.Requisitioner,RO.ApprovedBy

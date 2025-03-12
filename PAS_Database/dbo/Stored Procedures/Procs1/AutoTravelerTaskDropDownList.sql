@@ -13,11 +13,11 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/23/2021   Hemant Saliya Created
-	2    01/03/2025   Moin Bloch  	Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
-     
+ ** PR   Date          Author			Change Description            
+ ** --   --------      -------			--------------------------------          
+    1    09/23/2021    Hemant Saliya	Created
+	2    01/03/2025    Moin Bloch  		Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
+	3    28 FEb 2025   RAJESH GAMI  	Order by Sequence     
 --EXEC [AutoTravelerTaskDropDownList] '',1,20,'0',1,10427
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoTravelerTaskDropDownList]
@@ -57,7 +57,7 @@ BEGIN
 		END	
 		IF(@Traveler_setupid > 0 AND @IstravelerTask=1)
 		BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT
 						TS.[TaskId] AS Value, 
 						TS.[Description] AS Label,		
 						ISNULL(TSS.[Sequence],999999) AS Sequence,
@@ -83,12 +83,12 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT
 						TS.[TaskId] AS Value, 
 						TS.[Description] AS Label,	
 						TS.[IsTravelerTask], 
 						TS.[StandardHours], 
-						TS.[StandardMinute]
+						TS.[StandardMinute],ISNULL(TS.[Sequence],999999) AS Sequence
 					FROM [dbo].[Task] TS WITH(NOLOCK)
 					WHERE TS.MasterCompanyId = @MasterCompanyId AND (ISNULL(TS.IsDeleted,0) = 0 
 						AND (TS.Description LIKE '%' + @StartWith + '%'))
@@ -98,10 +98,10 @@ BEGIN
 						TS.[Description] AS Label,		
 						TS.[IsTravelerTask], 
 						TS.[StandardHours], 
-						TS.[StandardMinute]
+						TS.[StandardMinute],ISNULL(TS.[Sequence],999999) AS Sequence
 					FROM [dbo].[Task] TS WITH(NOLOCK)
 					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
-				ORDER BY Label	
+				ORDER BY Sequence ASC	
 		END	
 	END TRY
 	BEGIN CATCH	

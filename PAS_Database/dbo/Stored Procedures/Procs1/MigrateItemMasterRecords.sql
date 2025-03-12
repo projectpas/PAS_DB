@@ -25,7 +25,7 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigrateItemMasterRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigrateItemMasterRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=20,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
 CREATE   PROCEDURE [dbo].[MigrateItemMasterRecords]
@@ -182,7 +182,7 @@ BEGIN
 				SELECT @AssetAcquisitionTypeId_MAKE = AssetAcquisitionTypeId FROM DBO.[AssetAcquisitionType] C WHERE UPPER(Name) = 'MAKE' AND MasterCompanyId = @FromMasterComanyID;
 
 				DECLARE @DefaultSiteId BIGINT;
-				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('MIG') AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('NEO-NEOSOURCE INC.') AND MasterCompanyId = @FromMasterComanyID;
 
 				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
@@ -212,13 +212,13 @@ BEGIN
 					SELECT 1, NULL, @ItemGroupdId, @ItemClassificationId, (CASE WHEN HAZARD_MATERIAL = 'T' THEN 1 ELSE 0 END), 0, NULL
 					,0, 0, 0, 0, 0, 0, 0
 					,0, 0, 0, 0, 0, NULL, @ManufacturerId, (CASE WHEN DER_FLAG = 'T' THEN 1 ELSE 0 END), NULL, 0
-					,0, 0, 0, 0, @GLAccountId, @UOMId, NULL, NULL, CAST(ISNULL(LeadDays, 0) AS INT)
-					,CAST(ISNULL(REORDER_COND_LEVEL, 0) AS INT), 0, CAST(MinimumOrderQuantity AS INT), CAST(PartListPrice AS DECIMAL), @PriorityId, NULL, NotesAdded, NULL, NULL, NULL
+					,0, 0, 0, 0, @GLAccountId, T.UnitOfMeasureId, NULL, NULL, CAST(ISNULL(LeadDays, 0) AS INT)
+					,CAST(ISNULL(REORDER_COND_LEVEL, 0) AS INT), 0, CAST(ISNULL(MinimumOrderQuantity, 0) AS INT), CAST(PartListPrice AS DECIMAL), @PriorityId, NULL, NotesAdded, NULL, NULL, NULL
 					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, @CurrencyId
 					,NULL, @CurrencyId, GETDATE(), GETDATE(), CASE WHEN T.IsActive = 'T' THEN 1 ELSE 0 END, @CurrencyId, @FromMasterComanyID, @UserName
 					,@UserName, CASE WHEN T.DATE_CREATED IS NOT NULL THEN CAST(T.DATE_CREATED AS Datetime2) ELSE GETDATE() END, CASE WHEN T.DATE_CREATED IS NOT NULL THEN CAST(T.DATE_CREATED AS Datetime2) ELSE GETDATE() END, 0, 0, NULL, 0, NULL, T.PartNumber, T.PartDescription
 					,(CASE WHEN ISNULL(T.IsTimeLife, 'F') = 'T' THEN 1 ELSE 0 END), (CASE WHEN ISNULL(T.IsSerialized, 'F') = 'T' THEN 1 ELSE 0 END), NULL, (CASE WHEN ISNULL(T.SHELF_LIFE, 'F') = 'T' THEN 1 ELSE 0 END), NULL, NULL, CAST(ISNULL(PartListPrice, 0) AS decimal), LIST_PRICE_DATE, NULL
-					,0, ECC_NUMBER, ITAR_NUMBER, CAST(SHELF_LIFE_DAYS AS NUMERIC), 0, (CASE WHEN ISNULL(T.PMA_FLAG, 'F') = 'T' THEN 1 ELSE 0 END), 0, 0, NULL, NULL
+					,0, ECC_NUMBER, ITAR_NUMBER, CAST(ISNULL(SHELF_LIFE_DAYS, 0) AS NUMERIC), 0, (CASE WHEN ISNULL(T.PMA_FLAG, 'F') = 'T' THEN 1 ELSE 0 END), 0, 0, NULL, NULL
 					,NULL, NULL, NULL, @InsertedPartId, NULL, NULL, @DefaultSiteId, NULL, NULL, NULL
 					,NULL, (CASE WHEN T.PROCUREMENT = 'BUY' THEN @AssetAcquisitionTypeId_BUY WHEN T.PROCUREMENT = 'MAKE' THEN @AssetAcquisitionTypeId_MAKE ELSE @AssetAcquisitionTypeId_BUY END), (CASE WHEN ISNULL(T.IsHOTPart, 'F') = 'T' THEN 1 ELSE 0 END), NULL, 0, (CASE WHEN ISNULL(T.PMA_FLAG, 'F') = 'F' THEN 1 ELSE 0 END), NULL, NULL, NULL
 					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL

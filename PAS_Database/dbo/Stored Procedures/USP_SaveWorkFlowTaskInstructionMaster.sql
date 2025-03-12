@@ -11,13 +11,16 @@
     1    07-Feb-2025		Devendra Shekh					Created
     2    10-Feb-2025		Devendra Shekh					Modified (Checking TaskId as Well While Getting Max Sequence)
     3    11-Feb-2025		Devendra Shekh					Modified (Copying TaskInstructionMaster Data if @InstructionListId has value)
+    4    05-March-2025		Devendra Shekh					Modified (Description related Issue resolved while add new)
+    5    06-March-2025		Devendra Shekh					Modified ([Sequence] related Issue resolved)
+    6    11-March-2025		Devendra Shekh					Modified (adding WorkFlowTask if not exists)
 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
 @ParentId=default,@IsParent=default,@MasterCompanyId=1,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',
 @CreatedDate='2025-02-05 19:13:54.720',@UpdatedDate='2025-02-05 19:13:54.720',@IsActive=1,@IsDeleted=0,@WorkflowId=43
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SaveWorkFlowTaskInstructionMaster]
+CREATE    PROCEDURE [dbo].[USP_SaveWorkFlowTaskInstructionMaster]
     @WorkflowDirectionId BIGINT = NULL,
     @Title VARCHAR(8000) = NULL,
     @Description VARCHAR(MAX) = NULL,
@@ -117,7 +120,19 @@ BEGIN
 					BEGIN
 						SELECT @NewParentId = WorkflowDirectionId FROM @IdMapping WHERE TaskInstructionId = @InstructionParentId;
 					END
+					
+					IF EXISTS (SELECT 1 FROM DBO.SPLITSTRING(@InstructionListId, ',') WHERE Item = @TaskInstructionId)
+					BEGIN
+						SELECT @InstructionSequenceNumber = ISNULL(MAX(TIM.Sequence), 0)
+						FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
+						WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
+						SET @InstructionSequenceNumber = ISNULL(@InstructionSequenceNumber, 0) + 1;
+						SET @IsInstructionParent = 1;
+					END
+
+					SET @InstructionkDescription = CASE WHEN ISNULL(@Description, '') = '' THEN @InstructionkDescription ELSE @Description END;
+				
 					-- Insert the record into WorkFlowDirection table
 					INSERT INTO DBO.WorkFlowDirection (
 						[WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
@@ -147,12 +162,42 @@ BEGIN
 
 				SELECT @MaxSequence = ISNULL(MAX(TIM.Sequence), 0)
 				FROM DBO.WorkFlowDirection TIM WITH (NOLOCK)
-				WHERE TIM.MasterCompanyId = @MasterCompanyId AND TIM.IsParent = 1 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
+				WHERE TIM.MasterCompanyId = @MasterCompanyId AND ISNULL(TIM.ParentId, 0) = 0 AND TIM.WorkflowId = @WorkflowId AND [TaskId] = @TaskId;
 
 				INSERT INTO DBO.WorkFlowDirection ([WorkflowId], [Action], [Description], [TaskId], [Sequence], [ParentId], [IsParent], 
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsTaskDetails])
 				SELECT @WorkflowId, @Title, @Description, ISNULL(@TaskId, 0), (@MaxSequence + 1), NULL, 1, 
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsTaskDetails;
+			END
+
+			IF NOT EXISTS(SELECT [WorkFlowTaskId] FROM [dbo].[WorkFlowTask] WITH(NOLOCK) WHERE [TaskId] = @TaskId AND [WorkFlowId] = @WorkflowId AND [MasterCompanyId] = @MasterCompanyId)
+			BEGIN
+				-- Storing Task To WorkFlowTask if Default TaskInstruction is Added
+				DECLARE @WorkFlowNumber VARCHAR(256),
+						@TaskDescription VARCHAR(200),
+						@TaskSequenceNumber INT,
+						@Descrepancy NVARCHAR(MAX) = '',
+						@Resolution NVARCHAR(MAX) = '',
+						@IsVersionIncrease BIT = 0;
+
+				SELECT @MaxSequence = ISNULL(MAX(WFT.SequenceNumber), 0)
+				FROM [dbo].[WorkFlowTask] WFT WITH (NOLOCK)
+				WHERE WFT.MasterCompanyId = @MasterCompanyId AND WFT.WorkFlowId = @WorkFlowId;
+
+				SELECT @WorkFlowNumber = [WorkOrderNumber] FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
+				
+				SET @TaskSequenceNumber = CASE WHEN ISNULL(@TaskSequenceNumber, 0) > ISNULL(@MaxSequence, 0) THEN @TaskSequenceNumber ELSE ISNULL(@MaxSequence, 0) + 1 END;
+
+				SELECT @Descrepancy = [Descrepancy], @Resolution = [Resolution], @TaskDescription = [Description] FROM [dbo].[Task] WITH(NOLOCK) WHERE [TaskId] = @TaskId AND [MasterCompanyId] = @MasterCompanyId;
+
+				INSERT INTO [dbo].[WorkFlowTask]
+				(	[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId],
+					[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
+				)
+				VALUES
+				(	@WorkflowId, @WorkFlowNumber, @TaskId, @TaskDescription, @TaskSequenceNumber, @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
+					@CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+				);
 			END
 		END
 		ELSE IF (@IsAddChildNode = 1)

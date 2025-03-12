@@ -3472,6 +3472,49 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetPurchaseOrderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WOQ_Output.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTeardownReasonDetails.sql" />
+    <Build Include="dbo\Tables\WorkFlowTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkFlowMappingDetails.sql" />
+    <Build Include="dbo\User Defined Types\WorkFlowTaskType.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateStocklineFromItemMasterRecord.sql" />
+    <Build Include="dbo\Stored Procedures\MigratePurchaseAndSalesFromItemMasterRecord.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderTaskSequence.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderTaskDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetTemplateTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsDownload.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewBillPaymentListForCreateBillPayment.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetBillPaymentDetailsForUpdateBillPayment.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetBillPaymentById.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_UpdateModuleCountDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetBillingPerformaInvoicingDetails.sql" />
+    <Build Include="dbo\Tables\InvoicePaymentMapping.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateWorkOrderStage.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderShipping.sql" />
+    <Build Include="dbo\Tables\WorkOrderTaskInstructionHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_InsertWorkOrderTaskInstructionHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTaskInstructionHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteHistory.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteFreightHistory.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\CreateSalesOrderQuoteChargesDetails.sql" />
+    <Build Include="dbo\User Defined Types\SalesOrderQuoteChargesType.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkflowtransferData.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetRosterReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetTrainingReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetCertificationReport.sql" />
+    <Build Include="dbo\Stored Procedures\GetCreditTermListForIntegrationView.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateWorkFlowRecord.sql" />
+    <Build Include="dbo\Tables\VendorAuditTypeAudit.sql" />
+    <Build Include="dbo\Tables\VendorAuditType.sql" />
+    <Build Include="dbo\Views\vw_VendorAuditTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_VendorAuditType.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOPartNumberDetailsForWOForm.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveDefaultTemplateTaskInstruction.sql" />
+    <Build Include="dbo\Functions\ConvertUtcToLocalTime.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -3483,5 +3526,6 @@
     <None Include="Snapshots\PAS_SPRINT_51.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_52.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_53.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_53_Minor.dacpac" />
   </ItemGroup>
 </Project>

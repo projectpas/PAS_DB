@@ -13,8 +13,9 @@
  ** PR   Date			 Author			   Change Description              
  ** --   --------		 -------			--------------------------------            
     1    12-FEB-2025	 RAJESH GAMI		Created  
+    2    24-FEB-2025	 RAJESH GAMI		Fixed the Total Amount Issue
 
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6561,'',0  
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6580,'',0  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
@@ -158,7 +159,7 @@ BEGIN
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
-			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN 0 ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuoteIds FROM AfterTax FinalQuote;
+			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN ISNULL(MaterialFlatBillingAmount,0) ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuoteIds FROM AfterTax FinalQuote;
 			INSERT INTO #tblTempQuoteMain(ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 						MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
 						OverHeadCostRevenuePercentage, FreightRevenue, OtherCost, DirectCost, Margin, 
@@ -250,9 +251,9 @@ BEGIN
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, 
 				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
-	
+
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
-			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN 0 ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuotetblMulti FROM AfterTax FinalQuote;
+			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN ISNULL(MaterialFlatBillingAmount,0) ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuotetblMulti FROM AfterTax FinalQuote;
 			
 			INSERT INTO #tblTempQuoteMain(ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 						MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -285,6 +286,7 @@ BEGIN
 		WHILE @currentRow <= @totalCount
 		BEGIN
 			SET @PartId =  (SELECT  ID FROM #tblTempQuoteMain WHERE RowNumber = @currentRow) 
+			print @PartId
 			EXEC [dbo].[USP_GetCustomerTax_Information_Repair_WOQ_Output] 
 		     @WorkOrderQuoteId,
 			 @WOId,
@@ -295,7 +297,7 @@ BEGIN
 			 @WOQGrandTotal = @WOQGrandTotal OUTPUT,
 			 @FinalSalesTaxes = @FinalSalesTaxes OUTPUT,
 			 @FinalOtherTaxes = @FinalOtherTaxes OUTPUT
-			UPDATE  #tblTempQuoteMain SET SalesTaxAmount = @FinalSalesTaxes,OtherTaxAmount = @FinalOtherTaxes WHERE RowNumber = @currentRow
+			UPDATE  #tblTempQuoteMain SET SalesTaxAmount = @FinalSalesTaxes,OtherTaxAmount = @FinalOtherTaxes, FinalTotal = ISNULL(@FinalSalesTaxes,0) + ISNULL(@FinalOtherTaxes,0) + ISNULL(SubtotalForTax,0)  WHERE RowNumber = @currentRow
 			SET @currentRow = @currentRow + 1;
 		END
 

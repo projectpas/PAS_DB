@@ -17,6 +17,7 @@
 	2    04/21/2021   Added Try-catch blocks , Transation & Rollback
 	3    04/28/2021   Added Content Managment for DB Logs
 	4    08/02/2021   Added Is Verion Increase flag
+	5    11/03/2025   Sahdev Saliya  Added New Field TemplateDescription
 
  EXECUTE [GetWorkFlowList] 1, 10, null, -1, 1, '', '','','','','','','','','','','','',0,5
 **************************************************************/ 
@@ -43,7 +44,9 @@ CREATE   PROCEDURE [dbo].[GetWorkFlowList]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
-	@MasterCompanyId int
+	@MasterCompanyId int,
+	@TemplateDescription varchar(500)=null
+
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -89,7 +92,8 @@ BEGIN
 					ws.Description,
 					wf.WorkScopeId,
 					c.Name,
-					im.PartNumber,					
+					im.PartNumber,	
+				    UPPER(wf.WorkflowDescription) 'templateDescription',
 					im.PartDescription,
 					wf.WorkOrderNumber,
 					wf.WorkflowExpirationDate AS WorkflowExpirationDate,
@@ -133,6 +137,7 @@ BEGIN
 					(@GlobalFilter='' AND (IsNull(@WorkOrderNumber,'') ='' OR WorkOrderNumber like '%' + @WorkOrderNumber+'%') and 
 					(IsNull(@Version,'') ='' OR Version like '%' + @Version+'%') and
 					(IsNull(@PartNumber,'') ='' OR partnumber like '%' + @PartNumber+'%') and
+					(IsNull(@TemplateDescription,'') ='' OR TemplateDescription like '%' + @TemplateDescription+'%') and
 					(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
 					(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') and
 					(IsNull(@Description,'') ='' OR Description like '%' + @Description+'%') and
@@ -162,6 +167,7 @@ BEGIN
             CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END ASC,
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBER')  THEN WorkOrderNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
@@ -175,7 +181,9 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKFLOWEXPIRATIONDATE')  THEN WorkflowExpirationDate END DESC,
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END DESC
+
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

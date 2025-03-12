@@ -16,6 +16,7 @@
     1    12/23/2022   Unknown			Created
 	2    03/06/2024   Moin Bloch		Modified Added PostedDate
 	3    24/10/2024   Devendra Shekh	Modified (added if/else for details and receipt view)
+	4   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[SearchCustomerPayments]
     @PageNumber INT,
@@ -49,7 +50,8 @@ CREATE   PROCEDURE [dbo].[SearchCustomerPayments]
     @ReceiptAmtRemaining VARCHAR(50) = NULL,
     @CreditMemoAmount VARCHAR(50) = NULL,
     @PaymentType VARCHAR(100) = NULL,
-	@CheckDate DATETIME = NULL
+	@CheckDate DATETIME = NULL,
+	@IsUpdated BIT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -263,7 +265,7 @@ BEGIN
 			INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 			INNER JOIN [dbo].[InvoiceCheckPayment] ICP WITH(NOLOCK) ON ICP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
 			INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = CPD.CustomerId
-			WHERE ISNULL(CPD.IsMultiplePaymentMethod, 0) = 1 AND ISNULL(CPD.IsDeleted, 0) = 0
+			WHERE ISNULL(CPD.IsMultiplePaymentMethod, 0) = 1 AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 
 			GROUP BY CPD.ReceiptId, CPD.CustomerId, CU.Name, CU.CustomerCode, ICP.CheckDate, ICP.CheckNumber, CPD.CustomerPaymentDetailsId
 
 			INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
@@ -272,7 +274,7 @@ BEGIN
 			INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 			INNER JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH(NOLOCK) ON IWP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
 			INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = CPD.CustomerId
-			WHERE ISNULL(CPD.IsWireTransfer, 0) = 1 AND ISNULL(CPD.IsMultiplePaymentMethod, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0
+			WHERE ISNULL(CPD.IsWireTransfer, 0) = 1 AND ISNULL(CPD.IsMultiplePaymentMethod, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 
 			GROUP BY CPD.ReceiptId, CPD.CustomerId, CU.Name, CU.CustomerCode, IWP.WireDate, IWP.ReferenceNo, CPD.CustomerPaymentDetailsId
 
 			INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
@@ -281,7 +283,7 @@ BEGIN
 			INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 			INNER JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH(NOLOCK) ON IWP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
 			INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = CPD.CustomerId
-			WHERE ISNULL(CPD.IsMultiplePaymentMethod, 0) = 1 AND ISNULL(CPD.IsDeleted, 0) = 0
+			WHERE ISNULL(CPD.IsMultiplePaymentMethod, 0) = 1 AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 
 			GROUP BY CPD.ReceiptId, CPD.CustomerId, CU.Name, CU.CustomerCode, IWP.WireDate, IWP.ReferenceNo, CPD.CustomerPaymentDetailsId
 
 			INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
@@ -290,7 +292,7 @@ BEGIN
 			INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 			INNER JOIN [dbo].[InvoiceCreditDebitCardPayment] ICDP WITH(NOLOCK) ON ICDP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
 			INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = CPD.CustomerId
-			WHERE ISNULL(CPD.IsCCDCPayment, 0) = 1 AND ISNULL(CPD.IsMultiplePaymentMethod, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0
+			WHERE ISNULL(CPD.IsCCDCPayment, 0) = 1 AND ISNULL(CPD.IsMultiplePaymentMethod, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 
 			GROUP BY CPD.ReceiptId, CPD.CustomerId, CU.Name, CU.CustomerCode, ICDP.PaymentDate, ICDP.Reference, CPD.CustomerPaymentDetailsId
 
 			INSERT INTO #CustomerPaymentDetailsTmp([ReceiptId], [CustomerPaymentDetailsId], [PaymentType], [CustomerId], [CustomerName], [CustomerCode], [Amount], [AmtApplied], [AmtRemaining], [CheckDate], [Reference])
@@ -299,7 +301,7 @@ BEGIN
 			INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 			INNER JOIN [dbo].[InvoiceCreditDebitCardPayment] ICDP WITH(NOLOCK) ON ICDP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
 			INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = CPD.CustomerId
-			WHERE ISNULL(CPD.IsMultiplePaymentMethod, 0) = 1 AND ISNULL(CPD.IsDeleted, 0) = 0
+			WHERE ISNULL(CPD.IsMultiplePaymentMethod, 0) = 1 AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0
 			GROUP BY CPD.ReceiptId, CPD.CustomerId, CU.Name, CU.CustomerCode, ICDP.PaymentDate, ICDP.Reference, CPD.CustomerPaymentDetailsId
 
 			INSERT INTO #CreditMemoTmp([ReceiptId], [CreditMemoAmount], [CustomerPaymentDetailsId])
@@ -307,7 +309,7 @@ BEGIN
 			FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
 			INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 			LEFT JOIN [dbo].[InvoicePayments] IVP WITH(NOLOCK) ON IVP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
-			WHERE IVP.InvoiceType IN (3, 4, 5, 7) AND ISNULL(CPD.IsDeleted, 0) = 0
+			WHERE IVP.InvoiceType IN (3, 4, 5, 7) AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0
 			GROUP BY CP.ReceiptId, CPD.CustomerPaymentDetailsId
 
 			;WITH Result AS (
@@ -366,6 +368,7 @@ BEGIN
 					FROM [dbo].[InvoiceCreditDebitCardPayment] iv WITH(NOLOCK)  
 					GROUP BY ReceiptId  
 				) icd ON CP.ReceiptId = icd.ReceiptId  
+				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0))
 			),
 			FinalResult AS (
 				SELECT C.Code AS 'Currency', R.* 

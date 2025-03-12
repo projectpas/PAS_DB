@@ -20,6 +20,7 @@
 	3    13/06/2024   Shrey Chandegara  Remove OUTER APPLY
 	4    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
 	5    13/02/2025   Sahdev Saliya    Added new field PublishedByName
+	6    12/03/2025   Sahdev Saliya    Added a case to get timeZone
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -65,6 +66,25 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @ManufactureTypeId int;
 		DECLARE @VendorTypeId int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		SET @VendorTypeId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Vendor')
 		SET @ManufactureTypeId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Manufacturer')
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
@@ -111,8 +131,8 @@ BEGIN
 						loc.[Name] AS [Location],
 						e.FirstName+' '+e.LastName AS VerifiedBy,
 						pu.VerifiedDate AS VerifiedDate,
-						pu.CreatedDate,
-					    pu.UpdatedDate,
+					    case when CAST(pu.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(pu.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
+						case when CAST(pu.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(pu.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
 					    pu.CreatedBy,
 					    pu.UpdatedBy,
 						pu.IsActive,

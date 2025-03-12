@@ -11,10 +11,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    26/02/2025   Moin Bloch    Created
+	2    12/03/2025   Moin Bloch    Fixed Multiple MPN Issue
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
---    EXEC [dbo].[GetWorkOrderById] 8353,0,0,194481,5
+--    EXEC [dbo].[GetWorkOrderById] 8347,0,0,0,4
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderById]
@@ -877,7 +878,27 @@ BEGIN
 						   @TechnicianId = [TechnicianId]
 					  FROM #TempWorkOrderPartNumberDetails WHERE [PKID] = @MinIds;
 
-					EXEC [dbo].[USP_CheckAllowReopenWorkOrder] @WorkOrderId = @WorkOrderId,@WorkOrderPartNoId = @ID,@IsAllowReopenWO = @IsAllowReopenWO OUTPUT;
+					DECLARE @IsPartClosed BIT = NULL;
+					DECLARE @IsPaymentReceived BIT = NULL;
+					
+					SELECT @IsPartClosed = ISNULL([IsClosed], 0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @ID 
+
+					SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.[RemainingAmount]),0) - ISNULL(SUM(WOBI.[GrandTotal]), 0)) = 0 THEN 0 ELSE 1 END 
+					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
+					JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+					WHERE WOBI.WorkOrderId = @WorkOrderId 
+					AND WOBII.[WorkOrderPartId] = @ID 
+					AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBI.[IsVersionIncrease], 0) = 0 AND WOBI.[IsDeleted] = 0 
+					AND ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0
+
+					IF(@IsPaymentReceived = 1)
+					BEGIN
+						SET @IsAllowReopenWO = 0;				
+					END
+					ELSE
+					BEGIN
+						SET @IsAllowReopenWO = 1;
+					END
 
 					SELECT @WorkFlowWorkOrderId = (SELECT TOP 1 [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @ID)
 					
@@ -1111,7 +1132,6 @@ BEGIN
 						@Days [Days],
 						@NetDays [NetDays],
 						@ForeignExchangeRate [ForeignExchangeRate]
-
 
 				SELECT * FROM #TempWOPartShippingDetails
 

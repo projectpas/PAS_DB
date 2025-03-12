@@ -77,7 +77,7 @@ BEGIN
 		(
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 			[FieldName] VARCHAR(100) NULL, 
-			[FieldValue] VARCHAR(100) NULL, 
+			[FieldValue] VARCHAR(max) NULL, 
 			[RecordStatus] [varchar](max) NULL
 		);
 

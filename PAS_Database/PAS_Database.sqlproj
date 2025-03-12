@@ -3513,6 +3513,7 @@
     <Build Include="dbo\Views\vw_VendorAuditTypeAudit.sql" />
     <Build Include="dbo\Views\vw_VendorAuditType.sql" />
     <Build Include="dbo\Stored Procedures\GetWOPartNumberDetailsForWOForm.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveDefaultTemplateTaskInstruction.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -43,6 +43,7 @@
 	27   03-01-2025   RAJESH GAMI     Modified to resolved to not getting paymentmethod for the vendor Proforma.
 	28   03-01-2025   RAJESH GAMI     Modified to resolved to merge multiple line payment to single line (Partial Paid with same Vendor Proforma Invoice)
 	29   28-01-2025   ABHISHEK JIRAWLA Modified to resolved to merge multiple line payment method for (Partial Paid)
+	30   11-03-2025   ABHISHEK JIRAWLA IsVendorOnHold check for payment hold
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE    PROCEDURE [dbo].[VendorPaymentList]  
@@ -183,7 +184,7 @@ BEGIN
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
 			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
-			   CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
+			   CASE WHEN RRC.IsInvoiceOnHold = 1 OR VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRC.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',			   			  
 			   --DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',   
@@ -254,7 +255,7 @@ BEGIN
 			   ISNULL(RRH.InvoiceTotal,0) AS 'DifferenceAmount', 
 			   VN.VendorName,
 			   --ISNULL(RRH.IsInvoiceOnHold,0) AS 'PaymentHold',
-			   CASE WHEN RRH.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
+			   CASE WHEN RRH.IsInvoiceOnHold = 1 OR VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.InvoiceDate AS 'InvociedDate',
 			   RRH.InvoiceDate AS 'EntryDate',
 			   --DATEADD(DAY, ctm.NetDays,RRH.InvoiceDate) AS 'DueDate',  
@@ -317,7 +318,7 @@ BEGIN
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
 			  -- 0 AS 'PaymentHold',
-			  'NO' AS 'PaymentHold',
+			  CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   CM.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -388,7 +389,7 @@ BEGIN
 				0 AS 'DifferenceAmount',  
 				NPH.VendorName,
 				--0 AS 'PaymentHold',
-				'NO' AS 'PaymentHold',
+				CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 				NPH.InvoiceDate AS 'InvociedDate',
 				NPH.UpdatedDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate', 
@@ -460,7 +461,7 @@ BEGIN
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
-			   'NO' AS 'PaymentHold',
+				CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   NPH.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			  --DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
@@ -527,7 +528,7 @@ BEGIN
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
-			   'NO' AS 'PaymentHold',
+				CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   CCPD.ProcessedDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -587,7 +588,7 @@ BEGIN
 				0 AS CreditMemoUsed,
 				0 AS 'DifferenceAmount',  
 				NPH.VendorName,
-				'NO' AS 'PaymentHold',
+				CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 				NPH.InvoiceDate AS 'InvociedDate',
 				NPH.UpdatedDate AS 'EntryDate',
 				CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -639,7 +640,7 @@ BEGIN
 			   ISNULL(Tab.CreditMemoAmount,0) AS CreditMemoUsed,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   'NO' AS 'PaymentHold',
+				CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   NPH.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1

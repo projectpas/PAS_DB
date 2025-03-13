@@ -39,6 +39,7 @@
 	22   27/12/2024   RAJESH GAMI       Added Vendor Proforma Invoice
 	23   31/12/2024   AMIT GHEDIYA      Update for  DiscountDate.
 	24   01/JAN/2025  RAJESH GAMI       Remove Discount Percentage from the proforma invoice
+	25   11-03-2025   ABHISHEK JIRAWLA  IsVendorOnHold check for payment hold
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -134,6 +135,7 @@ BEGIN
 		[CustomerCreditPaymentDetailId] BIGINT NULL,
 		[CreatedDate] DATETIME2 NULL,
 		[VendorProformaInvoiceId] BIGINT NULL,
+		[IsVendorOnHold] BIT NULL,
 		) 
 
 	INSERT #tmpVendorCreditMemoMapping ([VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId])
@@ -189,7 +191,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate]) --as (
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate], [IsVendorOnHold]) --as (
 
     SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
@@ -251,7 +253,8 @@ BEGIN
 					VendorReadyToPayDetailsTypeId = 1,
 					NonPOInvoiceId = 0,
 					[CustomerCreditPaymentDetailId] = 0,
-					VPD.CreatedDate
+					VPD.CreatedDate,
+					V.IsVendorOnHold
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 			     INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.VendorId = V.VendorId  
@@ -284,7 +287,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate], [IsVendorOnHold])
 	    SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -342,7 +345,8 @@ BEGIN
 					VendorReadyToPayDetailsTypeId = 2,
 					ISNULL(VPD.NonPOInvoiceId,0) AS NonPOInvoiceId,
 					[CustomerCreditPaymentDetailId] = 0,
-					VPD.CreatedDate
+					VPD.CreatedDate,
+					V.IsVendorOnHold
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON VPD.CreditMemoHeaderId = CM.CreditMemoHeaderId	
 				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = CM.ManagementStructureId
@@ -374,7 +378,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate], [IsVendorOnHold])
 		SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -430,7 +434,8 @@ BEGIN
 					VendorReadyToPayDetailsTypeId = 3,
 					NPH.NonPOInvoiceId,
 					[CustomerCreditPaymentDetailId] = 0,
-					VPD.CreatedDate
+					VPD.CreatedDate,
+					V.IsVendorOnHold
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId	
 				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = NPH.ManagementStructureId
@@ -465,7 +470,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate], [IsVendorOnHold])
 		SELECT	DISTINCT CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.VendorPaymentDetailsId END AS VendorPaymentDetailsId,
 				CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.ReadyToPayId END AS ReadyToPayId,  
 				DATEADD(Day, ISNULL(ctm.NetDays,0), CCPD.ProcessedDate) AS [DueDate],  
@@ -519,7 +524,8 @@ BEGIN
 				VendorReadyToPayDetailsTypeId = 4,
 				NonPOInvoiceId = 0,
 				CCPD.[CustomerCreditPaymentDetailId],
-				VPD.CreatedDate
+				VPD.CreatedDate,
+				V.IsVendorOnHold
 			FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)  
 					LEFT JOIN [dbo].[VendorReadyToPayDetails] VRPD WITH(NOLOCK) ON CCPD.[CustomerCreditPaymentDetailId] = VRPD.[CustomerCreditPaymentDetailId]  
 					INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = CCPD.ReceiptId	
@@ -541,7 +547,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, VendorProformaInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
+					,SelectedforPayment, IsEnable, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, VendorProformaInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate], [IsVendorOnHold])
 			SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -598,7 +604,8 @@ BEGIN
 					VendorReadyToPayDetailsTypeId = 5,
 					NPH.VendorProformaInvoiceId,
 					[CustomerCreditPaymentDetailId] = 0,
-					VPD.CreatedDate
+					VPD.CreatedDate,
+					V.IsVendorOnHold
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 				 INNER JOIN [dbo].VendorProformaInvoiceHeader NPH WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = NPH.VendorProformaInvoiceId	
 				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = NPH.ManagementStructureId
@@ -649,49 +656,51 @@ BEGIN
 
 				--)
 
-		SELECT 		[ID] ,      
-		[VendorPaymentDetailsId] ,
-		[ReadyToPayId] ,
-		CASE WHEN ISNULL(DueDate, '') = '' THEN GETUTCDATE() ELSE DueDate END AS [DueDate] ,
-		[VendorId] ,
-		[VendorName] ,
-		[PaymentMethodId] ,
-		[PaymentMethodName] ,
-		[ReceivingReconciliationId] ,
-		[InvoiceNum] ,
-		[CurrencyId] ,
-		[CurrencyName] ,
-		[FXRate] ,
-		[OriginalAmount] ,
-		[PaymentMade] ,
-		[AmountDue] ,
-		[PaidAmount] ,
-		[NetDays] ,
-		[Percentage] ,
-		[DaysPastDue] ,
-		[DiscountDate] ,
-		[DiscountAvailable] ,
-		[DiscountToken] ,
-		[StatusId] ,
-		[Status] ,
-		[MasterCompanyId] ,
-		[ReadyToPaymentMade] ,
-		[DefaultPaymentMethod] ,
-		[IsCheckPayment] ,
-		[IsDomesticWirePayment] ,
-		[IsInternationlWirePayment] ,
-		[IsACHTransferPayment] ,
-		[IsCreditCardPayment] ,
-		[IsCreditMemo] ,
-		[SelectedforPayment] ,
-		[IsEnable] ,
-		[IsCustomerCreditMemo] ,
-		[CreditMemoHeaderId] ,
-		[VendorReadyToPayDetailsTypeId] ,
-		[NonPOInvoiceId] ,
-		[CustomerCreditPaymentDetailId] ,
-		[CreatedDate] ,
-		[VendorProformaInvoiceId] FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
+		SELECT [ID] ,      
+			[VendorPaymentDetailsId] ,
+			[ReadyToPayId] ,
+			CASE WHEN ISNULL(DueDate, '') = '' THEN GETUTCDATE() ELSE DueDate END AS [DueDate] ,
+			[VendorId] ,
+			[VendorName] ,
+			[PaymentMethodId] ,
+			[PaymentMethodName] ,
+			[ReceivingReconciliationId] ,
+			[InvoiceNum] ,
+			[CurrencyId] ,
+			[CurrencyName] ,
+			[FXRate] ,
+			[OriginalAmount] ,
+			[PaymentMade] ,
+			[AmountDue] ,
+			[PaidAmount] ,
+			[NetDays] ,
+			[Percentage] ,
+			[DaysPastDue] ,
+			[DiscountDate] ,
+			[DiscountAvailable] ,
+			[DiscountToken] ,
+			[StatusId] ,
+			[Status] ,
+			[MasterCompanyId] ,
+			[ReadyToPaymentMade] ,
+			[DefaultPaymentMethod] ,
+			[IsCheckPayment] ,
+			[IsDomesticWirePayment] ,
+			[IsInternationlWirePayment] ,
+			[IsACHTransferPayment] ,
+			[IsCreditCardPayment] ,
+			[IsCreditMemo] ,
+			[SelectedforPayment] ,
+			[IsEnable] ,
+			[IsCustomerCreditMemo] ,
+			[CreditMemoHeaderId] ,
+			[VendorReadyToPayDetailsTypeId] ,
+			[NonPOInvoiceId] ,
+			[CustomerCreditPaymentDetailId] ,
+			[CreatedDate] ,
+			[VendorProformaInvoiceId], 
+			[IsVendorOnHold] 
+		FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
 
   END TRY      
   BEGIN CATCH        

@@ -40,7 +40,7 @@ BEGIN
   IF(UPPER(@ModuleName) = @RepairModule)
   BEGIN
 		SET @LotId = (SELECT LotId FROM dbo.RepairOrder WITH(NOLOCK) where RepairOrderId = @ReferenceId);
-		SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from LotTransInOutDetails WHERE LotId = @LotId for XML PATH(''));
+		SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from DBO.LotTransInOutDetails WITH(NOLOCK) WHERE LotId = @LotId for XML PATH(''));
 	 IF(@IsActive = 1)  
 	   BEGIN    
 		 SELECT DISTINCT TOP 50   
@@ -170,12 +170,12 @@ BEGIN
   ELSE IF(UPPER(@ModuleName) = @SalesModule)
   BEGIN
 		SET @LotId = (SELECT LotId FROM dbo.SalesOrder WITH(NOLOCK) where SalesOrderId = @ReferenceId);
-		SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from LotTransInOutDetails WHERE LotId = @LotId for XML PATH(''));
+		SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from DBO.LotTransInOutDetails WITH(NOLOCK) WHERE LotId = @LotId for XML PATH(''));
   END
   ELSE IF(UPPER(@ModuleName) = @SalesQuoteModule)
   BEGIN
 		SET @LotId = (SELECT LotId FROM dbo.SalesOrderQuote WITH(NOLOCK) where SalesOrderQuoteId = @ReferenceId);
-		SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from LotTransInOutDetails WHERE LotId = @LotId for XML PATH(''));
+		SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from DBO.LotTransInOutDetails WITH(NOLOCK) WHERE LotId = @LotId for XML PATH(''));
   END
   IF(UPPER(@ModuleName) = @SalesModule OR UPPER(@ModuleName) = @SalesQuoteModule)
   BEGIN

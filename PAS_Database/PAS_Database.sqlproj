@@ -3516,6 +3516,10 @@
     <Build Include="dbo\Stored Procedures\USP_SaveDefaultTemplateTaskInstruction.sql" />
     <Build Include="dbo\Functions\ConvertUtcToLocalTime.sql" />
     <Build Include="dbo\Stored Procedures\UpdateSalesOrderQuotePartsStatus.sql" />
+    <Build Include="dbo\Tables\VendorStatusAudit.sql" />
+    <Build Include="dbo\Tables\VendorStatus.sql" />
+    <Build Include="dbo\Views\vw_VendorStatusAudit.sql" />
+    <Build Include="dbo\Views\vw_VendorStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

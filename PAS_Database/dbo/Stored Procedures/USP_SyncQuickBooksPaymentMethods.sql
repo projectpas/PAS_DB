@@ -58,7 +58,7 @@ BEGIN
 
 			SELECT @QBId = [Id], @QBSyncToken = [SyncToken], @QBLastUpdatedTime = [LastUpdatedTime], @QBName = [Name], @QBActive = [Active] FROM #TempQuickBooksPaymentMethodType WHERE [TempId] = @CurrentRecordId;
 
-			IF EXISTS(SELECT [QuickBooksReferenceId] FROM [dbo].[PaymentMethod] WHERE ISNULL([QuickBooksReferenceId], '') = @QBId)
+			IF EXISTS(SELECT [QuickBooksReferenceId] FROM [dbo].[PaymentMethod] WITH(NOLOCK) WHERE ISNULL([QuickBooksReferenceId], '') = @QBId)
 			BEGIN
 				
 				UPDATE PM

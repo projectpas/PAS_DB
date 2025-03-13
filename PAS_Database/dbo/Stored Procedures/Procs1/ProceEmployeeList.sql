@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     2    23/07/2024   Bhargav Saliya     Get UserName
 	3    11/03/2025   Sahdev Saliya      Added a case to get timeZone
+	4    12/03/2025   Sahdev Saliya      Change the Date format to Datetime
      
 ************************************************************************/
 CREATE PROCEDURE [dbo].[ProceEmployeeList]
@@ -110,8 +111,8 @@ BEGIN
 				    (ISNULL(t.StartDate,'')) 'StartDate',					
 					t.IsActive,
                     t.IsDeleted,
-					case when CAST(t.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(t.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
-					case when CAST(t.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+					case when CAST(t.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(t.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
+					case when CAST(t.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
 					t.CreatedBy,
                     t.UpdatedBy,					
 				    le.[Name] AS Company,

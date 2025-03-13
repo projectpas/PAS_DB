@@ -16,7 +16,7 @@
     1    05/03/2022		Vishal Suthar		Added Legal Entity  
     2    30/08/2022		subhash saliya		Changes ledger id  
 	3    01/07/2024		Moin Bloch			Fix Legalentity Filter Issue
-	4   04-March-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+	4    04-Mar-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
        
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_AccountingCalendarList]  
@@ -41,28 +41,27 @@ CREATE    PROCEDURE [dbo].[USP_AccountingCalendarList]
   
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
   SET NOCOUNT ON;  
-  DECLARE @EmpLegalEntiyId BIGINT = 0;				
+  				
   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-			SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-			SELECT 
-					@CurrntEmpTimeZoneDesc = COALESCE(
-						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
-						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-					)
-				FROM 
-					dbo.Employee E WITH (NOLOCK) 
-				LEFT JOIN 
-					dbo.TimeZone ETZ WITH (NOLOCK) 
-					ON E.TimeZoneId = ETZ.TimeZoneId
-				LEFT JOIN 
-					dbo.LegalEntity LE WITH (NOLOCK) 
-					ON E.LegalEntityId = LE.LegalEntityId
-				LEFT JOIN 
-					dbo.TimeZone LTZ WITH (NOLOCK) 
-					ON LE.TimeZoneId = LTZ.TimeZoneId
-				WHERE 
-					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
   DECLARE @RecordFrom int;  
   Declare @IsActive bit = 1  

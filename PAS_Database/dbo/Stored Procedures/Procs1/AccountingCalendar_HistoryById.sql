@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
-    2    05-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+    2    05-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 		
 	exec dbo.AccountingCalendar_HistoryById @AccReferenceId=314,@TableName=N'Inventory',@PeriodName=N'MAR - 2025',@EmployeeId=226
 **************************************************************/
@@ -31,10 +31,8 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
-			DECLARE @EmpLegalEntiyId BIGINT = 0;				
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-			SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 			SELECT 
 					@CurrntEmpTimeZoneDesc = COALESCE(
 						ETZ.[Description],  -- Prefer Employee's TimeZone description if available

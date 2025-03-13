@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
-    2    03-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+    2    03-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 		
 	exec dbo.ProcLegalEntityList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@Name=NULL,@CompanyName=NULL,
 								 @CompanyCode=NULL,@Address1=NULL,@Address2=NULL,@MasterCompany=NULL,@City=NULL,@StateOrProvince=NULL,@PostalCode=NULL,@Country=NULL,
@@ -47,28 +47,27 @@ BEGIN
 	    SET NOCOUNT ON;
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
-		DECLARE @EmpLegalEntiyId BIGINT = 0;				
+						
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-				SELECT 
-						@CurrntEmpTimeZoneDesc = COALESCE(
-							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
-							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-						)
-					FROM 
-						dbo.Employee E WITH (NOLOCK) 
-					LEFT JOIN 
-						dbo.TimeZone ETZ WITH (NOLOCK) 
-						ON E.TimeZoneId = ETZ.TimeZoneId
-					LEFT JOIN 
-						dbo.LegalEntity LE WITH (NOLOCK) 
-						ON E.LegalEntityId = LE.LegalEntityId
-					LEFT JOIN 
-						dbo.TimeZone LTZ WITH (NOLOCK) 
-						ON LE.TimeZoneId = LTZ.TimeZoneId
-					WHERE 
-						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+			SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;

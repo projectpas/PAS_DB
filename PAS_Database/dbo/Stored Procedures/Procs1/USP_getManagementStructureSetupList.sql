@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
-    2    03-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+    2    03-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 		
 	exec dbo.USP_getManagementStructureSetupList @PageSize=10,@PageNumber=1,@SortColumn=N'EntityStructureId',@SortOrder=1,@GlobalFilter=N'',@Level1Name=NULL,@Level2Name=NULL,
 												 @Level3Name=NULL,@Level4Name=NULL,@Level5Name=NULL,@Level6Name=NULL,@Level7Name=NULL,@Level8Name=NULL,@Level9Name=NULL,@Level10Name=NULL,
@@ -52,10 +52,9 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				DECLARE @EmpLegalEntiyId BIGINT = 0;				
+								
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 				SELECT 
 						@CurrntEmpTimeZoneDesc = COALESCE(
 							ETZ.[Description],  -- Prefer Employee's TimeZone description if available

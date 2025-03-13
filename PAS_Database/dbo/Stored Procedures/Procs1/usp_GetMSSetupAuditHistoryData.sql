@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
-    2    03-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+    2    03-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 		
 	exec dbo.usp_GetMSSetupAuditHistoryData @EntityStructureId=41,@EmployeeId=226
 
@@ -28,10 +28,9 @@ BEGIN
 
 			BEGIN TRANSACTION
 				BEGIN
-				DECLARE @EmpLegalEntiyId BIGINT = 0;				
+								
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 				SELECT 
 						@CurrntEmpTimeZoneDesc = COALESCE(
 							ETZ.[Description],  -- Prefer Employee's TimeZone description if available

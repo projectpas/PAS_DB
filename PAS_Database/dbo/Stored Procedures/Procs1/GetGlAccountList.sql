@@ -14,8 +14,9 @@
  3	 10/10/2023		Nainshi Joshi		Add DebitAmount and CreditAmount  
  4   19/10/2023     Nainshi Joshi		Add PostedDate
  5   03/11/2023     Devendra Shekh		glaccount in-active issue resolved
- 5   02/09/2024     Hemant Saliya		Added Sub Ladger
- 6   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+ 6   02/09/2024     Hemant Saliya		Added Sub Ladger
+ 7   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+ 8   13-Mar-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -40,19 +41,18 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @CreatedBy varchar(50)=null,    
  @UpdatedBy varchar(50)=null,    
  @MasterCompanyId int = null,
- @IsUpdated BIT = NULL
+ @IsUpdated BIT = NULL,
+ @EmployeeId bigint = Null
 )  
 AS    
 BEGIN  
 	 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	 SET NOCOUNT ON;    
 		 BEGIN TRY  
-		 BEGIN  
-		 DECLARE @EmpLegalEntiyId BIGINT = 0;				
+		 BEGIN
 		 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-			SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-			SELECT 
+				SELECT 
 					@CurrntEmpTimeZoneDesc = COALESCE(
 						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
@@ -121,8 +121,8 @@ BEGIN
 				   ), 1, 1, '')      
 			   FROM dbo.GLAccount GL WITH(NOLOCK)  
 				   LEFT JOIN dbo.GLAccountClass GAL WITH(NOLOCK) ON GL.GLAccountTypeId = GAL.GLAccountClassId  
-				   LEFT JOIN dbo.LeafNode LG ON GL.GLAccountNodeId = LG.LeafNodeId  
-				   LEFT JOIN dbo.SubLedger SL ON SL.SubLedgerId = GL.SubLedgerId  
+				   LEFT JOIN dbo.LeafNode LG WITH(NOLOCK) ON GL.GLAccountNodeId = LG.LeafNodeId  
+				   LEFT JOIN dbo.SubLedger SL WITH(NOLOCK) ON SL.SubLedgerId = GL.SubLedgerId  
 				   OUTER APPLY (SELECT CB.GlAccountId,COUNT(*) 'GLCount',SUM(cb.DebitAmount) AS DebitAmount,  
 					SUM(cb.CreditAmount) AS CreditAmount,SUM(CASE WHEN PostedDate IS NULL THEN 1 ELSE 0 END) AS PostedDate 
 					FROM dbo.CommonBatchDetails cb WITH(NOLOCK) 

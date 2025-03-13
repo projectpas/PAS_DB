@@ -18,7 +18,7 @@
 	2    09/25/2023			Hemant Saliya		Added Version Numver in List
 	3    09/26/2023			Bhargav Saliya		Add One Field [BatchHeaderId]
 	4    06/28/2024			Sahdev Saliya		Added Global Filters and Sorting (Revenue, Expenses, NetEarning, NetRevenue)
-	5    06-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+	5    06-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 
 EXEC USP_GetYearEndCloseList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@Year=0,@VersionNumber=NULL,@LegalEntity=NULL,@Memo=NULL,@ExecuteDate=NULL,@YearEndDate=NULL,
 @CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=226    
@@ -54,10 +54,8 @@ BEGIN
  BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN   
-    DECLARE @EmpLegalEntiyId BIGINT = 0;				
-	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 	SELECT 
 			@CurrntEmpTimeZoneDesc = COALESCE(
 				ETZ.[Description],  -- Prefer Employee's TimeZone description if available

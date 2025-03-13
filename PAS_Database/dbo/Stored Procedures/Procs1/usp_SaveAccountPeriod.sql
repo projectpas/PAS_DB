@@ -15,7 +15,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------     
 	1    03/24/2023		Vishal Suthar		Created
-	2    05-March-2025	Divyesh Kathiriya	Update GETDATE() to GETUTCDATE()
+	2    05-Mar-2025	Divyesh Kathiriya	Update GETDATE() to GETUTCDATE()
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[usp_SaveAccountPeriod]

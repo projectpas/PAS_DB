@@ -14,7 +14,7 @@
 	3   30/11/2023		Devendra Shekh		order by AccountCode issue resolved
 	4   12/12/2023		Moin Bloch		    order by AccountCode issue resolved
 	5   01Mar2023		Rajesh Gami			GLMapping Sequence related change
-	6   05-March-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+	6   05-Mar-2025     Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 
     USP_GetLeafNodeList 1,1,226
 **************************************************************/ 
@@ -27,11 +27,10 @@ AS
 BEGIN
 	BEGIN TRY 
 	BEGIN
-		DECLARE @EmpLegalEntiyId BIGINT = 0;				
+						
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-		SELECT 
+			SELECT 
 				@CurrntEmpTimeZoneDesc = COALESCE(
 					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
@@ -98,7 +97,7 @@ BEGIN
 			FROM dbo.LeafNode L WITH(NOLOCK)
 			LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH(NOLOCK) ON L.LeafNodeId = GLM.LeafNodeId AND GLM.IsDeleted = 0
 			LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON GLM.GLAccountId = GL.GLAccountId
-			LEFT JOIN dbo.LeafNode LP ON L.ParentId = LP.LeafNodeId
+			LEFT JOIN dbo.LeafNode LP WITH(NOLOCK) ON L.ParentId = LP.LeafNodeId
 			WHERE L.MasterCompanyId = @masterCompanyId AND L.IsDeleted = 0 AND
 			L.ReportingStructureId = @ReportingStructureId AND L.IsActive = 1 
 			--AND (l.LeafNodeId = 156)

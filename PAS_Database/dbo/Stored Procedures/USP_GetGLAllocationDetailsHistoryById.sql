@@ -6,7 +6,7 @@
  ** Date:   03-07-2024    
           
  ** PARAMETERS:           
- 
+ @POId varchar(60)   
          
  ** RETURN VALUE:           
   
@@ -18,7 +18,7 @@
     1    03-07-2024			SAHDEV SALIYA		Created
 	2    26-07-2024			SAHDEV SALIYA		Set DistributionSetupAuditId Order by desc
 	3    17-09-2024			AMIT GHEDIYA		added AutoPost..
-	4   04-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
+	4    04-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
 
 	exec [USP_GetGLAllocationDetailsHistoryById] 16,1,226
 
@@ -36,10 +36,9 @@ BEGIN
   BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-			DECLARE @EmpLegalEntiyId BIGINT = 0;				
+							
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-			SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 			SELECT 
 					@CurrntEmpTimeZoneDesc = COALESCE(
 						ETZ.[Description],  -- Prefer Employee's TimeZone description if available

@@ -1,6 +1,4 @@
-﻿-----------------------------------------------------------------------------------------------------  
-  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_GetTravelerSetupList]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA     
@@ -15,18 +13,20 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    12/22/2022   Subhash Saliya  Created  
-	2    01/09/2025   Moin Bloch      Changed [WorkScope] Discription to [WorkScopeCode]
+ ** PR   Date         Author				Change Description              
+ ** --   --------     -------				--------------------------------            
+    1    12/22/2022   Subhash Saliya		Created  
+	2    01/09/2025   Moin Bloch			Changed [WorkScope] Discription to [WorkScopeCode]
+	3    10-Feb-2025  Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone 
        
--- EXEC [USP_GetTravelerSetupList] 44  
+-- EXEC [USP_GetTravelerSetupList] 1,InActive,false,226  
 **************************************************************/  
   
 CREATE    PROCEDURE [dbo].[USP_GetTravelerSetupList]  
  @MasterCompanyId bigint ,  
  @Status varchar(100) , 
- @isdeleted bit
+ @isdeleted bit,
+ @EmployeeId BIGINT
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -36,7 +36,30 @@ BEGIN
   BEGIN TRANSACTION  
    BEGIN    
     Declare @IsActive bit=1  
-  
+    DECLARE @EmpLegalEntiyId BIGINT = 0;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee 
+
+
     IF @Status='InActive'  
        BEGIN   
         SET @IsActive=0  
@@ -59,8 +82,12 @@ BEGIN
               ,TS.[MasterCompanyId]  
               ,TS.[CreatedBy]  
               ,TS.[UpdatedBy]  
-              ,TS.[CreatedDate]  
-              ,TS.[UpdatedDate]  
+              ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(TS.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(TS.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			   ELSE (CAST(TS.CreatedDate AS DATETIME)) END CreatedDate
+			  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(TS.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(TS.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			   ELSE (CAST(TS.UpdatedDate AS DATETIME)) END UpdatedDate
               ,TS.[IsActive]  
               ,TS.[IsDeleted]  
               ,TS.[IsVersionIncrease]  

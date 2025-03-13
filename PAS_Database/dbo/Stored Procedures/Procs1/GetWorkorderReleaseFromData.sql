@@ -1,4 +1,4 @@
-﻿ /*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -187,7 +187,7 @@ BEGIN
 					  wop.Quantity AS Quantity,  
 					  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 								ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
+					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 					  '' as Certifies,   
 					  0 AS approved ,  
 					  0 AS Nonapproved,  
@@ -204,7 +204,7 @@ BEGIN
 					  wop.ManagementStructureId AS ManagementStructureId, 
 					  @IsMultiple AS IsMultiple,				 
 					  --UPPER(wosc.conditionName) AS ConditionName,
-					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
@@ -275,7 +275,7 @@ BEGIN
 				  wop.Quantity AS Quantity,  
 				  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 							ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
+				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 				  '' as Certifies,   
 				  0 AS approved ,  
 				  0 AS Nonapproved,  
@@ -292,7 +292,7 @@ BEGIN
 				  wop.ManagementStructureId AS ManagementStructureId, 	
 				  @IsMultiple AS IsMultiple,				
 				  --UPPER(wosc.conditionName) AS ConditionName,
-				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
@@ -363,7 +363,7 @@ BEGIN
 					  wop.Quantity AS Quantity,  
 					  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
 								ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS [status],
+					  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS [status],
 					  '' as Certifies,   
 					  0 AS approved ,  
 					  0 AS Nonapproved,  
@@ -379,7 +379,7 @@ BEGIN
 					  wop.ReceivedDate,  
 					  wop.ManagementStructureId AS ManagementStructureId, 
 					  @IsMultiple AS IsMultiple,				 					  
-					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Description]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+					  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	

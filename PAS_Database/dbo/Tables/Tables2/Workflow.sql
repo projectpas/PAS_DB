@@ -51,9 +51,10 @@
     FOREIGN KEY ([ChangedPartNumberId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK__Workflow__WorkSc__6BDB799E] FOREIGN KEY ([WorkScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId]),
-    CONSTRAINT [FK_Workflow_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkFlow_WFParentId] FOREIGN KEY ([WFParentId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

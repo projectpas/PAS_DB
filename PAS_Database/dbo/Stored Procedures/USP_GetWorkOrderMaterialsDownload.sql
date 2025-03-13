@@ -10,6 +10,7 @@
  ** PR   Date			Author					Change Description            
  ** --   --------		-------				--------------------------------          
 	1	05/03/2025		Moin Bloch			    Created
+	2	11/03/2025		Moin Bloch			    Fixed Issue For Duplicate Records
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsDownload] 4257,3782, 0
  exec dbo.USP_GetWorkOrderMaterialsDownload 8354,7964,1,1
@@ -435,7 +436,6 @@ SET NOCOUNT ON
 							ISNULL(WOM.[IsDeferred], 0) [IsDeferred],
 							WOM.[Memo],
 							WOM.[ExpectedSerialNumber],
-							MSTL.StockLineId,
 							'No' [IsKitItem]
 						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 							INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
@@ -532,7 +532,6 @@ SET NOCOUNT ON
 						ISNULL(WOM.[IsDeferred], 0),
 						WOM.[Memo],
 						''  [ExpectedSerialNumber],
-						MSTL.StockLineId,
 						'Yes' [IsKitItem]
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
@@ -546,7 +545,7 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.ProvisionId = WOM.ProvisionId
 						 LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
 						 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId						
-					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId --AND MSTL.StockLineId IS NULL		
+					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId		
 				)
 				SELECT* FROM MaterialResult 
 				END
@@ -837,7 +836,6 @@ SET NOCOUNT ON
 			    SELECT* FROM MaterialResult 
 				END			
 			END
-
 		END
 	END TRY
 	BEGIN CATCH   

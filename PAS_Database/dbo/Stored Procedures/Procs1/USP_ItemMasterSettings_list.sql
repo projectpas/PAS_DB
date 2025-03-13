@@ -26,10 +26,8 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
-				DECLARE @EmpLegalEntiyId BIGINT = 0;
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
-				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 				SELECT 
 						@CurrntEmpTimeZoneDesc = COALESCE(
 							ETZ.[Description],  -- Prefer Employee's TimeZone description if available

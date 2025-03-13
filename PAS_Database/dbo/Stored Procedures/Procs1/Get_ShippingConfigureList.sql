@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
-    2    14-Feb-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+    2    14-Feb-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
 		
 	exec dbo.Get_ShippingConfigureList  @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@Shipvia=NULL,
 										@ShippingAccountNumber=NULL,@ApiKey=NULL,@SecretKey=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,
@@ -45,11 +45,9 @@ BEGIN
   BEGIN TRY   
     DECLARE @RecordFrom int;    
     DECLARE @IsActive bit=1    
-    DECLARE @Count Int; 
-	DECLARE @EmpLegalEntiyId BIGINT = 0;
+    DECLARE @Count Int;	
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
-		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
 		SELECT 
 				@CurrntEmpTimeZoneDesc = COALESCE(
 					ETZ.[Description],  -- Prefer Employee's TimeZone description if available

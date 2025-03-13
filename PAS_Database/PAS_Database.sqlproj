@@ -3520,6 +3520,8 @@
     <Build Include="dbo\Tables\VendorStatus.sql" />
     <Build Include="dbo\Views\vw_VendorStatusAudit.sql" />
     <Build Include="dbo\Views\vw_VendorStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SyncQuickBooksPaymentMethods.sql" />
+    <Build Include="dbo\User Defined Types\QuickBooksPaymentMethodType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

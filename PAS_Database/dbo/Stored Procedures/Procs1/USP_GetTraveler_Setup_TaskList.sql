@@ -1,6 +1,4 @@
-﻿-----------------------------------------------------------------------------------------------------
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetTravelerSetupList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA   
@@ -15,16 +13,18 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
     1    01/03/2023   Subhash Saliya		Created
-     
--- EXEC [USP_GetTravelerSetupList] 44
+    2    10-Feb-2025  Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone 
+
+-- EXEC [USP_GetTraveler_Setup_TaskList] 44,0,226
 **************************************************************/
 
 CREATE       PROCEDURE [dbo].[USP_GetTraveler_Setup_TaskList]
  @Traveler_SetupId bigint,
- @IsDeleted bit=0
+ @IsDeleted bit=0,
+ @EmployeeId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -32,23 +32,51 @@ BEGIN
 
 		BEGIN TRY
 		BEGIN TRANSACTION
-			BEGIN  
-				SELECT [Traveler_Setup_TaskId]
-                      ,[Traveler_SetupId]
-                      ,[TaskId]
-                      ,[TaskName]
-                      ,[Notes]
-                      ,[Sequence]
-                      ,[MasterCompanyId]
-                      ,[CreatedBy]
-                      ,[UpdatedBy]
-                      ,[CreatedDate]
-                      ,[UpdatedDate]
-                      ,[IsActive]
-                      ,[IsDeleted]
-					  ,TeardownTypeId
-					  ,TeardownTypeName
-                  FROM [dbo].[Traveler_Setup_Task]  where IsDeleted=@IsDeleted and Traveler_SetupId=@Traveler_SetupId 
+			BEGIN 
+				DECLARE @EmpLegalEntiyId BIGINT = 0;
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
+					SELECT [Traveler_Setup_TaskId]
+						  ,[Traveler_SetupId]
+						  ,[TaskId]
+						  ,[TaskName]
+						  ,[Notes]
+						  ,[Sequence]
+						  ,[MasterCompanyId]
+						  ,[CreatedBy]
+						  ,[UpdatedBy]						  
+						  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						   ELSE (CAST(CreatedDate AS DATETIME)) END CreatedDate
+						  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						   ELSE (CAST(UpdatedDate AS DATETIME)) END UpdatedDate
+						  ,[IsActive]
+						  ,[IsDeleted]
+						  ,TeardownTypeId
+						  ,TeardownTypeName
+					  FROM [dbo].[Traveler_Setup_Task]  where IsDeleted=@IsDeleted and Traveler_SetupId=@Traveler_SetupId 
                 
 			END
 		COMMIT  TRANSACTION

@@ -24,7 +24,7 @@
 	8    12/05/2024   Vishal Suthar		Removing temp table before using it which was giving exception
 	9    12/09/2024   Moin Bloch		Updated for fixing an issue with converting part Qty
 	10   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
-	
+	11   28/02/2025   Ayushi Patel		Cast OpenDate As a Date
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -164,7 +164,7 @@ BEGIN
 	[VersionNumber],[TotalFreight],[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[EnforceEffectiveDate],[IsEnforceApproval],
 	[Level1],[Level2],[Level3],[Level4],[ATAPDFPath],[LotId],[IsLotAssigned],[AllowInvoiceBeforeShipping],[PercentId],[Days],[NetDays],[COCManufacturingPDFPath],
 	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
-	SELECT 1, SOQ.QuoteTypeId, GETUTCDATE(), NULL, 0, SOQ.[AccountTypeId], SOQ.[CustomerId], SOQ.[CustomerContactId],
+	SELECT 1, SOQ.QuoteTypeId, cast(GETUTCDATE() as date), NULL, 0, SOQ.[AccountTypeId], SOQ.[CustomerId], SOQ.[CustomerContactId],
 	CASE WHEN @CustomerReference IS NULL THEN SOQ.CustomerReference ELSE @CustomerReference END, SOQ.[CurrencyId], 0, 0 , 0, 0, SOQ.SalesPersonId, SOQ.[AgentId], SOQ.[CustomerSeviceRepId],
 	SOQ.[EmployeeId], NULL, NULL, CASE WHEN @TransferMemos = 1 THEN SOQ.Memo ELSE '' END, @FulfillingStatusId, GETUTCDATE(), CASE WHEN @TransferNotes = 1 THEN SOQ.Notes ELSE '' END, SOQ.[RestrictPMA], SOQ.[RestrictDER], SOQ.[ManagementStructureId],
 	NULL, SOQ.[CreatedBy], GETUTCDATE(), SOQ.[UpdatedBy], GETUTCDATE(), SOQ.[MasterCompanyId], 0, @SalesOrderQuoteId, 0, 0,

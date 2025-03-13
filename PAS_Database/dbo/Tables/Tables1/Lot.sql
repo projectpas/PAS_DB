@@ -30,3 +30,7 @@
     CONSTRAINT [FK_Lot_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId])
 );
 
+
+
+
+

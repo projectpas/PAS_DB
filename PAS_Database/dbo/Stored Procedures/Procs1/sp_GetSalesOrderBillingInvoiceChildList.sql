@@ -50,13 +50,15 @@
 	33	 30/01/2025	  Vishal Suthar		Fixed issue with the qty shipped after billing is completed
 	34	 03/02/2025	  Vishal Suthar		Fixed issue with the qty shipped after billing and shipping is completed
 	35	 27/02/2025	  Vishal Suthar		Fixed issue with billing when multiple pick ticket created for same stockline AND one when Proforma is created and standard invoice is pending
+	36	 13/03/2025	  Vishal Suthar		Fixed issue with duplicate records when no invoice is created and only proforma was created
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
 @SalesOrderPartId bigint,  
-@ConditionId bigint  
+@ConditionId bigint,
+@EmployeeId bigint
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -68,7 +70,26 @@ BEGIN
 		DECLARE @FreightBilingMethodId INT = 3
 		DECLARE @ChargesBilingMethodId INT = 3	
 		SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @SalesOrderId;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
+			SELECT
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM
+					dbo.Employee E WITH (NOLOCK)
+				LEFT JOIN
+					dbo.TimeZone ETZ WITH (NOLOCK)
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN
+					dbo.LegalEntity LE WITH (NOLOCK)
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN
+					dbo.TimeZone LTZ WITH (NOLOCK)
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 		--Create Temp Table 
 		IF OBJECT_ID(N'tempdb..#SalesOrderBillingInvoiceChildList') IS NOT NULL
 		BEGIN
@@ -127,20 +148,22 @@ BEGIN
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 		BEGIN 
 			PRINT '1.0'
-			INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
+			;WITH CTE (IndexColumn,
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
-			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
-		(
-			SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
+			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight) AS
+			(
+			SELECT DISTINCT 
+			--ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
+			0 AS IndexColumn,
 			sosi.SalesOrderShippingId,   
 			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
 			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId
 			AND ISNULL(sobii_1.IsProforma, 0) = 0) > 0 THEN sobii.SOBillingInvoicingId  
 			ELSE NULL END AS SOBillingInvoicingId,
 
-			(SELECT TOP 1 a.InvoiceDate FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
+			(SELECT TOP 1 case when CAST(a.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(a.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK)
 				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 				Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId 
 				AND stk.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId
@@ -258,6 +281,17 @@ BEGIN
 			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
 			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.SOBillingInvoicingId, sobii.SOBillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling],
 			sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder)
+
+			INSERT INTO #SalesOrderBillingInvoiceChildList (IndexColumn,
+			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
+			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
+			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
+			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+			SELECT IndexColumn,
+			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
+			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
+			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
+			ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight FROM CTE;
 		END
 		ELSE
 		BEGIN
@@ -285,7 +319,8 @@ BEGIN
 					INNER JOIN DBO.SalesOrderPartV1 SOPA WITH (NOLOCK) on SOPA.SalesOrderId = SOS.SalesOrderId AND SOPA.SalesOrderPartId = SOSI.SalesOrderPartId
 					WHERE SOS.SalesOrderId = @SalesOrderId AND SOPA.ItemMasterId = @SalesOrderPartId AND SOPA.ConditionId = @ConditionId) end) AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
-					sobi.InvoiceDate,
+					--sobi.InvoiceDate,
+					case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 
@@ -409,7 +444,8 @@ BEGIN
 					SELECT DISTINCT ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 						0 AS SalesOrderShippingId,   
 						sobi.SOBillingInvoicingId,
-						sobi.InvoiceDate,
+						--sobi.InvoiceDate,
+						case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 						sobi.InvoiceNo AS InvoiceNo,
 						sobi.InvoiceTypeId,
 						'' AS SOShippingNum,
@@ -506,7 +542,8 @@ BEGIN
 						AS SalesOrderShippingId,
 						sobi.SOBillingInvoicingId,
 						sobii.SOBillingInvoicingItemId,
-						sobi.InvoiceDate,
+						--sobi.InvoiceDate,
+						case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 						sobi.InvoiceNo AS InvoiceNo,
 						sobi.InvoiceTypeId,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 
@@ -706,7 +743,8 @@ BEGIN
 					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
 					sobii.SOBillingInvoicingItemId,
-					sobi.InvoiceDate,
+					--sobi.InvoiceDate,
+					case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					'' AS SOShippingNum,
@@ -874,11 +912,14 @@ BEGIN
 				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
 				ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges)
 			(
-				SELECT DISTINCT 
-					ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+					
+					SELECT DISTINCT 
+					--ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId) AS IndexColumn,
+					0 AS IndexColumn,
 					0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
-					sobi.InvoiceDate,
+					--sobi.InvoiceDate,
+					case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					'' AS SOShippingNum, 
@@ -950,7 +991,7 @@ BEGIN
 					)
 
 				SELECT DISTINCT
-					   IndexColumn,
+					   ROW_NUMBER() OVER (ORDER BY SalesOrderPartId) IndexColumn,
 					   SalesOrderShippingId,
 					   SOBillingInvoicingId ,
 					   InvoiceDate , 

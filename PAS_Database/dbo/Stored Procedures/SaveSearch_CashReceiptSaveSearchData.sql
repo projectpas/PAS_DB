@@ -9,6 +9,7 @@
 ** --   --------		-------					--------------------------------
 ** 1	20/11/2024		SHREY CHANDEGARA			Created
 ** 2    28/01/2025      SHREY CHANDEGARA        UPDATED due to duplicated record.
+** 3    25/02/2025      SHREY CHANDEGARA        UPDATED due to PaymentMethod and PaymentReference(like if it is a checkpayment method then chek number).
 **************************************************************/
 CREATE   PROCEDURE [dbo].[SaveSearch_CashReceiptSaveSearchData]
 	@PageNumber INT,
@@ -74,6 +75,9 @@ AS
 			DECLARE @CHEK BIT ;
 			DECLARE @WIRE BIT ;
 			DECLARE @CREDIT BIT ;
+			DECLARE @CheckPayment INT;
+			DECLARE @WirePayment INT;
+			DECLARE @CreditPayment INT;
 			DECLARE @FROMSOID BIGINT;
 			DECLARE @TOSOID BIGINT;
 			DECLARE @FROMWOID BIGINT;
@@ -99,6 +103,9 @@ AS
 			SET @CHEK = CASE WHEN @PaymentMethodId = '1' THEN 1 ELSE 0 END;
 			SET @WIRE = CASE WHEN @PaymentMethodId = '2' THEN 1 ELSE 0 END;
 			SET @CREDIT = CASE WHEN @PaymentMethodId = '3' THEN 1 ELSE 0 END;
+			SET @CheckPayment = 1; 
+			SET @WirePayment = 2;
+			SET @CreditPayment = 3;
 
 			DECLARE @CashModuleID BIGINT = (SELECT ManagementStructureModuleid FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName = 'CustomerPayment'); 
 
@@ -227,33 +234,39 @@ AS
 						SUM(ISNULL(IPS.OtherAdjustAmt,0)),
 						AC.FiscalName +'-'+ CAST(AC.FiscalYear AS VARCHAR),
 						IPS.CurrencyCode,
-						(SELECT 
-						COALESCE(
-							CASE WHEN ICP.CheckPaymentId IS NOT NULL THEN 'CHECK' END, ''
-						) + 
-						COALESCE(
-							CASE WHEN IWP.WireTransferId IS NOT NULL THEN CASE WHEN ICP.CheckPaymentId IS NULL THEN ' WIRETRANSFER' ELSE ', WIRETRANSFER' END END, ''
-						) + 
-						COALESCE(
-							CASE WHEN IDP.CreditDebitPaymentId IS NOT NULL THEN CASE WHEN ICP.CheckPaymentId IS NULL AND IWP.WireTransferId IS NULL THEN  'CREDIT/DEBIT CARD' ELSE ', CREDIT/DEBIT CARD' END END, ''
-						) AS PaymentMethod),
-						(SELECT 
-						COALESCE(
-							CASE WHEN ICP.CheckPaymentId IS NOT NULL THEN ICP.CheckNumber END, ''
-						) + 
-						COALESCE(
-							CASE WHEN IWP.WireTransferId IS NOT NULL THEN 
-							(CASE WHEN IWP.ReferenceNo != '' AND IWP.ReferenceNo IS NOT NULL THEN 
-							(CASE WHEN ICP.CheckNumber != '' AND ICP.CheckNumber IS NOT NULL THEN ',' + IWP.ReferenceNo ELSE IWP.ReferenceNo END) ELSE '' END) END, ''
-						) + 
-						COALESCE(
-							CASE WHEN IDP.CreditDebitPaymentId IS NOT NULL THEN
-							(CASE WHEN IDP.Reference != '' AND IWP.ReferenceNo IS NOT NULL THEN 
-							(CASE WHEN ICP.CheckNumber != '' AND ICP.CheckNumber IS NOT NULL AND IWP.ReferenceNo != '' AND IWP.ReferenceNo IS NOT NULL THEN  ',' + IDP.Reference ELSE IDP.Reference END) ELSE '' END)    END, ''
-						) AS PaymentRef),
+						CASE WHEN IPM.PaymentMethodId = @CheckPayment THEN 'CHECK'
+							 WHEN IPM.PaymentMethodId = @WirePayment THEN 'WIRETRANSFER'
+							 WHEN IPM.PaymentMethodId = @CreditPayment THEN 'CREDIT/DEBIT CARD'
+							 ELSE '' END AS PaymentMethod,
+							 IPM.PaymentRef,
+
+						--(SELECT 
+						--COALESCE(
+						--	CASE WHEN ICP.CheckPaymentId IS NOT NULL THEN 'CHECK' END, ''
+						--) + 
+						--COALESCE(
+						--	CASE WHEN IWP.WireTransferId IS NOT NULL THEN CASE WHEN ICP.CheckPaymentId IS NULL THEN ' WIRETRANSFER' ELSE ', WIRETRANSFER' END END, ''
+						--) + 
+						--COALESCE(
+						--	CASE WHEN IDP.CreditDebitPaymentId IS NOT NULL THEN CASE WHEN ICP.CheckPaymentId IS NULL AND IWP.WireTransferId IS NULL THEN  'CREDIT/DEBIT CARD' ELSE ', CREDIT/DEBIT CARD' END END, ''
+						--) AS PaymentMethod),
+						--(SELECT 
+						--COALESCE(
+						--	CASE WHEN ICP.CheckPaymentId IS NOT NULL THEN ICP.CheckNumber END, ''
+						--) + 
+						--COALESCE(
+						--	CASE WHEN IWP.WireTransferId IS NOT NULL THEN 
+						--	(CASE WHEN IWP.ReferenceNo != '' AND IWP.ReferenceNo IS NOT NULL THEN 
+						--	(CASE WHEN ICP.CheckNumber != '' AND ICP.CheckNumber IS NOT NULL THEN ',' + IWP.ReferenceNo ELSE IWP.ReferenceNo END) ELSE '' END) END, ''
+						--) + 
+						--COALESCE(
+						--	CASE WHEN IDP.CreditDebitPaymentId IS NOT NULL THEN
+						--	(CASE WHEN IDP.Reference != '' AND IWP.ReferenceNo IS NOT NULL THEN 
+						--	(CASE WHEN ICP.CheckNumber != '' AND ICP.CheckNumber IS NOT NULL AND IWP.ReferenceNo != '' AND IWP.ReferenceNo IS NOT NULL THEN  ',' + IDP.Reference ELSE IDP.Reference END) ELSE '' END)    END, ''
+						--) AS PaymentRef),
 						CP.DepositDate,
 						IT.Description,
-						ISNULL(CP.PostedDate,''),
+						CP.PostedDate,
 						LB.BankAccountNumber,
 						CP.CntrlNum,
 						CP.MasterCompanyId,
@@ -276,9 +289,10 @@ AS
 					FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
 						INNER JOIN [dbo].[InvoicePayments] IPS WITH(NOLOCK) ON IPS.ReceiptId = CP.ReceiptId AND IPS.IsDeleted = 0 AND IPS.IsActive = 1
 						INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CP.ReceiptId = CPD.ReceiptId AND CPD.IsDeleted = 0 AND CPD.IsActive = 1 AND CPD.CustomerId = IPS.CustomerId
-						LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH(NOLOCK) ON ICP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId AND ICP.ReceiptId = CPD.ReceiptId AND CPD.CustomerId = ICP.CustomerId and IPS.PageIndex = ICP.PageIndex 
-						LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH(NOLOCK) ON IWP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId  AND IWP.ReceiptId = CPD.ReceiptId AND CPD.CustomerId = IWP.CustomerId and IPS.PageIndex = IWP.PageIndex
-						LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] IDP WITH(NOLOCK) ON IDP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId AND IDP.ReceiptId = CPD.ReceiptId AND CPD.CustomerId = IDP.CustomerId and IPS.PageIndex = IDP.PageIndex
+						INNER JOIN [dbo].[InvoicePaymentMapping] IPM WITH(NOLOCK) ON IPS.ReceiptId = IPM.ReceiptId  AND IPS.PaymentId = IPM.PaymentId
+						--LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH(NOLOCK) ON ICP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId AND ICP.ReceiptId = CPD.ReceiptId AND CPD.CustomerId = ICP.CustomerId and IPS.PageIndex = ICP.PageIndex 
+						--LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH(NOLOCK) ON IWP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId  AND IWP.ReceiptId = CPD.ReceiptId AND CPD.CustomerId = IWP.CustomerId and IPS.PageIndex = IWP.PageIndex
+						--LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] IDP WITH(NOLOCK) ON IDP.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId AND IDP.ReceiptId = CPD.ReceiptId AND CPD.CustomerId = IDP.CustomerId and IPS.PageIndex = IDP.PageIndex
 						INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON IPS.CustomerId = C.CustomerId
 						INNER JOIN [dbo].[LegalEntityBankingLockBox] LB WITH(NOLOCK) ON LB.LegalEntityBankingLockBoxId = CP.BankAcctNum
 						INNER JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON AC.AccountingCalendarId = CP.AcctingPeriod AND AC.IsActive = 1 AND AC.IsDeleted = 0
@@ -294,9 +308,9 @@ AS
 							AND CP.MasterCompanyId = @MasterCompanyId  AND ISNULL(CP.IsActive,0)  = 1 AND  ISNULL(CP.IsDeleted,0) = 0 
 							AND ( (ISNULL(@FROMSOID,'') = '' AND ISNULL(@TOSOID,'') = '') OR SOBI.SOBillingInvoicingId BETWEEN @FROMSOID AND @TOSOID )
 							AND ( (ISNULL(@FROMWOID,'') = '' AND ISNULL(@TOWOID,'') = '') OR WOBI.BillingInvoicingId BETWEEN @FROMWOID AND @TOWOID )
-							AND (ISNULL(@CHEK ,'') = '' OR ISNULL(CPD.IsCheckPayment,0) = @CHEK) 
-							AND (ISNULL(@WIRE ,'') = '' OR ISNULL(CPD.IsWireTransfer,0) = @WIRE) 
-							AND (ISNULL(@CREDIT ,'') = '' OR ISNULL(CPD.IsCCDCPayment,0) = @CREDIT)
+							AND (ISNULL(@CHEK ,'') = '' OR ISNULL(IPM.PaymentMethodId,0) = @CheckPayment) 
+							AND (ISNULL(@WIRE ,'') = '' OR ISNULL(IPM.PaymentMethodId,0) = @WirePayment) 
+							AND (ISNULL(@CREDIT ,'') = '' OR ISNULL(IPM.PaymentMethodId,0) = @CreditPayment)
 							AND (ISNULL(@FromCustomerId , 0) = 0 OR IPS.CustomerId = @FromCustomerId) 
 							AND (ISNULL(@FromBankAccount , '') = '' OR LB.BankAccountNumber = @FromBankAccount) 
 							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
@@ -323,8 +337,9 @@ AS
 						CP.ReceiptId,C.Name,IPS.DocNum,IPS.InvoiceDate,IPS.WOSONum,CP.AcctingPeriod,IPS.CurrencyCode,IPS.CustomerId,CPD.IsCheckPayment,CPD.IsWireTransfer,
 						CPD.IsCCDCPayment,CPD.PaymentRef,IPS.CreatedDate,CP.MasterCompanyId,IT.Description,CP.CntrlNum,LB.BankAccountNumber,CP.PostedDate,AC.FiscalName,
 						CAST(AC.FiscalYear AS VARCHAR),CP.DepositDate,MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,
-						MSD.Level8Name,MSD.Level9Name,MSD.Level10Name,CPD.IsMultiplePaymentMethod,
-						ICP.CheckNumber,ICP.CheckPaymentId,IWP.WireTransferId,IWP.ReferenceNo,IDP.CreditDebitPaymentId,IDP.Reference
+						MSD.Level8Name,MSD.Level9Name,MSD.Level10Name,CPD.IsMultiplePaymentMethod,IPM.PaymentMethodId,IPM.PaymentRef
+
+						--ICP.CheckNumber,ICP.CheckPaymentId,IWP.WireTransferId,IWP.ReferenceNo,IDP.CreditDebitPaymentId,IDP.Reference
 
 					SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 					SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END

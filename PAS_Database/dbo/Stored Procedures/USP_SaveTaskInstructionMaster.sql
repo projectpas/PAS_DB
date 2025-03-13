@@ -10,12 +10,10 @@
  ** --   --------			-------				--------------------------------            
     1    26-Dec-2024		Devendra Shekh			Created
     2    04-Mar-2025		RAJESH GAMI			 Implement the logic for insert ParentId based on the taskId
-exec dbo.USP_SaveTaskInstructionMaster 
-@TaskInstructionId=0,@Title=N'fsefse',@Description=N'fefse',@TaskId=272,@SequenceNumber=1,@ParentId=default,@IsParent=default,
-@MasterCompanyId=1,@CreatedBy=N'DEVENDRASILVER MICKSILVER',@UpdatedBy=N'DEVENDRASILVER MICKSILVER',
-@CreatedDate='2024-12-26 17:48:38.943',@UpdatedDate='2024-12-26 17:48:38.943',@IsActive=1,@IsDeleted=0
+	3    07-Mar-2025		RAJESH GAMI			 Resovle duplicate child entry issue
+	4    11-Mar-2025		RAJESH GAMI			 IsDefaultInstruction implemented
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_SaveTaskInstructionMaster]
+CREATE   PROCEDURE [dbo].[USP_SaveTaskInstructionMaster]
     @TaskInstructionId BIGINT = NULL,
     @Title VARCHAR(8000) = NULL,
     @Description VARCHAR(MAX) = NULL,
@@ -30,7 +28,9 @@ CREATE PROCEDURE [dbo].[USP_SaveTaskInstructionMaster]
     @UpdatedDate DATETIME2,
     @IsActive BIT,
     @IsDeleted BIT,
-    @IsAddChildNode BIT = NULL
+    @IsAddChildNode BIT = NULL,
+	@IsDefaultInstruction BIT = NULL,
+	@IsParentInstruction BIT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -51,29 +51,44 @@ BEGIN
             FROM DBO.TaskInstructionMaster TIM WITH (NOLOCK)
             WHERE TIM.MasterCompanyId = @MasterCompanyId AND ParentId = @ParentIntructionId; 
 
+			IF(@IsDefaultInstruction = 1)
+			BEGIN
+				   UPDATE [dbo].[TaskInstructionMaster]
+					SET 
+						[IsDefaultInstruction] = 0
+					WHERE [MasterCompanyId] = @MasterCompanyId 
+					AND TaskId = @TaskId;
+			END
+
             IF((SELECT COUNT(1) FROM DBO.TaskInstructionMaster WHERE MasterCompanyId = @MasterCompanyId AND TaskId = @TaskId AND ISNULL(ParentId,0) = 0) > 0)
             BEGIN
-                SET @ParentTaskInsId = (SELECT TOP 1 TaskInstructionId FROM DBO.TaskInstructionMaster WHERE MasterCompanyId = @MasterCompanyId AND TaskId = @TaskId AND ISNULL(ParentId,0) = 0);
+                SET @ParentTaskInsId = (SELECT TOP 1 TaskInstructionId FROM DBO.TaskInstructionMaster WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND TaskId = @TaskId AND ISNULL(ParentId,0) = 0);
                 SET @IsParentTask = 0;
             END
 
             -- Insert the parent instruction
             INSERT INTO DBO.TaskInstructionMaster ([Title], [Description], [TaskId], [SequenceNumber], [ParentId], [IsParent], 
-            [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+            [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[IsDefaultInstruction],[IsParentInstruction])
             VALUES (@Title, @Description, ISNULL(@TaskId, 0), @MaxSequence +1, @ParentTaskInsId, @IsParentTask, 
-            @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+            @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@IsDefaultInstruction,1);
 			SET @InsertedTaskInstructionId = SCOPE_IDENTITY();
-            IF @ParentId IS NULL AND @MaxSequence = 0
-            BEGIN
-                UPDATE DBO.TaskInstructionMaster
-                SET SequenceNumber = 0
-                WHERE TaskInstructionId = @InsertedTaskInstructionId;
 
-                INSERT INTO DBO.TaskInstructionMaster ([Title], [Description], [TaskId], [SequenceNumber], [ParentId], [IsParent], 
-                [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-                VALUES (@Title, @Description, @TaskId, (@MaxSequence + 1), @InsertedTaskInstructionId, 0, 
-                @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
-            END
+			IF((SELECT COUNT(1) FROM dbo.TaskInstructionMaster WITH(NOLOCK) WHERE TaskInstructionId = @ParentIntructionId AND ISNULL(SequenceNumber,0) = 0) = 0)
+			BEGIN
+				IF @ParentId IS NULL AND @MaxSequence = 0
+				BEGIN
+					UPDATE DBO.TaskInstructionMaster
+					SET SequenceNumber = 0,[IsDefaultInstruction] = 0,[IsParentInstruction] = 0
+					WHERE TaskInstructionId = @InsertedTaskInstructionId;
+
+					INSERT INTO DBO.TaskInstructionMaster ([Title], [Description], [TaskId], [SequenceNumber], [ParentId], [IsParent], 
+					[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[IsDefaultInstruction],[IsParentInstruction])
+					VALUES (@Title, @Description, @TaskId, (@MaxSequence + 1), @InsertedTaskInstructionId, 0, 
+					@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,1,1);
+				END
+			END
+		
+         
         END
         ELSE IF (@IsAddChildNode = 1)
         BEGIN
@@ -94,14 +109,24 @@ BEGIN
         END
         ELSE
         BEGIN
+			IF(@IsDefaultInstruction = 1)
+			BEGIN
+				   UPDATE [dbo].[TaskInstructionMaster]
+					SET 
+						[IsDefaultInstruction] = 0
+					WHERE [MasterCompanyId] = @MasterCompanyId 
+					AND TaskId = @TaskId;
+			END
             UPDATE [dbo].[TaskInstructionMaster]
             SET 
                 [Title] = @Title,
                 [Description] = @Description,
                 [TaskId] = @TaskId,
                 [UpdatedBy] = @UpdatedBy,
-                [UpdatedDate] = GETUTCDATE()
+                [UpdatedDate] = GETUTCDATE(),
+				[IsDefaultInstruction] = @IsDefaultInstruction
             WHERE [TaskInstructionId] = @TaskInstructionId AND [MasterCompanyId] = @MasterCompanyId;
+		
         END
 
     END TRY   

@@ -14,8 +14,8 @@
  3	 10/10/2023		Nainshi Joshi		Add DebitAmount and CreditAmount  
  4   19/10/2023     Nainshi Joshi		Add PostedDate
  5   03/11/2023     Devendra Shekh		glaccount in-active issue resolved
- 6   02/09/2024     Hemant Saliya		Added Sub Ladger
- 7   04-March-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+ 5   02/09/2024     Hemant Saliya		Added Sub Ladger
+ 6   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -40,7 +40,7 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @CreatedBy varchar(50)=null,    
  @UpdatedBy varchar(50)=null,    
  @MasterCompanyId int = null,
- @EmployeeId bigint = Null
+ @IsUpdated BIT = NULL
 )  
 AS    
 BEGIN  
@@ -138,7 +138,7 @@ BEGIN
 					GROUP BY cb.GlAccountId  
 				   ) AS ManualBatch  
 			   WHERE ((GL.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR GL.IsActive = @StatusID))  
-					AND GL.MasterCompanyId = @MasterCompanyId)  
+					AND GL.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(GL.IsUpdated,0) = ISNULL(@IsUpdated,0))) 	
   
 		  SELECT * INTO #TempResult FROM Result  
 			  WHERE(  

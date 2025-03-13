@@ -74,9 +74,13 @@
     [FunctionalCurrencyId]     INT             NULL,
     [ReportCurrencyId]         INT             NULL,
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
+    [LotId]                    BIGINT          NULL,
+    [IsLotAssigned]            BIT             NULL,
     CONSTRAINT [PK_SalesOrderQuoteAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteAudit_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

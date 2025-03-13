@@ -18,7 +18,7 @@
  1  12-July-2023   Devendra  created    
  2  13-July-2023   Devendra  changed sp for filtering 
  3  25-July-2023   Shrey Chandegara Add Parameter QtyOnAction For Filtering.
-         
+ 4  13/02/2025     Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone        
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
@@ -43,7 +43,8 @@ CREATE    PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]
  @Action VARCHAR(50)=null,  
  @SubModuleName varchar(50)=null,    
  @SubRefferenceNumber varchar(50)=null,
- @QtyOnAction INT = null
+ @QtyOnAction INT = null,
+ @EmployeeId bigint
    
 AS  
 BEGIN  
@@ -51,7 +52,27 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  BEGIN TRY   
   
- DECLARE @RecordFrom INT;    
+ DECLARE @RecordFrom INT;   
+ DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
  SET @RecordFrom = (@PageNumber-1) * @PageSize;    
         
  IF @SortColumn is null    
@@ -76,7 +97,8 @@ BEGIN
  ISNULL(StlHist.QtyOnAction, 0) as 'QtyOnAction',  
  StlHist.Notes as 'TextMessage',  
  StlHist.UpdatedBy,  
- StlHist.UpdatedDate,  
+ --StlHist.UpdatedDate,
+ case when CAST(StlHist.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(StlHist.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
  StlHist.[Type] as 'Action',  
  ISNULL(SM.ModuleName, '') AS 'SubModuleName',  
  ISNULL(StlHist.SubRefferenceNumber, '') AS 'SubRefferenceNumber'  

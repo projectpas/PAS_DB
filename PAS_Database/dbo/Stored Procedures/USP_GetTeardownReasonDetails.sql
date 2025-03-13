@@ -14,14 +14,17 @@
     1   25-Feb-2025		Devendra Shekh			Created
 	2   25-Feb-2025		Hemant Saliya			Updated for Get Revised Condition
 	3   26-Feb-2025		Devendra Shekh			Updated to Get Revised PartNumber
+	4   26-Feb-2025		Devendra Shekh			Added Changes for SubWO
 	
- EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1
+ EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1, 0
+ EXECUTE [USP_GetTeardownReasonDetails] 147, '', 0, 1, 222
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetTeardownReasonDetails]
     @TeardownReasonId BIGINT = NULL,
     @PublicationIds NVARCHAR(MAX) = NULL,
 	@WOPartNoId BIGINT = NULL,
-	@MasterCompanyId INT = NULL
+	@MasterCompanyId INT = NULL,
+	@SubWOPartNoId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -37,12 +40,28 @@ BEGIN
 
 		SELECT @NeoSourceCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';
 
-		SELECT @ConditionName = CASE WHEN WOP.RevisedConditionId > 0 THEN ISNULL(C.Code, '') ELSE ISNULL(CD.Code, '') END, 		
-		@CMMIds = ISNULL(WOP.CMMIds, ''), @CurrentSerialNumber = ISNULL(CurrentSerialNumber, ''), @RevisedSerialNumber = ISNULL(RevisedSerialNumber, ''), @PartNumber = COALESCE(RevisedPartNumber,PartNumber, '')
-		FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
-		LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOP.RevisedConditionId
-		LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON CD.ConditionId = WOP.ConditionId
-		WHERE [ID] = @WOPartNoId;
+		IF(ISNULL(@SubWOPartNoId, 0) = 0)
+		BEGIN
+			SELECT @ConditionName = CASE WHEN WOP.RevisedConditionId > 0 THEN ISNULL(C.Code, '') ELSE ISNULL(CD.Code, '') END, 		
+			@CMMIds = ISNULL(WOP.CMMIds, ''), @CurrentSerialNumber = ISNULL(CurrentSerialNumber, ''), @RevisedSerialNumber = ISNULL(RevisedSerialNumber, ''), @PartNumber = COALESCE(RevisedPartNumber, PartNumber, '')
+			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
+			LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOP.RevisedConditionId
+			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON CD.ConditionId = WOP.ConditionId
+			WHERE [ID] = @WOPartNoId;
+		END
+		ELSE
+		BEGIN
+			SELECT @ConditionName = CASE WHEN SWOP.RevisedConditionId > 0 THEN ISNULL(C.Code, '') ELSE ISNULL(CD.Code, '') END, 		
+			@CMMIds = ISNULL(SWOP.CMMIds, ''), @CurrentSerialNumber = ISNULL(SL.SerialNumber, ''), @RevisedSerialNumber = COALESCE(RevisedSerialNumber, SL.SerialNumber, ''),
+			@PartNumber = CASE WHEN SWOP.RevisedItemmasterid > 0 THEN ISNULL(RIM.PartNumber, '') ELSE ISNULL(IM.PartNumber, '') END
+			FROM [dbo].[SubWorkOrderPartNumber] SWOP WITH(NOLOCK)
+			LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SWOP.RevisedConditionId
+			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON CD.ConditionId = SWOP.ConditionId
+			LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWOP.StockLineId
+			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
+			LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = SWOP.RevisedItemmasterid
+			WHERE SWOP.[SubWOPartNoId] = @SubWOPartNoId;
+		END
 
 		SELECT @RPPubTypeId = [PublicationTypeId] FROM [dbo].[PublicationType] WITH(NOLOCK) WHERE [Name] = 'RSPEC' AND [MasterCompanyId] = @MasterCompanyId;
 

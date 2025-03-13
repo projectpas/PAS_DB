@@ -14,7 +14,8 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    11-03-2025    Sahdev Saliya       Created  
+    1    11-03-2025    Sahdev Saliya       Created
+	2    13-03-2025    Sahdev Saliya       supervisor's name has been updated
 
 **************************************************************/  
 
@@ -43,7 +44,7 @@ BEGIN
 	@IsDownload BIT = NULL,
 	@ModuleID INT = 0;
 
-    SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
+	SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM [DBO].ManagementStructureModule WITH (NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
 
   BEGIN TRY 
       
@@ -111,7 +112,7 @@ BEGIN
 		            LEFT JOIN dbo.UserRole UR WITH (NOLOCK) ON EUR.RoleId = UR.Id  
 		     WHERE EUR.EmployeeId = EMP.EmployeeId) AS 'managmentrole',
 		CASE WHEN EMP.EmployeeCertifyingStaff = 1 THEN 'Yes' ELSE 'No' END AS certifyingstaff,
-        UPPER(EMP.FirstName +' '+ EMP.LastName) 'supervisorname',  
+        UPPER(EP.FirstName +' '+ EP.LastName) 'supervisorname',  
 		UPPER(EMP.Email) 'email', 
 		UPPER(EMP.MobilePhone) 'phone',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(EMP.StartDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), EMP.StartDate, 107) END 'startdate', 
@@ -131,6 +132,7 @@ BEGIN
 	  LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = EMS.EntityMSID
 	  LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId
 	  LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId
+	  LEFT JOIN  dbo.Employee EP WITH (NOLOCK) ON EP.EmployeeId = EMP.SupervisorId
 	  WHERE EMP.mastercompanyid = @mastercompanyid 
 	  AND EMP.IsActive = 1 AND EMP.IsDeleted = 0
 			AND  (ISNULL(@Level1,'') ='' OR EMS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

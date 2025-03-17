@@ -27,6 +27,8 @@
 	10   09/01/2025   Ayushi Patel      converted the date into utc (created , updated)
 	11	 10/01/2025   Ayushi Patel		Added a case to get timeZone 
 	12   15/01/2025   Bhargav Saliya    Get Requested Date as ReceivedDate
+	13   17/03/2025   Sahdev Saliya     Change the Date format to Datetime
+
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -173,8 +175,8 @@ BEGIN
 					MSD.LastMSLevel,
 					MSD.AllMSlevels,
 					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
-					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
 					RC.CustReqDate AS ReceivedDate
 				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId

@@ -26,6 +26,7 @@
     9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
 	10   14/Feb/2025  RAJESH GAMI  	    Return fields: PublicationTemplate  for PublicationType Table
 	11   19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
+	12   11/March/2025  AMIT GHEDIYA      Added case for VendorOrderType table.
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -264,6 +265,16 @@ AS BEGIN
 								 FROM dbo.TaxType TY WITH(NOLOCK)
 							  WHERE TY.MasterCompanyId=@MasterCompanyId AND TY.IsActive = 1 AND TY.IsDeleted = 0;
 						 END
+						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
+							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label
+								 FROM dbo.VendorOrderType VT WITH(NOLOCK)
+							  WHERE VT.IsActive = 1 AND VT.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorAuditType') BEGIN
+							  SELECT VAT.VendorAuditTypeId as Value, VAT.VendorAuditType as Label
+								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
+							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
+						 END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -475,6 +486,16 @@ AS BEGIN
                                   WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                   ORDER BY PublicationTypeId DESC
                          END
+						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
+							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label
+								 FROM dbo.VendorOrderType VT WITH(NOLOCK)
+							  WHERE VT.IsActive = 1 AND VT.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorAuditType') BEGIN
+							  SELECT VAT.VendorAuditTypeId as Value, VAT.VendorAuditType as Label
+								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
+							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
+						 END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
              SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  

@@ -560,7 +560,7 @@ BEGIN
 							stk.SalesOrderStocklineId,
 							cond.Description AS 'Condition',   
 							ISNULL(currb.Code, curr.Code) AS 'CurrencyCode',
-							(CASE WHEN sobii.IsVersionIncrease = 1 THEN (CASE WHEN SOBII.SalesOrderShippingId > 0 THEN 1 ELSE 0 END) ELSE 1 END) AS 'SmentNo',
+							(CASE WHEN SOBII.SalesOrderShippingId > 0 THEN 1 ELSE 0 END) AS 'SmentNo',
 							ISNULL(SOSC.NetSaleAmount, 0) AS TotalUnitCost,
 							sobii.VersionNo,
 							CASE WHEN ISNULL(sobi.IsVersionIncrease, 0) = 1 then 0 else 1 end AS IsVersionIncrease,

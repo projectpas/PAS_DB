@@ -5,17 +5,19 @@
  ** Purpose:             
  ** Date:          
               
- ** PARAMETERS: @JournalBatchHeaderId bigint    
+ ** PARAMETERS:
              
  ** RETURN VALUE:               
  **************************************************************               
  ** Change History               
  **************************************************************               
- ** PR   Date         Author   Change Description                
- ** --   --------     -------  --------------------------------              
- 1           Created    
- 2    11/10/2022  Devendra Shekh   added active/inactive filter, and isactive field to select  
- 3    27 Nov 2023 BHARGAV SALIYA   UTC Date Changes
+ ** PR   Date				Author				Change Description                
+ ** --   --------			-------				--------------------------------              
+	1    ***********		Unknown				Created  
+	2    11/10/2022			Devendra Shekh		added active/inactive filter, and isactive field to select  
+	3    27 Nov 2023		BHARGAV SALIYA		UTC Date Changes
+	4    06-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+
 ************************************************************************/    
 CREATE    PROCEDURE [dbo].[USP_GetReportingStructureList]    
 (    
@@ -65,30 +67,37 @@ BEGIN
  BEGIN  
   SET @IsActive=NULL;  
  END  
-
-
-    DECLARE @EmpLegalEntiyId BIGINT = 0;
-	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-
-	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-	WHERE LE.LegalEntityId = @EmpLegalEntiyId;
-
-	IF(@CreatedDate IS NOT NULL)
-	BEGIN
-    SET @CreatedDate = CONVERT(DATETIME,@CreatedDate AT TIME ZONE @CurrntEmpTimeZoneDesc AT TIME ZONE 'UTC');
-	END  
-
-	IF(@UpdatedDate IS NOT NULL)
-	BEGIN
-    SET @UpdatedDate = CONVERT(DATETIME,@UpdatedDate AT TIME ZONE @CurrntEmpTimeZoneDesc AT TIME ZONE 'UTC');
-	END
-
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee 
     
  ;WITH Result AS(    
  SELECT     
  ReportingStructureId,ReportName,ReportDescription,IsVersionIncrease,    
- VersionNumber,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,  
+ VersionNumber,MasterCompanyId,CreatedBy,UpdatedBy,
+ CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+	CASE WHEN CAST(CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+ ELSE (CAST(CreatedDate AS DATETIME)) END CreatedDate,
+ CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+	CASE WHEN CAST(UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+ ELSE (CAST(UpdatedDate AS DATETIME)) END UpdatedDate, 
  IsDefault,IsActive  
  FROM ReportingStructure WITH(NOLOCK)    
  WHERE MasterCompanyId = @MasterCompanyId AND (@IsActive IS NULL OR IsActive=@IsActive)  

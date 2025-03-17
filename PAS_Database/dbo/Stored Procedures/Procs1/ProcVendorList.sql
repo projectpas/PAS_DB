@@ -13,6 +13,8 @@
     2    10/18/2024		Devendra Shekh		Add fields related to quickBooks
 	3    02/06/2025     Sahdev Saliya       Added a case to get timeZone 
 	4    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	5    12/03/2025     Sahdev Saliya       Change the Date format to Datetime
+
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
@@ -108,9 +110,9 @@ BEGIN
 					(ISNULL(AD.City,'')) 'City',
                     (ISNULL(AD.StateOrProvince, '')) 'StateOrProvince',
 					(ISNULL(CON.FirstName, '') + ' ' + ISNULL(CON.LastName, '')) 'VendorPhoneContact',                   
-					case when CAST(V.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(V.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
+					case when CAST(V.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(V.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
                     V.CreatedBy,
-					case when CAST(V.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(V.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+					case when CAST(V.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(V.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
                     V.UpdatedBy,                   			                  
 				    V.IsDeleted,
 					V.IsActive,

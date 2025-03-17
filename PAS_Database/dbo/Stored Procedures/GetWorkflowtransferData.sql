@@ -35,27 +35,27 @@ BEGIN
 
         SELECT @WorkflowId = WorkflowId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workFlowWorkOrderId
 
-		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderCharges] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @workFlowWorkOrderId AND [IsFromWorkFlow] = 1)
+		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderCharges] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @excharges = 1;
 		END
-	    IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderAssets]  WITH(NOLOCK) WHERE [workFlowWorkOrderId] = @workFlowWorkOrderId AND [IsFromWorkFlow] = 1)
+	    IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderAssets]  WITH(NOLOCK) WHERE [workFlowWorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
 		BEGIN
 		    SET @exEquipments = 1;
 		END
-		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderMaterials]  WITH(NOLOCK) WHERE [WorkOrderId] = @workFlowWorkOrderId AND [IsFromWorkFlow] = 1)
+		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderMaterials]  WITH(NOLOCK) WHERE [WorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exMaterialList = 1;
 		END
-		IF EXISTS(SELECT TOP 1 wl.WorkOrderLaborId FROM [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK) JOIN [dbo].[WorkOrderLabor] wl WITH(NOLOCK) ON wlh.[WorkOrderLaborHeaderId] = wl.[WorkOrderLaborHeaderId] WHERE wlh.[WorkOrderId] = @workFlowWorkOrderId AND wl.[IsFromWorkFlow] = 1)
+		IF EXISTS(SELECT TOP 1 wl.WorkOrderLaborId FROM [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK) JOIN [dbo].[WorkOrderLabor] wl WITH(NOLOCK) ON wlh.[WorkOrderLaborHeaderId] = wl.[WorkOrderLaborHeaderId] WHERE wlh.[WorkOrderId] = @workFlowWorkOrderId AND ISNULL(wl.[IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exlaborHeader = 1;
 		END
-		IF EXISTS(SELECT TOP 1 wt.WorkOrderTaskId FROM [dbo].[WorkOrderTaskInstruction] wti WITH(NOLOCK) JOIN [dbo].[WorkOrderTask] wt WITH(NOLOCK) ON wti.[WorkOrderTaskId] = wt.[WorkOrderTaskId] WHERE wt.[WorkOrderId] = @workFlowWorkOrderId AND wti.[IsFromWorkFlow] = 1)
+		IF EXISTS(SELECT TOP 1 wt.WorkOrderTaskId FROM [dbo].[WorkOrderTaskInstruction] wti WITH(NOLOCK) JOIN [dbo].[WorkOrderTask] wt WITH(NOLOCK) ON wti.[WorkOrderTaskId] = wt.[WorkOrderTaskId] WHERE wt.[WorkOrderId] = @workFlowWorkOrderId AND ISNULL(wti.[IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exdirections = 1;
 		END
-		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderTask]  WITH(NOLOCK) WHERE [WorkOrderId] = @workFlowWorkOrderId AND [IsFromWorkFlow] = 1)
+		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderTask]  WITH(NOLOCK) WHERE [WorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exTask = 1;
 		END

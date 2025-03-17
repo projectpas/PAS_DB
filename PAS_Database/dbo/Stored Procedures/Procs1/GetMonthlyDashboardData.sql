@@ -23,7 +23,10 @@
 	8	 30 Oct 2024   HEMANT SALIYA				Verify the count 
 **********************/
 /*************************************************************
-EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
+EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '12-03-2025 00:00:00'
+EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '03-12-2025 00:00:00'
+EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '2025-03-12 00:00:00'
+EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '2025-12-03 00:00:00'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetMonthlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -131,7 +134,8 @@ BEGIN
 						INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
 						INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
 						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
-					WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND CAST(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date) = CAST(@SelectedDate AS DATE)
+					WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 
+						AND CAST(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date) = CAST(@SelectedDate AS DATE)
 						AND WOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 					GROUP BY CAST(InvoiceDate AS DATE)
 
@@ -150,7 +154,8 @@ BEGIN
 						INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
 						INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
 						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
-					WHERE CAST(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) AS DATE) = CAST(@SelectedDate AS DATE)
+					WHERE 
+						CAST(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date) = CAST(@SelectedDate AS DATE)
 						AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 					GROUP BY CAST(InvoiceDate AS DATE)
 

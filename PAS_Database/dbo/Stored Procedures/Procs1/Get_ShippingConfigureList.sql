@@ -1,5 +1,23 @@
-﻿
-CREATE    PROCEDURE [dbo].[Get_ShippingConfigureList]  
+﻿/***************************************************************  
+ ** File:   [Get_ShippingConfigureList]             
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to get Shipping Configure List
+ ** Date:  Unknown
+            
+  ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  				Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    ***********		Unknown				Created
+    2    14-Feb-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
+		
+	exec dbo.Get_ShippingConfigureList  @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@Shipvia=NULL,
+										@ShippingAccountNumber=NULL,@ApiKey=NULL,@SecretKey=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,
+										@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@IsAuthReq=NULL,@EmployeeId=226
+
+**************************************************************/
+
+CREATE PROCEDURE [dbo].[Get_ShippingConfigureList]  
 (  
   @PageNumber int,    
   @PageSize int,    
@@ -11,13 +29,14 @@ CREATE    PROCEDURE [dbo].[Get_ShippingConfigureList]
   @ShippingAccountNumber varchar(50)=null,    
   @ApiKey varchar(100)=null,    
   @SecretKey varchar(100)=null,    
-     @CreatedDate datetime=null,    
-     @UpdatedDate  datetime=null,    
+  @CreatedDate datetime=null,    
+  @UpdatedDate  datetime=null,    
   @CreatedBy  varchar(50)=null,    
   @UpdatedBy  varchar(50)=null,    
   @IsDeleted bit= null,    
   @MasterCompanyId bigint = NULL,
-  @IsAuthReq varchar(10) = NULL
+  @IsAuthReq varchar(10) = NULL,
+  @EmployeeId bigint = NULL
 )  
 AS   
 BEGIN  
@@ -26,7 +45,28 @@ BEGIN
   BEGIN TRY   
     DECLARE @RecordFrom int;    
     DECLARE @IsActive bit=1    
-    DECLARE @Count Int;    
+    DECLARE @Count Int;	
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
     SET @RecordFrom = (@PageNumber-1)*@PageSize;    
     IF @IsDeleted IS NULL    
     BEGIN    
@@ -58,10 +98,19 @@ BEGIN
     SC.ShippingConfigureId,S.NAME 'shippingvia',  
     SC.ShippingAccountNumber 'ShippingAccountNumber',
 	CASE WHEN SC.IsAuthReq =1 THEN 'Yes' ELSE 'No' END 'IsAuthReq',
-    SC.APIKey, SC.SecretKey,  
+    SC.APIKey, 
+	SC.SecretKey,  
     SC.MasterCompanyId,  
-    SC.CreatedBy,SC.CreatedDate,SC.UpdatedBy,  
-    SC.UpdatedDate,SC.IsActive,SC.IsDeleted  
+    SC.CreatedBy,
+	CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+		 CASE WHEN CAST(SC.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SC.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+	ELSE (CAST(SC.CreatedDate AS DATETIME)) END CreatedDate,
+	SC.UpdatedBy,  
+    CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+		 CASE WHEN CAST(SC.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SC.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+	ELSE (CAST(SC.UpdatedDate AS DATETIME)) END UpdatedDate,
+	SC.IsActive,
+	SC.IsDeleted  
     FROM DBO.ShippingConfigure SC WITH(NOLOCK)  
     LEFT JOIN DBO.ShippingVia S WITH(NOLOCK) ON SC.ShippingViaId = S.ShippingViaId  
     Where ((SC.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SC.IsActive=@IsActive))    

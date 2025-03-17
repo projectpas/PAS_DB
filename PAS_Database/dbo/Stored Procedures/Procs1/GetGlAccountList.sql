@@ -14,8 +14,9 @@
  3	 10/10/2023		Nainshi Joshi		Add DebitAmount and CreditAmount  
  4   19/10/2023     Nainshi Joshi		Add PostedDate
  5   03/11/2023     Devendra Shekh		glaccount in-active issue resolved
- 5   02/09/2024     Hemant Saliya		Added Sub Ladger
- 6   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+ 6   02/09/2024     Hemant Saliya		Added Sub Ladger
+ 7   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+ 8   13-Mar-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -40,14 +41,36 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @CreatedBy varchar(50)=null,    
  @UpdatedBy varchar(50)=null,    
  @MasterCompanyId int = null,
- @IsUpdated BIT = NULL
+ @IsUpdated BIT = NULL,
+ @EmployeeId bigint = Null
 )  
 AS    
 BEGIN  
 	 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	 SET NOCOUNT ON;    
 		 BEGIN TRY  
-		 BEGIN  
+		 BEGIN
+		 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+				SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 			  DECLARE @RecordFrom int;  
 			  DECLARE @Count Int;  
 			  SET @RecordFrom = (@PageNumber-1) * @PageSize;  
@@ -78,7 +101,13 @@ BEGIN
 				GL.IsActive,GL.IsDeleted,GL.CreatedBy,GL.UpdatedBy,  
 				GL.AccountCode 'AccountCodeNum',  
 				SL.[Name] As 'SubLedger',
-				GL.CreatedDate,GL.UpdatedDate,(ISNULL(Batch.DebitAmount, 0) + ISNULL(ManualBatch.DebitAmount, 0)) AS DebitAmount,  
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(GL.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(GL.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(GL.CreatedDate AS DATETIME)) END CreatedDate,
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(GL.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(GL.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(GL.UpdatedDate AS DATETIME)) END UpdatedDate,
+				(ISNULL(Batch.DebitAmount, 0) + ISNULL(ManualBatch.DebitAmount, 0)) AS DebitAmount,  
 				(ISNULL(Batch.CreditAmount, 0) + ISNULL(ManualBatch.CreditAmount, 0)) AS CreditAmount,ISNULL(Batch.PostedDate, 0) AS PostedDate,
 				CASE WHEN ISNULL(GL.InterCompany,0) = 1 THEN 'Yes' ELSE 'No' END AS 'InterCompany',  
 				CASE WHEN (Batch.GLCount > 0 OR ManualBatch.GLCount > 0) THEN 1 ELSE 0 END AS 'GlAccAdded',  
@@ -92,8 +121,8 @@ BEGIN
 				   ), 1, 1, '')      
 			   FROM dbo.GLAccount GL WITH(NOLOCK)  
 				   LEFT JOIN dbo.GLAccountClass GAL WITH(NOLOCK) ON GL.GLAccountTypeId = GAL.GLAccountClassId  
-				   LEFT JOIN dbo.LeafNode LG ON GL.GLAccountNodeId = LG.LeafNodeId  
-				   LEFT JOIN dbo.SubLedger SL ON SL.SubLedgerId = GL.SubLedgerId  
+				   LEFT JOIN dbo.LeafNode LG WITH(NOLOCK) ON GL.GLAccountNodeId = LG.LeafNodeId  
+				   LEFT JOIN dbo.SubLedger SL WITH(NOLOCK) ON SL.SubLedgerId = GL.SubLedgerId  
 				   OUTER APPLY (SELECT CB.GlAccountId,COUNT(*) 'GLCount',SUM(cb.DebitAmount) AS DebitAmount,  
 					SUM(cb.CreditAmount) AS CreditAmount,SUM(CASE WHEN PostedDate IS NULL THEN 1 ELSE 0 END) AS PostedDate 
 					FROM dbo.CommonBatchDetails cb WITH(NOLOCK) 

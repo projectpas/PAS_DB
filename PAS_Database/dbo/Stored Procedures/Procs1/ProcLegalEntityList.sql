@@ -1,4 +1,21 @@
-﻿
+﻿/***************************************************************  
+ ** File:   [ProcLegalEntityList]             
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to get Legal Entity List
+ ** Date:  Unknown
+            
+  ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  				Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    ***********		Unknown				Created
+    2    03-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+		
+	exec dbo.ProcLegalEntityList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@Name=NULL,@CompanyName=NULL,
+								 @CompanyCode=NULL,@Address1=NULL,@Address2=NULL,@MasterCompany=NULL,@City=NULL,@StateOrProvince=NULL,@PostalCode=NULL,@Country=NULL,
+								 @PhoneNumber=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=226
+
+**************************************************************/
 
 CREATE PROCEDURE [dbo].[ProcLegalEntityList]
 @PageNumber int = NULL,
@@ -23,12 +40,34 @@ CREATE PROCEDURE [dbo].[ProcLegalEntityList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@EmployeeId bigint = Null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
+						
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
@@ -78,8 +117,12 @@ BEGIN
 					   (ISNULL(t.CompanyName,'')) 'CompanyName',	
                        t.IsActive,
                        t.IsDeleted,
-					   t.CreatedDate,
-                       t.UpdatedDate,
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(t.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					   ELSE (CAST(t.CreatedDate AS DATETIME)) END CreatedDate,
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(t.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					   ELSE (CAST(t.UpdatedDate AS DATETIME)) END UpdatedDate,
 					   Upper(t.CreatedBy) CreatedBy,
                        Upper(t.UpdatedBy) UpdatedBy			
 			   FROM dbo.LegalEntity t WITH (NOLOCK) LEFT JOIN dbo.[Address] ad WITH (NOLOCK) ON t.AddressId = ad.AddressId

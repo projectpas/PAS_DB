@@ -3512,6 +3512,10 @@
     <Build Include="dbo\Tables\VendorAuditType.sql" />
     <Build Include="dbo\Views\vw_VendorAuditTypeAudit.sql" />
     <Build Include="dbo\Views\vw_VendorAuditType.sql" />
+    <Build Include="dbo\Tables\VendorOrderType.sql" />
+    <Build Include="dbo\Tables\VendorAuditInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveVendorAuditInfo.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorAuditInfoList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

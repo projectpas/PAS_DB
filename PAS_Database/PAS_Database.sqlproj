@@ -3522,12 +3522,14 @@
     <Build Include="dbo\Views\vw_VendorStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_SyncQuickBooksPaymentMethods.sql" />
     <Build Include="dbo\User Defined Types\QuickBooksPaymentMethodType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckWOInvoiceExistByWOBillId.sql" />
     <Build Include="dbo\Tables\UserActivityLog.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetEmployeeActivityHistoryData.sql" />
     <Build Include="dbo\Tables\VendorOrderType.sql" />
     <Build Include="dbo\Tables\VendorAuditInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveVendorAuditInfo.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorAuditInfoList.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

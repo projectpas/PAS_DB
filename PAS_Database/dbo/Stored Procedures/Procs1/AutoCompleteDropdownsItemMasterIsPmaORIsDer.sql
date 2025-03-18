@@ -14,8 +14,9 @@
  ** --   --------     -------			--------------------------------          
     1    12/23/2020   Moin Created
 	2    06/14/2024   Vishal Suthar		Increase limit of records from 20 to 50
+	3    03/18/2024   Devendra Shekh	Fetching PMA/DER Parts as Expected
      
---EXEC [AutoCompleteDropdownsItemMasterIsPmaORIsDer] '822',1,200,'108,109,11',1
+--exec dbo.AutoCompleteDropdownsItemMasterIsPmaORIsDer @StartWith=N'',@IsActive=1,@Count=20,@Idlist=N'0',@MasterCompanyId=1,@IsPmaorISDer=N'IsDer'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterIsPmaORIsDer]
 @StartWith VARCHAR(50),
@@ -40,7 +41,7 @@ BEGIN
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
-					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma != 1 AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
+					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma = 1 AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 					UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,
@@ -56,7 +57,7 @@ BEGIN
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
-					WHERE Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma != 1 AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
+					WHERE Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma = 1 AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 					UNION 
 					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
@@ -77,7 +78,7 @@ BEGIN
 							Im.partnumber AS Label,
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im WITH(NOLOCK) 						
-							WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
+							WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsDER = 1 AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 						   UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 							Im.partnumber AS Label,
@@ -93,7 +94,7 @@ BEGIN
 							Im.partnumber AS Label,
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
-							WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted,0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
+							WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted,0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsDER = 1 AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 							UNION 
 					SELECT DISTINCT TOP 50 
 							Im.ItemMasterId AS Value,  

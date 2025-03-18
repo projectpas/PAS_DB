@@ -23,6 +23,7 @@
 	10	 30 Oct 2024    HEMANT SALIYA		Verify the count 
 	11   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
 	12   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
+	13   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date)
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -45,7 +46,7 @@ BEGIN
 		DECLARE @SQProcessed AS INT;
 		DECLARE @SOQProcessed AS DECIMAL(20, 2);
 		DECLARE @BacklogStartDt AS DateTime;
-		DECLARE @RecevingModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'RecevingCustomer');;
+		DECLARE @RecevingModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'RecevingCustomer');
 		DECLARE @wopartModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'WorkOrderMPN');
 		DECLARE @woqModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'WorkOrderQuote');
 		DECLARE @SalesOrderModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrder');
@@ -92,7 +93,7 @@ BEGIN
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
 			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+		WHERE CONVERT(DATE, RC.CreatedDate) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 			AND RC.MasterCompanyId = @MasterCompanyId
 
 		SELECT @Qty = COUNT(ReceivingCustomerWorkId) FROM #tmpReceivingCustomerWork

@@ -19,8 +19,9 @@
 	03	 03-Mar-2025	Bhargav Saliya   Get New isStkLable value
 	04   10-March-2025  Sahdev Saliya   Added a case to get timeZone
 	05   12-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	06   18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
      
--- exec ProcGetRoList @PageNumber=1,@PageSize=100,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'OPEN',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=205,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL
+-- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
 CREATE     PROCEDURE [dbo].[ProcGetRoList]
 	@PageNumber int = null,
@@ -47,6 +48,7 @@ CREATE     PROCEDURE [dbo].[ProcGetRoList]
 	@VendorId bigint = null,
 	@ViewType varchar(50) = null,
 	@PartNumberType varchar(50) = null,
+	@PartDescription nvarchar(MAX),
 	@EstDeliveryType varchar(50) = null,
 	@ManufacturerType varchar(50) = null,
 	@SalesOrderNumberType varchar(50) = null,
@@ -143,6 +145,9 @@ BEGIN
 							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.PartNumber) END) AS 'PartNumberType',
 				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
 							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
+							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 Then 'Multiple' ELse MAX(ROP.PartDescription) END) AS 'PartDescription',
+				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
+							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
 							  WHERE ROP.RepairOrderId = RO.RepairOrderId AND ROP.IsParent = 1) > 1 THEN 'Multiple' ELSE CAST(CONVERT(VARCHAR, MAX(ROP.EstRecordDate), 101) AS VARCHAR(MAX)) END) AS 'EstDeliveryType',
 				   (CASE WHEN (SELECT COUNT(ROP.RepairOrderPartRecordId) 
 							  FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
@@ -185,6 +190,7 @@ BEGIN
 									--PR.SalesOrderNumber,
 									--M.PartNumber,
 									M.PartNumberType,
+									M.PartDescription,
 									--MF.Manufacturer,
 									M.ManufacturerType,
 									--M.WorkOrderNum,
@@ -203,6 +209,7 @@ BEGIN
 					(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR
 					([Status] LIKE '%' +@GlobalFilter+'%') OR
 					(M.PartNumberType like '%' +@GlobalFilter+'%') OR
+					(M.PartDescription like '%' +@GlobalFilter+'%') OR
 					(M.ManufacturerType like '%' +@GlobalFilter+'%') OR
 					(M.SalesOrderNumberType like '%' +@GlobalFilter+'%') OR
 					(M.WorkOrderNumType like '%' +@GlobalFilter+'%')))
@@ -221,6 +228,7 @@ BEGIN
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
 					(ISNULL(@PartNumberType,'') ='' OR M.PartNumberType like '%'+ @PartNumberType+'%') AND
+					(ISNULL(@PartDescription,'') ='' OR M.PartDescription like '%'+ @PartDescription+'%') AND
 					(ISNULL(@EstDeliveryType,'') ='' OR M.EstDeliveryType like '%'+ @EstDeliveryType+'%') AND					
 					(ISNULL(@ManufacturerType,'') ='' OR M.ManufacturerType like '%'+ @ManufacturerType+'%') AND
 					(ISNULL(@SalesOrderNumberType,'') ='' OR M.SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND
@@ -231,7 +239,7 @@ BEGIN
 				   ), CTE_Count AS (Select COUNT(RepairOrderId) AS NumberOfItems FROM ResultData)
 						SELECT RepairOrderId,RepairOrderNumber,RepairOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted
 						,VendorId,VendorName,VendorCode,StatusId,[Status],RequestedBy,ApprovedBy,
-						'' PartNumber, PartNumberType, '' Manufacturer, ManufacturerType, '' WorkOrderNum, WorkOrderNumType, '' SalesOrderNumber, SalesOrderNumberType,
+						'' PartNumber, PartNumberType, PartDescription , '' Manufacturer, ManufacturerType, '' WorkOrderNum, WorkOrderNumType, '' SalesOrderNumber, SalesOrderNumberType,
 						CreatedDate, UpdatedDate, NumberOfItems, CreatedBy, UpdatedBy, '' EstDeliveryDateMulti, EstDeliveryType, RepairOrderPartRecordId ,isStkLable
 						FROM ResultData, CTE_Count
 			ORDER BY  
@@ -259,6 +267,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='PartNumberType')  THEN PartNumberType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumberType')  THEN PartNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN PartDescription END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END ASC,
@@ -294,6 +304,7 @@ BEGIN
 				   RO.ApprovedBy,
 				   ROP.PartNumber,
 				   ROP.PartNumber as PartNumberType,
+				   ROP.PartDescription,
 				   ROP.Manufacturer AS Manufacturer,
 				   ROP.Manufacturer AS ManufacturerType,
 				   ROP.SalesOrderNo,
@@ -354,6 +365,7 @@ BEGIN
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))  AND
 					(IsNull(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%') and
+					(IsNull(@PartDescription,'') ='' OR PartDescription like '%'+ @PartDescription+'%') and
 					(ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and
 					(ISNULL(@ManufacturerType,'') ='' OR Manufacturer like '%'+ @ManufacturerType +'%') AND
 					(IsNull(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') and
@@ -386,6 +398,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='PartNumberType')  THEN PartNumberType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumberType')  THEN PartNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN PartDescription END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,	
 			CASE WHEN (@SortOrder=1 and @SortColumn='SalesOrderNumberType')  THEN SalesOrderNumberType END ASC,

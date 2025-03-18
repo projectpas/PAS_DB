@@ -26,6 +26,7 @@
 	10	31-Jan-2025		Hemant Saliya		Resolved WO number Display issue
 	11  26-02-2025      Shrey Chandegara    Modified due to datetime issue.
 	12  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	13  18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
       
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -51,6 +52,7 @@ CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@VendorId bigint =null,
 	@ViewType varchar(50) =null,
 	@PartNumberType varchar(50)=null,
+	@PartDescription nvarchar(MAX),
 	@EstDeliveryType varchar(50)=null,
 	@ManufacturerType varchar(50)=null,
 	@SalesOrderNumberType varchar(50)=null,
@@ -149,6 +151,7 @@ BEGIN
 		[QuantityBackOrdered] NVARCHAR(100),
 		[QuantityReceived] NVARCHAR(100),
 		[PartNumberType] NVARCHAR(250),
+		[PartDescription] NVARCHAR(MAX),
 		[ManufacturerType] NVARCHAR(250),
 		[WorkOrderNumType] NVARCHAR(250),
 		[SalesOrderNumberType] NVARCHAR(250),
@@ -167,7 +170,7 @@ BEGIN
 
 			INSERT INTO #TempPurchaseOrders ([PurchaseOrderId],[PurchaseOrderNumber],[PurchaseOrderNo],[OpenDate],[ClosedDate],[CreatedDate],[CreatedBy],[UpdatedDate],[UpdatedBy],
 								[IsActive],[IsDeleted],[StatusId],[VendorId],[VendorName],[VendorCode],[Status],[RequestedBy],[ApprovedBy],[QuantityOrdered],[QuantityBackOrdered],
-								[QuantityReceived],[PartNumberType],[ManufacturerType],[WorkOrderNumType],[SalesOrderNumberType],[RepairOrderNumberType],[WorkOrderNum],
+								[QuantityReceived],[PartNumberType],[PartDescription],[ManufacturerType],[WorkOrderNumType],[SalesOrderNumberType],[RepairOrderNumberType],[WorkOrderNum],
 								[SalesOrderNumber],[RepairOrderNumber],[EstDeliveryType])				              
 				SELECT DISTINCT PO.PurchaseOrderId,
 					PO.PurchaseOrderNumber,
@@ -191,6 +194,7 @@ BEGIN
 					CAST(SUM(ISNULL(POP.QuantityBackOrdered,0)) AS varchar(100)) AS QuantityBackOrdered,
 					SUM(ISNULL(POP.QuantityOrdered,0)) - SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityReceived,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) End) as 'PartNumberType',
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) End) as 'PartDescription',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  
 					'' WorkOrderNumType,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumberType', 
@@ -243,6 +247,7 @@ BEGIN
 			M.StatusId, M.VendorId, M.VendorName, M.VendorCode, M.[Status], M.RequestedBy, M.ApprovedBy,
 			M.SalesOrderNumberType,
 			M.PartNumberType,
+			M.PartDescription,
 			M.ManufacturerType, 
 			M.WorkOrderNumType,
 			M.RepairOrderNumberType, 
@@ -261,6 +266,7 @@ BEGIN
 			(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
 			([Status]  LIKE '%' +@GlobalFilter+'%') OR      
 			(M.PartNumberType like '%' +@GlobalFilter+'%') OR      
+			(M.PartDescription like '%' +@GlobalFilter+'%') OR      
 			(M.ManufacturerType like '%' +@GlobalFilter+'%') OR      
 			(M.SalesOrderNumberType like '%' +@GlobalFilter+'%') OR      
 			(M.WorkOrderNumType like '%' +@GlobalFilter+'%') OR      
@@ -280,6 +286,7 @@ BEGIN
 			(ISNULL(@CreatedDate, '') = '' OR CAST(CreatedDate AS Date) = CAST(@CreatedDate AS date)) AND      
 			(ISNULL(@UpdatedDate, '') = '' OR CAST(UpdatedDate AS date) = CAST(@UpdatedDate AS date)) AND      
 			(IsNull(@PartNumberType, '') = '' OR M.PartNumberType like '%'+ @PartNumberType +'%') and      
+			(IsNull(@PartDescription, '') = '' OR M.PartDescription like '%'+ @PartDescription +'%') and      
 			(ISNULL(@EstDeliveryType, '') = '' OR M.EstDeliveryType like '%'+ @EstDeliveryType +'%') AND      
 			(IsNull(@ManufacturerType, '') = '' OR M.ManufacturerType like '%'+ @ManufacturerType +'%') and      
 			(IsNull(@SalesOrderNumberType, '') = '' OR M.SalesOrderNumberType like '%'+ @SalesOrderNumberType +'%') and      
@@ -292,7 +299,7 @@ BEGIN
 			), CTE_Count AS (Select COUNT(PurchaseOrderId) AS NumberOfItems FROM ResultData)      
       
 			SELECT PurchaseOrderId,PurchaseOrderNumber,PurchaseOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted      
-			,StatusId,VendorId,VendorName,VendorCode,[Status],RequestedBy,ApprovedBy,'' PartNumber,PartNumberType,'' Manufacturer,ManufacturerType,WorkOrderNumType,SalesOrderNumberType,RepairOrderNumberType, RepairOrderNumber , SalesOrderNumber,WorkOrderNum,
+			,StatusId,VendorId,VendorName,VendorCode,[Status],RequestedBy,ApprovedBy,'' PartNumber,PartNumberType,PartDescription,'' Manufacturer,ManufacturerType,WorkOrderNumType,SalesOrderNumberType,RepairOrderNumberType, RepairOrderNumber , SalesOrderNumber,WorkOrderNum,
       
 			CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy, '' EstDeliveryDate,EstDeliveryType,PurchaseOrderPartRecordId,QuantityOrdered,QuantityBackOrdered,QuantityReceived FROM ResultData,CTE_Count      
 		ORDER BY      
@@ -319,6 +326,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN PartDescription END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END ASC,
@@ -370,6 +379,7 @@ BEGIN
 			PO.ApprovedBy,
 			POP.PartNumber,
 			POP.PartNumber as PartNumberType,
+			POP.PartDescription,
 			POP.Manufacturer AS Manufacturer,
 			POP.Manufacturer AS ManufacturerType,
 			POP.SalesOrderNo AS SalesOrderNumber,
@@ -401,6 +411,7 @@ BEGIN
 				(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
 				([Status]  LIKE '%' +@GlobalFilter+'%') OR      
 				(PartNumber LIKE '%' +@GlobalFilter+'%') OR      
+				(PartDescription LIKE '%' +@GlobalFilter+'%') OR      
 				(Manufacturer LIKE '%' +@GlobalFilter+'%') OR      
 				(SalesOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
 				(WorkOrderNumType LIKE '%' +@GlobalFilter+'%') OR      
@@ -420,6 +431,7 @@ BEGIN
 				(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND      
 				(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND      
 				(ISNULL(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%') AND      
+				(ISNULL(@PartDescription,'') ='' OR PartDescription like '%'+ @PartDescription+'%') AND      
 				(ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and      
 				(ISNULL(@ManufacturerType,'') ='' OR Manufacturer like '%'+ @ManufacturerType +'%') AND      
 				(ISNULL(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND      
@@ -456,6 +468,8 @@ BEGIN
 	  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
+	   CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN PartDescription END ASC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PartDescription END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,  
 	  CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END ASC,

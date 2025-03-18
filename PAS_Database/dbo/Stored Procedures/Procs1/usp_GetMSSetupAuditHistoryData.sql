@@ -1,5 +1,23 @@
-﻿CREATE PROCEDURE [dbo].[usp_GetMSSetupAuditHistoryData]
-@EntityStructureId BIGINT
+﻿/***************************************************************  
+ ** File:   [usp_GetMSSetupAuditHistoryData]             
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to Get Management Structure History List
+ ** Date:  Unknown
+            
+  ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  				Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    ***********		Unknown				Created
+    2    03-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+		
+	exec dbo.usp_GetMSSetupAuditHistoryData @EntityStructureId=41,@EmployeeId=226
+
+**************************************************************/
+
+CREATE PROCEDURE [dbo].[usp_GetMSSetupAuditHistoryData]
+@EntityStructureId BIGINT,
+@EmployeeId BIGINT
 AS
 BEGIN
 	
@@ -10,6 +28,29 @@ BEGIN
 
 			BEGIN TRANSACTION
 				BEGIN
+								
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
 				SELECT ESS.AuditEntityStructureId,ESS.EntityStructureId,					
 					ESS.Level1Id,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS Level1Name,
 					ESS.Level2Id,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS Level2Name,
@@ -21,7 +62,16 @@ BEGIN
 					ESS.Level8Id,CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] AS Level8Name,
 					ESS.Level9Id,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS Level9Name,
 					ESS.Level10Id,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS Level10Name,
-					ESS.CreatedDate, ESS.UpdatedDate, ESS.CreatedBy, ESS.UpdatedBy,ESS.IsDeleted,ESS.IsActive
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(ESS.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ESS.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					ELSE (CAST(ESS.CreatedDate AS DATETIME)) END CreatedDate,
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(ESS.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ESS.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					ELSE (CAST(ESS.UpdatedDate AS DATETIME)) END UpdatedDate,
+					ESS.CreatedBy, 
+					ESS.UpdatedBy,
+					ESS.IsDeleted,
+					ESS.IsActive
 				FROM EntityStructureSetupAudit ESS WITH (NOLOCK)
 					--LEFT JOIN LegalEntity LE on LE.LegalEntityId = ESS.Level1Id
 					LEFT JOIN ManagementStructureLevel MSL1 WITH (NOLOCK) on ESS.Level1Id = MSL1.ID

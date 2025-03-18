@@ -25,7 +25,9 @@
 	12   26-12-2024   Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
 	13   02-01-2025   Amit Ghediya		Modified to get part level Available & onhnad qty after reserve.
 	14   09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
-	14   17-01-2025   RAJESH GAMI		Modified to get Revised PN.     
+	15   17-01-2025   RAJESH GAMI		Modified to get Revised PN.     
+	16   13-03-2025   Vishal Suthar		Fixed issue with duplicate records     
+
 -- EXEC [DBO].[GetSalesOrderPartView] 1603,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -48,7 +50,7 @@ BEGIN
 		SET @SoPartId = NULL;
 	END
 
-    SELECT 
+    SELECT DISTINCT
         part.SalesOrderId,
         part.SalesOrderPartId,
 		stk.SalesOrderStocklineId,
@@ -206,7 +208,8 @@ BEGIN
     WHERE part.SalesOrderId = @SalesOrderId 
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
     AND part.IsDeleted = 0
-    AND ISNULL(rop.isAsset, 0) = 0;
+    AND ISNULL(rop.isAsset, 0) = 0
+	ORDER BY part.SalesOrderPartId;
 
   END TRY
   BEGIN CATCH

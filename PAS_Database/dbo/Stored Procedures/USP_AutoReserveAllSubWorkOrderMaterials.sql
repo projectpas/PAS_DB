@@ -15,6 +15,7 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ** 4    10/08/2024       RAJESH GAMI 	        Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 5    11/18/2024		 Devendra Shekh			Modified (handled null value for @ARConditionId)
 ** 6    11/22/2024		 Devendra Shekh			Modified (added fiels  ReservedById, ReservedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
+** 7    03/06/2025		 HEMANT SALIYA	        UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
 
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 **************************************************************/ 
@@ -97,7 +98,6 @@ BEGIN
 					DECLARE @stockLineQtyAvailable INT;
 					DECLARE @UpdateBy varchar(200);
 
-					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 50; -- For SUB WORK ORDER Materials Module
 
@@ -126,6 +126,36 @@ BEGIN
 
 					INSERT INTO #ConditionGroup (ConditionId, ConditionGroup)
 					SELECT ConditionId, GroupCode FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
+
+					--#STEP : 0 UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
+					UPDATE dbo.SubWorkOrderMaterialStockLine 
+					SET Quantity = GropWOM.QuantityToReduce	
+					FROM(
+						SELECT (ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) -  ISNULL(SL.QuantityAvailable, 0)) AS QuantityToReduce,
+							WOM.SubWorkOrderMaterialsId, WOMS.SWOMStockLineId,  WOMS.StockLineId  
+						FROM dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) 
+							JOIN dbo.SubWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId
+							JOIN dbo.Stockline SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
+						WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(WOMS.Quantity, 0) <>  ISNULL(WOMS.QtyIssued, 0) AND WOMS.ProvisionId = @ProvisionId
+						AND ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(SL.QuantityAvailable, 0)
+						AND WOMS.MasterCompanyId = @MasterCompanyId
+					) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterialStockLine.SubWorkOrderMaterialsId AND GropWOM.SWOMStockLineId = dbo.SubWorkOrderMaterialStockLine.SWOMStockLineId 
+							AND GropWOM.StockLineId = dbo.SubWorkOrderMaterialStockLine.StockLineId
+
+					--#STEP : 0 UPDATE THE EXISTING STOCKLINE KIT QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
+					UPDATE dbo.SubWorkOrderMaterialStockLineKit 
+					SET Quantity = GropWOM.QuantityToReduce	
+					FROM(
+						SELECT (ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) -  ISNULL(SL.QuantityAvailable, 0)) AS QuantityToReduce,
+							WOM.SubWorkOrderMaterialsKitId, WOMS.SWOMStockLineKitId,  WOMS.StockLineId  
+						FROM dbo.SubWorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) 
+							JOIN dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.SubWorkOrderMaterialsKitId = WOMS.SubWorkOrderMaterialsKitId
+							JOIN dbo.Stockline SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
+						WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(WOMS.Quantity, 0) <>  ISNULL(WOMS.QtyIssued, 0) AND WOMS.ProvisionId = @ProvisionId
+						AND ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(SL.QuantityAvailable, 0)
+						AND WOMS.MasterCompanyId = @MasterCompanyId
+					) GropWOM WHERE GropWOM.SubWorkOrderMaterialsKitId = dbo.SubWorkOrderMaterialStockLineKit.SubWorkOrderMaterialsKitId AND GropWOM.SWOMStockLineKitId = dbo.SubWorkOrderMaterialStockLineKit.SWOMStockLineKitId 
+							AND GropWOM.StockLineId = dbo.SubWorkOrderMaterialStockLineKit.StockLineId
 
 					--#STEP : 1 RESERVE EXISTING STOCKLINE					
 					SELECT  WOM.WorkOrderId,

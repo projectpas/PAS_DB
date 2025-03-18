@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
- ** File:     [usp_SaveWorkOrderMaterialKit]           
+ ** File:     [usp_SaveAccountPeriod]           
  ** Author:	  Vishal Suthar
- ** Description: This SP is Used to save material KITs    
+ ** Description: This stored procedure is used to Save Account Period Data.    
  ** Purpose:         
  ** Date:   03/24/2023
           
@@ -12,9 +12,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------     
-	1    03/24/2023   Vishal Suthar		Created
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------     
+	1    03/24/2023		Vishal Suthar		Created
+	2    05-Mar-2025	Divyesh Kathiriya	Update GETDATE() to GETUTCDATE()
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[usp_SaveAccountPeriod]
@@ -100,7 +101,7 @@ BEGIN
 
 						INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Account Payable',(Case when Acc.isacpStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Account Payable',(Case when Acc.isacpStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -115,7 +116,7 @@ BEGIN
 
 						INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Accounts Receivables',(Case when Acc.isacrStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Accounts Receivables',(Case when Acc.isacrStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -131,7 +132,7 @@ BEGIN
 
 						INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Fixed Asset',(Case when Acc.isassetStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Fixed Asset',(Case when Acc.isassetStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -146,7 +147,7 @@ BEGIN
 
 						INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Inventory',(Case when Acc.isinventoryStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Inventory',(Case when Acc.isinventoryStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -163,7 +164,7 @@ BEGIN
 
 					     INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Account Payable',(Case when Acc.isacpStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Account Payable',(Case when Acc.isacpStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -172,7 +173,7 @@ BEGIN
 
 						  INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Accounts Receivables',(Case when Acc.isacrStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Accounts Receivables',(Case when Acc.isacrStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -181,7 +182,7 @@ BEGIN
 
 						   INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'General Ledger',Acc.Status,Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'General Ledger',Acc.Status,Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -190,7 +191,7 @@ BEGIN
 
 						  INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Inventory',(Case when Acc.isinventoryStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Inventory',(Case when Acc.isinventoryStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -199,7 +200,7 @@ BEGIN
 
 						  INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'Fixed Asset',(Case when Acc.isassetStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'Fixed Asset',(Case when Acc.isassetStatusName=1 then 'Open' else 'Closed' end),Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId
@@ -213,7 +214,7 @@ BEGIN
 
 						INSERT INTO [dbo].[AccountingCalendarHistory]
                           ([ReferenceId],[PeriodName],[TableName],[StatusName],[LegalEntityId],[LegalEntityName],[ledgerId],[ledgerName],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-                          select AccountingCalendarId,PeriodName,'General Ledger',Acc.Status,Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETDATE(),GETDATE(),Acc.IsActive,Acc.IsDeleted 
+                          select AccountingCalendarId,PeriodName,'General Ledger',Acc.Status,Acc.LegalEntityId,Le.Name,acc.ledgerId,Led.LedgerName,acc.MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),Acc.IsActive,Acc.IsDeleted 
 						   	
 						  from AccountingCalendar Acc WITH(NOLOCK)  
 						  inner join LegalEntity Le WITH(NOLOCK) on le.LegalEntityId=Acc.LegalEntityId

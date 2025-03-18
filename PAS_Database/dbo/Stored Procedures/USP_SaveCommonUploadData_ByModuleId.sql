@@ -11,6 +11,7 @@
     1    23-Dec-2024		Devendra Shekh			Created
 	2    06-Jan-2025		Devendra Shekh			Added MasterCompanyId for Delete [UploadModuleData]
 	3    24-01-2025         Shrey Chandegara        Modify due to add functionality for Alternate Part
+	4    12-03-2025         Abhishek Jirawla        Update LedgerId for GLAccount
  
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=3,@UserName=N'SHREY CHANDEGARA',@MasterCompanyId=1
 **************************************************************/
@@ -51,8 +52,10 @@ BEGIN
 		DECLARE @ModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT;
+    
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
+		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 
 		CREATE TABLE #uploadDataResults (
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
@@ -230,6 +233,21 @@ BEGIN
 				SET @RefQuery = 'INSERT INTO ' + @ChildTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');'
 				PRINT @RefQuery
 				EXEC (@RefQuery)  
+			END
+
+			-- Need to update ledger
+			IF(@ModuleId = @GLModule)
+			BEGIN
+				DECLARE @setLedgerId INT = 0;
+
+				IF EXISTS(SELECT TOP 1 * FROM [DBO].[GLAccountLadgerMapping] WITH(NOLOCK) WHERE GlAccountId = @ModuleTableId)
+				BEGIN
+					SELECT TOP 1 @setLedgerId = LedgerId FROM [DBO].[GLAccountLadgerMapping] WITH(NOLOCK) WHERE GlAccountId = @ModuleTableId
+				END
+
+				UPDATE GLAccount
+				SET LedgerId = @setLedgerId
+				WHERE GlAccountId = @ModuleTableId
 			END
 
 			--SELECT * FROM #ImportFields

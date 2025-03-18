@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+﻿/*********************  
  ** File:   [USP_SingleScreen_GetListData]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to get single screen list data
@@ -6,14 +6,15 @@
  ** Date:   04/01/2024  
             
   ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date         Author  			Change Description              
  ** --   --------     -------			--------------------------------            
     1    04/01/2024   Vishal Suthar		Created
     2    24/02/2025   Ekta Chandegra	Convert date from UTC to Local
     3    05/03/2025   Bhargav Saliya	Cast the "ATAChapterCode" column as INT
-
-**************************************************************/
+    4    12/03/2025   Ekta Chandegra	Add Case for check EmployeeId and @CurrntEmpTimeZoneDesc having value
+	5    17/03/2025   Ayushi Patel		Converted the date into utc (created , updated) , Added a case to get timeZone
+**********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
 	@PageNumber INT = NULL,
 	@PageSize INT = NULL,
@@ -87,8 +88,18 @@ BEGIN
               WHEN LOWER(FieldValue) = 'false' THEN 't.isDeleted = 0'
               ELSE 't.isDeleted = 1'
             END)
-		  WHEN FieldName = 'createdDate' THEN ' And CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
-		  WHEN FieldName = 'updatedDate' THEN ' And CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
+		  WHEN FieldName = 'createdDate' THEN ' And ' + 
+			CASE 
+				WHEN  @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' 
+				THEN 'CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
+				ELSE 'CAST(t.CreatedDate AS DATE) = ''' + FieldValue + ''''
+			END
+		  WHEN FieldName = 'updatedDate' THEN ' And ' +
+			CASE
+				WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != ''  
+				THEN 'CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
+				ELSE 'CAST(t.UpdatedDate AS DATE) = ''' + FieldValue + ''''
+			END
           WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(createdby, '''') = '''' OR createdby LIKE ''%' + FieldValue + '%'')'
           WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(updatedby, '''') = '''' OR updatedby LIKE ''%' + FieldValue + '%'')'
           ELSE ' And (ISNULL(t.' + FieldName + ','''') ='''' OR t.' + FieldName + ' LIKE ''%' + FieldValue + '%'')'
@@ -111,9 +122,10 @@ BEGIN
     DECLARE @SelectColumns AS VARCHAR(MAX)
     SELECT @SelectColumns = SUBSTRING(ResultData, 1, LEN(ResultData) - 1) FROM 
 	(SELECT (SELECT 't.' + COLUMN_NAME + ',' FROM INFORMATION_SCHEMA.COLUMNS 
-		WHERE TABLE_NAME = @PageName AND COLUMN_NAME NOT IN ('CreatedBy', 'UpdatedBy') FOR XML PATH ('')) AS ResultData) AS TempData
+		WHERE TABLE_NAME = @PageName AND COLUMN_NAME NOT IN ('CreatedBy', 'UpdatedBy','CreatedDate','UpdatedDate') FOR XML PATH ('')) AS ResultData) AS TempData
 
-    SET @Query = ';WITH Result AS(SELECT COUNT(1) OVER () AS NumberOfItems, ' + @SelectColumns + ', t.CreatedBy, t.UpdatedBy
+    SET @Query = ';WITH Result AS(SELECT COUNT(1) OVER () AS NumberOfItems, ' + @SelectColumns + ', t.CreatedBy, t.UpdatedBy,(Cast(DBO.ConvertUTCtoLocal(t.CreatedDate,'''+@CurrntEmpTimeZoneDesc+''') as Date)) CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, '''+@CurrntEmpTimeZoneDesc+''') as Date)) UpdatedDate
 					FROM [' + @PageName + '] t WITH (NOLOCK)
 					WHERE t.MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR)
     + ' And ' + @QueryFilterData + ') 
@@ -122,7 +134,7 @@ BEGIN
     SET @Orderby = ' ORDER BY '
     IF (ISNULL(@SortColumn, '') = '')
     BEGIN
-	print 'step-1'
+	
 		IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'SequenceNo')
 			SET @Orderby += ' SequenceNo ASC '
 		ELSE

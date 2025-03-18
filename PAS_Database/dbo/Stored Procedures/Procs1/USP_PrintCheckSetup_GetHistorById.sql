@@ -1,7 +1,28 @@
-﻿--exec [USP_PrintCheckSetup_GetHistorById] 1
+﻿/*************************************************************               
+ ** File:   [USP_PrintCheckSetup_GetHistorById]               
+ ** Author:     
+ ** Description: This stored procedure is used Print Check Setup History By Id.  
+ ** Purpose:             
+ ** Date:          
+              
+ ** PARAMETERS:     
+             
+ ** RETURN VALUE:               
+ **************************************************************               
+ ** Change History               
+ **************************************************************               
+ ** PR   Date				Author				Change Description                
+ ** --   --------			-------				--------------------------------              
+	1    ***********		Unknown				Created
+	2    06-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+	
+	exec [USP_PrintCheckSetup_GetHistorById] 1,226
+************************************************************************/    
+
 
 CREATE   PROCEDURE [dbo].[USP_PrintCheckSetup_GetHistorById]
-@PrintingId bigint
+@PrintingId bigint,
+@EmployeeId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -10,7 +31,27 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 				SELECT 
 					t.AuditPrintingId,
 					t.PrintingId,
@@ -30,8 +71,12 @@ BEGIN
 					t.MasterCompanyId,
 					t.CreatedBy,
 					t.UpdatedBy,
-					t.CreatedDate,
-					t.UpdatedDate,
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						 CASE WHEN CAST(t.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					ELSE (CAST(t.CreatedDate AS DATETIME)) END CreatedDate,
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						 CASE WHEN CAST(t.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					ELSE (CAST(t.UpdatedDate AS DATETIME)) END UpdatedDate,
 					t.IsActive,
 					t.IsDeleted
 				FROM [DBO].[PrintCheckSetupAudit] t WITH (NOLOCK) 

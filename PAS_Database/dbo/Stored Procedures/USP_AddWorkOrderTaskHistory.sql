@@ -15,13 +15,15 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    02/11/2025   Ekta Chandegra	Created
+    2    03/17/2025   Ekta Chandegra	Add @CreatedBy parameter
 
-EXEC [dbo].[USP_AddWorkOrderTaskHistory] 95
+exec dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId=978,@CreatedBy=N'EKTA CHANDEGRA'
 **************************************************************/
 
 
 CREATE   PROCEDURE [dbo].[USP_AddWorkOrderTaskHistory]
-@WorkOrderTaskId BIGINT
+@WorkOrderTaskId BIGINT,
+@CreatedBy VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -40,11 +42,11 @@ BEGIN
 			@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
 			WOTD.[TechName], WOTD.[TechUpdatedDate], WOTD.[InspectorId], WOTD.[InspectorName], WOTD.[InspectorUpdatedDate],
 			WOTD.[PrintInWO], WOTD.[PrintInWOQ], WOTI.[IsParent], WOTI.[ParentId], WOTI.[InstructionTitle], WOTI.[InstructionDetails],
-			WOTI.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted], WOT.UpdatedBy, GETUTCDATE()
+			WOTI.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted],@CreatedBy, GETUTCDATE()
 		FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 		LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId
-		LEFT JOIN [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId AND WOTI.IsParent = 1
+		LEFT JOIN [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId AND (WOTI.IsParent = 1 OR (WOTI.IsParent = 0 AND WOTI.ParentId IS NULL))
 		WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
 
 		SELECT Scope_Identity() AS 'WorkOrderTaskHistoryId';

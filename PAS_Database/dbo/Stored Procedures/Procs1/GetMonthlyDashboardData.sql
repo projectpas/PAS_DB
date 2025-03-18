@@ -152,6 +152,7 @@ BEGIN
 					WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 
 						--AND CAST(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date) = CAST(@SelectedDate AS DATE)
 						AND CAST(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date) = CAST(@SelectedDate AS DATE)
+
 						AND WOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 					GROUP BY CAST(InvoiceDate AS DATE)
 
@@ -174,7 +175,6 @@ BEGIN
 						CAST(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)  = CAST(@SelectedDate AS DATE)
 						AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 					GROUP BY CAST(InvoiceDate AS DATE)
-
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
 					SELECT CAST(@SelectedDate AS DATE) AS DateProcess, ISNULL(@SOAmt, 0)
 				END

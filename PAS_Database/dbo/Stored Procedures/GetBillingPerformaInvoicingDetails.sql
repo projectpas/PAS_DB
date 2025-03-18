@@ -60,7 +60,7 @@ BEGIN
 				wop.WorkScope,
 				wop.WorkOrderScopeId,
 				wop.Quantity,
-				wopsettlement.ConditionId,
+				ISNULL(wop.RevisedConditionId, wop.ConditionId) AS conditionId,
 				wo.OpenDate,
 				wo.SalesPersonId,
 				ISNULL(sp.FirstName + ' ' + sp.LastName, '') AS SalesPerson,
@@ -101,15 +101,9 @@ BEGIN
 			JOIN [dbo].[Customer] cust WITH(NOLOCK) ON wosh.CustomerId = cust.CustomerId
 			JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON wop.WorkOrderStageId = wos.WorkOrderStageId
 			LEFT JOIN [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
-			LEFT JOIN [dbo].[Currency] cr WITH(NOLOCK) ON cf.CurrencyId = cr.CurrencyId
-			LEFT JOIN [dbo].[WorkOrderSettlementDetails] wopsettlement WITH(NOLOCK)
-				ON wop.WorkOrderId = wopsettlement.WorkOrderId 
-				AND wop.ID = wopsettlement.workOrderPartNoId 
-				AND wopsettlement.WorkOrderSettlementId = 9
 			LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON wo.EmployeeId = emp.EmployeeId
 			LEFT JOIN [dbo].[Employee] sp WITH(NOLOCK) ON wo.SalesPersonId = sp.EmployeeId
 			LEFT JOIN [dbo].[Employee] csr WITH(NOLOCK) ON wo.CSRId = csr.EmployeeId
-			LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			LEFT JOIN [dbo].[Currency] fcu WITH(NOLOCK) ON wo.FunctionalCurrencyId = fcu.CurrencyId 
 				AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 			WHERE wosh.WorkOrderId = @WorkOrderId 
@@ -139,7 +133,7 @@ BEGIN
 				wop.workScope,
 				wop.workOrderScopeId,
 				wop.quantity,
-				ISNULL(wopsettlement.ConditionId, wop.ConditionId) AS conditionId,
+				ISNULL(wop.RevisedConditionId, wop.ConditionId) AS conditionId,
 				wo.openDate,
 				wo.salesPersonId,
 				ISNULL(sp.FirstName + ' ' + sp.LastName, '') AS salesPerson,
@@ -176,21 +170,14 @@ BEGIN
 			JOIN [dbo].[Customer] cust WITH(NOLOCK) ON wo.CustomerId = cust.CustomerId
 			JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON wop.WorkOrderStageId = wos.WorkOrderStageId
 			LEFT JOIN [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
-			LEFT JOIN [dbo].[Currency] cr WITH(NOLOCK) ON cf.CurrencyId = cr.CurrencyId
 			LEFT JOIN [dbo].[CustomerDomensticShipping] cust_ship WITH(NOLOCK) ON wo.CustomerId = cust_ship.CustomerId
 			LEFT JOIN [dbo].[CustomerBillingAddress] cust_bill WITH(NOLOCK) ON wo.CustomerId = cust_bill.CustomerId
-			LEFT JOIN [dbo].[WorkOrderSettlementDetails] wopsettlement WITH(NOLOCK)
-				ON wop.WorkOrderId = wopsettlement.WorkOrderId 
-				AND wop.ID = wopsettlement.workOrderPartNoId 
-				AND wopsettlement.WorkOrderSettlementId = 9
-			LEFT JOIN [dbo].[Address] ship_addr WITH(NOLOCK) ON cust_ship.AddressId = ship_addr.AddressId
 			LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] cust_shipVia WITH(NOLOCK)
 				ON wo.CustomerId = cust_shipVia.CustomerId 
 				AND cust_shipVia.IsPrimary = 1
 			LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON wo.EmployeeId = emp.EmployeeId
 			LEFT JOIN [dbo].[Employee] sp WITH(NOLOCK) ON wo.SalesPersonId = sp.EmployeeId
 			LEFT JOIN [dbo].[Employee] csr WITH(NOLOCK) ON wo.CSRId = csr.EmployeeId
-			LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			LEFT JOIN [dbo].[Currency] fcu WITH(NOLOCK) ON wo.FunctionalCurrencyId = fcu.CurrencyId 
 				AND fcu.IsActive = 1 
 				AND fcu.IsDeleted = 0

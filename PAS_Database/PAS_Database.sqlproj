@@ -3529,7 +3529,7 @@
     <Build Include="dbo\Tables\VendorAuditInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveVendorAuditInfo.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorAuditInfoList.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysisForShippingARbalance.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

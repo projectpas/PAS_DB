@@ -11,7 +11,8 @@
  **************************************************************             
  ** PR   Date         Author					Change Description              
  ** --   --------     -------				--------------------------------            
-    1    03/07/2023   Devendra Shekh			Created  
+    1    03/07/2023   Devendra Shekh			Created
+	2    18/03/2025   Sahdev Saliya             Added a case to get timeZone
        
 --exec USP_GetVendorRMA_History
 @PageSize=50,@PageNumber=1,@SortColumn=N'HistoryId',@SortOrder=1,@GlobalFilter=N'',@HistoryId=0,@ReferenceId=54,@RMANum=NULL,@RMANumber=NULL,@OldValue=NULL,@NewValue=NULL,
@@ -35,14 +36,34 @@ CREATE   PROCEDURE [dbo].[USP_GetVendorRMA_History]
  @UpdatedDate  DATETIME=null,  
  @CreatedBy VARCHAR(50)=null,  
  @UpdatedBy VARCHAR(50)=null,
- @ModuleId BIGINT = null
+ @ModuleId BIGINT = null,
+ @EmployeeId bigint
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
   BEGIN TRANSACTION  
-   BEGIN  
+   BEGIN
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
    DECLARE @RecordFrom INT;  
     SET @RecordFrom = (@PageNumber-1) * @PageSize;  
       
@@ -66,9 +87,11 @@ BEGIN
      HS.[HistoryText],  
      HS.[FieldsName],  
      HS.[CreatedBy],  
-     HS.[CreatedDate],  
+     --HS.[CreatedDate],
+	 case when CAST(HS.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(HS.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
      HS.[UpdatedBy],  
-     HS.[UpdatedDate]   
+     --HS.[UpdatedDate]
+	 case when CAST(HS.[UpdatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate
     FROM History HS WITH (NOLOCK)  
     INNER JOIN [dbo].[VendorRMA] vrm WITH (NOLOCK) ON HS.RefferenceId = vrm.VendorRMAId  
     LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH (NOLOCK) ON hs.SubRefferenceId = vrmd.VendorRMADetailId  

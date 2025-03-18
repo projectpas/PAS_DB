@@ -28,7 +28,6 @@
 	11	 10/01/2025   Ayushi Patel		Added a case to get timeZone 
 	12   15/01/2025   Bhargav Saliya    Get Requested Date as ReceivedDate
 	13   17/03/2025   Sahdev Saliya     Change the Date format to Datetime
-
 	14   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date)
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 

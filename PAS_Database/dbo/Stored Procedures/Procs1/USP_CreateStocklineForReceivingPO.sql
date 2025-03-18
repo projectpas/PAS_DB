@@ -29,6 +29,7 @@
 	13   20-12-2024   Moin Bloch        Fixed Asset Inventory Partial Receive issue
     14   17-JAN-2025  RAJESH GAMI       Fixed Asset Inventory to insert RRQty by default as 1 instead of 0
 	15   07/01/2025   Ayushi Patel      cast PP_LastPurchaseDiscDate dateTime into Date
+	15   18-MAR-2025  HEMANT SALIYA     Updated DB Standards
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -319,7 +320,7 @@ BEGIN
 					SubWorkOrderId,ExchangeSalesOrderId,WOQty,SOQty,ForStockQty,IsLotAssigned,LOTQty,LOTQtyReserve,OriginalCost,POOriginalCost,ROOriginalCost,VendorRMAId,VendorRMADetailId,LotMainStocklineId,
 					IsFromInitialPO,LotSourceId,Adjustment,SerialNumberNotProvided,ShippingReferenceNumberNotProvided,IsStkTimeLife,IsKitType,IsSubWOType
 					FROM DBO.StocklineDraft StkDraft WITH (NOLOCK)
-                    WHERE StkDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND StockLineNumber IS NULL
+                    WHERE StkDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND ISNULL(IsParent, 0) = 1 AND StockLineNumber IS NULL
                     ORDER BY CreatedDate;
 
                     SET @CurrentIndex = 0;
@@ -334,7 +335,7 @@ BEGIN
 
                         SELECT TOP 1 @IsSameDetailsForAllParts = StkDraft.IsSameDetailsForAllParts
                         FROM DBO.StocklineDraft StkDraft WITH (NOLOCK)
-                        WHERE IsParent = 1 AND StkDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
+                        WHERE ISNULL(IsParent, 0) = 1 AND StkDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
 
                         IF (@IsSameDetailsForAllParts = 0)
                         BEGIN
@@ -369,7 +370,7 @@ BEGIN
 
                         SELECT @SelectedStockLineDraftId = StockLineDraftId FROM #tmpStocklineDraft WHERE ID = @LoopID;
 
-                        SELECT @PORequestorId = RequestedBy, @POVendorId = VendorId FROM DBO.PurchaseOrder WHERE PurchaseOrderId = @PurchaseOrderId;
+                        SELECT @PORequestorId = RequestedBy, @POVendorId = VendorId FROM DBO.PurchaseOrder WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
 
                         SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) WHERE CodeType = 'Stock Line';
 
@@ -462,7 +463,7 @@ BEGIN
                                IM.isSerialized
                         FROM CTE_Stockline CSTL
 						INNER JOIN DBO.Stockline STL WITH (NOLOCK)
-						INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
+						INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
 						ON CSTL.StockLineId = STL.StockLineId
                         /* PN Manufacturer Combination Stockline logic */
 
@@ -484,7 +485,7 @@ BEGIN
                                CodeSufix,
                                StartsFrom
                         FROM dbo.CodePrefixes CP WITH (NOLOCK)
-						JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+						JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
                         WHERE CT.CodeTypeId IN ( 30, 17, 9 )
                               AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
@@ -646,7 +647,7 @@ BEGIN
                                    NULL,
                                    NULL,
                                    NULL
-                            FROM DBO.TimeLifeDraft
+                            FROM DBO.TimeLifeDraft WITH (NOLOCK)
                             WHERE StockLineDraftId = @SelectedStockLineDraftId;
                         END
 
@@ -667,7 +668,7 @@ BEGIN
                         DECLARE @StkManagementStructureModuleId BIGINT = 2;
                         DECLARE @ManagementStructureEntityId BIGINT = 0;
 
-                        SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WHERE StocklineId = @NewStocklineId;
+                        SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @NewStocklineId;
 
                         EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @NewStocklineId, @ManagementStructureEntityId, @MasterCompanyId, @UpdatedBy;
 
@@ -953,7 +954,7 @@ BEGIN
 
 								DECLARE @ItemMasterPurchaseSaleId  BIGINT = 0;
 
-								SELECT @ItemMasterPurchaseSaleId =  ItemMasterPurchaseSaleId FROM [dbo].[ItemMasterPurchaseSale]
+								SELECT @ItemMasterPurchaseSaleId =  ItemMasterPurchaseSaleId FROM [dbo].[ItemMasterPurchaseSale] WITH (NOLOCK)
 								WHERE ItemMasterId = @ItemMasterId 
 								AND ConditionId = @ConditionId;
 
@@ -975,7 +976,7 @@ BEGIN
                                 FROM DBO.ItemMasterPurchaseSale IMPS
                                 WHERE IMPS.ItemMasterId = @ItemMasterId AND IMPS.ConditionId = @ConditionId;
 
-								SELECT @ItemMasterPurchaseSaleId =  ItemMasterPurchaseSaleId FROM [dbo].[ItemMasterPurchaseSale]
+								SELECT @ItemMasterPurchaseSaleId =  ItemMasterPurchaseSaleId FROM [dbo].[ItemMasterPurchaseSale] WITH (NOLOCK)
 								WHERE ItemMasterId = @ItemMasterId 
 								AND ConditionId = @ConditionId;
 
@@ -990,7 +991,7 @@ BEGIN
 
 					UPDATE Stk
 					SET Stk.IsParent = 0
-					FROM DBO.StocklineDraft Stk WHERE Stk.IsParent = 1 AND Stk.isSerialized = 0 AND Stk.StockLineNumber IS NOT NULL AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
+					FROM DBO.StocklineDraft Stk WHERE ISNULL(Stk.IsParent, 0) = 1 AND ISNULL(Stk.isSerialized, 0) = 0 AND Stk.StockLineNumber IS NOT NULL AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                 END
                 ELSE IF (@ItemTypeId = 11)
                 BEGIN
@@ -1694,7 +1695,7 @@ BEGIN
 
                         SELECT @SelectedStockLineDraftId_Asset = AssetInventoryDraftId, @IsTangible = IsTangible FROM #tmpAssetInventoryDraft WHERE ID = @LoopID;
 
-                        SELECT @PORequestorId_Asset = RequestedBy, @POVendorId_Asset = VendorId FROM DBO.PurchaseOrder WHERE PurchaseOrderId = @PurchaseOrderId;
+                        SELECT @PORequestorId_Asset = RequestedBy, @POVendorId_Asset = VendorId FROM DBO.PurchaseOrder WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
 
                         SELECT @IdCodeTypeId_Asset = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Inventory Stkline Number';
 
@@ -1730,7 +1731,7 @@ BEGIN
 
                         INSERT INTO #tmpCodePrefixes_Asset (CodePrefixId, CodeTypeId, CurrentNumber, CodePrefix, CodeSufix, StartsFrom)
                         SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom
-                        FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+                        FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
                         WHERE CT.CodeTypeId IN (63, 64, 37) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
                         DECLARE @PartNumber_Asset VARCHAR(100) = '';
@@ -1874,7 +1875,7 @@ BEGIN
 
                         SELECT @NewStocklineId_Asset = SCOPE_IDENTITY();
 
-						SET @NewAssetRecordId = (SELECT AssetRecordId FROM AssetInventory WHERE AssetInventoryId = @NewStocklineId_Asset)
+						SET @NewAssetRecordId = (SELECT AssetRecordId FROM AssetInventory WITH (NOLOCK) WHERE AssetInventoryId = @NewStocklineId_Asset)
 
 						IF EXISTS (SELECT TOP 1 1 FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AC.AssetRecordId = @ItemMasterId_Asset)
 						BEGIN
@@ -1914,7 +1915,7 @@ BEGIN
                         DECLARE @ModuleId_AssetMS BIGINT = CASE WHEN @IsTangible = 1 THEN 42 ELSE 43 END;
 
                         SELECT @ManagementStructureEntityId_Asset = [ManagementStructureId]
-                        FROM DBO.Stockline WHERE StocklineId = @NewStocklineId_Asset;
+                        FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @NewStocklineId_Asset;
 
                         EXEC dbo.[PROCAddAssetMSData] @NewStocklineId_Asset, @ManagementStructureEntityId_Asset, @MasterCompanyId, @UpdatedBy, @UpdatedBy, @ModuleId_AssetMS, 1;
 
@@ -2199,7 +2200,7 @@ BEGIN
                             DECLARE @NonStockCurrentNumber BIGINT = 0;
                             SET @ParentNonStockId = 0;
                             SET @TempNonStockId = (SELECT NonStockInventoryDraftId FROM #tmpNonStockInventoryDraft WHERE ID = @StartNonStock);
-                            SET @MSModuleId_NonStock = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName = 'NonStockStockline')
+                            SET @MSModuleId_NonStock = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'NonStockStockline')
 
                             SELECT CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END from #tmpNonStockInventoryDraft;
 
@@ -2231,7 +2232,7 @@ BEGIN
 							[NonStockClassification],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],
 							[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId],[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],
 							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RRQty]
-							FROM tempNonStockInventory
+							FROM tempNonStockInventory 
 
                             SET @NewNonStockInventoryId = SCOPE_IDENTITY();
                             EXEC USP_CreateStocklinePartHistory @NewNonStockInventoryId, 1, 0, 0, 0
@@ -2250,7 +2251,7 @@ BEGIN
                                    @NonStockMasterPartId = MasterPartId,
                                    @NonStockManufacturerId = ManufacturerId,
                                    @ManagementStructureID_NonStock = ManagementStructureId
-                            FROM NonStockInventory
+                            FROM dbo.NonStockInventory WITH(NOLOCK)
                             WHERE NonStockInventoryId = @NewNonStockInventoryId;
 
                             IF (ISNULL(@CurrentIdNumber_NonStock, 0) <> 0)
@@ -2388,7 +2389,7 @@ BEGIN
 									dstl.NonStockInventoryNumber = @NonStockInventoryNumber,
 									dstl.ControlNumber = @ControlNumber,
 									dstl.ReceiverNumber = @ReceiverNumber
-								FROM DBO.NonStockInventoryDraft dstl
+								FROM DBO.NonStockInventoryDraft dstl WITH(NOLOCK)
 								WHERE NonStockInventoryDraftId = @TempNonStockId;
 
 								UPDATE DBO.NonStockInventoryDraft
@@ -2410,7 +2411,7 @@ BEGIN
 									dstl.NonStockInventoryNumber = @NonStockInventoryNumber,
 									dstl.ControlNumber = @ControlNumber,
 									dstl.ReceiverNumber = @ReceiverNumber
-								FROM DBO.NonStockInventoryDraft dstl
+								FROM DBO.NonStockInventoryDraft dstl WITH(NOLOCK)
 								WHERE NonStockInventoryDraftId = @TempNonStockId;
 							END
 
@@ -2455,7 +2456,7 @@ BEGIN
                            @IsSerializedSelected = dstl.isSerialized,
                            @SelectedStocklineId = ISNULL(dstl.StockLineId, 0),
                            @CurrentIsSameDetailsForAllParts = dstl.IsSameDetailsForAllParts
-                    FROM DBO.StocklineDraft dstl
+                    FROM DBO.StocklineDraft dstl WITH (NOLOCK)
                     WHERE dstl.StockLineDraftId = @StocklineDraftSelected;
 
                     IF (@CurrentIsSameDetailsForAllParts = 0 AND @IsParentSelected = 0 AND @IsSerializedSelected = 0 AND @SelectedStocklineId = 0)

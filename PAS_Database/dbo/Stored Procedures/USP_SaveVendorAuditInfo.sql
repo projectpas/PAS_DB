@@ -32,7 +32,7 @@ BEGIN
 
 	BEGIN TRY
 	
-		IF(@VendorAuditInfoId = 0)
+		IF(ISNULL(@VendorAuditInfoId,0) = 0)
 		BEGIN 
 			INSERT INTO [dbo].[VendorAuditInfo]
 			(
@@ -46,8 +46,16 @@ BEGIN
 		ELSE
 		BEGIN
 			UPDATE [dbo].[VendorAuditInfo]
-			SET FrequencyDays = @FrequencyDays,
-				LastAuditDate = @LastAuditDate
+			SET [VendorOrderTypeId] = @VendorOrderTypeId,
+				[VendorAuditTypeId] = @VendorAuditTypeId,
+				[FrequencyDays] = @FrequencyDays,
+				[LastAuditDate] = @LastAuditDate,
+				[NextAuditDate] = @NextAuditDate,
+				[Expired]       = @Expired,
+				[AuditFindings] = @AuditFindings,
+				[ActionsTaken] = @ActionsTaken,
+				[UpdatedBy] = @CreatedBy,
+				[UpdatedDate] = GETUTCDATE()
 			WHERE VendorAuditInfoId = @VendorAuditInfoId;
 		END
 		

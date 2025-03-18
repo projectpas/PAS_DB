@@ -27,6 +27,7 @@ BEGIN
   BEGIN TRY
 	
 				SELECT	
+					VOI.[VendorAuditInfoId],
 					VOI.[VendorId],
 					VOT.[VendorOrderTypeId],
 					VOT.[OrderTypeName],

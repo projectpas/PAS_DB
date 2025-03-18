@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------
     1    02/11/2025   Ekta Chandegra	Created
     2    03/17/2025   Ekta Chandegra	Add @CreatedBy parameter
+    3    03/18/2025   Ekta Chandegra	Add Sequence number of Work order task instead of Work order task instruction
 
 exec dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId=978,@CreatedBy=N'EKTA CHANDEGRA'
 **************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 			@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
 			WOTD.[TechName], WOTD.[TechUpdatedDate], WOTD.[InspectorId], WOTD.[InspectorName], WOTD.[InspectorUpdatedDate],
 			WOTD.[PrintInWO], WOTD.[PrintInWOQ], WOTI.[IsParent], WOTI.[ParentId], WOTI.[InstructionTitle], WOTI.[InstructionDetails],
-			WOTI.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted],@CreatedBy, GETUTCDATE()
+			WOT.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted],@CreatedBy, GETUTCDATE()
 		FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 		LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId

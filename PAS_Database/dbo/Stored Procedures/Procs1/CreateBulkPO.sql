@@ -8,6 +8,7 @@
 	2    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
 	3    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
 	3    25/10/2024              RAJESH GAMI                        Correction the @ShippingViaId value, And set the currency
+	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
 ****************************************************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -156,7 +157,7 @@ BEGIN
 					SELECT @CurrentPONumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END 
 					FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId
 								
-					SET @PONumber = (SELECT * FROM dbo.udfGenerateCodeNumber(
+					SET @PONumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(
 									@CurrentPONumber,
 									(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),
 									(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))

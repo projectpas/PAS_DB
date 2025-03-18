@@ -23,6 +23,7 @@
 	10	 30 Oct 2024    HEMANT SALIYA		Verify the count 
 	11   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
 	12   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
+	13   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date) AND convert UTC to LOCAL where we compare the CREATEDDate
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -45,13 +46,26 @@ BEGIN
 		DECLARE @SQProcessed AS INT;
 		DECLARE @SOQProcessed AS DECIMAL(20, 2);
 		DECLARE @BacklogStartDt AS DateTime;
-		DECLARE @RecevingModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'RecevingCustomer');;
+		DECLARE @RecevingModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'RecevingCustomer');
 		DECLARE @wopartModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'WorkOrderMPN');
 		DECLARE @woqModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'WorkOrderQuote');
 		DECLARE @SalesOrderModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrder');
 		DECLARE @SalesOrderQouteModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrderQuote');
 		DECLARE @SpeedQouteModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SpeedQuote');
 		DECLARE @EmployeeRoleID AS VARCHAR(MAX);
+		/* --------------START: Get the timzone and UTC offset -------------- */
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
+			SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+								FROM dbo.Employee E WITH (NOLOCK) 
+									LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+									LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+									LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+								WHERE E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee		
+				
+			SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec  
+				FROM dbo.TimeZone WITH(NOLOCK)  
+				WHERE [Description] = @CurrntEmpTimeZoneDesc
+		/* -------------- END: Get the timzone and UTC offset -------------- */
 
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
 		BEGIN    
@@ -92,7 +106,7 @@ BEGIN
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
 			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+		WHERE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, Rc.CreatedDate) as Date) = CAST(@SelectedDate AS DATE) AND EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 			AND RC.MasterCompanyId = @MasterCompanyId
 
 		SELECT @Qty = COUNT(ReceivingCustomerWorkId) FROM #tmpReceivingCustomerWork
@@ -122,7 +136,7 @@ BEGIN
 										WHERE MasterCompanyId = @MasterCompanyId 
 										AND IsActive = 1 AND IsDeleted = 0)
 		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND
-		CONVERT(DATE, WOP.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE, WOP.CreatedDate) <= CONVERT(DATE, @SelectedDate) 
+		CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE,DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) <= CONVERT(DATE, @SelectedDate) 
 
 		--SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) 
 
@@ -166,7 +180,7 @@ BEGIN
 					Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1) AND
 				 SO.IsActive = 1
 				AND SO.IsDeleted = 0
-				AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @SelectedDate)
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @SelectedDate)
 				AND SO.MasterCompanyId = 1
 				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 				ORDER BY SO.SalesOrderNumber

@@ -17,6 +17,7 @@
 	3	 01 FEB 2024	AMIT GHEDIYA	           added isperforma Flage for SO
 	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETUTCDATE
 	5	 30 Oct 2024   HEMANT SALIYA				Verify the count 
+	6	 18 Mar 2025   RAJESH GAMI					Optimise the timezone related JOIN and code due to timeout
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2, '08/31/2024'
@@ -39,6 +40,7 @@ BEGIN
 			DECLARE @RecevingModuleID AS INT =1
 			DECLARE @wopartModuleID AS INT =12
 			DECLARE @SalesOrderModuleID AS INT =17
+			
 
 			IF @StartDate IS NULL
 			BEGIN
@@ -57,6 +59,19 @@ BEGIN
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
+			/* --------------START: Get the timzone and UTC offset -------------- */
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
+			SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+								FROM dbo.Employee E WITH (NOLOCK) 
+									LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+									LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+									LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+								WHERE E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee		
+				
+			SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec  
+				FROM dbo.TimeZone WITH(NOLOCK)  
+				WHERE [Description] = @CurrntEmpTimeZoneDesc
+			/* -------------- END: Get the timzone and UTC offset -------------- */
 			IF OBJECT_ID(N'tempdb..#tmpMonthlyData') IS NOT NULL
 			BEGIN
 				DROP TABLE #tmpMonthlyData
@@ -86,10 +101,12 @@ BEGIN
 							INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
 							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-							INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
-							INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
-							INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
-						WHERE MONTH(Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date)) = @Year
+							--INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+							--INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
+							--INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
+						WHERE 
+							MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, ReceivedDate) as Date)) = @Month 
+							AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, ReceivedDate) as Date)) = @Year
 							AND RC.MasterCompanyId = @MasterCompanyId
 					)
 
@@ -110,11 +127,11 @@ BEGIN
 							INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
 							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
 							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-							INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
-							INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
-							INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
+							--INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+							--INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
+							--INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 						WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 
-							AND MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
+							AND MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec,InvoiceDate) as Date)) = @Month AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Year
 							AND WOBI.MasterCompanyId = @MasterCompanyId
 							AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 					)
@@ -134,11 +151,11 @@ BEGIN
 							INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
 							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-							INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
-							INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
-							INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
+							--INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+							--INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
+							--INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 						WHERE 
-						MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
+						MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Month AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Year
 							AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 					)
 

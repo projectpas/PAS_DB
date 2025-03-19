@@ -17,6 +17,7 @@
  6   02/09/2024     Hemant Saliya		Added Sub Ladger
  7   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
  8   13-Mar-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
+ 9   19-Mar-2025	Devendra Shekh	    Added QuickBooks Columns
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -42,7 +43,10 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @UpdatedBy varchar(50)=null,    
  @MasterCompanyId int = null,
  @IsUpdated BIT = NULL,
- @EmployeeId bigint = Null
+ @EmployeeId bigint = Null,
+ @QuickBooksReferenceId  varchar(200)=null,
+ @isSynced  varchar(20)=null,
+ @LastSyncDate datetime=null
 )  
 AS    
 BEGIN  
@@ -118,7 +122,10 @@ BEGIN
 				   WHERE G.GLAccountId = GL.GLAccountId            
 				   AND GLM.IsDeleted = 0  
 				   FOR XML PATH('')            
-				   ), 1, 1, '')      
+				   ), 1, 1, '')
+				   ,GL.QuickBooksReferenceId,
+					CASE WHEN ISNULL(GL.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
+					GL.LastSyncDate
 			   FROM dbo.GLAccount GL WITH(NOLOCK)  
 				   LEFT JOIN dbo.GLAccountClass GAL WITH(NOLOCK) ON GL.GLAccountTypeId = GAL.GLAccountClassId  
 				   LEFT JOIN dbo.LeafNode LG WITH(NOLOCK) ON GL.GLAccountNodeId = LG.LeafNodeId  
@@ -150,7 +157,9 @@ BEGIN
 			   (AccountTypeId LIKE '%' +@GlobalFilter+'%') OR   
 			   (OldAccountCode LIKE '%' +@GlobalFilter+'%') OR   
 			   (AccountDescription LIKE '%' +@GlobalFilter+'%') OR  
-			   (LeafNodeName LIKE '%' +@GlobalFilter+'%') OR   
+			   (LeafNodeName LIKE '%' +@GlobalFilter+'%') OR
+			   (QuickBooksReferenceId LIKE '%' +@GlobalFilter+'%') OR
+			   (isSynced LIKE '%' +@GlobalFilter+'%') OR
 			   (CreatedBy LIKE '%' +@GlobalFilter+'%') OR   
 			   (UpdatedBy LIKE '%' +@GlobalFilter+'%')    
 			   )) OR  
@@ -165,6 +174,9 @@ BEGIN
 			   (ISNULL(@AccountDescription,'') ='' OR AccountDescription LIKE '%' + @AccountDescription+'%') AND             
 			   (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND        
 			   (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND        
+			   (ISNULL(@QuickBooksReferenceId,'') ='' OR QuickBooksReferenceId LIKE '%' + @QuickBooksReferenceId+'%') AND
+			   (ISNULL(@isSynced,'') ='' OR isSynced LIKE '%' + @isSynced+'%') AND
+			   (ISNULL(@LastSyncDate,'') ='' OR CAST(LastSyncDate as Date)=CAST(@LastSyncDate as date)) AND
 			   (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND        
 			   (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))        
 			  )  
@@ -184,7 +196,10 @@ BEGIN
 			   CASE WHEN (@SortOrder=1 AND @SortColumn='ACCOUNTTYPEID')  THEN AccountTypeId END ASC,    
 			   CASE WHEN (@SortOrder=1 AND @SortColumn='OLDACCOUNTCODE')  THEN OldAccountCode END ASC,        
 			   CASE WHEN (@SortOrder=1 AND @SortColumn='INTERCOMPANY')  THEN InterCompany END ASC,    
-			   CASE WHEN (@SortOrder=1 AND @SortColumn='ACCOUNTDESCRIPTION')  THEN AccountDescription END ASC,        
+			   CASE WHEN (@SortOrder=1 AND @SortColumn='ACCOUNTDESCRIPTION')  THEN AccountDescription END ASC,  
+			   CASE WHEN (@SortOrder=1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END ASC,
+			   CASE WHEN (@SortOrder=1 AND @SortColumn='ISSYNCED')  THEN isSynced END ASC,
+			   CASE WHEN (@SortOrder=1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END ASC,
   
 			   CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,        
 			   CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,        
@@ -197,7 +212,10 @@ BEGIN
 			   CASE WHEN (@SortOrder=-1 AND @SortColumn='ACCOUNTTYPEID')  THEN AccountTypeId END DESC,    
 			   CASE WHEN (@SortOrder=-1 AND @SortColumn='OLDACCOUNTCODE')  THEN OldAccountCode END DESC,        
 			   CASE WHEN (@SortOrder=-1 AND @SortColumn='INTERCOMPANY')  THEN InterCompany END DESC,    
-			   CASE WHEN (@SortOrder=-1 AND @SortColumn='ACCOUNTDESCRIPTION')  THEN AccountDescription END DESC   
+			   CASE WHEN (@SortOrder=-1 AND @SortColumn='ACCOUNTDESCRIPTION')  THEN AccountDescription END DESC,
+			   CASE WHEN (@SortOrder=-1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END DESC,
+			   CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSYNCED')  THEN isSynced END DESC,
+			   CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC
   
 			   OFFSET @RecordFrom ROWS         
 			   FETCH NEXT @PageSize ROWS ONLY       

@@ -3,6 +3,7 @@ AS
 	SELECT 
 	VS.[VendorStatusId],
 	VS.[Description],
+	VS.Memo,
 	VS.MasterCompanyId,
 	VS.CreatedDate,
 	VS.CreatedBy,

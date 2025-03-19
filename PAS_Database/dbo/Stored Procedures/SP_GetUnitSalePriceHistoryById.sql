@@ -52,8 +52,8 @@ BEGIN
 		SELECT StockLineNumber,UnitSalesPrice,SalesPriceExpiryDate,
 		--CreatedDate,
 		--UpdatedDate,
-		case when CAST(CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
-		case when CAST(UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+		case when CAST(CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
+		case when CAST(UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
 		UpdatedBy
 		FROM [dbo].[UnitSalePriceHistoryAudit] WITH (NOLOCK)
 		WHERE StocklineId = @StocklineId

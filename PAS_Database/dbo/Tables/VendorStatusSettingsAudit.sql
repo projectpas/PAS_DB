@@ -7,7 +7,6 @@
     [StatusId]                    BIGINT        NULL,
     [IsAuditWarning]              BIT           NULL,
     [IsAuditRestriction]          BIT           NULL,
-    [VarianceDays]                VARCHAR (100) NULL,
     [MasterCompanyId]             INT           NOT NULL,
     [CreatedBy]                   VARCHAR (256) NOT NULL,
     [UpdatedBy]                   VARCHAR (256) NOT NULL,

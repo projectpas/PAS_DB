@@ -6,7 +6,6 @@
     [StatusId]               BIGINT        NULL,
     [IsAuditWarning]         BIT           NULL,
     [IsAuditRestriction]     BIT           NULL,
-    [VarianceDays]           VARCHAR (100) NULL,
     [MasterCompanyId]        INT           NOT NULL,
     [CreatedBy]              VARCHAR (256) NOT NULL,
     [UpdatedBy]              VARCHAR (256) NOT NULL,
@@ -16,6 +15,8 @@
     [IsDeleted]              BIT           CONSTRAINT [DF_VendorStatusSettings_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_VendorStatusSettings] PRIMARY KEY CLUSTERED ([VendorStatusSettingsId] ASC)
 );
+
+
 
 
 GO
@@ -31,9 +32,9 @@ Begin
 
 SET NOCOUNT ON
 
-	INSERT INTO VendorStatusSettingsAudit ([VendorStatusSettingsId],[Rating],[OnTimeDelivery], [Description],[StatusId], [IsAuditWarning],[IsAuditRestriction],[VarianceDays],MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
+	INSERT INTO VendorStatusSettingsAudit ([VendorStatusSettingsId],[Rating],[OnTimeDelivery], [Description],[StatusId], [IsAuditWarning],[IsAuditRestriction],MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
 
-	SELECT [VendorStatusSettingsId],[Rating],[OnTimeDelivery], [Description],[StatusId], [IsAuditWarning],[IsAuditRestriction],[VarianceDays], MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted FROM INSERTED
+	SELECT [VendorStatusSettingsId],[Rating],[OnTimeDelivery], [Description],[StatusId], [IsAuditWarning],[IsAuditRestriction], MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted FROM INSERTED
 
 	
 

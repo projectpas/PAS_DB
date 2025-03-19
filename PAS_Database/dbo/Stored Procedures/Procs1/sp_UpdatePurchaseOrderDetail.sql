@@ -18,6 +18,7 @@
     1    10/19/2023   Vishal Suthar		Added history
 	2    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	3    11/14/2024	  Vishal Suthar		Fixed New table name in the Update statement
+	4    18/MAR/2025    RAJESH GAMI		Fixed QtyOnOrder update for the WorkorderMaterial and KIT
 	
  EXEC sp_UpdatePurchaseOrderDetail 2985
 **************************************************************/
@@ -35,10 +36,13 @@ BEGIN
 
 		UPDATE dbo.WorkOrderMaterials
 		SET 
-		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(PP.Qty, 0)
-		THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
-		ELSE ISNULL(PP.Qty, 0)
-		END, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.EstDeliveryDate
+		QtyOnOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POP.QuantityOrdered, 0)
+							THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
+							ELSE ISNULL(POP.QuantityOrdered, 0) END, 
+		QtyOnBkOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POP.QuantityOrdered, 0)
+							THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
+							ELSE ISNULL(POP.QuantityOrdered, 0) END, 
+		PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.EstDeliveryDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.WorkOrderMaterials WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
@@ -47,9 +51,11 @@ BEGIN
 
 		UPDATE dbo.WorkOrderMaterialsKit
 		SET 
-		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(PP.Qty, 0)
+		QtyOnOrder  = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POP.QuantityOrdered, 0)
 		THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
-		ELSE ISNULL(PP.Qty, 0)
+		ELSE ISNULL(POP.QuantityOrdered, 0) END, QtyOnBkOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POP.QuantityOrdered, 0)
+		THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
+		ELSE ISNULL(POP.QuantityOrdered, 0)
 		END, PONum = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.EstDeliveryDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.WorkOrderMaterialsKit WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId

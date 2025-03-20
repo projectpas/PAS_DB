@@ -3532,6 +3532,7 @@
     <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysisForShippingARbalance.sql" />
     <Build Include="dbo\Tables\VendorStatusSettingsAudit.sql" />
     <Build Include="dbo\Tables\VendorStatusSettings.sql" />
+    <Build Include="dbo\Stored Procedures\CheckVendorWarningRestriction.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

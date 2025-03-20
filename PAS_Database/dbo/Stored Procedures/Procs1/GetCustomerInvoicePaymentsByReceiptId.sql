@@ -212,11 +212,11 @@ BEGIN
 			  LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD_CM WITH (NOLOCK) ON MSD_CM.ModuleID = @CMSModuleID AND MSD_CM.ReferenceID =  CM.CreditMemoHeaderId  
 			  LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD_UC WITH (NOLOCK) ON MSD_UC.ModuleID = @CMSModuleID AND MSD_UC.ReferenceID =  CCP.CustomerCreditPaymentDetailId 
 			  LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId        
-			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId        
-			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId    
+			  --LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId        
+			  --LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId    
 			  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0        
-			  LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
-			  LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
+			  --LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
+			  --LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
 			  LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(S.PercentId AS INT) = ps.PercentId        
 			  LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = pw.PercentId     
 		WHERE INV.[ReceiptId] = @ReceiptId AND PageIndex=@PageIndex AND INV.CustomerId=@CustomerId      

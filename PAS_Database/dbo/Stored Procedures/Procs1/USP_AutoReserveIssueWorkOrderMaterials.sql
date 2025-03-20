@@ -20,6 +20,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 ** 9    09/12/2024  RAJESH GAMI		 Implemented Stockline History for the IssueReserve
 ** 10   09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 11   10/03/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
+** 12	03/19/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
 
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 **************************************************************/ 
@@ -52,6 +53,48 @@ BEGIN
 					SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderTypeId = WorkOrderTypeId, @WONumber=WorkOrderNum FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 					SELECT TOP 1 @ARDesc = [Description] FROM DBO.Condition WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1
 					select @EmployeeID = EmployeeId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(FirstName,' ',LastName) IN (@UpdatedBy) AND MasterCompanyId= @MasterCompanyId
+
+					-- Check Restrict PMA / DER : Start
+					IF OBJECT_ID(N'tempdb..#AllowItemMasterIds') IS NOT NULL
+					BEGIN
+						DROP TABLE #AllowItemMasterIds
+					END
+
+					CREATE TABLE #AllowItemMasterIds(
+						[RecordId] BIGINT IDENTITY(1,1),
+						[ItemMasterId] BIGINT,      
+					)
+					
+					DECLARE	@RestrictDER BIT = 0, @RestrictPMA BIT = 0;
+					DECLARE @StkItemTypeId INT;
+					DECLARE @WOPartNOId BIGINT;
+					DECLARE @RestrictPartModuleId INT = 1;
+
+					SELECT @WOPartNOId = WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND MasterCompanyId = @MasterCompanyId;
+					SELECT @StkItemTypeId = [ItemTypeId] FROM [dbo].[ItemType] WITH(NOLOCK) WHERE UPPER([Name]) = 'STOCK';
+					SELECT @RestrictPMA = ISNULL([IsPMA], 0), @RestrictDER = ISNULL([IsDER], 0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNOId;
+				
+					--- FOR OEM
+					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
+					AND IM.MasterCompanyId = @MasterCompanyId AND IM.IsOEM = 1 AND IsDER = 0;
+
+					--FOR PMA
+					IF(ISNULL(@RestrictPMA, 0) <> 1)
+					BEGIN
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
+						AND IM.MasterCompanyId = @MasterCompanyId AND IM.IsPma = 1 AND IsDER = 0;
+					END
+
+					--FOR DER
+					IF(ISNULL(@RestrictDER, 0) <> 1)
+					BEGIN
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
+						AND IM.MasterCompanyId = @MasterCompanyId AND IM.IsDER = 1;
+					END
+
+					--Except Parts
+					--INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[RestrictedParts] RS WITH(NOLOCK) WHERE RS.IsActive = 1 AND RS.IsDeleted = 0 AND RS.ModuleId = @RestrictPartModuleId AND RS.ReferenceId = @CustomerID;
+					-- Check Restrict PMA / DER : End
 
 					--GET Stockline List For Auto Reserve
 					IF((SELECT COUNT(1) FROM dbo.WorkOrderSettings WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND WorkOrderTypeId = @WorkOrderTypeId AND ISNULL(IsAutoIssue, 0) = 1) > 0)
@@ -117,6 +160,7 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							AND (SELECT TOP 1 Description FROM DBO.Condition cnd WITH(NOLOCK) WHERE cnd.ConditionId = WOM.ConditionCodeId AND ISNULL(cnd.IsDeleted,0) = 0 AND ISNULL(cnd.IsActive,0) = 1) != @ARDesc
+							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 						
 						--PRINT '--Auto Reserve & Issue Stockline'
 						--Auto Reserve & Issue Stockline

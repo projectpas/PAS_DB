@@ -31,7 +31,7 @@ BEGIN
 		   @IsDownload BIT = NULL
 
 			SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
-		  SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
+		  SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
 		  BEGIN TRY  
       
 	SELECT   
@@ -73,7 +73,7 @@ BEGIN
        VAI.CreatedBy 'PerformedBy',
 	   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(VAI.CreatedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), VAI.CreatedDate, 107) END 'DatePerformed'
       FROM DBO.VendorAuditInfo VAI WITH (NOLOCK)
-		INNER JOIN dbo.Vendor V WITH (NOLOCK) ON V.vendorId = VAI.VendorId
+		INNER JOIN DBO.Vendor V WITH (NOLOCK) ON V.vendorId = VAI.VendorId
       WHERE VAI.VendorId = ISNULL(@vendorname, VAI.VendorId) AND VAI.mastercompanyid = @mastercompanyid and VAI.IsActive =1 AND VAI.IsDeleted=0
 			AND CAST(VAI.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
 			)

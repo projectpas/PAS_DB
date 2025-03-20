@@ -19,9 +19,8 @@
     3    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
     4    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
 	5    02/27/2025   AMIT GHEDIYA	    Change DataType OF ReceivedDate From DATETIME to DATE
-  
+ 	6    20 MAR 2025  RAJESH GAMI		Change the JOIN from INNER to LEFT for the StocklineDraft
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
-r
 exec dbo.GetReceiverStockPO @PurchaseOrderId=2014,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetReceiverStockPO]
@@ -87,7 +86,7 @@ BEGIN
 				  sl.TraceableToName
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
+			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
 			LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
@@ -127,7 +126,7 @@ BEGIN
 				  sl.TraceableToName
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
+			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
 			LEFT JOIN [dbo].[PurchaseOrderPartReference] popr WITH(NOLOCK) ON sl.PurchaseOrderPartRecordId = popr.PurchaseOrderPartId
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
@@ -167,7 +166,7 @@ BEGIN
 				  sl.TraceableToName
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
-			INNER JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
+			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
 			LEFT JOIN  [dbo].[SalesOrder] so WITH(NOLOCK) ON sd.SalesOrderId = so.SalesOrderId
 			LEFT JOIN  [dbo].[WorkOrder] wo WITH(NOLOCK) ON sd.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN  [dbo].[Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId

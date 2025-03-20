@@ -20,3 +20,23 @@
     CONSTRAINT [FK_VendorAuditInfo_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+GO
+
+
+CREATE   Trigger [dbo].[trg_VendorAuditInfo]
+ON [DBO].[VendorAuditInfo]
+	AFTER INSERT,UPDATE
+As  
+Begin 
+SET NOCOUNT ON
+	
+	INSERT INTO VendorAuditInfoAudit 
+				([VendorAuditInfoId], [VendorId], [VendorOrderTypeId], [VendorAuditTypeId], [FrequencyDays], [LastAuditDate], 
+				[NextAuditDate], [Expired], [AuditFindings], [ActionsTaken], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], 
+				[IsActive], [IsDeleted],[MasterCompanyId])
+	SELECT [VendorAuditInfoId], [VendorId], [VendorOrderTypeId], [VendorAuditTypeId], [FrequencyDays], [LastAuditDate], 
+		   [NextAuditDate], [Expired], [AuditFindings], [ActionsTaken], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], 
+		   [IsActive], [IsDeleted],[MasterCompanyId] FROM INSERTED
+
+End

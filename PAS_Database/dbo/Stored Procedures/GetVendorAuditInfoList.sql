@@ -19,13 +19,24 @@
 	 EXEC [dbo].[GetVendorAuditInfoList] 4169
 ****************************************************************************************/
 CREATE    PROCEDURE [dbo].[GetVendorAuditInfoList]
-@VendorId bigint = null
+	@VendorId BIGINT = NULL,
+	@EmployeeId BIGINT
 AS
 BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
   BEGIN TRY
-	
+				DECLARE @CurrentDate DATETIME,@CurrntEmpTimeZoneDesc VARCHAR(100) = '',@Expired VARCHAR(10) = 'Expired';
+
+				--Set TodayDate for Expired as Employee Timezone
+				SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE E.EmployeeId = @EmployeeId; 
+
+				SET @CurrentDate = Cast(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE);
+				
 				SELECT	
 					VOI.[VendorAuditInfoId],
 					VOI.[VendorId],
@@ -36,7 +47,12 @@ BEGIN
 					VOI.[FrequencyDays],
 					VOI.[LastAuditDate],
 					VOI.[NextAuditDate],
-					VOI.[Expired],
+					(CASE WHEN  
+							@CurrentDate > Cast(DBO.ConvertUTCtoLocal(VOI.[NextAuditDate], @CurrntEmpTimeZoneDesc) AS DATE)
+						THEN 
+							@Expired 
+						ELSE '' 
+					END) AS Expired,
 					VOI.[AuditFindings],
 					VOI.[ActionsTaken],
 					VOI.[CreatedBy],

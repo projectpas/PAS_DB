@@ -15,6 +15,7 @@
  ** --   --------     -------			-------------------------------          
     1	 06/13/2024  Vishal Suthar		Increased reasult set limit from 20 to 50
 	2	 11/18/2024  AMIT GHEDIYA		Updated serach with same text.
+	3	 03/21/2025  Devendra Shekh		Added Except Parts for PMA/DER
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
@@ -179,6 +180,62 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
 		END 
+
+		 --Adding PMA Except Parts
+		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
+		SELECT DISTINCT 
+			im.ItemMasterId AS PartId,
+			im.partnumber AS PartNumber,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,
+			im.PartDescription AS PartDescription,
+			im.ManufacturerName AS ManufacturerName,
+			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
+			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
+			ELSE 'OEM'
+			END) AS StockType
+			FROM DBO.ItemMaster im WITH(NOLOCK)	
+			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON im.ManufacturerId = M.ManufacturerId
+			INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON 
+							im.ItemMasterId = rpDER.ItemMasterId
+							AND rpDER.PartType = 'PMA' 
+							AND rpDER.ReferenceId  = @CustomerId 
+							AND rpDER.ModuleId = 1--This is wrong actully Module id in restricted part itself is coming wrong
+							AND rpDER.IsActive = 1
+							AND rpDER.IsDeleted = 0
+			WHERE im.IsActive = 1
+			AND im.IsDeleted = 0
+			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
+			AND im.MasterCompanyId = @MasterCompanyId
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
+
+		--Adding DER Except Parts
+		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
+		SELECT DISTINCT 
+			im.ItemMasterId AS PartId,
+			im.partnumber AS PartNumber,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,
+			im.PartDescription AS PartDescription,
+			im.ManufacturerName AS ManufacturerName,
+			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
+			WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
+			WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
+			ELSE 'OEM'
+			END) AS StockType
+			FROM DBO.ItemMaster im WITH(NOLOCK)	
+			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON im.ManufacturerId = M.ManufacturerId
+			INNER JOIN [dbo].[RestrictedParts] rpDER WITH(NOLOCK) ON 
+							im.ItemMasterId = rpDER.ItemMasterId
+							AND rpDER.PartType = 'DER' 
+							AND rpDER.ReferenceId  = @CustomerId 
+							AND rpDER.ModuleId = 1--This is wrong actully Module id in restricted part itself is coming wrong
+							AND rpDER.IsActive = 1
+							AND rpDER.IsDeleted = 0
+			WHERE im.IsActive = 1
+			AND im.IsDeleted = 0
+			AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
+			AND im.MasterCompanyId = @MasterCompanyId
+			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
 
 		INSERT INTO #Result 
 				SELECT 

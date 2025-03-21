@@ -12,29 +12,347 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    24/02/2025   HEMANT SALIYA    Created
+	2    11/03/2025   Moin Bloch       Updated
      
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
-CREATE   PROCEDURE USP_CreateWorkOrder
-    @CSRId INT,
-    @SalesPersonId INT,
-	@OpenDate DATE,
-    @WorkOrderTypeId BIGINT,
-    @MasterCompanyId BIGINT,
-    @WorkOrderId BIGINT,
-    @CreatedBy BIGINT,    
-    @PartNumbers NVARCHAR(MAX),  -- Assuming you will pass the part numbers as JSON or CSV
-    @StockLineId INT,
-    @IsTraveler BIT,
-    @AllowInvoiceBeforeShipping BIT
+CREATE       PROCEDURE [dbo].[USP_CreateWorkOrder]
+@WorkOrderId BIGINT = NULL,
+@WorkOrderNum VARCHAR(30) = NULL,
+@IsSinglePN BIT = NULL,
+@WorkOrderTypeId BIGINT = NULL,
+@OpenDate DATETIME2(7) NULL,
+@CustomerId BIGINT = NULL,
+@WorkOrderStatusId BIGINT,
+@EmployeeId BIGINT = NULL,
+@MasterCompanyId INT,
+@CreatedBy VARCHAR(256),
+@UpdatedBy VARCHAR(256),
+@CreatedDate DATETIME2(7),
+@UpdatedDate DATETIME2(7),
+@IsActive BIT,
+@IsDeleted BIT,
+@SalesPersonId BIGINT = NULL,
+@CSRId BIGINT = NULL,
+@ReceivingCustomerWorkId BIGINT = NULL,
+@Memo NVARCHAR(MAX) = NULL,
+@Notes NVARCHAR(MAX) = NULL,
+@CustomerContactId BIGINT,
+@CustomerName VARCHAR(100) = NULL,
+@CustomerType VARCHAR(200) = NULL,
+@CreditLimit DECIMAL(18,2) = NULL,
+@CreditTerms VARCHAR(200) = NULL,
+@TearDownTypes VARCHAR(300) = NULL,
+@RMAHeaderId BIGINT = NULL,
+@IsWarranty BIT = NULL,
+@IsAccepted BIT = NULL,
+@ReasonId BIGINT = NULL,
+@Reason VARCHAR(500) = NULL,
+@CreditTermId INT = NULL,
+@IsManualForm BIT = NULL,
+@PercentId BIGINT = NULL,
+@Days INT = NULL,
+@NetDays INT = NULL,
+@WorkOrderType VARCHAR(50) = NULL,
+@FunctionalCurrencyId INT = NULL,
+@ReportCurrencyId INT = NULL,
+@ForeignExchangeRate DECIMAL(18,2) = NULL,
+@WorkOrderFormTypeId BIT = NULL,
+@IsWoAlwaysOrOndemandId BIT = NULL, 
+@PartNumbers NVARCHAR(MAX)=NULL,  -- Assuming you will pass the part numbers as JSON or CSV
+@StockLineId INT=NULL,
+@IsTraveler BIT=NULL,
+@AllowInvoiceBeforeShipping BIT=NULL,
+@tbl_WorkOrderPartNumberType WorkOrderPartNumberType READONLY
 AS
 BEGIN
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	BEGIN TRY
+	BEGIN TRANSACTION
+	BEGIN
     -- Declare variables
-    DECLARE @CurrentNo INT = 0;
-    DECLARE @CodePrefix NVARCHAR(50);
-    DECLARE @CodeSuffix NVARCHAR(50);	
-	DECLARE @WorkOrderNum NVARCHAR(50);
-	DECLARE @WorkOrderSettingId BIGINT;
+	DECLARE @Customer INT,@Internal INT,@TearDown INT,@ShopServices INT
+    DECLARE @CurrentNo INT = 0,@CreditTermsId INT=NULL,@WorkOrderModuleID INT,@NPMStockQTY INT = 1
+    DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50)	
+	DECLARE @WorkOrderSettingId BIGINT,@CustomerFinancialId BIGINT=0,@ItemMasterId BIGINT=NULL,@ID BIGINT=NULL
+	DECLARE @WorkOrderCodePrefix INT,@InternalWorkOrderCodePrefix INT,@TearDownWorkOrderCodePrefix INT,@ShopServiceWorkOrderCodePrefix INT,@RMANumberCodePrefix INT
+	DECLARE @CreateWO VARCHAR(20)='CreateWorkOrder',@EmpExpCode VARCHAR(20)='TECHNICIAN',@EmployeeExpertiseId SMALLINT= NULL,@TemplateBody VARCHAR(MAX)=''
+	DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1,@StocklineManagementStructureModule INT,@WorkOrderMPNManagementStructureModule INT
+	DECLARE @CustomerRMAHeaderManagementStructureModule INT,@OpenRMAStatus INT,@CustomerRMAItemReturnedStatus INT
+	
+	
+	-- Work Order Type
+	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
+	SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
+	SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown';
+	SELECT @ShopServices = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Shop Services';
+
+	-- Code Types Of CodePrefix	
+	SELECT @WorkOrderCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='WorkOrder';	
+	SELECT @InternalWorkOrderCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Internal WorkOrder';
+	SELECT @TearDownWorkOrderCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Teardown WorkOrder';	
+	SELECT @ShopServiceWorkOrderCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='ShopService WorkOrder';
+	SELECT @RMANumberCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='RMANumber';
+	
+	-- Modules
+	SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';
+
+	-- Management Structure Module
+	SELECT @StocklineManagementStructureModule = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName]='Stockline';
+	SELECT @WorkOrderMPNManagementStructureModule = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName]='WorkOrderMPN';
+	SELECT @CustomerRMAHeaderManagementStructureModule = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName]='CustomerRMAHeader';
+	
+	-- RMA Status
+	SELECT @OpenRMAStatus = [RMAStatusId] FROM [dbo].[RMAStatus] WITH(NOLOCK) WHERE [Description]='Open';
+	SELECT @CustomerRMAItemReturnedStatus = [RMAStatusId] FROM [dbo].[RMAStatus] WITH(NOLOCK) WHERE [Description]='Item Returned';
+		
+	SET @CreatedDate = GETUTCDATE();
+    SET @UpdatedDate = GETUTCDATE();
+
+	IF OBJECT_ID(N'tempdb..#tmprCreateWorkOrderPartNumber') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmprCreateWorkOrderPartNumber
+	END
+	IF OBJECT_ID(N'tempdb..#tmprCreateWorkOrderCustomerRMADeatils') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmprCreateWorkOrderCustomerRMADeatils
+	END
+	IF OBJECT_ID(N'tempdb..#tmprCheckWorkOrderForSerialNumber') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmprCheckWorkOrderForSerialNumber
+	END		
+	IF OBJECT_ID(N'tempdb..#tmprOldWorkOrderForBillingInvoicedData') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmprOldWorkOrderForBillingInvoicedData
+	END
+	IF OBJECT_ID(N'tempdb..#tmprGetCustomerRMAPartsDetails') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmprGetCustomerRMAPartsDetails
+	END
+	IF OBJECT_ID(N'tempdb..#tbl_CustomerRMADeatilsType') IS NOT NULL
+	BEGIN
+		DROP TABLE #tbl_CustomerRMADeatilsType
+	END
+			
+	CREATE TABLE #tmprCreateWorkOrderPartNumber
+	(
+		[PKID] [BIGINT] NOT NULL IDENTITY, 
+		[ID] [BIGINT] NULL,
+		[WorkOrderId] [BIGINT] NULL,    
+		[WorkOrderScopeId] [BIGINT] NULL,
+		[EstimatedShipDate] [DATETIME2](7) NULL,
+		[CustomerRequestDate] [DATETIME2](7) NULL,
+		[PromisedDate] [DATETIME2](7) NULL,
+		[EstimatedCompletionDate] [DATETIME2](7) NULL,
+		[NTE] [VARCHAR](30),
+		[Quantity] [INT] NULL,
+		[StockLineId] [BIGINT] NULL,
+		[CMMIds] [VARCHAR](256) NULL,
+		[WorkflowId] [BIGINT] NULL,
+		[WorkOrderStageId] [BIGINT] NULL,
+		[WorkOrderStatusId] [BIGINT] NULL,
+		[WorkOrderPriorityId] [BIGINT] NULL,
+		[IsPMA] [BIT] NULL,
+		[IsDER] [BIT] NULL,
+		[TechStationId] [BIGINT] NULL,
+		[TATDaysStandard] [INT] NULL,
+		[MasterCompanyId] [INT] NULL,
+		[CreatedBy] [VARCHAR](256) NULL,
+		[UpdatedBy] [VARCHAR](256) NULL,
+		[CreatedDate] [DATETIME2](7) NULL,
+		[UpdatedDate] [DATETIME2](7) NULL,
+		[IsActive] [BIT] NULL,
+		[IsDeleted] [BIT] NULL,
+		[ItemMasterId] [BIGINT] NULL,
+		[TechnicianId] [BIGINT] NULL,  
+		[ConditionId] [BIGINT] NULL,
+		[TATDaysCurrent] [INT] NULL,
+		[RevisedPartId] [BIGINT] NULL,
+		[ManagementStructureId] [BIGINT] NULL,
+		[IsMPNContract] [BIT] NULL,
+		[ContractNo] [VARCHAR](20) NULL,
+		[WorkScope] [VARCHAR](200) NULL,
+		[isLocked] [BIT] NULL,
+		[ReceivedDate] [DATETIME] NULL,
+		[IsClosed] [BIT] NULL,
+		[ACTailNum] [NVARCHAR](500) NULL,
+		[ClosedDate] [DATETIME] NULL,
+		[PDFPath] [NVARCHAR](MAX) NULL,
+		[IsFinishGood] [BIT] NULL,
+		[RevisedConditionId] [BIGINT] NULL,
+		[CustomerReference] [VARCHAR](256) NULL,
+		[Level1] [VARCHAR](200) NULL,
+		[Level2] [VARCHAR](200) NULL,
+		[Level3] [VARCHAR](200) NULL,
+		[Level4] [VARCHAR](200) NULL,
+		[AssignDate] [DATETIME2](7) NULL,
+		[ReceivingCustomerWorkId] [BIGINT] NULL,
+		[ExpertiseId] [SMALLINT] NULL,
+		[RevisedItemmasterid] [BIGINT] NULL,
+		[RevisedPartNumber] [VARCHAR](50) NULL,
+		[RevisedPartDescription] [VARCHAR](MAX) NULL,
+		[IsTraveler] [BIT] NULL,
+		[AllowInvoiceBeforeShipping] [BIT] NULL,
+		[WOFPrintDate] [DATETIME] NULL,
+		[CurrentSerialNumber] [VARCHAR](100) NULL,
+		[StocklineCost] [DECIMAL](18,2) NULL,
+		[TendorStocklineCost] [DECIMAL](18,2) NULL,
+		[RepairOrderId] [BIGINT] NULL,
+		[RONumber] [VARCHAR](50) NULL,
+		[RevisedSerialNumber] [VARCHAR](50) NULL,
+		[IsROCreated] [BIT] NULL,
+		[PartNumber] [VARCHAR](200) NULL,
+		[PartDescription] [NVARCHAR](MAX) NULL,
+		[WorkOrderStatus] [VARCHAR](MAX) NULL,
+		[Priority] [VARCHAR](100) NULL,
+		[WorkOrderStage] [VARCHAR](150) NULL,
+		[ManufacturerName] [VARCHAR](250) NULL, 
+		[TechName] [VARCHAR](100) NULL, 
+		[EmployeeStation] [VARCHAR](100) NULL, 
+		[PublicationNo] [VARCHAR](MAX) NULL,
+		[SerialNumber] [VARCHAR](100) NULL,
+		[MasterPartId] [BIGINT] NULL
+	)
+
+	CREATE TABLE #tmprCreateWorkOrderCustomerRMADeatils
+	(
+		[RMAID] [BIGINT] NOT NULL IDENTITY, 
+		[RMADeatilsId] [BIGINT] NULL
+	)
+
+	CREATE TABLE #tmprCheckWorkOrderForSerialNumber
+	(		
+		[WorkOrderNum] VARCHAR(50) NULL,
+		[WorkOrderId] [BIGINT] NULL,
+	)
+
+	CREATE TABLE #tmprOldWorkOrderForBillingInvoicedData
+	(	
+	    [InvoiceId] [BIGINT] NULL,
+		[InvoiceNo] [VARCHAR](256) NULL,
+		[InvoiceStatus] [VARCHAR](50) NULL,
+		[InvoiceDate] [DATETIME2](7) NULL,
+		[OrderNumber] [VARCHAR](50) NULL,
+		[CustomerName] [VARCHAR](100) NULL,
+		[CustomerType] [VARCHAR](256) NULL,
+		[InvoiceAmt] [DECIMAL](20,2) NULL,
+		[isWorkOrder] [BIT] NULL,
+		[ReferenceId] [BIGINT] NULL,
+		[ManagementStructureId] [BIGINT] NULL,
+		[ContactInfo] [VARCHAR](150) NULL,
+		[CustomerContactId] [BIGINT] NULL,
+		[RMAReasonId] [INT] NULL,
+		[RMAReason] [VARCHAR](50) NULL,
+		[RMAStatusId] [BIGINT] NULL,
+		[RMAStatus] [VARCHAR](50) NULL,
+		[ValidDays] [INT] NULL,
+		[MasterCompanyId] [INT] NULL,
+		[CustomerId] [BIGINT] NULL,	
+		[CustomerCode] [VARCHAR](100) NULL,
+		[AddressCount] [INT] NULL,
+		[PartCount] [INT] NULL
+	)
+	
+	CREATE TABLE #tmprGetCustomerRMAPartsDetails
+	(	
+	    [RMADID] [BIGINT] NOT NULL IDENTITY, 
+	    [InvoiceId] [BIGINT] NULL,
+		[InvoiceNo] [VARCHAR](256) NULL,
+		[BillingInvoicingItemId] [BIGINT] NULL,
+		[InvoiceStatus] [VARCHAR](50) NULL,
+		[InvoiceDate] [DATETIME2](7) NULL,
+		[ReferenceNo] [VARCHAR](50) NULL,
+		[ItemMasterId] [BIGINT] NULL,
+		[PartNumber] [VARCHAR](200) NULL,
+		[PartDescription] [NVARCHAR](MAX) NULL,		
+		[CustPartNumber] [VARCHAR](200) NULL,
+		[CustomerReference] [VARCHAR](256) NULL, 
+		[SerialNumber] [VARCHAR](100) NULL,
+		[StocklineNumber] [VARCHAR](50) NULL,
+		[StocklineId] [BIGINT] NULL,
+		[ControlNumber] [VARCHAR](200) NULL,
+		[ControlId] [VARCHAR](100) NULL,
+		[Qty] [INT] NULL,
+		[UnitPrice] [DECIMAL](18,2) NULL,
+		[Amount] [DECIMAL](18,2) NULL,
+		[RMAReasonId] [INT] NULL,
+		[RMAReason] [VARCHAR](50) NULL,
+		[RMAStatusId] [INT] NULL,
+		[RMAStatus] [VARCHAR](50) NULL,
+		[RMAValiddate] [DATETIME2](7) NULL,
+		[IsWorkOrder] [BIT] NULL,
+		[ReferenceId] [BIGINT] NULL,
+		[PartsUnitCost] [DECIMAL](18,2) NULL,
+		[PartsRevenue] [DECIMAL](18,2) NULL,
+		[LaborRevenue] [DECIMAL](18,2) NULL,
+		[MiscRevenue] [DECIMAL](18,2) NULL,
+		[FreightRevenue] [DECIMAL](18,2) NULL,
+		[SubTotal] [DECIMAL](18,2) NULL,
+		[SalesTax] [DECIMAL](18,2) NULL,
+		[OtherTax] [DECIMAL](18,2) NULL,
+		[GrandTotal] [DECIMAL](18,2) NULL,
+		[InvoiceAmt] [DECIMAL](18,2) NULL,
+		[COGSParts] [DECIMAL](18,2) NULL,
+		[COGSLabor] [DECIMAL](18,2) NULL,
+		[COGSOverHeadCost] [DECIMAL](18,2) NULL,
+		[COGSInventory] [DECIMAL](18,2) NULL,
+		[COGSPartsUnitCost] [DECIMAL](18,2) NULL,
+		[RMADeatilsId] [BIGINT] NULL,
+		[RMAHeaderId] [BIGINT] NULL,
+		[Notes] [NVARCHAR](MAX) NULL,
+		[MasterCompanyId] [INT] NULL,
+		[CreatedBy] [VARCHAR](256) NULL,
+		[UpdatedBy] [VARCHAR](256) NULL,
+		[CreatedDate] [DATETIME2](7) NULL,
+		[UpdatedDate] [DATETIME2](7) NULL,
+		[IsActive] [BIT] NULL,
+		[IsDeleted] [BIT] NULL,
+		[isSerialized] [BIT] NULL,
+		[InvoiceQty] [INT] NULL,
+		[ManufacturerName] [VARCHAR](250) NULL,
+		[AltPartNumber] [VARCHAR](200) NULL,
+		[InvoiceTypeId] [INT] NULL														
+	)
+	
+	CREATE TABLE #tbl_CustomerRMADeatilsType
+	(	
+	    [RMADeatilsId] [BIGINT] NULL,
+		[RMAHeaderId] [BIGINT] NULL,
+		[ItemMasterId] [BIGINT] NULL,
+		[PartNumber] [VARCHAR](200) NULL,
+		[PartDescription] [NVARCHAR](MAX) NULL,	
+		[AltPartNumber] [VARCHAR](200) NULL,
+		[CustPartNumber] [VARCHAR](200) NULL,
+		[SerialNumber] [VARCHAR](100) NULL,
+		[StocklineId] [BIGINT] NULL,
+		[StocklineNumber] [VARCHAR](50) NULL,
+		[ControlNumber] [VARCHAR](200) NULL,
+		[ControlId] [VARCHAR](100) NULL,
+		[ReferenceId] [BIGINT] NULL,
+		[ReferenceNo] [VARCHAR](50) NULL,
+		[Qty] [INT] NULL,
+		[UnitPrice] [DECIMAL](18,2) NULL,
+		[Amount] [DECIMAL](18,2) NULL,
+		[RMAReasonId] [INT] NULL,
+		[RMAReason] [VARCHAR](50) NULL,
+		[Notes] [NVARCHAR](MAX) NULL,
+		[isWorkOrder] [BIT] NULL,
+		[MasterCompanyId] [INT] NULL,
+		[CreatedBy] [VARCHAR](256) NULL,
+		[UpdatedBy] [VARCHAR](256) NULL,
+		[CreatedDate] [DATETIME2](7) NULL,
+		[UpdatedDate] [DATETIME2](7) NULL,
+		[IsActive] [BIT] NULL,
+		[IsDeleted] [BIT] NULL,
+		[InvoiceId] [BIGINT] NULL,
+		[BillingInvoicingItemId] [BIGINT] NULL,
+		[CustomerReference] [VARCHAR](256) NULL,
+		[InvoiceQty] [INT] NULL,
+		[ReturnDate] [DATETIME2](7) NULL,
+		[WorkOrderNum] [VARCHAR](50) NULL,
+		[ReceiverNum] [VARCHAR](50) NULL							
+	)
 
     -- Set CSRId and SalesPersonId to NULL if 0
     IF @CSRId = 0
@@ -43,50 +361,51 @@ BEGIN
         SET @SalesPersonId = NULL;
 
     -- Fetch WorkOrderSettings based on parameters
-    SELECT TOP 1 @WorkOrderSettingId = WorkOrderSettingId
-    FROM dbo.WorkOrderSettings WITH(NOLOCK) WHERE WorkOrderTypeId = @WorkOrderTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+    SELECT TOP 1 @WorkOrderSettingId=[WorkOrderSettingId],
+	             @TearDownTypes=[TearDownTypes],
+				 @IsManualForm = CASE WHEN [IsManualForm] IS NULL THEN 0 ELSE [IsManualForm] END,
+				 @IsTraveler = [IsTraveler],
+				 @AllowInvoiceBeforeShipping = [AllowInvoiceBeforeShipping]
+      FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 
+	SELECT TOP 1  @CustomerFinancialId=[CustomerFinancialId],@CreditTermsId=[CreditTermsId] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+	
     -- Determine WorkOrder Code Prefix and Number
-    IF @WorkOrderTypeId = 1 -- Customer
+    IF @WorkOrderTypeId = @Customer -- Customer
     BEGIN
-        SELECT TOP 1 @CodePrefix = CodePrefix, @CodeSuffix = CodeSufix
-        FROM dbo.CodePrefixes WITH(NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = 1 AND MasterCompanyId = @MasterCompanyId;
+        SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @WorkOrderCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
     END
-    ELSE IF @WorkOrderTypeId = 2 -- Internal
+    ELSE IF @WorkOrderTypeId = @Internal -- Internal
     BEGIN
-        SELECT TOP 1 @CodePrefix = CodePrefix, @CodeSuffix = CodeSufix 
-        FROM dbo.CodePrefixes WITH(NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = 2 AND MasterCompanyId = @MasterCompanyId;
+        SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @InternalWorkOrderCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
     END
-	ELSE IF @WorkOrderTypeId = 3 -- TearDown
+	ELSE IF @WorkOrderTypeId = @TearDown -- TearDown
     BEGIN
-        SELECT TOP 1 @CodePrefix = CodePrefix, @CodeSuffix = CodeSufix 
-        FROM dbo.CodePrefixes WITH(NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = 3 AND MasterCompanyId = @MasterCompanyId;
+        SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @TearDownWorkOrderCodePrefix AND MasterCompanyId = @MasterCompanyId;
     END
-	ELSE IF @WorkOrderTypeId = 4 -- ShopServices
+	ELSE IF @WorkOrderTypeId = @ShopServices -- ShopServices
     BEGIN
-        SELECT TOP 1 @CodePrefix = CodePrefix, @CodeSuffix = CodeSufix 
-        FROM dbo.CodePrefixes WITH(NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = 4 AND MasterCompanyId = @MasterCompanyId;
+        SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @ShopServiceWorkOrderCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
     END
     -- Repeat for other WorkOrderTypes...
 
     -- Check for current number and increment
-    IF @CodePrefix IS NOT NULL
+    IF @CodePrefix IS NOT NULL AND @CodePrefix <> ''
     BEGIN
-        SELECT @CurrentNo = ISNULL(CurrentNummber, 0) FROM dbo.CodePrefixes WITH(NOLOCK) WHERE CodePrefix = @CodePrefix AND MasterCompanyId = @MasterCompanyId;
-        
+        SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
         IF @CurrentNo > 0
         BEGIN
             SET @CurrentNo = @CurrentNo + 1;
-            UPDATE CodePrefixes 
-            SET CurrentNummber = @CurrentNo
-            WHERE CodePrefix = @CodePrefix AND MasterCompanyId = @MasterCompanyId;
+            UPDATE [dbo].[CodePrefixes] 
+            SET [CurrentNummber] = @CurrentNo
+            WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
         END
         ELSE
         BEGIN
-            SET @CurrentNo = (SELECT ISNULL(StartsFrom, 0)  FROM CodePrefixes WHERE CodePrefix = @CodePrefix AND MasterCompanyId = @MasterCompanyId) + 1;
-            UPDATE CodePrefixes
-            SET CurrentNummber = @CurrentNo 
-            WHERE CodePrefix = @CodePrefix AND MasterCompanyId = @MasterCompanyId;
+            SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+            UPDATE [dbo].[CodePrefixes]
+            SET [CurrentNummber] = @CurrentNo 
+            WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
         END
 		-- Generate Work Order Number
 		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
@@ -97,18 +416,509 @@ BEGIN
 		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
 	END
 
-    -- Insert or Update WorkOrder table (simplified)
-    INSERT INTO WorkOrder(WorkOrderNum, OpenDate, CSRId, SalesPersonId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, MasterCompanyId)
-    SELECT   @WorkOrderNum, @OpenDate, @CSRId,@SalesPersonId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(), 1, 0, @MasterCompanyId
-  
+	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
+	BEGIN			
+		SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
+	END
 
-    -- Iterate over PartNumbers and update accordingly (simplified, needs a loop)
-    -- Assuming part numbers are passed as a string, you would need to parse them (like CSV or JSON)
-    -- Example of parsing and updating PartNumbers
+    -- Insert or Update WorkOrder table (simplified)   
 
-    -- Assuming you have logic to update part numbers
+	INSERT INTO [dbo].[WorkOrder]([WorkOrderNum],[IsSinglePN],[WorkOrderTypeId],[OpenDate],[CustomerId],[WorkOrderStatusId],[EmployeeId],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+	            [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[SalesPersonId],[CSRId],[ReceivingCustomerWorkId],[Memo],[Notes],[CustomerContactId],[CustomerName],[CustomerType],
+                [CreditLimit],[CreditTerms],[TearDownTypes],[RMAHeaderId],[IsWarranty],[IsAccepted],[ReasonId],[Reason],[CreditTermId],[IsManualForm],[PercentId],[Days],[NetDays],
+                [WorkOrderType],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[WorkOrderFormTypeId],[IsWoAlwaysOrOndemandId])
+         VALUES (@WorkOrderNum,@IsSinglePN,@WorkOrderTypeId,GETUTCDATE(),@CustomerId,@WorkOrderStatusId,@EmployeeId,@MasterCompanyId,@CreatedBy,@UpdatedBy,
+				 @CreatedDate,@UpdatedDate,1,0,@SalesPersonId,@CSRId,@ReceivingCustomerWorkId,@Memo,@Notes,@CustomerContactId,@CustomerName,@CustomerType,
+				 @CreditLimit,@CreditTerms,@TearDownTypes,@RMAHeaderId,@IsWarranty,@IsAccepted,@ReasonId,@Reason,@CreditTermId,@IsManualForm,@PercentId,@Days,@NetDays,
+				 @WorkOrderType,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@WorkOrderFormTypeId,@IsWoAlwaysOrOndemandId)
 
+	SET @WorkOrderId = SCOPE_IDENTITY();	   
+	
+	SELECT TOP 1 @EmployeeExpertiseId = [EmployeeExpertiseId] FROM [dbo].[EmployeeExpertise] WITH(NOLOCK) WHERE [EmpExpCode] = @EmpExpCode AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 
+	INSERT INTO #tmprCreateWorkOrderPartNumber([ID],[WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
+		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
+		   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
+		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
+		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
+		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId])
+	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
+		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
+		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
+		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
+		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
+		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId] FROM @tbl_WorkOrderPartNumberType
 
+	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
-END;
+	WHILE @MinId <= @TotalRecord
+	BEGIN
+		DECLARE @WorkflowId BIGINT = NULL,@TechnicianId BIGINT = NULL,@TechStationId BIGINT = NULL,@RevisedPartId BIGINT = NULL,@RevisedConditionId BIGINT = NULL,@ConditionId BIGINT = NULL
+		DECLARE @RevisedItemmasterid BIGINT = NULL,@RevisedSerialNumber VARCHAR(50)=NULL,@SerialNumber VARCHAR(50)=NULL,@CurrentSerialNumber VARCHAR(100) = NULL
+		DECLARE @RevisedPartNumber VARCHAR(50)=NULL,@PartNumber VARCHAR(200) = NULL,@PartAllowInvoiceBeforeShipping BIT = NULL,@StocklineCost DECIMAL(18,2) = 0
+		
+		SELECT @WorkflowId = [WorkflowId],
+			   @TechnicianId = [TechnicianId],
+			   @TechStationId = [TechStationId],
+			   @RevisedPartId = [RevisedPartId],
+			   @RevisedConditionId = [RevisedConditionId],
+			   @ConditionId = [ConditionId],
+			   @RevisedItemmasterid = [RevisedItemmasterid],
+			   @ItemMasterId = [ItemMasterId],
+			   @RevisedSerialNumber = [RevisedSerialNumber],
+			   @SerialNumber = [SerialNumber],
+			   @CurrentSerialNumber = [CurrentSerialNumber],
+			   @RevisedPartNumber = [RevisedPartNumber],			   
+			   @PartNumber = [PartNumber],			 			  
+			   @PartAllowInvoiceBeforeShipping = [AllowInvoiceBeforeShipping],
+			   @StockLineId = [StockLineId]
+		FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId
+			   		
+		SELECT @StocklineCost = [UnitCost] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+
+		UPDATE #tmprCreateWorkOrderPartNumber 
+		   SET [WorkflowId] =  CASE WHEN @WorkflowId = 0 THEN NULL ELSE @WorkflowId END,
+			   [TechnicianId] = CASE WHEN @TechnicianId = 0 THEN NULL ELSE @TechnicianId END,
+			   [TechStationId] = CASE WHEN @TechStationId = 0 THEN NULL ELSE @TechStationId END,
+			   [RevisedPartId] = CASE WHEN @RevisedPartId = 0 THEN NULL ELSE @RevisedPartId END,
+			   [RevisedConditionId] = CASE WHEN @RevisedConditionId > 0 THEN @RevisedConditionId ELSE @ConditionId END,
+			   [RevisedItemmasterid] = CASE WHEN @RevisedItemmasterid > 0 THEN @RevisedItemmasterid ELSE @ItemMasterId END,
+			   [RevisedSerialNumber] = CASE WHEN  COALESCE(@RevisedSerialNumber, '') != '' THEN @RevisedSerialNumber ELSE @SerialNumber END,
+			   [CurrentSerialNumber] = CASE WHEN COALESCE(@CurrentSerialNumber, '') != '' THEN @CurrentSerialNumber ELSE @SerialNumber END,
+			   [RevisedPartNumber] = CASE WHEN COALESCE(@RevisedPartNumber, '') != '' THEN @RevisedPartNumber ELSE @PartNumber END,
+			   [CreatedBy] = @CreatedBy,
+			   [UpdatedBy] = @CreatedBy,
+			   [CreatedDate] = @CreatedDate,
+			   [UpdatedDate] = @UpdatedDate,
+			   [AssignDate] =  CASE WHEN @TechnicianId > 0 THEN GETUTCDATE() ELSE NULL END,
+			   [IsActive] = 1,
+			   [IsDeleted] = 0,
+			   [MasterCompanyId] = @MasterCompanyId,
+			   [ExpertiseId] = CASE WHEN @EmployeeExpertiseId > 0 THEN @EmployeeExpertiseId ELSE NULL END,
+			   [IsTraveler] = CASE WHEN  @IsTraveler IS NULL THEN 0 ELSE @IsTraveler END,
+			   [AllowInvoiceBeforeShipping] = CASE WHEN @PartAllowInvoiceBeforeShipping IS NULL THEN @AllowInvoiceBeforeShipping ELSE @PartAllowInvoiceBeforeShipping END,	
+			   [StocklineCost] = CASE WHEN @StockLineId > 0 THEN @StocklineCost ELSE [StocklineCost] END
+		 WHERE [PKID] = @MinId
+		
+		INSERT INTO [dbo].[WorkOrderPartNumber]([WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
+	            [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
+				[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
+				[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
+				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
+				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
+				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo])
+		 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
+	            [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
+				[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
+				[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
+				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
+				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
+				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo]
+		   FROM #tmprCreateWorkOrderPartNumber 
+		  WHERE [PKID] = @MinId
+
+		SET @ID = SCOPE_IDENTITY();	
+
+		UPDATE #tmprCreateWorkOrderPartNumber SET [ID] = @ID WHERE [PKID] = @MinId
+		   			 
+		SET @MinId = @MinId + 1
+	END
+
+	SELECT TOP 1 @ItemMasterId=[ItemMasterId],@ID=[ID] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+	
+	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+
+	SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @CreateWO;
+
+	SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', @WorkOrderNum)
+	SET @TemplateBody = REPLACE(@TemplateBody, '#MPN#', @PartNumber)
+	
+	SET @CreatedDate = GETUTCDATE()
+	
+	EXEC [dbo].[USP_History] @WorkOrderModuleID,@WorkOrderId,0,@ID,'',@WorkOrderNum,@TemplateBody,'CreateWorkOrder',@MasterCompanyId,@CreatedBy,@CreatedDate,@CreatedBy,@CreatedDate
+
+	IF(@RMAHeaderId > 0)
+	BEGIN
+		UPDATE [dbo].[CustomerRMAHeader] SET [WorkOrderId]=@WorkOrderId,[WorkOrderNum]=@WorkOrderNum,[ReturnDate]=GETUTCDATE() WHERE [RMAHeaderId] = @RMAHeaderId;
+	END
+
+	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber   
+	WHILE @MinId <= @TotalRecord
+	BEGIN	    
+		DECLARE @MasterPartId BIGINT = NULL,@QuantityAvailable INT=0,@QuantityReserved INT=0,@InvoiceId INT=0,@ValidDate DATETIME2(7)=NULL,@ValidDays INT=0,@WorkOrderStageId BIGINT=NULL
+		DECLARE @WorkOrderScopeId BIGINT = NULL,@PartStockLineId BIGINT = NULL,@WorkOrderPartNumberId BIGINT = NULL,@RMANumber VARCHAR(50)=NULL,@MSDetailsId BIGINT=NULL
+		DECLARE @WorkScopeDescription VARCHAR(500)=NULL,@ReceiverNumber VARCHAR(50),@PartSerialNumber VARCHAR(100)=''
+		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL
+		DECLARE @InvoiceNo VARCHAR(256) = NULL,@InvoiceDate DATETIME2(7)=NULL,@RMACustomerId BIGINT = NULL,@RMACustomerName VARCHAR(100)=NULL,@RMACustomerCode VARCHAR(100)=NULL
+		DECLARE @ContactInfo VARCHAR(150)=NULL,@RMACustomerContactId BIGINT=NULL,@RequestedId BIGINT = NULL,@Requestedby VARCHAR(50)=NULL,@ApprovedbyId BIGINT=NULL
+		DECLARE @Approvedby VARCHAR(50)=NULL,@ApprovedDate DATETIME2(7)=NULL,@ReturnDate DATETIME2(7)=NULL,@ManagementStructureId BIGINT=NULL,@ReferenceId BIGINT=NULL,@Result BIGINT=0
+		DECLARE @WorkOrderCustomerInvoiceTypeEnum INT=1
+
+		SELECT @WorkOrderPartNumberId = [ID],
+		       @MasterPartId = [MasterPartId],
+			   @ItemMasterId = [MasterPartId],
+		       @WorkOrderScopeId = [WorkOrderScopeId],
+			   @PartReceivingCustomerWorkId = [ReceivingCustomerWorkId],
+			   @PartStockLineId = [StockLineId],
+			   @PartSerialNumber = [SerialNumber],
+			   @WorkOrderStageId = [WorkOrderStageId],
+			   @ManagementStructureId = [ManagementStructureId],
+			   @WorkflowId = [WorkflowId]
+ 		FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId		
+
+		SELECT @WorkScopeDescription = [Description] FROM [dbo].[WorkScope] WITH(NOLOCK) WHERE [WorkScopeId] = @WorkOrderScopeId;
+
+		UPDATE #tmprCreateWorkOrderPartNumber 
+		   SET [ItemMasterId] =  @ItemMasterId,
+		       [WorkScope] = @WorkScopeDescription
+		 WHERE [PKID] = @MinId
+
+		IF(@PartReceivingCustomerWorkId > 0) 
+		BEGIN
+			-- Updating Work Order Id in Stockline Table
+			
+			SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),@QuantityReserved = [QuantityReserved] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+			
+			UPDATE [dbo].[StockLine]
+			   SET [WorkOrderId] = @WorkOrderId,
+			       [UpdatedDate] = @UpdatedDate,
+				   [UpdatedBy] = @UpdatedBy,
+				   [WorkOrderPartNoId] = @WorkOrderPartNumberId,
+				   [QuantityAvailable] = @QuantityAvailable - @NPMStockQTY,
+				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY
+			 WHERE [StockLineId] = @PartStockLineId;
+
+			EXEC [dbo].[UpdateStocklineColumnsWithId] @PartStockLineId;
+
+           -- Updating Work Order Id in Receiving Customer Table
+
+			UPDATE [dbo].[ReceivingCustomerWork]
+			   SET [WorkOrderId] = @WorkOrderId,
+			       [UpdatedDate] = @UpdatedDate,
+				   [UpdatedBy] = @UpdatedBy
+             WHERE [ReceivingCustomerWorkId] = @PartReceivingCustomerWorkId
+		END
+		ELSE IF(@PartStockLineId > 0)
+		BEGIN
+		 -- Updating Work Order Id in Stockline Table
+			DECLARE @TotalRecordRMA INT = 0,@MinIdRMA BIGINT = 1,@RMADeatilsId BIGINT = NULL
+
+			SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),@QuantityReserved = [QuantityReserved],@ReceiverNumber = [ReceiverNumber] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+			
+			UPDATE [dbo].[StockLine]
+			   SET [WorkOrderId] = @WorkOrderId,
+			       [UpdatedDate] = @UpdatedDate,
+				   [UpdatedBy] = @UpdatedBy,
+				   [WorkOrderPartNoId] = @WorkOrderPartNumberId,
+				   [QuantityAvailable] = @QuantityAvailable - @NPMStockQTY,
+				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY
+			 WHERE [StockLineId] = @PartStockLineId;
+
+			EXEC [dbo].[UpdateStocklineColumnsWithId] @PartStockLineId;
+
+			SELECT TOP 1 @PartReceivingCustomerWorkId = [ReceivingCustomerWorkId] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+
+			-- Updating Work Order Id in Receiving Customer Table
+
+			IF(@PartReceivingCustomerWorkId > 0) 
+			BEGIN
+				UPDATE [dbo].[ReceivingCustomerWork]
+				   SET [WorkOrderId] = @WorkOrderId,
+					   [UpdatedDate] = @UpdatedDate,
+					   [UpdatedBy] = @UpdatedBy
+				 WHERE [ReceivingCustomerWorkId] = @PartReceivingCustomerWorkId
+			END
+					   
+		    INSERT INTO #tmprCreateWorkOrderCustomerRMADeatils([RMADeatilsId])
+	        SELECT [RMADeatilsId] FROM [dbo].[CustomerRMADeatils] WITH(NOLOCK) WHERE [RMAHeaderId] = @RMAHeaderId AND [ItemMasterId] = @MasterPartId;
+			
+			SELECT @TotalRecordRMA = COUNT(*), @MinIdRMA = MIN([RMAID]) FROM #tmprCreateWorkOrderCustomerRMADeatils
+
+			WHILE @MinIdRMA <= @TotalRecordRMA
+			BEGIN	
+				SELECT @RMADeatilsId = [RMADeatilsId] FROM #tmprCreateWorkOrderCustomerRMADeatils WHERE [RMAID] = @MinId
+
+				UPDATE [dbo].[CustomerRMADeatils]
+				   SET [WorkOrderNum] = @WorkOrderNum,
+				       [ReturnDate] = @UpdatedDate,
+					   [ReceiverNum] = @ReceiverNumber
+				 WHERE [RMADeatilsId] = @RMADeatilsId;
+
+				SET @MinIdRMA = @MinIdRMA + 1
+			END
+			
+			DELETE FROM #tmprCreateWorkOrderCustomerRMADeatils
+		END
+		
+		-- Checking is Possible Warranty & Accepted Warranty
+		IF (@ReasonId = 0 AND @IsWarranty = 1)
+		BEGIN
+			-- START Check for RMA is exist or not if not will add new RMA otherwise update wonumber.
+			SELECT @ReceiverNumber = [ReceiverNumber] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+
+			SELECT TOP(1) @PartRMAHeaderId = [RMAHeaderId] FROM [dbo].[CustomerRMADeatils] WITH(NOLOCK) WHERE [SerialNumber] = @PartSerialNumber AND [ItemMasterId] = @ItemMasterId;
+
+			SELECT @RMANumber = [RMANumber],@RequestedId = [RequestedId],@Requestedby=[Requestedby], 
+			       @ApprovedbyId=[ApprovedbyId],@Approvedby=[Approvedby],@ApprovedDate=[ApprovedDate],@ReturnDate = [ReturnDate]				   
+			  FROM [dbo].[CustomerRMAHeader] WITH(NOLOCK) WHERE [RMAHeaderId] = @PartRMAHeaderId AND [RMAStatusId] = @OpenRMAStatus
+			
+			IF(@RMANumber IS NOT NULL AND @RMANumber <> '')
+			BEGIN
+			    -- Update Rma Header Data
+				UPDATE [dbo].[CustomerRMAHeader]
+				   SET [WorkOrderId] = @WorkOrderId,
+					   [WorkOrderNum] = @WorkOrderNum,
+					   [ReturnDate] = @UpdatedDate,
+                       [ReceiverNum] = @ReceiverNumber,
+                       [RMAStatusId] = @CustomerRMAItemReturnedStatus,
+                       [RMAStatus] = 'Item Returned'
+			     WHERE [RMAHeaderId] = @PartRMAHeaderId
+				 -- Update RMA Detail Data
+				INSERT INTO #tmprCreateWorkOrderCustomerRMADeatils([RMADeatilsId])
+				SELECT [RMADeatilsId] FROM [dbo].[CustomerRMADeatils] WITH(NOLOCK) WHERE [RMAHeaderId] = @PartRMAHeaderId;
+
+				SELECT @TotalRecordRMA = COUNT(*), @MinIdRMA = MIN([RMAID]) FROM #tmprCreateWorkOrderCustomerRMADeatils
+
+				WHILE @MinIdRMA <= @TotalRecordRMA
+				BEGIN	
+					SELECT @RMADeatilsId = [RMADeatilsId] FROM #tmprCreateWorkOrderCustomerRMADeatils WHERE [RMAID] = @MinId
+
+					UPDATE [dbo].[CustomerRMADeatils]
+					   SET [WorkOrderNum] = @WorkOrderNum,
+						   [ReturnDate] = @UpdatedDate,
+						   [ReceiverNum] = @ReceiverNumber,
+						   [UpdatedBy] = @UpdatedBy,
+						   [CreatedBy] = @CreatedBy
+					 WHERE [RMADeatilsId] = @RMADeatilsId;
+
+					SET @MinIdRMA = @MinIdRMA + 1
+				END
+				DELETE FROM #tmprCreateWorkOrderCustomerRMADeatils
+			END
+			ELSE
+			BEGIN
+				IF(@PartSerialNumber <> '' AND @PartSerialNumber IS NOT NULL)
+				BEGIN
+				    DECLARE @OLDWorkOrderId BIGINT=0
+
+					INSERT INTO #tmprCheckWorkOrderForSerialNumber
+					EXEC [dbo].[USP_CheckWorkOrderForSerialNumber] @ItemMasterId,@PartSerialNumber,@MasterCompanyId		
+					
+					SELECT @OLDWorkOrderId = [WorkOrderId] FROM #tmprCheckWorkOrderForSerialNumber
+					IF(@OLDWorkOrderId > 0)
+					BEGIN
+						INSERT INTO #tmprOldWorkOrderForBillingInvoicedData([InvoiceId],[InvoiceNo],[InvoiceStatus],[InvoiceDate],[OrderNumber],[CustomerName],[CustomerType],[InvoiceAmt],
+						       [isWorkOrder],[ReferenceId],[ManagementStructureId],[ContactInfo],[CustomerContactId],[RMAReasonId],[RMAReason],[RMAStatusId],[RMAStatus],[ValidDays],
+							   [MasterCompanyId],[CustomerId],[CustomerCode],[AddressCount],[PartCount])
+						EXEC [dbo].[USP_GetOldWorkOrderForBillingInvoicedData] @OLDWorkOrderId
+
+						-- Add new Customer RMA & Part Data
+						
+						SELECT TOP 1 @InvoiceId=[InvoiceId],@ValidDays=[ValidDays],@InvoiceNo=[InvoiceNo],@InvoiceDate=[InvoiceDate],@RMACustomerId=[CustomerId],@RMACustomerName=[CustomerName],
+						             @RMACustomerCode=[CustomerCode],@ContactInfo=[ContactInfo],@RMACustomerContactId=[CustomerContactId],@ReferenceId=[ReferenceId] 
+									 FROM #tmprOldWorkOrderForBillingInvoicedData
+
+						IF(@InvoiceId > 0)
+						BEGIN							
+							SET @ValidDate = GETUTCDATE();
+							IF(@ValidDays > 0)
+							BEGIN									
+								SET @ValidDate = DATEADD(DAY, @ValidDays, @ValidDate)
+							END
+							-- Add header Data
+							IF(@PartRMAHeaderId > 0)
+							BEGIN
+								EXEC [dbo].[CreateUpdateCustomerRMAHeader] @PartRMAHeaderId,@RMANumber,@InvoiceId,@InvoiceNo,@InvoiceDate,@CustomerRMAItemReturnedStatus,'Item Returned',@RMACustomerId,@RMACustomerName,@RMACustomerCode,
+								     @ContactInfo,@RMACustomerContactId,1,@ValidDate,@RequestedId,@Requestedby,@ApprovedbyId,@Approvedby,@ApprovedDate,@ReturnDate,@WorkOrderId,@WorkOrderNum,@ReceiverNumber,'','',
+									 @ManagementStructureId,@MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,1,0,@UpdatedDate,1,@ReferenceId,0,@Result OUTPUT
+
+								EXEC dbo.[PROCAddUpdateCustomerRMAMSData] @PartRMAHeaderId,@ManagementStructureId,@MasterCompanyId,@CreatedBy,@UpdatedBy,@CustomerRMAHeaderManagementStructureModule,2,@MSDetailsId OUTPUT
+                            END   
+							ELSE
+							BEGIN
+								SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @RMANumberCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+								-- Check for current number and increment
+								IF @CodePrefix IS NOT NULL AND @CodePrefix <> ''
+								BEGIN
+										SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
+										IF @CurrentNo > 0
+										BEGIN
+											SET @CurrentNo = @CurrentNo + 1;
+											UPDATE [dbo].[CodePrefixes] 
+											SET [CurrentNummber] = @CurrentNo
+											WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+										END
+										ELSE
+										BEGIN
+											SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+											UPDATE [dbo].[CodePrefixes]
+											SET [CurrentNummber] = @CurrentNo 
+											WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+										END
+										-- Generate RMA Number
+										SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+								END
+								ELSE
+								BEGIN
+									-- Generate RMA Number
+									SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+								END
+
+								EXEC [dbo].[CreateUpdateCustomerRMAHeader] 0,@RMANumber,@InvoiceId,@InvoiceNo,@InvoiceDate,@CustomerRMAItemReturnedStatus,'Item Returned',@RMACustomerId,@RMACustomerName,@RMACustomerCode,
+								      @ContactInfo,@RMACustomerContactId,1,@ValidDate,@RequestedId,@Requestedby,@ApprovedbyId,@Approvedby,@ApprovedDate,@ReturnDate,@WorkOrderId,@WorkOrderNum,@ReceiverNumber,'','',
+								      @ManagementStructureId,@MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,1,0,@UpdatedDate,1,@ReferenceId,0,@Result OUTPUT
+							    SET @PartRMAHeaderId = @Result;
+								EXEC [dbo].[PROCAddUpdateCustomerRMAMSData] @PartRMAHeaderId,@ManagementStructureId,@MasterCompanyId,@CreatedBy,@UpdatedBy,@CustomerRMAHeaderManagementStructureModule,1,@MSDetailsId OUTPUT									
+							END	
+							
+							INSERT INTO #tmprGetCustomerRMAPartsDetails([InvoiceId],[InvoiceNo],[BillingInvoicingItemId],[InvoiceStatus],[InvoiceDate],[ReferenceNo],[ItemMasterId],
+								   [PartNumber],[PartDescription],[CustPartNumber],[CustomerReference],[SerialNumber],[StocklineNumber],[StocklineId],[ControlNumber],[ControlId],[Qty],
+								   [UnitPrice],[Amount],[RMAReasonId],[RMAReason],[RMAStatusId],[RMAStatus],[RMAValiddate],[IsWorkOrder],[ReferenceId],[PartsUnitCost],[PartsRevenue],
+								   [LaborRevenue],[MiscRevenue],[FreightRevenue],[SubTotal],[SalesTax],[OtherTax],[GrandTotal],[InvoiceAmt],[COGSParts],[COGSLabor],[COGSOverHeadCost],
+								   [COGSInventory],[COGSPartsUnitCost],[RMADeatilsId],[RMAHeaderId],[Notes],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],
+								   [IsDeleted],[isSerialized],[InvoiceQty],[ManufacturerName],[AltPartNumber],[InvoiceTypeId])
+							  EXEC [dbo].[sp_GetCustomerRMAPartsDetails] @InvoiceId,1,@PartRMAHeaderId,1,@WorkOrderCustomerInvoiceTypeEnum			
+								
+							DECLARE @RMAReasonId INT=0
+								
+							SELECT TOP 1 @RMAReasonId = [RMAReasonId] FROM [dbo].[RMACreditMemoSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1
+							 
+							IF(@RMAReasonId > 0)
+								SET @RMAReasonId = @RMAReasonId;
+							ELSE 
+								SET @RMAReasonId = 1;
+								
+							INSERT INTO #tbl_CustomerRMADeatilsType([RMADeatilsId],[RMAHeaderId],[ItemMasterId],[PartNumber],[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],
+		                               [StocklineId],[StocklineNumber],[ControlNumber],[ControlId],[ReferenceId],[ReferenceNo],[Qty],[UnitPrice],[Amount],[RMAReasonId],[RMAReason],[Notes],[isWorkOrder],
+		                               [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[InvoiceId],[BillingInvoicingItemId],[CustomerReference],[InvoiceQty],
+		                               [ReturnDate],[WorkOrderNum],[ReceiverNum])
+							SELECT [RMADeatilsId],@PartRMAHeaderId,[ItemMasterId],[PartNumber],[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],
+     		                       [StocklineId],[StocklineNumber],[ControlNumber],[ControlId],[ReferenceId],[ReferenceNo],[Qty],[UnitPrice],[Amount],@RMAReasonId,[RMAReason],[Notes],[IsWorkOrder],
+							       [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[InvoiceId],[BillingInvoicingItemId],[CustomerReference],[InvoiceQty],
+								   GETUTCDATE(),@WorkOrderNum,@ReceiverNumber								
+							FROM #tmprGetCustomerRMAPartsDetails WHERE [RMADID] = 1;
+
+							DECLARE @CustomerRMADeatils CustomerRMADeatilsType;
+							
+							INSERT INTO @CustomerRMADeatils([RMADeatilsId],[RMAHeaderId],[ItemMasterId],[PartNumber],[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],
+		                               [StocklineId],[StocklineNumber],[ControlNumber],[ControlId],[ReferenceId],[ReferenceNo],[Qty],[UnitPrice],[Amount],[RMAReasonId],[RMAReason],[Notes],[isWorkOrder],
+		                               [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[InvoiceId],[BillingInvoicingItemId],[CustomerReference],[InvoiceQty],
+		                               [ReturnDate],[WorkOrderNum],[ReceiverNum])
+							SELECT [RMADeatilsId],@PartRMAHeaderId,[ItemMasterId],[PartNumber],[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],
+     		                       [StocklineId],[StocklineNumber],[ControlNumber],[ControlId],[ReferenceId],[ReferenceNo],[Qty],[UnitPrice],[Amount],@RMAReasonId,[RMAReason],[Notes],[IsWorkOrder],
+							       [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[InvoiceId],[BillingInvoicingItemId],[CustomerReference],[InvoiceQty],
+								   GETUTCDATE(),@WorkOrderNum,@ReceiverNumber								
+							FROM #tmprGetCustomerRMAPartsDetails WHERE [RMADID] = 1;
+																								
+							EXEC [dbo].[usp_SaveRMAPartDetails] @CustomerRMADeatils,@StocklineManagementStructureModule
+							
+							DELETE FROM #tbl_CustomerRMADeatilsType
+							
+							DELETE FROM #tmprGetCustomerRMAPartsDetails
+						END	
+						
+						DELETE FROM #tmprOldWorkOrderForBillingInvoicedData
+					END
+					DELETE FROM #tmprCheckWorkOrderForSerialNumber
+				END
+			END
+		END
+
+		EXEC [dbo].[UpdateWorkOrderPartNumberColumnsWithId] @WorkOrderPartNumberId;
+
+		EXEC [dbo].[USP_AddEdit_WorkOrderTurnArroundTime] @WorkOrderPartNumberId,@WorkOrderStageId,@CreatedBy
+
+		EXEC [dbo].[USP_SaveWOMSDetails] @WorkOrderMPNManagementStructureModule,@WorkOrderPartNumberId, @ManagementStructureId, @MasterCompanyId, @UpdatedBy, @MSDetailsId OUTPUT
+
+		IF(@WorkflowId > 0)
+		BEGIN
+		    DECLARE @NewWorkFlowName VARCHAR(50)='',@AddWorkFlow VARCHAR(20)='AddWorkFlow',@WorkFlowTemplateBody VARCHAR(MAX)=''
+			
+			SELECT @PartNumber=ISNULL([PartNumber],'') FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId]=@ItemMasterId;
+			SELECT @NewWorkFlowName=ISNULL([WorkOrderNumber],'') FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId]=@WorkflowId;
+			
+			SELECT TOP 1 @WorkFlowTemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddWorkFlow;
+
+	        SET @WorkFlowTemplateBody = REPLACE(@WorkFlowTemplateBody, '##MPN##', @PartNumber)
+	        SET @WorkFlowTemplateBody = REPLACE(@WorkFlowTemplateBody, '##NewWorkFlow##', @NewWorkFlowName)
+
+			EXEC USP_History @WorkOrderModuleID,@WorkOrderId,0,@WorkOrderPartNumberId,'',@NewWorkFlowName,@WorkFlowTemplateBody,'AddWorkFlow',@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate;
+			
+		END
+
+		SET @MinId = @MinId + 1
+	END	 
+		
+	DECLARE @WorkOrderParts WorkOrderPartNumberType;
+
+	INSERT INTO @WorkOrderParts([ID],[WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
+		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
+		   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
+		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
+		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
+		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId])
+	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
+		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
+		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
+		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
+		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
+		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId] FROM #tmprCreateWorkOrderPartNumber
+		   		   
+	-- CREATING WORKFLOWWORKORDER FROM WORK FLOW
+	EXEC [dbo].[CreateWorkFlowWorkOrderFromWorkFlow] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	-- CREATING WORK ORDER SETTLEMENTDETAILS
+	EXEC [dbo].[CreateWorkOrderSettlementDetails] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	-- CREATING WORK ORDER TEARDOWN FO REMOVAL REASON
+	EXEC [dbo].[CreateCommonWorkOrderRemovalTearDown] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	-- COMPANY NOT AVAIALABLE WITH MASTERCOMPANYCODE LIKE 'AIR'
+	-- CreateCommonWorkOrderCustomerInspecionTearDown(workOrder.PartNumbers, workOrder.WorkOrderId, workOrder.CreatedBy);
+	
+	-- CREATING TRAVELER LABOUR TASK
+	EXEC [dbo].[CreateTravelerLabourTask] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	-- UPDATING WORK ORDER FIELDS NAMES
+	EXEC [dbo].[UpdateWorkOrderColumnsWithId] @WorkOrderId;
+
+	-- CREATING WORK ORDER TASKS
+	EXEC [dbo].[CreateWorkOrderTasks] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	-- CREATING STOCK LINE HISTORY TO RESERVE STOCKLINE 
+	EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	--*************** CREATE A WORK ORDER MATERIALS FOR SUB ASSY : BY RAJESH ***************
+	EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+
+	SELECT @WorkOrderId AS [WorkOrderId]
+
+	END
+	COMMIT  TRANSACTION
+
+	END TRY    
+	BEGIN CATCH      
+		IF @@trancount > 0
+		PRINT 'ROLLBACK'
+        ROLLBACK TRAN;
+              DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'USP_CreateWorkOrder' 
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100)) + 
+			                                         '@Parameter2 = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+              exec spLogException 
+                       @DatabaseName           = @DatabaseName
+                     , @AdhocComments          = @AdhocComments
+                     , @ProcedureParameters = @ProcedureParameters
+                     , @ApplicationName        =  @ApplicationName
+                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+        END CATCH     
+END

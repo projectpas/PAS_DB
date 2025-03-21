@@ -3558,6 +3558,7 @@
     <Build Include="HangFire\Tables\Job.sql" />
     <Build Include="HangFire\Tables\Schema.sql" />
     <Build Include="Security\HangFire.sql" />
+    <Build Include="dbo\Stored Procedures\getReceivingCustomerWorkById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

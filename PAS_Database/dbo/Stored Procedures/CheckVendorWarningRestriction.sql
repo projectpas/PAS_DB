@@ -21,7 +21,7 @@
 CREATE    PROCEDURE [dbo].[CheckVendorWarningRestriction]
 	@VendorId bigint = null,
 	@MasterCompanyId INT,
-	@IsForPO BIT,
+	@IsForPO INT,
 	@EmployeeId BIGINT
 AS
 BEGIN
@@ -52,7 +52,7 @@ BEGIN
 				FROM [DBO].[VendorOrderType] WITH(NOLOCK)
 				WHERE OrderTypeName = @PoOrderTypeName;
 			END
-			ELSE
+			ELSE IF(@IsForPO = 2)
 			BEGIN 
 				-- For RepairOrder
 				SELECT @VendorOrderTypeId = [VendorOrderTypeId] 

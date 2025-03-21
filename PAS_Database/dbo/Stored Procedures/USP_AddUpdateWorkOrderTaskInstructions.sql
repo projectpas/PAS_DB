@@ -11,6 +11,7 @@
  ** --   --------     -------		 --------------------------------
     1    01/01/2025   Vishal Suthar	 Created
     2    02/19/2025   Ekta Chandegra Add history task instruction level
+	3    03/21/2025   Ekta Chandegra Add Work Order Task history on task level
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
@@ -168,6 +169,9 @@ BEGIN
 				INSERT INTO @IdMapping (TaskInstructionId, WorkOrderTaskInstructionId)
 				VALUES (@TaskInstructionId, @NewWorkOrderTaskInstructionId);
 
+				-- Add Work Order Task history
+				EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy, @NewWorkOrderTaskInstructionId , NULL
+
 				-- Add Work Order Task Instruction History 
 				EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
 
@@ -216,6 +220,9 @@ BEGIN
 			-- Get new generated WorkOrderTaskInstructionId
 			DECLARE @Id INT = SCOPE_IDENTITY();
 
+			-- Add Work Order Task history
+			EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @Id , NULL
+
 			-- Add Work Order Task Instruction History 
 			EXEC USP_InsertWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId
 
@@ -254,6 +261,9 @@ BEGIN
 		-- Get new generated WorkOrderTaskInstructionId
 		DECLARE @NewWOTIID INT = SCOPE_IDENTITY();
 		
+		-- Add Work Order Task history
+		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @NewWOTIID , NULL
+
 		-- Add Work Order Task Instruction History 
 		EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId
 
@@ -284,6 +294,9 @@ BEGIN
 		[PrintInWO] = @PrintInWO,
 		[PrintInWOQ] = @PrintInWOQ
 		WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId;
+
+		-- Add Work Order Task history
+		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @WorkOrderTaskInstructionId , NULL
 
 		-- Add Work Order Task Instruction History 
 		EXEC USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @CreatedBy, @InstructionListId

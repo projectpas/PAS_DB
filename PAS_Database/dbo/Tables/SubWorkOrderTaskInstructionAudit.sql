@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[SubWorkOrderTaskInstructionAudit] (
+    [SubWorkOrderTaskInstructionAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [SubWorkOrderTaskInstructionId]      BIGINT         NULL,
+    [SubWorkOrderTaskId]                 BIGINT         NULL,
+    [ParentId]                           BIGINT         NULL,
+    [IsParent]                           BIT            NULL,
+    [InstructionTitle]                   VARCHAR (8000) NULL,
+    [SequenceNumber]                     INT            NULL,
+    [InstructionDetails]                 VARCHAR (MAX)  NULL,
+    [TechId]                             BIGINT         NULL,
+    [TechName]                           VARCHAR (100)  NULL,
+    [TechUpdatedDate]                    DATETIME2 (7)  NULL,
+    [InspectorId]                        BIGINT         NULL,
+    [InspectorName]                      VARCHAR (100)  NULL,
+    [InspectorUpdatedDate]               DATETIME2 (7)  NULL,
+    [PrintInWO]                          BIT            NULL,
+    [PrintInWOQ]                         BIT            NULL,
+    [MasterCompanyId]                    INT            NULL,
+    [CreatedBy]                          VARCHAR (100)  NULL,
+    [UpdatedBy]                          VARCHAR (100)  NULL,
+    [CreatedDate]                        DATETIME2 (7)  NULL,
+    [UpdatedDate]                        DATETIME2 (7)  NULL,
+    [IsActive]                           BIT            NULL,
+    [IsDeleted]                          BIT            NULL,
+    CONSTRAINT [PK_SubWorkOrderTaskInstructionAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderTaskInstructionAuditId] ASC)
+);
+

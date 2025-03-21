@@ -3558,6 +3558,21 @@
     <Build Include="HangFire\Tables\Job.sql" />
     <Build Include="HangFire\Tables\Schema.sql" />
     <Build Include="Security\HangFire.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskInstructionAudit.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskInstruction.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskDetailsAudit.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskDetails.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskAudit.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSWOTaskInstructionSequenceNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSWOTaskInstructionsByWOTaskId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskInstructionList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSubWorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSubWorkOrderTaskInstructions.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderTaskDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTaskInstruction.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

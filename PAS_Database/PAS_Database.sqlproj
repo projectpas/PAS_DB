@@ -3532,11 +3532,16 @@
     <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysisForShippingARbalance.sql" />
     <Build Include="dbo\Tables\VendorStatusSettingsAudit.sql" />
     <Build Include="dbo\Tables\VendorStatusSettings.sql" />
-
     <Build Include="dbo\Stored Procedures\usprpt_GetVendorAuditReport.sql" />
-
     <Build Include="dbo\Tables\VendorAuditInfoAudit.sql" />
-
+    <Build Include="dbo\Stored Procedures\CreateWorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\CreateWorkOrderSettlementDetails.sql" />
+    <Build Include="dbo\Stored Procedures\CreateWorkOrderMaterialsforSubAssy.sql" />
+    <Build Include="dbo\Stored Procedures\CreateWorkFlowWorkOrderFromWorkFlow.sql" />
+    <Build Include="dbo\Stored Procedures\CreateTravelerLabourTask.sql" />
+    <Build Include="dbo\Stored Procedures\CreateStockLineHistory.sql" />
+    <Build Include="dbo\Stored Procedures\CreateCommonWorkOrderRemovalTearDown.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderPartNumberType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -52,6 +52,7 @@
     [IsUpdated]               BIT             NULL,
     [LastSyncDate]            DATETIME2 (7)   NULL,
     [SyncToken]               VARCHAR (200)   NULL,
+    [IsWarningRestriction]    INT             NULL,
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),
     CONSTRAINT [FK_Vendor_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Vendor_CreditTerms] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -64,6 +65,8 @@
     CONSTRAINT [FK_Vendor_VendorType] FOREIGN KEY ([VendorTypeId]) REFERENCES [dbo].[VendorType] ([VendorTypeId]),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

@@ -408,12 +408,12 @@ BEGIN
             WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
         END
 		-- Generate Work Order Number
-		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
     END
 	ELSE
 	BEGIN
 		-- Generate Work Order Number
-		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 	END
 
 	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
@@ -758,12 +758,12 @@ BEGIN
 											WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 										END
 										-- Generate RMA Number
-										SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+										SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 								END
 								ELSE
 								BEGIN
 									-- Generate RMA Number
-									SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+									SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 								END
 
 								EXEC [dbo].[CreateUpdateCustomerRMAHeader] 0,@RMANumber,@InvoiceId,@InvoiceNo,@InvoiceDate,@CustomerRMAItemReturnedStatus,'Item Returned',@RMACustomerId,@RMACustomerName,@RMACustomerCode,

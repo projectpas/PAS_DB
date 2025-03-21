@@ -10,6 +10,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    06/12/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
+** 2    03/21/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
 
 EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
 exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=162,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=2,@IncludeCustomerStock=0
@@ -260,6 +261,46 @@ BEGIN
 						[IsDeleted] [bit] NOT NULL,
 					)
 
+					-- Check Restrict PMA / DER : Start
+					IF OBJECT_ID(N'tempdb..#AllowItemMasterIds') IS NOT NULL
+					BEGIN
+						DROP TABLE #AllowItemMasterIds
+					END
+
+					CREATE TABLE #AllowItemMasterIds(
+						[RecordId] BIGINT IDENTITY(1,1),
+						[ItemMasterId] BIGINT,      
+					)
+					
+					DECLARE	@RestrictDER BIT = 0, @RestrictPMA BIT = 0;
+					DECLARE @StkItemTypeId INT;
+					DECLARE @RestrictPartModuleId INT = 1;
+
+					SELECT @StkItemTypeId = [ItemTypeId] FROM [dbo].[ItemType] WITH(NOLOCK) WHERE UPPER([Name]) = 'STOCK';
+					SELECT @RestrictPMA = ISNULL([IsPMA], 0), @RestrictDER = ISNULL([IsDER], 0) FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWOPartNoId] = @subWOPartNoId;
+				
+					--- FOR OEM
+					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0;
+
+					--FOR PMA
+					IF(ISNULL(@RestrictPMA, 0) <> 1)
+					BEGIN
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
+						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0;
+					END
+
+					--FOR DER
+					IF(ISNULL(@RestrictDER, 0) <> 1)
+					BEGIN
+						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
+						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1;
+					END
+
+					--Except Parts
+					--INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[RestrictedParts] RS WITH(NOLOCK) WHERE RS.IsActive = 1 AND RS.IsDeleted = 0 AND RS.ModuleId = @RestrictPartModuleId AND RS.ReferenceId = @CustomerID;
+					-- Check Restrict PMA / DER : End
+
 					PRINT '2'
 
 					INSERT INTO #tmpSubWorkOrderMaterials
@@ -272,6 +313,7 @@ BEGIN
 					FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK) 
 					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
+					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					INSERT INTO #tmpSubWorkOrderMaterialStockline
 						([WOMStockLineId] ,[SubWorkOrderMaterialsId] ,[StockLineId] ,[ItemMasterId] ,[ConditionId] ,[Quantity] ,[QtyReserved] ,[QtyIssued] ,		
@@ -284,6 +326,7 @@ BEGIN
 					JOIN  dbo.SubWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.SubWorkOrderMaterialsId =  WOMS.SubWorkOrderMaterialsId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId
 					AND WOMS.ProvisionId = @ProvisionId
+					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					PRINT '3'
 
@@ -297,6 +340,7 @@ BEGIN
 					FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) 
 					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
+					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					PRINT '4'
 
@@ -311,6 +355,7 @@ BEGIN
 					JOIN  dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.SubWorkOrderMaterialsKitId =  WOMS.SubWorkOrderMaterialsKitId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId
 					AND WOMS.ProvisionId = @ProvisionId
+					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					--SELECT * FROM #tmpSubWorkOrderMaterialsKit
 					--SELECT * FROM #tmpSubWorkOrderMaterialStockLineKit
@@ -587,6 +632,7 @@ BEGIN
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId
+						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						SELECT  
 							WOM.WorkOrderId,
@@ -836,6 +882,7 @@ BEGIN
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId
+						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						--Select * from #MaterialsAltPartList
 
@@ -1080,6 +1127,7 @@ BEGIN
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 2 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId
+						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						SELECT  WOM.WorkOrderId,
 							WOM.SubWOPartNoId,
@@ -1323,6 +1371,7 @@ BEGIN
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 2 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
 						WHERE WOM.SubWOPartNoId = @SubWOPartNoId
+						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						SELECT  WOM.WorkOrderId,
 							WOM.SubWorkOrderId,

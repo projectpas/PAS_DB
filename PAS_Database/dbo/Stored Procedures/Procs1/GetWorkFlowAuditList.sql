@@ -1,12 +1,48 @@
-﻿
+﻿/***************************************************************  
+ ** File:   [GetWorkFlowAuditList]            
+ ** Author:   
+ ** Description: This stored procedure is used to [GetWorkFlowAuditList]
+ ** Date:  
+            
+  ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  					Change Description              
+ ** --   --------			-------					--------------------------------            
+	2    20-March-2025      Ekta Chandegra          Convert date using dbo.ConvertUTCtoLocal
+
+	exec dbo.GetWorkFlowAuditList @wfwoId=5200,@EmployeeId=223
+
+**************************************************************/
 CREATE PROCEDURE [dbo].[GetWorkFlowAuditList]
-@wfwoId BIGINT = null
+@wfwoId BIGINT = null,
+@EmployeeId BIGINT
 AS
 BEGIN
 
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON
 	  BEGIN TRY
+
+	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId;
 			SELECT	
 				WorkflowId,
                 WorkflowDescription,
@@ -17,12 +53,12 @@ BEGIN
                 CostOfNew,
                 PercentageOfNew,
                 wof.CreatedBy,
-                wof.CreatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(wof.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) CreatedDate,
                 wof.IsActive,
                 wof.IsDeleted,
                 wof.MasterCompanyId,
                 wof.UpdatedBy,
-                wof.UpdatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(wof.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) UpdatedDate,
                 CostOfReplacement,
                 PercentageOfReplacement,
                 Memo,
@@ -42,6 +78,7 @@ BEGIN
 				Currency
 			FROM [dbo].[WorkflowAudit] wof WITH(NOLOCK)				
 			WHERE wof.WorkflowId = @wfwoId or wof.WFParentId = @wfwoId
+			ORDER BY wof.WorkflowId DESC
 	  END TRY 
 	  BEGIN CATCH   	
 			  

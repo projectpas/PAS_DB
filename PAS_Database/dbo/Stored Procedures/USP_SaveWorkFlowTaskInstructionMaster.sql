@@ -14,6 +14,7 @@
     4    05-March-2025		Devendra Shekh					Modified (Description related Issue resolved while add new)
     5    06-March-2025		Devendra Shekh					Modified ([Sequence] related Issue resolved)
     6    11-March-2025		Devendra Shekh					Modified (adding WorkFlowTask if not exists)
+    7    24-March-2025		Ekta Chandegra					Cast GETUTCDATE value as DATE
 
 exec dbo.USP_SaveWorkFlowTaskInstructionMaster 
 @WorkflowDirectionId=0,@Title=N'RECEIVING',@Description=N'<p>RECEIVING</p>',@TaskId=11,@SequenceNumber=default,
@@ -140,7 +141,7 @@ BEGIN
 					)
 					VALUES (
 						@WorkflowId, @InstructionTitle, @InstructionkDescription, @TaskId, @InstructionSequenceNumber, @NewParentId, @IsInstructionParent,
-						@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 0
+						@MasterCompanyId, @CreatedBy, @CreatedBy,  CAST(GETUTCDATE() AS DATE), CAST(GETUTCDATE() AS DATE), 1, 0, 0
 					);
 
 					-- Get the newly generated ID

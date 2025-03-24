@@ -17,6 +17,8 @@
 	4    05/08/2024   HEMANT SALIYA			Serial Number Changes
 	5    31-DEC-2024  Devendra Shekh		Added Changes for QuoteAmount
 	6    15-Jan-2024  Moin Bloch  		    Added New Fields WOPartNoId,IsWoAlwaysOrOndemandId,WorkOrderFormTypeId                               
+	7    20-March-2025   Ekta Chandegra        Convert date using dbo.ConvertUTCtoLocal
+
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -64,7 +66,24 @@ BEGIN
     DECLARE @Count Int;  
     DECLARE @WorkOrderStatusId int;  
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
+	SELECT
+					@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM
+						dbo.Employee E WITH (NOLOCK)
+					LEFT JOIN
+						dbo.TimeZone ETZ WITH (NOLOCK)
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN
+						dbo.LegalEntity LE WITH (NOLOCK)
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN
+						dbo.TimeZone LTZ WITH (NOLOCK)
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE
+						E.EmployeeId = @EmployeeId;
       
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
@@ -98,17 +117,17 @@ BEGIN
 			CASE WHEN ISNULL(wopn.RevisedPartNumber, '') != '' THEN UPPER(wopn.RevisedPartNumber) ELSE UPPER(im.partnumber) END AS PartNumber,
 			CASE WHEN ISNULL(wopn.RevisedPartDescription, '') != '' THEN UPPER(wopn.RevisedPartDescription) ELSE UPPER(im.PartDescription) END AS PartDescription,
 			CASE WHEN ISNULL(wopn.RevisedSerialNumber, '') != '' THEN UPPER(wopn.RevisedSerialNumber) ELSE UPPER(wopn.CurrentSerialNumber) END AS SerialNumber,
-            woq.OpenDate,  
+            (Cast(DBO.ConvertUTCtoLocal(woq.OpenDate, @CurrntEmpTimeZoneDesc) AS DATE)) OpenDate, 
             (SELECT TOP 1 wop.PromisedDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as  promisedDate,  
             (SELECT TOP 1 wop.EstimatedShipDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as estShipDate,  
             (SELECT TOP 1 wop.EstimatedCompletionDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as estCompletionDate,  
             UPPER(wqs.Description) as quoteStatus,  
             woq.QuoteStatusId as quoteStatusId,  
             woq.IsActive,  
-            UPPER(woq.CreatedBy) 'CreatedBy',  
-            woq.CreatedDate,  
+            UPPER(woq.CreatedBy) 'CreatedBy',
+            (Cast(DBO.ConvertUTCtoLocal(woq.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
             UPPER(woq.UpdatedBy) 'UpdatedBy',  
-            woq.UpdatedDate,  
+			(Cast(DBO.ConvertUTCtoLocal(woq.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 			woq.IsVersionIncrease,  
 			UPPER(woq.VersionNo) 'VersionNo',  
 			(CASE WHEN wopp.ApprovalActionId IS NULL THEN UPPER('Pending') ELSE   
@@ -188,8 +207,8 @@ BEGIN
 			  (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
 			  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
 			  (IsNull(@quoteStatus,'') ='' OR quoteStatus like '%' + @quoteStatus+'%') AND  
-			  (IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=Cast(@CreatedDate as date)) AND  
-			  (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and  
+			  (IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)=CAST(@CreatedDate AS DATE)) AND  
+			  (IsNull(@UpdatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
 			  (IsNull(@OpenDate,'') ='' OR CAST(OpenDate AS date)=Cast(@OpenDate as date)) AND  
 			  (IsNull(@estCompletionDate,'') ='' OR Cast(estCompletionDate as Date)=Cast(@estCompletionDate as date)) AND  
 			  (IsNull(@promiseDate,'') ='' OR Cast(promisedDate as Date)=Cast(@promiseDate as date)) AND  

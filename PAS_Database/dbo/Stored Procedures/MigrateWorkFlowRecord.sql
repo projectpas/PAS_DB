@@ -63,7 +63,7 @@ BEGIN
 		INSERT INTO #TempDistinctParts ([PartId], [CustomerName], [Parnum])
 		SELECT DISTINCT P.Id, C.[Name], PR.Parnum
 		FROM TempNeoMigration.[dbo].[PartRoute] PR LEFT JOIN TempNeoMigration.[dbo].[Parts] P ON PR.Parnum = P.Num LEFT JOIN TempNeoMigration.[dbo].[Customer] C ON C.Num = P.Cusnum 
-		WHERE C.Id = ''; --AND (P.Id <> '103686-35' AND P.Id <> '112N6101-4' AND P.Id <> '112N6102-2' AND P.Id <> '112N6102-6');
+		WHERE C.Id = '';
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -136,13 +136,6 @@ BEGIN
 					END
 
 					SET @WorkOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNummber, @CodePrefixs, @CodeSufix));
-
-					--PRINT '@CustomerId'
-					--PRINT @CustomerId
-					--PRINT '@ItemMasterId'
-					--PRINT @ItemMasterId
-					--PRINT '@WorkOrderNumber'
-					--PRINT @WorkOrderNumber
 
 					IF (@ItemMasterId = 0)
 					BEGIN

@@ -9,20 +9,44 @@
  ** PR   Date				Author  					Change Description              
  ** --   --------			-------					--------------------------------            
     1    07-Feb-2025		Devendra Shekh					Created
+    2    23-March-2025		Ekta Chandegra					Convert date using ConvertUTCtoLocal method according user timezone
 
-	exec dbo.USP_GetWorkFlowTaskInstructionMasterList @WorkflowId=43,@TaskId=10,@MasterCompanyId=1,@IsDeleted=1
+	exec dbo.USP_GetWorkFlowTaskInstructionMasterList @WorkflowId=5205,@TaskId=10,@MasterCompanyId=1,@IsDeleted=0,@EmployeeId=223
+
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkFlowTaskInstructionMasterList]
 	@WorkflowId BIGINT = NULL,
 	@TaskId BIGINT = NULL,
 	@MasterCompanyId INT = NULL,
-	@IsDeleted BIT = NULL
+	@IsDeleted BIT = NULL,
+	@EmployeeId BIGINT
+
 AS
 BEGIN	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
+	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 
+		@CurrntEmpTimeZoneDesc = COALESCE(
+			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		)
+		FROM 
+		dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+		E.EmployeeId = @EmployeeId;
+
 		IF @IsDeleted IS NULL  
 		Begin  
 		 Set @IsDeleted=0  
@@ -49,8 +73,8 @@ BEGIN
 			WFD.MasterCompanyId,
 			WFD.CreatedBy,
 			WFD.UpdatedBy,
-			WFD.CreatedDate,
-			WFD.UpdatedDate,
+            (Cast(DBO.ConvertUTCtoLocal(WFD.CreatedDate, @CurrntEmpTimeZoneDesc)AS DATE)) CreatedDate,
+            (Cast(DBO.ConvertUTCtoLocal(WFD.UpdatedDate, @CurrntEmpTimeZoneDesc)AS DATE)) UpdatedDate,
 			WFD.IsActive,
 			WFD.IsDeleted 
 			FROM dbo.WorkFlowDirection WFD WITH(NOLOCK)

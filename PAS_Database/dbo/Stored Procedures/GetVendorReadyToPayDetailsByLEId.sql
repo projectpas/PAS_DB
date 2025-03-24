@@ -20,6 +20,7 @@
 	4    29/03/2024   Devendra Shekh	duplicate record issue resolved
 	5    29/03/2024   AMIT GHEDIYA		Update to get desc order list.
 	6    02/01/2025   RAJESH GAMI		Modified to get the VendorProformaInvoiceID from the [VendorReadyToPayDetails].     
+	7    02/01/2025   ABHISHEK JIRAWLA	Added IsVendorOnHold to return from SP
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
@@ -79,7 +80,8 @@ BEGIN
 
 				  LE.[Name] AS 'LegalEntityName',
 				  VRTPD.CreatedDate,
-				ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId
+				ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId,
+				CASE WHEN ISNULL(V.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold'
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
@@ -132,11 +134,13 @@ BEGIN
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',
 				  VRTPD.CreatedDate,
-				  ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId
+				  ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId,
+					CASE WHEN ISNULL(V.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold'
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 				LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 				LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
 				INNER JOIN [dbo].[CreditMemo] CMD WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
+				INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 				INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
    
@@ -183,7 +187,8 @@ BEGIN
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',
 				  VRTPD.CreatedDate,
-				  ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId
+				  ISNULL(VRTPD.VendorProformaInvoiceId, 0) AS VendorProformaInvoiceId,
+				CASE WHEN ISNULL(V.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold'
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK) 
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId

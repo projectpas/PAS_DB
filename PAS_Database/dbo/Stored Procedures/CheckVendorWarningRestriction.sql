@@ -21,7 +21,7 @@
 CREATE    PROCEDURE [dbo].[CheckVendorWarningRestriction]
 	@VendorId bigint = null,
 	@MasterCompanyId INT,
-	@IsForPO BIT,
+	@IsForPO INT,
 	@EmployeeId BIGINT
 AS
 BEGIN

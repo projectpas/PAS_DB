@@ -3575,6 +3575,8 @@
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTaskInstruction.sql" />
     <Build Include="dbo\Tables\VendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Tables\VendorScoreCardSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsListData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -109,7 +109,7 @@ BEGIN
 				--ISNULL(SP.NetSales,0) as 'QuoteAmount',
 				ISNULL(SP.UnitSalePrice,0) as 'QuoteAmount',
 				--SOQ.CreatedDate,
-				(Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
 				SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,
 				--IsNull(P.Description,'') as 'Priority',IsNull(P.Description,'') as 'PriorityType',
 				(E.FirstName+' '+E.LastName)as SalesPerson,
@@ -121,7 +121,7 @@ BEGIN
 				SOQ.QuoteExpireDate,SOQ.AccountTypeName,SOQ.LeadSourceReference,
 				SOQ.LeadSourceName,P.PercentValue as 'Probability',
 				--SOQ.UpdatedDate,
-				(Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
 				SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',cn.Code as 'ConditionCode', cn.Code as 'ConditionCodeType'
 				--,(select count(*) fron SpeedQuoteExclusionPart spe where spe.SpeedQuoteId = SOQ.SpeedQuoteId) as 'count'
 				from SpeedQuote SOQ WITH (NOLOCK)

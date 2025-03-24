@@ -3573,6 +3573,10 @@
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderTaskInstructionById.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderTaskDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTaskInstruction.sql" />
+    <Build Include="dbo\Tables\VendorScoreCardSettingsAudit.sql" />
+    <Build Include="dbo\Tables\VendorScoreCardSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsListData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSiteDetails.sql" />
   </ItemGroup>
   <ItemGroup>

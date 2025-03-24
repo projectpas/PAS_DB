@@ -10,15 +10,21 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   01/13/2025   Vishal Suthar		Created
+	2   03/21/2025   Ekta Chandegra		Add dbo.USP_AddWorkOrderTaskHistory call to add history
 
 EXEC [DeleteWorkOrderTaskInstruction] 3
 **************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteWorkOrderTaskInstruction]
-	@WorkOrderTaskInstructionId BIGINT
+	@WorkOrderTaskInstructionId BIGINT,
+	@CreatedBy VARCHAR(256),
+	@WorkOrderTaskId BIGINT
 AS
 	BEGIN
 	BEGIN TRY
-		WITH CTE AS (
+
+		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId,@CreatedBy,@WorkOrderTaskInstructionId,NULL
+
+		;WITH CTE AS (
 			-- Anchor member: Start with the record to be deleted
 			SELECT WorkOrderTaskInstructionId
 			FROM DBO.WorkOrderTaskInstruction WITH (NOLOCK)
@@ -32,6 +38,7 @@ AS
 			INNER JOIN CTE c
 			ON w.ParentId = c.WorkOrderTaskInstructionId
 		)
+
 		-- Delete all identified records
 		DELETE FROM DBO.WorkOrderTaskInstruction
 		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM CTE);

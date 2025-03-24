@@ -39,13 +39,13 @@ BEGIN
             @StockLineId = wp.StockLineId,
             @SubWorkOrderId = wp.SubWorkOrderId,
             @SubWOPartNoId = wp.SubWOPartNoId
-        FROM SubWorkOrderPartNumber wp
+        FROM [dbo].SubWorkOrderPartNumber wp WITH(NOLOCK)
         WHERE wp.SubWOPartNoId = @SubWOPartNoId;
 
         -- Step 2: Retrieve existing StockLine data
         DECLARE @ExistingStockLineId INT;
         SELECT TOP 1 @ExistingStockLineId = StockLineId
-        FROM StockLine
+        FROM [dbo].StockLine WITH(NOLOCK)
         WHERE StockLineId = @StockLineId;
 
         -- Step 3: Update StockLine with new data
@@ -61,7 +61,7 @@ BEGIN
         -- Step 4: Retrieve existing ReceivingCustomerWork data
         DECLARE @ReceivingCustomerWorkId INT;
         SELECT TOP 1 @ReceivingCustomerWorkId = ReceivingCustomerWorkId
-        FROM ReceivingCustomerWork
+        FROM [dbo].ReceivingCustomerWork WITH(NOLOCK)
         WHERE StockLineId = @StockLineId;
 
         -- Step 5: Update ReceivingCustomerWork if exists

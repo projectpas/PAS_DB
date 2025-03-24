@@ -1,17 +1,23 @@
-﻿/***************************************************************  
- ** File:   [getReceivingCustomerWorkById]             
- ** Author:   Shrey Chandegara
- ** Description: Receiving CustomerWork By Id
- ** Date:  20-03-2025
-            
-  ** Change   
- **************************************************************             
- ** PR   Date				Author  				Change Description              
- ** --   --------			-------				--------------------------------            
-    1    20-Mar-2025		Shrey Chandegara		Created  	
-		
-	exec dbo.getReceivingCustomerWorkById 5837
-**************************************************************/
+﻿/*************************************************************                 
+ ** File:  [getReceivingCustomerWorkById]      
+ ** Author:    Shrey Chandegara   
+ ** Description: Receiving CustomerWork By Id    
+ ** Purpose:               
+ ** Date:   20-Mar-2025      
+                
+ ** PARAMETERS:      
+               
+ ** RETURN VALUE:                 
+ **************************************************************                 
+ ** Change History                 
+ **************************************************************                 
+ ** PR   Date         Author			Change Description                  
+ ** --   --------     -------		  --------------------------------                
+	1    20-Mar-2025		Shrey Chandegara		Created  	
+
+ --exec dbo.getReceivingCustomerWorkById 5837
+      
+**************************************************************/    
 CREATE   PROCEDURE [dbo].[getReceivingCustomerWorkById]
 @ReceivingCustomerWorkId BIGINT
 
@@ -24,7 +30,7 @@ AS BEGIN
 		BEGIN TRANSACTION
 
 		DECLARE @ModuleId BIGINT = 0;
-		SET @ModuleId = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName = 'RecevingCustomer')
+		SET @ModuleId = (SELECT ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName = 'RecevingCustomer')
 			
 			SELECT 
 				ISNULL(wo.WorkOrderNum, '') AS WONum,
@@ -74,23 +80,23 @@ AS BEGIN
 				im.ItemGroupId,
 				ISNULL(ig.ItemGroupCode, '') AS ItemGroup,
 				CASE 
-					WHEN rc.OwnerTypeId = 1 THEN (SELECT Name FROM Customer WHERE CustomerId = rc.Owner)
-					WHEN rc.OwnerTypeId = 2 THEN (SELECT VendorName FROM Vendor WHERE VendorId = rc.Owner)
-					WHEN rc.OwnerTypeId = 3 THEN (SELECT Name FROM LegalEntity WHERE LegalEntityId = rc.Owner)
+					WHEN rc.OwnerTypeId = 1 THEN (SELECT Name FROM [dbo].[Customer] WITH(NOLOCK) WHERE CustomerId = rc.Owner)
+					WHEN rc.OwnerTypeId = 2 THEN (SELECT VendorName FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = rc.Owner)
+					WHEN rc.OwnerTypeId = 3 THEN (SELECT Name FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = rc.Owner)
 					WHEN rc.OwnerTypeId = 4 THEN rc.OwnerName
 					ELSE CAST(rc.Owner AS VARCHAR)
 				END AS OwnerName,
 				CASE 
-					WHEN rc.TraceableToTypeId = 1 THEN (SELECT Name FROM Customer WHERE CustomerId = rc.TraceableTo)
-					WHEN rc.TraceableToTypeId = 2 THEN (SELECT VendorName FROM Vendor WHERE VendorId = rc.TraceableTo)
-					WHEN rc.TraceableToTypeId = 3 THEN (SELECT Name FROM LegalEntity WHERE LegalEntityId = rc.TraceableTo)
+					WHEN rc.TraceableToTypeId = 1 THEN (SELECT Name FROM [dbo].[Customer] WITH(NOLOCK) WHERE CustomerId = rc.TraceableTo)
+					WHEN rc.TraceableToTypeId = 2 THEN (SELECT VendorName FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = rc.TraceableTo)
+					WHEN rc.TraceableToTypeId = 3 THEN (SELECT Name FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = rc.TraceableTo)
 					WHEN rc.TraceableToTypeId = 4 THEN rc.TraceableToName
 					ELSE CAST(rc.TraceableTo AS VARCHAR)
 				END AS TraceableToName,
 				CASE 
-					WHEN rc.ObtainFromTypeId = 1 THEN (SELECT Name FROM Customer WHERE CustomerId = rc.ObtainFrom)
-					WHEN rc.ObtainFromTypeId = 2 THEN (SELECT VendorName FROM Vendor WHERE VendorId = rc.ObtainFrom)
-					WHEN rc.ObtainFromTypeId = 3 THEN (SELECT Name FROM LegalEntity WHERE LegalEntityId = rc.ObtainFrom)
+					WHEN rc.ObtainFromTypeId = 1 THEN (SELECT Name FROM [dbo].[Customer] WITH(NOLOCK) WHERE CustomerId = rc.ObtainFrom)
+					WHEN rc.ObtainFromTypeId = 2 THEN (SELECT VendorName FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = rc.ObtainFrom)
+					WHEN rc.ObtainFromTypeId = 3 THEN (SELECT Name FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = rc.ObtainFrom)
 					WHEN rc.ObtainFromTypeId = 4 THEN rc.ObtainFromName
 					ELSE CAST(rc.ObtainFrom AS VARCHAR)
 				END AS ObtainFromName,
@@ -180,18 +186,18 @@ AS BEGIN
 				im.IsReceivedDateAvailable,
 				im.IsTagDateAvailable,
 				rc.IsPiecePart
-			FROM ReceivingCustomerWork rc WITH(NOLOCK)
-			JOIN ItemMaster im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
-			JOIN CustomerContact cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId
-			JOIN Contact con WITH(NOLOCK) ON cc.ContactId = con.ContactId
-			JOIN Manufacturer man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
-			JOIN WorkOrderManagementStructureDetails msd WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = msd.ReferenceID AND msd.ModuleID = @ModuleId 
-			LEFT JOIN ItemMaster rp WITH(NOLOCK) ON im.ItemMasterId = rp.RevisedPartId
-			LEFT JOIN WorkOrder wo WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId
-			LEFT JOIN ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
-			LEFT JOIN WOInspectionChecklist woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
-			LEFT JOIN ExchangeSalesOrder eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
-			LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+			FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
+			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
+			INNER JOIN [dbo].[CustomerContact] cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId
+			INNER JOIN [dbo].[Contact] con WITH(NOLOCK) ON cc.ContactId = con.ContactId
+			INNER JOIN [dbo].[Manufacturer] man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
+			INNER JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = msd.ReferenceID AND msd.ModuleID = @ModuleId 
+			LEFT JOIN [dbo].[ItemMaster] rp WITH(NOLOCK) ON im.ItemMasterId = rp.RevisedPartId
+			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId
+			LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
+			LEFT JOIN [dbo].[WOInspectionChecklist] woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
+			LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
+			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			WHERE rc.ReceivingCustomerWorkId = @ReceivingCustomerWorkId;
 
 

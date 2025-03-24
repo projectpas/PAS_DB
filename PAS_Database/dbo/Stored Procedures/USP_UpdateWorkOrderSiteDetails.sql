@@ -16,12 +16,12 @@
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderSiteDetails]
-@SubWOPartNoId BIGINT,
-@SiteId BIGINT,
-@WarehouseId BIGINT,
-@LocationId BIGINT,
-@ShelfId INT,
-@BinId INT
+@SubWOPartNoId BIGINT = NULL,
+@SiteId BIGINT = NULL,
+@WarehouseId BIGINT = NULL,
+@LocationId BIGINT = NULL,
+@ShelfId INT = NULL,
+@BinId INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -55,7 +55,8 @@ BEGIN
             WarehouseId = CASE WHEN @WarehouseId = 0 THEN NULL ELSE @WarehouseId END,
             LocationId = CASE WHEN @LocationId = 0 THEN NULL ELSE @LocationId END,
             ShelfId = CASE WHEN @ShelfId = 0 THEN NULL ELSE @ShelfId END,
-            BinId = CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END
+            BinId = CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END,
+			UpdatedDate = GETUTCDATE()
         WHERE StockLineId = @StockLineId;
 
         -- Step 4: Retrieve existing ReceivingCustomerWork data
@@ -73,7 +74,8 @@ BEGIN
                 WarehouseId = CASE WHEN @WarehouseId = 0 THEN NULL ELSE @WarehouseId END,
                 LocationId = CASE WHEN @LocationId = 0 THEN NULL ELSE @LocationId END,
                 ShelfId = CASE WHEN @ShelfId = 0 THEN NULL ELSE @ShelfId END,
-                BinId = CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END
+                BinId = CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END,
+				UpdatedDate = GETUTCDATE()
             WHERE ReceivingCustomerWorkId = @ReceivingCustomerWorkId;
         END
 

@@ -3577,6 +3577,7 @@
     <Build Include="dbo\Tables\VendorScoreCardSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsListData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSiteDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

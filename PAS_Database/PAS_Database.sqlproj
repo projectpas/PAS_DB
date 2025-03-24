@@ -3578,6 +3578,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsListData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSiteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateActionForVendorAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistoryLisyById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

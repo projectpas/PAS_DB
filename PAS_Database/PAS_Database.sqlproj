@@ -3580,6 +3580,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSiteDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_updateActionForVendorAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistoryLisyById.sql" />
+    <Build Include="dbo\Stored Procedures\getReceivingCustomerWorkById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

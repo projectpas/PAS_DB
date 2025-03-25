@@ -12,8 +12,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/30/2023   Hemant Saliya Created
-	2    09/24/2024   Moin Bloch    Restricted Piece Part In Drop Down List
+    1    05/30/2023   Hemant Saliya		Created
+	2    09/24/2024   Moin Bloch		Restricted Piece Part In Drop Down List
+	3    03/25/2025	  Devendra Shekh	added new field: WorkOrderFormTypeId
      
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
@@ -98,7 +99,8 @@ BEGIN
 						MSD.LastMSLevel,
 						IG.[Description] AS ItemGroup,
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
-						RCW.ACTailNum AS AircraftTailNumber					
+						RCW.ACTailNum AS AircraftTailNumber,
+						IM.WorkOrderFormTypeId
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
 						JOIN dbo.WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON RCW.ReceivingCustomerWorkId = MSD.ReferenceID AND MSD.ModuleID = @RCWModuleID
 						JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = RCW.StockLineId
@@ -142,7 +144,8 @@ BEGIN
 						MSD.LastMSLevel,
 						IG.[Description] AS ItemGroup,
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
-						RCW.ACTailNum AS AircraftTailNumber						
+						RCW.ACTailNum AS AircraftTailNumber,
+						IM.WorkOrderFormTypeId
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
 						JOIN dbo.WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON RCW.ReceivingCustomerWorkId = MSD.ReferenceID AND MSD.ModuleID = @RCWModuleID
 						JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = RCW.StockLineId
@@ -202,7 +205,8 @@ BEGIN
 						MSD.LastMSLevel,
 						IG.[Description] AS ItemGroup,
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
-						SL.AircraftTailNumber AS AircraftTailNumber					
+						SL.AircraftTailNumber AS AircraftTailNumber,
+						IM.WorkOrderFormTypeId
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
@@ -245,7 +249,8 @@ BEGIN
 						MSD.LastMSLevel,
 						IG.[Description] AS ItemGroup,
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
-						SL.AircraftTailNumber AS AircraftTailNumber				
+						SL.AircraftTailNumber AS AircraftTailNumber,
+						IM.WorkOrderFormTypeId
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
@@ -305,7 +310,8 @@ BEGIN
 						MSD.LastMSLevel,
 						IG.[Description] AS ItemGroup,
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
-						SL.AircraftTailNumber AS AircraftTailNumber						
+						SL.AircraftTailNumber AS AircraftTailNumber,
+						IM.WorkOrderFormTypeId
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
@@ -348,7 +354,8 @@ BEGIN
 						MSD.LastMSLevel,
 						IG.[Description] AS ItemGroup,
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
-						SL.AircraftTailNumber AS AircraftTailNumber					
+						SL.AircraftTailNumber AS AircraftTailNumber,
+						IM.WorkOrderFormTypeId
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId

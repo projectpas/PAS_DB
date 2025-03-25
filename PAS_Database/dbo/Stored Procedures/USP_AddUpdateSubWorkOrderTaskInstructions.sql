@@ -10,6 +10,7 @@
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
     1    03/20/2025   Vishal Suthar	 Created
+    2    03/25/2025   Vishal Suthar	 Fix for adding child node for Instruction
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateSubWorkOrderTaskInstructions]
@@ -234,39 +235,162 @@ BEGIN
 	END
 	ELSE IF (@IsAddChildNode = 1)
 	BEGIN
-		-- Find the maximum sequence number under the specific parent
-        DECLARE @MaxSequenceNumber INT;
-        SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
-        FROM DBO.SubWorkOrderTaskInstruction
-        WHERE ParentId = @SubWorkOrderTaskInstructionId;
+		IF (ISNULL(@InstructionListId, '') <> '')
+		BEGIN
+			-- Temporary table to store mapping of old TaskInstructionId to new WorkOrderTaskInstructionId
+			DECLARE @IdMapping_1 TABLE (
+				TaskInstructionId INT,
+				WorkOrderTaskInstructionId INT
+			);
+			
+			-- CTE to get the hierarchy of tasks based on @InstructionListId
+			;WITH RecursiveCTE AS (
+				SELECT * 
+				FROM DBO.TaskInstructionMaster WITH (NOLOCK)
+				WHERE TaskInstructionId IN (SELECT Item FROM DBO.SPLITSTRING(@InstructionListId, ','))
+				AND IsDeleted = 0
 
-        -- Determine the new sequence number for the child
-        DECLARE @NewSequenceNumber INT = @MaxSequenceNumber + 1;
+				UNION ALL
 
-		-- Insert the new child node with the next sequence number
-		INSERT INTO SubWorkOrderTaskInstruction ([SubWorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
-			[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-		VALUES (@SubWorkOrderTaskId, @SubWorkOrderTaskInstructionId, 0, @InstructionTitle, @NewSequenceNumber, @InstructionDetails, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, 
-			@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0);
+				SELECT t.*
+				FROM DBO.TaskInstructionMaster t WITH (NOLOCK)
+				INNER JOIN RecursiveCTE r
+				ON t.ParentId = r.TaskInstructionId
+				WHERE t.IsDeleted = 0
+			)
+
+			SELECT 
+				TaskInstructionId, 
+				Title, 
+				ParentId, 
+				IsParent, 
+				SequenceNumber,
+				[Description]
+			INTO #TempTaskInstructions_1
+			FROM RecursiveCTE
+			ORDER BY ISNULL(ParentId, TaskInstructionId), SequenceNumber;
+
+			SELECT * FROM #TempTaskInstructions_1
+
+			-- Cursor to process records in the correct parent-child sequence
+			DECLARE TaskCursor CURSOR FOR
+			SELECT 
+				TaskInstructionId, 
+				Title, 
+				ParentId, 
+				IsParent, 
+				SequenceNumber,
+				[Description]
+			FROM #TempTaskInstructions_1;
+
+			OPEN TaskCursor;
+			FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @Title, @ParentId, @IsParent, @SequenceNumber, @Description;
+
+			WHILE @@FETCH_STATUS = 0
+			BEGIN
+				-- Get the new ParentId from mapping if the current record has a ParentId
+				SET @NewParentId = NULL;
+				IF @ParentId IS NOT NULL
+				BEGIN
+					SELECT @NewParentId = WorkOrderTaskInstructionId FROM @IdMapping_1 WHERE TaskInstructionId = @ParentId;
+
+					IF ISNULL(@NewParentId, 0) = 0
+					BEGIN
+						SET @NewParentId = @SubWorkOrderTaskInstructionId;
+					END
+				END
+
+				-- Insert the record into WorkOrderTaskInstruction table
+				INSERT INTO SubWorkOrderTaskInstruction (
+					SubWorkOrderTaskId, 
+					ParentId, 
+					IsParent, 
+					InstructionTitle, 
+					SequenceNumber,
+					[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+				)
+				VALUES (
+					@SubWorkOrderTaskId, 
+					@NewParentId, 
+					@IsParent, 
+					@Title, 
+					@SequenceNumber,
+					@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+					@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
+				);
+
+				-- Get the newly generated ID
+				DECLARE @NewSubWorkOrderTaskInstructionId_1 INT = SCOPE_IDENTITY();
+
+				-- Store the mapping of TaskInstructionId to the new SubWorkOrderTaskInstructionId
+				INSERT INTO @IdMapping_1 (TaskInstructionId, WorkOrderTaskInstructionId)
+				VALUES (@TaskInstructionId, @NewSubWorkOrderTaskInstructionId_1);
+
+				--IF (@ParentId IS NULL)
+				--BEGIN
+				--	/* START: Add Entry in History Table */
+				--	SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+
+				--	SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+				
+				--	SELECT @InstructionTitleNew = InstructionTitle FROM DBO.WorkOrderTaskInstruction WITH (NOLOCK) WHERE WorkOrderTaskInstructionId = @NewWorkOrderTaskInstructionId_1;
+
+				--	SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+				--	SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+				--	SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitleNew,''));
+
+				--	EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitleNew, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+				--	/* END: Add Entry in History Table */
+				--END
+
+				-- Move to the next record
+				FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @Title, @ParentId, @IsParent, @SequenceNumber, @Description;
+			END
+
+			CLOSE TaskCursor;
+			DEALLOCATE TaskCursor;
+
+			-- Clean up the temporary table
+			DROP TABLE #TempTaskInstructions_1;
+		END
+		ELSE
+		BEGIN
+			-- Find the maximum sequence number under the specific parent
+			DECLARE @MaxSequenceNumber INT;
+			SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
+			FROM DBO.SubWorkOrderTaskInstruction
+			WHERE ParentId = @SubWorkOrderTaskInstructionId;
+
+			-- Determine the new sequence number for the child
+			DECLARE @NewSequenceNumber INT = @MaxSequenceNumber + 1;
+
+			-- Insert the new child node with the next sequence number
+			INSERT INTO SubWorkOrderTaskInstruction ([SubWorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+				[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+			VALUES (@SubWorkOrderTaskId, @SubWorkOrderTaskInstructionId, 0, @InstructionTitle, @NewSequenceNumber, @InstructionDetails, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, 
+				@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0);
 			 	
-		-- Get new generated WorkOrderTaskInstructionId
-		DECLARE @NewWOTIID INT = SCOPE_IDENTITY();
+			-- Get new generated WorkOrderTaskInstructionId
+			DECLARE @NewWOTIID INT = SCOPE_IDENTITY();
 		
-		---- Add Work Order Task Instruction History 
-		--EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId
+			---- Add Work Order Task Instruction History 
+			--EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId
 
-		--/* START: Add Entry in History Table */
-		--SET @StatusCode = 'CreateWorkOrderTaskInstruction';
+			--/* START: Add Entry in History Table */
+			--SET @StatusCode = 'CreateWorkOrderTaskInstruction';
 
-		--SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
+			--SELECT @TaskName = WOT.TaskName, @WorkOrderPartNumberId = WOT.WorkOrderPartNumberId FROM DBO.WorkOrderTask WOT WITH (NOLOCK) WHERE WOT.WorkOrderTaskId = @WorkOrderTaskId;
 
-		--SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+			--SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
-		--SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
-		--SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitle,''));
+			--SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+			--SET @TemplateBody = REPLACE(@TemplateBody, '##InstructionTitle##', ISNULL(@InstructionTitle,''));
 
-		--EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitle, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
-		/* END: Add Entry in History Table */
+			--EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @InstructionTitle, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+			/* END: Add Entry in History Table */
+		END
 	END
 	ELSE
 	BEGIN

@@ -11,6 +11,7 @@
 ** --   --------     -------			----------------------
 	1   01/13/2025   Vishal Suthar		Created
 	2   03/21/2025   Ekta Chandegra		Add dbo.USP_AddWorkOrderTaskHistory call to add history
+	3   03/24/2025   Ekta Chandegra		Update IsDeleted value of deleted Work Order Task Instruction in WorkOrderTaskHistory 
 
 EXEC [DeleteWorkOrderTaskInstruction] 3
 **************************************************************/
@@ -42,6 +43,17 @@ AS
 		-- Delete all identified records
 		DELETE FROM DBO.WorkOrderTaskInstruction
 		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM CTE);
+
+		UPDATE [dbo].[WorkOrderTaskHistory]
+		SET IsDeleted = 1
+		WHERE [WorkOrderTaskHistoryId] IN
+		(
+			SELECT TOP 1 [WorkOrderTaskHistoryId]
+			FROM [dbo].[WorkOrderTaskHistory]
+			WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+			ORDER BY [WorkOrderTaskHistoryId] DESC
+		) 
+
 	END TRY
 	BEGIN CATCH
 			IF @@trancount > 0

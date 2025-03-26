@@ -11,10 +11,11 @@
  **************************************************************               
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
-    1    18-Mar-2025  Abhishek Jirawla	Created    
+    1    18-Mar-2025  Abhishek Jirawla	Created 
+	2    26-Mar-2025  Abhishek Jirawla	Modification to Days Till Next Audit and Filter
          
 ************************************************************************/ 
-CREATE     PROCEDURE [dbo].[usprpt_GetVendorAuditReport]  
+CREATE      PROCEDURE [dbo].[usprpt_GetVendorAuditReport]  
 @PageNumber int = 1,  
 @PageSize int = NULL,  
 @mastercompanyid int,  
@@ -62,8 +63,13 @@ BEGIN
        V.VendorCode,
 	   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(VAI.LastAuditDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), VAI.LastAuditDate, 107) END 'LastAuditDate',
 	   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(VAI.NextAuditDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), VAI.NextAuditDate, 107) END 'NextAuditDate',
-       VAI.FrequencyDays 'DaysTillNextAudit',
+       --VAI.FrequencyDays 'DaysTillNextAudit',
        --VAI.LastAuditDate 'InForce',
+	   CASE 
+			WHEN VAI.NextAuditDate IS NULL THEN '-'
+			WHEN DATEDIFF(DAY, GETUTCDATE(), VAI.NextAuditDate) < 0 THEN '0'
+			ELSE CAST(DATEDIFF(DAY, GETUTCDATE(), VAI.NextAuditDate) AS VARCHAR)
+		END AS 'DaysTillNextAudit',
 	   CASE 
 			WHEN ISNULL(CAST(VAI.NextAuditDate AS DATE), '0001-01-01')  >= CAST(GETUTCDATE() AS DATE) THEN 'TRUE' 
 			ELSE 'FALSE' 
@@ -75,7 +81,7 @@ BEGIN
       FROM DBO.VendorAuditInfo VAI WITH (NOLOCK)
 		INNER JOIN DBO.Vendor V WITH (NOLOCK) ON V.vendorId = VAI.VendorId
       WHERE VAI.VendorId = ISNULL(@vendorname, VAI.VendorId) AND VAI.mastercompanyid = @mastercompanyid and VAI.IsActive =1 AND VAI.IsDeleted=0
-			AND CAST(VAI.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+			AND CAST(VAI.LastAuditDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
 			)
 			,FinalCTE(TotalRecordsCount, VendorAuditInfoId,VendorName, VendorCode, LastAuditDate, NextAuditDate, DaysTillNextAudit, InForce, AuditFindings,
 				 ActionsTaken,  PerformedBy, DatePerformed) 

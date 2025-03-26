@@ -63,7 +63,7 @@ BEGIN
 				 JOIN [dbo].[Charge] ct  WITH(NOLOCK) ON woc.ChargesTypeId = ct.ChargeId  
 				 LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) ON woc.VendorId = v.VendorId       
 				 LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON woc.TaskId = ts.TaskId  
-				 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = woc.TaskId
+				 LEFT JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = woc.TaskId
 				 LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON ct.GLAccountId = gl.GLAccountId    
 				 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON um.UnitOfMeasureId = woc.UOMId  
 				 WHERE woc.IsDeleted = @IsDeleted AND woc.SubWOPartNoId = @subWOPartNoId AND woc.MasterCompanyId=@masterCompanyId  

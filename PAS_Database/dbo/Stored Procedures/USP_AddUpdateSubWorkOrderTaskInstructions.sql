@@ -9,9 +9,9 @@
  **************************************************************
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
-    1    03/20/2025   Vishal Suthar	 Created
-    2    03/25/2025   Vishal Suthar	 Fix for adding child node for Instruction
-
+    1    03/20/2025   Vishal Suthar	  Created
+    2    03/25/2025   Vishal Suthar	  Fix for adding child node for Instruction
+    3    03/27/2025   EKTA CHANDEGRA  Add history call for Sub Work Order Task Instructions
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateSubWorkOrderTaskInstructions]
 	@SubWorkOrderTaskInstructionId BIGINT = NULL,
@@ -169,7 +169,7 @@ BEGIN
 				VALUES (@TaskInstructionId, @NewSubWorkOrderTaskInstructionId);
 
 				-- Add Work Order Task Instruction History 
-				--EXEC USP_InsertWorkOrderTaskInstructionHistory @NewSubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
+				EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewSubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
 
 				--IF (@ParentId IS NULL)
 				--BEGIN
@@ -217,7 +217,7 @@ BEGIN
 			DECLARE @Id INT = SCOPE_IDENTITY();
 
 			---- Add Work Order Task Instruction History 
-			--EXEC USP_InsertWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId
+			EXEC USP_InsertSubWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId
 
 			--/* START: Add Entry in History Table */
 			--SET @StatusCode = 'CreateWorkOrderTaskInstruction';
@@ -376,7 +376,7 @@ BEGIN
 			DECLARE @NewWOTIID INT = SCOPE_IDENTITY();
 		
 			---- Add Work Order Task Instruction History 
-			--EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId
+			EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId
 
 			--/* START: Add Entry in History Table */
 			--SET @StatusCode = 'CreateWorkOrderTaskInstruction';
@@ -408,7 +408,7 @@ BEGIN
 		WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId;
 
 		-- Add Work Order Task Instruction History 
-		--EXEC USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
+		EXEC USP_InsertSubWorkOrderTaskInstructionHistory @SubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
 
 		SELECT @SubWorkOrderTaskInstructionId AS SubWorkOrderTaskInstructionId;
 	END

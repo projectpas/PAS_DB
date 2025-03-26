@@ -1,7 +1,7 @@
 ﻿/*********************           
  ** File:   [USP_GetYearEndCloseList]           
  ** Author:   Hemant Saliya
- ** Description: This stored procedure is used to get Year End Close List List
+ ** Description: This stored procedure is used to get Year End Close List
  ** Purpose:         
  ** Date:   
           
@@ -12,15 +12,16 @@
  **********************           
   ** Change History           
  **********************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/12/2023   Hemant Saliya	 Created Procedure
-	2    09/25/2023   Hemant Saliya	 Added Version Numver in List
-	3    09/26/2023   Bhargav Saliya  Add One Field [BatchHeaderId]
-	4    06/28/2024   Sahdev Saliya  Added Global Filters and Sorting (Revenue, Expenses, NetEarning, NetRevenue)
+ ** PR   Date				Author				Change Description            
+ ** --   --------			-------				--------------------------------          
+    1    09/12/2023			Hemant Saliya		Created Procedure
+	2    09/25/2023			Hemant Saliya		Added Version Numver in List
+	3    09/26/2023			Bhargav Saliya		Add One Field [BatchHeaderId]
+	4    06/28/2024			Sahdev Saliya		Added Global Filters and Sorting (Revenue, Expenses, NetEarning, NetRevenue)
+	5    06-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 
 EXEC USP_GetYearEndCloseList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@Year=0,@VersionNumber=NULL,@LegalEntity=NULL,@Memo=NULL,@ExecuteDate=NULL,@YearEndDate=NULL,
-@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=2     
+@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=226    
 **********************/
 CREATE   PROCEDURE [dbo].[USP_GetYearEndCloseList]
  -- Add the parameters for the stored procedure here  
@@ -44,8 +45,8 @@ CREATE   PROCEDURE [dbo].[USP_GetYearEndCloseList]
 	 @Revenue VARCHAR(50) = NULL,  
 	 @Expenses VARCHAR(50) = NULL,
 	 @NetEarning VARCHAR(50) = NULL,  
-	 @NetRevenue VARCHAR(50) = NULL ,
-	 @EmployeeId VARCHAR(200) = NULL	
+	 @NetRevenue VARCHAR(50) = NULL,
+	 @EmployeeId BIGINT = NULL	
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -53,7 +54,28 @@ BEGIN
  BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN   
-    DECLARE @RecordFrom int;  
+    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+	
+	DECLARE @RecordFrom int;  
     DECLARE @IsActive bit=1  
     DECLARE @Count Int;  
     DECLARE @WorkOrderStatusId int;    
@@ -82,22 +104,18 @@ BEGIN
     ELSE
     BEGIN   
 		SET @SortColumn=Upper(@SortColumn)  
-    END  
-  
-	DECLARE @EmpLegalEntiyId BIGINT = 0;
-	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-
-	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-	WHERE LE.LegalEntityId = @EmpLegalEntiyId;
+    END 
+	
 
 	;WITH Result AS(  
        SELECT	
 			[YearEndCloseProcessId], 
 			[Year],	
 			[VersionNumber],	
-			[LegalEntity],
-			[YearEndDate],
+			[LegalEntity],			
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(YearEndDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(YearEndDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(YearEndDate AS DATETIME)) END YearEndDate,
 			CAST([Revenue] AS VARCHAR) AS [Revenue],
 			CAST([Expenses] AS VARCHAR) AS [Expenses],
 			CAST([NetEarning] AS VARCHAR) AS [NetEarning],
@@ -106,10 +124,17 @@ BEGIN
 			UPPER ([Memo]) AS [Memo],
 			[StartPeriodId],
 			[EndPeriodId],
-			[ExecuteDate],
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(ExecuteDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ExecuteDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(ExecuteDate AS DATETIME)) END ExecuteDate,
 			[MasterCompanyId],
 			[CreatedBy],[UpdatedBy],
-			[CreatedDate],[UpdatedDate],
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(CreatedDate AS DATETIME)) END CreatedDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(UpdatedDate AS DATETIME)) END UpdatedDate,
 			[IsActive],[IsDeleted]
        FROM dbo.YearEndCloseProcess WO WITH(NOLOCK)  
        WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive IS NULL OR WO.IsActive = @IsActive))  
@@ -139,9 +164,11 @@ BEGIN
 		(IsNull(@Expenses,'') ='' OR Expenses like '%' + @Expenses+'%') AND  
 		(IsNull(@NetEarning,'') ='' OR NetEarning like '%' + @NetEarning+'%') AND  
         (IsNull(@NetRevenue,'') ='' OR NetRevenue like '%' + @NetRevenue+'%') AND  
-        (IsNull(@ExecuteDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal([ExecuteDate], @CurrntEmpTimeZoneDesc) as Date) = Cast(@ExecuteDate as date)) AND  
-		(IsNull(@YearEndDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal([YearEndDate], @CurrntEmpTimeZoneDesc) as Date) = Cast(@YearEndDate as date)) AND  
-        (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
+        --(IsNull(@ExecuteDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal([ExecuteDate], @CurrntEmpTimeZoneDesc) as Date) = Cast(@ExecuteDate as date)) AND  
+		--(IsNull(@YearEndDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal([YearEndDate], @CurrntEmpTimeZoneDesc) as Date) = Cast(@YearEndDate as date)) AND  
+        (IsNull(@ExecuteDate,'') ='' OR Cast(ExecuteDate as Date)=Cast(@ExecuteDate as date)) AND  
+		(IsNull(@YearEndDate,'') ='' OR Cast(YearEndDate as Date)=Cast(@YearEndDate as date)) AND  
+		(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
         (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date))  
         ))  
   

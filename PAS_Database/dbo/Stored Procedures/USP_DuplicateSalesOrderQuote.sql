@@ -18,7 +18,7 @@
 	2	13/09/2024	AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate for DuplicateSalesOrderQuote
 	3	10/22/2024  AMIT GHEDIYA		Updated old table with new table.
 	4   11/13/2014  Abhishek Jirawla    Resolved error after adding new table details
-   
+    5	28/02/2025	Ayushi Patel		Cast openDate as a Date
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DuplicateSalesOrderQuote]
 	@SalesOrderQuoteId BIGINT,
@@ -96,7 +96,7 @@ BEGIN
 			[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2],[ManagementStructureName3],
 			[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight],[TotalCharges],[FreightBilingMethodId],
 			[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
-		(SELECT [QuoteTypeId],GETUTCDATE(),@ValidForDays,@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],
+		(SELECT [QuoteTypeId],cast(GETUTCDATE() as date),@ValidForDays,@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],
 			[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId],[ProbabilityId],[LeadSourceId],@CreditLimit,@CreditTermsId,
 			[EmployeeId],[RestrictPMA],[RestrictDER],NULL,[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId],@Username,
 			GETUTCDATE(),@Username,GETUTCDATE(),0,@OpenStatus,GETUTCDATE(),[ManagementStructureId],[Version],[AgentId],

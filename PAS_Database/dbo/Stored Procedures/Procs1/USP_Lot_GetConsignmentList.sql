@@ -12,6 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    27/07/2023   Rajesh Gami     Created
 	2    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	3    20/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetConsignmentList] 
@@ -28,7 +29,8 @@ CREATE   PROCEDURE [dbo].[USP_Lot_GetConsignmentList]
 	@CalculateValue decimal(18,2) = NULL,
 	@CreatedBy  varchar(50) = NULL,
 	@CreatedDate datetime = NULL,
-	@MasterCompanyId bigint = NULL	
+	@MasterCompanyId bigint = NULL,
+	@EmployeeId bigint
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -40,6 +42,27 @@ BEGIN
 		DECLARE @RecordFrom int;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		DECLARE @CurrntEeTimeZoneDesc VARCHAR(100) = '';
+		
+				SELECT 
+						@CurrntEeTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		IF @SortColumn IS NULL
@@ -58,7 +81,8 @@ BEGIN
 			   ,LC.ConsignmentId
 			   ,UPPER(LT.LotNumber) LotNumber
 			   ,UPPER(LT.LotName) LotName
-			   ,LC.[CreatedDate] CreatedDate
+			   --,LC.[CreatedDate] CreatedDate
+			   ,case when CAST(LC.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LC.[CreatedDate], @CurrntEeTimeZoneDesc) as Date))end CreatedDate
 			   , (CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN' WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
 			   --,ISNULL(LC.PerAmount,0.00)CalculateValue
 			   ,(CASE WHEN ISNULL(LC.IsFixedAmount,0) = 1 THEN ISNULL(LC.PerAmount,0.00) ELSE (SELECT ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)) END) AS CalculateValue
@@ -94,7 +118,8 @@ BEGIN
 					(ISNULL(@CreatedBy, '') = '' OR CreatedBy  like '%'+ @CreatedBy + '%') AND
 					(ISNULL(@HowCalculate, '') = '' OR HowCalculate  like '%'+ @HowCalculate + '%') AND
 					(IsNull(@CalculateValue, 0) = 0 OR CAST(CalculateValue as VARCHAR(10)) like @CalculateValue) AND
-					(ISNULL(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date) = CAST(@CreatedDate AS date))
+					--(ISNULL(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date) = CAST(@CreatedDate AS date))
+					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date) = CAST(@CreatedDate AS date))
 					)
 				  )
 

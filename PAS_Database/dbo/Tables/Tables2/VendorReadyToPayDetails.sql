@@ -40,8 +40,14 @@
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
     [ControlNumber]                 VARCHAR (250)   NULL,
     [VendorProformaInvoiceId]       BIGINT          NULL,
+    [QuickBooksReferenceId]         VARCHAR (200)   NULL,
+    [IsUpdated]                     BIT             NULL,
+    [LastSyncDate]                  DATETIME2 (7)   NULL,
+    [SyncToken]                     VARCHAR (200)   NULL,
     CONSTRAINT [PK_ReadyToPayDetails] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsId] ASC)
 );
+
+
 
 
 

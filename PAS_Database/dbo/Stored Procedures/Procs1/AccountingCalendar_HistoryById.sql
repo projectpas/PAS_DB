@@ -1,8 +1,25 @@
-﻿
+﻿/***************************************************************  
+ ** File:   [AccountingCalendar_HistoryById]             
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to Get Accounting Calendar History List
+ ** Date:  Unknown
+            
+  ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  				Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    ***********		Unknown				Created
+    2    05-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+		
+	exec dbo.AccountingCalendar_HistoryById @AccReferenceId=314,@TableName=N'Inventory',@PeriodName=N'MAR - 2025',@EmployeeId=226
+**************************************************************/
+
+
 CREATE     PROCEDURE [dbo].[AccountingCalendar_HistoryById]
 @AccReferenceId int,
 @TableName varchar(100),
-@PeriodName varchar(256)
+@PeriodName varchar(256),
+@EmployeeId bigint
  
 --select * from AccountingCalendarHistory
 
@@ -14,6 +31,26 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 				
 				SELECT 
 					ACC.[AccountingCalendarHistoryId],
@@ -28,8 +65,12 @@ BEGIN
 					ACC.[MasterCompanyId],
 					ACC.[CreatedBy],
 					ACC.[UpdatedBy],
-					ACC.[CreatedDate],
-					ACC.[UpdatedDate],
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(ACC.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ACC.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(ACC.CreatedDate AS DATETIME)) END CreatedDate,
+				    CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(ACC.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ACC.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(ACC.UpdatedDate AS DATETIME)) END UpdatedDate,
 					ACC.[IsActive]
 				FROM [DBO].AccountingCalendarHistory ACC WITH (NOLOCK) 
 				

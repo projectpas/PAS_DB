@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAssetList]
  ** Author:   
  ** Description: This stored procedure is used to Get Asset List
@@ -17,6 +16,8 @@
     1    									Created
     2	 06/10/2024  Abhishek Jirawla		Returning upper case data
 	3    09/09/2024  Abhishek Jirawla       Adding DepreciationMethod
+	3    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
+	4    04-03-2025  Shrey Chandegara		Modified due to SortOrder Issue
 
 ************************************************************************/
 
@@ -61,6 +62,27 @@ BEGIN
   DECLARE @ModuleID varchar(500) ='40,41'
   Declare @IsActive bit = 1  
   Declare @Count Int;  
+
+  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM
+				dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN
+				dbo.TimeZone ETZ WITH (NOLOCK)
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN
+				dbo.LegalEntity LE WITH (NOLOCK)
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN
+				dbo.TimeZone LTZ WITH (NOLOCK)
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
   SET @RecordFrom = (@PageNumber - 1) * @PageSize;  
   IF @IsDeleted is null  
   Begin  
@@ -110,8 +132,10 @@ BEGIN
      UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
      UPPER(asty.AssetAttributeTypeName) AS AssetType,   
      UPPER(asm.MasterCompanyId) AS MasterCompanyId,  
-     asm.CreatedDate AS CreatedDate,  
-     asm.UpdatedDate AS UpdatedDate,  
+	 (Cast(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) as DATETIME)) CreatedDate,
+	 (Cast(DBO.ConvertUTCtoLocal(asm.UpdatedDate, @CurrntEmpTimeZoneDesc) as DATETIME)) UpdatedDate,
+     --asm.CreatedDate AS CreatedDate,  
+     --asm.UpdatedDate AS UpdatedDate,  
      UPPER(asm.CreatedBy) AS CreatedBy,  
      UPPER(asm.UpdatedBy) AS UpdatedBy ,  
      asm.IsActive AS IsActive,  
@@ -162,8 +186,8 @@ BEGIN
       (IsNull(@AssetStatus,'') ='' OR AssetClass like '%' + @AssetStatus+'%') AND  
       (IsNull(@AssetType,'') ='' OR AssetType like '%' + @AssetType+'%') AND  
       (IsNull(@deprAmort,'') ='' OR deprAmort like '%' + @deprAmort+'%') AND  
-                        (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
-      (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and  
+      (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as DATETIME)=Cast(@CreatedDate as DATETIME)) AND  
+      (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATETIME)=Cast(@UpdatedDate as DATETIME)) and  
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
       (IsNull(@Partnumber,'') ='' OR PartNumber like '%' + @Partnumber+'%') AND  

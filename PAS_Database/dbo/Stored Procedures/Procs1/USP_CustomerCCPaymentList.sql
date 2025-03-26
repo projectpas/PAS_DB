@@ -10,13 +10,14 @@
  ***********************************************************************    
  ** Change History           
  *********************************************************************** 
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			------------------------------------
-    1    09/01/2023   Devendra Shekh		    Created
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				------------------------------------
+    1    09/01/2023   Devendra Shekh		Created
+	2    21-Feb-2025  Divyesh Kathiriya		Update CreatedDate and UpdateDate based on Employee time zone 
 
 exec USP_CustomerCCPaymentList     
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@LegalEntity=0,@CustomerName=N'fs',@CompanyBankAccount=NULL,@MerchantID=NULL,@CreatedBy=NULL
-,@CreatedDate='2023-08-24 17:41:21.587',@UpdatedBy=NULL,@UpdatedDate='2023-08-24 17:41:21.587',@MasterCompanyId=1,@IsActive=null,@IsDeleted=null
+,@CreatedDate='2023-08-24 17:41:21.587',@UpdatedBy=NULL,@UpdatedDate='2023-08-24 17:41:21.587',@MasterCompanyId=1,@StatusId=null,@IsDeleted=null,@EmployeeId=226
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CustomerCCPaymentList] 
 	@PageNumber int = 1,
@@ -34,7 +35,8 @@ CREATE   PROCEDURE [dbo].[USP_CustomerCCPaymentList]
 	@UpdatedDate  datetime = NULL,
 	@MasterCompanyId bigint = NULL,
 	@StatusId int = NULL,
-	@IsDeleted bit = NULL
+	@IsDeleted bit = NULL,
+	@EmployeeId bigint = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -45,6 +47,31 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit;
+		DECLARE @EmpLegalEntiyId BIGINT = 0;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM 
+				dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN 
+				dbo.TimeZone ETZ WITH (NOLOCK) 
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN 
+				dbo.LegalEntity LE WITH (NOLOCK) 
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN 
+				dbo.TimeZone LTZ WITH (NOLOCK) 
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE 
+				E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		IF @SortColumn IS NULL
@@ -79,8 +106,12 @@ BEGIN
 			   ,LT.[MasterCompanyId]
 			   ,LT.[CreatedBy]
 			   ,LT.[UpdatedBy]
-			   ,LT.[CreatedDate]
-			   ,LT.[UpdatedDate]
+			   ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(LT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(LT.CreatedDate AS DATETIME)) END CreatedDate
+			   ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(LT.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(LT.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(LT.UpdatedDate AS DATETIME)) END UpdatedDate
 			   ,LT.[IsActive]
 			   ,LT.[IsDeleted]
 				FROM [dbo].[CustomerCCPayments] LT WITH(NOLOCK) 

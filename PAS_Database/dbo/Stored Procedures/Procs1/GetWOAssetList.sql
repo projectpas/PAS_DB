@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Unknown        Created
 	2    01/29/2025   Moin Bloch     Updated for WorkOrderTask
+	3    02/26/2025   AMIT GHEDIYA   Get taskid from wotask.
      
     EXEC GetWOAssetList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@WorkFlowWorkOrderId=3305,@Name=NULL,@AssetId=NULL,@Description=NULL,@AssetTypeName=NULL,@Quantity=0,@CheckInDate=NULL,@CheckOutDate=NULL,@CheckInBy=NULL,@CheckOutBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@Status=NULL,@TaskName=NULL,@IsFromWorkFlowNew=NULL
 **************************************************************/
@@ -75,7 +76,8 @@ BEGIN
        A.[Description],  
        A.[Name],  
 	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WOT.[TaskName] ELSE T.[Description] END TaskName,  
-       T.TaskId,  
+       --T.TaskId,  
+	   CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WOT.[TaskId] ELSE T.[TaskId] END TaskId,
        AAT.AssetAttributeTypeName AS AssetTypeName,  
        AAT.TangibleClassId,  
        WOA.Quantity,  

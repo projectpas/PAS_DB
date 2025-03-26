@@ -165,6 +165,7 @@
     [IsUpdated]                         BIT             NULL,
     [LastSyncDate]                      DATETIME2 (7)   NULL,
     [SyncToken]                         VARCHAR (200)   NULL,
+    [WorkOrderFormTypeId]               INT             NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),

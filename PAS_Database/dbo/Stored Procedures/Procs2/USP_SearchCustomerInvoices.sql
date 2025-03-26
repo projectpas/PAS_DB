@@ -35,7 +35,8 @@
 	18  07/23/2024	  Devendra Shekh    optimized SP and Removed unnecessary commented Data
 	19  11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	20  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
-
+	21  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	22  19-03-2025     RAJESH GAMI     Fix the duplicate record (I added the rowNum and based on that add condition)
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -68,7 +69,8 @@ CREATE    PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @RemainingAmount decimal=null,
 @AmountPaid decimal=null,
 @LastMSLevel varchar(50)=null,
-@Status varchar(50)=null
+@Status varchar(50)=null,
+@IsUpdated BIT = NULL
 AS
 BEGIN
 	  DECLARE @RecordFrom INT; 
@@ -161,6 +163,7 @@ BEGIN
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.IsVersionIncrease=0
 			AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1 AND ISNULL(WOBI.RemainingAmount,0) > 0
 			AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(WOBI.IsPerformaInvoice,0) = 0))
 			GROUP BY	WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceStatus, WOBI.InvoiceDate, WO.WorkOrderNum, C.[Name], CT.CustomerTypeName, WOBI.GrandTotal, WOBI.RemainingAmount, WQ.QuoteNumber, WOBI.WorkOrderId
 						, C.CustomerId, CRM.RMAHeaderId, WOBI.IsPerformaInvoice, WOPN.ManagementStructureId
 			),				
@@ -239,8 +242,9 @@ BEGIN
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0
 				AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+				AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsProforma,0) = 0))
 				GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name], CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
-							, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.SalesOrderId, C.CustomerId, CRM.RMAHeaderId, SOBI.IsProforma, SMS.EntityMSID
+							, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.SalesOrderId, C.CustomerId, CRM.RMAHeaderId, SOBI.IsProforma, SMS.EntityMSID 
 						),
 				SOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
 				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, M.AmountPaid, M.PN [PN],M.PNDescription [PNDescription],
@@ -257,7 +261,7 @@ BEGIN
 				M.CustomerReference,ISNULL(M.SerialNumber,''),M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId
 					),
 				ExchSOResult AS(
-			SELECT SOBI.SOBillingInvoicingId [InvoicingId],
+			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   SOBI.InvoiceDate [InvoiceDate],
@@ -278,19 +282,19 @@ BEGIN
 				   1 as isRMACreate,
 				   0 AS IsPerformaInvoice,
 				   SMS.EntityMSID AS ManagementStructureId
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SO.VersionNumber) END) AS 'VersionNo'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SO.VersionNumber) END) AS 'VersionNoType'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumber'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumberType'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PN'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PartNumberType'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.PartDescription) END) AS 'PNDescription'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.PartDescription) END) AS 'PartDescriptionType'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(SO.VersionNumber) END) AS 'VersionNo'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(SO.VersionNumber) END) AS 'VersionNoType'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumber'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumberType'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(I.partnumber) END) AS 'PN'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(I.partnumber) END) AS 'PartNumberType'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(I.PartDescription) END) AS 'PNDescription'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(I.PartDescription) END) AS 'PartDescriptionType'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
 					WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
 					WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
 					ELSE 'OEM' END ) END) AS 'StockType'
-				   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
+				   ,(CASE WHEN COUNT(*) OVER (PARTITION BY  SOBI.InvoiceNo,I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
 					WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
 					WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
 					ELSE 'OEM' END ) END) AS 'StockTypeType'
@@ -306,8 +310,9 @@ BEGIN
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 AND ISNULL(SOBI.GrandTotal,0) > 0	
 			AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0))
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name], CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
-						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID
+						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId
 						),
 				ExchSOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
 				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,M.PN as [PN],M.PNDescription [PNDescription],
@@ -317,7 +322,7 @@ BEGIN
 				M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
 				M.CustomerReference,'' as CustomerReferenceType,
 				ISNULL(M.SerialNumber,'') [SerialNumber],M.IsWorkOrder,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId
-				FROM ExchSOResult M   
+				FROM ExchSOResult M 
 				GROUP BY 
 				M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
 				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,M.PNDescription,
@@ -447,7 +452,8 @@ BEGIN
    ELSE
    BEGIN
 			;WITH Result AS(
-				SELECT WOBI.BillingInvoicingId [InvoicingId],
+				SELECT DISTINCT WOBI.BillingInvoicingId [InvoicingId],
+				1 AS RowNum,
 				WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],
 				WOBI.InvoiceDate [InvoiceDate],
@@ -494,7 +500,8 @@ BEGIN
 
 			UNION ALL
 
-			SELECT SOBI.SOBillingInvoicingId [InvoicingId],
+			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
+					1 AS RowNum,
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   SOBI.InvoiceDate [InvoiceDate],
@@ -543,11 +550,12 @@ BEGIN
 					C.Name ,CT.CustomerTypeName , SOBI.RemainingAmount,
 					SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
 					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
-					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId, SOBI.IsProforma,SMS.EntityMSID
+					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId, SOBI.IsProforma,SMS.EntityMSID,IM.ItemMasterId 
 
 			UNION ALL
 
-				SELECT SOBI.SOBillingInvoicingId [InvoicingId],
+				SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
+					   ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) AS RowNum,
 					   SOBI.InvoiceNo [InvoiceNo],
 					   SOBI.InvoiceStatus [InvoiceStatus],
 					   SOBI.InvoiceDate [InvoiceDate],
@@ -559,7 +567,7 @@ BEGIN
 					   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,		
 					   IM.partnumber [PN], 
 					   IM.PartDescription [PNDescription],
-					   '' [VersionNo],
+					   SO.VersionNumber [VersionNo],
 					   SQ.ExchangeQuoteNumber [QuoteNumber],
 					   SO.CustomerReference [CustomerReference],
 					   ST.SerialNumber [SerialNumber],
@@ -591,9 +599,10 @@ BEGIN
 				 AND SOBII.[IsDeleted] = 0 AND ISNULL(SOBI.[GrandTotal],0) > 0	
 			     AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 						
-			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result)  
+			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result where  RowNum = 1)  
 			   SELECT * INTO #TempResults from  Result
-			   WHERE (  
+			   WHERE RowNum = 1 AND (  
+			  
 				(@GlobalFilter <> '' AND (  
 				  (InvoiceNo like '%' +@GlobalFilter+'%') OR  
 				  (InvoiceStatus like '%' +@GlobalFilter+'%') OR  

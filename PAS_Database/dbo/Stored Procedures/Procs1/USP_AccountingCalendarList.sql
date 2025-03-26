@@ -11,11 +11,12 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    05/03/2022   Vishal Suthar    Added Legal Entity  
-    2    30/08/2022   subhash saliya   Changes ledger id  
-	3    01/07/2024   Moin Bloch       Fix Legalentity Filter Issue
+ ** PR   Date			Author				Change Description              
+ ** --   --------		-------				--------------------------------            
+    1    05/03/2022		Vishal Suthar		Added Legal Entity  
+    2    30/08/2022		subhash saliya		Changes ledger id  
+	3    01/07/2024		Moin Bloch			Fix Legalentity Filter Issue
+	4    04-Mar-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
        
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_AccountingCalendarList]  
@@ -33,12 +34,35 @@ CREATE    PROCEDURE [dbo].[USP_AccountingCalendarList]
 @PeriodName VARCHAR(50) = '',  
 @FromDate DATETIME= NULL,  
 @ToDate DATETIME=NULL,  
-@MasterCompanyId INT = NULL 
+@MasterCompanyId INT = NULL,
+@EmployeeId bigint = Null
  AS  
  BEGIN  
   
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
   SET NOCOUNT ON;  
+  				
+  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
   DECLARE @RecordFrom int;  
   Declare @IsActive bit = 1  
   Declare @Count Int;  
@@ -87,9 +111,9 @@ CREATE    PROCEDURE [dbo].[USP_AccountingCalendarList]
 			AC_Max.Notes, 
 			AC_Max.MasterCompanyId,
 			AC_Max.CreatedBy,
-			AC_Max.UpdatedBy,  
-			AC_Max.CreatedDate, 
-			AC_Max.UpdatedDate, 
+			AC_Max.UpdatedBy, 
+			AC_Max.CreatedDate,
+			AC_Max.UpdatedDate,
 			AC_Max.IsActive, 
 			AC_Max.IsDeleted, 
 			AC_Max.[Status], 
@@ -100,8 +124,47 @@ CREATE    PROCEDURE [dbo].[USP_AccountingCalendarList]
 			AC_Max.NoOfPeriods AS NoOfPeriodid ,
 			AC_Max.PeriodType, 
 			AC_Max.ledgerId, 
-			LE.[Name] LegalEntity,  
-           (SELECT * FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE  IsDeleted =0 AND IsActive=1 and LegalEntityId=RS.LegalEntityId AND FiscalYear = RS.FiscalYear order by AccountingCalendar.Period asc for JSON PATH) as calendarListData,
+			LE.[Name] LegalEntity,
+		   (SELECT [AccountingCalendarId]
+				  ,[Name]
+				  ,[Description]
+				  ,[FiscalName]
+				  ,[FiscalYear]
+				  ,[Quater]
+				  ,[Period]
+				  ,[FromDate]
+				  ,[ToDate]
+				  ,[PeriodName]
+				  ,[Notes]
+				  ,[MasterCompanyId]
+				  ,[CreatedBy]
+				  ,[UpdatedBy]
+				  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				   ELSE (CAST(CreatedDate AS DATETIME)) END CreatedDate,
+				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				   ELSE (CAST(UpdatedDate AS DATETIME)) END UpdatedDate 
+				  ,[IsActive]
+				  ,[IsDeleted]
+				  ,[Status]
+				  ,[LegalEntityId]
+				  ,[isUpdate]
+				  ,[IsAdjustPeriod]
+				  ,[NoOfPeriods]
+				  ,[PeriodType]
+				  ,[ledgerId]
+				  ,[IsCurrentActivePeriod]
+				  ,[StartDate]
+				  ,[EndDate]
+				  ,[IsCalendarMethod]
+				  ,[isaccStatusName]
+				  ,[isacpStatusName]
+				  ,[isacrStatusName]
+				  ,[isassetStatusName]
+				  ,[isinventoryStatusName]
+				  ,[NextYearStartDate]
+				  FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE  IsDeleted =0 AND IsActive=1 and LegalEntityId=RS.LegalEntityId AND FiscalYear = RS.FiscalYear order by AccountingCalendar.Period asc for JSON PATH) as calendarListData,
 	 RS.IsCalendarMethod
      FROM Result RS WITH(NOLOCK)  
      INNER JOIN dbo.AccountingCalendar AS AC_Min WITH(NOLOCK) ON  AC_Min.AccountingCalendarId = RS.AccountingCalendarId_Min  

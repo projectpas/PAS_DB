@@ -71,7 +71,7 @@ BEGIN
 				FROM [dbo].[SubWorkOrderFreight] wf WITH(NOLOCK)
 					JOIN [dbo].[ShippingVia] sv WITH(NOLOCK) ON wf.ShipViaId = sv.ShippingViaId
 				    LEFT JOIN [dbo].[Task] ts WITH(NOLOCK) ON wf.TaskId = ts.TaskId
-					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wf.TaskId
+					LEFT JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = wf.TaskId
 					LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
 					LEFT JOIN [dbo].[UnitOfMeasure] duom WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId
 					LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON wf.CurrencyId = cur.CurrencyId

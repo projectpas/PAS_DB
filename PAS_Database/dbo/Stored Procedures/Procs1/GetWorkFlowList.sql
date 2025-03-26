@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkFlowList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Work Flow List    
@@ -17,8 +16,10 @@
 	2    04/21/2021   Added Try-catch blocks , Transation & Rollback
 	3    04/28/2021   Added Content Managment for DB Logs
 	4    08/02/2021   Added Is Verion Increase flag
+	5    11/03/2025   Sahdev Saliya  Added New Field TemplateDescription
+	6    20/03/2025   Ekta Chandegra Convert date using dbo.ConvertUTCtoLocal
 
- EXECUTE [GetWorkFlowList] 1, 10, null, -1, 1, '', '','','','','','','','','','','','',0,5
+exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[GetWorkFlowList]
@@ -43,13 +44,35 @@ CREATE   PROCEDURE [dbo].[GetWorkFlowList]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
-	@MasterCompanyId int
+	@MasterCompanyId int,
+	@TemplateDescription varchar(500)=null,
+	@EmployeeId bigint
+
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 
+		@CurrntEmpTimeZoneDesc = COALESCE(
+			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		)
+		FROM 
+		dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+		E.EmployeeId = @EmployeeId;
+				
 		DECLARE @RecordFrom int;
 		Declare @IsActive bit=1
 		Declare @Count Int;
@@ -89,7 +112,8 @@ BEGIN
 					ws.Description,
 					wf.WorkScopeId,
 					c.Name,
-					im.PartNumber,					
+					im.PartNumber,	
+				    UPPER(wf.WorkflowDescription) 'templateDescription',
 					im.PartDescription,
 					wf.WorkOrderNumber,
 					wf.WorkflowExpirationDate AS WorkflowExpirationDate,
@@ -103,9 +127,9 @@ BEGIN
 					wf.Memo,
 					wf.IsActive,
 					wf.IsDeleted,
-					wf.CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(wf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
 					wf.CreatedBy,
-					wf.UpdatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(wf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 					wf.UpdatedBy,
 					CASE WHEN wf.IsVersionIncrease IS NULL THEN CASE WHEN WFParentId IS NULL THEN 0 ELSE 1 END ELSE wf.IsVersionIncrease END AS IsVersionIncrease
 					,im.ManufacturerName ManufacturerName
@@ -133,6 +157,7 @@ BEGIN
 					(@GlobalFilter='' AND (IsNull(@WorkOrderNumber,'') ='' OR WorkOrderNumber like '%' + @WorkOrderNumber+'%') and 
 					(IsNull(@Version,'') ='' OR Version like '%' + @Version+'%') and
 					(IsNull(@PartNumber,'') ='' OR partnumber like '%' + @PartNumber+'%') and
+					(IsNull(@TemplateDescription,'') ='' OR TemplateDescription like '%' + @TemplateDescription+'%') and
 					(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
 					(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') and
 					(IsNull(@Description,'') ='' OR Description like '%' + @Description+'%') and
@@ -141,8 +166,8 @@ BEGIN
 					(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
 					(IsNull(@WorkflowCreateDate,'') ='' OR Cast(WorkflowCreateDate as Date)=Cast(@WorkflowCreateDate as date)) and
 					(IsNull(@WorkflowExpirationDate,'') ='' OR Cast(WorkflowExpirationDate as Date)=Cast(@WorkflowExpirationDate as date)) and
-					(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
-					(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
+					(IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@CreatedDate AS DATE)) and
+					(IsNull(@UpdatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@UpdatedDate AS DATE)))
 					)
 			
 			SELECT @Count = COUNT(WorkflowId) from #TempResult			
@@ -162,6 +187,7 @@ BEGIN
             CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END ASC,
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBER')  THEN WorkOrderNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
@@ -175,7 +201,9 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKFLOWEXPIRATIONDATE')  THEN WorkflowExpirationDate END DESC,
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END DESC
+
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

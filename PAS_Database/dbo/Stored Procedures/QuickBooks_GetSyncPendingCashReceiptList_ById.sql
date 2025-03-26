@@ -29,6 +29,11 @@ BEGIN
 		DECLARE @WOInvoiceType INT = 2, @SOInvoiceType INT = 1, @ExchInvoiceType INT = 6;
 		DECLARE @InvPaymentType VARCHAR(20) = 'Invoice';
 		DECLARE @CMPaymentType VARCHAR(20) = 'CreditMemo';
+		DECLARE @CheckPMId VARCHAR(200), @CreditCardPMId VARCHAR(200), @WirePMId VARCHAR(200); 
+
+		SELECT @CheckPMId = [QuickBooksReferenceId] FROM [dbo].[PaymentMethod] WITH(NOLOCK) WHERE UPPER([Description]) = 'CHECK';
+		SELECT @WirePMId = [QuickBooksReferenceId] FROM [dbo].[PaymentMethod] WITH(NOLOCK) WHERE UPPER([Description]) = 'DOMESTIC WIRE';
+		SELECT @CreditCardPMId = [QuickBooksReferenceId] FROM [dbo].[PaymentMethod] WITH(NOLOCK) WHERE UPPER([Description]) = 'CREDIT CARD';
 
 		IF OBJECT_ID('tempdb..#CashReceiptDetails') IS NOT NULL
 			DROP TABLE #CashReceiptDetails
@@ -51,6 +56,11 @@ BEGIN
 			[SyncToken] VARCHAR(200) NULL,
 			[MasterCompanyId] INT NULL,
 			[UpdatedBy] VARCHAR(256) NULL,
+			[IsMultiplePaymentMethod] BIT NULL,
+			[IsCheckPayment] BIT NULL,
+			[IsWireTransfer] BIT NULL,
+			[IsCCDCPayment] BIT NULL,
+			[PaymentMethodRef] VARCHAR(200) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -58,7 +68,7 @@ BEGIN
 		BEGIN
 			--Inserting Cash Receipt Data
 			INSERT INTO #CashReceiptDetails ([ReceiptId], [CustomerPaymentDetailsId], [BillingInvoicingId], [InvoiceType], [CntrlNum], [Amount], [AmountRem], [PaymentAmount], [CustomerQuickBooksReferenceId], 
-			[PaymentType], [QuickBooksReferenceId], [SyncToken], [MasterCompanyId], [UpdatedBy])
+			[PaymentType], [QuickBooksReferenceId], [SyncToken], [MasterCompanyId], [UpdatedBy], [IsMultiplePaymentMethod], [IsCheckPayment], [IsWireTransfer], [IsCCDCPayment])
 			SELECT	CP.ReceiptId,
 					CPD.CustomerPaymentDetailsId,
 					INV.SOBillingInvoicingId,
@@ -72,7 +82,11 @@ BEGIN
 					ISNULL(CPD.QuickBooksReferenceId, 0),
 					ISNULL(CPD.SyncToken, 0),
 					CPD.MasterCompanyId,
-					CPD.UpdatedBy					 
+					CPD.UpdatedBy,
+					ISNULL(CPD.[IsMultiplePaymentMethod], 0),
+					ISNULL(CPD.[IsCheckPayment], 0),
+					ISNULL(CPD.[IsWireTransfer], 0),
+					ISNULL(CPD.[IsCCDCPayment], 0)
 			FROM [dbo].[CustomerPayments] CP WITH(NOLOCK) 
 				LEFT JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
 				LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = CPD.CustomerId
@@ -96,6 +110,13 @@ BEGIN
 			FROM #CashReceiptDetails CRD 
 			LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @ExchInvoiceType
 			WHERE CRD.InvoiceType = @ExchInvoiceType;
+
+			UPDATE CRD
+			SET	CRD.[PaymentMethodRef] =  CASE	WHEN CRD.IsMultiplePaymentMethod = 1 THEN	CASE WHEN CRD.IsCheckPayment = 1 THEN @CheckPMId WHEN CRD.IsWireTransfer = 1 THEN @WirePMId WHEN CRD.IsCCDCPayment = 1 THEN @CreditCardPMId END
+																	WHEN CRD.IsCheckPayment = 1 THEN @CheckPMId
+																	WHEN CRD.IsWireTransfer = 1 THEN @WirePMId
+																	WHEN CRD.IsCCDCPayment = 1 THEN @CreditCardPMId END
+			FROM #CashReceiptDetails CRD
 
 			SELECT * FROM #CashReceiptDetails;
 		END

@@ -26,6 +26,7 @@
     9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
 	10   14/Feb/2025  RAJESH GAMI  	    Return fields: PublicationTemplate  for PublicationType Table
 	11   19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
+	12   11/March/2025  AMIT GHEDIYA      Added case for VendorOrderType table.
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -37,7 +38,8 @@ CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns]
 	@Parameter4 BIT = TRUE, 
 	@Count VARCHAR(10) = 0, 
 	@Idlist VARCHAR(MAX) = '0', 
-	@MasterCompanyId INT
+	@MasterCompanyId INT,
+	@IsFromUpload BIT = 0
 AS BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON
@@ -165,7 +167,7 @@ AS BEGIN
             END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
-                         IF(@TableName='ItemMaster')BEGIN
+                         IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
                              SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                            WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
@@ -178,6 +180,16 @@ AS BEGIN
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          END
+						 ELSE IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 1)
+							BEGIN
+								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+								 UNION
+								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+							END
                          ELSE IF(@TableName='ItemMasterALL')BEGIN
                                   SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                          FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
@@ -252,6 +264,16 @@ AS BEGIN
 							  SELECT TY.TaxTypeId as Value, TY.Description as Label, TY.Code
 								 FROM dbo.TaxType TY WITH(NOLOCK)
 							  WHERE TY.MasterCompanyId=@MasterCompanyId AND TY.IsActive = 1 AND TY.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
+							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label
+								 FROM dbo.VendorOrderType VT WITH(NOLOCK)
+							  WHERE VT.IsActive = 1 AND VT.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorAuditType') BEGIN
+							  SELECT VAT.VendorAuditTypeId as Value, VAT.VendorAuditType as Label
+								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
+							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
 						 END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
@@ -391,7 +413,7 @@ AS BEGIN
             END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
-                         IF(@TableName='ItemMaster')BEGIN
+                         IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
                              SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
                                                                                                                            WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized
@@ -404,6 +426,16 @@ AS BEGIN
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          END
+						 ELSE IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 1)
+							BEGIN
+								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+								 UNION
+								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+							END
                          ELSE IF(@TableName='ItemMasterALL')BEGIN
                                   SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                          FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
@@ -454,6 +486,16 @@ AS BEGIN
                                   WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                   ORDER BY PublicationTypeId DESC
                          END
+						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
+							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label
+								 FROM dbo.VendorOrderType VT WITH(NOLOCK)
+							  WHERE VT.IsActive = 1 AND VT.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorAuditType') BEGIN
+							  SELECT VAT.VendorAuditTypeId as Value, VAT.VendorAuditType as Label
+								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
+							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
+						 END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
              SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  

@@ -23,6 +23,7 @@
 	8    15-Apr-2024  Bhargav Saliya    CreditTerms Changes
 	9    24/06/2024   HEMANT SALIYA		Added Un Applied Cash in Cash Receipt
 	10	 24/10/2024	  Devendra Shekh	added [CustomerPaymentDetailsId] to select
+	11   13-03-2025   Shrey Chandegara  Modified Due to Time Optimization
       
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 10135,0,2,11      
@@ -32,6 +33,7 @@
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 61,0,2,14      
     
 EXEC GetCustomerInvoicePaymentsByReceiptId 366,0,2,70,1      
+exec GetCustomerInvoicePaymentsByReceiptId @ReceiptId=123,@PageIndex=0,@Opr=2,@CustomerId=3335,@legalEntityId=1
       
 **************************************************************/      
 CREATE   PROCEDURE [dbo].[GetCustomerInvoicePaymentsByReceiptId]      
@@ -51,7 +53,65 @@ BEGIN
 	DECLARE @SuspenseModuleID INT ;
 	 
 	SELECT @SuspenseModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SUSPENSEANDUNAPPLIEDPAYMENT';
-    
+    IF OBJECT_ID(N'tempdb..#TempInvoicePayments') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #TempInvoicePayments
+	END
+	CREATE TABLE #TempInvoicePayments (
+		PaymentId BIGINT,
+		CustomerId BIGINT,
+		SOBillingInvoicingId BIGINT,
+		ReceiptId INT,
+		MasterCompanyId INT,
+		IsMultiplePaymentMethod BIT DEFAULT 0,
+		IsCheckPayment BIT DEFAULT 0,
+		IsWireTransfer BIT DEFAULT 0,
+		IsEFT BIT DEFAULT 0,
+		IsCCDCPayment BIT DEFAULT 0,
+		PaymentAmount DECIMAL(18,2),
+		DiscAmount DECIMAL(18,2),
+		DiscType INT,
+		BankFeeAmount DECIMAL(18,2),
+		BankFeeType INT,
+		OtherAdjustAmt DECIMAL(18,2),
+		Reason VARCHAR(300),
+		RemainingBalance DECIMAL(18,2),
+		Status VARCHAR(250),
+		CreatedBy VARCHAR(250),
+		UpdatedBy VARCHAR(250),
+		CreatedDate DATETIME2,
+		UpdatedDate DATETIME2,
+		IsActive BIT,
+		IsDeleted BIT,
+		IsDeposite BIT DEFAULT 0,
+		IsTradeReceivable BIT,
+		TradeReceivableORMiscReceiptGLAccnt BIGINT,
+		CtrlNum VARCHAR(200),
+		InvoiceType INT,
+		OriginalAmount DECIMAL(18,2),
+		NewRemainingBal DECIMAL(18,2),
+		DocNum VARCHAR(200),
+		CurrencyCode VARCHAR(200),
+		FxRate DECIMAL(18,2),
+		WOSONum VARCHAR(250),
+		DSI DECIMAL(18,2),
+		DSO DECIMAL(18,2),
+		AmountPastDue DECIMAL(18,2),
+		ARBalance DECIMAL(18,2),
+		InvDueDate DATETIME2,
+		CreditLimit DECIMAL(18,2),
+		CreditTermName VARCHAR(100),
+		LastMSLevel NVARCHAR(500),
+		AllMSlevels NVARCHAR(500),
+		PageIndex INT,
+		RemainingAmount DECIMAL(18,2),
+		InvoiceDate DATETIME2,
+		Id INT,
+		GLARAccount VARCHAR(50),
+		Selected BIT,
+		DiscountDate DATETIME2,
+		DiscountAvailable DECIMAL(18,2),
+		CustomerPaymentDetailsId INT );
 
 	IF(@Opr=1)      
 	BEGIN      
@@ -110,7 +170,12 @@ BEGIN
 	END      
 	IF(@Opr=2)      
 	BEGIN      
-		;WITH CTE AS(      
+		--;WITH CTE AS(  
+		INSERT INTO #TempInvoicePayments(PaymentId, CustomerId, SOBillingInvoicingId, ReceiptId, MasterCompanyId,IsMultiplePaymentMethod, IsCheckPayment, IsWireTransfer, IsEFT, 
+						IsCCDCPayment,PaymentAmount, DiscAmount, DiscType, BankFeeAmount, BankFeeType,OtherAdjustAmt, Reason, RemainingBalance, Status, CreatedBy, UpdatedBy,
+						CreatedDate, UpdatedDate, IsActive, IsDeleted, IsDeposite, IsTradeReceivable,TradeReceivableORMiscReceiptGLAccnt, CtrlNum, InvoiceType, OriginalAmount,
+						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
+						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)
 		SELECT INV.[PaymentId],INV.[CustomerId],INV.[SOBillingInvoicingId],INV.[ReceiptId],INV.[MasterCompanyId],0 AS [IsMultiplePaymentMethod],0 AS [IsCheckPayment],0 AS [IsWireTransfer],0 AS [IsEFT],0 AS [IsCCDCPayment]      
               ,[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],INV.[Reason],[RemainingBalance],INV.[Status]      
               ,INV.[CreatedBy],INV.[UpdatedBy],INV.[CreatedDate],INV.[UpdatedDate],INV.[IsActive],INV.[IsDeleted],0 AS [IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      
@@ -147,17 +212,21 @@ BEGIN
 			  LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD_CM WITH (NOLOCK) ON MSD_CM.ModuleID = @CMSModuleID AND MSD_CM.ReferenceID =  CM.CreditMemoHeaderId  
 			  LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD_UC WITH (NOLOCK) ON MSD_UC.ModuleID = @CMSModuleID AND MSD_UC.ReferenceID =  CCP.CustomerCreditPaymentDetailId 
 			  LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId        
-			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId        
-			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId    
+			  --LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId        
+			  --LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId    
 			  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0        
-			  LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
-			  LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
+			  --LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
+			  --LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
 			  LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(S.PercentId AS INT) = ps.PercentId        
 			  LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = pw.PercentId     
 		WHERE INV.[ReceiptId] = @ReceiptId AND PageIndex=@PageIndex AND INV.CustomerId=@CustomerId      
       
-		UNION      
-      
+		--UNION      
+		INSERT INTO #TempInvoicePayments(PaymentId, CustomerId, SOBillingInvoicingId, ReceiptId, MasterCompanyId,IsMultiplePaymentMethod, IsCheckPayment, IsWireTransfer, IsEFT, 
+						IsCCDCPayment,PaymentAmount, DiscAmount, DiscType, BankFeeAmount, BankFeeType,OtherAdjustAmt, Reason, RemainingBalance, Status, CreatedBy, UpdatedBy,
+						CreatedDate, UpdatedDate, IsActive, IsDeleted, IsDeposite, IsTradeReceivable,TradeReceivableORMiscReceiptGLAccnt, CtrlNum, InvoiceType, OriginalAmount,
+						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
+						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)      
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId    ELSE 0 END AS 'PaymentId',      
 			  SOBI.CustomerId,SOBI.SOBillingInvoicingId,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId',      
@@ -216,8 +285,12 @@ BEGIN
 			INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId AND MSD.Level1Id = @legalEntityId      
 		WHERE SOBI.CustomerId=@CustomerId AND SOBI.InvoiceStatus = 'Invoiced' AND SOBI.RemainingAmount > 0      
       
-		UNION      
-      
+		--UNION      
+		INSERT INTO #TempInvoicePayments(PaymentId, CustomerId, SOBillingInvoicingId, ReceiptId, MasterCompanyId,IsMultiplePaymentMethod, IsCheckPayment, IsWireTransfer, IsEFT, 
+						IsCCDCPayment,PaymentAmount, DiscAmount, DiscType, BankFeeAmount, BankFeeType,OtherAdjustAmt, Reason, RemainingBalance, Status, CreatedBy, UpdatedBy,
+						CreatedDate, UpdatedDate, IsActive, IsDeleted, IsDeposite, IsTradeReceivable,TradeReceivableORMiscReceiptGLAccnt, CtrlNum, InvoiceType, OriginalAmount,
+						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
+						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)      
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId    ELSE 0 END AS 'PaymentId',      
 			  WOBI.CustomerId,WOBI.BillingInvoicingId AS SOBillingInvoicingId,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId'      
@@ -279,8 +352,13 @@ BEGIN
 		WHERE WOBI.CustomerId=@CustomerId AND WOBI.InvoiceStatus = 'Invoiced' AND WOBI.RemainingAmount > 0     
 			 AND ISNULL(WOBI.IsInvoicePosted, 0) = 0
     
-		UNION     
+		--UNION     
     
+		INSERT INTO #TempInvoicePayments(PaymentId, CustomerId, SOBillingInvoicingId, ReceiptId, MasterCompanyId,IsMultiplePaymentMethod, IsCheckPayment, IsWireTransfer, IsEFT, 
+						IsCCDCPayment,PaymentAmount, DiscAmount, DiscType, BankFeeAmount, BankFeeType,OtherAdjustAmt, Reason, RemainingBalance, Status, CreatedBy, UpdatedBy,
+						CreatedDate, UpdatedDate, IsActive, IsDeleted, IsDeposite, IsTradeReceivable,TradeReceivableORMiscReceiptGLAccnt, CtrlNum, InvoiceType, OriginalAmount,
+						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
+						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId ELSE 0 END AS 'PaymentId',      
 			  CM.CustomerId,CM.CreditMemoHeaderId AS SOBillingInvoicingId,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId ELSE 0 END AS 'ReceiptId',      
@@ -341,8 +419,13 @@ BEGIN
 			  INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId AND MSD.Level1Id = @legalEntityId   
 		WHERE CM.CustomerId=@CustomerId AND CM.Status = 'Fulfilling'
 
-		UNION     
+		--UNION     
     
+		INSERT INTO #TempInvoicePayments(PaymentId, CustomerId, SOBillingInvoicingId, ReceiptId, MasterCompanyId,IsMultiplePaymentMethod, IsCheckPayment, IsWireTransfer, IsEFT, 
+						IsCCDCPayment,PaymentAmount, DiscAmount, DiscType, BankFeeAmount, BankFeeType,OtherAdjustAmt, Reason, RemainingBalance, Status, CreatedBy, UpdatedBy,
+						CreatedDate, UpdatedDate, IsActive, IsDeleted, IsDeposite, IsTradeReceivable,TradeReceivableORMiscReceiptGLAccnt, CtrlNum, InvoiceType, OriginalAmount,
+						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
+						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId ELSE 0 END AS 'PaymentId',      
 			  CCP.CustomerId,CCP.CustomerCreditPaymentDetailId AS SOBillingInvoicingId,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId ELSE 0 END AS 'ReceiptId',      
@@ -401,8 +484,13 @@ BEGIN
 		WHERE CCP.CustomerId = @CustomerId AND ISNULL(CCP.IsMiscellaneous, 0) = 0 AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus	
 				AND ISNULL(CCP.IsProcessed, 0) = 0 AND ISNULL(CCP.IsActive, 0) = 1 AND ISNULL(CCP.IsDeleted, 0) = 0
 	 
-		UNION      
+		--UNION      
       
+		INSERT INTO #TempInvoicePayments(PaymentId, CustomerId, SOBillingInvoicingId, ReceiptId, MasterCompanyId,IsMultiplePaymentMethod, IsCheckPayment, IsWireTransfer, IsEFT, 
+						IsCCDCPayment,PaymentAmount, DiscAmount, DiscType, BankFeeAmount, BankFeeType,OtherAdjustAmt, Reason, RemainingBalance, Status, CreatedBy, UpdatedBy,
+						CreatedDate, UpdatedDate, IsActive, IsDeleted, IsDeposite, IsTradeReceivable,TradeReceivableORMiscReceiptGLAccnt, CtrlNum, InvoiceType, OriginalAmount,
+						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
+						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId    ELSE 0 END AS 'PaymentId',      
 			  ESOBI.CustomerId,ESOBI.SOBillingInvoicingId,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId'      
@@ -460,13 +548,13 @@ BEGIN
 			  LEFT JOIN [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = ESOBI.SOBillingInvoicingId AND IPT.InvoiceType=1 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
 			  INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ESOMSModuleID AND MSD.ReferenceID = ESO.ExchangeSalesOrderId AND MSD.Level1Id = @legalEntityId      
 		WHERE ESOBI.CustomerId=@CustomerId AND ESOBI.InvoiceStatus = 'Invoiced' AND ESOBI.RemainingAmount > 0 
-	 )
+	 --)
 
      SELECT [PaymentId],[CustomerId],[SOBillingInvoicingId],[ReceiptId],[IsMultiplePaymentMethod],[IsCheckPayment],[IsWireTransfer],[IsEFT],[IsCCDCPayment]      
           ,[MasterCompanyId],[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],[Reason],[RemainingBalance],[Status]      
           ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      
           ,[CtrlNum],[InvoiceType],[OriginalAmount],[NewRemainingBal],[DocNum],[CurrencyCode],[FxRate],[WOSONum],[DSI],[DSO],[AmountPastDue],[ARBalance],[InvDueDate]      
-          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable],[CustomerPaymentDetailsId] FROM CTE      
+          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable],[CustomerPaymentDetailsId] FROM #TempInvoicePayments      
      GROUP BY [PaymentId],[CustomerId],[SOBillingInvoicingId],[ReceiptId],[IsMultiplePaymentMethod],[IsCheckPayment],[IsWireTransfer],[IsEFT],[IsCCDCPayment]      
           ,[MasterCompanyId],[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],[Reason],[RemainingBalance],[Status]      
           ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      

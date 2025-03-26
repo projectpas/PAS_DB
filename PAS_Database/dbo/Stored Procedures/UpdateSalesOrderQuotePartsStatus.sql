@@ -10,7 +10,7 @@
  ** RETURN VALUE:           
  **************************************************************           
  ** Change History           
- **************************************************************           
+ ******************************************x********************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/03/2025	 EKTA CHANDEGRA	 Created  
@@ -26,8 +26,8 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-		DECLARE @ItemMasterId INT;
-		DECLARE @ConditionId INT;
+		DECLARE @ItemMasterId BIGINT;
+		DECLARE @ConditionId BIGINT;
 		DECLARE @Result BIT;
 		SET @Result = 0;
 

@@ -11,16 +11,37 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    12/30/2021  HEMANT SALIYA    Employee History.
+   2    11/03/2025  SAHDEV SALIYA    Added a case to get timeZone
 
 EXEC dbo.usp_IssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 
 EXEC usp_GetEmployeeAuditHistoryData 31
 **********************/ 
 CREATE PROCEDURE [dbo].[usp_GetEmployeeAuditHistoryData]
-@EmployeeId BIGINT
+@EmployeeId BIGINT,
+@UserEmployeeId BIGINT
 AS
 BEGIN
 	DECLARE @MSModuleID INT = 47; -- Employee Management Structure Module ID
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @UserEmployeeId; -- Use appropriate filter for the specific employee
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		
@@ -55,10 +76,10 @@ BEGIN
                         EMP.IsDeleted,
                         EMP.ManagementStructureId,
                         EMP.IsActive,
-                        EMP.CreatedDate,
+						case when CAST(EMP.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(EMP.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
                         EMP.CreatedBy,
                         EMP.UpdatedBy,
-                        EMP.UpdatedDate,
+						case when CAST(EMP.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(EMP.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
                         EMP.CurrencyId,
 						EMPE.IsWorksInShop AS IsHeWorksInShop,
 						CASE WHEN EMP.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS PayType,

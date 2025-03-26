@@ -18,6 +18,7 @@
     2    03/17/2025   Ekta Chandegra	Add @CreatedBy parameter
     3    03/18/2025   Ekta Chandegra	Add Sequence number of Work order task instead of Work order task instruction
     4    03/21/2025   Ekta Chandegra	Add history for effected records when change work order task sequence
+    5    03/25/2025   Ekta Chandegra	Add Work Order Task  Instruction details
 
 exec dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId=978,@CreatedBy=N'EKTA CHANDEGRA'
 **************************************************************/
@@ -52,13 +53,19 @@ BEGIN
 				[WorkOrderTaskId], [TaskName], [Descrepancy], [Resolution], [TechId], 
 				[TechName], [TechUpdatedDate], [InspectorId], [InspectorName], [InspectorUpdatedDate],
 				[PrintInWO], [PrintInWOQ], [IsParent], [ParentId], [InstructionTitle], [InstructionDetails],
-				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate]
+				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[WorkOrderTaskInstructionId],
+				[WorkOrderTaskInstructionTechId], [WorkOrderTaskInstructionTechName],[WorkOrderTaskInstructionTechUpdatedDate],
+				[WorkOrderTaskInstructionInspectorId], [WorkOrderTaskInstructionInspectorName],[WorkOrderTaskInstructionInspectorUpdatedDate] ,
+				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ]
 			)
 			SELECT TOP 1
 				@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
 				WOTD.[TechName], WOTD.[TechUpdatedDate], WOTD.[InspectorId], WOTD.[InspectorName], WOTD.[InspectorUpdatedDate],
 				WOTD.[PrintInWO], WOTD.[PrintInWOQ], WOTI.[IsParent], WOTI.[ParentId], WOTI.[InstructionTitle], WOTI.[InstructionDetails],
-				WOT.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted],@CreatedBy, GETUTCDATE()
+				WOT.[SequenceNumber],WOTI.[IsActive], WOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),@WorkOrderTaskInstructionId,
+				WOTI.TechId, WOTI.TechName, WOTI.TechUpdatedDate,
+				WOTI.InspectorId, WOTI.InspectorName, WOTI.InspectorUpdatedDate,
+				WOTI.PrintInWO, WOTI.PrintInWOQ
 			FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId
@@ -73,13 +80,19 @@ BEGIN
 				[WorkOrderTaskId], [TaskName], [Descrepancy], [Resolution], [TechId], 
 				[TechName], [TechUpdatedDate], [InspectorId], [InspectorName], [InspectorUpdatedDate],
 				[PrintInWO], [PrintInWOQ], [IsParent], [ParentId], [InstructionTitle], [InstructionDetails],
-				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate]
+				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[WorkOrderTaskInstructionId],
+				[WorkOrderTaskInstructionTechId], [WorkOrderTaskInstructionTechName],[WorkOrderTaskInstructionTechUpdatedDate],
+				[WorkOrderTaskInstructionInspectorId], [WorkOrderTaskInstructionInspectorName],[WorkOrderTaskInstructionInspectorUpdatedDate] ,
+				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ]
 			)
 			SELECT TOP 1
 				@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
 				WOTD.[TechName], WOTD.[TechUpdatedDate], WOTD.[InspectorId], WOTD.[InspectorName], WOTD.[InspectorUpdatedDate],
 				WOTD.[PrintInWO], WOTD.[PrintInWOQ], WOTI.[IsParent], WOTI.[ParentId], WOTI.[InstructionTitle], WOTI.[InstructionDetails],
-				WOT.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted],@CreatedBy, GETUTCDATE()
+				WOT.[SequenceNumber],WOTI.[IsActive], WOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),WOTI.[WorkOrderTaskInstructionId],
+				WOTI.TechId, WOTI.TechName, WOTI.TechUpdatedDate,
+				WOTI.InspectorId, WOTI.InspectorName, WOTI.InspectorUpdatedDate,
+				WOTI.PrintInWO, WOTI.PrintInWOQ
 			FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId
@@ -95,13 +108,19 @@ BEGIN
 				[WorkOrderTaskId], [TaskName], [Descrepancy], [Resolution], [TechId], 
 				[TechName], [TechUpdatedDate], [InspectorId], [InspectorName], [InspectorUpdatedDate],
 				[PrintInWO], [PrintInWOQ], [IsParent], [ParentId], [InstructionTitle], [InstructionDetails],
-				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate]
+				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[WorkOrderTaskInstructionId],
+				[WorkOrderTaskInstructionTechId], [WorkOrderTaskInstructionTechName],[WorkOrderTaskInstructionTechUpdatedDate],
+				[WorkOrderTaskInstructionInspectorId], [WorkOrderTaskInstructionInspectorName],[WorkOrderTaskInstructionInspectorUpdatedDate] ,
+				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ]
 			)
 			SELECT TOP 1
 				@NewWorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
 				WOTD.[TechName], WOTD.[TechUpdatedDate], WOTD.[InspectorId], WOTD.[InspectorName], WOTD.[InspectorUpdatedDate],
 				WOTD.[PrintInWO], WOTD.[PrintInWOQ], WOTI.[IsParent], WOTI.[ParentId], WOTI.[InstructionTitle], WOTI.[InstructionDetails],
-				WOT.[SequenceNumber],WOT.[IsActive], WOT.[IsDeleted],@CreatedBy, GETUTCDATE()
+				WOT.[SequenceNumber],WOTI.[IsActive], WOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),WOTI.[WorkOrderTaskInstructionId],
+				WOTI.TechId, WOTI.TechName, WOTI.TechUpdatedDate,
+				WOTI.InspectorId, WOTI.InspectorName, WOTI.InspectorUpdatedDate,
+				WOTI.PrintInWO, WOTI.PrintInWOQ
 			FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId

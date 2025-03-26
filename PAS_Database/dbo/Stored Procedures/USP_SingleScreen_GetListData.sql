@@ -124,8 +124,8 @@ BEGIN
 	(SELECT (SELECT 't.' + COLUMN_NAME + ',' FROM INFORMATION_SCHEMA.COLUMNS 
 		WHERE TABLE_NAME = @PageName AND COLUMN_NAME NOT IN ('CreatedBy', 'UpdatedBy','CreatedDate','UpdatedDate') FOR XML PATH ('')) AS ResultData) AS TempData
 
-    SET @Query = ';WITH Result AS(SELECT COUNT(1) OVER () AS NumberOfItems, ' + @SelectColumns + ', t.CreatedBy, t.UpdatedBy,(Cast(DBO.ConvertUTCtoLocal(t.CreatedDate,'''+@CurrntEmpTimeZoneDesc+''') as Date)) CreatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, '''+@CurrntEmpTimeZoneDesc+''') as Date)) UpdatedDate
+    SET @Query = ';WITH Result AS(SELECT COUNT(1) OVER () AS NumberOfItems, ' + @SelectColumns + ', t.CreatedBy, t.UpdatedBy,(Cast(DBO.ConvertUTCtoLocal(t.CreatedDate,'''+@CurrntEmpTimeZoneDesc+''') as datetime)) CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, '''+@CurrntEmpTimeZoneDesc+''') as datetime)) UpdatedDate
 					FROM [' + @PageName + '] t WITH (NOLOCK)
 					WHERE t.MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR)
     + ' And ' + @QueryFilterData + ') 

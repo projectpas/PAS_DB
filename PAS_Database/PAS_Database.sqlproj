@@ -3581,6 +3581,7 @@
     <Build Include="dbo\Stored Procedures\USP_updateActionForVendorAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistoryLisyById.sql" />
     <Build Include="dbo\Stored Procedures\getReceivingCustomerWorkById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

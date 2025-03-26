@@ -141,11 +141,6 @@ BEGIN
 				IF @ParentId IS NOT NULL
 				BEGIN
 					SELECT @NewParentId = WorkOrderTaskInstructionId FROM @IdMapping WHERE TaskInstructionId = @ParentId;
-
-					IF ISNULL(@NewParentId, 0) = 0
-					BEGIN
-						SET @NewParentId = @ParentId;
-					END
 				END
 
 				-- Insert the record into WorkOrderTaskInstruction table

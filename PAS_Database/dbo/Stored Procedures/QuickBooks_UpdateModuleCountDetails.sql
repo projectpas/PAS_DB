@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    05-Mar-2025   Abhishek Jirawla	Created
+	2	 27-Mar-2025   Abhishek Jirawla Adding proper DB standards
      
  EXECUTE [QuickBooks_UpdateModuleCountDetails] 1, 10
 **************************************************************/ 
@@ -57,7 +58,7 @@ BEGIN
 			-- Customer Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerCount
-				FROM dbo.Customer 
+				FROM dbo.Customer  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS CustomerData ON CustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
@@ -65,7 +66,7 @@ BEGIN
 			-- Pending Customer Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerCount
-				FROM dbo.Customer 
+				FROM dbo.Customer WITH(NOLOCK) 
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingCustomerData ON PendingCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
@@ -73,7 +74,7 @@ BEGIN
 			-- All Customer Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(CustomerId) AS CustomerCount
-				FROM dbo.Customer 
+				FROM dbo.Customer  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllCustomerData ON AllCustomerData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
@@ -94,7 +95,7 @@ BEGIN
 			-- Vendor Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorCount
-				FROM dbo.Vendor 
+				FROM dbo.Vendor WITH(NOLOCK) 
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS VendorData ON VendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
@@ -102,7 +103,7 @@ BEGIN
 			-- Pending Vendor Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorCount
-				FROM dbo.Vendor 
+				FROM dbo.Vendor  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingVendorData ON PendingVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
@@ -110,7 +111,7 @@ BEGIN
 			-- All Vendor Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(VendorId) AS VendorCount
-				FROM dbo.Vendor 
+				FROM dbo.Vendor  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllVendorData ON AllVendorData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
@@ -131,7 +132,7 @@ BEGIN
 			-- Stockline Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS StocklineCount
-				FROM dbo.Stockline 
+				FROM dbo.Stockline  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS StocklineData ON StocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
@@ -139,7 +140,7 @@ BEGIN
 			-- Pending Stockline Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS StocklineCount
-				FROM dbo.Stockline 
+				FROM dbo.Stockline  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingStocklineData ON PendingStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
@@ -147,7 +148,7 @@ BEGIN
 			-- All Stockline Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(StocklineId) AS StocklineCount
-				FROM dbo.Stockline 
+				FROM dbo.Stockline  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllStocklineData ON AllStocklineData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
@@ -168,7 +169,7 @@ BEGIN
 			-- NonPOInvoice Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
-				FROM dbo.NonPOInvoiceHeader 
+				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
@@ -176,7 +177,7 @@ BEGIN
 			-- Pending NonPOInvoice Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
-				FROM dbo.NonPOInvoiceHeader 
+				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
@@ -184,7 +185,7 @@ BEGIN
 			-- All NonPOInvoice Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
-				FROM dbo.NonPOInvoiceHeader 
+				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
@@ -205,7 +206,7 @@ BEGIN
 			-- CreditTerms Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditTermsCount
-				FROM dbo.CreditTerms 
+				FROM dbo.CreditTerms  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS CreditTermsData ON CreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
@@ -213,7 +214,7 @@ BEGIN
 			-- Pending CreditTerms Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditTermsCount
-				FROM dbo.CreditTerms 
+				FROM dbo.CreditTerms  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingCreditTermsData ON PendingCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
@@ -221,7 +222,7 @@ BEGIN
 			-- All CreditTerms Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(CreditTermsId) AS CreditTermsCount
-				FROM dbo.CreditTerms 
+				FROM dbo.CreditTerms  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllCreditTermsData ON AllCreditTermsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditTermsModuleId
@@ -242,7 +243,7 @@ BEGIN
 			-- GLAccount Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS GLAccountCount
-				FROM dbo.GLAccount 
+				FROM dbo.GLAccount  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS GLAccountData ON GLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
@@ -250,7 +251,7 @@ BEGIN
 			-- Pending GLAccount Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS GLAccountCount
-				FROM dbo.GLAccount 
+				FROM dbo.GLAccount  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingGLAccountData ON PendingGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
@@ -258,7 +259,7 @@ BEGIN
 			-- All GLAccount Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(GLAccountId) AS GLAccountCount
-				FROM dbo.GLAccount 
+				FROM dbo.GLAccount  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllGLAccountData ON AllGLAccountData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @GLAccountModuleId
@@ -279,7 +280,7 @@ BEGIN
 			-- CreditMemo Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
-				FROM dbo.CreditMemo 
+				FROM dbo.CreditMemo  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
@@ -287,7 +288,7 @@ BEGIN
 			-- Pending CreditMemo Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
-				FROM dbo.CreditMemo 
+				FROM dbo.CreditMemo  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
@@ -295,7 +296,7 @@ BEGIN
 			-- All CreditMemo Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
-				FROM dbo.CreditMemo 
+				FROM dbo.CreditMemo  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
@@ -316,7 +317,7 @@ BEGIN
 			-- ItemMaster Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
-				FROM dbo.ItemMaster 
+				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
@@ -324,7 +325,7 @@ BEGIN
 			-- Pending ItemMaster Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
-				FROM dbo.ItemMaster 
+				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
@@ -332,7 +333,7 @@ BEGIN
 			-- All ItemMaster Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
-				FROM dbo.ItemMaster 
+				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
@@ -353,7 +354,7 @@ BEGIN
 			-- PurchaseOrder Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS PurchaseOrderCount
-				FROM dbo.PurchaseOrder 
+				FROM dbo.PurchaseOrder  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS PurchaseOrderData ON PurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
@@ -361,7 +362,7 @@ BEGIN
 			-- Pending PurchaseOrder Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS PurchaseOrderCount
-				FROM dbo.PurchaseOrder 
+				FROM dbo.PurchaseOrder  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingPurchaseOrderData ON PendingPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
@@ -369,7 +370,7 @@ BEGIN
 			-- All PurchaseOrder Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(PurchaseOrderId) AS PurchaseOrderCount
-				FROM dbo.PurchaseOrder 
+				FROM dbo.PurchaseOrder  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllPurchaseOrderData ON AllPurchaseOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
@@ -377,7 +378,7 @@ BEGIN
 			-- RepairOrder Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS RepairOrderCount
-				FROM dbo.RepairOrder 
+				FROM dbo.RepairOrder  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS RepairOrderData ON RepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
@@ -385,7 +386,7 @@ BEGIN
 			-- Pending RepairOrder Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS RepairOrderCount
-				FROM dbo.RepairOrder 
+				FROM dbo.RepairOrder  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingRepairOrderData ON PendingRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
@@ -393,7 +394,7 @@ BEGIN
 			-- All RepairOrder Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(RepairOrderId) AS RepairOrderCount
-				FROM dbo.RepairOrder 
+				FROM dbo.RepairOrder  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllRepairOrderData ON AllRepairOrderData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @PurchaseOrderModuleId
@@ -415,7 +416,7 @@ BEGIN
 			-- CustomerPaymentDetails Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
-				FROM dbo.CustomerPaymentDetails 
+				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
@@ -423,7 +424,7 @@ BEGIN
 			-- Pending CustomerPaymentDetails Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
-				FROM dbo.CustomerPaymentDetails 
+				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
@@ -431,7 +432,7 @@ BEGIN
 			-- All CustomerPaymentDetails Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
-				FROM dbo.CustomerPaymentDetails 
+				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
@@ -453,7 +454,7 @@ BEGIN
 			-- WorkOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
-				FROM dbo.WorkOrderBillingInvoicing 
+				FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -461,7 +462,7 @@ BEGIN
 			-- Pending WorkOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
-				FROM dbo.WorkOrderBillingInvoicing 
+				FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -469,7 +470,7 @@ BEGIN
 			-- All WorkOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
-				FROM dbo.WorkOrderBillingInvoicing 
+				FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -477,7 +478,7 @@ BEGIN
 			-- SalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
-				FROM dbo.SalesOrderBillingInvoicing 
+				FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsProforma, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -485,7 +486,7 @@ BEGIN
 			-- Pending SalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
-				FROM dbo.SalesOrderBillingInvoicing 
+				FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsProforma, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -493,7 +494,7 @@ BEGIN
 			-- All SalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS SalesOrderBillingInvoicingCount
-				FROM dbo.SalesOrderBillingInvoicing 
+				FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsProforma, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -502,7 +503,7 @@ BEGIN
 			-- ExchangeSalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ExchangeSalesOrderBillingInvoicingCount
-				FROM dbo.ExchangeSalesOrderBillingInvoicing 
+				FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS ExchangeSalesOrderBillingInvoicingData ON ExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -510,7 +511,7 @@ BEGIN
 			-- Pending ExchangeSalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS ExchangeSalesOrderBillingInvoicingCount
-				FROM dbo.ExchangeSalesOrderBillingInvoicing 
+				FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingExchangeSalesOrderBillingInvoicingData ON PendingExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -518,7 +519,7 @@ BEGIN
 			-- All ExchangeSalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS ExchangeSalesOrderBillingInvoicingCount
-				FROM dbo.ExchangeSalesOrderBillingInvoicing 
+				FROM dbo.ExchangeSalesOrderBillingInvoicing  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllExchangeSalesOrderBillingInvoicingData ON AllExchangeSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
@@ -540,7 +541,7 @@ BEGIN
 			-- VendorReadyToPayDetails Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
-				FROM dbo.VendorReadyToPayDetails 
+				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
 				GROUP BY MasterCompanyId
 			) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
@@ -548,7 +549,7 @@ BEGIN
 			-- Pending VendorReadyToPayDetails Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
-				FROM dbo.VendorReadyToPayDetails 
+				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
 				GROUP BY MasterCompanyId
 			) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
@@ -556,7 +557,7 @@ BEGIN
 			-- All VendorReadyToPayDetails Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
-				FROM dbo.VendorReadyToPayDetails 
+				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId

@@ -13,7 +13,8 @@
  **************************************************************               
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
-    1    25-Feb-2025   Bhargav Saliya		Created    
+    1    25-Feb-2025   Bhargav Saliya		Created   
+	2    26-MAR-2025   Bhargav Saliya		Add TBD name Condition
          
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[usprpt_GetCertificationReport]  
@@ -104,7 +105,7 @@ BEGIN
        DATEDIFF(DAY, EC.CertificationDate, EC.ExpirationDate) 'daysToExpiration',
        EC.CertifyingInstitution 'issuingEntity',
        EC.CertificationNumber 'certNum',
-       EC.CreatedDate 'issueDate',
+	   FORMAT(EC.CreatedDate,'MM-dd-yyyy') 'issueDate',
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -119,9 +120,9 @@ BEGIN
 	    INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
 		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
 		LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
-		LEFT JOIN dbo.EmployeeCertificationType ET WITH (NOLOCK) ON E.MasterCompanyId = ET.MasterCompanyId
 		LEFT JOIN dbo.EmployeeCertification EC WITH (NOLOCK) ON E.EmployeeId = EC.EmployeeId
-      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0
+		LEFT JOIN dbo.EmployeeCertificationType ET WITH (NOLOCK) ON EC.EmployeeCertificationTypeId = ET.EmployeeCertificationTypeId
+      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
 			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

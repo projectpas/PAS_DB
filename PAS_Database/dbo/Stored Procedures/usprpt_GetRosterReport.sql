@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    11-03-2025    Sahdev Saliya       Created
 	2    13-03-2025    Sahdev Saliya       supervisor's name has been updated
+	3    26-03-2025    Sahdev Saliya       EndDate has been updated And Record issue resolve
 
 **************************************************************/  
 
@@ -116,7 +117,7 @@ BEGIN
 		UPPER(EMP.Email) 'email', 
 		UPPER(EMP.MobilePhone) 'phone',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(EMP.StartDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), EMP.StartDate, 107) END 'startdate', 
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(EMP.UpdatedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), EMP.UpdatedDate, 107) END 'enddate', 
+		CASE WHEN (EMP.IsActive = 0 OR EMP.IsDeleted = 1)  THEN FORMAT(EMP.UpdatedDate, 'MM/dd/yyyy') ELSE '' END 'enddate',
 		UPPER(EMS.Level1Name) AS level1,  
 		UPPER(EMS.Level2Name) AS level2, 
 		UPPER(EMS.Level3Name) AS level3, 
@@ -133,8 +134,8 @@ BEGIN
 	  LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId
 	  LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId
 	  LEFT JOIN  dbo.Employee EP WITH (NOLOCK) ON EP.EmployeeId = EMP.SupervisorId
-	  WHERE EMP.mastercompanyid = @mastercompanyid 
-	  AND EMP.IsActive = 1 AND EMP.IsDeleted = 0
+	  WHERE EMP.mastercompanyid = @mastercompanyid
+	        AND EMP.FirstName <> 'TBD'
 			AND  (ISNULL(@Level1,'') ='' OR EMS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR EMS.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR EMS.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

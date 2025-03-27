@@ -124,7 +124,9 @@ BEGIN
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
         , @AdhocComments     VARCHAR(150)    = 'USP_InsertSubWorkOrderTaskInstructionHistory'
-        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@SubWorkOrderTaskInstructionId AS varchar(100)) ,'') +''
+        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + ISNULL(CAST(@SubWorkOrderTaskInstructionId AS varchar(100)) ,'') +''',
+												 @Parameter2 = ' + ISNULL(CAST(@UpdatedBy AS varchar(100)) ,'') +''',
+												 @Parameter3 = ' + ISNULL(CAST(@InstructionListId AS varchar(100)) ,'') +''
 
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
@@ -138,103 +140,3 @@ BEGIN
         RETURN(1);
 	END CATCH
 END
-
---Select * from SubWorkOrderTaskInstruction 
---select * from SubWorkOrderTask
-
---IF(2 > 0 AND ISNULL(11, '') <> '')
---			BEGIN
-
---				;WITH RecursiveCTE AS (
---					-- Anchor member (base case)
---					SELECT 
---					  WOTI.SubWorkOrderTaskInstructionId,
---					  WOTI.SubWorkOrderTaskId,
---					  WOT.TaskId,
---					  WOT.TaskName,
---					  WOTI.InstructionTitle,
---					  WOTI.InstructionDetails,
---					  WOTI.SequenceNumber,
---					  WOTI.TechId,
---					  WOTI.TechName,
---					  WOTI.TechUpdatedDate,
---					  WOTI.InspectorId,
---					  WOTI.InspectorName,
---					  WOTI.InspectorUpdatedDate,
---					  WOTI.PrintInWO,
---					  WOTI.PrintInWOQ,
---					  WOTI.MasterCompanyId,
---					  WOTI.IsActive,
---					  WOTI.IsDeleted,
---					  WOTI.IsParent,
---					  WOTI.ParentId
---					FROM [dbo].[SubWorkOrderTaskInstruction] WOTI WITH (NOLOCK)
---					LEFT JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOTI.SubWorkOrderTaskId
---					WHERE WOTI.SubWorkOrderTaskInstructionId = 2
-
---					UNION ALL
-
---					-- Recursive member
---					SELECT 
---					  WOTI.SubWorkOrderTaskInstructionId,
---					  WOTI.SubWorkOrderTaskId,
---					  WOT.TaskId,
---					  WOT.TaskName,
---					  WOTI.InstructionTitle,
---					  WOTI.InstructionDetails,
---					  WOTI.SequenceNumber,
---					  WOTI.TechId,
---					  WOTI.TechName,
---					  WOTI.TechUpdatedDate,
---					  WOTI.InspectorId,
---					  WOTI.InspectorName,
---					  WOTI.InspectorUpdatedDate,
---					  WOTI.PrintInWO,
---					  WOTI.PrintInWOQ,
---					  WOTI.MasterCompanyId,
---					  WOTI.IsActive,
---					  WOTI.IsDeleted,
---					  WOTI.IsParent,
---					  WOTI.ParentId
---					FROM [dbo].[SubWorkOrderTaskInstruction] WOTI WITH (NOLOCK)
---					INNER JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOTI.SubWorkOrderTaskId
---					INNER JOIN RecursiveCTE R ON WOTI.ParentId = R.SubWorkOrderTaskInstructionId
-
---				)
-
---				--INSERT INTO [dbo].[WorkOrderTaskInstructionHistory]
---				--(	
---				--	[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId] ,[TaskName],[InstructionTitle],
---				--	[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
---				--	[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[UpdatedBy],
---				--	[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent]
---				--)
-				
---				SELECT 
---					[SubWorkOrderTaskInstructionId],[SubWorkOrderTaskId],[TaskId],[TaskName],[InstructionTitle],
---					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
---					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],'Ekta Chandegra',
---					GETUTCDATE(),[IsActive],[IsDeleted],[ParentId],[IsParent]
---				FROM [RecursiveCTE]  WITH(NOLOCK)
---				WHERE SubWorkOrderTaskInstructionId = 2
-
---			END
---			ELSE
---			BEGIN
---			--	INSERT INTO [dbo].[WorkOrderTaskInstructionHistory]
---			--	(	
---			--		[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId] ,[TaskName],[InstructionTitle],
---			--		[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
---			--		[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[UpdatedBy],
---			--		[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent]
---			--	)
-				
---				SELECT 
---					WOTI.[SubWorkOrderTaskInstructionId],WOTI.[SubWorkOrderTaskId],WOT.[TaskId],WOT.[TaskName],WOTI.[InstructionTitle],
---					WOTI.[InstructionDetails],WOTI.[SequenceNumber],WOTI.[TechId],WOTI.[TechName],WOTI.[TechUpdatedDate],WOTI.[InspectorId],WOTI.[InspectorName],
---					WOTI.[InspectorUpdatedDate],WOTI.[PrintInWO],WOTI.[PrintInWOQ],WOTI.[MasterCompanyId],'Ekta Chandegra',
---					GETUTCDATE(),WOTI.[IsActive],WOTI.[IsDeleted],WOTI.[ParentId],WOTI.[IsParent]
---				FROM [dbo].[SubWorkOrderTaskInstruction]  WOTI 
---				LEFT JOIN [dbo].[WorkOrderTask] WOT ON WOT.WorkOrderTaskId = WOTI.SubWorkOrderTaskId
---				WHERE WOTI.SubWorkOrderTaskInstructionId = 2
---			END

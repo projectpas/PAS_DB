@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
     1    06-Mar-2025  Bhargav Saliya		Created    
+    2    27-Mar-2025  Bhargav Saliya		Modified    
          
 	exec dbo.UpdateWorkOrderStage @WorkOrderId=8412,@WorkOrderStatusId=1,@WorkOrderPartId=8062,@WorkOrderStageId=23,@WorkFlowWorkOrderId=8033,@CreatedBy='BHARGAV S'
 ************************************************************************/   
@@ -39,7 +40,7 @@ BEGIN
 
     BEGIN TRY
         -- Update WorkOrder Status
-        --UPDATE WorkOrder SET WorkOrderStatusId = @WorkOrderStatusId WHERE WorkOrderId = @WorkOrderId;
+        UPDATE WorkOrder SET WorkOrderStatusId = @WorkOrderStatusId WHERE WorkOrderId = @WorkOrderId;
 
         -- Fetch Old WorkOrderStage
         SELECT @OldStageCode = Code, @OldStageName = Stage
@@ -53,9 +54,16 @@ BEGIN
 
 		SET @OldStageCodeName = @OldStageCode + '-' + @OldStageName;
 		SET @NewStageCodeName = @NewStageCode + '-' + @NewStageName;
+
 		 -- Update WorkOrderPartNumber Status and Stage
 		--WorkOrderStatusId = @WorkOrderStatusId,
 		UPDATE [dbo].[WorkOrderPartNumber] SET WorkOrderStageId = @WorkOrderStageId,WorkOrderStage = @NewStageCodeName WHERE ID = @WorkOrderPartId;
+
+		--UpdateWorkOrderColumns
+		EXEC UpdateWorkOrderColumnsWithId @WorkOrderId;
+
+		--AddUpdateWorkOrderTurnArroundTime
+		EXEC USP_AddEdit_WorkOrderTurnArroundTime @WorkOrderPartId,@WorkOrderStageId,@CreatedBy;
 
         -- Determine ItemMasterId
         IF @WorkOrderPartId IS NOT NULL AND @WorkOrderPartId > 0

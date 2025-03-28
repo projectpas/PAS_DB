@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    17/03/2025   Moin Bloch    Created
+	2    24/03/2025   Moin Bloch    ADDED CONDITION FOR UPDATE
      
 --   EXEC [dbo].[CreateWorkFlowWorkOrderFromWorkFlow]
 **************************************************************/
@@ -20,6 +21,8 @@ CREATE   PROCEDURE [dbo].[CreateWorkFlowWorkOrderFromWorkFlow]
 @WorkOrderId BIGINT,
 @CreatedBy VARCHAR(256),
 @CreatedDate DATETIME2(7),
+@UpdatedBy VARCHAR(256),
+@UpdatedDate DATETIME2(7),
 @MasterCompanyId INT
 AS
 BEGIN
@@ -313,7 +316,7 @@ BEGIN
 
 		SELECT @ID=[ID],@WorkflowId=[WorkflowId] FROM #tmprCreateWorkFlowWorkOrderFromWorkFlow WHERE [PKID] = @MinId
 
-		SELECT @WorkFlowWorkOrderId=[WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId]=@ID;
+		SELECT @WorkFlowWorkOrderId=ISNULL([WorkFlowWorkOrderId],0) FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId]=@ID;
 				
 		IF(@WorkflowId > 0)
 		BEGIN
@@ -451,37 +454,97 @@ BEGIN
 			--	PRINT 1
 			--END
 
-			INSERT INTO [dbo].[WorkOrderWorkFlow]([WorkOrderId],[WorkflowDescription],[Version],[WorkScopeId],[ItemMasterId],[CustomerId],[CurrencyId],[WorkflowExpirationDate],
-					    [IsCalculatedBERThreshold],[IsFixedAmount],[FixedAmount],[IsPercentageOfNew],[CostOfNew],[PercentageOfNew],[IsPercentageOfReplacement],[CostOfReplacement],
-                        [PercentageOfReplacement],[Memo],[BERThresholdAmount],[WorkOrderNumber],[OtherCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
-                        [IsActive],[IsDeleted],[WorkflowCreateDate],[WorkflowId],[WorkFlowWorkOrderNo],[ChangedPartNumberId],[MaterilaCost],[ExpertiseCost],[ChargesCost],[Total],
-                        [PerOfBerThreshold],[WorkOrderPartNoId])
-			     SELECT @WorkOrderId,@WorkflowDescription,@Version,NULL,@ItemMasterId,@CustomerId,@CurrencyId,@WorkflowExpirationDate,
-				        @IsCalculatedBERThreshold,@IsFixedAmount,@FixedAmount,@IsPercentageOfNew,@CostOfNew,@PercentageOfNew,@IsPercentageOfReplacement,@CostOfReplacement,
-						@PercentageOfReplacement,@Memo,@BERThresholdAmount,NULL,@OtherCost,@MasterCompanyId,@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,
-						1,0,@WorkflowCreateDate,@WorkflowId,'',NULL,NULL,NULL,NULL,NULL,
-						NULL,@ID
+			IF(@WorkFlowWorkOrderId > 0)
+			BEGIN				
+				UPDATE [dbo].[WorkOrderWorkFlow]
+				   SET [WorkflowDescription] = @WorkflowDescription
+					  ,[Version] = @Version					  
+					  ,[ItemMasterId] = @ItemMasterId
+					  ,[CustomerId] = @CustomerId
+					  ,[CurrencyId] = @CurrencyId
+					  ,[WorkflowExpirationDate] = @WorkflowExpirationDate
+					  ,[IsCalculatedBERThreshold] = @IsCalculatedBERThreshold
+					  ,[IsFixedAmount] = @IsFixedAmount
+					  ,[FixedAmount] = @FixedAmount
+					  ,[IsPercentageOfNew] = @IsPercentageOfNew
+					  ,[CostOfNew] = @CostOfNew
+					  ,[PercentageOfNew] = @PercentageOfNew
+					  ,[IsPercentageOfReplacement] = @IsPercentageOfReplacement
+					  ,[CostOfReplacement] = @CostOfReplacement
+					  ,[PercentageOfReplacement] = @PercentageOfReplacement
+					  ,[Memo] = @Memo
+					  ,[BERThresholdAmount] = @BERThresholdAmount					  
+					  ,[OtherCost] = @OtherCost					  	 
+					  ,[UpdatedBy] = @UpdatedBy
+					  ,[UpdatedDate] = @UpdatedDate					  
+					  ,[WorkflowCreateDate] = @WorkflowCreateDate
+					  ,[WorkflowId] = @WorkflowId					  					  
+				 WHERE [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId;
+			END
+			ELSE
+			BEGIN
+				INSERT INTO [dbo].[WorkOrderWorkFlow]([WorkOrderId],[WorkflowDescription],[Version],[WorkScopeId],[ItemMasterId],[CustomerId],[CurrencyId],[WorkflowExpirationDate],
+								[IsCalculatedBERThreshold],[IsFixedAmount],[FixedAmount],[IsPercentageOfNew],[CostOfNew],[PercentageOfNew],[IsPercentageOfReplacement],[CostOfReplacement],
+								[PercentageOfReplacement],[Memo],[BERThresholdAmount],[WorkOrderNumber],[OtherCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
+								[IsActive],[IsDeleted],[WorkflowCreateDate],[WorkflowId],[WorkFlowWorkOrderNo],[ChangedPartNumberId],[MaterilaCost],[ExpertiseCost],[ChargesCost],[Total],
+								[PerOfBerThreshold],[WorkOrderPartNoId])
+						 SELECT @WorkOrderId,@WorkflowDescription,@Version,NULL,@ItemMasterId,@CustomerId,@CurrencyId,@WorkflowExpirationDate,
+								@IsCalculatedBERThreshold,@IsFixedAmount,@FixedAmount,@IsPercentageOfNew,@CostOfNew,@PercentageOfNew,@IsPercentageOfReplacement,@CostOfReplacement,
+								@PercentageOfReplacement,@Memo,@BERThresholdAmount,NULL,@OtherCost,@MasterCompanyId,@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,
+								1,0,@WorkflowCreateDate,@WorkflowId,'',NULL,NULL,NULL,NULL,NULL,
+								NULL,@ID
 
-				SET @WorkFlowWorkOrderId = SCOPE_IDENTITY();
+					SET @WorkFlowWorkOrderId = SCOPE_IDENTITY();
+			END
 
 			UPDATE [dbo].[WorkOrderWorkFlow] SET  [WorkFlowWorkOrderNo] = 'WOWF' + CAST([WorkFlowWorkOrderId] AS NVARCHAR) WHERE [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId;
 		END
 		ELSE
 		BEGIN
-			INSERT INTO [dbo].[WorkOrderWorkFlow]([WorkOrderId],[WorkflowDescription],[Version],[WorkScopeId],[ItemMasterId],[CustomerId],[CurrencyId],[WorkflowExpirationDate],
-					    [IsCalculatedBERThreshold],[IsFixedAmount],[FixedAmount],[IsPercentageOfNew],[CostOfNew],[PercentageOfNew],[IsPercentageOfReplacement],[CostOfReplacement],
-                        [PercentageOfReplacement],[Memo],[BERThresholdAmount],[WorkOrderNumber],[OtherCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
-                        [IsActive],[IsDeleted],[WorkflowCreateDate],[WorkflowId],[WorkFlowWorkOrderNo],[ChangedPartNumberId],[MaterilaCost],[ExpertiseCost],[ChargesCost],[Total],
-                        [PerOfBerThreshold],[WorkOrderPartNoId])
-			     SELECT @WorkOrderId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-				        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-						NULL,NULL,NULL,NULL,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,
-						1,0,NULL,0,'',NULL,NULL,NULL,NULL,NULL,
-						NULL,@ID
+			IF(@WorkFlowWorkOrderId > 0)
+			BEGIN				
+				UPDATE [dbo].[WorkOrderWorkFlow]
+				   SET [WorkflowDescription] = @WorkflowDescription
+					  ,[Version] = @Version					  
+					  ,[ItemMasterId] = @ItemMasterId
+					  ,[CustomerId] = @CustomerId
+					  ,[CurrencyId] = @CurrencyId
+					  ,[WorkflowExpirationDate] = @WorkflowExpirationDate
+					  ,[IsCalculatedBERThreshold] = @IsCalculatedBERThreshold
+					  ,[IsFixedAmount] = @IsFixedAmount
+					  ,[FixedAmount] = @FixedAmount
+					  ,[IsPercentageOfNew] = @IsPercentageOfNew
+					  ,[CostOfNew] = @CostOfNew
+					  ,[PercentageOfNew] = @PercentageOfNew
+					  ,[IsPercentageOfReplacement] = @IsPercentageOfReplacement
+					  ,[CostOfReplacement] = @CostOfReplacement
+					  ,[PercentageOfReplacement] = @PercentageOfReplacement
+					  ,[Memo] = @Memo
+					  ,[BERThresholdAmount] = @BERThresholdAmount					  
+					  ,[OtherCost] = @OtherCost					  	 
+					  ,[UpdatedBy] = @UpdatedBy
+					  ,[UpdatedDate] = @UpdatedDate					  
+					  ,[WorkflowCreateDate] = @WorkflowCreateDate
+					  ,[WorkflowId] = @WorkflowId					  					  
+				 WHERE [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId;
+			END
+			ELSE
+			BEGIN
+				INSERT INTO [dbo].[WorkOrderWorkFlow]([WorkOrderId],[WorkflowDescription],[Version],[WorkScopeId],[ItemMasterId],[CustomerId],[CurrencyId],[WorkflowExpirationDate],
+							[IsCalculatedBERThreshold],[IsFixedAmount],[FixedAmount],[IsPercentageOfNew],[CostOfNew],[PercentageOfNew],[IsPercentageOfReplacement],[CostOfReplacement],
+							[PercentageOfReplacement],[Memo],[BERThresholdAmount],[WorkOrderNumber],[OtherCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
+							[IsActive],[IsDeleted],[WorkflowCreateDate],[WorkflowId],[WorkFlowWorkOrderNo],[ChangedPartNumberId],[MaterilaCost],[ExpertiseCost],[ChargesCost],[Total],
+							[PerOfBerThreshold],[WorkOrderPartNoId])
+					 SELECT @WorkOrderId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+							NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+							NULL,NULL,NULL,NULL,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,
+							1,0,NULL,0,'',NULL,NULL,NULL,NULL,NULL,
+							NULL,@ID
 
-			 SET @WorkFlowWorkOrderId = SCOPE_IDENTITY();
+				 SET @WorkFlowWorkOrderId = SCOPE_IDENTITY();
+			END
 
-			 UPDATE [dbo].[WorkOrderWorkFlow] SET  [WorkFlowWorkOrderNo] = 'WOWF' + CAST([WorkFlowWorkOrderId] AS NVARCHAR) WHERE [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId;
+			UPDATE [dbo].[WorkOrderWorkFlow] SET  [WorkFlowWorkOrderNo] = 'WOWF' + CAST([WorkFlowWorkOrderId] AS NVARCHAR) WHERE [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId;
 		END
 
 		SET @MinId = @MinId + 1

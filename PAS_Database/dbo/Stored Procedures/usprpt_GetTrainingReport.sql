@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
     1    26-Feb-2025   Bhargav Saliya		Created    
+    1    26-MAR-2025   Bhargav Saliya		Get Model Field Data   
          
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]  
@@ -87,7 +88,7 @@ BEGIN
 	END
 
   
-   ;WITH rptCTE (TotalRecordsCount, EmployeeId,firstName, lastName, title, expertize, email, phone, trainingType,
+   ;WITH rptCTE (TotalRecordsCount, EmployeeId,firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
@@ -101,7 +102,7 @@ BEGIN
 			   SELECT STRING_AGG(EE.[Description],',') 
 			   FROM STRING_SPLIT(E.EmployeeExpIds,',') AS ExpIds
 					LEFT JOIN [DBO].EmployeeExpertise EE WITH(NOLOCK) ON EE.EmployeeExpertiseId = CAST(ExpIds.value AS INT)
-			   WHERE ExpIds.value IS NOT NULL),'') 'expertize',
+			   WHERE ExpIds.value IS NOT NULL),'') 'expertise',
        E.Email 'email',
        E.MobilePhone 'phone',
 	   ETP.TrainingType 'trainingType',
@@ -112,13 +113,14 @@ BEGIN
 	   FORMAT(ET.ScheduleDate,'MM-dd-yyyy') 'scheduleDate',
 	   FORMAT(ET.CompletionDate,'MM-dd-yyyy') 'completionDate',
 	   FORMAT(ET.ExpirationDate,'MM-dd-yyyy') 'expirationDate',
-	   DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) 'daysToExpiration',
+	    DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) 'daysToExpiration',
+	   --CASE WHEN DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) = 0 THEN '' ELSE CAST(DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS VARCHAR) END AS daysToExpiration,
 	   CASE WHEN ISNULL(EC.IsCertificationInForce,0) = 1 THEN 'YES' ELSE 'NO' end AS inforce,
 	   AFT.Description 'aircraftType',
-	   '' model,
+	   STRING_AGG(A.ModelName, ', ') 'model',
 	   EC.CertifyingInstitution 'issuingEntity',
 	   EC.CertificationNumber 'certNum',
-	   ET.CreatedDate 'issueDate',
+	   FORMAT(ET.CreatedDate,'MM-dd-yyyy') 'issueDate',
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -138,9 +140,10 @@ BEGIN
 		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
 		LEFT JOIN dbo.EmployeeCertification EC WITH (NOLOCK) ON E.EmployeeId = EC.EmployeeId
+		LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId
+		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 
-
-      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0
+      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
 			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -151,18 +154,27 @@ BEGIN
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+
+			GROUP BY E.EmployeeId, E.FirstName, E.LastName, J.Description, 
+               E.Email, E.MobilePhone, ETP.TrainingType, ET.Provider, ET.IndustryCode, 
+               FT.FrequencyName, ET.Duration, ET.ScheduleDate, ET.CompletionDate, 
+               ET.ExpirationDate, EC.IsCertificationInForce, AFT.Description, 
+               EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, 
+               MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name, 
+               MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
+               MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
 			)
-			,FinalCTE(TotalRecordsCount,EmployeeId, firstName, lastName, title, expertize, email, phone, trainingType,
+			,FinalCTE(TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 
-			  AS (SELECT DISTINCT TotalRecordsCount,EmployeeId, firstName, lastName, title, expertize, email, phone, trainingType,
+			  AS (SELECT DISTINCT TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10 FROM rptCTE)
 			
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount,EmployeeId, firstName, lastName, title, expertize, email, phone, trainingType,
+		    SELECT COUNT(2) OVER () AS TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10

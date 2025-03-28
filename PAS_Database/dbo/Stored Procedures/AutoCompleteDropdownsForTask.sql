@@ -38,75 +38,141 @@ AS BEGIN
 
 		IF(@IsSubWorkOrder = 1)
 		BEGIN
-			SELECT @WorkOrderId=[WorkOrderId],@WorkOrderPartNumberId=[WorkOrderPartNumberId] FROM dbo.[SubWorkOrder] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId;
-		END			
-		IF(@Count='0')
+			SELECT @WorkOrderId = [WorkOrderId], @WorkOrderPartNumberId = [WorkOrderPartNumberId] FROM dbo.[SubWorkOrder] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId;
+		END
+
+		IF (@Count='0')
 		BEGIN      		
 			IF(@TableName='WorkOrderTask')
 			BEGIN
 				IF(@Parameter4 = 1)
 				BEGIN                      
-						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
-						                 WOT.[TaskName] AS [Label], 
-										 WOT.[SequenceNumber] AS [Sequence], 										
-										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
-										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
-										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
-						 FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
-						 LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
-                         WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
-						   AND WOT.[WorkOrderId] = @WorkOrderId 
-						   AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
-						   AND (WOT.[IsActive] = 1 AND WOT.[IsDeleted] = 0 AND(WOT.TaskName LIKE '%'+ @Parameter3 +'%'))
+					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
+									WOT.[TaskName] AS [Label], 
+									WOT.[SequenceNumber] AS [Sequence], 										
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
+					FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
+					AND (WOT.[IsActive] = 1 AND WOT.[IsDeleted] = 0 AND(WOT.TaskName LIKE '%'+ @Parameter3 +'%'))
 
-                         UNION
+					UNION
 
-                         SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
-						                 WOT.[TaskName] AS [Label], 
-										 WOT.[SequenceNumber] AS [Sequence],										 
-										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
-										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
-										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]										
-                         FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
-						 LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
-                         WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
-						   AND WOT.[WorkOrderId] = @WorkOrderId 
-						   AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
-						   AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [Sequence] asc
-                 END
-                 ELSE 
-				 BEGIN                        
-						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
-						                 WOT.[TaskName] AS [Label],
-										 WOT.[SequenceNumber] AS [Sequence],										 
-										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
-										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
-										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
-                         FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
-						 LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
-                         WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
-						   AND WOT.[WorkOrderId] = @WorkOrderId 
-						   AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
-						   AND WOT.[IsActive]=1 AND WOT.[IsDeleted]=0 AND WOT.[TaskName] LIKE '%'+@Parameter3+'%'
+					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
+									WOT.[TaskName] AS [Label], 
+									WOT.[SequenceNumber] AS [Sequence],										 
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]										
+					FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
+					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+					ORDER BY [Sequence] asc
+					END
+					ELSE 
+					BEGIN                        
+					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
+									WOT.[TaskName] AS [Label],
+									WOT.[SequenceNumber] AS [Sequence],										 
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
+					FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
+					AND WOT.[IsActive]=1 AND WOT.[IsDeleted]=0 AND WOT.[TaskName] LIKE '%'+@Parameter3+'%'
                          
-						 UNION
+					UNION
                          
-						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
-						                 WOT.[TaskName] AS [Label],
-										 WOT.[SequenceNumber] AS [Sequence],
-										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
-										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
-										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
-                         FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
-						 LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
-                         WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
-						   AND WOT.[WorkOrderId] = @WorkOrderId 
-						   AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
-						   AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [Sequence] asc
-                 END
-            END           
+					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
+									WOT.[TaskName] AS [Label],
+									WOT.[SequenceNumber] AS [Sequence],
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
+					FROM [dbo].[WorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
+					AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+					ORDER BY [Sequence] asc
+				END
+            END
+			ELSE IF(@TableName='SubWorkOrderTask')
+			BEGIN
+				IF(@Parameter4 = 1)
+				BEGIN                      
+					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
+									WOT.[TaskName] AS [Label], 
+									WOT.[SequenceNumber] AS [Sequence], 										
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
+					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
+					AND (WOT.[IsActive] = 1 AND WOT.[IsDeleted] = 0 AND(WOT.TaskName LIKE '%'+ @Parameter3 +'%'))
+
+					UNION
+
+					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
+									WOT.[TaskName] AS [Label], 
+									WOT.[SequenceNumber] AS [Sequence],										 
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]										
+					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
+					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+					ORDER BY [Sequence] asc
+					END
+					ELSE 
+					BEGIN                        
+					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value],
+									WOT.[TaskName] AS [Label],
+									WOT.[SequenceNumber] AS [Sequence],										 
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
+					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
+					AND WOT.[IsActive]=1 AND WOT.[IsDeleted]=0 AND WOT.[TaskName] LIKE '%'+@Parameter3+'%'
+                         
+					UNION
+                         
+					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value],
+									WOT.[TaskName] AS [Label],
+									WOT.[SequenceNumber] AS [Sequence],
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
+					FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+					WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
+					AND WOT.[WorkOrderId] = @WorkOrderId 
+					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
+					AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+					ORDER BY [Sequence] asc
+				END
+			END
         END
         ELSE 
 		BEGIN
@@ -182,7 +248,80 @@ AS BEGIN
 					     AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY [Sequence] asc
                 END
-            END            
+            END
+			ELSE IF (@TableName='WorkOrderTask')
+			BEGIN
+				IF (@Parameter4 = 1)
+				BEGIN				
+					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
+					                WOT.[TaskName] AS [Label], 
+									WOT.[SequenceNumber] AS [Sequence],
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
+									'' AS [Descrepancy],
+								    '' AS [Resolution]
+                    FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+                    WHERE WOT.[MasterCompanyId]=@MasterCompanyId 					
+					  AND WOT.[WorkOrderId] = @WorkOrderId 
+				      AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 
+					  AND (WOT.[IsActive]=1 AND WOT.[IsDeleted]=0 AND (WOT.[TaskName] LIKE '%'+@Parameter3+'%'))
+                    
+					UNION
+                    
+					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
+					                WOT.[TaskName] AS [Label], 
+									WOT.[SequenceNumber] AS [Sequence], 
+									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
+									'' AS [Descrepancy],
+									'' AS [Resolution]
+                    FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+                    WHERE  WOT.[MasterCompanyId] = @MasterCompanyId 
+					  AND  WOT.[WorkOrderId] = @WorkOrderId 
+				      AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
+					  AND  WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                      ORDER BY [Sequence] ASC
+                END
+                ELSE
+				BEGIN
+						 SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
+						                 WOT.[TaskName] AS [Label], 
+										 WOT.[SequenceNumber] AS [Sequence], 
+										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
+										 '' AS [Descrepancy],
+										 '' AS [Resolution]
+                         FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+					     LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+                         WHERE WOT.[MasterCompanyId]=@MasterCompanyId 
+						 AND  WOT.[WorkOrderId] = @WorkOrderId 
+				         AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
+						 AND  WOT.[IsActive]=1 AND  WOT.[IsDeleted]=0 AND  WOT.[TaskName] LIKE '%'+@Parameter3+'%'
+                         
+						 UNION
+                         
+						 SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
+						                 WOT.[TaskName] AS [Label], 
+										 WOT.[SequenceNumber] AS [Sequence],
+										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
+										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
+										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
+										 '' AS [Descrepancy],
+										 '' AS [Resolution]
+                         FROM [dbo].[SubWorkOrderTask] WOT WITH(NOLOCK)
+						 LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId
+                         WHERE WOT.[MasterCompanyId] = @MasterCompanyId 
+						 AND WOT.[WorkOrderId] = @WorkOrderId 
+				         AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 
+					     AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [Sequence] asc
+                END
+			END
         END
 		
         EXEC sp_executesql @Sql;

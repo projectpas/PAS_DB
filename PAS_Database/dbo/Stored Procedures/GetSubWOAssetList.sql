@@ -88,7 +88,8 @@ BEGIN
        A.AssetId,  
        A.Description,  
        A.Name,  
-       T.[Description] AS TaskName,  
+       --T.[Description] AS TaskName,  
+       SWOT.TaskName AS TaskName,  
        T.TaskId,  
        at.TangibleClassId,  
        at.TangibleClassName,  
@@ -116,7 +117,8 @@ BEGIN
 	   ,AI.ControlNumber AS ControlNumber
 	   FROM dbo.SubWorkOrderAsset WOA WITH (NOLOCK)  
        join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId  
-       LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
+       LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId
+       LEFT JOIN dbo.SubWorkOrderTask SWOT WITH(NOLOCK) on SWOT.SubWorkOrderTaskId = WOA.TaskId
        LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  
        JOIN dbo.TangibleClass at WITH (NOLOCK) ON AAT.TangibleClassId = at.TangibleClassId  
        LEFT JOIN dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH (NOLOCK) ON WOA.SubWorkOrderAssetId = COCI.SubWorkOrderAssetId AND COCI.IsQtyCheckOut = 1  

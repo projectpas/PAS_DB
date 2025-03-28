@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18/03/2025   Moin Bloch    Created
+	2    24/03/2025   Moin Bloch    Added UpdatedBy For Update
      
 --   EXEC [dbo].[CreateCommonWorkOrderRemovalTearDown]
 **************************************************************/
@@ -20,6 +21,8 @@ CREATE    PROCEDURE [dbo].[CreateCommonWorkOrderRemovalTearDown]
 @WorkOrderId BIGINT,
 @CreatedBy VARCHAR(256),
 @CreatedDate DATETIME2(7),
+@UpdatedBy VARCHAR(256),
+@UpdatedDate DATETIME2(7),
 @MasterCompanyId INT
 AS
 BEGIN
@@ -65,7 +68,9 @@ BEGIN
 			BEGIN
 				SELECT TOP 1 @CommonTeardownTypeId = ISNULL([CommonTeardownTypeId],0) FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] ='RemovalReason';
 				
-				IF NOT EXISTS(SELECT TOP 1 [CommonWorkOrderTearDownId] FROM [dbo].[CommonWorkOrderTeardown] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId)
+				SELECT TOP 1 @CommonWorkOrderTearDownId = [CommonWorkOrderTearDownId] FROM [dbo].[CommonWorkOrderTeardown] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+
+				IF(@CommonWorkOrderTearDownId IS NULL OR @CommonWorkOrderTearDownId = 0)
 				BEGIN
 					INSERT INTO [dbo].[CommonWorkOrderTearDown]([CommonTeardownTypeId],[WorkOrderId],[WorkFlowWorkOrderId],[WOPartNoId],[Memo],[ReasonId],[TechnicianId],[TechnicianDate]
 							   ,[InspectorId],[InspectorDate],[IsDocument],[ReasonName],[InspectorName],[TechnicalName],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive]
@@ -75,6 +80,31 @@ BEGIN
 								0,@MasterCompanyId,0,0,0);
 
 					SET @CommonWorkOrderTearDownId = SCOPE_IDENTITY();	   
+
+					SELECT TOP 1 @TeardownReasonId = [TeardownReasonId],
+					             @Reason = [Reason]
+					   	    FROM [dbo].[TeardownReason] WITH(NOLOCK) 
+						   WHERE [TeardownReasonId] = @RemovalReasonId AND [MasterCompanyId] = @MasterCompanyId;
+				
+					IF(@CommonWorkOrderTearDownId > 0)
+					BEGIN						
+					    UPDATE [dbo].[CommonWorkOrderTearDown]
+						   SET [ReasonId] = @TeardownReasonId
+							  ,[ReasonName] = @Reason
+							  ,[Memo] = @RemovalReasonsMemo				  
+						 WHERE [CommonWorkOrderTearDownId] = @CommonWorkOrderTearDownId
+					END
+				END
+				ELSE
+				BEGIN					
+					UPDATE [dbo].[CommonWorkOrderTearDown]
+					   SET [CommonTeardownTypeId] = @CommonTeardownTypeId						  
+						  ,[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+						  ,[WOPartNoId] = 0
+						  ,[Memo] = ''							  
+						  ,[UpdatedBy] = @UpdatedBy
+						  ,[UpdatedDate] = @UpdatedDate
+					 WHERE [CommonWorkOrderTearDownId] = @CommonWorkOrderTearDownId;
 
 					 SELECT TOP 1 @TeardownReasonId = [TeardownReasonId],
 					              @Reason = [Reason]

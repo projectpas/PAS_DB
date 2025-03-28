@@ -39,7 +39,7 @@ BEGIN
 		DECLARE @TaskId BIGINT = NULL,@ConditionId BIGINT = NULL,@WorkOrderTaskId BIGINT = 0,@WorkOrderModuleID INT,@WorkOrderMPNModuleID INT		
 		DECLARE @isExistingMaterilas BIT = 0,@IsAutoIssue BIT = 0,@TemplateBody VARCHAR(MAX)=''
 	    DECLARE	@MatItemMasterId BIGINT=NULL,@ConditionCodeId BIGINT=NULL,@MatTaskId BIGINT=NULL,@MatItemClassificationId BIGINT=NULL,@PurchaseUnitOfMeasureId BIGINT=NULL
-		DECLARE @Item VARCHAR(100),@Figure VARCHAR(100),@WorkOrderMaterialsId BIGINT=0
+		DECLARE @Item NVARCHAR(100),@Figure NVARCHAR(100),@WorkOrderMaterialsId BIGINT=0
 		DECLARE @QtyToTurnIn INT=0,@ManQuantity	INT=0,@UnitOfMeasureId BIGINT=NULL,@StockLineId BIGINT=NULL
 		DECLARE	@ProvisionId BIGINT=NULL,@SubItemMasterId BIGINT=NULL,@MappingItemMasterId BIGINT=NULL,@ItemClassificationId BIGINT=NULL,@Quantity INT=0
 		DECLARE @MatProvisionId BIGINT=NULL,@IsAltPart BIT=0,@AltPartMasterPartId BIGINT=NULL,@IsAlternatePart BIGINT=NULL,@IsEquPart BIT=0,@EquPartMasterPartId BIGINT=NULL
@@ -114,8 +114,8 @@ BEGIN
 			[Quantity] [INT] NULL,
 			[ConditionCodeId] [BIGINT] NULL,
 			[MaterialMandatoriesId] [INT] NULL,
-			[Item] [VARCHAR](100) NULL,
-			[Figure] [VARCHAR](100) NULL,
+			[Item] [NVARCHAR](100) NULL,
+			[Figure] [NVARCHAR](100) NULL,
 			[WorkOrderMaterialsId] [BIGINT] NULL,
 			[isExistingMaterilas] [BIT] NULL,
 			[QtyToTurnIn] [INT] NULL,
@@ -232,7 +232,7 @@ BEGIN
 					WHILE @MaterialsMinId <= @MaterialsTotalRecord
 					BEGIN							
 
-						SELECT @MatItemMasterId=[ItemMasterId],@ConditionCodeId=[ConditionCodeId],@MatTaskId=[TaskId],@Item=[Item]
+						SELECT @MatItemMasterId=[ItemMasterId],@ConditionCodeId=[ConditionCodeId],@MatTaskId=[TaskId],@Item=[Item],@Figure=[Figure]
 						  FROM #tempWorkOrderMaterialsforSubAssy WHERE [MID] = @MaterialsMinId
 						  						  
 						SELECT TOP 1 @WorkOrderMaterialsId = [WorkOrderMaterialsId] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK)

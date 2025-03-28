@@ -11,6 +11,7 @@
  ** PR   Date			Author  		Change Description            
  ** --   --------		-------		---------------------------     
     1    28/Jan/2025	Rajesh Gami     Created
+    2    25/Mar/2025	Devendra Shekh	added new field: WorkOrderFormTypeId
 **************************************************************
  EXEC USP_GetItemMasterDetailById 102597 
 **************************************************************/
@@ -167,7 +168,8 @@ BEGIN
 						iM.RevenueMroGLAccId,
 						iM.RevenueSoGLAccId,
 						iM.RevenueExchGLAccId,
-						COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName
+						COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName,
+						iM.WorkOrderFormTypeId
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

@@ -112,7 +112,7 @@ BEGIN
 
 						IF(@MultipleVendorAuditType != '')
 						BEGIN
-							SET @MultipleVendorAuditType = @MultipleVendorAuditType + ',' + @VendorAuditType;
+							SET @MultipleVendorAuditType = @MultipleVendorAuditType + ', ' + @VendorAuditType;
 						END
 						ELSE
 						BEGIN

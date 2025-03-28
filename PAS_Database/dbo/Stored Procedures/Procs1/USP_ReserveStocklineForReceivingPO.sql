@@ -32,11 +32,12 @@
 	16   11/27/2024   RAJESH GAMI		In SO: SalesOrderStockLineCost table fixed the markup per/amount
 	17   12/06/2024   Vishal Suthar		PN-10575 Fixed issue of reserving and adding more qty than requested
 	18   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
-	18   03/18/2025   HEMANT SALIYA		Added DB Standards
+	19   03/20/2025   RAJESH GAMI		Fix the issue while partial reserve (In Workorder|SUBWO Material | KIT reserved qty issue)
+	20   03/21/2025   HEMANT SALIYA		Added DB Standards
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
-CREATE      PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -57,11 +58,14 @@ BEGIN
 		DECLARE @AsRemoveConditionId AS BIGINT = 0;
 		DECLARE @MappingTypeIds AS  VARCHAR(100);
 		DECLARE @ReplaceProvisionId AS BIGINT = 0, @MaterialRefNo VARCHAR(100) = 'Receiving PO - ';
+		DECLARE @ActualRemainingMaterialQuantity INT = 0;
 		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
 		SELECT @ReplaceProvisionId = PRO.ProvisionId FROM DBO.Provision PRO WITH (NOLOCK) WHERE PRO.StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 
+		DECLARE @IsDebugMode AS BIT;
+
+		SET @IsDebugMode = 0;
 		SET @MappingTypeIds = '1,2';
-		
 
 		IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderPartReference') IS NOT NULL
 		BEGIN
@@ -98,6 +102,7 @@ BEGIN
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM #tmpPurchaseOrderPartReference
 		SELECT @AsRemoveConditionId = ConditionId FROM dbo.Condition cond WITH (NOLOCK) WHERE Code = 'ASREMOVE' AND cond.MasterCompanyId = @MasterCompanyId
 
+		--Start Loop Based On Porchase Order Part wise
 		SELECT @LoopID = MAX(ID) FROM #tmpPurchaseOrderPartReference;
 		WHILE (@LoopID > 0)
 		BEGIN
@@ -143,8 +148,8 @@ BEGIN
 				[PurchaseOrderPartId] [bigint] NULL
 			)
 
+			--Get Stockline List Based on Selected Purchase Order Part
 			INSERT INTO #tmpStockline (StocklineId, PurchaseOrderPartId)
-			--SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId
 			SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND ((Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId) OR
 			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
 			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 
@@ -152,6 +157,7 @@ BEGIN
 		
 			SELECT @StkLoopID = MAX(ID) FROM #tmpStockline;
 
+			--Start Stockline Loop to Reserve Qty
 			WHILE (@StkLoopID > 0 AND @POReferenceQty > 0)
 			BEGIN
 				DECLARE @StkStocklineId BIGINT = 0;
@@ -183,6 +189,7 @@ BEGIN
 
 				SELECT @StkStocklineId = [StocklineId], @StkPurchaseOrderPartRecordId = [PurchaseOrderPartId] FROM #tmpStockline WHERE ID = @StkLoopID;
 				
+				--Start Work Order Reservation Process
 				IF (@ModulId = 1) -- Work Order
 				BEGIN
 					SET @ItemMasterId = 0;
@@ -199,6 +206,7 @@ BEGIN
 					
 					SELECT @WorkOrderTypeId = WO.WorkOrderTypeId FROM DBO.WorkOrder WO WITH (NOLOCK) WHERE WO.WorkOrderId = @ReferenceId;
 					
+					--SET if it is a Exchnage PO
 					SELECT @IsAutoIssue = 0;
 					IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO AND WOM.ProvisionId = @ExchangePOProvisionId)
 					BEGIN
@@ -219,6 +227,7 @@ BEGIN
 						[WorkFlowWorkOrderId] [bigint] NULL
 					)
 
+					--GET WorkOrderId, WorkFlowWorkOrderId From Materials and KIT
 					IF (@IsExchangePO = 0)
 					BEGIN
 						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
@@ -242,7 +251,7 @@ BEGIN
 					DECLARE @LoopIDWFWO INT = 0;
 
 					SELECT @LoopIDWFWO = MAX(ID) FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
-
+					--Start Loop based in Work Order Part wise
 					WHILE (@LoopIDWFWO > 0)
 					BEGIN
 						DECLARE @WorkFlowWorkOrderId BIGINT = 0;
@@ -254,7 +263,8 @@ BEGIN
 							DECLARE @SelectedWorkOrderMaterialsId INT = 0;
 							DECLARE @AltPartId BIGINT = 0;
 							DECLARE @EquPartId BIGINT = 0;
-						
+							
+							--Select Work Order Materials Id to Reserve into it.
 							IF (@IsExchangePO = 0)
 							BEGIN
 								SELECT @SelectedWorkOrderMaterialsId = WOM.WorkOrderMaterialsId, @AltPartId = Nha_Alt.MappingItemMasterId,
@@ -263,7 +273,6 @@ BEGIN
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOM.ItemMasterId AND Nha_Alt.MappingType = 1
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = WOM.ItemMasterId AND Nha_Equ.MappingType = 2
 								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOM.ItemMasterId OR Nha_Equ.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId;-- AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
-								--WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 							END
 							ELSE
 							BEGIN
@@ -277,7 +286,8 @@ BEGIN
 
 							IF(@IsExchangePO = 1)
 							BEGIN
-								SELECT @Quantity = WOM.Quantity, @QuantityReserved = ISNULL(WOM.QuantityReserved, 0), @QuantityIssued = ISNULL(WOM.QuantityIssued, 0), @WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
+								SELECT @Quantity = WOM.Quantity, @QuantityReserved = ISNULL(WOM.QuantityReserved, 0), @QuantityIssued = ISNULL(WOM.QuantityIssued, 0), @WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId 
+								FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOM.ItemMasterId AND Nha_Alt.MappingType = 1
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq WITH (NOLOCK) ON Nha_Euq.ItemMasterId = WOM.ItemMasterId AND Nha_Euq.MappingType = 2
 								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOM.ItemMasterId OR Nha_Euq.ItemMasterId = WOM.ItemMasterId) AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO AND WOM.ProvisionId = @ExchangePOProvisionId;
@@ -290,23 +300,28 @@ BEGIN
 								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOM.ItemMasterId OR Nha_Equ.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId;-- AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 							END
 					
-							DECLARE @OriginalQuantity INT = 0;
+							-- SET Original Requested Material Quantity and Remaining Material Qty
+							DECLARE @RemainingMaterialQty INT = (ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));
 
-							SET @OriginalQuantity = @Quantity;
+							SET @ActualRemainingMaterialQuantity = @Quantity;
 
 							DECLARE @MainPOReferenceQty INT = 0;
 							SELECT @MainPOReferenceQty = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
 
-							IF (@MainPOReferenceQty < @Quantity)
-							BEGIN
-								SET @Quantity = ISNULL(@MainPOReferenceQty, 0);
-							END
-							IF (@MainPOReferenceQty < @OriginalQuantity)
-							BEGIN
-								SET @OriginalQuantity = ISNULL(@MainPOReferenceQty, 0);
-							END
-
-							IF ((ISNULL(@OriginalQuantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0))) > 0)
+							SET @ActualRemainingMaterialQuantity  = ISNULL((CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END),0)
+							SET @Quantity = ISNULL(@ActualRemainingMaterialQuantity, 0);
+							--IF (@MainPOReferenceQty < @Quantity)
+							--BEGIN
+							--	SET @Quantity = ISNULL(@MainPOReferenceQty, 0);
+							--END
+						
+							--IF (@MainPOReferenceQty < @OriginalQuantity) /****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
+							--BEGIN
+							--	SET @OriginalQuantity = ISNULL(@MainPOReferenceQty, 0);
+							--END
+					
+							--IF ((ISNULL(@OriginalQuantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0))) > 0)
+							IF (ISNULL(@ActualRemainingMaterialQuantity, 0) > 0)
 							BEGIN
 								IF (@SelectedWorkOrderMaterialsId > 0)
 								BEGIN
@@ -328,22 +343,24 @@ BEGIN
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
 									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
-									IF (@OriginalQuantity > 0 AND @stkQty > 0)
+									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
 									BEGIN
-										IF (@stkQuantityAvailable > = @OriginalQuantity)
-											SET @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued);
+										IF (@stkQuantityAvailable >= @ActualRemainingMaterialQuantity)
+											SET @Qty = @ActualRemainingMaterialQuantity; --SET @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued); /****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
 										ELSE
 											SET @Qty = @stkQuantityAvailable;
 									END
 
+									-- Start Updating Work Order Materials
 									IF (@Qty > 0)
 									BEGIN
+									PRINT 'Start Code'
 										UPDATE WOM
 										SET WOM.QuantityReserved = ISNULL(WOM.QuantityReserved, 0),
-										WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0),
-										WOM.QuantityIssued = ISNULL(WOM.QuantityIssued, 0),
-										WOM.TotalIssued = ISNULL(WOM.TotalIssued, 0),
-										WOM.ConditionCodeId = CASE WHEN @IsExchangePO = 1 THEN @ConditionId ELSE WOM.ConditionCodeId END -- Added by Rajesh: Need to change parent condition while we change the condition from the RPO process.
+											WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0),
+											WOM.QuantityIssued = ISNULL(WOM.QuantityIssued, 0),
+											WOM.TotalIssued = ISNULL(WOM.TotalIssued, 0),
+										    WOM.ConditionCodeId = CASE WHEN @IsExchangePO = 1 THEN @ConditionId ELSE WOM.ConditionCodeId END -- Added by Rajesh: Need to change parent condition while we change the condition from the RPO process.
 										FROM DBO.WorkOrderMaterials WOM
 										WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
 
@@ -382,6 +399,7 @@ BEGIN
 									SET @qtyFulfilled = 0;
 									SET @flag = 0;
 
+									-- Start Updating Work Order Materials Stockline
 									IF (@StkStocklineId > 0)
 									BEGIN
 										SET @flag = 0;
@@ -414,6 +432,7 @@ BEGIN
 												END
 												ELSE
 												BEGIN
+													-- Never Exucute this Code - Hemant Need to Confirm
 													IF (@IsAutoIssue = 0)
 													BEGIN
 														SET @stkQuantityReserved = @stkQuantityReserved + @stkQuantityAvailable;
@@ -424,18 +443,22 @@ BEGIN
 													BEGIN
 														SET @stkQuantityIssued = @stkQuantityIssued + @stkQuantityAvailable;
 														SET @WOMSQtyIssued = @stkQuantityAvailable;
-														SET @stkQuantityIssued = 0;
+														SET @stkQuantityAvailable = 0; --Need to confirm required or Not
+														SET @stkQuantityOnHand = 0; --Need to confirm required or Not
+														--SET @stkQuantityIssued = 0;
 													END
 												END
 
 												SET @flag = 1;
 											END
 
+											--Start Updating Work Order Materials Stockline
 											IF (@flag = 1)
 											BEGIN
 												SET @InsertedWorkOrderMaterialsId = 0;
 												IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId AND WOMS.StockLineId = @StkStocklineId)
 												BEGIN
+												PRINT 'Commented Code 0.01'
 													UPDATE WOMS
 													SET WOMS.Quantity = ISNULL(WOMS.Quantity, 0) + @Qty,
 													WOMS.QtyReserved = ISNULL(WOMS.QtyReserved, 0) + @Qty,
@@ -466,10 +489,11 @@ BEGIN
 
 													IF ((@ItmMsrId = @stkItemMasterId OR @stkItemMasterId = @AltPartId OR @stkItemMasterId = @EquPartId) AND @CondId = (CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END))
 													BEGIN
+													PRINT 'Commented Code 0.0'
 														INSERT INTO DBO.WorkOrderMaterialStockLine ([WorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
 														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
 														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],[RepairOrderPartRecordId],ReferenceNumber)
-														SELECT @SelectedWorkOrderMaterialsId, @StkStocklineId, @stkItemMasterId,CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END, @Qty, @WOMSQtyReserved, 
+														SELECT @SelectedWorkOrderMaterialsId, @StkStocklineId, @stkItemMasterId,CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END, @Qty, ISNULL(@WOMSQtyReserved, 0), 
 														ISNULL(@WOMSQtyIssued, 0), @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
 														CASE WHEN @AltPartId = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
 														@ReplaceProvisionId, NULL, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
@@ -485,7 +509,7 @@ BEGIN
 												END
 
 												SET @stkWorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
-
+												PRINT 'Commented Code 1.0'
 												UPDATE TOP (@Qty) StkDraft
 												SET 
 												StkDraft.WOQty = @Qty,
@@ -515,13 +539,15 @@ BEGIN
 							END
 							ELSE
 							BEGIN
+								PRINT 'ELSE Code 1.0'
 								SET @ReservedIntoMaterial = 0;
 								GOTO NextStockline_WOMK;
 							END
 						END
-
+						PRINT 'Code end 1.0'
 						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOM.ItemMasterId WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
 						BEGIN
+						PRINT 'Commented Code 2.0'
 							UPDATE Stk
 							SET Stk.QuantityAvailable = @stkQuantityAvailable,
 							--Stk.QuantityOnHand = @stkQuantityOnHand,
@@ -585,21 +611,24 @@ BEGIN
 							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = WOMK.ItemMasterId
 							WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOMK.ItemMasterId OR Nha_Equ.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 
-							SET @OriginalQuantity = @Quantity;
+							SET @ActualRemainingMaterialQuantity = @Quantity;
 
-							DECLARE @MainPOReferenceQty_Kit INT = 0;
+							DECLARE @MainPOReferenceQty_Kit INT = 0, @RemainingMaterialQty_KIT INT =(ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));;
 							SELECT @MainPOReferenceQty_Kit = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
 
-							IF (@MainPOReferenceQty_Kit < @Quantity)
-							BEGIN
-								SET @Quantity = @MainPOReferenceQty_Kit;
-							END
-							IF (@MainPOReferenceQty_Kit < @OriginalQuantity)
-							BEGIN
-								SET @OriginalQuantity = @MainPOReferenceQty_Kit;
-							END
+							SET @ActualRemainingMaterialQuantity  =  ISNULL((CASE WHEN @RemainingMaterialQty_KIT <= @MainPOReferenceQty_Kit THEN @RemainingMaterialQty_KIT ELSE @MainPOReferenceQty_Kit END),0)
+							SET @Quantity = @ActualRemainingMaterialQuantity;
+							--IF (@MainPOReferenceQty_Kit < @Quantity)
+							--BEGIN
+							--	SET @Quantity = @MainPOReferenceQty_Kit;
+							--END
+							--IF (@MainPOReferenceQty_Kit < @OriginalQuantity) /****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
+							--BEGIN
+							--	SET @OriginalQuantity = @MainPOReferenceQty_Kit;
+							--END
 
-							IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
+							--IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
+							IF (@ActualRemainingMaterialQuantity > 0)
 							BEGIN
 								IF (@SelectedWorkOrderMaterialsKitId > 0)
 								BEGIN
@@ -619,10 +648,10 @@ BEGIN
 									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
 									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
-									IF (@Quantity > 0 AND @stkQty > 0)
+									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
 									BEGIN
-										IF (@stkQuantityAvailable > = @Quantity)
-											SET @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued);	-- - (@QuantityReserved + @QuantityIssued);
+										IF (@stkQuantityAvailable > = @ActualRemainingMaterialQuantity)
+											SET @Qty = @ActualRemainingMaterialQuantity; -- @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued);	/****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
 										ELSE
 											SET @Qty = @stkQuantityAvailable;
 									END
@@ -738,7 +767,6 @@ BEGIN
 												END
 
 												SET @stkWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
-
 												UPDATE TOP (@Qty) StkDraft
 												SET 
 												StkDraft.WOQty = @Qty,
@@ -814,6 +842,7 @@ BEGIN
 					END
 				END
 
+				--Start Sub Work Order Materials Reservation Process
 				IF (@ModulId = 5) -- Sub Work Order
 				BEGIN
 					PRINT 'SUB WORK ORDER'
@@ -886,13 +915,14 @@ BEGIN
 							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq WITH (NOLOCK) ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
 							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
 
-							DECLARE @MainPOReferenceQty_SWO INT = 0;
+							DECLARE @MainPOReferenceQty_SWO INT = 0,@RemainingMaterialQty_SWO INT =(ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));;
 							SELECT @MainPOReferenceQty_SWO = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
 
-							IF (@MainPOReferenceQty_SWO < @Quantity)
-							BEGIN
-								SET @Quantity = @MainPOReferenceQty_SWO;
-							END
+							SET @Quantity  = ISNULL((CASE WHEN @RemainingMaterialQty_SWO <= @MainPOReferenceQty_SWO THEN @RemainingMaterialQty_SWO ELSE @MainPOReferenceQty_SWO END),0)
+							--IF (@MainPOReferenceQty_SWO < @Quantity)
+							--BEGIN
+							--	SET @Quantity = @MainPOReferenceQty_SWO;
+							--END
 
 							IF (@Quantity > 0)
 							BEGIN
@@ -1110,13 +1140,14 @@ BEGIN
 							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = SWOM.ItemMasterId
 							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Equ.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
 
-							DECLARE @MainPOReferenceQty_SWOKit INT = 0;
+							DECLARE @MainPOReferenceQty_SWOKit INT = 0, @RemainingMaterialQty_SWOKit INT =(ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));;
 							SELECT @MainPOReferenceQty_SWOKit = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
 
-							IF (@MainPOReferenceQty_SWOKit < @Quantity)
-							BEGIN
-								SET @Quantity = @MainPOReferenceQty_SWOKit;
-							END
+							SET @Quantity  = ISNULL((CASE WHEN @RemainingMaterialQty_SWOKit <= @MainPOReferenceQty_SWOKit THEN @RemainingMaterialQty_SWOKit ELSE @MainPOReferenceQty_SWOKit END),0)
+							--IF (@MainPOReferenceQty_SWOKit < @Quantity)
+							--BEGIN
+							--	SET @Quantity = @MainPOReferenceQty_SWOKit;
+							--END
 
 							IF (@Quantity > 0)
 							BEGIN
@@ -1329,6 +1360,7 @@ BEGIN
 					END					
 				END
 				
+				--Start LOT Reservation Process
 				IF(@ModulId = 6) /** LOT MODULE **/
 				BEGIN
 					PRINT 'LOT'
@@ -1370,6 +1402,7 @@ BEGIN
 
 				END /*** LOT MODULE END ***/
 				
+				--Start Sales Order Reservation Process
 				IF (@ModulId = 3) -- Sales Order
 				BEGIN
 					SET @ItemMasterId = 0;
@@ -1764,6 +1797,7 @@ BEGIN
 					END
 				END
 
+				--Start Exchange Sales Order Reservation Process
 				IF (@ModulId = 4) -- Exchange Sales Order
 				BEGIN
 					SET @ItemMasterId = 0;

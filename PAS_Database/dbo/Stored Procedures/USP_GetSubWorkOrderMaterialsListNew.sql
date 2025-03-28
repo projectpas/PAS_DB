@@ -21,7 +21,7 @@
 
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
-exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=316,@ShowPendingToIssue=0
+exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsListNew]      
 (
@@ -438,7 +438,6 @@ SET NOCOUNT ON
   
 		IF(ISNULL(@ShowPendingToIssue, 0) = 1)
 		BEGIN
-				
 				INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
 								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
@@ -642,7 +641,7 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId 
-					LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
+					LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
@@ -855,7 +854,7 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
-					LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
+					LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 					--LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
@@ -869,7 +868,6 @@ SET NOCOUNT ON
 		END
 		ELSE
 		BEGIN
-			
 			INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
 								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
@@ -1072,7 +1070,7 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
-				  LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
+				  LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId 
@@ -1283,7 +1281,7 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
-				  LEFT JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId
+				  LEFT JOIN dbo.SubWorkOrderTask WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = WOM.TaskId
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 				  --LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  

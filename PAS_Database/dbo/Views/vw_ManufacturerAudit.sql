@@ -1,7 +1,6 @@
-﻿
-CREATE     VIEW [dbo].[vw_ManufacturerAudit]
+﻿CREATE      VIEW [dbo].[vw_ManufacturerAudit]
 AS
-	SELECT ct.ManufacturerAuditId  AS PkID, ct.ManufacturerAuditId AS ID	
+	SELECT ct.ManufacturerAuditId  AS PkID, ct.ManufacturerId AS ID	
 	,ct.[Name] AS [Name]
 	,ct.CreatedBy AS [Created By],
 	ct.CreatedDate AS [Created Date], 

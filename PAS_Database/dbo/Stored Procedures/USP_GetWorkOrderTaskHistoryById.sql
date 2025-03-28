@@ -16,6 +16,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    02/11/2025   Ekta Chandegra	Created
+	2    02/25/2025   Ekta Chandegra	Retrieve Task instruction details
 
  EXEC USP_GetWorkOrderTaskHistoryById 146
 **************************************************************/
@@ -49,7 +50,16 @@ BEGIN
 			[IsActive],
 			[IsDeleted],
 			[UpdatedBy],
-			[UpdatedDate]
+			[UpdatedDate],
+			[WorkOrderTaskInstructionId],
+			[WorkOrderTaskInstructionTechId], 
+			[WorkOrderTaskInstructionTechName],
+			[WorkOrderTaskInstructionTechUpdatedDate],
+			[WorkOrderTaskInstructionInspectorId], 
+			[WorkOrderTaskInstructionInspectorName],
+			[WorkOrderTaskInstructionInspectorUpdatedDate] ,
+			[WorkOrderTaskInstructionPrintInWO], 
+			[WorkOrderTaskInstructionPrintInWOQ]
 		FROM [dbo].[WorkOrderTaskHistory] WITH(NOLOCK)
 		WHERE WorkOrderTaskId = @WorkOrderTaskId
 		ORDER BY UpdatedDate DESC

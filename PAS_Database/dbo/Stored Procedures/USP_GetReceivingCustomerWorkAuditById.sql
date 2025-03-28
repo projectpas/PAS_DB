@@ -62,10 +62,10 @@ BEGIN
                 con.ContactTitle AS ContactTitle,
                 (con.FirstName + ' ' + con.LastName) AS ContactFirstName,
                 im.PartNumber AS PartNumber,
-                stl.IsTimeLife,
-                stl.IsExpDate AS IsExpirationDate,
-                stl.IsMFGDate,
-                stl.IsCustomerStock,
+                ISNULL(stl.IsTimeLife,0) AS IsTimeLife,
+                ISNULL(stl.IsExpDate,0) AS IsExpirationDate,
+                ISNULL(stl.IsMFGDate,0) IsMFGDate,
+                ISNULL(stl.IsCustomerStock,0) IsCustomerStock,
                 stl.TimeLifeOrigin,
                 stl.TimeLifeDate,
                 stl.ReceivingNumber AS ReceivingCustomerNumber,
@@ -115,12 +115,12 @@ BEGIN
                 stl.Level4,
                 stl.CustReqTagType,
                 stl.CustReqCertType
-            FROM ReceivingCustomerWorkAudit stl WITH (NOLOCK)
-            INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
-            LEFT JOIN CustomerContact cc WITH (NOLOCK) ON stl.CustomerContactId = cc.CustomerContactId
-            LEFT JOIN Contact con WITH (NOLOCK) ON cc.ContactId = con.ContactId
-            LEFT JOIN TimeLife ti WITH (NOLOCK) ON stl.TimeLifeCyclesId = ti.TimeLifeCyclesId
-            LEFT JOIN ItemMaster rp WITH (NOLOCK) ON stl.RevisePartId = rp.ItemMasterId
+            FROM dbo.ReceivingCustomerWorkAudit stl WITH (NOLOCK)
+            INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
+            LEFT JOIN dbo.CustomerContact cc WITH (NOLOCK) ON stl.CustomerContactId = cc.CustomerContactId
+            LEFT JOIN dbo.Contact con WITH (NOLOCK) ON cc.ContactId = con.ContactId
+            LEFT JOIN dbo.TimeLife ti WITH (NOLOCK) ON stl.TimeLifeCyclesId = ti.TimeLifeCyclesId
+            LEFT JOIN dbo.ItemMaster rp WITH (NOLOCK) ON stl.RevisePartId = rp.ItemMasterId
             WHERE stl.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
             ORDER BY stl.AuditReceivingCustomerWorkId DESC;
         END

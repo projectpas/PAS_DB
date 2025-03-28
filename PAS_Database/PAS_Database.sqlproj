@@ -69,6 +69,8 @@
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
     <Folder Include="Snapshots" />
+    <Folder Include="HangFire\" />
+    <Folder Include="HangFire\Tables\" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -3544,6 +3546,49 @@
     <Build Include="dbo\User Defined Types\WorkOrderPartNumberType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerWorkAuditById.sql" />
     <Build Include="dbo\Stored Procedures\CheckVendorWarningRestriction.sql" />
+    <Build Include="HangFire\Tables\AggregatedCounter.sql" />
+    <Build Include="HangFire\Tables\Hash.sql" />
+    <Build Include="HangFire\Tables\Counter.sql" />
+    <Build Include="HangFire\Tables\Set.sql" />
+    <Build Include="HangFire\Tables\List.sql" />
+    <Build Include="HangFire\Tables\Server.sql" />
+    <Build Include="HangFire\Tables\JobQueue.sql" />
+    <Build Include="HangFire\Tables\JobParameter.sql" />
+    <Build Include="HangFire\Tables\State.sql" />
+    <Build Include="HangFire\Tables\Job.sql" />
+    <Build Include="HangFire\Tables\Schema.sql" />
+    <Build Include="Security\HangFire.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskInstructionAudit.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskInstruction.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskDetailsAudit.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskDetails.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskAudit.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSWOTaskInstructionSequenceNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSWOTaskInstructionsByWOTaskId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskInstructionList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSubWorkOrderTasks.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSubWorkOrderTaskInstructions.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderTaskInstructionById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderTaskDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTaskInstruction.sql" />
+    <Build Include="dbo\Tables\VendorScoreCardSettingsAudit.sql" />
+    <Build Include="dbo\Tables\VendorScoreCardSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsListData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderSiteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateActionForVendorAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistoryLisyById.sql" />
+    <Build Include="dbo\Stored Procedures\getReceivingCustomerWorkById.sql" />
+    <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTask.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UnMappedPOByWorkOrderMaterialsId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterialkitStocklineById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

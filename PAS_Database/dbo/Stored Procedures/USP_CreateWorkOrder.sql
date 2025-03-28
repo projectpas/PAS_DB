@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    24/02/2025   HEMANT SALIYA    Created
 	2    11/03/2025   Moin Bloch       Updated
+	3    24/03/2025   Moin Bloch       Added UpdatedBy and Updated date 
      
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -408,12 +409,12 @@ BEGIN
             WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
         END
 		-- Generate Work Order Number
-		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
     END
 	ELSE
 	BEGIN
 		-- Generate Work Order Number
-		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 	END
 
 	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
@@ -758,12 +759,12 @@ BEGIN
 											WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 										END
 										-- Generate RMA Number
-										SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+										SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 								END
 								ELSE
 								BEGIN
 									-- Generate RMA Number
-									SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+									SET @RMANumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 								END
 
 								EXEC [dbo].[CreateUpdateCustomerRMAHeader] 0,@RMANumber,@InvoiceId,@InvoiceNo,@InvoiceDate,@CustomerRMAItemReturnedStatus,'Item Returned',@RMACustomerId,@RMACustomerName,@RMACustomerCode,
@@ -869,13 +870,13 @@ BEGIN
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId] FROM #tmprCreateWorkOrderPartNumber
 		   		   
 	-- CREATING WORKFLOWWORKORDER FROM WORK FLOW
-	EXEC [dbo].[CreateWorkFlowWorkOrderFromWorkFlow] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+	EXEC [dbo].[CreateWorkFlowWorkOrderFromWorkFlow] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate,@MasterCompanyId;
 
 	-- CREATING WORK ORDER SETTLEMENTDETAILS
 	EXEC [dbo].[CreateWorkOrderSettlementDetails] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
 	-- CREATING WORK ORDER TEARDOWN FO REMOVAL REASON
-	EXEC [dbo].[CreateCommonWorkOrderRemovalTearDown] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+	EXEC [dbo].[CreateCommonWorkOrderRemovalTearDown] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate,@MasterCompanyId;
 
 	-- COMPANY NOT AVAIALABLE WITH MASTERCOMPANYCODE LIKE 'AIR'
 	-- CreateCommonWorkOrderCustomerInspecionTearDown(workOrder.PartNumbers, workOrder.WorkOrderId, workOrder.CreatedBy);

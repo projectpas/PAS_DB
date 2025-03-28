@@ -102,7 +102,7 @@ BEGIN
 
 			
 
-			/*====================Top 20 PO 2 Year Prior=============================*/
+			/*====================Top 10 PO 2 Year Prior=============================*/
 					IF OBJECT_ID(N'tempdb..#tmpTop202YearPOPart') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpTop202YearPOPart
@@ -134,12 +134,12 @@ BEGIN
 					FROM tmpTop202YearSalesOrderPOPart
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
-					FETCH FIRST 20 ROWS ONLY;
+					FETCH FIRST 10 ROWS ONLY;
 
 					select * from #tmpTop202YearPOPart;
-			/*==================END Top 20 PO 2 Year Prior==============================*/
+			/*==================END Top 10 PO 2 Year Prior==============================*/
 
-			/*============ Top 20 RO 2 Year Prior====================*/
+			/*============ Top 10 RO 2 Year Prior====================*/
 
 				    IF OBJECT_ID(N'tempdb..#tmpTop202YearPart') IS NOT NULL
 				    BEGIN
@@ -172,14 +172,14 @@ BEGIN
 				    FROM tmpTop202YearSalesOrderPart
 				    ORDER BY TotalSalesCount DESC
 				    OFFSET 0 ROWS
-				    FETCH FIRST 20 ROWS ONLY;
+				    FETCH FIRST 10 ROWS ONLY;
 				    
 				    select * from #tmpTop202YearPart;				    
 				    
-			/*===================End Top 20 RO 2 Year Prior===========================*/					
+			/*===================End Top 10 RO 2 Year Prior===========================*/					
 			
 
-			/*====================Top 20 PO 1 Year Prior=============================*/
+			/*====================Top 10 PO 1 Year Prior=============================*/
 					IF OBJECT_ID(N'tempdb..#tmpTop201YearPOPart') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpTop201YearPOPart
@@ -211,12 +211,12 @@ BEGIN
 					FROM tmpTop201YearSalesOrderPOPart
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
-					FETCH FIRST 20 ROWS ONLY;
+					FETCH FIRST 10 ROWS ONLY;
 
 					select * from #tmpTop201YearPOPart;
-			/*==================END Top 20 PO 1 Year Prior==============================*/
+			/*==================END Top 10 PO 1 Year Prior==============================*/
 
-			/*================== Top 20 RO 1 Year Prior===========================*/
+			/*================== Top 10 RO 1 Year Prior===========================*/
 
 					IF OBJECT_ID(N'tempdb..#tmpTop201YearPart') IS NOT NULL
 					BEGIN
@@ -249,15 +249,15 @@ BEGIN
 					FROM tmpTop201YearSalesOrderPart
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
-					FETCH FIRST 20 ROWS ONLY;
+					FETCH FIRST 10 ROWS ONLY;
 
 					select * from #tmpTop201YearPart;
 					
-			/*===================End Top 20 RO 1 Year Prior===========================*/
+			/*===================End Top 10 RO 1 Year Prior===========================*/
 					
 			
 
-			/*====================Top 20 PO Currunt Year Prior=============================*/
+			/*====================Top 10 PO Currunt Year Prior=============================*/
 					IF OBJECT_ID(N'tempdb..#tmpTop20YearPOPart') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpTop20YearPOPart
@@ -289,12 +289,12 @@ BEGIN
 					FROM tmpTop20YearSalesOrderPOPart
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
-					FETCH FIRST 20 ROWS ONLY;
+					FETCH FIRST 10 ROWS ONLY;
 
 					select * from #tmpTop20YearPOPart;
-			/*==================END Top 20 PO Currunt Year Prior==============================*/
+			/*==================END Top 10 PO Currunt Year Prior==============================*/
 
-			/*============ Top 20 RO Currunt Year Prior====================*/
+			/*============ Top 10 RO Currunt Year Prior====================*/
 
 					IF OBJECT_ID(N'tempdb..#tmpTop20YearPart') IS NOT NULL
 					BEGIN
@@ -327,10 +327,10 @@ BEGIN
 					FROM tmpTop20YearSalesOrderPart
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
-					FETCH FIRST 20 ROWS ONLY;
+					FETCH FIRST 10 ROWS ONLY;
 
 					select * from #tmpTop20YearPart;					
-			/*===================End Top 20 RO Currunt Year Prior===========================*/
+			/*===================End Top 10 RO Currunt Year Prior===========================*/
 
 			/*==================Yearly No of order & Spend==============================*/
 				DECLARE @ROTotalOrder2Year BIGINT = 0,

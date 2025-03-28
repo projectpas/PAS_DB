@@ -85,7 +85,7 @@ BEGIN
 	END
 
   
-   ;WITH rptCTE (TotalRecordsCount, EmployeeId, firstName, lastName, title, expertize, email, phone, certType,
+   ;WITH rptCTE (TotalRecordsCount, EmployeeId, firstName, lastName, title, expertise, email, phone, certType,
 				 enforce, daysToExpiration, issuingEntity,certNum,issueDate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10) AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
@@ -97,7 +97,7 @@ BEGIN
 			   SELECT STRING_AGG(EE.[Description],',') 
 			   FROM STRING_SPLIT(E.EmployeeExpIds,',') AS ExpIds
 					LEFT JOIN [DBO].EmployeeExpertise EE WITH(NOLOCK) ON EE.EmployeeExpertiseId = CAST(ExpIds.value AS INT)
-			   WHERE ExpIds.value IS NOT NULL),'') 'expertize',
+			   WHERE ExpIds.value IS NOT NULL),'') 'expertise',
        E.Email 'email',
        E.MobilePhone 'phone',
        ET.Description 'certType',
@@ -134,14 +134,14 @@ BEGIN
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			)
-			,FinalCTE(TotalRecordsCount, EmployeeId, firstName, lastName, title, expertize, email, phone, certType,
+			,FinalCTE(TotalRecordsCount, EmployeeId, firstName, lastName, title, expertise, email, phone, certType,
 				 enforce, daysToExpiration, issuingEntity,certNum,issueDate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10) 
-			  AS (SELECT DISTINCT TotalRecordsCount, EmployeeId, firstName, lastName, title, expertize, email, phone, certType,
+			  AS (SELECT DISTINCT TotalRecordsCount, EmployeeId, firstName, lastName, title, expertise, email, phone, certType,
 				 enforce, daysToExpiration, issuingEntity,certNum,issueDate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10 FROM rptCTE)
 			
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount, EmployeeId, firstName, lastName, title, expertize, email, phone, certType,
+		    SELECT COUNT(2) OVER () AS TotalRecordsCount, EmployeeId, firstName, lastName, title, expertise, email, phone, certType,
 				enforce, daysToExpiration, issuingEntity,certNum,issueDate,
 				level1, level2,level3, level4, level5, level6, level7, level8,level9, level10
 		    FROM FinalCTE FC

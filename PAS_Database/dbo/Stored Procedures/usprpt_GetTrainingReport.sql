@@ -88,7 +88,7 @@ BEGIN
 	END
 
   
-   ;WITH rptCTE (TotalRecordsCount, EmployeeId,firstName, lastName, title, expertize, email, phone, trainingType,
+   ;WITH rptCTE (TotalRecordsCount, EmployeeId,firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
@@ -102,7 +102,7 @@ BEGIN
 			   SELECT STRING_AGG(EE.[Description],',') 
 			   FROM STRING_SPLIT(E.EmployeeExpIds,',') AS ExpIds
 					LEFT JOIN [DBO].EmployeeExpertise EE WITH(NOLOCK) ON EE.EmployeeExpertiseId = CAST(ExpIds.value AS INT)
-			   WHERE ExpIds.value IS NOT NULL),'') 'expertize',
+			   WHERE ExpIds.value IS NOT NULL),'') 'expertise',
        E.Email 'email',
        E.MobilePhone 'phone',
 	   ETP.TrainingType 'trainingType',
@@ -113,7 +113,8 @@ BEGIN
 	   FORMAT(ET.ScheduleDate,'MM-dd-yyyy') 'scheduleDate',
 	   FORMAT(ET.CompletionDate,'MM-dd-yyyy') 'completionDate',
 	   FORMAT(ET.ExpirationDate,'MM-dd-yyyy') 'expirationDate',
-	   CASE WHEN DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) = 0 THEN '' ELSE CAST(DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS VARCHAR) END AS daysToExpiration,
+	    DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) 'daysToExpiration',
+	   --CASE WHEN DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) = 0 THEN '' ELSE CAST(DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS VARCHAR) END AS daysToExpiration,
 	   CASE WHEN ISNULL(EC.IsCertificationInForce,0) = 1 THEN 'YES' ELSE 'NO' end AS inforce,
 	   AFT.Description 'aircraftType',
 	   STRING_AGG(A.ModelName, ', ') 'model',
@@ -163,17 +164,17 @@ BEGIN
                MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
                MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
 			)
-			,FinalCTE(TotalRecordsCount,EmployeeId, firstName, lastName, title, expertize, email, phone, trainingType,
+			,FinalCTE(TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 
-			  AS (SELECT DISTINCT TotalRecordsCount,EmployeeId, firstName, lastName, title, expertize, email, phone, trainingType,
+			  AS (SELECT DISTINCT TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10 FROM rptCTE)
 			
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount,EmployeeId, firstName, lastName, title, expertize, email, phone, trainingType,
+		    SELECT COUNT(2) OVER () AS TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
 				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
 				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10

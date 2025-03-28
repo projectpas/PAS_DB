@@ -52,7 +52,7 @@ BEGIN
 				FROM [DBO].[VendorOrderType] WITH(NOLOCK)
 				WHERE OrderTypeName = @PoOrderTypeName;
 			END
-			ELSE IF(@IsForPO = 2)
+			ELSE
 			BEGIN 
 				-- For RepairOrder
 				SELECT @VendorOrderTypeId = [VendorOrderTypeId] 
@@ -91,7 +91,7 @@ BEGIN
 
 			IF(@IsWarningRestriction = 1 OR @IsWarningRestriction = 2) --If Vendor is Restriction/Warning
 			BEGIN
-				IF EXISTS(SELECT TOP 1 VendorAuditInfoId FROM [DBO].[VendorAuditInfo] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND VendorId = @VendorId AND VendorOrderTypeId = @VendorOrderTypeId AND NextAuditDate < @CurrentDate)
+				IF EXISTS(SELECT TOP 1 VendorAuditInfoId FROM [DBO].[VendorAuditInfo] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND VendorId = @VendorId AND VendorOrderTypeId = @VendorOrderTypeId AND NextAuditDate < @CurrentDate AND IsActive = 1 AND IsDeleted = 0)
 				BEGIN 
 					INSERT INTO #VendorAuditType 
 						   ([VendorAuditTypeId],[VendorAuditType])
@@ -101,7 +101,9 @@ BEGIN
 						WHERE VAI.MasterCompanyId = @MasterCompanyId 
 						AND VAI.VendorId = @VendorId 
 						AND VAI.VendorOrderTypeId = @VendorOrderTypeId 
-						AND VAI.NextAuditDate < @CurrentDate;
+						AND VAI.NextAuditDate < @CurrentDate
+						AND VAT.IsActive = 1
+						AND VAT.IsDeleted = 0;
 
 					SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #VendorAuditType;
 

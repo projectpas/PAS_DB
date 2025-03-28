@@ -91,7 +91,7 @@ BEGIN
 
 			IF(@IsWarningRestriction = 1 OR @IsWarningRestriction = 2) --If Vendor is Restriction/Warning
 			BEGIN
-				IF EXISTS(SELECT TOP 1 VendorAuditInfoId FROM [DBO].[VendorAuditInfo] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND VendorId = @VendorId AND VendorOrderTypeId = @VendorOrderTypeId AND NextAuditDate < @CurrentDate AND IsActive = 1 AND IsDeleted = 0)
+				IF EXISTS(SELECT TOP 1 VendorAuditInfoId FROM [DBO].[VendorAuditInfo] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND VendorId = @VendorId AND VendorOrderTypeId = @VendorOrderTypeId AND CAST(NextAuditDate AS DATE) < @CurrentDate AND IsActive = 1 AND IsDeleted = 0)
 				BEGIN 
 					INSERT INTO #VendorAuditType 
 						   ([VendorAuditTypeId],[VendorAuditType])
@@ -101,7 +101,7 @@ BEGIN
 						WHERE VAI.MasterCompanyId = @MasterCompanyId 
 						AND VAI.VendorId = @VendorId 
 						AND VAI.VendorOrderTypeId = @VendorOrderTypeId 
-						AND VAI.NextAuditDate < @CurrentDate
+						AND CAST(VAI.NextAuditDate AS DATE) < @CurrentDate
 						AND VAT.IsActive = 1
 						AND VAT.IsDeleted = 0;
 

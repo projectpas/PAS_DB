@@ -3585,6 +3585,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTask.sql" />
     <Build Include="dbo\Stored Procedures\USP_UnMappedPOByWorkOrderMaterialsId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterialkitStocklineById.sql" />
   </ItemGroup>

@@ -33,8 +33,8 @@ BEGIN
 					@POROPartSum BIGINT = 0,
 					@StocklineSum BIGINT = 0,
 					@OnTimeAverage DECIMAL(18,2) = 0,
-					@RatingId INT = 1,
-					@StatusId INT = 1;
+					@RatingId INT = 0,
+					@StatusId INT = 0;
 			SELECT  
 				@POPartSum = ISNULL(SUM(pop.[QuantityOrdered]),0)
 			FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
@@ -66,6 +66,14 @@ BEGIN
 				SET @OnTimeAverage = 0;
 			END
 
+			--Get status & rating
+			SELECT @RatingId = [VendorScoreCardSettingsId] 
+				FROM [DBO].[VendorScoreCardSettings] WITH(NOLOCK)
+			WHERE @OnTimeAverage BETWEEN 
+				  CAST(PARSENAME(REPLACE([OnTimeDelivery], '-', '.'), 2) AS INT) 
+				  AND 
+				  CAST(PARSENAME(REPLACE([OnTimeDelivery], '-', '.'), 1) AS INT);
+
 			--SELECT @POPartSum AS POTotal,@ROPartSum AS ROTotal,@StocklineSum AS StockTotal,@OnTimeAverage AS TotalAverage;
 
 			/*================Vendor Details =================*/
@@ -82,8 +90,10 @@ BEGIN
 						@ROPartSum AS ROTotal,
 						@StocklineSum AS StockTotal,
 						@OnTimeAverage AS TotalAverage,
-						CASE WHEN @OnTimeAverage > 0 THEN @RatingId ELSE 0 END AS RatingId,
-						CASE WHEN @OnTimeAverage > 0 THEN @StatusId ELSE 0 END AS StatusId
+						--CASE WHEN @OnTimeAverage > 0 THEN @RatingId ELSE 0 END AS RatingId,
+						--CASE WHEN @OnTimeAverage > 0 THEN @StatusId ELSE 0 END AS StatusId
+						@RatingId AS RatingId,
+						@RatingId AS StatusId
 					FROM [DBO].[Vendor] V WITH(NOLOCK)
 					INNER JOIN [DBO].[Address] AD WITH(NOLOCK) on V.AddressId = AD.AddressId
 					where VendorId = @VendorId

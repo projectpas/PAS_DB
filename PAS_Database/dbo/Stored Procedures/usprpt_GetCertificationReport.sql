@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------              
     1    25-Feb-2025   Bhargav Saliya		Created   
 	2    26-MAR-2025   Bhargav Saliya		Add TBD name Condition
+	3    27-MAR-2025   Bhargav Saliya		Add Employee and Cirt Type Filters
          
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[usprpt_GetCertificationReport]  
@@ -37,6 +38,8 @@ BEGIN
 		   @Level8 VARCHAR(MAX) = NULL,  
 		   @Level9 VARCHAR(MAX) = NULL,  
 		   @Level10 VARCHAR(MAX) = NULL,
+		   @Employee VARCHAR(50) = NULL,
+		   @CirtiFicationType VARCHAR(50) = NULL,
 		   @ModuleID INT = 0
   SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
   BEGIN TRY  
@@ -61,7 +64,11 @@ BEGIN
 		@level9=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level9 end,  
 		@level10=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end  
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end,
+		@Employee=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee Name' 
+		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Employee END,
+		@CirtiFicationType=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Certification type' 
+		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @CirtiFicationType END
 	FROM  
 		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
   
@@ -71,7 +78,7 @@ BEGIN
 		FROM DBO.Employee E WITH (NOLOCK)
 			INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
 			LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
-		WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0
+		WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 		AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 		AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -122,7 +129,8 @@ BEGIN
 		LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
 		LEFT JOIN dbo.EmployeeCertification EC WITH (NOLOCK) ON E.EmployeeId = EC.EmployeeId
 		LEFT JOIN dbo.EmployeeCertificationType ET WITH (NOLOCK) ON EC.EmployeeCertificationTypeId = ET.EmployeeCertificationTypeId
-      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
+      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD' 
+			AND  ((ISNULL(@Employee, '') = '' OR E.EmployeeId = @Employee) and (ISNULL(@CirtiFicationType, '') = '' OR EC.EmployeeCertificationTypeId = @CirtiFicationType))
 			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

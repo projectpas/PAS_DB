@@ -3592,6 +3592,9 @@
     <Build Include="dbo\Tables\SubWorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertSubWorkOrderTaskInstructionHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskInstructionHistoryById.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

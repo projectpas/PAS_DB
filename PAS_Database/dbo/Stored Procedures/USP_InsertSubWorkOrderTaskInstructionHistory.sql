@@ -5,6 +5,10 @@
  ** Purpose:
  ** Date:   03/27/2025
 
+ ** PARAMETERS: @SubWorkOrderTaskInstructionId BIGINT, @UpdatedBy VARCHAR(100),@InstructionListId VARCHAR(250)
+
+ ** RETURN VALUE:
+
  ** Change History
  **************************************************************
  ** PR   Date         Author  		 Change Description

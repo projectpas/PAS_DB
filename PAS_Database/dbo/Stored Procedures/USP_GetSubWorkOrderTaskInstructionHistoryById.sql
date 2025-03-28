@@ -1,17 +1,22 @@
-﻿/***************************************************************  
+﻿/*************************************************************
  ** File:   [USP_GetSubWorkOrderTaskInstructionHistoryById]
- ** Author:   Ekta Chandegra
+ ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to GetSubWorkOrderTaskInstructionHistoryById
  ** Purpose:
- ** Date:   03/27/2025
+ ** Date:   03/28/2025
+    
+ ** PARAMETERS: @SubWorkOrderTaskInstructionId BIGINT 
 
- ** Change History
+ ** RETURN VALUE:
+
  **************************************************************
- ** PR   Date         Author  		 Change Description
- ** --   --------     -------		 --------------------------------
-    1    03/27/2025   Ekta Chandegra	  Created
+  ** Change History               
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
+    1    03/28/2025   Ekta Chandegra	Created
 
-	EXEC USP_GetSubWorkOrderTaskInstructionHistoryById 12
+ exec dbo.USP_GetSubWorkOrderTaskInstructionHistoryById @SubWorkOrderTaskInstructionId=10
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetSubWorkOrderTaskInstructionHistoryById]
 @SubWorkOrderTaskInstructionId BIGINT

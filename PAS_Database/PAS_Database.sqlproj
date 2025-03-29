@@ -3543,6 +3543,7 @@
     <Build Include="dbo\Stored Procedures\CreateCommonWorkOrderRemovalTearDown.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderPartNumberType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerWorkAuditById.sql" />
+    <Build Include="dbo\Stored Procedures\CheckVendorWarningRestriction.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

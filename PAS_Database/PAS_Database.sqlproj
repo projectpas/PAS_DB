@@ -3589,6 +3589,7 @@
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTask.sql" />
     <Build Include="dbo\Stored Procedures\USP_UnMappedPOByWorkOrderMaterialsId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterialkitStocklineById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSubWorkOrderMaterialKitStocklineById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSWOTaskMaterialsByWOTaskId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSWOTaskLaborByWOTaskId.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteAnalysisData.sql" />

@@ -3590,6 +3590,15 @@
     <Build Include="dbo\Stored Procedures\USP_UnMappedPOByWorkOrderMaterialsId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterialkitStocklineById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteSubWorkOrderMaterialKitStocklineById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSWOTaskMaterialsByWOTaskId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSWOTaskLaborByWOTaskId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteAnalysisData.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskInstructionHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_InsertSubWorkOrderTaskInstructionHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskInstructionHistoryById.sql" />
+    <Build Include="dbo\Tables\SubWorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

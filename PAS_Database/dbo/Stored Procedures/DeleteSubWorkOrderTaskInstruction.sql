@@ -10,15 +10,21 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   03/21/2025   Vishal Suthar		Created
+	2   03/28/2025   Ekta Chandegra		Add Sub Work Order Task History
 
 EXEC [DeleteSubWorkOrderTaskInstruction] 3
 **************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteSubWorkOrderTaskInstruction]
-	@SubWorkOrderTaskInstructionId BIGINT
+	@SubWorkOrderTaskInstructionId BIGINT,
+	@CreatedBy VARCHAR(256),
+	@SubWorkOrderTaskId BIGINT
 AS
 	BEGIN
 	BEGIN TRY
-		WITH CTE AS (
+
+		EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId, @CreatedBy, @SubWorkOrderTaskInstructionId, NULL
+
+		;WITH CTE AS (
 			-- Anchor member: Start with the record to be deleted
 			SELECT SubWorkOrderTaskInstructionId
 			FROM DBO.SubWorkOrderTaskInstruction WITH (NOLOCK)
@@ -35,6 +41,16 @@ AS
 		-- Delete all identified records
 		DELETE FROM DBO.SubWorkOrderTaskInstruction
 		WHERE SubWorkOrderTaskInstructionId IN (SELECT SubWorkOrderTaskInstructionId FROM CTE);
+
+		UPDATE [dbo].[SubWorkOrderTaskHistory]
+		SET IsDeleted = 1
+		WHERE [SubWorkOrderTaskHistoryId] IN
+		(
+			SELECT TOP 1 [SubWorkOrderTaskHistoryId]
+			FROM [dbo].[SubWorkOrderTaskHistory] WITH (NOLOCK)
+			WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId
+			ORDER BY [SubWorkOrderTaskHistoryId] DESC
+		) 
 	END TRY
 	BEGIN CATCH
 			IF @@trancount > 0

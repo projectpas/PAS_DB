@@ -10,12 +10,12 @@
  **************************************************************           
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
-    1    27-03-2025   HEMANT SALIYA			Created
+    1    30-03-2025   HEMANT SALIYA			Created
 
-	EXEC [USP_DeleteWorkOrderMaterialkitStocklineById]
+	EXEC [USP_UnMappedPOByWorkOrderMaterialsId] 54646, 0, 0, 8367, 7199, 'Admin Admin'
 **************************************************************/
 
-CREATE   PROCEDURE USP_UnMappedPOByWorkOrderMaterialsId
+CREATE   PROCEDURE [dbo].[USP_UnMappedPOByWorkOrderMaterialsId]
     @WorkOrderMaterialsKitId BIGINT,
     @IsKit BIT,
     @IsSubWO BIT,

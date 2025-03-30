@@ -12,7 +12,8 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
     1    26-Feb-2025   Bhargav Saliya		Created    
-    1    26-MAR-2025   Bhargav Saliya		Get Model Field Data   
+    2    26-MAR-2025   Bhargav Saliya		Get Model Field Data
+	3    27-MAR-2025   Bhargav Saliya		Add Employee and Training Type Filters
          
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]  
@@ -35,6 +36,8 @@ BEGIN
 		   @Level8 VARCHAR(MAX) = NULL,  
 		   @Level9 VARCHAR(MAX) = NULL,  
 		   @Level10 VARCHAR(MAX) = NULL ,
+		   @Employee VARCHAR(100) = NULL,
+		   @TrainingType VARCHAR(100) = NULL,
 		   @ModuleID INT = 0
   SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
   BEGIN TRY  
@@ -59,7 +62,11 @@ BEGIN
 		@level9=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level9 end,  
 		@level10=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end  
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end,
+		@Employee=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee Name' 
+		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Employee END,
+		@TrainingType=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Training Type' 
+		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @TrainingType END
 	FROM  
 		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
   
@@ -113,7 +120,7 @@ BEGIN
 	   FORMAT(ET.ScheduleDate,'MM-dd-yyyy') 'scheduleDate',
 	   FORMAT(ET.CompletionDate,'MM-dd-yyyy') 'completionDate',
 	   FORMAT(ET.ExpirationDate,'MM-dd-yyyy') 'expirationDate',
-	    DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) 'daysToExpiration',
+	   DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) 'daysToExpiration',
 	   --CASE WHEN DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) = 0 THEN '' ELSE CAST(DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS VARCHAR) END AS daysToExpiration,
 	   CASE WHEN ISNULL(EC.IsCertificationInForce,0) = 1 THEN 'YES' ELSE 'NO' end AS inforce,
 	   AFT.Description 'aircraftType',
@@ -144,6 +151,7 @@ BEGIN
 		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 
       WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
+			AND  ((ISNULL(@Employee, '') = '' OR E.EmployeeId = @Employee) and (ISNULL(@TrainingType, '') = '' OR ET.EmployeeTrainingTypeId = @TrainingType))
 			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

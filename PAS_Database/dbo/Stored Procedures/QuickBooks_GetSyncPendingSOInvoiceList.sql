@@ -16,6 +16,7 @@
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
 	4   20-Feb-2025		Devendra Shekh			Modified (reading Shipping Details)
 	5   25-Feb-2025		Devendra Shekh			Modified (Added Missing Address Details for Bill/Ship)
+	6   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes)
      
  EXECUTE [QuickBooks_GetSyncPendingSOInvoiceList] 1, 1, 700
 **************************************************************/ 
@@ -107,7 +108,8 @@ BEGIN
 			[ShipStateOrProvince] VARCHAR(50) NULL,
 			[ShipCountry] VARCHAR(50) NULL,
 			[BillToUserType] INT NULL,
-			[ShipToUserType] INT NULL
+			[ShipToUserType] INT NULL,
+			[InvoiceNotes] NVARCHAR(MAX) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -119,7 +121,7 @@ BEGIN
 				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
 				[PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId], [TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef],
-				[MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [SalesOrderPartId])
+				[MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [SalesOrderPartId], [InvoiceNotes])
 				SELECT	SOBI.SOBillingInvoicingId,
 						SOBI.InvoiceNo,
 						SOBII.SOBillingInvoicingItemId,
@@ -157,7 +159,8 @@ BEGIN
 						CASE WHEN ISNULL(SOBII.Freight, 0) = 0 THEN ISNULL(SOBI.Freight, 0) ELSE  ISNULL(SOBII.Freight, 0) END,
 						ISNULL(P.PercentValue, 0),
 						IM.QuickBooksReferenceId,
-						SOBII.SalesOrderPartId
+						SOBII.SalesOrderPartId,
+						SOBI.Notes
 				FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 					JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
@@ -179,7 +182,7 @@ BEGIN
 				INSERT INTO #InvoiceResults ([InvoiceId], [InvoiceNo], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [PaymentTerms], [InvoiceDate], [DueDate], [Tags], [Product],
 				[PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId], [TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef],
-				[MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [SalesOrderPartId])
+				[MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [SalesOrderPartId], [InvoiceNotes])
 				SELECT	SOBI.SOBillingInvoicingId,
 						SOBI.InvoiceNo,
 						SOBII.SOBillingInvoicingItemId,
@@ -217,7 +220,8 @@ BEGIN
 						CASE WHEN ISNULL(SOBII.Freight, 0) = 0 THEN ISNULL(SOBI.Freight, 0) ELSE  ISNULL(SOBII.Freight, 0) END,
 						ISNULL(P.PercentValue, 0),
 						IM.QuickBooksReferenceId,
-						SOBII.SalesOrderPartId						
+						SOBII.SalesOrderPartId,
+						SOBI.Notes
 				FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 					JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
@@ -399,7 +403,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Parts Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MaterialCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry], [InvoiceNotes]
 			FROM #InvoiceResults 
 			WHERE MaterialCost > 0
 
@@ -409,7 +413,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Misc Charges Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MiscCharges] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry], [InvoiceNotes]
 			FROM #InvoiceResults
 			WHERE MiscCharges > 0
 
@@ -419,7 +423,7 @@ BEGIN
 					[PartNumber], [PartNumber] + ' - ' + 'Freight Cost' AS [PartDescription],
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [FreightCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
-					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo], [BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry], [InvoiceNotes]
 			FROM #InvoiceResults
 			WHERE FreightCost > 0
 		END

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSubWorkOrderFreightAuditList]           
  ** Author:   Subhash Saliya
  ** Description: Get Data for Work order freight Audit List    
@@ -16,17 +15,26 @@
  ** --   --------     -------		--------------------------------          
     1    02/23/2021   Subhash Saliya Created
 	2	 01/17/2025	  Moin Bloch	 Modified (Added @WorkOrderFormTypeId from WO)    
+	3	 07/Mar/2025  Bhargav Saliya UTC Date Changes
      
  EXECUTE [GetSubWorkOrderFreightAuditList] 27,0
 **************************************************************/ 
 
 CREATE PROCEDURE [dbo].[GetSubWorkOrderFreightAuditList]
-@subWorkOrderFreightId bigint = null
+@subWorkOrderFreightId bigint = null,
+@EmployeeId bigint = 0
 AS
 BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
   	BEGIN TRY
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE E.EmployeeId = @EmployeeId; 
+
 			DECLARE @WorkOrderFormTypeId BIT = 0; 
 			DECLARE @WorkOrderId BIGINT = 0; 
 
@@ -38,14 +46,14 @@ BEGIN
 					SELECT	
 					    wf.Amount,
                         wf.CreatedBy,
-                        wf.CreatedDate,
+						CASE WHEN CAST(wf.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
                         wf.IsActive,
                         wf.IsDeleted,
                         wf.MasterCompanyId,
                         wf.Memo,
                         wf.ShipViaId,
                         wf.UpdatedBy,
-                        wf.UpdatedDate,
+						CASE WHEN CAST(wf.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
                         wf.[Weight],
                         wf.SubWOPartNoId,
                         wf.SubWorkOrderFreightId,

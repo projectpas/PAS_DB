@@ -13,7 +13,8 @@
  ** --   --------     -------		--------------------------------          
     1                 Unknown        Created
 	2    01/29/2025   Moin Bloch     Updated for WorkOrderTask
-	3    02/26/2025   AMIT GHEDIYA   Get taskid from wotask.
+	3    02/13/2025   Bhargav Saliya UTC Date Changes
+	4    02/26/2025   AMIT GHEDIYA   Get taskid from wotask.
      
     EXEC GetWOAssetList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@WorkFlowWorkOrderId=3305,@Name=NULL,@AssetId=NULL,@Description=NULL,@AssetTypeName=NULL,@Quantity=0,@CheckInDate=NULL,@CheckOutDate=NULL,@CheckInBy=NULL,@CheckOutBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@Status=NULL,@TaskName=NULL,@IsFromWorkFlowNew=NULL
 **************************************************************/
@@ -37,12 +38,21 @@ CREATE   PROCEDURE [dbo].[GetWOAssetList]
  @MasterCompanyId BIGINT = NULL,  
  @Status  VARCHAR(50) = NULL,  
  @TaskName  VARCHAR(50) = NULL,  
- @IsFromWorkFlowNew  VARCHAR(50) = ''  
+ @IsFromWorkFlowNew  VARCHAR(50) = '',
+ @EmployeeId INT = 0
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON    
     BEGIN TRY  
+
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE E.EmployeeId = @EmployeeId;
   
     DECLARE @RecordFrom INT;  
     DECLARE @IsActive BIT=1  
@@ -92,8 +102,8 @@ BEGIN
        WOA.UpdatedDate,  
        WOA.UpdatedBy,  
        WOA.MasterCompanyId,  
-       COCI.CheckInDate,  
-       COCI.CheckOutDate,  
+       CASE WHEN CAST(COCI.CheckInDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(COCI.CheckInDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CheckInDate,
+	   CASE WHEN CAST(COCI.CheckOutDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(COCI.CheckOutDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CheckOutDate,  
        WOA.IsFromWorkFlow,  
        CASE WHEN ISNULL(WOA.IsFromWorkFlow,0) =0 THEN 'No' ELSE 'Yes' END IsFromWorkFlowNew,  
        CASE WHEN  ISNULL(COCI.CheckOutDate,'') !='' THEN 'Checked Out of WO' WHEN ISNULL(COCI.CheckInDate,'') !='' THEN 'Checked In To WO'  ELSE ''  END  AS [Status]  

@@ -3600,6 +3600,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerDomesticShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateIntegrationStatus_ByModuleId.sql" />
     <Build Include="dbo\Tables\EmployeeCertifyingStaff.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSWOTaskSequenceNumber.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

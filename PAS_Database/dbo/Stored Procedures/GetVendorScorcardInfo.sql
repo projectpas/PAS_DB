@@ -16,7 +16,7 @@
  ** --   --------				 -------		  --------------------------------          
 	 1    12-03-2025			Amit Ghediya		Created
 
-	 EXEC [dbo].[GetVendorScorcardInfo] 4764
+	 EXEC [dbo].[GetVendorScorcardInfo] 1,225,4767
 ****************************************************************************************/
 CREATE    PROCEDURE [dbo].[GetVendorScorcardInfo]
 	@MasterCompanyId BIGINT,
@@ -35,36 +35,128 @@ BEGIN
 					@OnTimeAverage DECIMAL(18,2) = 0,
 					@RatingId INT = 0,
 					@StatusId INT = 0;
-			SELECT  
-				@POPartSum = ISNULL(SUM(pop.[QuantityOrdered]),0)
-			FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
-			INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-			WHERE PO.VendorId = @VendorId
-			AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
+			--SELECT  
+			--	@POPartSum = ISNULL(SUM(pop.[QuantityOrdered]),0)
+			--FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
+			--INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
+			--WHERE PO.VendorId = @VendorId
+			--AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
 
-			SELECT  
-				@ROPartSum = ISNULL(SUM(ROP.[QuantityOrdered]),0)
-			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-			INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-			WHERE RO.[VendorId] = @VendorId
-			AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
+			--SELECT  
+			--	@ROPartSum = ISNULL(SUM(ROP.[QuantityOrdered]),0)
+			--FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+			--INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
+			--WHERE RO.[VendorId] = @VendorId
+			--AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
 
-			SELECT 
-				@StocklineSum = ISNULL(SUM([Quantity]),0)
-			FROM [DBO].[Stockline] WITH(NOLOCK)
-			WHERE [vendorid] = @VendorId 
-			AND [IsParent] = 1
-			AND CAST([CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
+			--SELECT 
+			--	@StocklineSum = ISNULL(SUM([Quantity]),0)
+			--FROM [DBO].[Stockline] WITH(NOLOCK)
+			--WHERE [vendorid] = @VendorId 
+			--AND [IsParent] = 1
+			--AND CAST([CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
 
 			
-			IF(@StocklineSum > 0 AND (@POPartSum + @ROPartSum) > 0)
+			--IF(@StocklineSum > 0 AND (@POPartSum + @ROPartSum) > 0)
+			--BEGIN
+			--	SET @OnTimeAverage =  ROUND((@StocklineSum * 100 / (@POPartSum + @ROPartSum)),2);
+			--END
+			--ELSE
+			--BEGIN
+			--	SET @OnTimeAverage = 0;
+			--END
+
+			DECLARE 
+			--@VendorId BIGINT = 1293,
+		   @POPartTotalQty DECIMAL(18,2),
+		   @POStkPartTotalQty DECIMAL(18,2),
+		   @StkOnTimeQty DECIMAL(18,2),
+		   @POOnTimeQty DECIMAL(18,2),
+		   @PODelayedQty DECIMAL(18,2);
+
+			IF OBJECT_ID(N'tempdb..#tmpdata') IS NOT NULL
 			BEGIN
-				SET @OnTimeAverage =  ROUND((@StocklineSum * 100 / (@POPartSum + @ROPartSum)),2);
+					DROP TABLE #tmpdata
 			END
-			ELSE
-			BEGIN
-				SET @OnTimeAverage = 0;
-			END
+		
+			CREATE TABLE #tmpdata (
+				ID BIGINT NOT NULL IDENTITY,
+				VendorId BIGINT NULL,
+				PurchaseOrderPartRecordId BIGINT NULL,
+				TotalQty BIGINT NULL,
+				OnTimeQty BIGINT NULL
+			)
+
+			-- Insert PO data into temp
+			INSERT INTO #tmpdata(VendorId,PurchaseOrderPartRecordId,TotalQty,OnTimeQty)
+			SELECT	PO.VendorId,
+					POP.PurchaseOrderPartRecordId,
+					ISNULL(SUM(POP.QuantityOrdered),0),
+    				CASE WHEN MAX(CAST(GETUTCDATE() AS DATE)) <= MAX(POP.EstDeliveryDate) THEN ISNULL(SUM(POP.QuantityOrdered),0) ELSE 0 END --STL OnTimeQty
+    		FROM  [DBO].[PurchaseOrderPart] POP WITH(NOLOCK) 
+    		INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
+    		WHERE PO.[vendorid] = @VendorId 			
+    		AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
+			GROUP BY VendorId,POP.PurchaseOrderPartRecordId;
+
+			-- Insert RO data into temp
+			INSERT INTO #tmpdata(VendorId,PurchaseOrderPartRecordId,TotalQty,OnTimeQty)
+			SELECT	RO.VendorId,
+					ROP.RepairOrderPartRecordId,
+					ISNULL(SUM(ROP.QuantityOrdered),0),
+    				CASE WHEN MAX(CAST(GETUTCDATE() AS DATE)) <= MAX(ROP.EstRecordDate) THEN ISNULL(SUM(ROP.QuantityOrdered),0) ELSE 0 END --STL OnTimeQty
+    		FROM  [DBO].[RepairOrderPart] ROP WITH(NOLOCK) 
+    		INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND ROP.IsActive = 1 AND ROP.IsDeleted = 0
+    		WHERE RO.[vendorid] = @VendorId 
+    		AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
+			AND RO.IsActive = 1 AND RO.IsDeleted = 0
+			GROUP BY VendorId,ROP.RepairOrderPartRecordId;
+
+			;WITH CTE As(SELECT	
+					SL.[vendorid],
+					SL.PurchaseOrderPartRecordId,
+					CASE WHEN MAX(CAST(SL.ReceivedDate AS DATE)) <= MAX(POP.EstDeliveryDate) THEN ISNULL(tmp.[TotalQty],0) - ISNULL(SUM(SL.[Quantity]),0) ELSE 0 END PartOnTimeQtys,
+					CASE WHEN MAX(CAST(SL.ReceivedDate AS DATE)) <= MAX(POP.EstDeliveryDate) THEN ISNULL(SUM(SL.[Quantity]),0) ELSE 0 END OnTimeQtys
+    				FROM  [DBO].[Stockline] SL WITH(NOLOCK) 
+    				JOIN [DBO].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId
+					INNER JOIN #tmpdata tmp ON POP.PurchaseOrderPartRecordId = tmp.PurchaseOrderPartRecordId
+    				WHERE SL.[vendorid] = @VendorId 
+    				AND SL.[IsParent] = 1
+    				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
+					GROUP BY SL.PurchaseOrderPartRecordId,SL.[vendorid],tmp.[TotalQty]
+					),
+
+			CTE1 As(
+					SELECT 
+						tmp.PurchaseOrderPartRecordId,
+						tmp.TotalQty AS total,
+						CASE WHEN 
+								ISNULL(ct.PartOnTimeQtys,0) > 0 
+								THEN 
+									CASE WHEN 
+										ISNULL(tmp.OnTimeQty,0) > 0 
+									THEN 
+										ISNULL(ct.PartOnTimeQtys,0)
+									ELSE
+										0
+									END
+								ELSE 
+									CASE WHEN ISNULL(ct.PartOnTimeQtys,0) = 0 THEN 0 ELSE tmp.OnTimeQty END
+						 END AS OnTimefinal,
+						ISNULL(ct.PartOnTimeQtys,0) AS OnTimeQtys,
+						ISNULL(ct.OnTimeQtys,0) AS stktotal
+					FROM 
+					#tmpdata tmp
+					LEFT join CTE ct on tmp.PurchaseOrderPartRecordId = ct.PurchaseOrderPartRecordId
+				)
+
+				select 
+					@POPartTotalQty = ISNULL(SUM(total),0),
+					@POOnTimeQty = ISNULL(SUM(OnTimefinal) + SUM(stktotal) ,0)
+				from CTE1;
+
+			
+			SET @OnTimeAverage = ISNULL((SELECT (NULLIF(ISNULL(@POOnTimeQty,0),0) / NULLIF(ISNULL(@POPartTotalQty,0),0)) * 100),0)
 
 			--Get status & rating
 			SELECT @RatingId = [VendorScoreCardSettingsId] 
@@ -73,8 +165,6 @@ BEGIN
 				  CAST(PARSENAME(REPLACE([OnTimeDelivery], '-', '.'), 2) AS INT) 
 				  AND 
 				  CAST(PARSENAME(REPLACE([OnTimeDelivery], '-', '.'), 1) AS INT);
-
-			--SELECT @POPartSum AS POTotal,@ROPartSum AS ROTotal,@StocklineSum AS StockTotal,@OnTimeAverage AS TotalAverage;
 
 			/*================Vendor Details =================*/
 					SELECT 
@@ -86,9 +176,9 @@ BEGIN
 						V.CreatedDate,
 						AD.Line1,
 						AD.Line2,
-						@POPartSum AS POTotal,
+						@POPartTotalQty AS POTotal,
 						@ROPartSum AS ROTotal,
-						@StocklineSum AS StockTotal,
+						@POOnTimeQty AS StockTotal,
 						@OnTimeAverage AS TotalAverage,
 						--CASE WHEN @OnTimeAverage > 0 THEN @RatingId ELSE 0 END AS RatingId,
 						--CASE WHEN @OnTimeAverage > 0 THEN @StatusId ELSE 0 END AS StatusId

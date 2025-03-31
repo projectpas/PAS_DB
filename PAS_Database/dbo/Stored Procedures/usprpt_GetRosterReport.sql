@@ -17,6 +17,7 @@
     1    11-03-2025    Sahdev Saliya       Created
 	2    13-03-2025    Sahdev Saliya       supervisor's name has been updated
 	3    26-03-2025    Sahdev Saliya       EndDate has been updated And Record issue resolve
+	4    31-03-2025    Sahdev Saliya       Add Employee and Certifyingstaff Filters
 
 **************************************************************/  
 
@@ -42,6 +43,8 @@ BEGIN
 	@Level8 VARCHAR(MAX) = NULL,
 	@Level9 VARCHAR(MAX) = NULL,
 	@Level10 VARCHAR(MAX) = NULL,
+	@Employee VARCHAR(100) = NULL,
+	@certifyingstaff BIT = NULL,
 	@IsDownload BIT = NULL,
 	@ModuleID INT = 0;
 
@@ -69,7 +72,11 @@ BEGIN
 	@level9=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9' 
 	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level9 end,
 	@level10=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10' 
-	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end
+	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end,
+	@Employee=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee Name' 
+	THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Employee END,
+	@certifyingstaff=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Certifying Staff' 
+	THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @certifyingstaff END
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 
@@ -95,11 +102,12 @@ BEGIN
 			AND  (ISNULL(@Level10,'') =''  OR EMS.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		END
 
-        ;WITH rptCTE (TotalRecordsCount, firstName, lastName, username, title, expertize, managmentrole,
+        ;WITH rptCTE (TotalRecordsCount, EmployeeId, firstName, lastName, username, title, expertize, managmentrole,
 				       certifyingstaff, supervisorname, email,phone,startdate,enddate,
 				       level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 				 AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
+	  	EMP.EmployeeId,
 	    UPPER(EMP.FirstName) 'firstname',  
         UPPER(EMP.LastName) 'lastname',  
 		UPPER(ASP.UserName) 'username', 
@@ -135,7 +143,9 @@ BEGIN
 	  LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId
 	  LEFT JOIN  dbo.Employee EP WITH (NOLOCK) ON EP.EmployeeId = EMP.SupervisorId
 	  WHERE EMP.mastercompanyid = @mastercompanyid
-	        AND EMP.FirstName <> 'TBD'
+	        AND EMP.FirstName <> 'TBD' 
+			AND  ((ISNULL(@Employee, '') = '' OR EMP.EmployeeId = @Employee)
+			and (@certifyingstaff IS NULL OR EMP.EmployeeCertifyingStaff = @certifyingstaff))
 			AND  (ISNULL(@Level1,'') ='' OR EMS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR EMS.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR EMS.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -147,18 +157,18 @@ BEGIN
 			AND  (ISNULL(@Level9,'') ='' OR EMS.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR EMS.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			)
-			,FinalCTE(TotalRecordsCount, firstname, lastname, username, title, expertize, managmentrole, certifyingstaff,
+			,FinalCTE(TotalRecordsCount, EmployeeId, firstname, lastname, username, title, expertize, managmentrole, certifyingstaff,
 				 supervisorname, email, phone, startdate, enddate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10) 
-			  AS (SELECT DISTINCT TotalRecordsCount, firstname, lastname, username, title, expertize, managmentrole, certifyingstaff,
+			  AS (SELECT DISTINCT TotalRecordsCount, EmployeeId, firstname, lastname, username, title, expertize, managmentrole, certifyingstaff,
 				 supervisorname, email, phone, startdate, enddate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10 FROM rptCTE)
 			
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount, firstname, lastname, username, title, expertize, managmentrole, certifyingstaff,
+		    SELECT COUNT(2) OVER () AS TotalRecordsCount, EmployeeId, firstname, lastname, username, title, expertize, managmentrole, certifyingstaff,
 				 supervisorname, email, phone, startdate, enddate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10
 		    FROM FinalCTE FC
-	   ORDER BY firstname
+	   ORDER BY EmployeeId DESC
 	   OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
    
   END TRY  

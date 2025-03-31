@@ -14,6 +14,7 @@
 	3    02/06/2025     Sahdev Saliya       Added a case to get timeZone 
 	4    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	5    12/03/2025     Sahdev Saliya       Change the Date format to Datetime
+	6    31/03/2025     AMIT GHEDIYA        Added IsTrackScoreCard flag for scorecard display in list.
 
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[ProcVendorList]
@@ -119,7 +120,8 @@ BEGIN
 					ISNULL(A.ClassificationName, '') 'ClassificationName',
 					V.QuickBooksReferenceId,
 					CASE WHEN ISNULL(V.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
-					V.LastSyncDate
+					V.LastSyncDate,
+					ISNULL(V.IsTrackScoreCard,0) AS IsTrackScoreCard
 			   FROM dbo.Vendor V  WITH (NOLOCK) INNER JOIN  dbo.[Address] AD WITH (NOLOCK) ON V.AddressId=AD.AddressId
 			                 LEFT JOIN   dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 							 LEFT JOIN   dbo.VendorContact CC WITH (NOLOCK) ON V.VendorId = CC.VendorId AND CC.IsDefaultContact = 1

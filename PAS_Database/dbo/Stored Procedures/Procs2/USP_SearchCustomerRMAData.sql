@@ -1,7 +1,8 @@
-﻿/*************************************************************             
- ** File:   [sp_GetCustomerInvoicedatabyInvoiceId]             
+﻿
+/*************************************************************             
+ ** File:   [USP_SearchCustomerRMAData]             
  ** Author:   Subhash Saliya  
- ** Description: Get Customer Invoicedataby InvoiceId     
+ ** Description: Get Customer RMA List     
  ** Purpose:           
  ** Date:   18-april-2022          
     
@@ -15,8 +16,9 @@
     3    19/06/2023   Ayesha Sultana    Filter on newly added column ReceiverNum and WO
 	4	 10/10/2023	  Nainshi Joshi		Removed script of "MULTIPLE" hover over 
 	5	 09/07/2024	  AMIT GHEDIYA		Update for uppercase response.
+	6    24-Mar-2025  Divyesh Kathiriya	Update CreditMemoDate based on Employee time zone
 
- -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1      
+ -- exec USP_SearchCustomerRMAData 92,1      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SearchCustomerRMAData]
 	@PageSize int,
@@ -59,6 +61,27 @@ BEGIN
     DECLARE @RecordFrom int;
     DECLARE @IsActive bit = 1
     DECLARE @Count int;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+	FROM 
+		DBO.Employee E WITH (NOLOCK) 
+	LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+	LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+	LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE 
+		E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
     SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
     IF (@GlobalFilter IS NULL)
@@ -131,7 +154,10 @@ BEGIN
         CRH.ReferenceId,
         CM.CreditMemoHeaderId,
         UPPER(CM.CreditMemoNumber) AS CreditMemoRef,
-        CM.CreatedDate AS CreditMemoDate,
+        --CM.CreatedDate AS CreditMemoDate,
+		CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+			CASE WHEN CAST(CM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+		ELSE (CAST(CM.CreatedDate AS DATETIME)) END CreditMemoDate,
         UPPER(IM.ManufacturerName) AS 'ManufacturerName'
       FROM [dbo].[CustomerRMAHeader] CRH WITH (NOLOCK)
       LEFT JOIN [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK)
@@ -423,7 +449,10 @@ BEGIN
         UPPER(MSD.[AllMSlevels]) AS 'AllMSlevels',
         CM.[CreditMemoHeaderId],
         UPPER(CM.[CreditMemoNumber]) AS CreditMemoRef,
-        CM.[CreatedDate] AS CreditMemoDate,
+        --CM.[CreatedDate] AS CreditMemoDate,
+		CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+			CASE WHEN CAST(CM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+		ELSE (CAST(CM.CreatedDate AS DATETIME)) END CreditMemoDate,
         CRH.[Iswarranty],
         UPPER(CRH.[ReceiverNum]) AS 'ReceiverNum',
         UPPER(CRH.[WorkorderNum]) AS 'WorkorderNum',

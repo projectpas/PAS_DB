@@ -15,6 +15,7 @@
 	2    09/04/2023   AMIT GHEDIYA      Updated to get from standaloneCM.
 	3    09/15/2023   AMIT GHEDIYA      Updated to Cast.
 	4    09/15/2024   HEAMNT SALIYA     Updated Status ID.
+	5    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and ReturnDate based on Employee time zone
 	
  -- exec SearchCreditMemoPNViewData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1	
 **************************************************************/ 
@@ -56,9 +57,29 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY		
 	  DECLARE @RecordFrom int; 
-	  DECLARE @ModuleID varchar(500) ='61'
-	 
-	  Declare @Count Int;  
+	  DECLARE @ModuleID varchar(500) ='61'	 
+	  DECLARE @Count Int;
+	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+		FROM 
+			DBO.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 	  if(@GlobalFilter is null)
@@ -133,8 +154,14 @@ BEGIN
 			 ,CASE WHEN ABS(SUM(SACD.[Amount])) > 0 THEN SUM(SACD.[Amount]) ELSE CD.[Amount] END AS Amount
 			 --,CD.[UnitPrice]
 			 --,CD.[Amount]
-			 ,CM.[CreatedDate] AS IssueDate
-			 ,CM.[ReturnDate]
+			 --,CM.[CreatedDate] AS IssueDate
+			 --,CM.[ReturnDate]
+			 ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(CM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(CM.CreatedDate AS DATETIME)) END IssueDate
+			 ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(CM.ReturnDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.ReturnDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(CM.ReturnDate AS DATETIME)) END ReturnDate
 			 ,CD.[ReferenceNo]
 			 ,CD.[isWorkOrder]
 			 ,CD.[ReferenceId]

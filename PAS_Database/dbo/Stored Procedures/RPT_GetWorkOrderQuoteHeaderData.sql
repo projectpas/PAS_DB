@@ -19,8 +19,9 @@
 	5	 16/04/2024   Moin Bloch        Commnted Notes Changes
 	6	 31/05/2024   Moin Bloch        Added Max Length for Notes
 	7	 03/09/2024   Ekta Chandegra    Retrieve merged addres using common function
+	8	 03/31/2025   Vishal Suthar     Added conditional Notes for all the companies except MTI
 
--- EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
+-- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
 CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint 
@@ -90,14 +91,16 @@ BEGIN
             TaxRate = ISNULL(custtax.TaxRate,0),
             CustomerAttention = sa.Attention,
             --WONotes = woq.Notes,
-			CASE WHEN woq.Notes !='' 
-			     THEN 
-					CASE WHEN LEN(ISNULL(woq.Notes,'')) < 750
-						 THEN ISNULL(woq.Notes,'')
-					ELSE
-						LEFT(ISNULL(woq.Notes,''),750) + '...'
-					END
-			   ELSE ''
+			CASE WHEN woq.MasterCompanyId = 11 THEN '' ELSE 
+				CASE WHEN woq.Notes !='' 
+					 THEN 
+						CASE WHEN LEN(ISNULL(woq.Notes,'')) < 750
+							 THEN ISNULL(woq.Notes,'')
+						ELSE
+							LEFT(ISNULL(woq.Notes,''),750) + '...'
+						END
+				   ELSE ''
+				END
 			END AS 'WONotes',
             WOCustomerRef = UPPER(wop.CustomerReference),
 			WorkScope = UPPER(wop.WorkScope)

@@ -16,6 +16,7 @@
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
 	4   20-Feb-2025		Devendra Shekh			Modified (reading Shipping Details)
 	5   25-Feb-2025		Devendra Shekh			Modified (Added Missing Address Details for Bill/Ship)
+	6   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes)
      
  EXECUTE [QuickBooks_GetSyncPendingExChangeInvoiceList] 1, 1, 136, 0
 **************************************************************/ 
@@ -99,6 +100,7 @@ BEGIN
 			[BillCountry] VARCHAR(50) NULL,
 			[ShipStateOrProvince] VARCHAR(50) NULL,
 			[ShipCountry] VARCHAR(50) NULL,
+			[InvoiceNotes] NVARCHAR(MAX) NULL,
 		)
 
 		-- FOR QuickBooks
@@ -111,7 +113,7 @@ BEGIN
 				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
 				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType], [ItemQuickBooksReferenceId], [ExchangeSalesOrderPartId],
-				[BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry])
+				[BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry], [InvoiceNotes])
 				SELECT	SOBI.SOBillingInvoicingId,
 						SOBI.InvoiceNo,
 						SOBII.ExchangeSOBillingInvoicingItemId,
@@ -164,7 +166,8 @@ BEGIN
 						COALESCE(billToAddress.StateOrProvince, '') AS BillStateOrProvince,
 						COALESCE(billToAddress.Country, '') AS BillCountry,
 						COALESCE(shipToAddress.StateOrProvince, '') AS ShipStateOrProvince,
-						COALESCE(shipToAddress.Country, '') AS ShipCountry
+						COALESCE(shipToAddress.Country, '') AS ShipCountry,
+						'' as [InvoiceNotes]
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 					JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
@@ -190,7 +193,7 @@ BEGIN
 				[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 				[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
 				[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType], [ItemQuickBooksReferenceId], [ExchangeSalesOrderPartId],
-				[BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry])
+				[BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry], [InvoiceNotes])
 				SELECT	SOBI.SOBillingInvoicingId,
 						SOBI.InvoiceNo,
 						SOBII.ExchangeSOBillingInvoicingItemId,
@@ -243,7 +246,8 @@ BEGIN
 						COALESCE(billToAddress.StateOrProvince, '') AS BillStateOrProvince,
 						COALESCE(billToAddress.Country, '') AS BillCountry,
 						COALESCE(shipToAddress.StateOrProvince, '') AS ShipStateOrProvince,
-						COALESCE(shipToAddress.Country, '') AS ShipCountry
+						COALESCE(shipToAddress.Country, '') AS ShipCountry,
+						'' as [InvoiceNotes]
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
 					JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
@@ -284,7 +288,7 @@ BEGIN
 					[Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [MaterialCost] AS [UnitPrice], 
 					[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
 					[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef], [MaterialCost], [MiscCharges], [FreightCost], [PercentValue], [BillingType], [ItemQuickBooksReferenceId], [ShipViaName], [ShipDate], [TrackingNo],
-					[BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry]
+					[BillStateOrProvince], [BillCountry], [ShipStateOrProvince], [ShipCountry], [InvoiceNotes]
 			FROM #InvoiceResults 
 			--WHERE MaterialCost > 0 AND (MiscCharges = 0 AND FreightCost = 0)
 

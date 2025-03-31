@@ -23,6 +23,7 @@
 	7	 17/02/2025	  Devendra Shekh	 Modified (added @IsDeleted param and using [DisplayTitle] for ModuleName)
 	8	 20/02/2025	  Devendra Shekh	 Modified (reading missing Details for remaining modules)
 	9	 05/03/2025	  Abhishek Jirawla   Modified to add the calculation columns in the table to optimize the SP
+	10	 31/03/2025	  Devendra Shekh	 Modified (changes for select [IntigrationStatus])
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -91,7 +92,7 @@ BEGIN
 				ACI.IsActive,
 				ACI.IsDeleted,
 				ACS.RedirectUrl,
-				'Connect' AS [IntigrationStatus],
+				COALESCE(ACI.[IntigrationStatus], 'Disconnected') AS [IntigrationStatus],
 				ACI.LastRun AS LastSycDate,
 				ISNULL(ACI.AllowBulkSync, 0) AS AllowBulkSync
 		FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)

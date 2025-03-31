@@ -3597,6 +3597,7 @@
     <Build Include="dbo\Tables\SubWorkOrderTaskHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_UpdateIntegrationStatus_ByModuleId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

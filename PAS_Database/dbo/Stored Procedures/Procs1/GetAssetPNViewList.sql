@@ -17,6 +17,7 @@
     2	 06/10/2024  Abhishek Jirawla		Returning upper case data
 	3    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	4    04-03-2025  Shrey Chandegara		Modified due to SortOrder Issue
+	5    28-03-2025  Shrey Chandegara		Modified Due to Filter Issue.
 
 ************************************************************************/
 
@@ -226,8 +227,8 @@ BEGIN
       (IsNull(@AssetStatus,'') ='' OR AssetClass like '%' + @AssetStatus+'%') AND  
       (IsNull(@AssetType,'') ='' OR AssetType like '%' + @AssetType+'%') AND  
       (IsNull(@deprAmort,'') ='' OR deprAmort like '%' + @deprAmort+'%') AND  
-      (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as DATETIME)=Cast(@CreatedDate as DATETIME)) AND  
-      (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATETIME)=Cast(@UpdatedDate as DATETIME)) and  
+      (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as DATE)=Cast(@CreatedDate as DATE)) AND  
+      (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATE)=Cast(@UpdatedDate as DATE)) and  
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
       (IsNull(@Partnumber,'') ='' OR PartNumber like '%' + @Partnumber+'%') AND  

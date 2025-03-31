@@ -30,7 +30,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON;    
 	BEGIN TRY  
-		SELECT  
+		SELECT  distinct
 			  wopt.[PickTicketId] AS WOPickTicketId,  
 			  wos.[WorkOrderShippingId],  
 			  wos.[ShipDate],  

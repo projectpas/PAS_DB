@@ -27,6 +27,8 @@
 	10   14/Feb/2025  RAJESH GAMI  	    Return fields: PublicationTemplate  for PublicationType Table
 	11   19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
 	12   11/March/2025  AMIT GHEDIYA      Added case for VendorOrderType table.
+	13   31/Mar/2025  Sahdev Saliya     Added case for EmployeeCertifyingStaff table.
+
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -163,6 +165,28 @@ AS BEGIN
                          FROM dbo.Lot WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY LotId DESC
+                     END
+            END
+			ELSE IF(@TableName='EmployeeCertifyingStaff')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE (IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE IsCertifyingStaff IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY IsCertifyingStaff DESC
+                     END
+                     ELSE BEGIN
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE (IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE IsCertifyingStaff IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY IsCertifyingStaff DESC
                      END
             END
             ELSE BEGIN

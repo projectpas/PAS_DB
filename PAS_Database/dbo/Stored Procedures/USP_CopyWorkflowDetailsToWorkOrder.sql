@@ -17,11 +17,11 @@
 	1    02/10/2025   HEMANT SALIYA		Initial Drafted
 	2    02/17/2025   HEMANT SALIYA		Handel for Task Based or Teardown Based.
 	3    02/28/2025   HEMANT SALIYA		Updated for Task Sequence.
-	4    03/25/2025   VISHAL SUTHAR		Fixed an issue where the Instruction were not being copied in the same sequence and parent-child heirarchy
+	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
-@WorkOrderId=8205,@WorkflowId=44,@WorkOrderPartNumberId=7834,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N'Materials,Charges,Directions'
+@WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
 	@WorkOrderId BIGINT = 0,
@@ -1179,7 +1179,7 @@ SET NOCOUNT ON;
 
 								IF OBJECT_ID(N'tempdb..#tmpWorkOrderMaterialsKit') IS NOT NULL
 								BEGIN
-									DROP TABLE #tmpWorkflowDirectionTask
+								DROP TABLE #tmpWorkflowDirectionTask
 								END
 			
 								CREATE TABLE #tmpWorkflowDirectionTask
@@ -1188,7 +1188,7 @@ SET NOCOUNT ON;
 									[TaskId] [bigint] NOT NULL,
 									[WorkflowId] [bigint] NOT NULL,
 								)
-								
+									
 								INSERT INTO #tmpWorkflowDirectionTask(TaskId, WorkflowId)
 								SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowDirection WFD WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
 
@@ -1251,112 +1251,83 @@ SET NOCOUNT ON;
 										WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId       -- Here Need to add condition for Parent Task
 									END
 
-									DECLARE @WorkflowDirectionId INT,
-										@Title NVARCHAR(MAX),
-										@Description NVARCHAR(MAX),
-										@ParentId INT,
-										@IsParent BIT,
-										@SequenceNumber INT,
-										@NewParentId INT;
-
-									DECLARE @IdMapping TABLE (
-										WorkflowDirectionId INT,
-										WorkOrderTaskInstructionId INT
-									);
-			
-									-- CTE to get the hierarchy of tasks based on @InstructionListId
-									;WITH RecursiveCTE AS (
-										SELECT WFD.*
-										FROM DBO.WorkflowDirection WFD WITH (NOLOCK)
-										WHERE WFD.WorkflowId = @WorkflowId
-											AND ISNULL(WFD.IsTaskDetails, 0) = 0
-											AND WFD.TaskId = @WorkFlowTaskId
-											AND ISNULL(WFD.IsDeleted, 0) = 0
-
-										UNION ALL
-
-										-- Recursive case: Fetch child records
-										SELECT w.*
-										FROM DBO.WorkflowDirection w WITH (NOLOCK)
-										INNER JOIN RecursiveCTE r
-											ON w.ParentId = r.WorkflowDirectionId
-										WHERE ISNULL(w.IsDeleted, 0) = 0
-									)
-
-									SELECT 
-										WorkflowDirectionId, 
-										[Action] AS InstructionTitle, 
-										ParentId, 
-										IsParent, 
-										[Sequence] AS SequenceNumber,
-										[Description] AS InstructionDetails,
-										MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
-									INTO #TempWorkflowInstructions
-									FROM RecursiveCTE
-									ORDER BY ISNULL(ParentId, WorkflowDirectionId), SequenceNumber;
-
-									DECLARE @InstructionTitle VARCHAR(MAX), @InstructionDetails VARCHAR(MAX), @UpdatedBy VARCHAR(100),
-									@CreatedDate DATETIME, @UpdatedDate DATETIME, @IsActive BIT, @IsDeleted BIT;
-
-									DECLARE TaskCursor CURSOR FOR
-									SELECT 
-										WorkflowDirectionId, InstructionTitle, ParentId, IsParent, SequenceNumber, InstructionDetails,
-										MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
-									FROM #TempWorkflowInstructions;
-
-									OPEN TaskCursor;
-									FETCH NEXT FROM TaskCursor INTO @WorkflowDirectionId, @InstructionTitle, @ParentId, @IsParent, @SequenceNumber, 
-																	@InstructionDetails, @MasterCompanyId, @CreatedBy, @UpdatedBy, 
-																	@CreatedDate, @UpdatedDate, @IsActive, @IsDeleted;
-
-									WHILE @@FETCH_STATUS = 0
+									IF OBJECT_ID(N'tempdb..#tmpWorkflowDirection') IS NOT NULL
 									BEGIN
-										IF NOT EXISTS (SELECT 1 FROM @IdMapping WHERE WorkflowDirectionId = @WorkflowDirectionId)
-										BEGIN
-											-- Get the new ParentId from mapping if it exists
-											SET @NewParentId = NULL;
-											IF @ParentId IS NOT NULL
-											BEGIN
-												SELECT @NewParentId = WorkOrderTaskInstructionId FROM @IdMapping WHERE WorkflowDirectionId = @ParentId;
+									DROP TABLE #tmpWorkflowDirection
+									END
+			
+									CREATE TABLE #tmpWorkflowDirection
+									(
+										ID BIGINT NOT NULL IDENTITY, 
+										[WorkOrderTaskId] [BIGINT] NOT NULL,
+										[WorkflowDirectionId] [BIGINT] NOT NULL,
+										[ParentId] [BIGINT] NULL,
+										[IsParent] BIT NULL,
+										[InstructionTitle] VARCHAR(MAX) NULL,
+										[SequenceNumber] VARCHAR(100) NULL,
+										[InstructionDetails] VARCHAR(MAX) NULL,
+										[PrintInWO] BIT NULL,
+										[MasterCompanyId] [INT] NULL,
+										[CreatedBy] VARCHAR(100) NULL,
+										[UpdatedBy] VARCHAR(100) NULL,
+										[CreatedDate] DATETIME NULL,
+										[UpdatedDate] DATETIME NULL,
+										[IsActive] BIT NULL,
+										[IsDeleted] BIT NULL,										
+										[IsFromWorkFlow] BIT NULL,
+										[NewParentId] [BIGINT] NULL,
+									)
+									
+									INSERT INTO #tmpWorkflowDirection(WorkOrderTaskId,WorkflowDirectionId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
+									SELECT @WorkOrderTaskId AS WorkOrderTaskId, 
+										WFD.WorkflowDirectionId AS WorkflowDirectionId,
+										WFD.ParentId,
+										ISNULL(WFD.IsParent, 0) AS IsParent,
+										WFD.[Action] AS InstructionTitle, 
+										WFD.[Sequence] AS SequenceNumber, 
+										WFD.[Description] AS InstructionDetails,
+										T.IsPrintInWO AS PrintInWO,
+										CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
+										@CreatedBy AS CreatedBy,
+										@CreatedBy AS UpdatedBy,
+										GETUTCDATE() AS CreatedDate,
+										GETUTCDATE() AS UpdatedDate, 
+										1 AS IsActive,	
+										0 AS IsDeleted,
+										1 AS IsFromWorkFlow									
+									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
+										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId AND ISNULL(WFD.IsActive, 0) = 1 AND ISNULL(WFD.IsDeleted, 0) = 0
+									ORDER BY WFD.ParentId ,  ISNULL(ParentId, WorkflowDirectionId), SequenceNumber;
+									--ORDER BY WFD.[Sequence] ASC,  WFD.ParentId ASC,ISNULL(WFD.IsParent, 0) DESC
 
-												IF ISNULL(@NewParentId, 0) = 0
-												BEGIN
-													PRINT '@NewParentId IS NULL'
-													SET @NewParentId = @ParentId;
-												END
-											END
+									DECLARE @TotalRecords BIGINT = 0, @CurrentRecordId BIGINT = 1, @NewOrderTaskInstId BIGINT, @ParentWorkflowDirectionId BIGINT;
 
-											-- Insert into WorkOrderTaskInstruction while preserving hierarchy
-											INSERT INTO WorkOrderTaskInstruction (
-												WorkOrderTaskId, ParentId, IsParent, InstructionTitle, SequenceNumber,
-												InstructionDetails, MasterCompanyId, CreatedBy, UpdatedBy, 
-												CreatedDate, UpdatedDate, IsActive, IsDeleted
-											)
-											VALUES (
-												@WorkOrderTaskId, @NewParentId, @IsParent, @InstructionTitle, @SequenceNumber,
-												@InstructionDetails, @MasterCompanyId, @CreatedBy, @CreatedBy, 
-												GETUTCDATE(), GETUTCDATE(), 1, 0
-											);
+									SELECT @TotalRecords = COUNT([ID]) FROM #tmpWorkflowDirection;
 
-											-- Get the newly generated ID
-											DECLARE @NewWorkOrderTaskInstructionId BIGINT = SCOPE_IDENTITY();
-
-											-- Store mapping for parent-child relationships
-											INSERT INTO @IdMapping (WorkflowDirectionId, WorkOrderTaskInstructionId)
-											VALUES (@WorkflowDirectionId, @NewWorkOrderTaskInstructionId);
-										END
+									WHILE(ISNULL(@TotalRecords, 0) >= ISNULL(@CurrentRecordId, 0))
+									BEGIN
 										
-										-- Move to the next record
-										FETCH NEXT FROM TaskCursor INTO @WorkflowDirectionId, @InstructionTitle, @ParentId, @IsParent, @SequenceNumber, 
-																		@InstructionDetails, @MasterCompanyId, @CreatedBy, @UpdatedBy, 
-																		@CreatedDate, @UpdatedDate, @IsActive, @IsDeleted;
+										SELECT @ParentWorkflowDirectionId = WorkflowDirectionId  FROM #tmpWorkflowDirection WHERE ID = @CurrentRecordId
+
+										INSERT INTO WorkOrderTaskInstruction(WorkOrderTaskId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
+										SELECT WorkOrderTaskId,NewParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
+												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow
+										FROM #tmpWorkflowDirection WHERE ID = @CurrentRecordId
+
+										SET @NewOrderTaskInstId = SCOPE_IDENTITY();
+
+										UPDATE #tmpWorkflowDirection SET NewParentId  = @NewOrderTaskInstId FROM #tmpWorkflowDirection WHERE ParentId = @ParentWorkflowDirectionId
+
+										SET @CurrentRecordId += 1;
 									END
 
-									CLOSE TaskCursor;
-									DEALLOCATE TaskCursor;
-
-									-- Clean up
-									DROP TABLE #TempWorkflowInstructions;
+									IF OBJECT_ID(N'tempdb..#tmpWorkflowDirection') IS NOT NULL
+									BEGIN
+									DROP TABLE #tmpWorkflowDirection
+									END
 
 									SET @count = @count + 1;
 								END
@@ -1373,8 +1344,20 @@ SET NOCOUNT ON;
 		COMMIT TRANSACTION
 	END TRY
 BEGIN CATCH
-	IF @@trancount > 0
+SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
+   IF @@trancount > 0
     PRINT 'ROLLBACK'
+	CLOSE material_cursors
+	DEALLOCATE material_cursors
+
+	CLOSE newmaterial_cursors
+	DEALLOCATE newmaterial_cursors
     ROLLBACK TRAN;
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

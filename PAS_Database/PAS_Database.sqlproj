@@ -3599,6 +3599,7 @@
     <Build Include="dbo\Tables\SubWorkOrderTaskHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderTaskHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerDomesticShippingDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

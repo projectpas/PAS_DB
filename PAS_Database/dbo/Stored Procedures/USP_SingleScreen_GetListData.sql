@@ -14,6 +14,7 @@
     3    05/03/2025   Bhargav Saliya	Cast the "ATAChapterCode" column as INT
     4    12/03/2025   Ekta Chandegra	Add Case for check EmployeeId and @CurrntEmpTimeZoneDesc having value
 	5    17/03/2025   Ayushi Patel		Converted the date into utc (created , updated) , Added a case to get timeZone
+	6	 01/04/2025   Devendra Shekh	Modified (For Task SS - Order By Description ASC)
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
 	@PageNumber INT = NULL,
@@ -38,6 +39,7 @@ BEGIN
     DECLARE @QueryFilterData AS VARCHAR(MAX)
     DECLARE @Erorr AS VARCHAR
     DECLARE @PrimaryColumn AS VARCHAR(100)
+	DECLARE @SortAscScreen VARCHAR(200) = 'Task';
 
 	-- New declaration for Employee's TimeZone description
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
@@ -136,7 +138,13 @@ BEGIN
     BEGIN
 	
 		IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'SequenceNo')
+		BEGIN
 			SET @Orderby += ' SequenceNo ASC '
+		END
+		ELSE IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'Description' AND @PageName IN (SELECT value FROM string_split(@SortAscScreen, ',')))
+		BEGIN
+			SET @Orderby += ' Description ASC '
+		END
 		ELSE
 			SET @Orderby += ' CreatedDate DESC '
     END

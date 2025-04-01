@@ -35,44 +35,13 @@ BEGIN
 					@OnTimeAverage DECIMAL(18,2) = 0,
 					@RatingId INT = 0,
 					@StatusId INT = 0;
-			--SELECT  
-			--	@POPartSum = ISNULL(SUM(pop.[QuantityOrdered]),0)
-			--FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
-			--INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-			--WHERE PO.VendorId = @VendorId
-			--AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
-
-			--SELECT  
-			--	@ROPartSum = ISNULL(SUM(ROP.[QuantityOrdered]),0)
-			--FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-			--INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-			--WHERE RO.[VendorId] = @VendorId
-			--AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
-
-			--SELECT 
-			--	@StocklineSum = ISNULL(SUM([Quantity]),0)
-			--FROM [DBO].[Stockline] WITH(NOLOCK)
-			--WHERE [vendorid] = @VendorId 
-			--AND [IsParent] = 1
-			--AND CAST([CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE();
-
-			
-			--IF(@StocklineSum > 0 AND (@POPartSum + @ROPartSum) > 0)
-			--BEGIN
-			--	SET @OnTimeAverage =  ROUND((@StocklineSum * 100 / (@POPartSum + @ROPartSum)),2);
-			--END
-			--ELSE
-			--BEGIN
-			--	SET @OnTimeAverage = 0;
-			--END
 
 			DECLARE 
-			--@VendorId BIGINT = 1293,
-		   @POPartTotalQty DECIMAL(18,2),
-		   @POStkPartTotalQty DECIMAL(18,2),
-		   @StkOnTimeQty DECIMAL(18,2),
-		   @POOnTimeQty DECIMAL(18,2),
-		   @PODelayedQty DECIMAL(18,2);
+			   @POPartTotalQty DECIMAL(18,2),
+			   @POStkPartTotalQty DECIMAL(18,2),
+			   @StkOnTimeQty DECIMAL(18,2),
+			   @POOnTimeQty DECIMAL(18,2),
+			   @PODelayedQty DECIMAL(18,2);
 
 			IF OBJECT_ID(N'tempdb..#tmpdata') IS NOT NULL
 			BEGIN
@@ -112,50 +81,71 @@ BEGIN
 			AND RO.IsActive = 1 AND RO.IsDeleted = 0
 			GROUP BY VendorId,ROP.RepairOrderPartRecordId;
 
-			;WITH CTE As(SELECT	
+			--Part Stockline Data for both PO/RO
+			IF OBJECT_ID(N'tempdb..#tmpdatastk') IS NOT NULL
+			BEGIN
+					DROP TABLE #tmpdatastk
+			END
+		
+			CREATE TABLE #tmpdatastk (
+				ID BIGINT NOT NULL IDENTITY,
+				VendorId BIGINT NULL,
+				PurchaseOrderPartRecordId BIGINT NULL,
+				TotalQty BIGINT NULL,
+				OnTimeQty BIGINT NULL
+			)
+
+			INSERT INTO #tmpdatastk(VendorId,PurchaseOrderPartRecordId,TotalQty,OnTimeQty)
+			SELECT	
 					SL.[vendorid],
 					SL.PurchaseOrderPartRecordId,
 					CASE WHEN MAX(CAST(SL.ReceivedDate AS DATE)) <= MAX(POP.EstDeliveryDate) THEN ISNULL(tmp.[TotalQty],0) - ISNULL(SUM(SL.[Quantity]),0) ELSE 0 END PartOnTimeQtys,
 					CASE WHEN MAX(CAST(SL.ReceivedDate AS DATE)) <= MAX(POP.EstDeliveryDate) THEN ISNULL(SUM(SL.[Quantity]),0) ELSE 0 END OnTimeQtys
     				FROM  [DBO].[Stockline] SL WITH(NOLOCK) 
-    				JOIN [DBO].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId
+    				JOIN [DBO].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND POP.IsActive = 1 AND POP.IsDeleted = 0
 					INNER JOIN #tmpdata tmp ON POP.PurchaseOrderPartRecordId = tmp.PurchaseOrderPartRecordId
     				WHERE SL.[vendorid] = @VendorId 
-    				AND SL.[IsParent] = 1
+					AND Sl.isActive = 1 AND SL.isDeleted = 0
+    				AND SL.[IsParent] = 1 
     				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
-					GROUP BY SL.PurchaseOrderPartRecordId,SL.[vendorid],tmp.[TotalQty]
-					),
-
-			CTE1 As(
-					SELECT 
+					GROUP BY SL.PurchaseOrderPartRecordId,SL.[vendorid],tmp.[TotalQty];
+				
+			 INSERT INTO #tmpdatastk(VendorId,PurchaseOrderPartRecordId,TotalQty,OnTimeQty)
+			 SELECT	
+					SL.[vendorid],
+					SL.RepairOrderPartRecordId,
+					CASE WHEN MAX(CAST(SL.ReceivedDate AS DATE)) <= MAX(ROP.EstRecordDate) THEN ISNULL(tmp.[TotalQty],0) - ISNULL(SUM(SL.[Quantity]),0) ELSE 0 END PartOnTimeQtys,
+					CASE WHEN MAX(CAST(SL.ReceivedDate AS DATE)) <= MAX(ROP.EstRecordDate) THEN ISNULL(SUM(SL.[Quantity]),0) ELSE 0 END OnTimeQtys
+    				FROM  [DBO].[Stockline] SL WITH(NOLOCK) 
+    				JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId AND ROP.IsActive = 1 AND ROP.IsDeleted = 0
+					INNER JOIN #tmpdata tmp ON ROP.RepairOrderPartRecordId = tmp.PurchaseOrderPartRecordId
+    				WHERE SL.[vendorid] = @VendorId 
+					AND Sl.isActive = 1 AND SL.isDeleted = 0
+    				AND SL.[IsParent] = 1 
+    				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
+					GROUP BY SL.RepairOrderPartRecordId,SL.[vendorid],tmp.[TotalQty]	
+				
+				--Set Final calculation
+				;WITH OntimeCombine as(SELECT 
 						tmp.PurchaseOrderPartRecordId,
-						tmp.TotalQty AS total,
-						CASE WHEN 
-								ISNULL(ct.PartOnTimeQtys,0) > 0 
-								THEN 
-									CASE WHEN 
-										ISNULL(tmp.OnTimeQty,0) > 0 
-									THEN 
-										ISNULL(ct.PartOnTimeQtys,0)
-									ELSE
-										0
-									END
-								ELSE 
-									CASE WHEN ISNULL(ct.PartOnTimeQtys,0) = 0 THEN 0 ELSE tmp.OnTimeQty END
-						 END AS OnTimefinal,
-						ISNULL(ct.PartOnTimeQtys,0) AS OnTimeQtys,
-						ISNULL(ct.OnTimeQtys,0) AS stktotal
-					FROM 
-					#tmpdata tmp
-					LEFT join CTE ct on tmp.PurchaseOrderPartRecordId = ct.PurchaseOrderPartRecordId
-				)
+						tmp.TotalQty AS Total,
+						CASE WHEN ISNULL(tmp.OnTimeQty,0) > 0 
+							THEN 
+								ISNULL(tmp.OnTimeQty,0) 
+							ELSE
+								ISNULL(CT.OnTimeQty,0)
+						END AS OnTimeFinal,
+						ISNULL(ct.TotalQty,0) AS OnTimeQtys,
+						ISNULL(ct.OnTimeQty,0) AS stktotal
+				FROM 
+				#tmpdata tmp
+				LEFT join #tmpdatastk ct on tmp.PurchaseOrderPartRecordId = ct.PurchaseOrderPartRecordId)
 
 				select 
-					@POPartTotalQty = ISNULL(SUM(total),0),
-					@POOnTimeQty = ISNULL(SUM(OnTimefinal) + SUM(stktotal) ,0)
-				from CTE1;
+					@POPartTotalQty = ISNULL(SUM(Total),0),
+					@POOnTimeQty = ISNULL(SUM(OnTimeFinal) ,0)
+				from OntimeCombine;
 
-			
 			SET @OnTimeAverage = ISNULL((SELECT (NULLIF(ISNULL(@POOnTimeQty,0),0) / NULLIF(ISNULL(@POPartTotalQty,0),0)) * 100),0)
 
 			--Get status & rating
@@ -444,17 +434,17 @@ BEGIN
 						@ROPOTotalOrderYear BIGINT = 0,
 						@ROPOTotalSpendYear BIGINT = 0;
 				/*----RO 2 Year----*/
-					SELECT @ROTotalSpend2Year = ISNULL(SUM(ROP.ExtendedCost),0), @ROTotalOrder2Year = COUNT(RO.[RepairOrderId])
+					SELECT @ROTotalSpend2Year = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0), @ROTotalOrder2Year = COUNT(RO.[RepairOrderId])
 				    FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-				    INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-				    WHERE RO.VendorId = @VendorId
+				    INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
+				    WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
 				    AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND DATEADD(YEAR, -2, convert(DATE, GETDATE(), 112))
 					
 				/*----PO 2 Year----*/
-					SELECT @POTotalSpend2Year = ISNULL(SUM(POP.ExtendedCost),0), @POTotalOrder2Year = COUNT(PO.[PurchaseOrderId])
+					SELECT @POTotalSpend2Year = ISNULL(ISNULL(SUM(POP.ExtendedCost),0) + ISNULL(SUM(PO.TotalFreight),0) + ISNULL(SUM(PO.TotalCharges),0),0), @POTotalOrder2Year = COUNT(PO.[PurchaseOrderId])
 				    FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
-				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-				    WHERE PO.VendorId = @VendorId
+				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
+				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
 				    AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND DATEADD(YEAR, -2, convert(DATE, GETDATE(), 112))
 				
 				/*----RO/PO 2 Year SUM----*/
@@ -463,17 +453,17 @@ BEGIN
 					SELECT @ROPOTotalOrder2Year AS TotalOrder,@ROPOTotalSpend2Year AS TotalSpend,2 AS Years
 
 				/*----RO 1 Year----*/
-					SELECT @ROTotalSpend1Year = ISNULL(SUM(ROP.ExtendedCost),0),@ROTotalOrder1Year = COUNT(RO.[RepairOrderId])
+					SELECT @ROTotalSpend1Year = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0),@ROTotalOrder1Year = COUNT(RO.[RepairOrderId])
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-					WHERE RO.VendorId = @VendorId
+					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
+					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
 					AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 
 				/*----PO 1 Year----*/
-					SELECT @POTotalSpend1Year = ISNULL(SUM(POP.ExtendedCost),0),@POTotalOrder1Year = COUNT(PO.[PurchaseOrderId]) 
+					SELECT @POTotalSpend1Year = ISNULL(ISNULL(SUM(POP.ExtendedCost),0) + ISNULL(SUM(PO.TotalFreight),0) + ISNULL(SUM(PO.TotalCharges),0),0),@POTotalOrder1Year = COUNT(PO.[PurchaseOrderId]) 
 				    FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
-				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-				    WHERE PO.VendorId = @VendorId
+				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
+				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
 					AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 
 				/*----RO/PO 1 Year SUM----*/
@@ -483,17 +473,17 @@ BEGIN
 
 
 				/*----RO Currunt Year----*/
-					SELECT @ROTotalSpendYear = ISNULL(SUM(ROP.ExtendedCost),0),@ROTotalOrderYear = COUNT(RO.[RepairOrderId])
+					SELECT @ROTotalSpendYear = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0),@ROTotalOrderYear = COUNT(RO.[RepairOrderId])
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-					WHERE RO.VendorId = @VendorId
+					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
+					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
 					AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, 0, GETUTCDATE())), 0) AND CAST(GETUTCDATE() AS DATE);
 
 				/*----PO Currunt Year----*/
-					SELECT @POTotalSpendYear = ISNULL(SUM(POP.ExtendedCost),0), @POTotalOrderYear = COUNT(PO.[PurchaseOrderId]) 
+					SELECT @POTotalSpendYear = ISNULL(ISNULL(SUM(POP.ExtendedCost),0) + ISNULL(SUM(PO.TotalFreight),0) + ISNULL(SUM(PO.TotalCharges),0),0), @POTotalOrderYear = COUNT(PO.[PurchaseOrderId]) 
 				    FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
-				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-				    WHERE PO.VendorId = @VendorId
+				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
+				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
 					AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, 0, GETUTCDATE())), 0) AND CAST(GETUTCDATE() AS DATE);
 
 				/*----RO/PO Currunt Year SUM----*/

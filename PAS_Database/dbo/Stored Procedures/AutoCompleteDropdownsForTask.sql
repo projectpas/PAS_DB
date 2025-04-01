@@ -11,14 +11,15 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    09/01/2025   Moin Bloch  	Cretaed
-	1    28/01/2025   Moin Bloch  	 Added field IsTravelerTask, StandardHours, StandardMinute for Task Table 
+    1    09/01/2025   Moin Bloch  		Cretaed
+	2    28/01/2025   Moin Bloch  		Added field IsTravelerTask, StandardHours, StandardMinute for Task Table 
+	3    01/04/2025   Devendra Shekh	Modified (Order By [TaskName] ASC)
 
     EXEC AutoCompleteDropdownsForTask 'Task','TaskId','Description','',1,0,'0',1,4740,4305 
 	EXEC AutoCompleteDropdownsForTask 'WorkOrderTask','TaskId','TaskName','',1,0,'11',1,4739,4304 
 	exec dbo.AutoCompleteDropdownsForTask @TableName=N'WorkOrderTask',@Parameter1=N'TaskId',@Parameter2=N'TaskName',@Parameter3=N'',@Parameter4=1,@Count=0,@Idlist=N'0',@MasterCompanyId=1,@WorkOrderId=4742,@WorkOrderPartNumberId=606,@IsSubWorkOrder=0
 **************************************************************/
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsForTask] 
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsForTask] 
 @TableName VARCHAR(50) = NULL, 
 @Parameter1 VARCHAR(50) = NULL, 
 @Parameter2 VARCHAR(100) = NULL, 
@@ -74,7 +75,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
 					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] asc
+					ORDER BY [TaskName] asc
 					END
 					ELSE 
 					BEGIN                        
@@ -105,7 +106,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
 					AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] asc
+					ORDER BY [TaskName] asc
 				END
             END
 			ELSE IF(@TableName='SubWorkOrderTask')
@@ -139,7 +140,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
 					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] asc
+					ORDER BY [TaskName] asc
 					END
 					ELSE 
 					BEGIN                        
@@ -170,7 +171,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
 					AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] asc
+					ORDER BY [TaskName] asc
 				END
 			END
         END
@@ -211,7 +212,7 @@ AS BEGIN
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId 
 					  AND  WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                      ORDER BY [Sequence] ASC
+                      ORDER BY [TaskName] ASC
                 END
                 ELSE
 				BEGIN
@@ -246,7 +247,7 @@ AS BEGIN
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId 
 					     AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [Sequence] asc
+                         ORDER BY [TaskName] asc
                 END
             END
 			ELSE IF (@TableName='WorkOrderTask')
@@ -284,7 +285,7 @@ AS BEGIN
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
 					  AND  WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                      ORDER BY [Sequence] ASC
+                      ORDER BY [TaskName] ASC
                 END
                 ELSE
 				BEGIN
@@ -319,7 +320,7 @@ AS BEGIN
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 
 					     AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [Sequence] asc
+                         ORDER BY [TaskName] asc
                 END
 			END
         END

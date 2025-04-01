@@ -26,8 +26,9 @@
     9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
 	10   14/Feb/2025  RAJESH GAMI  	    Return fields: PublicationTemplate  for PublicationType Table
 	11   19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
-	12   11/March/2025  AMIT GHEDIYA      Added case for VendorOrderType table.
+	12   11/Mar/2025  AMIT GHEDIYA      Added case for VendorOrderType table.
 	13   31/Mar/2025  Sahdev Saliya     Added case for EmployeeCertifyingStaff table.
+	14	 01/Mar/2025  Devendra Shekh	Modified (For Task Table - Order By Description ASC)
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
@@ -109,7 +110,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Sequence asc
+                         ORDER BY Description asc
                      END
                      ELSE 
 					 BEGIN
@@ -120,7 +121,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Sequence asc
+                         ORDER BY Description asc
                      END
             END
             ELSE IF(@TableName='ConsigneeLot')BEGIN
@@ -377,7 +378,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Sequence asc
+                         ORDER BY Description asc
                      END
                      ELSE BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution
@@ -387,7 +388,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Sequence asc
+                         ORDER BY Description asc
                      END
             END
             ELSE IF(@TableName='ConsigneeLot')BEGIN

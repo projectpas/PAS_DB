@@ -64,7 +64,7 @@ BEGIN
     				CASE WHEN MAX(CAST(GETUTCDATE() AS DATE)) <= MAX(POP.EstDeliveryDate) THEN ISNULL(SUM(POP.QuantityOrdered),0) ELSE 0 END --STL OnTimeQty
     		FROM  [DBO].[PurchaseOrderPart] POP WITH(NOLOCK) 
     		INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-    		WHERE PO.[vendorid] = @VendorId 			
+    		WHERE PO.[vendorid] = @VendorId AND POP.[isParent] = 1		
     		AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
 			GROUP BY VendorId,POP.PurchaseOrderPartRecordId;
 
@@ -76,7 +76,7 @@ BEGIN
     				CASE WHEN MAX(CAST(GETUTCDATE() AS DATE)) <= MAX(ROP.EstRecordDate) THEN ISNULL(SUM(ROP.QuantityOrdered),0) ELSE 0 END --STL OnTimeQty
     		FROM  [DBO].[RepairOrderPart] ROP WITH(NOLOCK) 
     		INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND ROP.IsActive = 1 AND ROP.IsDeleted = 0
-    		WHERE RO.[vendorid] = @VendorId 
+    		WHERE RO.[vendorid] = @VendorId AND ROP.[isParent] = 1
     		AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
 			AND RO.IsActive = 1 AND RO.IsDeleted = 0
 			GROUP BY VendorId,ROP.RepairOrderPartRecordId;
@@ -200,8 +200,8 @@ BEGIN
 							POP.ItemMasterId,
 							COUNT(POP.QuantityOrdered) AS TotalSalesCount
 						FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
-						INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-						WHERE  PO.VendorId = @VendorId
+						INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
+						WHERE  PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
 						AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND DATEADD(YEAR, -2, convert(DATE, GETDATE(), 112))
 						GROUP BY
 							POP.partnumber, 
@@ -212,6 +212,7 @@ BEGIN
 						partnumber,         
 						TotalSalesCount 
 					FROM tmpTop202YearSalesOrderPOPart
+					GROUP BY partnumber,TotalSalesCount
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
 					FETCH FIRST 10 ROWS ONLY;
@@ -238,8 +239,8 @@ BEGIN
 				    		ROP.ItemMasterId,
 				    		COUNT(ROP.QuantityOrdered) AS TotalSalesCount
 				    	FROM DBO.RepairOrderPart ROP WITH (NOLOCK)
-				    	INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-				    	WHERE  RO.VendorId = @VendorId
+				    	INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
+				    	WHERE  RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
 				    	AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND DATEADD(YEAR, -2, convert(DATE, GETDATE(), 112))
 				    	GROUP BY
 				    		ROP.partnumber, 
@@ -250,6 +251,7 @@ BEGIN
 				    	partnumber,         
 				    	TotalSalesCount 
 				    FROM tmpTop202YearSalesOrderPart
+					GROUP BY partnumber,TotalSalesCount
 				    ORDER BY TotalSalesCount DESC
 				    OFFSET 0 ROWS
 				    FETCH FIRST 10 ROWS ONLY;
@@ -277,8 +279,8 @@ BEGIN
 							POP.ItemMasterId,
 							COUNT(POP.QuantityOrdered) AS TotalSalesCount
 						FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
-						INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-						WHERE  PO.VendorId = @VendorId
+						INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
+						WHERE  PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
 						AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 						GROUP BY
 							POP.partnumber, 
@@ -289,6 +291,7 @@ BEGIN
 						partnumber,         
 						TotalSalesCount 
 					FROM tmpTop201YearSalesOrderPOPart
+					GROUP BY partnumber,TotalSalesCount
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
 					FETCH FIRST 10 ROWS ONLY;
@@ -315,8 +318,8 @@ BEGIN
 							ROP.ItemMasterId,
 							COUNT(ROP.QuantityOrdered) AS TotalSalesCount
 						FROM DBO.RepairOrderPart ROP WITH (NOLOCK)
-						INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-						WHERE  RO.VendorId = @VendorId
+						INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
+						WHERE  RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
 						AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 						GROUP BY
 							ROP.partnumber, 
@@ -327,6 +330,7 @@ BEGIN
 						partnumber,         
 						TotalSalesCount 
 					FROM tmpTop201YearSalesOrderPart
+					GROUP BY partnumber,TotalSalesCount
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
 					FETCH FIRST 10 ROWS ONLY;
@@ -355,8 +359,8 @@ BEGIN
 							POP.ItemMasterId,
 							COUNT(POP.QuantityOrdered) AS TotalSalesCount
 						FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
-						INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
-						WHERE  PO.VendorId = @VendorId
+						INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
+						WHERE  PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
 						AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, 0, GETUTCDATE())), 0) AND CAST(GETUTCDATE() AS DATE)
 						GROUP BY
 							POP.partnumber, 
@@ -367,6 +371,7 @@ BEGIN
 						partnumber,         
 						TotalSalesCount 
 					FROM tmpTop20YearSalesOrderPOPart
+					GROUP BY partnumber,TotalSalesCount
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
 					FETCH FIRST 10 ROWS ONLY;
@@ -393,8 +398,8 @@ BEGIN
 							ROP.ItemMasterId,
 							COUNT(ROP.QuantityOrdered) AS TotalSalesCount
 						FROM DBO.RepairOrderPart ROP WITH (NOLOCK)
-						INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId]
-						WHERE  RO.VendorId = @VendorId
+						INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
+						WHERE  RO.VendorId = @VendorId AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
 						AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, 0, GETUTCDATE())), 0) AND CAST(GETUTCDATE() AS DATE)
 						GROUP BY
 							ROP.partnumber, 
@@ -405,6 +410,7 @@ BEGIN
 						partnumber,         
 						TotalSalesCount 
 					FROM tmpTop20YearSalesOrderPart
+					GROUP BY partnumber,TotalSalesCount
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
 					FETCH FIRST 10 ROWS ONLY;
@@ -437,14 +443,14 @@ BEGIN
 					SELECT @ROTotalSpend2Year = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0), @ROTotalOrder2Year = COUNT(RO.[RepairOrderId])
 				    FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 				    INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
-				    WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
+				    WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0 AND ROP.[isParent] = 1
 				    AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND DATEADD(YEAR, -2, convert(DATE, GETDATE(), 112))
 					
 				/*----PO 2 Year----*/
 					SELECT @POTotalSpend2Year = ISNULL(ISNULL(SUM(POP.ExtendedCost),0) + ISNULL(SUM(PO.TotalFreight),0) + ISNULL(SUM(PO.TotalCharges),0),0), @POTotalOrder2Year = COUNT(PO.[PurchaseOrderId])
 				    FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
 				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
-				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
+				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0 AND POP.[isParent] = 1
 				    AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND DATEADD(YEAR, -2, convert(DATE, GETDATE(), 112))
 				
 				/*----RO/PO 2 Year SUM----*/
@@ -456,14 +462,14 @@ BEGIN
 					SELECT @ROTotalSpend1Year = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0),@ROTotalOrder1Year = COUNT(RO.[RepairOrderId])
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
-					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
+					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0 AND ROP.[isParent] = 1
 					AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 
 				/*----PO 1 Year----*/
 					SELECT @POTotalSpend1Year = ISNULL(ISNULL(SUM(POP.ExtendedCost),0) + ISNULL(SUM(PO.TotalFreight),0) + ISNULL(SUM(PO.TotalCharges),0),0),@POTotalOrder1Year = COUNT(PO.[PurchaseOrderId]) 
 				    FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
 				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
-				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
+				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0 AND POP.[isParent] = 1
 					AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 
 				/*----RO/PO 1 Year SUM----*/
@@ -476,14 +482,14 @@ BEGIN
 					SELECT @ROTotalSpendYear = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0),@ROTotalOrderYear = COUNT(RO.[RepairOrderId])
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
-					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
+					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0 AND ROP.[isParent] = 1
 					AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, 0, GETUTCDATE())), 0) AND CAST(GETUTCDATE() AS DATE);
 
 				/*----PO Currunt Year----*/
 					SELECT @POTotalSpendYear = ISNULL(ISNULL(SUM(POP.ExtendedCost),0) + ISNULL(SUM(PO.TotalFreight),0) + ISNULL(SUM(PO.TotalCharges),0),0), @POTotalOrderYear = COUNT(PO.[PurchaseOrderId]) 
 				    FROM [DBO].[PurchaseOrderPart] POP WITH(NOLOCK)
 				    INNER JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId] AND PO.[IsActive] = 1 AND PO.[IsDeleted] = 0
-				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0
+				    WHERE PO.VendorId = @VendorId AND POP.[IsActive] = 1 AND POP.[IsDeleted] = 0 AND POP.[isParent] = 1
 					AND CAST(POP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, 0, GETUTCDATE())), 0) AND CAST(GETUTCDATE() AS DATE);
 
 				/*----RO/PO Currunt Year SUM----*/

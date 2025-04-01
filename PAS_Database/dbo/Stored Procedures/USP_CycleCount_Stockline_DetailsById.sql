@@ -11,12 +11,13 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    21/10/2024   Moin Bloch    Created
-	2    06/11/2024   Moin Bloch    Added IsDeleted and IsActive Flag
-	3    18/11/2024   Moin Bloch    Added IsSerialized Field
-	4    21/11/2024   Moin Bloch    Updated  Restrict open CycleCount stocks
-	5    22/11/2024   Moin Bloch    Added QuantityIssued Field
-	6    27/11/2024   Moin Bloch    Replaced QuantityOnHand on QuantityAvailable
+    1    21/10/2024   Moin Bloch		Created
+	2    06/11/2024   Moin Bloch		Added IsDeleted and IsActive Flag
+	3    18/11/2024   Moin Bloch		Added IsSerialized Field
+	4    21/11/2024   Moin Bloch		Updated  Restrict open CycleCount stocks
+	5    22/11/2024   Moin Bloch		Added QuantityIssued Field
+	6    27/11/2024   Moin Bloch		Replaced QuantityOnHand on QuantityAvailable
+	7    01/04/2025   Devendra Shekh	added new param @QtyTypeId to hangle QuantityOnHand
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -29,7 +30,8 @@ CREATE   PROCEDURE [dbo].[USP_CycleCount_Stockline_DetailsById]
 @ShelfId BIGINT,
 @BinId BIGINT,
 @ManagementStructureId BIGINT,
-@MasterCompanyId INT
+@MasterCompanyId INT,
+@QtyTypeId INT = NULL
 AS  
 BEGIN  
 	SET NOCOUNT ON;	
@@ -59,6 +61,10 @@ BEGIN
 		IF(@BinId = 0)
 		BEGIN
 			SET @BinId = NULL;
+		END
+		IF(@QtyTypeId = 0)
+		BEGIN
+			SET @QtyTypeId = NULL;
 		END
 
 		DECLARE @CycleCountStatusId INT;
@@ -109,7 +115,7 @@ BEGIN
 		  LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SL.[ShelfId] = SF.[ShelfId]
 		  LEFT JOIN [dbo].[Bin] BI WITH(NOLOCK) ON SL.[BinId] = BI.[BinId]
 		  LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON  IM.[PurchaseCurrencyId] = CR.[CurrencyId]
-		 WHERE SL.[IsParent] = 1 AND SL.[QuantityOnHand] > 0 AND SL.[isDeleted] = 0 AND SL.[isActive] = 1 AND
+		 WHERE SL.[IsParent] = 1 AND SL.[isDeleted] = 0 AND SL.[isActive] = 1 AND
 			   (@MasterCompanyId IS NULL OR SL.[MasterCompanyId] = @MasterCompanyId) AND
 		       (@UnitCost IS NULL OR SL.[UnitCost] >= @UnitCost) AND
 		       (@IsCustomerStock IS NULL OR SL.[IsCustomerStock] = @IsCustomerStock) AND
@@ -117,7 +123,8 @@ BEGIN
                (@WarehouseId IS NULL OR SL.[WarehouseId] = @WarehouseId) AND
                (@LocationId IS NULL OR SL.[LocationId] = @LocationId) AND        
                (@ShelfId IS NULL OR SL.[ShelfId] = @ShelfId) AND
-               (@BinId IS NULL OR SL.[BinId] = @BinId) AND			   
+               (@BinId IS NULL OR SL.[BinId] = @BinId) AND			 
+			   (@QtyTypeId IS NULL OR SL.[QuantityOnHand] > 0) AND
                (@ManagementStructureId IS NULL OR SL.[ManagementStructureId] = @ManagementStructureId) AND
 			   NOT EXISTS ( 
 					SELECT TOP 1 [StockLineId]

@@ -462,7 +462,7 @@ BEGIN
 					SELECT @ROTotalSpend1Year = ISNULL(ISNULL(SUM(ROP.ExtendedCost),0) + ISNULL(SUM(RO.TotalFreight),0) + ISNULL(SUM(RO.TotalCharges),0),0),@ROTotalOrder1Year = COUNT(RO.[RepairOrderId])
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 					INNER JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.[RepairOrderId] = RO.[RepairOrderId] AND RO.[IsActive] = 1 AND RO.[IsDeleted] = 0
-					WHERE RO.VendorId = 1287 AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
+					WHERE RO.VendorId = @VendorId AND ROP.[IsActive] = 1 AND ROP.[IsDeleted] = 0
 					AND CAST(ROP.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -1, GETUTCDATE())), 0) AND DATEADD(YEAR, -1, convert(DATE, GETDATE(), 112))
 
 				/*----PO 1 Year----*/

@@ -35,6 +35,7 @@
 	19   03/20/2025   RAJESH GAMI		Fix the issue while partial reserve (In Workorder|SUBWO Material | KIT reserved qty issue)
 	20   03/21/2025   HEMANT SALIYA		Added DB Standards
 	21   03/31/2025   RAJESH GAMI		Resolve the issue for SUBWO (Reserve QTY mismatch)
+	22   01/Apr/2025  RAJESH GAMI		Resolve the issue : WO and SUbWO Auto reserve issue due to wrong goto statement 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -504,7 +505,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														GOTO NextStockline;
+														GOTO NextStockline_WOMK;
 													END
 												END
 
@@ -762,7 +763,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														GOTO NextStockline;
+														GOTO NextWFWO;
 													END
 												END
 
@@ -787,7 +788,7 @@ BEGIN
 											END
 											ELSE
 											BEGIN
-												GOTO NextStockline;
+												GOTO NextWFWO;
 											END
 										END
 									END
@@ -795,7 +796,7 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-								GOTO NextStockline;
+								GOTO NextWFWO;
 							END
 						END
 						ELSE
@@ -1057,7 +1058,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														GOTO NextStockline;
+														GOTO NextStockline_SUBWOMK;
 													END
 
 													
@@ -1297,7 +1298,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														GOTO NextStockline;
+														GOTO NextSUBWOM;
 													END
 												
 												END
@@ -1324,7 +1325,7 @@ BEGIN
 											END
 											ELSE
 											BEGIN
-												GOTO NextStockline;
+												GOTO NextSUBWOM;
 												--GOTO NextStockline_SUBWOMK
 											END
 										END
@@ -1333,7 +1334,7 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-								GOTO NextStockline;
+								GOTO NextSUBWOM; -- GOTO NextStockline; to  NextSUBWOM (When we use the NextStockline it means drop the current loop and goto the main loop)
 								--GOTO NextStockline_SUBWOMK
 							END
 						END

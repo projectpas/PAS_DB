@@ -18,6 +18,7 @@
     1    09/23/2021    Hemant Saliya	Created
 	2    01/03/2025    Moin Bloch  		Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
 	3    28 FEb 2025   RAJESH GAMI  	Order by Sequence     
+	4    01/Mar/2025   Devendra Shekh	Modified (Order By [Description] ASC)
 --EXEC [AutoTravelerTaskDropDownList] '',1,20,'0',1,10427
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoTravelerTaskDropDownList]
@@ -79,7 +80,7 @@ BEGIN
 					FROM [dbo].[Task] TS WITH(NOLOCK)
 					LEFT JOIN [dbo].[Traveler_Setup_Task] TSS WITH(NOLOCK) ON ts.TaskId= tss.TaskId AND Traveler_SetupId= @Traveler_setupid
 					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
-				ORDER BY Sequence ASC				
+				ORDER BY [Description] ASC				
 		END
 		ELSE
 		BEGIN
@@ -101,7 +102,7 @@ BEGIN
 						TS.[StandardMinute],ISNULL(TS.[Sequence],999999) AS Sequence
 					FROM [dbo].[Task] TS WITH(NOLOCK)
 					WHERE TS.MasterCompanyId = @MasterCompanyId AND TS.TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
-				ORDER BY Sequence ASC	
+				ORDER BY [Description] ASC	
 		END	
 	END TRY
 	BEGIN CATCH	

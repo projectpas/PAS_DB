@@ -14,7 +14,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 3    21/01/20254 RAJESH GAMI      Return WorkOrderFormTypeId
 ** 4    17/02/2025  Moin Bloch       Updated (Added Publication PublicationNo)
 
-EXEC GetWorkOrderPrintPdfData 4933,'ADMIN ADMIN'
+EXEC GetWorkOrderPrintPdfData 8542,8201
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
@@ -102,7 +102,7 @@ BEGIN
 		  --UPPER(Pub.PublicationId) as PublicationName,     
 		  UPPER(wop.PublicationNo) as PublicationName,  
 		  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
-		  @TravelerName as TravelerName,        
+		  CASE WHEN ISNULL(@TravelerName,0) = 0 THEN '' ELSE CAST(@TravelerName as varchar(250)) END as TravelerName,        
 		  Isnull(wost.IsManualForm,0) as IsManualForm,    
 		  NHAPNs = STUFF((SELECT DISTINCT ', ' + imtt.partnumber              
 		FROM Dbo.ItemMaster imtt WITH(NOLOCK) INNER JOIN Dbo.Nha_Tla_Alt_Equ_ItemMapping nhatae WITH(NOLOCK)              

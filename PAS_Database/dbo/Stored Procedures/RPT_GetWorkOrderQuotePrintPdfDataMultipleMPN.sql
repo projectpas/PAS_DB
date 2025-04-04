@@ -43,7 +43,8 @@ BEGIN
 			END
 			DECLARE @totalCount INT =0,@currentRow INT = 1,@sql NVARCHAR(MAX), @PartId BIGINT = 0;
 			DECLARE @TotalFreight DECIMAL(18,2)=0 ,@TotalCharges  DECIMAL(18,2)=0,@SubTotal  DECIMAL(18,2)=0,@WOQGrandTotal  DECIMAL(18,2)=0,@FinalSalesTaxes  DECIMAL(18,2)=0,@FinalOtherTaxes  DECIMAL(18,2) =0
-			DECLARE @WOId BIGINT = (SELECT WorkorderId FROM DBO.WorkOrderQuote WITH(NOLOCK) Where WorkOrderQuoteId = @WorkOrderQuoteId)
+			DECLARE @WOId BIGINT = (SELECT WorkorderId FROM DBO.WorkOrderQuote WITH(NOLOCK) Where WorkOrderQuoteId = @WorkOrderQuoteId);
+			DECLARE @corrective VARCHAR(20) = 'corrective action'
 
 			CREATE TABLE #tblTempQuoteMain (
 				ID INT,
@@ -143,13 +144,17 @@ BEGIN
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId  and t.Code !='SALES TAX'
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-				CAST('<x>' + ctd.Memo + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') AS Memo
+				Memo =
+				(SELECT CAST('<x>' + ctd.Memo + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+					FROM
+						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.name) = UPPER(@corrective))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
 				 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID  
 				 INNER JOIN dbo.WorkOrderWorkFlow wf WITH(NOLOCK) ON  wop.ID = wf.WorkOrderPartNoId
-				 LEFT JOIN dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK) ON wf.WorkFlowWorkOrderId = ctd.WorkFlowWorkOrderId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
 				 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
@@ -159,11 +164,12 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber, wop.ID, 
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId,  
-				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,ctd.Memo),
+				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
 			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN ISNULL(MaterialFlatBillingAmount,0) ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuoteIds FROM AfterTax FinalQuote;
+			
 			INSERT INTO #tblTempQuoteMain(ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 						MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
 						OverHeadCostRevenuePercentage, FreightRevenue, OtherCost, DirectCost, Margin, 
@@ -241,13 +247,18 @@ BEGIN
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-				CAST('<x>' + ctd.Memo + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') AS Memo
+				Memo =
+				(SELECT CAST('<x>' + ctd.Memo + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+					FROM
+						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+						WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.name) = UPPER(@corrective))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
 				 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID 
 				 INNER JOIN dbo.WorkOrderWorkFlow wf WITH(NOLOCK) ON  wop.ID = wf.WorkOrderPartNoId
-				 LEFT JOIN dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK) ON wf.WorkFlowWorkOrderId = ctd.WorkFlowWorkOrderId
+				 --LEFT JOIN dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK) ON wf.WorkFlowWorkOrderId = ctd.WorkFlowWorkOrderId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
 				 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
@@ -257,7 +268,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber,  wop.ID, 
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, 
-				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,ctd.Memo),
+				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 

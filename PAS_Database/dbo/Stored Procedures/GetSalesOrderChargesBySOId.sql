@@ -16,7 +16,7 @@
  EXECUTE [GetSalesOrderChargesBySOId] 1, 10
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderChargesBySOId]
-    @SalesOrderId INT,
+    @SalesOrderId BIGINT,
     @IsDeleted BIT
 AS
 BEGIN

@@ -145,7 +145,7 @@ BEGIN
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId  and t.Code !='SALES TAX'
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
 				Memo =
-				(SELECT CAST('<x>' + REPLACE(ctd.Memo, '</p><p>',' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
 					FROM
 						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
@@ -248,7 +248,7 @@ BEGIN
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
 				Memo =
-				(SELECT CAST('<x>' + REPLACE(ctd.Memo, '</p><p>',' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
 					FROM
 						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 

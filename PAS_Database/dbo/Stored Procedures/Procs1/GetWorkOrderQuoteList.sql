@@ -18,7 +18,7 @@
 	5    31-DEC-2024  Devendra Shekh		Added Changes for QuoteAmount
 	6    15-Jan-2024  Moin Bloch  		    Added New Fields WOPartNoId,IsWoAlwaysOrOndemandId,WorkOrderFormTypeId                               
 	7    20-March-2025   Ekta Chandegra        Convert date using dbo.ConvertUTCtoLocal
-
+	8    4 Apr 2025   RAJESH GAMI			Resolved issue: Need to display latest record on the top
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -125,9 +125,9 @@ BEGIN
             woq.QuoteStatusId as quoteStatusId,  
             woq.IsActive,  
             UPPER(woq.CreatedBy) 'CreatedBy',
-            (Cast(DBO.ConvertUTCtoLocal(woq.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
+            (Cast(DBO.ConvertUTCtoLocal(woq.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) CreatedDate,
             UPPER(woq.UpdatedBy) 'UpdatedBy',  
-			(Cast(DBO.ConvertUTCtoLocal(woq.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
+			(Cast(DBO.ConvertUTCtoLocal(woq.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) UpdatedDate,
 			woq.IsVersionIncrease,  
 			UPPER(woq.VersionNo) 'VersionNo',  
 			(CASE WHEN wopp.ApprovalActionId IS NULL THEN UPPER('Pending') ELSE   
@@ -207,8 +207,8 @@ BEGIN
 			  (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
 			  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
 			  (IsNull(@quoteStatus,'') ='' OR quoteStatus like '%' + @quoteStatus+'%') AND  
-			  (IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)=CAST(@CreatedDate AS DATE)) AND  
-			  (IsNull(@UpdatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
+			  (IsNull(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND  
+			  (IsNull(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
 			  (IsNull(@OpenDate,'') ='' OR CAST(OpenDate AS date)=Cast(@OpenDate as date)) AND  
 			  (IsNull(@estCompletionDate,'') ='' OR Cast(estCompletionDate as Date)=Cast(@estCompletionDate as date)) AND  
 			  (IsNull(@promiseDate,'') ='' OR Cast(promisedDate as Date)=Cast(@promiseDate as date)) AND  

@@ -19,6 +19,7 @@
     4    13/08/2024   Devendra Shekh		added Email to select
 	5    17/09/2024   RAJESH GAMI		    Added the SP for MERGEADDRESS instead of function
 	6    06-12-2024   Shrey Chandegara      Add field 'Company' because use company name in original form
+	7    04-03-2025   Amit Ghediya			Added field UKCAALicense.
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -116,6 +117,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					Upper(le.UKCAALicense) as UKCAALicense,
 					Upper(c.Email) as Email,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime'

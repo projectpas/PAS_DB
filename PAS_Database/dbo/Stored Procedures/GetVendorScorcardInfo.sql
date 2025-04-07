@@ -151,7 +151,7 @@ BEGIN
 			--Get status & rating
 			SELECT @RatingId = [VendorScoreCardSettingsId] 
 				FROM [DBO].[VendorScoreCardSettings] WITH(NOLOCK)
-			WHERE @OnTimeAverage BETWEEN 
+			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 AND @OnTimeAverage BETWEEN 
 				  CAST(PARSENAME(REPLACE([OnTimeDelivery], '-', '.'), 2) AS INT) 
 				  AND 
 				  CAST(PARSENAME(REPLACE([OnTimeDelivery], '-', '.'), 1) AS INT);

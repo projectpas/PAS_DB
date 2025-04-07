@@ -29,18 +29,15 @@ BEGIN
                 @WorkScope NVARCHAR(255) = '', 
                 @ManagementStructureId BIGINT = 0;
 
-        -- Fetch ReferenceNo, WorkScope, and ManagementStructureId if WorkOrder has a single PN
-        IF EXISTS (SELECT 1 FROM dbo.WorkOrder WHERE IsSinglePN = 1)
+        IF EXISTS (SELECT 1 FROM dbo.WorkOrder WHERE ISNULL(IsSinglePN, 0) = 1)
         BEGIN
             SELECT TOP 1 
-                @ReferenceNo = rc.Reference,
+                @ReferenceNo = wop.CustomerReference,
                 @WorkScope = wos.Description,
                 @ManagementStructureId = wop.ManagementStructureId
             FROM dbo.WorkOrder wo WITH (NOLOCK)
             JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
             JOIN dbo.WorkScope wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
-            LEFT JOIN dbo.StockLine sl WITH (NOLOCK) ON wop.StockLineId = sl.StockLineId
-            LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) ON sl.StockLineId = rc.StockLineId
             WHERE wo.WorkOrderId = @WorkOrderId AND wop.IsDeleted = 0;
         END;
 
@@ -60,8 +57,8 @@ BEGIN
             END AS WorkOrderType,
             wo.WorkOrderNum AS WorkOrderNumber,
             c.Name AS CustomerName,
-            ct.Name AS CreditTerm,
-            ISNULL(cf.CreditLimit, 0) AS CreditLimit,
+            wo.CreditLimit AS CreditTerm,
+            ISNULL(wo.CreditLimit, 0) AS CreditLimit,
             wo.OpenDate,
             c.ContractReference,
             ISNULL(e.FirstName + ' ' + e.LastName, '') AS Employee,
@@ -81,8 +78,6 @@ BEGIN
             @ManagementStructureId AS ManagementStructureId
         FROM dbo.WorkOrder wo WITH (NOLOCK)
         JOIN dbo.Customer c WITH (NOLOCK) ON wo.CustomerId = c.CustomerId
-        LEFT JOIN dbo.CustomerFinancial cf WITH (NOLOCK) ON c.CustomerId = cf.CustomerId
-        JOIN dbo.CreditTerms ct WITH (NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
         LEFT JOIN dbo.Employee e WITH (NOLOCK) ON wo.EmployeeId = e.EmployeeId
         LEFT JOIN dbo.Employee sp WITH (NOLOCK) ON wo.SalesPersonId = sp.EmployeeId
         JOIN dbo.WorkOrderStatus ws WITH (NOLOCK) ON wo.WorkOrderStatusId = ws.Id

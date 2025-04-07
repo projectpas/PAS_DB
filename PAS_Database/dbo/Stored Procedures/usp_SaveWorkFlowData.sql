@@ -141,7 +141,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+				SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
 				UPDATE [dbo].[CodePrefixes]
 				SET [CurrentNummber] = @CurrentNo 
 				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
@@ -210,7 +210,7 @@ BEGIN
 
 		set @WorkFlowid = SCOPE_IDENTITY();
 
-		SELECT * from [dbo].Workflow wf with (nolock) where wf.WorkflowId = @WorkFlowid
+		SELECT * FROM [dbo].Workflow wf WITH (NOLOCK) WHERE wf.WorkflowId = @WorkFlowid
 	COMMIT  TRANSACTION
 	END TRY 
 	BEGIN CATCH        

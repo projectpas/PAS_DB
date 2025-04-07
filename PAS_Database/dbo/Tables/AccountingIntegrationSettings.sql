@@ -18,6 +18,7 @@
     [SyncRecords]                     BIGINT        NULL,
     [PendingSyncRecords]              BIGINT        NULL,
     [TotalRecords]                    BIGINT        NULL,
+    [IntigrationStatus]               VARCHAR (30)  NULL,
     CONSTRAINT [PK_AccountingIntegrationSettings] PRIMARY KEY CLUSTERED ([AccountingIntegrationSettingsId] ASC)
 );
 

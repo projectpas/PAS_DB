@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    17/03/2025   Moin Bloch    Created
+    1    17/03/2025   Moin Bloch		Created
+    2    03/04/2025   Devendra Shekh    Resolved issue for Save Details for Multiple MPN
      
 --   EXEC [dbo].[CreateWorkOrderSettlementDetails]
 **************************************************************/
@@ -100,7 +101,7 @@ BEGIN
 
 				SET @SMMinId = @SMMinId + 1
 			END
-			DELETE FROM #tmprWorkOrderSettlement
+			TRUNCATE TABLE #tmprWorkOrderSettlement
 		END	
 		SET @MinId = @MinId + 1
 	END

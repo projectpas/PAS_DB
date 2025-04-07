@@ -17,7 +17,8 @@
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
     3    02-07-2024   Sahdev Saliya     Added Global Filters and Sorting (UnitCost)
-	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	4    18-07-2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	5    01-04-2025   Amit Ghediya      Update role query for duplicate records.
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -62,6 +63,30 @@ BEGIN
 		BEGIN 
 			Set @SortColumn=Upper(@SortColumn)
 		END
+
+		--For RO History
+		IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpSalesOrderUserRole
+		END
+		
+		SELECT * INTO #tmpSalesOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		FROM [dbo].RepairOrderManagementStructureDetails MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @MSModuleID AND EUR.[EmployeeId] = @EmployeeId) AS SalesOrderUserRole;
+
+		--For Quote History
+		IF OBJECT_ID(N'tempdb..#tmpRepairOrderUserRoles') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpRepairOrderUserRoles
+		END
+		
+		SELECT * INTO #tmpRepairOrderUserRoles FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		FROM [dbo].RepairOrderManagementStructureDetails MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @VendorRFQRO AND EUR.[EmployeeId] = @EmployeeId) AS SalesOrderUserRole
 		
 		BEGIN TRY
 		BEGIN TRANSACTION
@@ -82,9 +107,10 @@ BEGIN
 					INNER JOIN Vendor VN WITH (NOLOCK) ON VN.VendorId = PO.VendorId
 					LEFT JOIN VendorRFQRepairOrder VRFQPO WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = VRFQPO.VendorRFQRepairOrderId
 					INNER JOIN Condition CN WITH (NOLOCK) ON CN.ConditionId = POP.ConditionId
-					INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.RepairOrderId
-					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
-					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.RepairOrderId
+					--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
+					--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					INNER JOIN #tmpSalesOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = PO.RepairOrderId
 					OUTER APPLY
 					(
 						SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WHERE ST.ItemMasterId = POP.ItemMasterId AND ST.RepairOrderId = POP.RepairOrderId AND ST.RepairOrderPartRecordId = POP.RepairOrderPartRecordId
@@ -151,9 +177,10 @@ BEGIN
 				LEFT JOIN RepairOrder P WITH (NOLOCK) ON P.RepairOrderId = POP.RepairOrderId
 				LEFT JOIN RepairOrderPart VRFQPO WITH (NOLOCK) ON POP.ItemMasterId = VRFQPO.ItemMasterId AND P.RepairOrderId = VRFQPO.RepairOrderId AND POP.ConditionId = VRFQPO.ConditionId
 				INNER JOIN Condition CN WITH (NOLOCK) ON CN.ConditionId = POP.ConditionId
-				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @VendorRFQRO AND MSD.ReferenceID = PO.VendorRFQRepairOrderId
-			    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
-			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @VendorRFQRO AND MSD.ReferenceID = PO.VendorRFQRepairOrderId
+			 --   INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
+			 --   INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				INNER JOIN #tmpRepairOrderUserRoles MSD WITH(NOLOCK) ON MSD.ReferenceID = PO.VendorRFQRepairOrderId
 				OUTER APPLY
 			    (
 					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WHERE ST.ItemMasterId = VRFQPO.ItemMasterId AND ST.RepairOrderId = VRFQPO.RepairOrderId AND ST.RepairOrderPartRecordId = VRFQPO.RepairOrderPartRecordId

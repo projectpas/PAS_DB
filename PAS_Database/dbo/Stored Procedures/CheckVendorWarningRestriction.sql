@@ -102,8 +102,8 @@ BEGIN
 						AND VAI.VendorId = @VendorId 
 						AND VAI.VendorOrderTypeId = @VendorOrderTypeId 
 						AND CAST(VAI.NextAuditDate AS DATE) < @CurrentDate
-						AND VAT.IsActive = 1
-						AND VAT.IsDeleted = 0;
+						AND VAI.IsActive = 1
+						AND VAI.IsDeleted = 0;
 
 					SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #VendorAuditType;
 

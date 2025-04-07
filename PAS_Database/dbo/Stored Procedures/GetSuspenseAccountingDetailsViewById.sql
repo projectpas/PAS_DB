@@ -11,18 +11,40 @@
  **************************************************************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
-    1    19/07/2024		Moin Bloch		Created  
+    1    19/07/2024		Moin Bloch			Created  
+	2    31/03/2025		Divyesh Kathiriya	Update TransactionDate and EntryDate based on Employee time zone
 
-	EXEC [dbo].[GetSuspenseAccountingDetailsViewById] 17 
+	EXEC [dbo].[GetSuspenseAccountingDetailsViewById] 11,226
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSuspenseAccountingDetailsViewById]    
-@ReferenceId bigint    
+@ReferenceId BIGINT,
+@EmployeeId BIGINT
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
    BEGIN       
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		DECLARE @SuspenseMSModuleId BIGINT;
 		SELECT @SuspenseMSModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SuspenseAndUnAppliedPayment';
@@ -35,8 +57,14 @@ BEGIN
 			  ,JBD.[GlAccountName] 
 			  ,ISNULL(JBD.[DebitAmount],0) [DebitAmount] 
 			  ,ISNULL(JBD.[CreditAmount],0) [CreditAmount]  			 
-			  ,JBD.[TransactionDate]  
-			  ,JBD.[EntryDate]  			  
+			  --,JBD.[TransactionDate]  
+			  --,JBD.[EntryDate]
+			  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(JBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(JBD.[TransactionDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			   ELSE (CAST(JBD.[TransactionDate] AS DATETIME)) END TransactionDate
+			   ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(JBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			   ELSE (CAST(JBD.[EntryDate] AS DATETIME)) END EntryDate
 			  ,ISNULL(SUPBD.CustomerName, '') as CustomerName			  
 			  ,UPPER(MSD.Level1Name) AS level1 
 			  ,UPPER(MSD.Level2Name) AS level2

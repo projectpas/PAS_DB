@@ -13,12 +13,13 @@
   ** Change History               
  **************************************************************               
  ** S NO   Date         Author				Change Description                
- ** --   --------     -------			--------------------------------     
- **	1	22-04-2022   Devendra Shekh			created    
+ ** --   --------		-------				--------------------------------     
+ **	1	22-04-2022		Devendra Shekh		created  
+ ** 2	31-03-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
  
 exec USP_GetCommonVendorList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@VendorName=NULL,
 @VendorCode=NULL,@VendorEmail=NULL,@City=NULL,@StateOrProvince=NULL,@ClassificationName=NULL,@VendorPhoneContact=NULL,@Description=NULL,
-@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@SelectedVendorId=1291
+@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@SelectedVendorId=4020,@IsInitialCall=1,@EmployeeId=226
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_GetCommonVendorList]
 @PageNumber int = NULL,
@@ -42,12 +43,33 @@ CREATE   PROCEDURE [dbo].[USP_GetCommonVendorList]
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL,
 @SelectedVendorId bigint = NULL,
-@IsInitialCall bit = NULL
+@IsInitialCall bit = NULL,
+@EmployeeId bigint = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
 		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
@@ -113,9 +135,15 @@ BEGIN
 							(ISNULL(AD.City,'')) 'City',
 							(ISNULL(AD.StateOrProvince, '')) 'StateOrProvince',
 							(ISNULL(CON.FirstName, '') + ' ' + ISNULL(CON.LastName, '')) 'VendorPhoneContact',                   
-							V.CreatedDate,
+							--V.CreatedDate,
+							CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(V.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(V.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+							ELSE (CAST(V.CreatedDate AS DATETIME)) END CreatedDate,
 							V.CreatedBy,
-							V.UpdatedDate,
+							--V.UpdatedDate,
+							CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(V.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(V.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+							ELSE (CAST(V.UpdatedDate AS DATETIME)) END UpdatedDate,
 							V.UpdatedBy,                   			                  
 							V.IsDeleted,
 							V.IsActive,
@@ -142,9 +170,15 @@ BEGIN
 							(ISNULL(AD.City,'')) 'City',
 							(ISNULL(AD.StateOrProvince, '')) 'StateOrProvince',
 							(ISNULL(CON.FirstName, '') + ' ' + ISNULL(CON.LastName, '')) 'VendorPhoneContact',                   
-							V.CreatedDate,
+							--V.CreatedDate,
+							CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(V.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(V.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+							ELSE (CAST(V.CreatedDate AS DATETIME)) END CreatedDate,
 							V.CreatedBy,
-							V.UpdatedDate,
+							--V.UpdatedDate,
+							CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+								CASE WHEN CAST(V.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(V.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+							ELSE (CAST(V.UpdatedDate AS DATETIME)) END UpdatedDate,
 							V.UpdatedBy,                   			                  
 							V.IsDeleted,
 							V.IsActive,

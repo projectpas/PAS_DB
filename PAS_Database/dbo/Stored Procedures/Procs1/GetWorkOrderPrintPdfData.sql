@@ -1,4 +1,5 @@
-﻿/*************************************************************  
+﻿
+/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -13,8 +14,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 2    06/07/2023  MOIN BLOCH       Increased Notes Length 350 to 1370
 ** 3    21/01/20254 RAJESH GAMI      Return WorkOrderFormTypeId
 ** 4    17/02/2025  Moin Bloch       Updated (Added Publication PublicationNo)
-
-EXEC GetWorkOrderPrintPdfData 4933,'ADMIN ADMIN'
+** 5    03/APR/2025 RAJESH GAMI      Return @TravelerName blank if there is '0' or NULL
+EXEC GetWorkOrderPrintPdfData 8560,8227
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
@@ -36,11 +37,11 @@ BEGIN
                  
 		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0))            
 		BEGIN            
-		SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0            
+		SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0            
 		END            
 		ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and IsVersionIncrease=0))            
 		BEGIN            
-		SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
+		SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
 		END            
            
 		SELECT  wo.WorkOrderId,              
@@ -102,7 +103,7 @@ BEGIN
 		  --UPPER(Pub.PublicationId) as PublicationName,     
 		  UPPER(wop.PublicationNo) as PublicationName,  
 		  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
-		  @TravelerName as TravelerName,        
+		  CASE WHEN ISNULL(@TravelerName,'') = '' OR ISNULL(@TravelerName,'') = '0' THEN '' ELSE @TravelerName END as TravelerName,        
 		  Isnull(wost.IsManualForm,0) as IsManualForm,    
 		  NHAPNs = STUFF((SELECT DISTINCT ', ' + imtt.partnumber              
 		FROM Dbo.ItemMaster imtt WITH(NOLOCK) INNER JOIN Dbo.Nha_Tla_Alt_Equ_ItemMapping nhatae WITH(NOLOCK)              
@@ -147,7 +148,14 @@ BEGIN
   BEGIN CATCH                    
    IF @@trancount > 0              
     PRINT 'ROLLBACK'              
-    --ROLLBACK TRAN;              
+    --ROLLBACK TRAN;             
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()              
              
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------              

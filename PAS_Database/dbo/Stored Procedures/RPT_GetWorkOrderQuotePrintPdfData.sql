@@ -16,6 +16,7 @@
 	2    01/05/2024		HEMANT SALIYA		Updated For Handle Flat Rate values 
 	3    02/07/2024		VISHAL SUTHAR		Updated to handle Flat Rate and calculate tax in SP level itself
 	4    21/JAN/2025	RAJESH GAMI			Updated to WorkScopeCode Instead of their Description
+	5    07-APR-2025	RAJESH GAMI			Updated for Get correct PN and Serial Number
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -30,8 +31,8 @@ BEGIN
    BEGIN    
 		;WITH WOQPartCte AS (
 		SELECT DISTINCT   
-		 im.PartNumber,  
-		 im.PartDescription,  
+		 CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,    
+		 CASE WHEN ISNULL(wop.RevisedPartDescription, '') != '' THEN wop.RevisedPartDescription ELSE im.PartDescription END PartDescription,  
 		 RevisedPartNo = CASE WHEN im1.ItemMasterId IS null THEN  '' ELSE im1.PartNumber END,  
 		 Revenue = SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)),  
 		 SUM(wqd.MaterialCost) AS 'MaterialCost',  
@@ -47,7 +48,8 @@ BEGIN
 		 MarginPercentage = SUM(wqd.MaterialMarginPer + wqd.LaborMarginPer + wqd.ChargesMarginPer),  
 		 Scope = UPPER(MAX(s.WorkScopeCode)),
 		 UPPER(sl.StockLineNumber) AS StockLineNumber,
-		 UPPER(sl.SerialNumber) AS SerialNumber,
+		 --UPPER(sl.SerialNumber) AS SerialNumber,
+		 CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE UPPER(wop.CurrentSerialNumber) END AS SerialNumber,
 		 SUM(wqd.MaterialRevenue) AS 'MaterialRevenue',  
 		 SUM(wqd.LaborRevenue) AS 'LaborRevenue',  
 		 SUM(wqd.ChargesRevenue) AS 'ChargesRevenue',  
@@ -84,7 +86,8 @@ BEGIN
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 	GROUP BY im.PartNumber,  
 		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,  
-		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId),
+		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wop.RevisedPartNumber, wop.RevisedPartDescription
+		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 	SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal FROM AfterTax FinalQuote;

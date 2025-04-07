@@ -34,7 +34,8 @@
 	18   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
 	19   03/20/2025   RAJESH GAMI		Fix the issue while partial reserve (In Workorder|SUBWO Material | KIT reserved qty issue)
 	20   03/21/2025   HEMANT SALIYA		Added DB Standards
-
+	21   03/31/2025   RAJESH GAMI		Resolve the issue for SUBWO (Reserve QTY mismatch)
+	22   01/Apr/2025  RAJESH GAMI		Resolve the issue : WO and SUbWO Auto reserve issue due to wrong goto statement 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -504,7 +505,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														GOTO NextStockline;
+														GOTO NextStockline_WOMK;
 													END
 												END
 
@@ -762,7 +763,7 @@ BEGIN
 													END
 													ELSE
 													BEGIN
-														GOTO NextStockline;
+														GOTO NextWFWO;
 													END
 												END
 
@@ -787,7 +788,7 @@ BEGIN
 											END
 											ELSE
 											BEGIN
-												GOTO NextStockline;
+												GOTO NextWFWO;
 											END
 										END
 									END
@@ -795,7 +796,7 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-								GOTO NextStockline;
+								GOTO NextWFWO;
 							END
 						END
 						ELSE
@@ -1036,17 +1037,31 @@ BEGIN
 												END
 												ELSE
 												BEGIN
-													INSERT INTO DBO.SubWorkOrderMaterialStockLine ([SubWorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
-													[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
-													[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],ReferenceNumber)
-													SELECT @SelectedWorkOrderMaterialsIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
-													0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
-													CASE WHEN @AltPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
-													@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+													DECLARE @ItmMsrId_SWO BIGINT = 0;
+													DECLARE @CondId_SWO BIGINT = 0;
 
-													SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+													SELECT @ItmMsrId_SWO = WOM.ItemMasterId, @CondId_SWO = WOM.ConditionCodeId FROM DBO.SubWorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
 
-													SET @POReferenceQty = @POReferenceQty - @Qty;
+													IF ((@ItmMsrId_SWO = @stkItemMasterId OR @stkItemMasterId = @AltPartId_SWO OR @stkItemMasterId = @EquPartId_SWO) AND @CondId_SWO = @stkConditionId)
+													BEGIN
+														INSERT INTO DBO.SubWorkOrderMaterialStockLine ([SubWorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
+														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
+														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],ReferenceNumber)
+														SELECT @SelectedWorkOrderMaterialsIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
+														0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
+														CASE WHEN @AltPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+														@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+
+														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														SET @POReferenceQty = @POReferenceQty - @Qty;
+													END
+													ELSE
+													BEGIN
+														GOTO NextStockline_SUBWOMK;
+													END
+
+													
 												END
 
 												SET @stkWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
@@ -1263,17 +1278,29 @@ BEGIN
 												END
 												ELSE
 												BEGIN
-													INSERT INTO DBO.SubWorkOrderMaterialStockLinekit ([SubWorkOrderMaterialsKitId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
-													[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
-													[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],ReferenceNumber)
-													SELECT @SelectedWorkOrderMaterialsKitIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
-													0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
-													CASE WHEN @AltPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
-													@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+													DECLARE @ItmMsrId_KIT_Sub BIGINT = 0;
+													DECLARE @CondId_KIT_Sub BIGINT = 0;
+													SELECT @ItmMsrId_KIT_Sub = WOM.ItemMasterId, @CondId_KIT_Sub = WOM.ConditionCodeId FROM DBO.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+													
+													IF((@ItmMsrId_KIT_Sub = @stkItemMasterId OR @stkItemMasterId = @AltPartId_SWOKIT OR @stkItemMasterId = @EquPartId_SWOKIT) AND @CondId_KIT_Sub = @stkConditionId)
+													BEGIN
+														INSERT INTO DBO.SubWorkOrderMaterialStockLinekit ([SubWorkOrderMaterialsKitId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
+														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
+														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],ReferenceNumber)
+														SELECT @SelectedWorkOrderMaterialsKitIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
+														0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
+														CASE WHEN @AltPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+														@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
 
-													SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
 
-													SET @POReferenceQty = @POReferenceQty - @Qty;
+														SET @POReferenceQty = @POReferenceQty - @Qty;
+													END
+													ELSE
+													BEGIN
+														GOTO NextSUBWOM;
+													END
+												
 												END
 
 												SET @stkWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
@@ -1298,7 +1325,7 @@ BEGIN
 											END
 											ELSE
 											BEGIN
-												GOTO NextStockline;
+												GOTO NextSUBWOM;
 												--GOTO NextStockline_SUBWOMK
 											END
 										END
@@ -1307,7 +1334,7 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-								GOTO NextStockline;
+								GOTO NextSUBWOM; -- GOTO NextStockline; to  NextSUBWOM (When we use the NextStockline it means drop the current loop and goto the main loop)
 								--GOTO NextStockline_SUBWOMK
 							END
 						END

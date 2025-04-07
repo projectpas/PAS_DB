@@ -14,18 +14,27 @@
  ** --   --------     -------			--------------------------------          
     1    02/23/2021   Subhash Saliya	Created
     2    01/11/2024   Devendra Shekh	added UOM changes
-	3	 01/17/2025	  Moin Bloch	 Modified (Added @WorkOrderFormTypeId from WO)    
-     
+	3	 01/17/2025	  Moin Bloch	  Modified (Added @WorkOrderFormTypeId from WO)    
+    4	 07/Mar/2025  Bhargav Saliya  UTC Date Changes 
  EXECUTE [GetSubWorkOrderChargesAuditList] 148, null, 0
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[GetSubWorkOrderChargesAuditList]
-@subWorkOrderChargesId bigint = null
+@subWorkOrderChargesId bigint = null,
+@EmployeeId bigint = 0
 AS
 BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
   BEGIN TRY	
+
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE E.EmployeeId = @EmployeeId; 
+
 			DECLARE @WorkOrderFormTypeId BIT = 0; 
 			DECLARE @WorkOrderId BIGINT = 0; 
 
@@ -43,13 +52,13 @@ BEGIN
                      woc.VendorId,
                      v.VendorName,
                      woc.CreatedBy,
-                     woc.CreatedDate,
+					 CASE WHEN CAST(woc.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(woc.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
                      woc.IsActive,
                      woc.IsDeleted,
                      woc.MasterCompanyId,
                      woc.TaskId,
                      woc.UpdatedBy,
-                     woc.UpdatedDate,
+					 CASE WHEN CAST(woc.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(woc.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
                      woc.SubWOPartNoId,
                      woc.SubWorkOrderChargesId,
                      woc.WorkOrderId,

@@ -3599,6 +3599,26 @@
     <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerDomesticShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateIntegrationStatus_ByModuleId.sql" />
+    <Build Include="dbo\Tables\EmployeeCertifyingStaff.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWOVersionNum.sql" />
+    <Build Include="dbo\Stored Procedures\SP_CreateWorkOrderBillingPerformaInvoicing.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderBillingInvoicingType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateTeardownNotes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartsEmailContentByWoQuoteId.sql" />
+    <Build Include="dbo\Stored Procedures\SP_GetSubWorkOrderMPNsById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderFormTypePrintView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOFrightsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesOrderAuditHistory.sql" />
+    <Build Include="dbo\Tables\BillingMethod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesOrderChargeHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateWorkFlowHeaderData.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderChargesBySOId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderFreightAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpadteWOSiteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetPOApprovalList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItemData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -3611,5 +3631,6 @@
     <None Include="Snapshots\PAS_SPRINT_52.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_53.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_53_Minor.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_55.dacpac" />
   </ItemGroup>
 </Project>

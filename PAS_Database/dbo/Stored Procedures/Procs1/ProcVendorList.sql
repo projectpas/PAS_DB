@@ -14,10 +14,10 @@
 	3    02/06/2025     Sahdev Saliya       Added a case to get timeZone 
 	4    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	5    12/03/2025     Sahdev Saliya       Change the Date format to Datetime
-	6    31/03/2025     AMIT GHEDIYA        Added IsTrackScoreCard flag for scorecard display in list.
+	6    31/03/2025     AMIT GHEDIYA        Added IsTrackScoreCard flag & TrackScoreCard param for scorecard display in list.
 
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[ProcVendorList]
+CREATE      PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -39,6 +39,7 @@ CREATE    PROCEDURE [dbo].[ProcVendorList]
 @IsDeleted bit = NULL,
 @QuickBooksReferenceId  varchar(200)=null,
 @isSynced  varchar(20)=null,
+@TrackScoreCard  varchar(20)=null,
 @LastSyncDate datetime=null,
 @MasterCompanyId bigint=NULL,
 @EmployeeId bigint,
@@ -121,7 +122,8 @@ BEGIN
 					V.QuickBooksReferenceId,
 					CASE WHEN ISNULL(V.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
 					V.LastSyncDate,
-					ISNULL(V.IsTrackScoreCard,0) AS IsTrackScoreCard
+					ISNULL(V.IsTrackScoreCard,0) AS IsTrackScoreCard,
+					CASE WHEN ISNULL(V.IsTrackScoreCard,'') != '' THEN 'YES' ELSE 'NO' END AS 'TrackScoreCard'
 			   FROM dbo.Vendor V  WITH (NOLOCK) INNER JOIN  dbo.[Address] AD WITH (NOLOCK) ON V.AddressId=AD.AddressId
 			                 LEFT JOIN   dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 							 LEFT JOIN   dbo.VendorContact CC WITH (NOLOCK) ON V.VendorId = CC.VendorId AND CC.IsDefaultContact = 1
@@ -146,6 +148,7 @@ BEGIN
 					(ClassificationName LIKE '%' +@GlobalFilter+'%') OR
 					(QuickBooksReferenceId LIKE '%' +@GlobalFilter+'%') OR
 					(isSynced LIKE '%' +@GlobalFilter+'%') OR
+					(TrackScoreCard LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))
 					OR   
@@ -161,6 +164,7 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND	
 					(ISNULL(@QuickBooksReferenceId,'') ='' OR QuickBooksReferenceId LIKE '%' + @QuickBooksReferenceId+'%') AND
 					(ISNULL(@isSynced,'') ='' OR isSynced LIKE '%' + @isSynced+'%') AND
+					(ISNULL(@TrackScoreCard,'') ='' OR TrackScoreCard LIKE '%' + @TrackScoreCard+'%') AND
 					(ISNULL(@LastSyncDate,'') ='' OR CAST(LastSyncDate as Date)=CAST(@LastSyncDate as date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
@@ -198,6 +202,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuickBooksReferenceId')  THEN QuickBooksReferenceId END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='isSynced')  THEN isSynced END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='isSynced')  THEN isSynced END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TrackScoreCard')  THEN TrackScoreCard END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TrackScoreCard')  THEN TrackScoreCard END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='LastSyncDate')  THEN LastSyncDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LastSyncDate')  THEN LastSyncDate END DESC
 			OFFSET @RecordFrom ROWS 

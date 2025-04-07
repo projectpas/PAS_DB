@@ -14,10 +14,11 @@
  ** --   --------		 -------			--------------------------------            
     1    12-FEB-2025	 RAJESH GAMI		Created  
     2    24-FEB-2025	 RAJESH GAMI		Fixed the Total Amount Issue
+	3    06-APR-2025	 HEMANT SALIYA		Updated for Get correct PN and Serial Number
 
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6580,'',0  
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6561,'7844',0  
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
+CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
  @workOrderPartNoIds varchar(max),
  @isByPartIds INT = 0
@@ -43,7 +44,8 @@ BEGIN
 			END
 			DECLARE @totalCount INT =0,@currentRow INT = 1,@sql NVARCHAR(MAX), @PartId BIGINT = 0;
 			DECLARE @TotalFreight DECIMAL(18,2)=0 ,@TotalCharges  DECIMAL(18,2)=0,@SubTotal  DECIMAL(18,2)=0,@WOQGrandTotal  DECIMAL(18,2)=0,@FinalSalesTaxes  DECIMAL(18,2)=0,@FinalOtherTaxes  DECIMAL(18,2) =0
-			DECLARE @WOId BIGINT = (SELECT WorkorderId FROM DBO.WorkOrderQuote WITH(NOLOCK) Where WorkOrderQuoteId = @WorkOrderQuoteId)
+			DECLARE @WOId BIGINT = (SELECT WorkorderId FROM DBO.WorkOrderQuote WITH(NOLOCK) Where WorkOrderQuoteId = @WorkOrderQuoteId);
+			DECLARE @corrective VARCHAR(20) = 'corrective action'
 
 			CREATE TABLE #tblTempQuoteMain (
 				ID INT,
@@ -88,7 +90,8 @@ BEGIN
 				OtherTaxAmount DECIMAL(18, 2),
 				FinalTotal DECIMAL(18, 2),
 				FinalLaborTotal DECIMAL(18, 2),
-				RowNumber INT
+				RowNumber INT,
+				Memo VARCHAR(MAX)
 			);
 
 
@@ -98,8 +101,9 @@ BEGIN
 				SELECT DISTINCT
 				wop.ID,
 				im.ItemMasterId,
-				 im.PartNumber,  
-				 im.PartDescription,  
+				 CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,  
+				 CASE WHEN ISNULL(wop.RevisedPartDescription, '') != '' THEN wop.RevisedPartDescription ELSE im.PartDescription END PartDescription,
+				 --wop.RevisedPartDescription PartDescription,  
 				 RevisedPartNo = CASE WHEN im1.ItemMasterId IS null THEN  '' ELSE im1.PartNumber END,  
 				 Revenue = SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)),  
 				 SUM(wqd.MaterialCost) AS 'MaterialCost',  
@@ -115,7 +119,8 @@ BEGIN
 				 MarginPercentage = SUM(wqd.MaterialMarginPer + wqd.LaborMarginPer + wqd.ChargesMarginPer),  
 				 Scope = UPPER(MAX(s.WorkScopeCode)),
 				 UPPER(sl.StockLineNumber) AS StockLineNumber,
-				 UPPER(sl.SerialNumber) AS SerialNumber,
+				 --UPPER(sl.SerialNumber) AS SerialNumber,
+				 CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE UPPER(wop.CurrentSerialNumber) END AS SerialNumber,
 				 SUM(wqd.MaterialRevenue) AS 'MaterialRevenue',  
 				 SUM(wqd.LaborRevenue) AS 'LaborRevenue',  
 				 SUM(wqd.ChargesRevenue) AS 'ChargesRevenue',  
@@ -141,11 +146,18 @@ BEGIN
 				Othertax = (SELECT SUM(ISNULL(tr.TaxRate,0)) FROM dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId  and t.Code !='SALES TAX'
-						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 )
+						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
+				Memo =
+				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+					FROM
+						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.name) = UPPER(@corrective))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
 				 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID  
+				 INNER JOIN dbo.WorkOrderWorkFlow wf WITH(NOLOCK) ON  wop.ID = wf.WorkOrderPartNoId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
 				 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
@@ -153,13 +165,14 @@ BEGIN
 				 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID IN (SELECT value FROM STRING_SPLIT(@workOrderPartNoIds, ','))
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			GROUP BY im.PartNumber, wop.ID, 
+			GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId,  
-				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
 			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN ISNULL(MaterialFlatBillingAmount,0) ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuoteIds FROM AfterTax FinalQuote;
+			
 			INSERT INTO #tblTempQuoteMain(ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 						MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
 						OverHeadCostRevenuePercentage, FreightRevenue, OtherCost, DirectCost, Margin, 
@@ -168,7 +181,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo)
 			SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -181,7 +194,8 @@ BEGIN
 					OtherTaxAmount, 
 					FinalTotal,
 					FinalLaborTotal,
-					RowNumber
+					RowNumber,
+					Memo
 				FROM #tmpQuoteIds; 
 
 		END
@@ -192,8 +206,10 @@ BEGIN
 				SELECT DISTINCT  
 				wop.ID,
 				im.ItemMasterId,
-				 im.PartNumber,  
-				 im.PartDescription,  
+				 --im.PartNumber,  
+				 --im.PartDescription,  
+				 CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,  
+				 CASE WHEN ISNULL(wop.RevisedPartDescription, '') != '' THEN wop.RevisedPartDescription ELSE im.PartDescription END PartDescription,
 				 RevisedPartNo = CASE WHEN im1.ItemMasterId IS null THEN  '' ELSE im1.PartNumber END,  
 				 Revenue = SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)),  
 				 SUM(wqd.MaterialCost) AS 'MaterialCost',  
@@ -209,7 +225,8 @@ BEGIN
 				 MarginPercentage = SUM(wqd.MaterialMarginPer + wqd.LaborMarginPer + wqd.ChargesMarginPer),  
 				 Scope = UPPER(MAX(s.WorkScopeCode)),
 				 UPPER(sl.StockLineNumber) AS StockLineNumber,
-				 UPPER(sl.SerialNumber) AS SerialNumber,
+				 --UPPER(sl.SerialNumber) AS SerialNumber,
+				 CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN UPPER(wop.RevisedSerialNumber) ELSE UPPER(wop.CurrentSerialNumber) END AS SerialNumber,
 				 SUM(wqd.MaterialRevenue) AS 'MaterialRevenue',  
 				 SUM(wqd.LaborRevenue) AS 'LaborRevenue',  
 				 SUM(wqd.ChargesRevenue) AS 'ChargesRevenue',  
@@ -235,11 +252,19 @@ BEGIN
 				Othertax = (SELECT SUM(ISNULL(tr.TaxRate,0)) FROM dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
-						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 )
+						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
+				Memo =
+				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+					FROM
+						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+						WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.name) = UPPER(@corrective))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
-				 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID  
+				 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID 
+				 INNER JOIN dbo.WorkOrderWorkFlow wf WITH(NOLOCK) ON  wop.ID = wf.WorkOrderPartNoId
+				 --LEFT JOIN dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK) ON wf.WorkFlowWorkOrderId = ctd.WorkFlowWorkOrderId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
 				 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
@@ -247,9 +272,9 @@ BEGIN
 				 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId 
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			GROUP BY im.PartNumber,  wop.ID, 
+			GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, 
-				 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
@@ -263,7 +288,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo)
 				SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -276,7 +301,8 @@ BEGIN
 					OtherTaxAmount, 
 					FinalTotal,
 					FinalLaborTotal,
-					RowNumber
+					RowNumber,
+					Memo
 				FROM #tmpQuotetblMulti; 
 
 		END

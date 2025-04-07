@@ -3604,6 +3604,9 @@
     <Build Include="dbo\Stored Procedures\SP_CreateWorkOrderBillingPerformaInvoicing.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderBillingInvoicingType.sql" />
     <Build Include="dbo\Stored Procedures\USP_updateTeardownNotes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartsEmailContentByWoQuoteId.sql" />
+    <Build Include="dbo\Stored Procedures\SP_GetSubWorkOrderMPNsById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderFormTypePrintView.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

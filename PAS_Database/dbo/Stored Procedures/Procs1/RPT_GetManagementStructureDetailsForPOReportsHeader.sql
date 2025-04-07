@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:     [RPT_GetManagementStructureDetailsForPOReportsHeader]
  ** Author:   Amit Ghediya
  ** Description: 
@@ -13,7 +12,8 @@
  **************************************************************
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/25/2023   Amit Ghediya  Created
+    1    05/25/2023   Amit Ghediya		Created
+	2    04/07/2025   Devendra Shekh	added UKCAALicense to select
 
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,2621
 **************************************************************/ 
@@ -74,6 +74,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					Upper(le.UKCAALicense) as UKCAALicense,
 					CompanyLogoPath = MS.companylogo
 				FROM EntityStructureSetup est
 					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID

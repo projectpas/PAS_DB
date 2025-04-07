@@ -8,11 +8,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    10/02/2023   Rajesh Gami	Created  
-	2    10/01/2025   Moin Bloch	Updated Added WorkOrderTask Table to Manage Task Name
-	
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/02/2023   Rajesh Gami		Created  
+	2    10/01/2025   Moin Bloch		Updated Added WorkOrderTask Table to Manage Task Name
+	3    02/04/2025   Bhargav Saliya    UTC Date Changes
 	--[dbo].[GetWorkOrderLaborTrackingList] 1,10,null,1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,2,0,1
 **************************************************************/
 
@@ -55,7 +55,15 @@ BEGIN
     DECLARE @RecordFrom int;  
     DECLARE @IsActive bit=1  
     DECLARE @Count Int;  
-    DECLARE @WorkOrderStatusId int;    
+    DECLARE @WorkOrderStatusId int;   
+	
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE E.EmployeeId = @EmployeeId; 
   
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
@@ -104,8 +112,8 @@ BEGIN
         IM.PartDescription AS PartDescription,  
 		IM.ManufacturerName ManufacturerName,
         WO.OpenDate,  
-        WOT.StartTime,  
-        WOT.EndTime,
+		CASE WHEN CAST(WOT.StartTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.StartTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END StartTime,
+		CASE WHEN CAST(WOT.EndTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.EndTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END EndTime,
 		CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN (Isnull(DATEDIFF(MINUTE, WOT.StartTime,GETUTCDATE())/60,0)) ELSE format(WOT.TotalHours,'00') END TotalHours,
 		CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN (Isnull(DATEDIFF(MINUTE, WOT.StartTime,GETUTCDATE())%60,0)) ELSE format(WOT.TotalMinutes,'00') END TotalMinutes,
 		--format(WOT.TotalHours,'00')TotalHours, 
@@ -120,7 +128,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+		,CASE WHEN CAST(WOL.StatusChangedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate, @CurrntEmpTimeZoneDesc) AS DATE))END StatusChangedDate
 		--,T.[Description] TaskName,
 		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName,
 		(CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN 1 ELSE 0 END) IsAnyTaskStarted
@@ -163,7 +171,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+		,CASE WHEN CAST(WOL.StatusChangedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate, @CurrntEmpTimeZoneDesc) AS DATE))END StatusChangedDate
 		--,T.[Description] TaskName
 		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
 		,0 as IsAnyTaskStarted
@@ -192,8 +200,8 @@ BEGIN
         IM.PartDescription AS PartDescription,  
 		IM.ManufacturerName ManufacturerName,
         WO.OpenDate,  
-        WOT.StartTime,  
-        WOT.EndTime,
+        CASE WHEN CAST(WOT.StartTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.StartTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END StartTime,
+		CASE WHEN CAST(WOT.EndTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.EndTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END EndTime,
 		--format(WOT.TotalHours,'00')TotalHours, 
 		--format(WOT.TotalMinutes,'00')TotalMinutes,
 		CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN (Isnull(DATEDIFF(MINUTE, WOT.StartTime,GETUTCDATE())/60,0)) ELSE format(WOT.TotalHours,'00') END TotalHours,
@@ -208,7 +216,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+		,CASE WHEN CAST(WOL.StatusChangedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate, @CurrntEmpTimeZoneDesc) AS DATE))END StatusChangedDate
 		,T.[Description] TaskName,
 		(CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN 1 ELSE 0 END) IsAnyTaskStarted
        FROM SubWorkOrderLaborTracking WOT WITH(NOLOCK)  
@@ -249,7 +257,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+		,CASE WHEN CAST(WOL.StatusChangedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate, @CurrntEmpTimeZoneDesc) AS DATE))END StatusChangedDate
 		,T.[Description] TaskName,
 		0 as IsAnyTaskStarted
        FROM  dbo.SubWorkOrderLabor WOL WITH(NOLOCK)
@@ -346,8 +354,8 @@ BEGIN
         IM.PartDescription AS PartDescription,  
 		IM.ManufacturerName ManufacturerName,
         WO.OpenDate,  
-        WOT.StartTime,  
-        WOT.EndTime,
+        CASE WHEN CAST(WOT.StartTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.StartTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END StartTime,
+		CASE WHEN CAST(WOT.EndTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.EndTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END EndTime,
 		CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN (Isnull(DATEDIFF(MINUTE, WOT.StartTime,GETUTCDATE())/60,0)) ELSE format(WOT.TotalHours,'00') END TotalHours,
 		CASE WHEN ISNULL(WOT.IsCompleted,0) = 0 THEN (Isnull(DATEDIFF(MINUTE, WOT.StartTime,GETUTCDATE())%60,0)) ELSE format(WOT.TotalMinutes,'00') END TotalMinutes,
 		--format(WOT.TotalHours,'00')TotalHours, 
@@ -362,7 +370,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+		,CASE WHEN CAST(WOL.StatusChangedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate, @CurrntEmpTimeZoneDesc) AS DATE))END StatusChangedDate
 		--,T.[Description] TaskName
 		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
        FROM WorkOrderLaborTracking WOT WITH(NOLOCK)  
@@ -404,7 +412,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+		,CASE WHEN CAST(WOL.StatusChangedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate, @CurrntEmpTimeZoneDesc) AS DATE))END StatusChangedDate
 		--,T.[Description] TaskName
 		,CASE WHEN ISNULL(WO.WorkOrderFormTypeId,0) = 1 THEN WT.[TaskName] ELSE T.[Description] END TaskName
        FROM dbo.WorkOrderLabor WOL WITH(NOLOCK)

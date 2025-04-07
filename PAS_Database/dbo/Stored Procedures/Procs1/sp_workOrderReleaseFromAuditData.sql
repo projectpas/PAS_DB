@@ -16,17 +16,28 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    03/16/2021   Hemant Saliya Created
+    2    02/14/2025   Bhargav Saliya  UTC Date Changes
 
      
  EXECUTE [sp_workOrderReleaseFromAuditData] 198
 **************************************************************/ 
 CREATE Procedure [dbo].[sp_workOrderReleaseFromAuditData]
-@ReleaseFromId bigint
+@ReleaseFromId bigint,
+@EmployeeId bigint = 0
 AS
 BEGIN
-
+		
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
   BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
@@ -62,8 +73,8 @@ BEGIN
 				  ,wro.[MasterCompanyId]
 				  ,wro.[CreatedBy]
 				  ,wro.[UpdatedBy]
-				  ,wro.[CreatedDate]
-				  ,wro.[UpdatedDate]
+				  ,CASE WHEN CAST(wro.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate
+				  ,CASE WHEN CAST(wro.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate
 				  ,wro.[IsActive]
 				  ,wro.[IsDeleted]
 				  ,wro.[trackingNo]

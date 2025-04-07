@@ -21,7 +21,7 @@
 	9 	 02/11/2024	  Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
 	10 	 02/12/2024	  Moin Bloch			    Modified (Added [IsFinishGood] For show hide edit SerialNumber icon )
 	11	 02/20/2024   Devendra Shekh			added New Stk Join to read Revised(Update) StockLineNumber 
-     
+    12	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
 @MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
@@ -58,7 +58,8 @@ CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderList]
 @IsDeleted BIT = NULL,
 @WorkOrderId BIGINT = NULL,
 @MasterCompanyId BIGINT = NULL,
-@WorkOrderPartNumberId BIGINT = NULL
+@WorkOrderPartNumberId BIGINT = NULL,
+@EmployeeId BIGINT = 0
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -107,6 +108,14 @@ BEGIN
 		DECLARE @SWOTaskStatusId BIGINT = 0;
 
 		SET @SWOTaskStatusId = (SELECT [TaskStatusId] FROM [dbo].[TaskStatus] WITH(NOLOCK) WHERE UPPER([Description]) = 'COMPLETED' AND MasterCompanyId = @MasterCompanyId)
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
 		
 		IF OBJECT_ID('tempdb..#tempSubWO') IS NOT NULL
 			DROP TABLE #tempSubWO
@@ -198,8 +207,8 @@ BEGIN
 						CASE WHEN SWPT.[RevisedSerialNumber] IS NOT NULL THEN SWPT.[RevisedSerialNumber] ELSE SL.[SerialNumber] END AS 'SerialNumber',
 						SWO.IsActive,
 						SWO.IsDeleted,
-						SWO.CreatedDate,
-						SWO.UpdatedDate,
+						CASE WHEN CAST(SWO.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(SWO.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+						CASE WHEN CAST(SWO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(SWO.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
 						Upper(SWO.CreatedBy) CreatedBy,
 						Upper(SWO.UpdatedBy) UpdatedBy,
 						tmpSub.isAllowDelete,

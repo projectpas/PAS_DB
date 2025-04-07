@@ -14,6 +14,7 @@
  ** --   --------     -------			--------------------------------          
     1    01/11/2024   AMIT GHEDIYA		Created
 	2    08/21/2024   HEMANT SALIYA		Corrected Email Address get from LE Default Contact
+	3    04/07/2025   Devendra Shekh	added UKCAALicense to select
 
  EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,1058
 **********************/ 
@@ -56,6 +57,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					Upper(ISNULL(le.UKCAALicense, '')) as UKCAALicense,
 					MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END)),
 					CompanyLogoPath = MS.companylogo
 				FROM dbo.EntityStructureSetup est WITH(NOLOCK)

@@ -16,6 +16,7 @@
  ** --   ---------------  --------------------------------
 	1	Unknown
 	2	11/26/2024	Abhishek Jirawla	Added email update in the query
+	3   07-04-2025  Shrey Chandegara    modified due to PN-12082
 **************************************************************/
 CREATE    Procedure [dbo].[USP_UsersmtpsettingaddEdit]
 @smtpsettingId  bigint=0,
@@ -25,7 +26,8 @@ CREATE    Procedure [dbo].[USP_UsersmtpsettingaddEdit]
 @portno int=0,
 @emailtype int=0,
 @verifyemail bit=0,
-@Email VARCHAR(200) = NULL
+@Email VARCHAR(200) = NULL,
+@IsIncludeInCC BIT = 0
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -35,29 +37,29 @@ BEGIN TRY
 BEGIN TRANSACTION
 if(@smtpsettingId>0)
 	begin
-		insert into DBO.UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
-		select EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate from DBO.Usersmtpsetting WITH (NOLOCK) where smtpsettingId=@smtpsettingId
+		INSERT INTO DBO.UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
+		SELECT EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate FROM DBO.Usersmtpsetting WITH (NOLOCK) WHERE smtpsettingId=@smtpsettingId
 
-		update DBO.Usersmtpsetting set EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno 
-		,emailtype=@emailtype ,verifyemail=case when @emailtype=1 then @verifyemail else verifyemail end ,UpdatedDate=getdate() where smtpsettingId=@smtpsettingId
+		UPDATE DBO.Usersmtpsetting SET EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno, 
+		emailtype=@emailtype ,verifyemail=CASE WHEN @emailtype=1 THEN @verifyemail ELSE verifyemail END ,UpdatedDate=getdate() WHERE smtpsettingId=@smtpsettingId
 
 		UPDATE DBO.Employee
-		SET Email = @Email
+		SET Email = @Email,IsIncludeInCC = @IsIncludeInCC
 		WHERE EmployeeId = @EmployeeId	
-	end
+	END
 else
 	begin
-		insert into DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail)
-		values (@EmployeeId,@smtpserver,@emailpassword,@portno,@emailtype,
-		case when @emailtype=1 then @verifyemail else 1 end)
-		set @smtpsettingId=@@IDENTITY
+		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail)
+		VALUES (@EmployeeId,@smtpserver,@emailpassword,@portno,@emailtype,
+		CASE WHEN @emailtype=1 THEN @verifyemail ELSE 1 END)
+		SET @smtpsettingId=@@IDENTITY
 
 		UPDATE DBO.Employee
-		SET Email = @Email
+		SET Email = @Email,IsIncludeInCC = @IsIncludeInCC
 		WHERE EmployeeId = @EmployeeId	
-	end
+	END
 
-	select @smtpsettingId as smtpsettingId
+	SELECT @smtpsettingId as smtpsettingId
 
 COMMIT  TRANSACTION
 

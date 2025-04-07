@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkOrderSettlementDetails]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Settlement Details  
@@ -20,6 +19,7 @@
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 12/21/2023	  Hemant Saliya  Added KIT IN SUB WO
 	4    12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
+	5	 07/Mar/2025  Bhargav Saliya  UTC Date Changes 
      
 EXEC [GetSubWorkOrderSettlementDetails] 3802,188,162
 **************************************************************/
@@ -27,7 +27,8 @@ EXEC [GetSubWorkOrderSettlementDetails] 3802,188,162
 CREATE   PROCEDURE [dbo].[GetSubWorkOrderSettlementDetails]
 @WorkorderId bigint,
 @SubWorkOrderId bigint,
-@SubWOPartNoId BIGINT
+@SubWOPartNoId BIGINT,
+@EmployeeId BIGINT = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -55,6 +56,13 @@ BEGIN
 				DECLARE @OtherMaterialsProvisionQty INT =0;
 				DECLARE @OtherProvisionQty INT =0;
 				DECLARE @ProvisionId INT = 1; -- FOR REPLACE
+
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE E.EmployeeId = @EmployeeId; 
 
 				SELECT @qtyreq = SUM(ISNULL(Quantity,0))
 				FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) 	  
@@ -152,7 +160,7 @@ BEGIN
 						wosd.conditionName,
 					    ISNULL(wosd.UserId,0) as UserId,
 					    wosd.UserName,
-					    wosd.sattlement_DateTime,
+						CASE WHEN CAST(wosd.sattlement_DateTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wosd.sattlement_DateTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END sattlement_DateTime,
 						wosd.MasterCompanyId,
 						wosd.CreatedBy,
 						wosd.UpdatedBy,

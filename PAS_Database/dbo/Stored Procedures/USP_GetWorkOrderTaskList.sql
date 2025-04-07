@@ -13,17 +13,28 @@
 	2   03/Fwb/2025  RAJESH GAMI		added @WorkOrderPartNumberId and their functionality
 	3   10/Feb/2025  RAJESH GAMI		Added Return IsPrintInspector,IsPrintTechnician
 	4   10/Feb/2025  Devendra Shekh		Added WorkOrderTaskDetailsId to select
+	5	04/Mar/2025	 Bhargav Saliya		UTC Date Changes
 
 EXEC USP_GetWorkOrderTaskList 4670
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTaskList]
 (
 	@WorkOrderId BIGINT,
-	@WorkOrderPartNumberId BIGINT = 0
+	@WorkOrderPartNumberId BIGINT = 0,
+	@EmployeeId BIGINT = 0
 )
 AS
 BEGIN
 	BEGIN TRY 
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
 	BEGIN
 		IF(@WorkOrderPartNumberId > 0)
 		BEGIN
@@ -50,9 +61,9 @@ BEGIN
 			WOTD.Resolution,
 			WOT.MasterCompanyId,
 			WOT.CreatedBy,
-			WOT.CreatedDate,
+			CASE WHEN CAST(WOT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
 			WOT.UpdatedBy,
-			WOT.UpdatedDate,
+			CASE WHEN CAST(WOT.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
 			ISNULL(WOTD.PrintInWO,0) PrintInWO,
 			ISNULL(WOTD.PrintInWOQ,0) PrintInWOQ,
 			ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
@@ -91,9 +102,9 @@ BEGIN
 			WOTD.Resolution,
 			WOT.MasterCompanyId,
 			WOT.CreatedBy,
-			WOT.CreatedDate,
+			CASE WHEN CAST(WOT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
 			WOT.UpdatedBy,
-			WOT.UpdatedDate,
+			CASE WHEN CAST(WOT.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
 			ISNULL(WOTD.PrintInWO,0) PrintInWO,
 			ISNULL(WOTD.PrintInWOQ,0) PrintInWOQ,
 			ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,

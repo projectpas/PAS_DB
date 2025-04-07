@@ -3614,6 +3614,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderChargeHistory.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderChargesBySOId.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderFreightAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderHeaderView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkFlowWithMaterialList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [SearchStockLinePickTicketPop_WO]           
+ ** File:   [sp_GetPickTicketChildList_MainPart]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket childlist data   
  ** Purpose:         
@@ -16,24 +16,36 @@
  ** --   --------     -------			--------------------------------  
 	1										created
 	2    01/01/2024   Devendra Shekh	update for serialnumber
-
+	3    02/17/2025   Bhargav Saliya	UTC Date Changes
 EXEC DBO.sp_GetPickTicketChildList_MainPart @referenceId=20751,@OrderPartId =618
 **************************************************************/ 
 CREATE   Procedure [dbo].[sp_GetPickTicketChildList_MainPart]
 @referenceId  bigint,
-@OrderPartId bigint
+@OrderPartId bigint,
+@EmployeeId bigint = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT wopt.PickTicketNumber as PickTicketNumber, wopt.QtyToShip, CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END As 'SerialNumber', sl.StockLineNumber, wopt.CreatedDate as PickedDate,
+		SELECT wopt.PickTicketNumber as PickTicketNumber, wopt.QtyToShip, CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END As 'SerialNumber', sl.StockLineNumber, 
+		CASE WHEN CAST(wopt.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wopt.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END PickedDate,
 		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, wopt.PickTicketId as PickTicketId, wopt.WorkorderId as referenceId,
 		wopt.WorkFlowWorkOrderId as OrderPartId,
-		CONCAT(empy.FirstName ,' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, wopt.ConfirmedDate, sl.StockLineId,
+		CONCAT(empy.FirstName ,' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, 
+		CASE WHEN CAST(wopt.ConfirmedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wopt.ConfirmedDate, @CurrntEmpTimeZoneDesc) AS DATE))END ConfirmedDate,
+		sl.StockLineId,
 		wopt.IsConfirmed 
 		from WOPickTicket wopt WITH (NOLOCK)
 		INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wopt.WorkFlowWorkOrderId = wowf.WorkOrderPartNoId

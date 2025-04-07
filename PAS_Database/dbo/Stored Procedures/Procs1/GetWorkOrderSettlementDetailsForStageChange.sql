@@ -17,16 +17,27 @@
     1    07/07/2023   Vishal Suthar		Created
 	2	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
 	3	 12/12/2024	  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
+	4	 02/14/2025  BHARGAV SALIYA	  UTC Date Changes
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetailsForStageChange]
 	@WorkorderId bigint,
 	@workOrderPartNoId bigint,
-	@workflowWorkorderId BIGINT
+	@workflowWorkorderId BIGINT,
+	@EmployeeId BIGINT = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN  
@@ -161,7 +172,7 @@ BEGIN
 				ISNULL(wosd.UserId,0) as UserId,
 				wosd.conditionName,
 				wosd.UserName,
-				wosd.sattlement_DateTime,
+				CASE WHEN CAST(wosd.sattlement_DateTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wosd.sattlement_DateTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END sattlement_DateTime,
 				wosd.MasterCompanyId,
 				wosd.CreatedBy,
 				wosd.UpdatedBy,

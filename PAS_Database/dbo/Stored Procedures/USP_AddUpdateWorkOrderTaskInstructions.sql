@@ -13,6 +13,7 @@
 	2    02/19/2025   Ekta Chandegra Add history task instruction level
 	3    03/21/2025   Ekta Chandegra Add Work Order Task history on task level
     4    03/25/2025   Vishal Suthar	 Added an option for adding child with selected set of Instructions
+    5    04/07/2025   Devendra Shekh Resolved an issue related to a manually added description
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
@@ -142,6 +143,8 @@ BEGIN
 				BEGIN
 					SELECT @NewParentId = WorkOrderTaskInstructionId FROM @IdMapping WHERE TaskInstructionId = @ParentId;
 				END
+
+				SET @Description = CASE WHEN (@TaskInstructionId = @InstructionListId) AND ISNULL(@InstructionDetails, '') <> '' THEN @InstructionDetails ELSE @Description END;
 
 				-- Insert the record into WorkOrderTaskInstruction table
 				INSERT INTO WorkOrderTaskInstruction (
@@ -307,6 +310,8 @@ BEGIN
 						SET @NewParentId = @WorkOrderTaskInstructionId;
 					END
 				END
+
+				SET @Description = CASE WHEN (@TaskInstructionId = @InstructionListId) AND ISNULL(@InstructionDetails, '') <> '' THEN @InstructionDetails ELSE @Description END;
 
 				-- Insert the record into WorkOrderTaskInstruction table
 				INSERT INTO WorkOrderTaskInstruction (

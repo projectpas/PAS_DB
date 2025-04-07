@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSubWorkOrderMaterialsAuditList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used retrieve Work Order Sub Materials List    
@@ -20,12 +19,14 @@
     1    03/23/2021   Subhash Saliya Created
 	2    12/07/2021   Hemant Saliya  Added new field for Audit log
     3    02/06/2023   Rajesh Gami    Added Figure and Item field for the audit
+	4	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
  EXECUTE USP_GetSubWorkOrderMaterialsAuditList 68
 
 **************************************************************/     
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsAuditList]    
 (    
-@SubWorkOrderMaterialsId BIGINT = NULL  
+@SubWorkOrderMaterialsId BIGINT = NULL,
+@EmployeeId BIGINT = 0
 )    
 AS    
 BEGIN    
@@ -33,6 +34,14 @@ BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON    
 	BEGIN TRY
+
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE E.EmployeeId = @EmployeeId; 
+
 			BEGIN TRANSACTION
 				BEGIN
 					SELECT  IM.PartNumber,
@@ -124,8 +133,8 @@ SET NOCOUNT ON
 							isnull(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 							WOM.CreatedBy,
 							WOM.UpdatedBy,
-							WOM.CreatedDate,
-							WOM.UpdatedDate,
+							CASE WHEN CAST(WOM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+							CASE WHEN CAST(WOM.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOM.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
 							ROP.EstRecordDate 'RONextDlvrDate',
 							RO.RepairOrderNumber
 							,WOM.Figure

@@ -13,7 +13,7 @@
  ** --   --------     -------  --------------------------------            
     1    20/03/2023   Amit Ghediya    Created  
 	2    20/03/2023   Amit Ghediya    Added DB Standards  
-       
+    3	 02/04/2025   Bhargav Saliya  UTC Date Changes   
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_GetHistory]  
@@ -33,7 +33,8 @@ CREATE     PROCEDURE [dbo].[USP_GetHistory]
  @CreatedDate DATETIME=null,  
     @UpdatedDate  DATETIME=null,  
  @CreatedBy VARCHAR(50)=null,  
- @UpdatedBy VARCHAR(50)=null  
+ @UpdatedBy VARCHAR(50)=null,
+ @EmployeeId bigint=null
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -42,6 +43,15 @@ BEGIN
   BEGIN TRANSACTION  
    BEGIN  
    DECLARE @RecordFrom INT;  
+
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE E.EmployeeId = @EmployeeId; 
+
     SET @RecordFrom = (@PageNumber-1) * @PageSize;  
       
     IF @SortColumn is null  
@@ -66,7 +76,7 @@ BEGIN
 		 HS.[CreatedBy],  
 		 HS.[CreatedDate],  
 		 HS.[UpdatedBy],  
-		 HS.[UpdatedDate]   
+		 CASE WHEN CAST(HS.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(HS.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate]
     FROM dbo.History HS WITH (NOLOCK)  
 		INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
 		LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  

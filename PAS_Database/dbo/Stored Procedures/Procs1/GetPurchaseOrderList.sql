@@ -27,6 +27,7 @@
 	11  26-02-2025      Shrey Chandegara    Modified due to datetime issue.
 	12  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	13  18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
+	14   07-04-2025     Shrey Chandegara   Modified due to PN-12013
       
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -207,7 +208,8 @@ BEGIN
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
 				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
-				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))      
+				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))   
+				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 				GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,
 					PO.PurchaseOrderNumber,
 					PO.OpenDate,
@@ -397,7 +399,8 @@ BEGIN
 		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)  
 			INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
-		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId           
+		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId    
+				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 		
 		), ResultCount AS(
 	  

@@ -3612,6 +3612,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderAuditHistory.sql" />
     <Build Include="dbo\Tables\BillingMethod.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderChargeHistory.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderFreightAuditHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

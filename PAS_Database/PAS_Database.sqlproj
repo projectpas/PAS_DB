@@ -3616,6 +3616,8 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderChargesBySOId.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderFreightAuditHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpadteWOSiteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItemData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

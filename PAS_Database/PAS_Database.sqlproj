@@ -3612,6 +3612,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderAuditHistory.sql" />
     <Build Include="dbo\Tables\BillingMethod.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderChargeHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateWorkFlowHeaderData.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderChargesBySOId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderFreightAuditHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpadteWOSiteDetails.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -97,7 +97,6 @@ BEGIN
         DECLARE @ProcedureParameters VARCHAR(3000) = '@PurchaseOrderId = ' + CAST(ISNULL(@PurchaseOrderId, '') AS VARCHAR);
         DECLARE @ApplicationName VARCHAR(100) = 'PAS';
 
-        -- Log Exception
         EXEC spLogException 
              @DatabaseName = @DatabaseName,
              @AdhocComments = @AdhocComments,

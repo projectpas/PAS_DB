@@ -12,8 +12,9 @@
  ** --   --------		-------		---------------------------     
     1    28/Jan/2025	Rajesh Gami     Created
     2    25/Mar/2025	Devendra Shekh	added new field: WorkOrderFormTypeId
+	3    02/Apr/2025	Moin Bloch   	added new field: OemPN
 **************************************************************
- EXEC USP_GetItemMasterDetailById 102597 
+ EXEC USP_GetItemMasterDetailById 20754
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
 @ItemMasterId bigint =0
@@ -29,12 +30,12 @@ BEGIN
 		    WITH CTE_IntegrationPortal AS (
 						SELECT
 							iM.ItemMasterId,
-							STRING_AGG(CAST(ip.Description AS NVARCHAR(MAX)), ',') AS integrationPortal,
+							STRING_AGG(CAST(ip.[Description] AS NVARCHAR(MAX)), ',') AS integrationPortal,
 							STRING_AGG(mp.IntegrationPortalId, ',') AS IntegrationPortalStringIds
 						FROM dbo.ItemMaster iM WITH(NOLOCK)
 						LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 						LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
-						GROUP BY iM.ItemMasterId
+						WHERE mp.IntegrationPortalId IS NOT NULL GROUP BY iM.ItemMasterId
 					),
 			CTE_InventoryGLSetting AS (
 					SELECT
@@ -141,6 +142,7 @@ BEGIN
 						COALESCE(iM.RevenueSoGLAccName, '') AS revenueSoGLAccName,
 						COALESCE(iM.RevenueExchGLAccName, '') AS revenueExchGLAccName,
 						iM.IsOemPNId,
+						imst.PartNumber AS [OemPN],
 						iM.IsDeleted,
 						iM.IsActive,
 						iM.IsOEM,

@@ -14,18 +14,40 @@
 	4    10/11/2023     HEMANT SALIYA       Resolved Time out Issue
 	5    01/12/2023     Moin Bloch          Added Lot Number 
 	6    10/05/2023     Moin Bloch          Added IsUpdated
+	7    07-Apr-2025	Divyesh Kathiriya	Update EntryDate, TransactionDate based on Employee time zone
 
-EXEC GetExchangeSOAccountingDetailsViewById 106
+	EXEC GetExchangeSOAccountingDetailsViewById 137,226
 ************************************************************************/   
 
 CREATE   PROCEDURE  [dbo].[GetExchangeSOAccountingDetailsViewById]  
-@ReferenceId bigint    
+@ReferenceId BIGINT,
+@EmployeeId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
    BEGIN       
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+		@CurrntEmpTimeZoneDesc = COALESCE(
+			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		)
+	FROM 
+		dbo.Employee E WITH (NOLOCK) 
+	LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+	LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+	LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE 
+		E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 	DECLARE @POMSModuleId INT = 0
 	SELECT @POMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -36,8 +58,14 @@ BEGIN
 			,CBD.[GlAccountId]  
 			,CBD.[GlAccountNumber]  
 			,UPPER(CBD.[GlAccountName])  AS [GlAccountName]
-			,CBD.[TransactionDate]  
-			,CBD.[EntryDate] 
+			--,CBD.[TransactionDate]  
+			--,CBD.[EntryDate]
+			,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(CBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CBD.[TransactionDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			 ELSE (CAST(CBD.[TransactionDate] AS DATETIME)) END TransactionDate
+			,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(CBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			 ELSE (CAST(CBD.[EntryDate] AS DATETIME)) END EntryDate
 			,CBD.[JournalTypeId]  
             ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(EBD.ExchangeSalesOrderNumber)) as JournalTypeName  
             ,CBD.[IsDebit]  

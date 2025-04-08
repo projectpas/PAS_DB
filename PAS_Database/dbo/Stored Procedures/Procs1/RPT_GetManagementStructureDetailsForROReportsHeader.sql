@@ -12,8 +12,9 @@
  **************************************************************
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/25/2023   Amit Ghediya  Created
-	2    24-Oct-2024  Sahdev Saliya  Address convert into single string value
+    1    05/25/2023   Amit Ghediya		Created
+	2    24-Oct-2024  Sahdev Saliya		Address convert into single string value
+	3    04/07/2025   Devendra Shekh	added UKCAALicense to select
 
  EXECUTE RPT_GetManagementStructureDetailsForROReportsHeader 1,1,1611
 **************************************************************/ 
@@ -66,6 +67,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					Upper(le.UKCAALicense) as UKCAALicense,
 					CompanyLogoPath = MS.companylogo
 				FROM EntityStructureSetup est
 					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID

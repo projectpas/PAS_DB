@@ -12,14 +12,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    08/04/2023   Amit Ghediya    Created
-	2    08/08/2023   Amit Ghediya    updated Get data which have qty available.
-	3    08/09/2023   Amit Ghediya    updated for filter.
-	4	 04/17/2024	  Abhishek Jirawla Adding Distinct in to get seperate results and added condition to return only available assets, Added sold by and sold date information
-	5    03/12/2024   Abhishek Jirawla Added IsPosted Column
-	6    12-12-2024   ABHISHEK JIRAWLA Change made for Asset Inventory Status and Asset Available Status
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    08/04/2023   Amit Ghediya			Created
+	2    08/08/2023   Amit Ghediya			updated Get data which have qty available.
+	3    08/09/2023   Amit Ghediya			updated for filter.
+	4	 04/17/2024	  Abhishek Jirawla		Adding Distinct in to get seperate results and added condition to return only available assets, Added sold by and sold date information
+	5    03/12/2024   Abhishek Jirawla		Added IsPosted Column
+	6    12-12-2024   ABHISHEK JIRAWLA		Change made for Asset Inventory Status and Asset Available Status
+	7    28-Mar-2025  Divyesh Kathiriya		Update CreatedDate based on Employee time zone
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
 **************************************************************/
@@ -124,6 +125,27 @@ BEGIN
 
 		PRINT @InventoryStatusId
 
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		BEGIN TRY
 			--BEGIN TRANSACTION
 			--	BEGIN
@@ -151,7 +173,10 @@ BEGIN
 								asm.level3 AS DivName,
 								asm.level4 AS DeptName,
 								asm.MasterCompanyId AS MasterCompanyId,
-								asm.CreatedDate AS CreatedDate,
+								--asm.CreatedDate AS CreatedDate,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(asm.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(asm.CreatedDate AS DATETIME)) END CreatedDate,
 								asm.UpdatedDate AS UpdatedDate,
 								asm.CreatedBy AS CreatedBy,
 								asm.UpdatedBy AS UpdatedBy ,

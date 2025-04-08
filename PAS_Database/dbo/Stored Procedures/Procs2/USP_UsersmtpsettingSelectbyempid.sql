@@ -1,6 +1,5 @@
-﻿
---exec USP_UsersmtpsettingSelectbyempid 3
-create    Procedure USP_UsersmtpsettingSelectbyempid
+﻿--exec USP_UsersmtpsettingSelectbyempid 228
+CREATE    Procedure [dbo].[USP_UsersmtpsettingSelectbyempid]
 @EmployeeId bigint 
 AS
 BEGIN
@@ -9,8 +8,8 @@ SET NOCOUNT ON
 
 	BEGIN TRY
 
-	select isnull(smtpsettingId,0)smtpsettingId,Employee.EmployeeId,smtpserver,emailpassword,isnull(portno,0)portno,email,emailtype,verifyemail from Employee 
-	left join Usersmtpsetting on Employee.EmployeeId=Usersmtpsetting.EmployeeId
+	select ISNULL(smtpsettingId,0)smtpsettingId,Employee.EmployeeId,smtpserver,emailpassword,ISNULL(portno,0)portno,email,emailtype,verifyemail,ISNULL(IsIncludeInCC,0) AS IsIncludeInCC from [dbo].[Employee] WITH(NOLOCK)
+	LEFT JOIN [dbo].[Usersmtpsetting] WITH(NOLOCK) on Employee.EmployeeId=Usersmtpsetting.EmployeeId
 	where Employee.EmployeeId=@EmployeeId
 			
 			

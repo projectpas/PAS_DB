@@ -11,6 +11,7 @@
 ** --   --------     -------			----------------------
 	1   01/02/2025   Vishal Suthar		Created
 	2   03/Fwb/2025  RAJESH GAMI		added @WorkOrderPartNumberId and their functionality
+	4	04/Mar/2025	 Bhargav Saliya		UTC Date Changes
 EXEC USP_GetWorkOrderTaskInstructionList 4674, 0, 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTaskInstructionList]
@@ -18,12 +19,22 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTaskInstructionList]
 	@WorkOrderId BIGINT,
 	@WorkOrderTaskId BIGINT = NULL,
 	@FetchTaskOrInstruction BIT = 0,
-	@WorkOrderPartNumberId BIGINT = 0
+	@WorkOrderPartNumberId BIGINT = 0,
+	@EmployeeId BIGINT = 0
 )
 AS
 BEGIN
 	BEGIN TRY 
 	BEGIN
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
 		IF(@WorkOrderPartNumberId > 0)
 		BEGIN
 				IF (ISNULL(@FetchTaskOrInstruction, 0) = 0)
@@ -51,9 +62,9 @@ BEGIN
 						WOTD.Resolution,
 						WOT.MasterCompanyId,
 						WOT.CreatedBy,
-						WOT.CreatedDate,
+						CASE WHEN CAST(WOT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
 						WOT.UpdatedBy,
-						WOT.UpdatedDate
+						CASE WHEN CAST(WOT.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate
 						FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 						INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 						INNER JOIN dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK) ON WOTI.WorkOrderTaskId = WOT.WorkOrderTaskId
@@ -88,8 +99,8 @@ BEGIN
 						WOTI.MasterCompanyId,
 						WOTI.CreatedBy,
 						WOTI.UpdatedBy,
-						WOTI.CreatedDate,
-						WOTI.UpdatedDate,
+						CASE WHEN CAST(WOT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+						CASE WHEN CAST(WOT.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WOT.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
 						WOTI.IsActive,
 						WOTI.IsDeleted 
 						FROM dbo.WorkOrderTaskInstruction WOTI WITH(NOLOCK)

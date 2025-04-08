@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_GetWorkOrderTaskHistoryById]
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to GetWorkOrderTaskHistoryById
@@ -17,17 +16,28 @@
  ** --   --------     -------			--------------------------------
     1    02/11/2025   Ekta Chandegra	Created
 	2    02/25/2025   Ekta Chandegra	Retrieve Task instruction details
+	3    04/03/2025   Bhargav Saliya	UTC Date Changes
 
  EXEC USP_GetWorkOrderTaskHistoryById 146
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_GetWorkOrderTaskHistoryById]
-	@WorkOrderTaskId BIGINT 
+	@WorkOrderTaskId BIGINT,
+	@EmployeeId BIGINT = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
 		SELECT 
 			[WorkOrderTaskHistoryId],
 			[WorkOrderTaskId],
@@ -50,7 +60,7 @@ BEGIN
 			[IsActive],
 			[IsDeleted],
 			[UpdatedBy],
-			[UpdatedDate],
+			CASE WHEN CAST([UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal([UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate],
 			[WorkOrderTaskInstructionId],
 			[WorkOrderTaskInstructionTechId], 
 			[WorkOrderTaskInstructionTechName],

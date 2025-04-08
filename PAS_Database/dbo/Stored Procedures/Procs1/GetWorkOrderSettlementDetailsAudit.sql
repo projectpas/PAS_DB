@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkOrderSettlementDetailsAudit]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Settlement Details Audit 
@@ -18,16 +17,26 @@
  ** --   --------     -------		--------------------------------          
     1    06/02/2020   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
+	3	 02/14/2025	  Bhargav Saliya  UTC Date Changes
      
 --EXEC [GetWorkOrderSettlementDetailsAudit] 1,346,269
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetWorkOrderSettlementDetailsAudit]
-@WorkOrderSettlementDetailId bigint
+@WorkOrderSettlementDetailId bigint,
+@EmployeeId BIGINT = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
 
 		BEGIN TRY
 		BEGIN TRANSACTION
@@ -44,12 +53,12 @@ BEGIN
 					    ISNULL(wosd.ConditionId,0) as ConditionId,
 					    ISNULL(wosd.UserId,0) as UserId,
 					    wosd.UserName,
-					    wosd.sattlement_DateTime,
+						CASE WHEN CAST(wosd.sattlement_DateTime AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wosd.sattlement_DateTime, @CurrntEmpTimeZoneDesc) AS DATETIME))END sattlement_DateTime,
 						wosd.MasterCompanyId,
 						wosd.CreatedBy,
 						wosd.UpdatedBy,
-						wosd.CreatedDate,
-						wosd.UpdatedDate,
+						CASE WHEN CAST(wosd.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wosd.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+						CASE WHEN CAST(wosd.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wosd.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END UpdatedDate,
 						wosd.IsActive,
 						wosd.IsDeleted,
 						co.Description as conditionName

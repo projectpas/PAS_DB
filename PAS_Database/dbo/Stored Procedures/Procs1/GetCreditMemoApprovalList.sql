@@ -11,22 +11,44 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    22/04/2022  Moin Bloch     Created
-	2    13/09/2023  Amit Ghediya   Update for Stand Alone CreditMemo approve.
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+    1    22/04/2022		Moin Bloch			Created
+	2    13/09/2023		Amit Ghediya		Update for Stand Alone CreditMemo approve.
+	3    25-Mar-2025	Divyesh Kathiriya	Update ApprovedDate and RejectedDate based on Employee time zone 
      
--- EXEC GetCreditMemoApprovalList 38,1
+-- EXEC GetCreditMemoApprovalList 38,226,1
 ************************************************************************/
 CREATE       PROCEDURE [dbo].[GetCreditMemoApprovalList]
 	@CreditMemoHeaderId bigint,
+	@EmployeeId bigint,
 	@IsInternalApprove bit
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY	
-
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+			
 	DECLARE @isStandAloneCM AS BIT;
 
 	--IS StandAloneCreditMemo or not.
@@ -47,10 +69,16 @@ BEGIN
 			  ,SACM.[IsActive]
 			  ,SACM.[IsDeleted]
 			  ,ISNULL(CA.[CreditMemoApprovalId],0) 'CreditMemoApprovalId'
-			  ,ISNULL(CA.[ApprovedDate],GETDATE()) 'ApprovedDate'
+			  --,ISNULL(CA.[ApprovedDate],GETDATE()) 'ApprovedDate'
+			  ,ISNULL((CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(CA.[ApprovedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CA.[ApprovedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(CA.[ApprovedDate] AS DATETIME)) END), GETDATE()) ApprovedDate
 			  ,ISNULL(CA.[SentDate],GETDATE()) 'SentDate'		  
 			  ,CA.[ApprovedByName] AS ApprovedBy		  
-			  ,ISNULL(CA.[RejectedDate],GETDATE()) 'RejectedDate'		  	
+			  --,ISNULL(CA.[RejectedDate],GETDATE()) 'RejectedDate'
+			  ,ISNULL((CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(CA.[RejectedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CA.[RejectedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(CA.[RejectedDate] AS DATETIME)) END), GETDATE()) RejectedDate
 			  ,CA.[RejectedByName] 'RejectedBy'
 			  ,ISNULL(CA.[ApprovedById],0) 'ApprovedById'	
 			  ,CA.Memo
@@ -92,10 +120,16 @@ BEGIN
 			  ,CM.[IsActive]
 			  ,CM.[IsDeleted]
 			  ,ISNULL(CA.[CreditMemoApprovalId],0) 'CreditMemoApprovalId'
-			  ,ISNULL(CA.[ApprovedDate],GETDATE()) 'ApprovedDate'
+			  --,ISNULL(CA.[ApprovedDate],GETDATE()) 'ApprovedDate'
+			  ,ISNULL((CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(CA.[ApprovedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CA.[ApprovedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(CA.[ApprovedDate] AS DATETIME)) END), GETDATE()) ApprovedDate
 			  ,ISNULL(CA.[SentDate],GETDATE()) 'SentDate'		  
 			  ,CA.[ApprovedByName] AS ApprovedBy		  
-			  ,ISNULL(CA.[RejectedDate],GETDATE()) 'RejectedDate'		  	
+			  --,ISNULL(CA.[RejectedDate],GETDATE()) 'RejectedDate'	
+			  ,ISNULL((CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(CA.[RejectedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CA.[RejectedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(CA.[RejectedDate] AS DATETIME)) END), GETDATE()) RejectedDate
 			  ,CA.[RejectedByName] 'RejectedBy'
 			  ,ISNULL(CA.[ApprovedById],0) 'ApprovedById'	
 			  ,CA.Memo

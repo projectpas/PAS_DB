@@ -8,22 +8,45 @@
  **********************             
  ** Change History             
  **********************             
- ** PR   Date			 Author				Change Description              
- ** --   --------		 -------			--------------------------------            
+ ** PR   Date			 Author					Change Description              
+ ** --   --------		 -------				--------------------------------            
     1    01-03-2024		Abhishek Jirawla		Created
 	2    23-07-2024     Sahdev Saliya           Added (AccountingPeriod And Set JournalTypeNumber Order by desc) 
 	3    25-07-2024     AMIT GHEDIYA            Updated for get manual asset entry get from stocklineId not from PoId.
+	4    27-Mar-2025	Divyesh Kathiriya		Update EntryDate, TransactionDate based on Employee time zone
 ************************/ 
 --[dbo].[GetAssetInventoryBatchAccountingDetailsById] 328
 -- =============================================
 CREATE   PROCEDURE [dbo].[GetAssetInventoryBatchAccountingDetailsById]
-@ReferenceId bigint 
+@ReferenceId BIGINT,
+@EmployeeId BIGINT
 AS
 BEGIN	
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
    BEGIN       
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+		@CurrntEmpTimeZoneDesc = COALESCE(
+			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		)
+	FROM 
+		dbo.Employee E WITH (NOLOCK) 
+	LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+	LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+	LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE 
+		E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 
 	DECLARE @POMSModuleId INT = 0
 	SELECT @POMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -34,8 +57,14 @@ BEGIN
 			,CBD.[GlAccountId]  
 			,CBD.[GlAccountNumber]  
 			,UPPER(CBD.[GlAccountName]) AS [GlAccountName] 
-			,CBD.[TransactionDate]  
-			,CBD.[EntryDate] 
+			--,CBD.[TransactionDate]  
+			--,CBD.[EntryDate] 
+			,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(CBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CBD.[TransactionDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(CBD.[TransactionDate] AS DATETIME)) END TransactionDate
+			,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				CASE WHEN CAST(CBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(CBD.[EntryDate] AS DATETIME)) END EntryDate
 			,CBD.[JournalTypeId]  
             ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(CBD.JournalTypeNumber)) as JournalTypeName
 			,UPPER(CBD.JournalTypeNumber) as JournalNumber

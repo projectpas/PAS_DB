@@ -16,14 +16,16 @@
 	3	 04/19/2024	  Devendra Shekh	added data for Exchange SO
 	4	 04/19/2024	  Devendra Shekh	modified for invoiceTypeId changes
 	5    11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	6	 21-Mar-2025  Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
 
- -- exec sp_GetCustomerInvoicedatabyInvoiceId 213,0,3    
+ -- exec sp_GetCustomerInvoicedatabyInvoiceId 124,0,3,226    
 **************************************************************/ 
 
 CREATE    PROCEDURE [dbo].[sp_GetCustomerInvoicedatabyInvoiceId]
 @InvoicingId BIGINT,
 @isWorkOrder BIT,
-@InvoiceTypeId INT
+@InvoiceTypeId INT,
+@EmployeeId BIGINT
 AS
 BEGIN
 
@@ -38,15 +40,41 @@ BEGIN
 			Declare @SOInvoiceTypeId INT = 0;
 			Declare @ExchangeInvoiceTypeId INT = 0;
 
-			SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
-			SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
-			SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'EXCHANGE';
+			SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDER';
+			SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER';
+			SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'EXCHANGE';
+			
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 			IF(@InvoiceTypeId = @SOInvoiceTypeId)
 			BEGIN
 
 				SELECT SOBI.SOBillingInvoicingId as InvoiceId,SOBI.InvoiceNo [InvoiceNo],
-				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
+				SOBI.InvoiceStatus [InvoiceStatus],
+				--SOBI.InvoiceDate [InvoiceDate],
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			    ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
+				SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
 				IsWorkOrder=0,
@@ -80,7 +108,12 @@ BEGIN
 			BEGIN
 
 				SELECT ESOBI.SOBillingInvoicingId as InvoiceId,ESOBI.InvoiceNo [InvoiceNo],
-				ESOBI.InvoiceStatus [InvoiceStatus],ESOBI.InvoiceDate [InvoiceDate],ESO.ExchangeSalesOrderNumber [OrderNumber],
+				ESOBI.InvoiceStatus [InvoiceStatus],
+				--ESOBI.InvoiceDate [InvoiceDate],
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(ESOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ESOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			    ELSE (CAST(ESOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
+				ESO.ExchangeSalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				ESOBI.GrandTotal [InvoiceAmt],
 				IsWorkOrder = 0,
@@ -114,7 +147,12 @@ BEGIN
 			BEGIN 
 
 		      SELECT WOBI.BillingInvoicingId [InvoiceId],WOBI.InvoiceNo [InvoiceNo],
-				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
+				WOBI.InvoiceStatus [InvoiceStatus],
+				--WOBI.InvoiceDate [InvoiceDate],
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				  CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			    ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
+				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt],
 				IsWorkOrder=1,

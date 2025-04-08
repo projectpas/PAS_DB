@@ -16,6 +16,7 @@ EXEC [USP_GetCustomerCreditPaymentList]
 ** 3    03/21/2024		Devendra Shekh		ADDED new param @RecordTypeId
 ** 4    03/22/2024		Devendra Shekh		ADDED IsMiscellaneous to select
 ** 5    04/03/2024		Devendra Shekh		ADDED MappingCustomer Data to select(Mapped for Customer Receipt)
+** 6    03/28/2025		Divyesh Kathiriya	Update CreatedDate, UpdatedDate and ReceiveDate based on Employee time zone
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
@@ -42,7 +43,8 @@ CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL,
-@RecordTypeId int = NULL
+@RecordTypeId int = NULL,
+@EmployeeId BIGINT
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -53,6 +55,27 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 		DECLARE @IsMiscellaneous bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -98,9 +121,18 @@ BEGIN
 						CCP.ReceiptId,
 						CCP.IsActive,
 						CCP.IsDeleted,
-						CCP.CreatedDate,
-						CCP.UpdatedDate,
-						CCP.ReceiveDate,
+						--CCP.CreatedDate,
+						--CCP.UpdatedDate,
+						--CCP.ReceiveDate,
+						CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(CCP.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CCP.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						ELSE (CAST(CCP.CreatedDate AS DATETIME)) END CreatedDate,
+						CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(CCP.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CCP.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						ELSE (CAST(CCP.UpdatedDate AS DATETIME)) END UpdatedDate,
+						CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(CCP.ReceiveDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CCP.ReceiveDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						ELSE (CAST(CCP.ReceiveDate AS DATETIME)) END ReceiveDate,
 						CP.ReceiptNo,
 						CP.CntrlNum AS 'ControlNum',
 						--CASE WHEN UPPER(CCP.CustomerName) = 'MISCELLANEOUS' OR UPPER(CCP.CustomerName) = 'MISCELLANEOUS CUSTOMER' THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',

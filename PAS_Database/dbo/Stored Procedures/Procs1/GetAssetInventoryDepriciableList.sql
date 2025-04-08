@@ -19,6 +19,7 @@
 	6    07/16/2024  Devendra Shekh		Added lastDeprRunPeriod to List
 	7    08/05/2024  Devendra Shekh		Added lastDeprDate to List
 	8	 12/11/2024  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
+	9   27-Mar-2025	 Divyesh Kathiriya	Update CreatedDate, UpdateDate and LastDeprDate based on Employee time zone
 	
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -96,6 +97,26 @@ BEGIN
 		DECLARE @LastDateOfSelectedAccountingPeriod Date = NULL;
 		DECLARE @CurrentDateAccountingPeriod VARCHAR(200) = NULL;
 		DECLARE @AvailableAssetAvailableStatusId BIGINT = 0;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+				SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		SELECT @AvailableAssetAvailableStatusId = AssetAvailableStatusId FROM [dbo].[AssetAvailableStatus] WITH (NOLOCK) WHERE UPPER([Status]) = 'AVAILABLE' 
 
@@ -165,8 +186,14 @@ BEGIN
 								UPPER(asm.level3) AS DivName,
 								UPPER(asm.level4) AS DeptName,
 								asm.MasterCompanyId AS MasterCompanyId,
-								asm.CreatedDate AS CreatedDate,
-								asm.UpdatedDate AS UpdatedDate,
+								--asm.CreatedDate AS CreatedDate,
+								--asm.UpdatedDate AS UpdatedDate,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(asm.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(asm.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(asm.CreatedDate AS DATETIME)) END CreatedDate,
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(asm.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(asm.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(asm.UpdatedDate AS DATETIME)) END UpdatedDate,
 								UPPER(asm.CreatedBy) AS CreatedBy,
 								UPPER(asm.UpdatedBy) AS UpdatedBy,
 								asm.IsActive AS IsActive,
@@ -198,7 +225,10 @@ BEGIN
 								B.NetBookValue,
 								B.NBVAfterDepreciation,
 								B.LastDeprRunPeriod,
-								B.DepreciationStartDate as LastDeprDate
+								--B.DepreciationStartDate as LastDeprDate
+								CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+									CASE WHEN CAST(B.DepreciationStartDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(B.DepreciationStartDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(B.DepreciationStartDate AS DATETIME)) END LastDeprDate
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								

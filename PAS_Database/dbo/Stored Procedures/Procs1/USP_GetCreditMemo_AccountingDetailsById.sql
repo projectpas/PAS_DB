@@ -17,12 +17,14 @@
 	2    22/04/2024		Moin Bloch			    Added  Acconting Detail For StandAloneCMModuleId
 	3    23/04/2024     Moin Bloch	            Updated Added Document Number For List 
 	4    16/07/2024     Sahdev Saliya           Added (AccountingPeriod)
+	5    21-Mar-2025	Divyesh Kathiriya		Update TransactionDate and EntryDate based on Employee time zone
        
--- exec USP_GetCreditMemo_AccountingDetailsById 225,0
+-- exec USP_GetCreditMemo_AccountingDetailsById 10091,0,226
 ************************/   
 CREATE   PROCEDURE [dbo].[USP_GetCreditMemo_AccountingDetailsById]    
 @ReferenceId bigint,
-@ModuleId bigint
+@ModuleId bigint,
+@EmployeeId bigint
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -59,6 +61,30 @@ BEGIN
 	 	SELECT @CMModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Stockline';
 	 END
 
+	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	 DECLARE @BaseUtcOffsetSec INT = 0;
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			DBO.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+		SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc;
+
 	 IF(@ModuleId = @StandAloneCMModuleId)
 	 BEGIN
 		SELECT JBD.CommonJournalBatchDetailId  
@@ -70,8 +96,14 @@ BEGIN
 			  ,JBD.[GlAccountId]  
 			  ,JBD.[GlAccountNumber]  
 			  ,JBD.[GlAccountName]  
-			  ,JBD.[TransactionDate]  
-			  ,JBD.[EntryDate]  
+			  --,JBD.[TransactionDate]  
+			  --,JBD.[EntryDate]
+			  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(JBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @BaseUtcOffsetSec, JBD.[TransactionDate]) AS DATETIME)) END 
+			   ELSE (CAST(JBD.[TransactionDate] AS DATETIME)) END TransactionDate
+			  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(JBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @BaseUtcOffsetSec, JBD.EntryDate) AS DATETIME)) END 
+			   ELSE (CAST(JBD.[EntryDate] AS DATETIME)) END EntryDate
 			  ,CPD.[ReferenceID] AS [ReferenceId]
 			  ,CPD.[DocumentNo] AS [ReferenceName]
 			  ,JBD.[JournalTypeId]  
@@ -148,8 +180,14 @@ BEGIN
 			  ,JBD.[GlAccountId]  
 			  ,JBD.[GlAccountNumber]  
 			  ,JBD.[GlAccountName]  
-			  ,JBD.[TransactionDate]  
-			  ,JBD.[EntryDate]  
+			  --,JBD.[TransactionDate]  
+			  --,JBD.[EntryDate]
+			  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(JBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @BaseUtcOffsetSec, JBD.[TransactionDate]) AS DATETIME)) END 
+			   ELSE (CAST(JBD.[TransactionDate] AS DATETIME)) END TransactionDate
+			  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(JBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @BaseUtcOffsetSec, JBD.EntryDate) AS DATETIME)) END 
+			   ELSE (CAST(JBD.[EntryDate] AS DATETIME)) END EntryDate
 			  ,CPD.ReferenceID AS [ReferenceId]
 			  ,CPD.[DocumentNo] AS [ReferenceName]
 			  ,JBD.[JournalTypeId]  

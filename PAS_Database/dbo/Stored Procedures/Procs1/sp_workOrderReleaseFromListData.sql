@@ -21,6 +21,7 @@
 	8    12/16/2024   Moin Bloch     Updated For Get FormType Name
 	9    12/31/2024   Devendra Shekh Updated For Get FormType and WOFormType Name
 	10   02/12/2025   Moin Bloch     Updated For Get Is813013aeOr14ae
+	11   02/14/2025   Bhargav Saliya UTC Date Changes
 	
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
@@ -29,12 +30,21 @@
 CREATE   Procedure [dbo].[sp_workOrderReleaseFromListData]
 @WorkorderId bigint,
 @workOrderPartNoId bigint,
-@ReleaseFromId bigint
+@ReleaseFromId bigint,
+@EmployeeId bigint = 0
 AS
 BEGIN
 
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
 
 		BEGIN TRY
 			    DECLARE @MSModuleId INT;
@@ -83,8 +93,8 @@ BEGIN
 					  ,wro.[MasterCompanyId]
 					  ,wro.[CreatedBy]
 					  ,wro.[UpdatedBy]
-					  ,wro.[CreatedDate]
-					  ,wro.[UpdatedDate]
+					  ,CASE WHEN CAST(wro.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END CreatedDate
+					  ,CASE WHEN CAST(wro.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END UpdatedDate
 					  ,wro.[IsActive]
 					  ,wro.[IsDeleted]
 					  ,wro.[trackingNo]
@@ -149,8 +159,8 @@ BEGIN
 					  ,wro.[MasterCompanyId]
 					  ,wro.[CreatedBy]
 					  ,wro.[UpdatedBy]
-					  ,wro.[CreatedDate]
-					  ,wro.[UpdatedDate]
+					  ,CASE WHEN CAST(wro.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END CreatedDate
+					  ,CASE WHEN CAST(wro.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END UpdatedDate
 					  ,wro.[IsActive]
 					  ,wro.[IsDeleted]
 					  ,wro.[trackingNo]

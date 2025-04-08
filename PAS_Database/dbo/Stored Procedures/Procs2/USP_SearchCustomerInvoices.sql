@@ -35,12 +35,14 @@
 	18  07/23/2024	  Devendra Shekh    optimized SP and Removed unnecessary commented Data
 	19  11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	20  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
-	21  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	22  19-03-2025     RAJESH GAMI     Fix the duplicate record (I added the rowNum and based on that add condition)
+	21  06-03-2025    Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	22  19-03-2025    RAJESH GAMI		Fix the duplicate record (I added the rowNum and based on that add condition)
+	23  20-03-2025    Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
+
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
-@CustomerReference=NULL,@MasterCompanyId=1,@SerialNumber=NULL,@StockType=NULL,@ViewType=N'invoice',@EmployeeId=2,@RemainingAmount=NULL,@LastMSLevel=NULL,@Status=N''
+@CustomerReference=NULL,@MasterCompanyId=1,@SerialNumber=NULL,@StockType=NULL,@ViewType=N'invoice',@EmployeeId=226,@RemainingAmount=NULL,@LastMSLevel=NULL,@Status=N''
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @PageSize int,  
@@ -88,10 +90,30 @@ BEGIN
 	  DECLARE @ClosedCreditMemoStatus INT;
 	  DECLARE @RefundedCreditMemoStatus INT;
 	  DECLARE @RefundRequestedCreditMemoStatus INT;
+	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	  SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
-	  SELECT @WOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WHERE ModuleName='WorkOrder';
-      SELECT @SOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WHERE ModuleName='SalesOrder';
-      SELECT @EXInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WHERE ModuleName='Exchange';
+	  SELECT @WOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='WorkOrder';
+      SELECT @SOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='SalesOrder';
+      SELECT @EXInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='Exchange';
 	  SELECT @CMPostedStatusId = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'POSTED';  	  
       SELECT @ClosedCreditMemoStatus = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'CLOSED';
 	  SELECT @RefundedCreditMemoStatus = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'REFUNDED';  
@@ -112,7 +134,10 @@ BEGIN
 			SELECT WOBI.BillingInvoicingId [InvoicingId],
 				   WOBI.InvoiceNo [InvoiceNo],
 				   WOBI.InvoiceStatus [InvoiceStatus],
-				   WOBI.InvoiceDate [InvoiceDate],
+				   --WOBI.InvoiceDate [InvoiceDate],
+				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			       ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   WO.WorkOrderNum [OrderNumber],
 				   C.Name [CustomerName],
 				   CT.CustomerTypeName [CustomerType],
@@ -193,7 +218,10 @@ BEGIN
 				       SOBI.SOBillingInvoicingId [InvoicingId],
 				       SOBI.InvoiceNo [InvoiceNo],
 					   SOBI.InvoiceStatus [InvoiceStatus],
-					   SOBI.InvoiceDate [InvoiceDate],
+					   --SOBI.InvoiceDate [InvoiceDate],
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.SalesOrderNumber [OrderNumber],
 					   C.Name [CustomerName],
 					   CT.CustomerTypeName [CustomerType],
@@ -264,7 +292,10 @@ BEGIN
 			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
-				   SOBI.InvoiceDate [InvoiceDate],
+				   --SOBI.InvoiceDate [InvoiceDate],
+				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.ExchangeSalesOrderNumber [OrderNumber],
 				   C.Name [CustomerName],
 				   CT.CustomerTypeName [CustomerType],
@@ -456,7 +487,10 @@ BEGIN
 				1 AS RowNum,
 				WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],
-				WOBI.InvoiceDate [InvoiceDate],
+				--WOBI.InvoiceDate [InvoiceDate],
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					 CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],
 				CT.CustomerTypeName [CustomerType],
@@ -504,7 +538,10 @@ BEGIN
 					1 AS RowNum,
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
-				   SOBI.InvoiceDate [InvoiceDate],
+				   --SOBI.InvoiceDate [InvoiceDate],
+				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.SalesOrderNumber [OrderNumber],
 				   C.Name [CustomerName],
 				   CT.CustomerTypeName [CustomerType],
@@ -558,7 +595,10 @@ BEGIN
 					   ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) AS RowNum,
 					   SOBI.InvoiceNo [InvoiceNo],
 					   SOBI.InvoiceStatus [InvoiceStatus],
-					   SOBI.InvoiceDate [InvoiceDate],
+					   --SOBI.InvoiceDate [InvoiceDate],
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.ExchangeSalesOrderNumber [OrderNumber],
 					   C.Name [CustomerName],
 					   CT.CustomerTypeName [CustomerType],

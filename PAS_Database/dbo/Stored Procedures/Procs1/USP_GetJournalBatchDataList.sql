@@ -16,6 +16,7 @@
 	3	 18/10/2023	  Nainshi Joshi		Add [PostedBy] field
 	4	 17/04/2024	  AMIT GHEDIYA		JeNumber filter added
 	5	 27/06/2024	  Bhargav Saliya    PostedBy filter added
+    6	 08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
 
  -- exec USP_GetJournalBatchDataList 92,1          
 **************************************************************/       
@@ -37,7 +38,7 @@ CREATE     PROCEDURE [dbo].[USP_GetJournalBatchDataList]
 @TotalCredit varchar(50)=null,      
 @TotalBalance varchar(50)= null,      
 @MasterCompanyId int= null,      
-@EmployeeId bigint=1,      
+@EmployeeId bigint,      
 @IsDeleted bit= null,      
 @CreatedBy varchar(50),  
 @UpdatedBy varchar(50),
@@ -54,6 +55,27 @@ BEGIN
 	Declare @IsActive BIT = 1        
 	Declare @Count INT;  
 	DECLARE @HeadersIdValue VARCHAR(MAX);
+
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
 
 	SET @RecordFrom = (@PageNumber - 1) * @PageSize;      
 	   
@@ -76,9 +98,9 @@ BEGIN
 		   SELECT COUNT(1) OVER () AS NumberOfItems        
 				  ,JBH.[JournalBatchHeaderId]      
 						   ,JBH.[BatchName]      
-						   ,JBH.[CurrentNumber]      
-						   ,JBH.[EntryDate]      
-						   ,JBH.[PostDate]      
+						   ,JBH.[CurrentNumber]    
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as PostDate
 						   ,JBH.[AccountingPeriod]      
 						   ,JBH.[StatusId]      
 						   ,JBH.[StatusName]      
@@ -90,8 +112,8 @@ BEGIN
 						   ,JBH.[MasterCompanyId]      
 						   ,JBH.[CreatedBy]      
 						   ,JBH.[UpdatedBy]      
-						   ,JBH.[CreatedDate]      
-						   ,JBH.[UpdatedDate]      
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[CreatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[UpdatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate
 						   ,JBH.[IsActive]      
 						   ,JBH.[IsDeleted]  
 						   ,JBH.[PostedBy]

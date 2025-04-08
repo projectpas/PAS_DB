@@ -24,6 +24,7 @@
 	8	 20/02/2025	  Devendra Shekh	 Modified (reading missing Details for remaining modules)
 	9	 05/03/2025	  Abhishek Jirawla   Modified to add the calculation columns in the table to optimize the SP
 	10	 31/03/2025	  Devendra Shekh	 Modified (changes for select [IntigrationStatus])
+	11	 08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -48,7 +49,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@TotalCount int = NULL,
 	@PendingSyncRecords int = NULL,
 	@SyncRecords int = NULL,
-	@IsDeleted bit = NUll
+	@IsDeleted bit = NUll,
+	@EmployeeId bigint
 AS
 BEGIN
 	
@@ -60,6 +62,26 @@ BEGIN
 		DECLARE @IsActive BIT=1
 		DECLARE @Count INT;
 		DECLARE @IntegrationId INT;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
 
 		SET @RecordFrom = (@PageNumber-1) * @PageSize;
 			
@@ -77,7 +99,7 @@ BEGIN
 				ACI.AccountingIntegrationSettingsId, 
 				ACI.IntegrationId,
 				ACI.IntegrationWith,
-				ACI.LastRun,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.LastRun,@CurrntEmpTimeZoneDesc)AS DATETIME)) as LastRun,
 				ACI.Interval,
 				ACI.ModuleId,
 				ACI.[DisplayTitle] AS ModuleName,
@@ -85,15 +107,15 @@ BEGIN
 				ACI.SyncRecords,
 				ACI.PendingSyncRecords,
 				ACI.TotalRecords AS TotalCount,
-				ACI.CreatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
 				ACI.CreatedBy,
-				ACI.UpdatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 				ACI.UpdatedBy,
 				ACI.IsActive,
 				ACI.IsDeleted,
 				ACS.RedirectUrl,
 				COALESCE(ACI.[IntigrationStatus], 'Disconnected') AS [IntigrationStatus],
-				ACI.LastRun AS LastSycDate,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.LastRun,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS LastSycDate,
 				ISNULL(ACI.AllowBulkSync, 0) AS AllowBulkSync
 		FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 				LEFT JOIN dbo.AccountingIntegrationSetup ACS WITH (NOLOCK) ON ACS.MasterCompanyId = ACI.MasterCompanyId AND ACS.IntegrationId = ACI.IntegrationId

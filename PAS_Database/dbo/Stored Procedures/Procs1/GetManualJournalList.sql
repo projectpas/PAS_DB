@@ -17,7 +17,8 @@
 	6   27/11/2023   Bhargav Saliya     Utc Date Changes
 	7   04/09/2024   AMIT GHEDIYA     Modify (Get Debit & Credit Fields)
 	8   25/09/2024   Devendra Shekh     Modify(join change for Ledger and added LegalEntity)
-    
+    9   08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
+
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[GetManualJournalList]  
@@ -86,6 +87,27 @@ BEGIN
 	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 	WHERE LE.LegalEntityId = @EmpLegalEntiyId;
 
+	DECLARE @CurrntEmpTimeZone VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZone = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
+
 	IF(@CreatedDate IS NOT NULL)
 	BEGIN
     SET @CreatedDate = CONVERT(DATETIME,@CreatedDate AT TIME ZONE @CurrntEmpTimeZoneDesc AT TIME ZONE 'UTC');
@@ -118,8 +140,8 @@ BEGIN
 			   MJT.[Name] AS ManualType,  
 			   MJH.ManualJournalBalanceTypeId,
 			   MJBT.[Name] AS ManualJournalBalanceType,			   			  
-			   MJH.EntryDate,
-			   MJH.EffectiveDate,
+			   (Cast(DBO.ConvertUTCtoLocal(MJH.EntryDate,@CurrntEmpTimeZone)AS DATETIME)) as EntryDate,
+			   (Cast(DBO.ConvertUTCtoLocal(MJH.EffectiveDate,@CurrntEmpTimeZone)AS DATETIME)) as EffectiveDate,
 			   MJH.AccountingPeriodId,
 			   Ac.PeriodName,
 			   MJH.ManualJournalStatusId,
@@ -129,8 +151,8 @@ BEGIN
 			   E.FirstName + ' ' + E.LastName as UserName,
 			   MJH.CreatedBy,
 			   MJH.UpdatedBy,			   			   
-			   MJH.CreatedDate,
-			   MJH.UpdatedDate,
+			   (Cast(DBO.ConvertUTCtoLocal(MJH.CreatedDate,@CurrntEmpTimeZone)AS DATETIME)) as CreatedDate,
+			   (Cast(DBO.ConvertUTCtoLocal(MJH.UpdatedDate,@CurrntEmpTimeZone)AS DATETIME)) as UpdatedDate,
 			   CASE WHEN MJH.IsRecuring = 1 THEN 1 ELSE 0 END AS IsRecuring,  
 			   CASE WHEN MJH.IsRecuring = 2 THEN 1 ELSE 0 END AS IsReversing,
 			   CASE WHEN MJH.IsRecuring = 1 THEN 'YES' ELSE 'NO' END AS Recuring,  

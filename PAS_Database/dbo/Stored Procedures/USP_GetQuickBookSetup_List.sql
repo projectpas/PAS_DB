@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    09/02/2024   Devendra Shekh	     CREATED
+	2	 08/04/2025	  Ekta Chandegra	     Convert date using dbo.ConvertUTCtoLocal
 
 exec USP_GetQuickBookSetup_List @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@ClientId=NULL,@ClientSecret=NULL,
 @RedirectUrl=NULL,@Environment=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
@@ -32,7 +33,8 @@ CREATE   PROCEDURE [dbo].[USP_GetQuickBookSetup_List]
 	@IsDeleted bit = NULL,
 	@APIKey VARCHAR(500) = NULL,
 	@IsEnabled VARCHAR(25) = NULL,
-	@MasterCompanyId INT
+	@MasterCompanyId INT,
+	@EmployeeId BIGINT
 AS
 BEGIN
 	
@@ -43,6 +45,26 @@ BEGIN
 		DECLARE @RecordFrom INT;
 		DECLARE @IsActive BIT=1
 		DECLARE @Count INT;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
 
 		IF(@StatusID = 0)
 		BEGIN
@@ -78,10 +100,10 @@ BEGIN
 				ISNULL(ACI.Environment, '') AS 'Environment',
 				ISNULL(ACI.APIKey, '') AS 'APIKey',
 				CASE WHEN ISNULL(ACI.IsEnabled, 0) = 0 THEN 'NO' ELSE 'YES' END AS 'IsEnabled',
-				ACI.MasterCompanyId,			
-				ACI.CreatedDate,
+				ACI.MasterCompanyId,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
 				ACI.CreatedBy,
-				ACI.UpdatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 				ACI.UpdatedBy,
 				ACI.IsActive,
 				ACI.IsDeleted

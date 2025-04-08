@@ -10,13 +10,15 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    09/03/2024   Devendra Shekh	     CREATED
+	2    08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
 
 exec USP_GetQuickBookSetupHistory_ById 
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[USP_GetQuickBookSetupHistory_ById]
 	@AccountingIntegrationSetupId bigint = null,
-	@MasterCompanyId bigint = null
+	@MasterCompanyId bigint = null,
+	@EmployeeId BIGINT
 AS
 BEGIN
 
@@ -25,6 +27,28 @@ BEGIN
   BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
+
 				SELECT	
 				ACI.AccountingIntegrationSetupAuditId, 
 				ACI.AccountingIntegrationSetupId, 
@@ -35,10 +59,10 @@ BEGIN
 				ISNULL(ACI.Environment, '') AS 'Environment',
 				ISNULL(ACI.APIKey, '') AS 'APIKey',
 				ISNULL(ACI.IsEnabled, 0) AS 'IsEnabled',
-				ACI.MasterCompanyId,			
-				ACI.CreatedDate,
+				ACI.MasterCompanyId,	
+				(Cast(DBO.ConvertUTCtoLocal(ACI.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
 				ACI.CreatedBy,
-				ACI.UpdatedDate,
+				(Cast(DBO.ConvertUTCtoLocal(ACI.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 				ACI.UpdatedBy,
 				ACI.IsActive,
 				ACI.IsDeleted

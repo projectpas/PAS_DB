@@ -24,11 +24,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Drop the temporary table if it already exists
     IF OBJECT_ID('tempdb..#MaterialList') IS NOT NULL
         DROP TABLE #MaterialList;
 
-    -- Return the full Workflow row with explicit column selection
 
 		SELECT 
 		w.WorkflowId, w.WorkflowDescription, w.Version, w.WorkScopeId, w.ItemMasterId, 
@@ -47,7 +45,6 @@ BEGIN
 	FROM DBO.Workflow w WITH (NOLOCK)
   WHERE w.WorkflowId = @WorkflowId;
 
-    -- Create temporary table #MaterialList with all columns from WorkflowMaterial
     CREATE TABLE #MaterialList
     (
         WorkflowMaterialListId BIGINT NOT NULL,
@@ -88,7 +85,6 @@ BEGIN
         ConditionName NVARCHAR(50) NULL
     );
 
-    -- Insert material list data
 	INSERT INTO #MaterialList (
 		WorkflowMaterialListId, WorkflowId, ItemMasterId, TaskId, Quantity, 
 		UnitOfMeasureId, ConditionCodeId, UnitCost, ExtendedCost, Price, 
@@ -105,14 +101,13 @@ BEGIN
 		CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, 
 		MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, 
 		ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, 
-		Figure, Item, NULL, NULL, NULL, NULL -- Temporary NULL values
+		Figure, Item, NULL, NULL, NULL, NULL 
 	FROM DBO.WorkflowMaterial wm WITH (NOLOCK)
 	WHERE wm.WorkflowId = @WorkflowId 
 	  AND (wm.IsDeleted IS NULL OR wm.IsDeleted <> 1)
 	ORDER BY wm.WorkflowActionId;
 
 
-    -- Update StockType based on ItemMaster
     UPDATE ml
     SET ml.StockType = 
 		CASE 
@@ -124,29 +119,57 @@ BEGIN
     FROM #MaterialList ml
     INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ml.ItemMasterId = im.ItemMasterId;
 
-    -- Update ItemClassification
     UPDATE ml
     SET ml.ItemClassificationCode = ic.ItemClassificationCode
     FROM #MaterialList ml
     INNER JOIN DBO.ItemClassification ic WITH (NOLOCK) ON ml.ItemClassificationId = ic.ItemClassificationId;
 
-    -- Update UnitOfMeasure
     UPDATE ml
     SET ml.UnitOfMeasure = uom.Description
     FROM #MaterialList ml
     INNER JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON ml.UnitOfMeasureId = uom.UnitOfMeasureId;
 
-    -- Update ConditionName
     UPDATE ml
     SET ml.ConditionName = c.Description
     FROM #MaterialList ml
     INNER JOIN DBO.Condition c WITH (NOLOCK) ON ml.ConditionCodeId = c.ConditionId;
 
-    -- Return the material list
-    SELECT * FROM #tempWF
-    SELECT * FROM #MaterialList;
+    SELECT twf.WorkflowId,
+  twf.WorkflowExpirationDate,
+	twf.FixedAmount,
+	twf.CostOfNew,
+	twf.PercentageOfNew,
+	twf.CostOfReplacement,
+	twf.PercentageOfReplacement,
+	twf.Memo,
+	twf.BERThresholdAmount,
+	twf.WorkOrderNumber,
+	twf.OtherCost,
+	twf.WorkflowCreateDate,
+	twf.PercentageOfMaterial,
+	twf.PercentageOfExpertise,
+	twf.PercentageOfCharges,
+	twf.PercentageOfOthers,
+	twf.PercentageOfTotal FROM #tempWF twf
 
-    SELECT * FROM DBO.ItemMaster im WITH (NOLOCK) inner join #tempWF twf ON twf.ItemMasterId = im.ItemMasterId ;
-    SELECT * FROM DBO.WorkScope ws WITH (NOLOCK) inner join #tempWF twf ON twf.WorkScopeId = ws.WorkScopeId ;
-    SELECT * FROM DBO.Customer c WITH (NOLOCK) inner join #tempWF twf ON twf.CustomerId  = c.CustomerId ;
+    SELECT ml.WorkflowMaterialListId,
+  ml.TaskId,
+	ml.Quantity,
+	ml.UnitCost,
+	ml.ExtendedCost,
+	ml.Price,
+	ISNULL(ml.IsDeferred,0) as IsDeferred,
+	ml.Memo,
+	ml.MaterialMandatoriesName,
+	ml.PartNumber,
+	ml.PartDescription,
+	ml.Figure,
+	ml.Item,
+	ml.ItemClassificationCode,
+	ml.UnitOfMeasure,
+	ml.ConditionName FROM #MaterialList ml;
+
+    SELECT im.ItemMasterId,im.partnumber FROM DBO.ItemMaster im WITH (NOLOCK) inner join #tempWF twf ON twf.ItemMasterId = im.ItemMasterId ;
+    SELECT ws.WorkScopeId,ws.Description,ws.WorkScopeCode FROM DBO.WorkScope ws WITH (NOLOCK) inner join #tempWF twf ON twf.WorkScopeId = ws.WorkScopeId ;
+    
 END;

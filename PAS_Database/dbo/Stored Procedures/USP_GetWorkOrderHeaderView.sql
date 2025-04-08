@@ -28,8 +28,11 @@ BEGIN
         DECLARE @ReferenceNo NVARCHAR(255) = '', 
                 @WorkScope NVARCHAR(255) = '', 
                 @ManagementStructureId BIGINT = 0;
+        DECLARE @CustomerTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Customer' );
+        DECLARE @InternalTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Internal' );
+        DECLARE @TeardownTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Teardown' );
 
-        IF EXISTS (SELECT 1 FROM dbo.WorkOrder WHERE ISNULL(IsSinglePN, 0) = 1)
+        IF EXISTS (SELECT 1 FROM dbo.WorkOrder WITH (NOLOCK) WHERE ISNULL(IsSinglePN, 0) = 1)
         BEGIN
             SELECT TOP 1 
                 @ReferenceNo = wop.CustomerReference,
@@ -38,21 +41,20 @@ BEGIN
             FROM dbo.WorkOrder wo WITH (NOLOCK)
             JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
             JOIN dbo.WorkScope wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
-            WHERE wo.WorkOrderId = @WorkOrderId AND wop.IsDeleted = 0;
+            WHERE wo.WorkOrderId = @WorkOrderId AND ISNULL(wop.IsDeleted,0) = 0;
         END;
 
         BEGIN TRANSACTION;
         
-        -- Fetch WorkOrder Header details
         SELECT 
             CASE 
-                WHEN wo.IsSinglePN = 1 THEN 'Single MPN' 
+                WHEN ISNULL(wo.IsSinglePN,0) = 1 THEN 'Single MPN' 
                 ELSE 'Multiple MPN' 
             END AS SingleMPN,
             CASE 
-                WHEN wo.WorkOrderTypeId = 1 THEN 'Customer WO'
-                WHEN wo.WorkOrderTypeId = 2 THEN 'Internal WO'
-                WHEN wo.WorkOrderTypeId = 3 THEN 'Tear Down WO'
+                WHEN wo.WorkOrderTypeId = @CustomerTypeId THEN 'Customer WO'
+                WHEN wo.WorkOrderTypeId = @InternalTypeId THEN 'Internal WO'
+                WHEN wo.WorkOrderTypeId = @TeardownTypeId THEN 'Tear Down WO'
                 ELSE 'Shop Services WO' 
             END AS WorkOrderType,
             wo.WorkOrderNum AS WorkOrderNumber,
@@ -66,11 +68,11 @@ BEGIN
             ws.Description AS WOStatus,
             c.CustomerCode,
             ISNULL(csr.FirstName + ' ' + csr.LastName, '') AS CSR,
-            CASE WHEN wo.IsSinglePN = 1 THEN wf.WorkFlowWorkOrderId ELSE 0 END AS WorkFlowWorkOrderId,
-            CASE WHEN wo.IsSinglePN = 1 THEN wf.WorkflowId ELSE 0 END AS WorkFlowId,
+            CASE WHEN ISNULL(wo.IsSinglePN,0) = 1 THEN wf.WorkFlowWorkOrderId ELSE 0 END AS WorkFlowWorkOrderId,
+            CASE WHEN ISNULL(wo.IsSinglePN,0) = 1 THEN wf.WorkflowId ELSE 0 END AS WorkFlowId,
             wo.Notes,
             wo.Memo,
-            CASE WHEN wo.IsSinglePN = 1 THEN wf.WorkOrderPartNoId ELSE 0 END AS WOPartNoId,
+            CASE WHEN ISNULL(wo.IsSinglePN,0) = 1 THEN wf.WorkOrderPartNoId ELSE 0 END AS WOPartNoId,
             ISNULL(con.FirstName + ' ' + con.LastName, '') AS CustomerContact,
             ISNULL(con.WorkPhone + ' ' + con.WorkPhoneExtn, '') AS CustomerPhone,
             @ReferenceNo AS CustomerReference,

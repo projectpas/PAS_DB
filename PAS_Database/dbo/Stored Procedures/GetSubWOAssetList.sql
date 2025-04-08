@@ -20,6 +20,7 @@
 	3    04/24/2023   Shrey Chandegara	Join Change with table AssetAttributeType
 	4    06/20/2023   Devendra Shekh	Join Change with table TangibleClass
 	5    07/04/2023   Devendra Shekh	added InventoryNumber,StklineNumber,ControlNumber to select
+	6	 07/Mar/2025	  Bhargav Saliya			UTC Date Changes
        
 exec GetSubWOAssetList 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@SubWorkOrderAssetId=0,@SubWOPartNoId=270,
@@ -41,15 +42,16 @@ CREATE   PROCEDURE [dbo].[GetSubWOAssetList]
  @AssetId varchar(50) = null,  
  @Description varchar(50) = null,  
  @TangibleClassName varchar(50) = null,  
-    @Quantity int = null,      
-    @CheckInDate datetime = null,  
-    @CheckOutDate  datetime = null,  
+ @Quantity int = null,      
+ @CheckInDate datetime = null,  
+ @CheckOutDate  datetime = null,  
  @CheckInBy  varchar(50) = null,  
  @CheckOutBy  varchar(50) = null,  
-    @IsDeleted bit= null,  
+ @IsDeleted bit= null,  
  @MasterCompanyId bigint = NULL,  
  @AssetClass  varchar(50) = null,  
- @Status  varchar(50) = null  
+ @Status  varchar(50) = null ,
+ @EmployeeId bigint = 0 
   
 AS  
 BEGIN  
@@ -57,6 +59,13 @@ BEGIN
  -- interfering with SELECT statements.  
  SET NOCOUNT ON;  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
+
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE E.EmployeeId = @EmployeeId; 
   
  BEGIN TRY  
    BEGIN TRANSACTION  
@@ -108,17 +117,17 @@ BEGIN
        (CIB.FirstName + ' ' + CIB.LastName) AS CheckInBy,  
        (COE.FirstName + ' ' + COE.LastName) AS CheckOutEmp,  
        (COB.FirstName + ' ' + COB.LastName) AS CheckOutBy,  
-       COCI.CheckInDate,  
-       COCI.CheckOutDate,  
+	   CASE WHEN CAST(COCI.CheckInDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(COCI.CheckInDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CheckInDate,
+	   CASE WHEN CAST(COCI.CheckOutDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(COCI.CheckOutDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CheckOutDate,
        case when isnull(WOA.IsFromWorkFlow,0) =0 then 'No' else 'Yes' end IsFromWorkFlowNew,    
                             CASE WHEN  ISNULL(COCI.CheckOutDate,'') !='' THEN 'Checked Out of WO' WHEN isnull(COCI.CheckInDate,'') !='' THEN 'Checked In To WO'  ELSE ''  END  AS Status    
        ,AI.InventoryNumber AS InventoryNumber
 	   ,AI.StklineNumber AS StklineNumber
 	   ,AI.ControlNumber AS ControlNumber
 	   FROM dbo.SubWorkOrderAsset WOA WITH (NOLOCK)  
-       join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId  
-       LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId
-       LEFT JOIN dbo.SubWorkOrderTask SWOT WITH(NOLOCK) on SWOT.SubWorkOrderTaskId = WOA.TaskId
+       join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId 
+	   LEFT JOIN dbo.SubWorkOrderTask SWOT WITH(NOLOCK) on SWOT.SubWorkOrderTaskId = WOA.TaskId
+       LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
        LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  
        JOIN dbo.TangibleClass at WITH (NOLOCK) ON AAT.TangibleClassId = at.TangibleClassId  
        LEFT JOIN dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH (NOLOCK) ON WOA.SubWorkOrderAssetId = COCI.SubWorkOrderAssetId AND COCI.IsQtyCheckOut = 1  

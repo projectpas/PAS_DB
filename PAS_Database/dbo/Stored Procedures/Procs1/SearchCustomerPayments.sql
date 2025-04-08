@@ -11,12 +11,13 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/23/2022   Unknown			Created
-	2    03/06/2024   Moin Bloch		Modified Added PostedDate
-	3    24/10/2024   Devendra Shekh	Modified (added if/else for details and receipt view)
-	4   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    12/23/2022   Unknown				Created
+	2    03/06/2024   Moin Bloch			Modified Added PostedDate
+	3    24/10/2024   Devendra Shekh		Modified (added if/else for details and receipt view)
+	4    06-03-2025   Shrey Chandegara		Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	5    24-Mar-2025  Divyesh Kathiriya		Update OpenDate, PostedDate based on Employee time zone 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[SearchCustomerPayments]
     @PageNumber INT,
@@ -92,6 +93,27 @@ BEGIN
 			 [CreditMemoAmount] [decimal](18,2) NULL
 		)
 
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+		SELECT 
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+		FROM 
+			DBO.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
         IF @StatusID = 0
         BEGIN
             SET @StatusID = NULL;
@@ -125,7 +147,10 @@ BEGIN
 					S.Name AS 'Status',
 					LEB.BankAccountNumber AS 'BankAccountNumber',
 					LEB.BankName AS 'BankAcct',
-					CP.OpenDate,
+					--CP.OpenDate,
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(CP.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(CP.OpenDate AS DATETIME)) END OpenDate,
 					CP.DepositDate,
 					AP.PeriodName AS 'AcctingPeriod',
 					CP.Reference,
@@ -142,7 +167,10 @@ BEGIN
 						WHEN ISNULL(icd.CurrencyId, 0) > 0 THEN icd.CurrencyId
 						ELSE 0 
 					END AS 'CurrencyId',
-					CP.PostedDate
+					--CP.PostedDate
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(CP.PostedDate AS DATETIME)) END PostedDate
 				FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
 				INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId
@@ -317,7 +345,10 @@ BEGIN
 					CP.ReceiptID,
 					CP.ReceiptNo AS 'ReceiptNo',
 					LEB.BankName AS 'BankAcct',
-					CP.OpenDate,
+					--CP.OpenDate,
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(CP.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(CP.OpenDate AS DATETIME)) END OpenDate,
 					CP.Amount AS 'ReceiptAmount',
 					CP.AmtApplied AS 'ReceiptAmtApplied',
 					CP.AmtRemaining AS 'ReceiptAmtRemaining',

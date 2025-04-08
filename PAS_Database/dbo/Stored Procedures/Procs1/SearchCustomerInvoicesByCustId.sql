@@ -8,40 +8,43 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author		Change Description              
- ** --   --------     -------		-------------------------------            
-    1    19/05/2023   Satish Gohil     Show only legal entity releted invoice
-	2    25/07/2023   Moin Bloch       Removed Credit Memo Used Amount from Remaining Amount
-	3    18/09/2023   Hemant Saliya    Corrected Legal Entity Join
-	4    03/10/2023   Moin Bloch       Added Stand Alone CreditMemo and Manual Journal Entry Details
-	5    16/10/2023   Moin Bloch       Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
-	6    10/11/2023   Amit Ghediya     Modify(Added Exchange Invoice)
-	7    27/11/2023   Amit Ghediya     Modify(Exchange Invoice Disc Amount/Date)
-	8    06/12/2023   Amit Ghediya     Modify(Exchange Invoice Disc Amount/Date)
-	9    14/12/2023   Amit Ghediya     Modify(NetDays to Days for calculation)
-	10   05/01/2024   Moin Bloch       Renamed CreditTerms.Percentage To PercentId
-	11   02/1/2024	  AMIT GHEDIYA	   Added isperforma Flage for SO
-	12   08/02/2024	  Devendra Shekh   Added IsInvoicePosted flage for WO
-	13   14/02/2024	  AMIT GHEDIYA     Added IsBilling flage for SO when standard invocie post proforma not available in Receipt information.
-    14   14/02/2024	  Devendra Shekh   Duplicate wo for multiple MPN issue resolved
-	15   20/02/2024	  AMIT GHEDIYA     Update Doc type name for performa for both SO & WO
-	16   22/02/2024	  Devendra Shekh   Added isperforma to select
-	17   08/03/2024   Moin Bloch       Modify(makes DSO 0 when it goes negaitive)
-	18   13/03/2024   Moin Bloch       Modify(makes Exchange Invoice to Invoice)
-	19   15/03/2024   Moin Bloch       Modify(Changed DSO Logic)
-	20   19/03/2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
-	21   13/03/2024   Moin Bloch       Modify(makes Performa Invoice to Invoice)
-	22   19/04/2024   Moin Bloch       Modify(CM Status Issue)
-	23   21/06/2024   Hemant Saliya    Added Un Applied Cash to utilize in Cash Receipt.
-	24	 11-Oct-2024  Bhargav Saliya   Get Module status 
-	25   11/05/2024	  AMIT GHEDIYA	   Update condition.
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			-------------------------------            
+    1    19/05/2023   Satish Gohil		Show only legal entity releted invoice
+	2    25/07/2023   Moin Bloch		Removed Credit Memo Used Amount from Remaining Amount
+	3    18/09/2023   Hemant Saliya		Corrected Legal Entity Join
+	4    03/10/2023   Moin Bloch		Added Stand Alone CreditMemo and Manual Journal Entry Details
+	5    16/10/2023   Moin Bloch		Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
+	6    10/11/2023   Amit Ghediya		Modify(Added Exchange Invoice)
+	7    27/11/2023   Amit Ghediya		Modify(Exchange Invoice Disc Amount/Date)
+	8    06/12/2023   Amit Ghediya		Modify(Exchange Invoice Disc Amount/Date)
+	9    14/12/2023   Amit Ghediya		Modify(NetDays to Days for calculation)
+	10   05/01/2024   Moin Bloch		Renamed CreditTerms.Percentage To PercentId
+	11   02/1/2024	  AMIT GHEDIYA		Added isperforma Flage for SO
+	12   08/02/2024	  Devendra Shekh	Added IsInvoicePosted flage for WO
+	13   14/02/2024	  AMIT GHEDIYA		Added IsBilling flage for SO when standard invocie post proforma not available in Receipt information.
+    14   14/02/2024	  Devendra Shekh	Duplicate wo for multiple MPN issue resolved
+	15   20/02/2024	  AMIT GHEDIYA		Update Doc type name for performa for both SO & WO
+	16   22/02/2024	  Devendra Shekh	Added isperforma to select
+	17   08/03/2024   Moin Bloch		Modify(makes DSO 0 when it goes negaitive)
+	18   13/03/2024   Moin Bloch		Modify(makes Exchange Invoice to Invoice)
+	19   15/03/2024   Moin Bloch		Modify(Changed DSO Logic)
+	20   19/03/2024   Bhargav Saliya	Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
+	21   13/03/2024   Moin Bloch		Modify(makes Performa Invoice to Invoice)
+	22   19/04/2024   Moin Bloch		Modify(CM Status Issue)
+	23   21/06/2024   Hemant Saliya		Added Un Applied Cash to utilize in Cash Receipt.
+	24	 11-Oct-2024  Bhargav Saliya	Get Module status 
+	25   11/05/2024	  AMIT GHEDIYA		Update condition.
+	26   19-Mar-2025  Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
 
-EXEC  [dbo].[SearchCustomerInvoicesByCustId] 90,1 
+
+EXEC  [dbo].[SearchCustomerInvoicesByCustId] 90,1,226 
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
-@legalEntityId BIGINT = 0
+@legalEntityId BIGINT = 0,
+@EmployeeId BIGINT
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
@@ -60,14 +63,38 @@ BEGIN
 	 SELECT @CMPostedStatusId = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 
 	 SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
-	 SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
+	 SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 	 SELECT @SuspenseModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SUSPENSEANDUNAPPLIEDPAYMENT';
     
+	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+				
 		SELECT SOBI.SalesOrderId AS 'Id',      
 	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       		     
 			  CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',    
 			  SOBI.InvoiceNo AS 'DocNum',       
-			  SOBI.InvoiceDate,       
+			  --SOBI.InvoiceDate,
+			  CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 			  SOBI.GrandTotal AS 'OriginalAmount',       
 			  SOBI.RemainingAmount,     
 			  0 AS 'PaymentAmount',      
@@ -133,7 +160,10 @@ BEGIN
 			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   			
 			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END AS 'DocumentType',
 			 WOBI.InvoiceNo AS 'DocNum',      
-			 WOBI.InvoiceDate,      
+			 --WOBI.InvoiceDate,
+			 CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				  CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			 ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 			 WOBI.GrandTotal AS 'OriginalAmount',      
 			 WOBI.RemainingAmount,   
 			 0 AS 'PaymentAmount',       
@@ -199,7 +229,10 @@ BEGIN
 		    CM.CreditMemoHeaderId AS 'SOBillingInvoicingId',    
 		    CASE WHEN COUNT(SACMD.CreditMemoHeaderId) > 0 THEN 'Stand Alone Credit Memo' ELSE 'Credit Memo' END AS 'DocumentType',      
 		    CM.CreditMemoNumber  AS 'DocNum',       
-		    CM.InvoiceDate,       
+		    --CM.InvoiceDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(CM.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(CM.InvoiceDate AS DATETIME)) END InvoiceDate,
 		    CM.Amount AS 'OriginalAmount',    
 		    0 AS'RemainingAmount',    
 		    0 AS 'PaymentAmount',      
@@ -257,7 +290,10 @@ BEGIN
 		    CCP.CustomerCreditPaymentDetailId AS 'SOBillingInvoicingId',    
 		    'Unapplied Cash' AS 'DocumentType',      
 		    CCP.SuspenseUnappliedNumber  AS 'DocNum',       
-		    CCP.ReceiveDate As InvoiceDate,       
+		    --CCP.ReceiveDate As InvoiceDate,
+			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				 CASE WHEN CAST(CCP.ReceiveDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CCP.ReceiveDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			ELSE (CAST(CCP.ReceiveDate AS DATETIME)) END InvoiceDate,
 		    CCP.RemainingAmount AS 'OriginalAmount',    
 		    0 AS'RemainingAmount',    
 		    0 AS 'PaymentAmount',      
@@ -308,7 +344,10 @@ BEGIN
 			   MJH.ManualJournalHeaderId AS 'SOBillingInvoicingId',      
 			   'MANUAL JOURNAL' AS 'DocumentType',
 			   UPPER(MJH.JournalNumber) AS 'DocNum', 
-			   MJH.[PostedDate] AS InvoiceDate,  
+			   --MJH.[PostedDate] AS InvoiceDate, 
+				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					 CASE WHEN CAST(MJH.[PostedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(MJH.[PostedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				ELSE (CAST(MJH.[PostedDate] AS DATETIME)) END InvoiceDate,
 			   SUM(ISNULL(MJD.Debit,0) - ISNULL(MJD.Credit,0)) AS 'OriginalAmount', 
 			   0 AS 'RemainingAmount',    
 		       0 AS 'PaymentAmount',      
@@ -344,7 +383,7 @@ BEGIN
 			INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.[ManualJournalHeaderId] = MJD.[ManualJournalHeaderId]		  
 			INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.CustomerId = MJD.ReferenceId AND MJD.ReferenceTypeId = 1 
 			LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.[CurrencyId] = MJH.[FunctionalCurrencyId]
-			LEFT JOIN [dbo].[ManualJournalStatus] MJS  ON MJS.[ManualJournalStatusId] = MJH.[ManualJournalStatusId]
+			LEFT JOIN [dbo].[ManualJournalStatus] MJS WITH (NOLOCK) ON MJS.[ManualJournalStatusId] = MJH.[ManualJournalStatusId]
 			INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]
 			LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 
 			INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
@@ -360,7 +399,10 @@ BEGIN
 	          ESOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
 		      'Invoice' AS 'DocumentType',      
 			  ESOBI.InvoiceNo AS 'DocNum',       
-			  ESOBI.InvoiceDate,       
+			  --ESOBI.InvoiceDate,
+			  CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+				   CASE WHEN CAST(ESOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ESOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			  ELSE (CAST(ESOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 			  ESOBI.GrandTotal AS 'OriginalAmount',       
 			  ESOBI.RemainingAmount,    
 			  0 AS 'PaymentAmount',      

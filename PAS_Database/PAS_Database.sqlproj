@@ -3608,6 +3608,7 @@
     <Build Include="dbo\Stored Procedures\SP_GetSubWorkOrderMPNsById.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderFormTypePrintView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetRepairOrderPartApprovals.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSOFrightsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderAuditHistory.sql" />
     <Build Include="dbo\Tables\BillingMethod.sql" />
@@ -3623,6 +3624,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetPOHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPOHeaderDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkFlowWithMaterialList.sql" />
+    <Build Include="dbo\User Defined Types\WorkFlowType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

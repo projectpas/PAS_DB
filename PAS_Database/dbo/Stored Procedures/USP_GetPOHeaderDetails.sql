@@ -27,7 +27,7 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
         BEGIN 
-		declare @moduleId int = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WHERE ModuleName = 'POHeader')
+		declare @moduleId int = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'POHeader')
             SELECT TOP 1
                 po.PurchaseOrderId,
                 po.PurchaseOrderNumber,

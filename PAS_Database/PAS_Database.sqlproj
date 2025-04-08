@@ -3621,6 +3621,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingPdfData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItemData.sql" />
     <Build Include="dbo\User Defined Types\WorkFlowType.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOConfirmationListExport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

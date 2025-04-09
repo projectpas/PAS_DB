@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    26/03/2025   Moin Bloch    Created
+	2    07/04/2025   Moin Bloch    Added [IsVersionIncrease] Condition
      
 --   EXEC [USP_GetWorkOrderBillingInvoicingPdfData] 3190
 **************************************************************/
@@ -118,7 +119,7 @@ BEGIN
 			INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WFWO.[WorkOrderPartNoId] = WOP.[ID]
 			WHERE T.[BillingInvoicingId] = @BillingInvoicingId
 		) AS CUSTREF ON BI.WorkFlowWorkOrderId = CUSTREF.WorkFlowWorkOrderId
-		WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0
+		WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 	END TRY    
 	BEGIN CATCH      

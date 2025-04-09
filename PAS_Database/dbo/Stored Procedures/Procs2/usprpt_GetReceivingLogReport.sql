@@ -19,7 +19,7 @@
 	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
 	 4    20-MAR-2024		Vishal Suthar		fixed an issue with join for repair order records
 	 5    29-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
-       
+	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)       
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetReceivingLogReport] 
@@ -105,11 +105,11 @@ BEGIN
 				UPPER(POP.manufacturer) 'manufacturer',  
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
-				UPPER(STL.Quantity) 'qtyrcvd',  
+				(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) 'qtyrcvd',  
 				--UPPER(POP.UnitCost) 'unitcost',  
 				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
 				--UPPER(POP.ExtendedCost) 'extcost',  
-				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
+				UPPER((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
 				UPPER(STL.CreatedBy) 'receivedby',  
@@ -134,11 +134,16 @@ BEGIN
 				INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId and POP.isParent=1  
 				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId and STL.IsParent=1     
 				INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
+				INNER JOIN (
+						SELECT SD.PurchaseOrderId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
+						FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
+						GROUP BY SD.PurchaseOrderId
+					) SD ON SD.PurchaseOrderId = PO.PurchaseOrderId
 				LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			  WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
-			   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+			   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 			   AND
 			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -169,11 +174,11 @@ BEGIN
 				UPPER(POP.manufacturer) 'manufacturer',  
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
-				UPPER(STL.Quantity) 'qtyrcvd',  
+				(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END)'qtyrcvd', 
 				--UPPER(POP.UnitCost) 'unitcost',  
 				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
 				--UPPER(POP.ExtendedCost) 'extcost',  
-				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
+				UPPER((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
 				UPPER(STL.CreatedBy) 'receivedby',  
@@ -198,11 +203,16 @@ BEGIN
 				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
 				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
 				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
+				INNER JOIN (
+						SELECT SD.RepairOrderId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
+						FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
+						GROUP BY SD.RepairOrderId
+					) SD ON SD.RepairOrderId = PO.RepairOrderId
 				LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 				WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
-			   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+			   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 			   AND
 			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -243,11 +253,11 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.manufacturer) 'manufacturer',  
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
-        UPPER(STL.Quantity) 'qtyrcvd',  
+        (CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) 'qtyrcvd', 
 		--ISNULL(POP.UnitCost, 0) 'unitcost',  
-		ISNULL(STL.UnitCost, 0) 'unitcost',  
+		(ISNULL(STL.UnitCost, 0)) 'unitcost',  
         --ISNULL(POP.ExtendedCost, 0) 'extcost',   
-        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',   
+        ((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',   
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         UPPER(STL.CreatedBy) 'receivedby',  
@@ -274,12 +284,17 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         --INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON POP.ItemMasterId = im.ItemMasterId  
         INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId and STL.IsParent=1     
 		INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
+		INNER JOIN (
+				SELECT SD.PurchaseOrderId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
+				FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
+				GROUP BY SD.PurchaseOrderId
+			) SD ON SD.PurchaseOrderId = PO.PurchaseOrderId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
         --INNER JOIN DBO.mastercompany MC WITH (NOLOCK) ON STL.MasterCompanyId = MC.MasterCompanyId 
       WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
-	   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+	   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 	   AND 
 	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -310,11 +325,11 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.manufacturer) 'manufacturer',  
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
-        UPPER(STL.Quantity) 'qtyrcvd',  
+        (CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) 'qtyrcvd',  
         --ISNULL(POP.UnitCost, 0) 'unitcost',  
-        ISNULL(STL.UnitCost, 0) 'unitcost',  
+        (ISNULL(STL.UnitCost, 0)) 'unitcost',  
         --ISNULL(POP.ExtendedCost, 0) 'extcost',  
-        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
+        ((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE ISNULL(SD.TotalQtyDraft, 0)END) * (ISNULL(STL.UnitCost, 0))) 'extcost',  
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         UPPER(STL.CreatedBy) 'receivedby',  
@@ -340,11 +355,16 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
         INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
 	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
+		INNER JOIN (
+					SELECT SD.StockLineId,SD.RepairOrderId, SUM(ISNULL(SD.Quantity, 0)) AS TotalQtyDraft
+					FROM DBO.StocklineDraft SD WITH (NOLOCK) WHERE ISNULL(SD.StockLineId,0) > 0
+					GROUP BY SD.StockLineId,SD.RepairOrderId
+					) SD ON SD.RepairOrderId = PO.RepairOrderId AND STL.StockLineId = SD.StockLineId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
-	   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+	   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 	   AND 
 	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

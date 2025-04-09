@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[USP_GetAllWOAssignmentOpenItem]      
+﻿/*************************************************************           
+ ** File:   [USP_GetAllWOAssignmentOpenItem]           
+ ** Author: Unknown
+ ** Description: This stored procedure is used GetAllWOAssignmentOpenItem 
+ ** Purpose:         
+ ** Date:      
+       
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+	1                 Unknown              Created
+	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
+	
+**************************************************************/
+CREATE   PROCEDURE [dbo].[USP_GetAllWOAssignmentOpenItem]      
 (   
 @PageNumber int,  
 @PageSize int,  
@@ -20,7 +36,9 @@
 @nte varchar(20) = null,  
 @workOrderNumber varchar(20) = NULL,  
 @workOrderPartNoId bigint = 0,  
-@ManagementStructureId bigint = 0  
+@ManagementStructureId bigint = 0,
+@EmployeeId bigint
+
 )      
 AS      
 BEGIN      
@@ -34,7 +52,27 @@ SET NOCOUNT ON
   DECLARE @CloseWOStatusId INT;  
   DECLARE @CloseTaskStatusId INT;  
   DECLARE @ExpertiseType VARCHAR(50);  
-  
+  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId;
+
   SET @RecordFrom = (@PageNumber - 1) * @PageSize;  
     
   IF @SortColumn is null  
@@ -90,7 +128,7 @@ SET NOCOUNT ON
          WOP.ID AS workOrderPartNoId,  
          wo.CustomerId,  
          im.ItemMasterId,  
-         WOP.AssignDate As AssignedDate,  
+		(Cast(DBO.ConvertUTCtoLocal(WOP.AssignDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) As AssignedDate,
          wop.ExpertiseId as EmployeeExpertiseId,  
          wop.TechnicianId as EmployeeId,
 		 wo.ReceivingCustomerWorkId

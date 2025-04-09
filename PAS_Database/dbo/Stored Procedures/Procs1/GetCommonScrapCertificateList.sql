@@ -18,6 +18,7 @@
     2    24/01/2024   Bhargav Saliya Add Field [StockLineNumber] 
     3    16/04/2024   Moin Bloch      Added New Field Scrap Certificate Date	
 	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	5    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
 	
  EXECUTE [GetCommonScrapCertificateist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
 **************************************************************/   
@@ -44,7 +45,8 @@ CREATE       PROCEDURE [dbo].[GetCommonScrapCertificateList]
  @partDescription varchar(50) = null,
  @cntrlNum varchar(50) = null,
  @stockLineNumber varchar(50) = null,
- @IsDeleted bit= null
+ @IsDeleted bit= null,
+ @EmployeeId bigint 
  
 AS   
 BEGIN  
@@ -59,7 +61,26 @@ BEGIN
     DECLARE @Count Int;  
     DECLARE @WorkOrderStatusId int;   
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId   
+
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId;
+
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
     DROP TABLE #TempResult   
@@ -148,8 +169,8 @@ BEGIN
 				,UPPER(EMc.FirstName +'  '+EMc.LastName) as CertifiedBy
 				,isnull(SC.CreatedBy,SC.CreatedBy) as CreatedBy
 				,isnull(SC.UpdatedBy,SC.UpdatedBy) as UpdatedBy
-				,isnull(SC.CreatedDate,SC.CreatedDate) as CreatedDate
-				,isnull(SC.UpdatedDate,SC.UpdatedDate) as UpdatedDate
+				,(Cast(DBO.ConvertUTCtoLocal(SC.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
+				,(Cast(DBO.ConvertUTCtoLocal(SC.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate
 				,Isnull(SC.isSubWorkOrder,0) as isSubWorkOrder
 				,SC.MasterCompanyId
 				,UPPER(CTE.StockLineNumber) StockLineNumber
@@ -192,7 +213,7 @@ BEGIN
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
       (IsNull(@WorkOrderNumber,'') ='' OR WorkOrderNumber like '%' + @WorkOrderNumber+'%') AND  
-      (IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=Cast(@CreatedDate as date)) AND  
+      (IsNull(@CreatedDate,'') ='' OR CAST(CreatedDate AS date)=Cast(@CreatedDate as date)) AND  
       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and  
       (IsNull(@ScrapReason,'') ='' OR ScrapReason like '%' + @ScrapReason+'%') AND  
       (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  

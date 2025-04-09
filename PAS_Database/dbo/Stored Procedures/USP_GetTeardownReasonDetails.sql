@@ -15,6 +15,7 @@
 	2   25-Feb-2025		Hemant Saliya			Updated for Get Revised Condition
 	3   26-Feb-2025		Devendra Shekh			Updated to Get Revised PartNumber
 	4   26-Feb-2025		Devendra Shekh			Added Changes for SubWO
+	5	09-APR-2025		Devendra Shekh			Comparing @CorrectiveActionCode instead of name
 	
  EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1, 0
  EXECUTE [USP_GetTeardownReasonDetails] 147, '', 0, 1, 222
@@ -34,6 +35,7 @@ BEGIN
 		DECLARE @NeoSourceMemoText VARCHAR(1000) = '##condition## PER ##publication## REV: ##revisionNum## DATED: ##revisedDate##.<br>S/N: ##oldSRNUM## CHANGED TO ##NewSRNum## FOR TRACKING PURPOSES.<br>LATCH CORRECTLY IDENTIFIED AS PART NUMBER ##MPNPNNUMBER##';
 		DECLARE @NeoSourceCompanyId INT = 0;
 		DECLARE @RPPubTypeId BIGINT = 0;
+		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
 
 		DECLARE @ConditionName VARCHAR(256),@CMMIds VARCHAR(256), @Publications VARCHAR(500), @CurrentSerialNumber VARCHAR(100), @RevisedSerialNumber VARCHAR(100), @PartNumber VARCHAR(200),
 		@PublicationName NVARCHAR(MAX), @RevisionDate NVARCHAR(MAX), @RevisionNum NVARCHAR(MAX);
@@ -87,12 +89,12 @@ BEGIN
 			dt.Reason,
 			Memo = 
 				CASE 
-					WHEN @MasterCompanyId = @NeoSourceCompanyId AND LOWER(tt.Name) = 'corrective action' THEN dt.Memo + ' ' + @NeoSourceMemoText
+					WHEN @MasterCompanyId = @NeoSourceCompanyId AND (tt.Code) = @CorrectiveActionCode THEN dt.Memo + ' ' + @NeoSourceMemoText
 					WHEN tt.CommonTeardownTypeId IS NULL THEN dt.Memo
-					WHEN LOWER(tt.Name) = 'corrective action' 
+					WHEN (tt.Code) = @CorrectiveActionCode 
 						 AND UPPER(dt.Memo) LIKE '%CMM ATA%' 
 					THEN REPLACE(dt.Memo, 'CMM ATA', 'CMM ATA:' + @PublicationIds)
-					WHEN LOWER(tt.Name) = 'corrective action' 
+					WHEN (tt.Code) = @CorrectiveActionCode
 						 AND @PublicationIds <> '' 
 					THEN dt.Memo + '<p>CMM ATA:' + @PublicationIds + '</p>'
 					ELSE dt.Memo

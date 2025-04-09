@@ -3609,7 +3609,17 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderFormTypePrintView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderPartApprovals.sql" />
-    <Build Include="Security\RoleMemberships.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOFrightsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesOrderAuditHistory.sql" />
+    <Build Include="dbo\Tables\BillingMethod.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesOrderChargeHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateWorkFlowHeaderData.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderChargesBySOId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderFreightAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpadteWOSiteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetPOApprovalList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItemData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

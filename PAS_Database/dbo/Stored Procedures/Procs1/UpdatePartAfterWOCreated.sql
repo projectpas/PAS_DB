@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/31/2023   Vishal Suthar Created
+    2    04/07/2025   Vishal Suthar Update Part Number, Part Description when part is modified
      
 -- EXEC [UpdatePartAfterWOCreated] 1005, 2956
 **************************************************************/
@@ -49,6 +50,13 @@ BEGIN
 					WOP.ConditionId = @ConditionId,
 					WOP.RevisedItemmasterid = @ItemMasterId
 					FROM [dbo].WorkOrderPartNumber WOP WITH(NOLOCK)
+					WHERE WOP.ID = @WorkOrderPartNumberId;
+
+					UPDATE WorkOrderPartNumber SET PartNumber = IM.PartNumber, PartDescription = IM.PartDescription,
+					RevisedPartNumber = IMR.PartNumber, RevisedPartDescription = IMR.PartDescription
+					FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+					LEFT JOIN DBO.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
+					LEFT JOIN DBO.ItemMaster IMR WITH(NOLOCK) ON IMR.ItemMasterId = WOP.RevisedItemmasterid
 					WHERE WOP.ID = @WorkOrderPartNumberId;
 
 					UPDATE WOSD

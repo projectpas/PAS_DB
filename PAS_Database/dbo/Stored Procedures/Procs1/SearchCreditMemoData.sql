@@ -18,7 +18,8 @@
 	5    04/04/2024   Devendra Shekh    added vendorid to select
 	6    04/10/2024   HEMANT            Updated Status Id 
 	7    06/25/2024   Moin Bloch        Updated Multiple Reson
-	8    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	8    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	9    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and returnDate based on Employee time zone
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
@@ -61,7 +62,29 @@ BEGIN
  BEGIN TRY    
    DECLARE @RecordFrom int;   
    DECLARE @ModuleID varchar(500) ='61'     
-   Declare @Count Int;    
+   DECLARE @Count Int;    
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+	FROM 
+		DBO.Employee E WITH (NOLOCK) 
+	LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+	LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+	LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE 
+		E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
    SET @RecordFrom = (@PageNumber - 1) * @PageSize;  
   
    if(@GlobalFilter IS NULL)  
@@ -126,8 +149,14 @@ BEGIN
 						,MS.[AllMSlevels]        
                   ,0 as [Qty]     
                   ,0 as [Amount]  
-                  ,CM.[CreatedDate] AS IssueDate  
-                  ,CM.[ReturnDate]
+                  --,CM.[CreatedDate] AS IssueDate
+				  --,CM.[ReturnDate]
+				  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(CM.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				   ELSE (CAST(CM.CreatedDate AS DATETIME)) END IssueDate
+				  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(CM.ReturnDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CM.ReturnDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				   ELSE (CAST(CM.ReturnDate AS DATETIME)) END ReturnDate                  
 				  ,CM.IsStandAloneCM
 				  ,ISNULL(VR.VendorId, 0) AS VendorId
         FROM dbo.CreditMemo CM WITH (NOLOCK)           

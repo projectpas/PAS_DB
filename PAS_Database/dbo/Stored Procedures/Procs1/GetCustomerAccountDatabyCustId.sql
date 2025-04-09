@@ -8,30 +8,54 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date          Author		Change Description            
- ** --   --------      -------		--------------------------------          
-    1					unknown			Created
-	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
-	3	01/02/2024	    AMIT GHEDIYA	added isperforma Flage for SO
-	4	15/02/2024	    Devendra Shekh	removed isperforma flage
-	5	19/02/2024	    Devendra Shekh	added isinvoiceposted flage for wo
-	6	27/02/2024	    AMIT GHEDIYA	added IsBilling flage for SO
-	7	28/02/2024	    Devendra Shekh	changes for amount calculation based on isproforma for wo and so
-	8   07/03/2024	    Devendra Shekh	Amount Calculation issue resolved
-	9   07/03/2024	    Hemant Saliya	Verify SP and Joins
-	10  19/03/2024      Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
-	11  11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+ ** PR   Date          Author				Change Description            
+ ** --   --------      -------				--------------------------------          
+    1					unknown				Created
+	2	01/31/2024		Devendra Shekh		added isperforma Flage for WO
+	3	01/02/2024	    AMIT GHEDIYA		added isperforma Flage for SO
+	4	15/02/2024	    Devendra Shekh		removed isperforma flage
+	5	19/02/2024	    Devendra Shekh		added isinvoiceposted flage for wo
+	6	27/02/2024	    AMIT GHEDIYA		added IsBilling flage for SO
+	7	28/02/2024	    Devendra Shekh		changes for amount calculation based on isproforma for wo and so
+	8   07/03/2024	    Devendra Shekh		Amount Calculation issue resolved
+	9   07/03/2024	    Hemant Saliya		Verify SP and Joins
+	10  19/03/2024      Bhargav Saliya		Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
+	11  11/04/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	12  27-Mar-2025		Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
 
--- EXEC GeSOWOtInvoiceDate '74'  
+-- EXEC GetCustomerAccountDatabyCustId 7,226  
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerAccountDatabyCustId] 13
 CREATE    PROCEDURE [dbo].[GetCustomerAccountDatabyCustId]
-	@customerId bigint = null
+	@customerId BIGINT = null,
+	@EmployeeId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY	
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			DBO.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+
 		DECLARE @SOMSModuleID INT = 17,@WOMSModuleID INT = 12;
 		 ;WITH NEWDepositAmt AS(
 						 SELECT nso.SalesOrderId AS Id, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
@@ -61,7 +85,10 @@ BEGIN
 					   CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
 						    CASE WHEN DSA.OriginalDepositAmt - DSA.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS PaymentAmount,
 					   (wobi.InvoiceNo) as 'InvoiceNo',
-			           (wobi.InvoiceDate) as 'InvoiceDate',
+			           --(wobi.InvoiceDate) as 'InvoiceDate',
+					   	CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							 CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END InvoiceDate,
 						CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 1 THEN RemainAmountData.InvoiceRemainingAmount
 							 ELSE (CASE WHEN DaysData.CreditRemainingDays <= 0 THEN RemainAmountData.InvoiceRemainingAmount ELSE 0 END) END AS Amountpaidbylessthen0days,
 						CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 1 THEN 0
@@ -112,7 +139,10 @@ BEGIN
 					    CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
 							CASE WHEN DSA.OriginalDepositAmt - DSA.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS PaymentAmount,
 					   (sobi.InvoiceNo) as 'InvoiceNo',
-			           (sobi.InvoiceDate) as 'InvoiceDate',
+			           --(sobi.InvoiceDate) as 'InvoiceDate',
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(sobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+					   ELSE (CAST(sobi.InvoiceDate AS DATETIME)) END InvoiceDate,
                        CASE WHEN ISNULL(sobi.IsProforma, 0) = 1 THEN RemainAmountData.InvoiceRemainingAmount
 							 ELSE (CASE WHEN DaysData.CreditRemainingDays <= 0 THEN RemainAmountData.InvoiceRemainingAmount ELSE 0 END) END AS Amountpaidbylessthen0days,
 						CASE WHEN ISNULL(sobi.IsProforma, 0) = 1 THEN 0

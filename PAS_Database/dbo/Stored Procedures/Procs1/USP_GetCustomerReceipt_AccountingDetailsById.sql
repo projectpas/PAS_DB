@@ -1,11 +1,11 @@
 ﻿/*********************             
- ** File:   [GetAccountingDetailsViewById]             
+ ** File:   [USP_GetCustomerReceipt_AccountingDetailsById]             
  ** Author:  Shrey Chandegara  
  ** Description: This stored procedure is used GetJournalBatchDetailsById for customer receipt batch  
  ** Purpose:           
  ** Date:   09/o5/2023       
             
- ** PARAMETERS: @SalesOrderId bigint  
+ ** PARAMETERS:   
            
  ** RETURN VALUE:             
  **********************             
@@ -16,11 +16,13 @@
     1    09/05/2023		Devendra Shekh			Created  
 	2    14/03/2024		Moin Bloch			    Modified(Added CntrlNum)
     3    15/07/2024     Sahdev Saliya           Added (AccountingPeriod)
+	4    20-Mar-2025	Divyesh Kathiriya		Update TransactionDate and EntryDate based on Employee time zone
 
--- exec USP_GetCustomerReceipt_AccountingDetailsById 10152  
+ exec USP_GetCustomerReceipt_AccountingDetailsById 10139, 226  
 ************************/   
 CREATE   PROCEDURE [dbo].[USP_GetCustomerReceipt_AccountingDetailsById]    
-@ReferenceId bigint    
+@ReferenceId bigint,
+@EmployeeId bigint
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -31,6 +33,29 @@ BEGIN
 	DECLARE @AccountMSModuleId INT = 0
 	SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 	--DECLARE @CPModuleID INT=59;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	DECLARE @BaseUtcOffsetSec INT = 0;
+				
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			DBO.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+		SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc;
 
      SELECT JBD.CommonJournalBatchDetailId
 		   ,CRB.CustomerReceiptBatchDetailId
@@ -41,8 +66,14 @@ BEGIN
           ,JBD.[GlAccountId]  
           ,JBD.[GlAccountNumber]  
           ,JBD.[GlAccountName]  
-          ,JBD.[TransactionDate]  
-          ,JBD.[EntryDate]  
+          --,JBD.[TransactionDate]  
+          --,JBD.[EntryDate]
+		  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+			   CASE WHEN CAST(JBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @BaseUtcOffsetSec, JBD.[TransactionDate]) AS DATETIME)) END 
+		   ELSE (CAST(JBD.[TransactionDate] AS DATETIME)) END TransactionDate
+		  ,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+			   CASE WHEN CAST(JBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DATEADD(SECOND, @BaseUtcOffsetSec, JBD.EntryDate) AS DATETIME)) END 
+		   ELSE (CAST(JBD.[EntryDate] AS DATETIME)) END EntryDate		
           ,CRB.ReferenceId AS [ReferenceId]  
           ,CRB.ReferenceNumber AS [ReferenceNumber]  
           ,CRB.ReferenceInvId AS [ReferenceInvId]  

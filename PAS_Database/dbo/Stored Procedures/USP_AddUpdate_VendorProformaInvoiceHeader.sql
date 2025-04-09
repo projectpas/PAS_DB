@@ -133,7 +133,6 @@ BEGIN
 		WHERE CT.CodeTypeId = @ControlCodeTypeId
 		AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 		PRINT @ControlCodeTypeId
-		Select * from #tmpCodePrefixesCTRL
 		IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesCTRL WHERE CodeTypeId = @ControlCodeTypeId))
 		BEGIN
 			SET @CurrentCTRLNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 

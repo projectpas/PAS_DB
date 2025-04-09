@@ -3629,6 +3629,17 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateSWOTaskSequenceNumber.sql" />
     <Build Include="dbo\Stored Procedures\GetSOConfirmationListExport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerEmailContentNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkFlowVersionNum.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveNewVersionTemplateDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateTemplateDetails.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowPublicationsListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowPublicationDashNumberType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowMeasurementListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowMaterialType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowExpertiseListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowExclusionListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowEquipmentListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkflowChargesListType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -32,6 +32,7 @@
 	15   25/07/2024   Rajesh Gami       Remove inner query for the get WorkOrderStage due to performance issue
 	16   21/01/2025   Abhishek Jirawala Stockline listing SP optimisation
 	17   12/02/2025   Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone
+	18   08/04/2025   Amit Ghediya		Added new field 'PoNumber,RoNumber & ReceiverNumber' for list
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
 @PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,
@@ -98,7 +99,10 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@WorkOrderNumber  varchar(50) = NULL,
 	@IsTimeLife varchar(50) = NULL,
 	@CustomerName varchar(50) = NULL,
-	@IsTurnIn varchar(50) = NULL
+	@IsTurnIn varchar(50) = NULL,
+	@PONumber varchar(50) = NULL,
+	@RONumber varchar(50) = NULL,
+	@ReceiverNumber varchar(50) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -232,11 +236,16 @@ BEGIN
 	    Stl.LotNumber,
 	    Stl.CustomerName 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
-	   '' AS WorkOrderStage --Remove Workorderstage due to performance issue  
+	   '' AS WorkOrderStage, --Remove Workorderstage due to performance issue  
+	   ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+	   ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+		  LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+		  LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
@@ -282,7 +291,10 @@ BEGIN
 		  (LastMSLevel LIKE '%' +@GlobalFilter+'%') OR        
 		  (WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR        
 		  (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
-		  (CustomerName LIKE '%' +@GlobalFilter+'%')))         
+		  (CustomerName LIKE '%' +@GlobalFilter+'%') OR
+		  (PONumber LIKE '%' +@GlobalFilter+'%') OR
+		  (RONumber LIKE '%' +@GlobalFilter+'%') OR
+		  (ReceiverNumber LIKE '%' +@GlobalFilter+'%')))         
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
@@ -326,7 +338,10 @@ BEGIN
 		  (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND   
 		  (ISNULL(@WorkOrderNumber,'') ='' OR WorkOrderNumber LIKE '%' + @WorkOrderNumber + '%') AND
 		  (ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
-		  (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))        
+		  (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND
+		  (ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
+		  (ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
+		  (ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%'))        
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults           
         
@@ -412,7 +427,13 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='PONumber')  THEN PONumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PONumber')  THEN PONumber END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='RONumber')  THEN RONumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='RONumber')  THEN RONumber END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -479,12 +500,16 @@ BEGIN
 		Stl.SiteId,
 		stl.CustomerName 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,
-		'' as WorkOrderStage        
-      
+		'' as WorkOrderStage,
+		ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+		ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+		ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber'      
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+		 LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+		 LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
   
 	   ',')))                
@@ -529,7 +554,10 @@ BEGIN
 		(ownerName LIKE '%' +@GlobalFilter+'%') OR        
 		(WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR        
 		(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
-		(CustomerName LIKE '%' +@GlobalFilter+'%')))         
+		(CustomerName LIKE '%' +@GlobalFilter+'%') OR
+		(PONumber LIKE '%' +@GlobalFilter+'%') OR
+		(RONumber LIKE '%' +@GlobalFilter+'%') OR
+		(ReceiverNumber LIKE '%' +@GlobalFilter+'%')))         
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
@@ -573,7 +601,10 @@ BEGIN
 		(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND  
 		(ISNULL(@WorkOrderNumber,'') ='' OR WorkOrderNumber LIKE '%' + @WorkOrderNumber + '%') AND
 		(ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
-		(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))        
+		(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND
+		(ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
+		(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
+		(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%'))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
         
@@ -660,7 +691,13 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='PONumber')  THEN PONumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PONumber')  THEN PONumber END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='RONumber')  THEN RONumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='RONumber')  THEN RONumber END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -729,8 +766,10 @@ BEGIN
 	    Stl.Site,
 	   Stl.SiteId,
 	   ISNULL(stl.CustomerId,0) as CustomerId,
-	   '' AS WorkOrderStage        
-		     
+	   '' AS WorkOrderStage,
+	   ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+	   ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
@@ -738,6 +777,8 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+	   LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+	   LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
@@ -781,7 +822,10 @@ BEGIN
 		  (ownerName LIKE '%' +@GlobalFilter+'%') OR        
 		  (LastMSLevel LIKE '%' +@GlobalFilter+'%') OR        
 		  (WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR        
-		  (UpdatedBy LIKE '%' +@GlobalFilter+'%')))         
+		  (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+		  (PONumber LIKE '%' +@GlobalFilter+'%') OR
+		  (RONumber LIKE '%' +@GlobalFilter+'%') OR
+		  (ReceiverNumber LIKE '%' +@GlobalFilter+'%')))         
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
 		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND    
@@ -825,7 +869,10 @@ BEGIN
 		  (ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage LIKE '%' + @WorkOrderStage + '%') AND        
 		  (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND  
 		  (ISNULL(@WorkOrderNumber,'') ='' OR WorkOrderNumber LIKE '%' + @WorkOrderNumber + '%') AND
-		  (ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%'))        
+		  (ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
+		  (ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
+		  (ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
+		  (ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%'))        
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
         
@@ -911,7 +958,13 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC     
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='PONumber')  THEN PONumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PONumber')  THEN PONumber END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='RONumber')  THEN RONumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='RONumber')  THEN RONumber END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -977,8 +1030,10 @@ BEGIN
 		Stl.Site,
 		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,
-		'' as WorkOrderStage        
-		    
+		'' as WorkOrderStage,
+		ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+	    ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+	    ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
@@ -986,7 +1041,9 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
+	   LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+	   LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
+	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
 	   ',')))                
@@ -1032,7 +1089,10 @@ BEGIN
 		(obtainFrom LIKE '%' +@GlobalFilter+'%') OR        
 		(ownerName LIKE '%' +@GlobalFilter+'%') OR        
 		(WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR        
-		(UpdatedBy LIKE '%' +@GlobalFilter+'%')))         
+		(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+		(PONumber LIKE '%' +@GlobalFilter+'%') OR
+		(RONumber LIKE '%' +@GlobalFilter+'%') OR
+		(ReceiverNumber LIKE '%' +@GlobalFilter+'%')))         
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
@@ -1076,7 +1136,10 @@ BEGIN
 		(ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage like '%' + @WorkOrderStage+'%') and        
 		(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND  
 		(ISNULL(@WorkOrderNumber,'') ='' OR WorkOrderNumber LIKE '%' + @WorkOrderNumber + '%') AND
-		(ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%'))        
+		(ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
+		(ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
+		(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
+		(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%'))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         
@@ -1163,7 +1226,13 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC 
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='PONumber')  THEN PONumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PONumber')  THEN PONumber END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='RONumber')  THEN RONumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='RONumber')  THEN RONumber END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceiverNumber')  THEN ReceiverNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        

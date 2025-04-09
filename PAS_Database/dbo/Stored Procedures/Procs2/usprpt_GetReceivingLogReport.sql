@@ -19,7 +19,7 @@
 	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
 	 4    20-MAR-2024		Vishal Suthar		fixed an issue with join for repair order records
 	 5    29-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
-       
+	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)       
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetReceivingLogReport] 
@@ -105,11 +105,11 @@ BEGIN
 				UPPER(POP.manufacturer) 'manufacturer',  
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
-				UPPER(STL.Quantity) 'qtyrcvd',  
+				UPPER(ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) 'qtyrcvd',  
 				--UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
+				UPPER((ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0))) 'unitcost',  
 				--UPPER(POP.ExtendedCost) 'extcost',  
-				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
+				UPPER((ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) * (ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0))) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
 				UPPER(STL.CreatedBy) 'receivedby',  
@@ -138,7 +138,7 @@ BEGIN
 			  WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
-			   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+			   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 			   AND
 			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -169,11 +169,11 @@ BEGIN
 				UPPER(POP.manufacturer) 'manufacturer',  
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
-				UPPER(STL.Quantity) 'qtyrcvd',  
+				UPPER(ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) 'qtyrcvd',  
 				--UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
+				UPPER((ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0))) 'unitcost',  
 				--UPPER(POP.ExtendedCost) 'extcost',  
-				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
+				UPPER((ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) * (ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0))) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
 				UPPER(STL.CreatedBy) 'receivedby',  
@@ -202,7 +202,7 @@ BEGIN
 				WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
-			   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+			   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 			   AND
 			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -243,11 +243,11 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.manufacturer) 'manufacturer',  
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
-        UPPER(STL.Quantity) 'qtyrcvd',  
+        UPPER(ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) 'qtyrcvd',  
 		--ISNULL(POP.UnitCost, 0) 'unitcost',  
-		ISNULL(STL.UnitCost, 0) 'unitcost',  
+		(ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0)) 'unitcost',  
         --ISNULL(POP.ExtendedCost, 0) 'extcost',   
-        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',   
+        ((ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) * (ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0))) 'extcost',   
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         UPPER(STL.CreatedBy) 'receivedby',  
@@ -279,7 +279,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
       WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
-	   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+	   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 	   AND 
 	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -310,11 +310,11 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.manufacturer) 'manufacturer',  
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
-        UPPER(STL.Quantity) 'qtyrcvd',  
+        UPPER(ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) 'qtyrcvd',  
         --ISNULL(POP.UnitCost, 0) 'unitcost',  
-        ISNULL(STL.UnitCost, 0) 'unitcost',  
+        (ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0)) 'unitcost',  
         --ISNULL(POP.ExtendedCost, 0) 'extcost',  
-        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
+        ((ISNULL(STL.Quantity,0)-ISNULL(STL.QuantityAdjustment,0)) * (ISNULL(STL.UnitCost, 0)-ISNULL(STL.Adjustment, 0))) 'extcost',  
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         UPPER(STL.CreatedBy) 'receivedby',  
@@ -344,7 +344,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
-	   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+	   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
 	   AND 
 	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

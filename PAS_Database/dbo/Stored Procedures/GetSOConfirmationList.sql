@@ -14,8 +14,9 @@
  **************************************************************                 
  ** SN   Date             Author           Change Description                  
  ** --  -----------    -------------    --------------------------------                
-    01  06-August-2024  Ayushi Patel    Created      
-	02  11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+    01  06/08/2024		Ayushi Patel    Created      
+	02  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
+	03  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
  
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
    
@@ -63,7 +64,7 @@ BEGIN
 		BEGIN
 			;WITH Result AS(
 			
-			SELECT 
+			SELECT DISTINCT
 			part.SalesOrderId AS SOConformationNumber,
 			part.SalesOrderId,
 			part.SalesOrderPartId,
@@ -90,7 +91,7 @@ BEGIN
 			ISNULL(qs.ControlNumber, '') AS ControlNumber,
 			ISNULL(cp.Description, '') AS ConditionDescription,
 			ISNULL(iu.ShortName, '') AS UOM,
-			ISNULL(rPart.QtyToReserve, 0) AS QtyReserved,
+			ISNULL(part.QtyReserved, 0) AS QtyReserved,
 			CASE WHEN soc.CustomerStatusId = 2 THEN 1 ELSE 0 END AS IsApproved,
 			ISNULL(so.CustomerReference, '') AS CustomerReference,
 			ISNULL(st.Name, '') AS StatusName,
@@ -109,7 +110,7 @@ BEGIN
 		LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
 		LEFT JOIN dbo.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
-		LEFT JOIN dbo.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
+		--LEFT JOIN dbo.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
 		LEFT JOIN dbo.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN dbo.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON part.StatusId = st.Id
 		LEFT JOIN dbo.Contact con WITH (NOLOCK) ON soc.CustomerApprovedById = con.ContactId
@@ -185,7 +186,7 @@ BEGIN
 		BEGIN
 			;WITH Result AS(
 			
-			SELECT
+			SELECT DISTINCT
         part.SalesOrderId AS SOConformationNumber,
         part.SalesOrderId,
         part.SalesOrderPartId,
@@ -212,7 +213,7 @@ BEGIN
         ISNULL(qs.ControlNumber, '') AS ControlNumber,
         ISNULL(cp.Description, '') AS ConditionDescription,
         ISNULL(iu.ShortName, '') AS UOM,
-        ISNULL(rPart.QtyToReserve, 0) AS QtyReserved,
+        ISNULL(part.QtyReserved, 0) AS QtyReserved,
         CASE WHEN soc.CustomerStatusId = 2 THEN 1 ELSE 0 END AS IsApproved, -- Assuming 2 is the ID for 'Approved'
         ISNULL(so.CustomerReference, '') AS CustomerReference,
         ISNULL(st.Name, '') AS StatusName,
@@ -231,7 +232,7 @@ BEGIN
         LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
         LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
-        LEFT JOIN SalesOrderReserveParts rPart ON part.SalesOrderPartId = rPart.SalesOrderPartId
+        --LEFT JOIN SalesOrderReserveParts rPart ON part.SalesOrderPartId = rPart.SalesOrderPartId
         LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
         LEFT JOIN MasterSalesOrderQuoteStatus st ON part.StatusId = st.Id
         LEFT JOIN Contact con ON soc.CustomerApprovedById = con.ContactId

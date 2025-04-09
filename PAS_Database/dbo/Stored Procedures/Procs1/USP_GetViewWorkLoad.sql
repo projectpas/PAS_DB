@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetViewWorkLoad]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used retrieve WorkOrder Assignment Details    
@@ -18,6 +17,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/12/2021   Subhash Saliya Created
+	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
      
  EXECUTE USP_GetViewWorkLoad 1,20,'', -1,'', '2021-07-25 18:30:00.000', '2021-09-25 18:30:00.000',5,'CWO100010-2020'
 
@@ -54,7 +54,8 @@ CREATE   PROCEDURE [dbo].[USP_GetViewWorkLoad]
 @workOrderNumber varchar(20) = NULL,
 @ManagementStructureId bigint = 0,
 @ismpnView bit = 0,
-@workOrderPartNoId bigint = 0
+@workOrderPartNoId bigint = 0,
+@EmployeeId bigint
 
 )    
 AS    
@@ -66,6 +67,27 @@ SET NOCOUNT ON
         DECLARE @RecordFrom INT;
 		DECLARE @IsActive BIT = 1
 		DECLARE @Count INT;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId;
+
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		
 		IF @SortColumn is null
@@ -124,7 +146,7 @@ SET NOCOUNT ON
 										wl.EmployeeId,
 										emps.StationName,
 										wl.Memo,
-										wl.StatusChangedDate as AssignedDate,
+										(Cast(DBO.ConvertUTCtoLocal(wl.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as AssignedDate,
 										wlh.WorkOrderLaborHeaderId,
 										wl.WorkOrderLaborId,
 										wo.WorkOrderId,
@@ -276,7 +298,7 @@ SET NOCOUNT ON
 								wl.EmployeeId,
 								emps.StationName,
 								wl.Memo,
-								wl.StatusChangedDate as AssignedDate,
+								(Cast(DBO.ConvertUTCtoLocal(wl.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as AssignedDate,
 								wlh.WorkOrderLaborHeaderId,
 								wl.WorkOrderLaborId,
 								wo.WorkOrderId,
@@ -427,7 +449,7 @@ SET NOCOUNT ON
 									wl.EmployeeId,
 									emps.StationName,
 									wl.Memo,
-									wl.StatusChangedDate as AssignedDate,
+									(Cast(DBO.ConvertUTCtoLocal(wl.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as AssignedDate,
 									wlh.WorkOrderLaborHeaderId,
 									wl.WorkOrderLaborId,
 									wo.WorkOrderId,

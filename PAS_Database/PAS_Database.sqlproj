@@ -3620,8 +3620,15 @@
     <Build Include="dbo\Stored Procedures\GetPOApprovalList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingPdfData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItemData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderHeaderView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkFlowWithMaterialList.sql" />
     <Build Include="dbo\User Defined Types\WorkFlowType.sql" />
     <Build Include="dbo\Stored Procedures\RepairOrderView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSWOTaskSequenceNumber.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOConfirmationListExport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerEmailContentNew.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

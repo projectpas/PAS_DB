@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-03-2025    Sahdev Saliya       Created  
+    2    08-04-2025    Devendra Shekh	   Corrected WorkOrderId to WorkFlowWorkOrderId
 
 	-- EXEC [dbo].[GetWorkflowtransferData] 8020
 **************************************************************/  
@@ -43,19 +44,19 @@ BEGIN
 		BEGIN
 		    SET @exEquipments = 1;
 		END
-		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderMaterials]  WITH(NOLOCK) WHERE [WorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
+		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderMaterials]  WITH(NOLOCK) WHERE [workFlowWorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exMaterialList = 1;
 		END
-		IF EXISTS(SELECT TOP 1 wl.WorkOrderLaborId FROM [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK) JOIN [dbo].[WorkOrderLabor] wl WITH(NOLOCK) ON wlh.[WorkOrderLaborHeaderId] = wl.[WorkOrderLaborHeaderId] WHERE wlh.[WorkOrderId] = @workFlowWorkOrderId AND ISNULL(wl.[IsFromWorkFlow],0) = 1)
+		IF EXISTS(SELECT TOP 1 wl.WorkOrderLaborId FROM [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK) JOIN [dbo].[WorkOrderLabor] wl WITH(NOLOCK) ON wlh.[WorkOrderLaborHeaderId] = wl.[WorkOrderLaborHeaderId] WHERE wlh.[workFlowWorkOrderId] = @workFlowWorkOrderId AND ISNULL(wl.[IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exlaborHeader = 1;
 		END
-		IF EXISTS(SELECT TOP 1 wt.WorkOrderTaskId FROM [dbo].[WorkOrderTaskInstruction] wti WITH(NOLOCK) JOIN [dbo].[WorkOrderTask] wt WITH(NOLOCK) ON wti.[WorkOrderTaskId] = wt.[WorkOrderTaskId] WHERE wt.[WorkOrderId] = @workFlowWorkOrderId AND ISNULL(wti.[IsFromWorkFlow],0) = 1)
+		IF EXISTS(SELECT TOP 1 wt.WorkOrderTaskId FROM [dbo].[WorkOrderTaskInstruction] wti WITH(NOLOCK) JOIN [dbo].[WorkOrderTask] wt WITH(NOLOCK) ON wti.[WorkOrderTaskId] = wt.[WorkOrderTaskId] WHERE wt.[workFlowWorkOrderId] = @workFlowWorkOrderId AND ISNULL(wti.[IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exdirections = 1;
 		END
-		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderTask]  WITH(NOLOCK) WHERE [WorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
+		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderTask]  WITH(NOLOCK) WHERE [workFlowWorkOrderId] = @workFlowWorkOrderId AND ISNULL([IsFromWorkFlow],0) = 1)
 		BEGIN
 			SET @exTask = 1;
 		END

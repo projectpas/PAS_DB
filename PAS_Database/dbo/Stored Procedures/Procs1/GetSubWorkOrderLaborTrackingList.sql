@@ -11,11 +11,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/02/2023   Subhash Saliya	Created     
+	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
 
 	--[dbo].[GetWorkOrderLaborTrackingList] 1,10,null,1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,2,0,1
 **************************************************************/
 
-Create         PROCEDURE [dbo].[GetSubWorkOrderLaborTrackingList]  
+CREATE         PROCEDURE [dbo].[GetSubWorkOrderLaborTrackingList]  
  -- Add the parameters for the stored procedure here  
  @PageNumber int=null,  
  @PageSize int=null,  
@@ -55,7 +56,27 @@ BEGIN
     DECLARE @IsActive bit=1  
     DECLARE @Count Int;  
     DECLARE @WorkOrderStatusId int;    
-  
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId;
+
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
     DROP TABLE #TempResult   
@@ -103,13 +124,13 @@ BEGIN
         IM.PartDescription AS PartDescription,  
 		IM.ManufacturerName ManufacturerName,
         WO.OpenDate,  
-        WOT.StartTime,  
-        WOT.EndTime,
+        (Cast(DBO.ConvertUTCtoLocal(WOT.StartTime,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StartTime,
+        (Cast(DBO.ConvertUTCtoLocal(WOT.EndTime,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS EndTime,
 		format(WOT.TotalHours,'00')TotalHours, 
 		format(WOT.TotalMinutes,'00')TotalMinutes,
 		WOT.IsCompleted,
-        WO.CreatedDate,  
-        WO.UpdatedDate,  
+		(Cast(DBO.ConvertUTCtoLocal(WO.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
+        (Cast(DBO.ConvertUTCtoLocal(WO.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate,
         WO.CreatedBy,  
         WO.UpdatedBy,  
         WO.IsActive,  
@@ -117,7 +138,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+        ,(Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StatusChangedDate
 		,T.[Description] TaskName
        FROM SubWorkOrderLaborTracking WOT WITH(NOLOCK)  
 	    JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
@@ -149,8 +170,8 @@ BEGIN
 	    format(FLOOR(WOL.Adjustments),'00')TotalHours, 
 		format(convert(int,(WOL.Adjustments - FLOOR(WOL.Adjustments))* 100),'00')TotalMinutes,
 		0 AS IsCompleted,
-        WO.CreatedDate,  
-        WO.UpdatedDate,  
+        (Cast(DBO.ConvertUTCtoLocal(WO.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
+        (Cast(DBO.ConvertUTCtoLocal(WO.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate, 
         WO.CreatedBy,  
         WO.UpdatedBy,  
         WO.IsActive,  
@@ -158,7 +179,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+        ,(Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StatusChangedDate
 		,T.[Description] TaskName
        FROM  dbo.SubWorkOrderLabor WOL WITH(NOLOCK)
 	    JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 
@@ -251,13 +272,13 @@ BEGIN
         IM.PartDescription AS PartDescription,  
 		IM.ManufacturerName ManufacturerName,
         WO.OpenDate,  
-        WOT.StartTime,  
-        WOT.EndTime,
+        (Cast(DBO.ConvertUTCtoLocal(WOT.StartTime,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StartTime,
+        (Cast(DBO.ConvertUTCtoLocal(WOT.EndTime,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS EndTime,
 		format(WOT.TotalHours,'00')TotalHours, 
 		format(WOT.TotalMinutes,'00')TotalMinutes,
 		WOT.IsCompleted,
-        WO.CreatedDate,  
-        WO.UpdatedDate,  
+        (Cast(DBO.ConvertUTCtoLocal(WO.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
+        (Cast(DBO.ConvertUTCtoLocal(WO.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate,
         WO.CreatedBy,  
         WO.UpdatedBy,  
         WO.IsActive,  
@@ -265,7 +286,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+        ,(Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StatusChangedDate
 		,T.[Description] TaskName
        FROM SubWorkOrderLaborTracking WOT WITH(NOLOCK)  
 	    JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
@@ -297,8 +318,8 @@ BEGIN
 		format(FLOOR(WOL.Adjustments),'00')TotalHours, 
 		format(convert(int,(WOL.Adjustments - FLOOR(WOL.Adjustments))* 100),'00')TotalMinutes,
 		0 AS IsCompleted,
-        WO.CreatedDate,  
-        WO.UpdatedDate,  
+        (Cast(DBO.ConvertUTCtoLocal(WO.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
+        (Cast(DBO.ConvertUTCtoLocal(WO.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate, 
         WO.CreatedBy,  
         WO.UpdatedBy,  
         WO.IsActive,  
@@ -306,7 +327,7 @@ BEGIN
         EMP.FirstName + ' ' + EMP.LastName AS EmployeeName
 		,TS.[Description] TaskStatusGr
 		,TS.TaskStatusId
-		,WOL.StatusChangedDate StatusChangedDate
+        ,(Cast(DBO.ConvertUTCtoLocal(WOL.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StatusChangedDate
 		,T.[Description] TaskName
        FROM  dbo.SubWorkOrderLabor WOL WITH(NOLOCK)
 	    JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_AddUpdateLotTransInOutDetails]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to add trans In/Out Qty.
@@ -13,7 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/07/2023  Amit Ghediya    Created
-     
+    2    08 Apr 2025 RAJESH GAMI     Implement Reference Number     
 -- EXEC USP_Lot_AddUpdateLotTransInOutDetails
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotTransInOutDetails]
@@ -34,6 +33,9 @@ BEGIN
 
 		DECLARE @TotalCounts INT,@count INT,@LatestId BIGINT,@p1 dbo.LotCalculationDetailsType;
 		DECLARE @LotId BIGINT,@isMaintainStk bit = 0; 
+		DECLARE @TransInCodeTypeId BIGINT,@TransOutCodeTypeId BIGINT, @CurrentCTRLNumber AS BIGINT,@ReferenceNumber AS VARCHAR(100);
+		SELECT @TransInCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'LotTransInReferenceNum';
+		SELECT @TransOutCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'LotTransOutReferenceNum';
 		SET @count = 1;
 
 		IF OBJECT_ID(N'tempdb..#tmpLotTransInOutDetails') IS NOT NULL
@@ -79,10 +81,45 @@ BEGIN
 		BEGIN
 			IF(@IsInOut = 1)
 			BEGIN
+			 /***** Prefixes : Reference Number*******/		   			
+				IF OBJECT_ID(N'tempdb..#tmpCodePrefixesTransIn') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpCodePrefixesTransIn
+				END
+	
+				CREATE TABLE #tmpCodePrefixesTransIn
+				(
+						ID BIGINT NOT NULL IDENTITY, 
+						CodePrefixId BIGINT NULL,
+						CodeTypeId BIGINT NULL,
+						CurrentNumber BIGINT NULL,
+						CodePrefix VARCHAR(50) NULL,
+						CodeSufix VARCHAR(50) NULL,
+						StartsFrom BIGINT NULL,
+				)
+
+				INSERT INTO #tmpCodePrefixesTransIn (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+				WHERE CT.CodeTypeId = @TransInCodeTypeId
+				AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+				PRINT @TransInCodeTypeId
+				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId))
+				BEGIN
+					SET @CurrentCTRLNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+					FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId)
+					
+					SET @ReferenceNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+									@CurrentCTRLNumber,
+									(SELECT CodePrefix FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId),
+									(SELECT CodeSufix FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId)))
+				END
+				/******End Prefixes******/	
+
 				INSERT INTO [DBO].[LotTransInOutDetails](StockLineId,LotId,QtyToTransIn,TransInMemo,UnitCost,ExtCost,
-					MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,RemainingQty,IsStockLineUnitCost)
+					MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,RemainingQty,IsStockLineUnitCost,ReferenceNumber)
 				SELECT lot.StockLineId,lot.LotId,lot.QtyToTransIn,lot.TransInMemo,lot.UnitCost,lot.ExtCost,
-					@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate,1,0,RemainingQty,@isMaintainStk
+					@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate,1,0,RemainingQty,@isMaintainStk,@ReferenceNumber
 				FROM #tmpLotTransInOutDetails lot 
 				WHERE lot.ID = @count;
 
@@ -97,10 +134,46 @@ BEGIN
 			END
 			ELSE
 			BEGIN
+
+				 /***** Prefixes : Reference Number*******/		   			
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixesTransOut') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpCodePrefixesTransOut
+					END
+	
+					CREATE TABLE #tmpCodePrefixesTransOut
+					(
+							ID BIGINT NOT NULL IDENTITY, 
+							CodePrefixId BIGINT NULL,
+							CodeTypeId BIGINT NULL,
+							CurrentNumber BIGINT NULL,
+							CodePrefix VARCHAR(50) NULL,
+							CodeSufix VARCHAR(50) NULL,
+							StartsFrom BIGINT NULL,
+					)
+
+					INSERT INTO #tmpCodePrefixesTransOut (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+					WHERE CT.CodeTypeId = @TransOutCodeTypeId
+					AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+					PRINT @TransOutCodeTypeId
+					IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId))
+					BEGIN
+						SET @CurrentCTRLNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+						FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId)
+					
+						SET @ReferenceNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+										@CurrentCTRLNumber,
+										(SELECT CodePrefix FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId),
+										(SELECT CodeSufix FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId)))
+					END
+					/******End Prefixes******/	
+
 				INSERT INTO [DBO].[LotTransInOutDetails](StockLineId,LotId,QtyToTransIn,QtyToTransOut,UnitCost,ExtCost,TransOutMemo,
-					MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,RemainingQty,IsStockLineUnitCost)
+					MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted,RemainingQty,IsStockLineUnitCost,ReferenceNumber)
 				SELECT lot.StockLineId,lot.LotId,lot.QtyToTransIn,lot.QtyToTransOut,lot.UnitCost,lot.ExtCost,TransOutMemo,
-					@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate,1,0,RemainingQty,@isMaintainStk
+					@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate,1,0,RemainingQty,@isMaintainStk,@ReferenceNumber
 				FROM #tmpLotTransInOutDetails lot 
 				WHERE lot.ID = @count;
 

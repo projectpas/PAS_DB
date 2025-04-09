@@ -3609,6 +3609,7 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderFormTypePrintView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderPartApprovals.sql" />
+    <Build Include="Security\RoleMemberships.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

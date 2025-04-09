@@ -3642,6 +3642,7 @@
     <Build Include="dbo\User Defined Types\WorkflowChargesListType.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderPartsView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItems.sql" />
+    <Build Include="dbo\Stored Procedures\BindHeaderDataNew.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

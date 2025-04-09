@@ -3625,6 +3625,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetPOHeaderDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkFlowWithMaterialList.sql" />
     <Build Include="dbo\User Defined Types\WorkFlowType.sql" />
+    <Build Include="dbo\Stored Procedures\RepairOrderView.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSWOTaskSequenceNumber.sql" />
     <Build Include="dbo\Stored Procedures\GetSOConfirmationListExport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerEmailContentNew.sql" />

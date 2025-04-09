@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetLabourAuditList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for Labour Audit List    
@@ -14,12 +13,14 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/20/2021   Subhash Saliya Created
+	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
      
  EXECUTE [GetLabourAuditList] 14
 **************************************************************/ 
 
-Create PROCEDURE [dbo].[GetLabourAuditList]
-	@WorkOrderLaborId bigint = null
+CREATE PROCEDURE [dbo].[GetLabourAuditList]
+	@WorkOrderLaborId bigint = null,
+	@EmployeeId bigint
 AS
 BEGIN
 
@@ -28,8 +29,28 @@ BEGIN
   BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+				SELECT 
+						@CurrntEmpTimeZoneDesc = COALESCE(
+							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+						)
+					FROM 
+						dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN 
+						dbo.TimeZone ETZ WITH (NOLOCK) 
+						ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN 
+						dbo.LegalEntity LE WITH (NOLOCK) 
+						ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN 
+						dbo.TimeZone LTZ WITH (NOLOCK) 
+						ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE 
+						E.EmployeeId = @EmployeeId;
+
 				SELECT	
-					
 					 wlb.WorkOrderLaborAuditId
 					,wlb.WorkOrderLaborId
 					,wlb.WorkOrderLaborAuditHeaderId
@@ -42,12 +63,12 @@ BEGIN
 					,wlb.Memo
 					,wlb.CreatedBy
 					,wlb.UpdatedBy
-					,wlb.CreatedDate
-					,wlb.UpdatedDate
+					,(Cast(DBO.ConvertUTCtoLocal(wlb.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
+					,(Cast(DBO.ConvertUTCtoLocal(wlb.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate
 					,wlb.IsActive
 					,wlb.IsDeleted
-					,wlb.StartDate
-					,wlb.EndDate
+					,(Cast(DBO.ConvertUTCtoLocal(wlb.StartDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StartDate
+					,(Cast(DBO.ConvertUTCtoLocal(wlb.EndDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS EndDate
 					,wlb.BillableId
 					,wlb.IsFromWorkFlow
 					,wlb.MasterCompanyId
@@ -61,7 +82,7 @@ BEGIN
 					,wlb.TotalCostPerHour
 					,wlb.TotalCost
 					,wlb.TaskStatusId
-					,wlb.StatusChangedDate
+					,(Cast(DBO.ConvertUTCtoLocal(wlb.StatusChangedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS StatusChangedDate
 					,wo.WorkOrderNum
 					,im.partnumber AS PartNumber
 					,im.PartDescription

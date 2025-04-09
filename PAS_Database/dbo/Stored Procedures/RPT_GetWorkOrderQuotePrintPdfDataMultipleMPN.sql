@@ -15,6 +15,7 @@
     1    12-FEB-2025	 RAJESH GAMI		Created  
     2    24-FEB-2025	 RAJESH GAMI		Fixed the Total Amount Issue
 	3    06-APR-2025	 HEMANT SALIYA		Updated for Get correct PN and Serial Number
+	4    09-APR-2025	 Devendra Shekh		Comparing @CorrectiveActionCode instead of @corrective
 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6561,'7844',0  
 **************************************************************/  
@@ -46,6 +47,7 @@ BEGIN
 			DECLARE @TotalFreight DECIMAL(18,2)=0 ,@TotalCharges  DECIMAL(18,2)=0,@SubTotal  DECIMAL(18,2)=0,@WOQGrandTotal  DECIMAL(18,2)=0,@FinalSalesTaxes  DECIMAL(18,2)=0,@FinalOtherTaxes  DECIMAL(18,2) =0
 			DECLARE @WOId BIGINT = (SELECT WorkorderId FROM DBO.WorkOrderQuote WITH(NOLOCK) Where WorkOrderQuoteId = @WorkOrderQuoteId);
 			DECLARE @corrective VARCHAR(20) = 'corrective action'
+			DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
 
 			CREATE TABLE #tblTempQuoteMain (
 				ID INT,
@@ -152,7 +154,7 @@ BEGIN
 					FROM
 						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.name) = UPPER(@corrective))
+					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -258,7 +260,7 @@ BEGIN
 					FROM
 						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-						WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.name) = UPPER(@corrective))
+						WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  

@@ -17,6 +17,7 @@
     [IsActive]             BIT           CONSTRAINT [CommonTeardownType_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT           CONSTRAINT [CommonTeardownType_DC_Delete] DEFAULT ((0)) NOT NULL,
     [DocumentModuleName]   VARCHAR (100) NULL,
+    [Code]                 VARCHAR (100) NULL,
     CONSTRAINT [PK_CommonTeardownType] PRIMARY KEY CLUSTERED ([CommonTeardownTypeId] ASC),
     CONSTRAINT [Unique_CommonTeardowntype] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );

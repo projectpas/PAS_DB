@@ -18,6 +18,7 @@
     [IsActive]                  BIT           NOT NULL,
     [IsDeleted]                 BIT           NOT NULL,
     [DocumentModuleName]        VARCHAR (100) NULL,
+    [Code]                      VARCHAR (100) NULL,
     CONSTRAINT [PK_CommonTeardownTypeAudit] PRIMARY KEY CLUSTERED ([CommonTeardownTypeAuditId] ASC)
 );
 

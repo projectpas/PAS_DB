@@ -3640,6 +3640,7 @@
     <Build Include="dbo\User Defined Types\WorkflowExclusionListType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowEquipmentListType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowChargesListType.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderPartsView.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

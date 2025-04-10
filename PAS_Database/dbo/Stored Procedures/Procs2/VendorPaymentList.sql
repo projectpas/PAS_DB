@@ -42,8 +42,9 @@
 	26   01-01-2025   RAJESH GAMI     Update logic for the get record for print check.
 	27   03-01-2025   RAJESH GAMI     Modified to resolved to not getting paymentmethod for the vendor Proforma.
 	28   03-01-2025   RAJESH GAMI     Modified to resolved to merge multiple line payment to single line (Partial Paid with same Vendor Proforma Invoice)
-	29   28-01-2025   ABHISHEK JIRAWLA Modified to resolved to merge multiple line payment method for (Partial Paid)
-	30   11-03-2025   ABHISHEK JIRAWLA IsVendorOnHold check for payment hold
+	29   28-01-2025   ABHISHEK JIRAWLA	Modified to resolved to merge multiple line payment method for (Partial Paid)
+	30   11-03-2025   ABHISHEK JIRAWLA	IsVendorOnHold check for payment hold
+	31   10-04-2025   AMIT GHEDIYA		Get le from perticular module
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE    PROCEDURE [dbo].[VendorPaymentList]  
@@ -158,7 +159,7 @@ BEGIN
 		[IsNonPOInvoice] BIT NULL,
 		[IsCustomerCreditPayment] BIT NULL,
 		[ControlNumber] VARCHAR(100) NULL,
-		[LegalEntity] VARCHAR(100) NULL,
+		[LegalEntity] VARCHAR(256) NULL,
 		[NonPOInvoiceId] BIGINT NULL,
 		[CustomerCreditPaymentDetailId] BIGINT NULL,
 		[VendorProformaInvoiceId] BIGINT NULL,
@@ -215,7 +216,7 @@ BEGIN
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-			   ISNULL(le.[Name], '') AS 'LegalEntity'
+			   CASE WHEN ISNULL(RRH.[LastMSLevel],'') = '' THEN  ISNULL(le.Name, '') ELSE ISNULL(RRH.[LastMSLevel], '') END AS 'LegalEntity'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
@@ -841,7 +842,7 @@ BEGIN
 				RRH.VendorId,
 				RRH.CreatedDate,
 				ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-				ISNULL(le.[Name], '') AS 'LegalEntity'
+				CASE WHEN ISNULL(RRH.[LastMSLevel],'') = '' THEN  ISNULL(le.Name, '') ELSE ISNULL(RRH.[LastMSLevel], '') END AS 'LegalEntity'
 		   FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		        INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 				INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
@@ -1515,7 +1516,7 @@ BEGIN
 			   tab.PaymentMethodId,
 			   tab.CreatedDate,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-			   ISNULL(le.[Name], '') AS 'LegalEntity'
+			   CASE WHEN ISNULL(RRH.[LastMSLevel],'') = '' THEN  ISNULL(le.Name, '') ELSE ISNULL(RRH.[LastMSLevel], '') END AS 'LegalEntity'
 		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK) 
 			   INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId 
@@ -1895,7 +1896,7 @@ BEGIN
 		,SRT.CreatedDate
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
-		,ISNULL(le.[Name], '') AS 'LegalEntity'
+		,CASE WHEN ISNULL(RRH.[LastMSLevel],'') = '' THEN  ISNULL(le.Name, '') ELSE ISNULL(RRH.[LastMSLevel], '') END AS 'LegalEntity'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.ReceivingReconciliationId = RRH.ReceivingReconciliationId
@@ -1914,7 +1915,7 @@ BEGIN
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
-				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[Name]
+				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[Name],RRH.[LastMSLevel]
 				
 		-- UNION ALL
 		--VendorPayment -CreditMemo DETAILS
@@ -2269,7 +2270,7 @@ BEGIN
 		,SRT.CreatedDate
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
-		,ISNULL(le.[Name], '') AS 'LegalEntity'
+		,CASE WHEN ISNULL(RRH.[LastMSLevel],'') = '' THEN  ISNULL(le.Name, '') ELSE ISNULL(RRH.[LastMSLevel], '') END AS 'LegalEntity'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.VendorPaymentDetailsId = RRH.VendorPaymentDetailsId
@@ -2296,7 +2297,7 @@ BEGIN
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
 		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,
 		          CheckDate,VN.VendorName,IsVoidedCheck,VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,
-				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[Name]
+				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[Name],RRH.[LastMSLevel]
 
 		-- UNION ALL
 		--VendorPayment -CreditMemo DETAILS

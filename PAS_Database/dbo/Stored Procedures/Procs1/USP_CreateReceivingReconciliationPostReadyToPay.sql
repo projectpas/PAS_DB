@@ -11,6 +11,7 @@
  ** --   --------     -------		------------------------------- 
     1    unknown                    Created 
 	2    09/10/2023   Moin Bloch    Formetted SP 
+	3    10/04/2025   Amit Ghediya  Added new field (LastMSLevel)
 
 EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 10023,0
 ************************************************************************/
@@ -24,6 +25,32 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+
+			DECLARE @LastMSLevel VARCHAR(256),
+					@MSModuleID INT = 4,
+					@ROMSModuleID INT = 24,
+					@IsPOType INT=0;
+
+			SET @IsPOType = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId);
+
+			IF(@IsPOType = 1)
+			BEGIN
+				SET @LastMSLevel = (SELECT TOP 1 MSD.[Level1Name] 
+									FROM [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK)
+										INNER JOIN [dbo].[PurchaseOrder] PUO  WITH (NOLOCK) ON RRCD.[PurchaseOrderId] = PUO.[PurchaseOrderId]
+										INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @MSModuleID AND MSD.[ReferenceID] = PUO.[PurchaseOrderId]
+										WHERE RRCD.[ReceivingReconciliationId] = @ReceivingReconciliationId)
+			END
+
+			IF(@IsPOType = 2)
+			BEGIN
+				SET @LastMSLevel = (SELECT TOP 1 MSD.[Level1Name]
+									FROM [dbo].[ReceivingReconciliationDetails] RRCD WITH (NOLOCK)
+										INNER JOIN [dbo].[RepairOrder] PUO WITH (NOLOCK) ON RRCD.[PurchaseOrderId] = PUO.[RepairOrderId]
+										INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @ROMSModuleID AND MSD.ReferenceID = PUO.[RepairOrderId]
+										WHERE RRCD.[ReceivingReconciliationId] = @ReceivingReconciliationId)
+			END
+
 			INSERT INTO [dbo].[VendorPaymentDetails]
 				       ([ReadyToPayId],
 					    [DueDate],
@@ -53,7 +80,7 @@ BEGIN
 						[MasterCompanyId],
 						[CreatedBy],
 						[UpdatedBy],
-						[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount])
+						[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],[LastMSLevel])
 			     SELECT 0,
 				        [OpenDate],
 				        [VendorId],
@@ -86,7 +113,8 @@ BEGIN
 						[UpdatedDate],
 						[IsActive],
 						[IsDeleted],
-						[InvoiceTotal] 
+						[InvoiceTotal],
+						@LastMSLevel
 				   FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) 
 				  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 			

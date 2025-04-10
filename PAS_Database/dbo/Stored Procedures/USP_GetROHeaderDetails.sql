@@ -42,7 +42,6 @@ BEGIN
             ro.CreditTermsId,
             ro.Terms,
             ro.RequisitionerId AS RequestedBy,
-            ro.Requisitioner AS RequestedBy,
             ro.RequisitionerId,
             ro.Requisitioner,
             ro.ApproverId,

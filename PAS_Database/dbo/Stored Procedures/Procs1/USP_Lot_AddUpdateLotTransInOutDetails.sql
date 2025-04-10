@@ -33,7 +33,7 @@ BEGIN
 
 		DECLARE @TotalCounts INT,@count INT,@LatestId BIGINT,@p1 dbo.LotCalculationDetailsType;
 		DECLARE @LotId BIGINT,@isMaintainStk bit = 0; 
-		DECLARE @TransInCodeTypeId BIGINT,@TransOutCodeTypeId BIGINT, @CurrentCTRLNumber AS BIGINT,@ReferenceNumber AS VARCHAR(100);
+		DECLARE @TransInCodeTypeId BIGINT,@TransOutCodeTypeId BIGINT, @CurrentNumber AS BIGINT,@ReferenceNumber AS VARCHAR(100);
 		SELECT @TransInCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'LotTransInReferenceNum';
 		SELECT @TransOutCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'LotTransOutReferenceNum';
 		SET @count = 1;
@@ -106,13 +106,14 @@ BEGIN
 				PRINT @TransInCodeTypeId
 				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId))
 				BEGIN
-					SET @CurrentCTRLNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+					SET @CurrentNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
 					FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId)
 					
 					SET @ReferenceNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
-									@CurrentCTRLNumber,
+									ISNULL(@CurrentNumber,0)+1,
 									(SELECT CodePrefix FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId),
 									(SELECT CodeSufix FROM #tmpCodePrefixesTransIn WHERE CodeTypeId = @TransInCodeTypeId)))
+					UPDATE dbo.CodePrefixes SEt CurrentNummber = ISNULL(@CurrentNumber,0)+1 WHERE CodePrefixId = (SELECT TOP 1 CodePrefixId FROM #tmpCodePrefixesTransIn)
 				END
 				/******End Prefixes******/	
 
@@ -160,13 +161,14 @@ BEGIN
 					PRINT @TransOutCodeTypeId
 					IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId))
 					BEGIN
-						SET @CurrentCTRLNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+						SET @CurrentNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
 						FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId)
 					
 						SET @ReferenceNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
-										@CurrentCTRLNumber,
+										ISNULL(@CurrentNumber,0)+1,
 										(SELECT CodePrefix FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId),
 										(SELECT CodeSufix FROM #tmpCodePrefixesTransOut WHERE CodeTypeId = @TransOutCodeTypeId)))
+						UPDATE dbo.CodePrefixes SEt CurrentNummber = ISNULL(@CurrentNumber,0)+1 WHERE CodePrefixId = (SELECT TOP 1 CodePrefixId FROM #tmpCodePrefixesTransOut)
 					END
 					/******End Prefixes******/	
 

@@ -15,6 +15,7 @@
     2    09/20/2024   Vishal Suthar      Modified the SOQ table joins with new tables
 	3	 22-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone 
 	4	 12-Mar-2025  Vishal Suthar		 Modified default sort column to SalesOrderQuoteId 
+	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -79,149 +80,138 @@ BEGIN
 		WHERE 
 			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
-    SET @RecordFrom = (@PageNumber-1)*@PageSize;  
-    IF @IsDeleted is null  
-    Begin  
-     Set @IsDeleted=0  
-    End  
-    print @IsDeleted   
-    IF @SortColumn is null  
-    Begin  
-     Set @SortColumn=Upper('SalesOrderQuoteId')  
-    End   
-    Else  
-    Begin   
-     Set @SortColumn=Upper(@SortColumn)  
-    End  
-  
-    If @QuoteAmount=0  
-    Begin   
-     Set @QuoteAmount=null  
-    End  
+    SET @RecordFrom = (@PageNumber - 1) * @PageSize;  
+    IF @IsDeleted IS NULL
+    BEGIN
+		SET @IsDeleted = 0
+    END
     
-    If @SoAmount=0  
-    Begin   
-     Set @SoAmount=null  
-    End  
+    IF @SortColumn IS NULL
+    BEGIN
+		SET @SortColumn = Upper('SalesOrderQuoteId')
+    END
+    ELSE
+    BEGIN
+		SET @SortColumn = Upper(@SortColumn)
+    END
   
+    IF @QuoteAmount = 0
+    BEGIN
+		SET @QuoteAmount = NULL
+    END
+    
+    IF @SoAmount = 0
+    BEGIN
+		SET @SoAmount = NULL
+    END
   
-    If @StatusID=0  
-    Begin   
-     Set @StatusID=null  
-    End   
+    IF @StatusID = 0
+    BEGIN
+		SET @StatusID = NULL
+    END
   
-    If @Status='0'  
-    Begin  
-     Set @Status=null  
-    End  
+    IF @Status = '0'
+    BEGIN
+		SET @Status = NULL
+    END
 
     DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID  
-    ;With Main AS(  
+    ;With Main AS (
       Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,
 	  SOQ.OpenDate,
-	  C.CustomerId,C.Name,C.CustomerCode,MST.Name as 'Status',  
-      B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson,CT.CustomerTypeName,SO.SalesOrderNumber,  
+	  SOQ.CustomerId, SOQ.CustomerName Name, SOQ.CustomerCode CustomerCode, MST.Name AS 'Status',  
+      B.Cost, B.NetSales AS 'SalesPrice', (E.FirstName + ' ' + E.LastName) AS SalesPerson, SOQ.AccountTypeName CustomerTypeName, SO.SalesOrderNumber,  
       A.SoAmount,
-	  --SOQ.CreatedDate,
-	  --SOQ.UpdatedDate,
-	  (Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
-	  (Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+	  (Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
+	  (Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 	  SOQ.StatusId,SOQ.CreatedBy,SOQ.UpdatedBy,  
-      dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',SOQ.IsNewVersionCreated,SOQ.CustomerReference  
-      from dbo.SalesOrderQuote SOQ WITH (NOLOCK) Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id  
-      Inner Join Customer C WITH (NOLOCK) on SOQ.CustomerId=C.CustomerId  
-      Inner Join CustomerType CT WITH (NOLOCK) on SOQ.AccountTypeId=CT.CustomerTypeId  
-	  Left Join SalesOrderQuotePartV1 SOQP WITH (NOLOCK) on SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-	  Left Join SalesOrderPartV1 SP WITH (NOLOCK) on SOQP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
-	  Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
-      LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId 
-      Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
-      Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null  
-      INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId  
-      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId  
-      INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-      Outer Apply(  
-       Select SUM(SOPC.NetSaleAmount) as SoAmount from SalesOrderPartV1 SOP
-	   INNER JOIN DBO.SalesOrderPartCost SOPC ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-	   INNER JOIN DBO.SalesOrderQuotePartV1 SOQP ON SOQP.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
-       Where SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId  
-      ) A  
-      Outer Apply (  
-       Select SUM(SOC.UnitCost) as 'Cost',SUM(SOC.NetSaleAmount) as 'NetSales' from SalesOrderQuotePartV1 S 
-	   INNER JOIN SalesOrderQuotePartCost SOC ON S.SalesOrderQuotePartId = SOC.SalesOrderQuotePartId
-       Where S.SalesOrderQuoteId=SOQ.SalesOrderQuoteId  
-      ) B  
-      Where (SOQ.IsDeleted=@IsDeleted) and (@StatusID is null or SOQ.StatusId=@StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),PartCTE AS(  
-      Select SQ.SalesOrderQuoteId,(Case When Count(SP.SalesOrderQuotePartId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from SalesOrderQuote SQ WITH (NOLOCK)  
-      --Left Join SalesOrderQuotePart SP WITH (NOLOCK) On SQ.SalesOrderQuoteId=SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Left Join DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Outer Apply(  
+      dbo.GenearteVersionNumber(SOQ.Version) AS 'VersionNumber',SOQ.IsNewVersionCreated,SOQ.CustomerReference  
+      FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) INNER JOIN MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
+	  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+	  LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+      LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId = SOQ.SalesPersonId
+      LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SO.SalesOrderQuoteId IS NOT NULL
+      INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+      INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+      OUTER APPLY(
+       SELECT SUM(SOPC.NetSaleAmount) AS SoAmount FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
+	   INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+	   INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
+       Where SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+      ) A
+      OUTER APPLY (
+       SELECT SUM(SOC.UnitCost) AS 'Cost', SUM(SOC.NetSaleAmount) AS 'NetSales' FROM DBO.SalesOrderQuotePartV1 S WITH (NOLOCK)
+	   INNER JOIN DBO.SalesOrderQuotePartCost SOC WITH (NOLOCK) ON S.SalesOrderQuotePartId = SOC.SalesOrderQuotePartId
+       Where S.SalesOrderQuoteId=SOQ.SalesOrderQuoteId
+      ) B
+      WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId), PartCTE AS (  
+      SELECT SQ.SalesOrderQuoteId,(CASE WHEN Count(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PartNumber END)  AS 'PartNumberType',A.PartNumber FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  
+      LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
+      OUTER APPLY (  
        SELECT   
           STUFF((SELECT ',' + I.partnumber  
-           FROM SalesOrderQuotePartV1 S WITH (NOLOCK)  
-           Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-           Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
-           FOR XML PATH('')), 1, 1, '') PartNumber  
+           FROM DBO.SalesOrderQuotePartV1 S WITH (NOLOCK)  
+           LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) On S.ItemMasterId = I.ItemMasterId  
+           WHERE S.SalesOrderQuoteId = SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
+           FOR XML PATH('')), 1, 1, '') PartNumber
       ) A  
-      Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))  
-      Group By SQ.SalesOrderQuoteId,A.PartNumber  
+      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR sq.StatusId = @StatusID))  
+      GROUP BY SQ.SalesOrderQuoteId, A.PartNumber  
       ),
 	  PartMFCTE AS(  
-      Select SQ.SalesOrderQuoteId,(Case When Count(SP.SalesOrderQuotePartId) > 1 Then 'Multiple' ELse A.Manufacturer End)  as 'ManufacturerType',A.Manufacturer from SalesOrderQuote SQ WITH (NOLOCK)  
-      --Left Join SalesOrderQuotePart SP WITH (NOLOCK) On SQ.SalesOrderQuoteId=SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Left Join DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0
-      Outer Apply(  
+      SELECT SQ.SalesOrderQuoteId,(CASE WHEN COUNT(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.Manufacturer END) AS 'ManufacturerType', A.Manufacturer FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)
+      LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0
+      OUTER APPLY (  
        SELECT   
-          STUFF((SELECT ', ' + MA.Name
-           FROM SalesOrderQuote S WITH (NOLOCK)  
-           Left Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on S.SalesOrderQuoteId = SP.SalesOrderQuoteId
-	  Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
-      LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId
-           Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
-           FOR XML PATH('')), 1, 1, '') Manufacturer  
+        STUFF((SELECT ', ' + MA.Name
+        FROM DBO.SalesOrderQuote S WITH (NOLOCK)  
+        LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON S.SalesOrderQuoteId = SP.SalesOrderQuoteId
+		LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
+		LEFT JOIN DBO.Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId
+        WHERE S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
+        FOR XML PATH('')), 1, 1, '') Manufacturer  
       ) A  
-      Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))  
-      Group By SQ.SalesOrderQuoteId,A.Manufacturer  
-      ),PartDescCTE AS(  
-      Select SQ.SalesOrderQuoteId,(Case When Count(SP.SalesOrderQuotePartId) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PartDescriptionType',A.PartDescription from SalesOrderQuote SQ WITH (NOLOCK)  
-      --Left Join SalesOrderQuotePart SP WITH (NOLOCK) On SQ.SalesOrderQuoteId=SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Left Join DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Outer Apply(  
+      WHERE ((SQ.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId=@StatusID))  
+      GROUP BY SQ.SalesOrderQuoteId,A.Manufacturer  
+      ),PartDescCTE AS (  
+      SELECT SQ.SalesOrderQuoteId, (CASE WHEN COUNT(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PartDescription END) AS 'PartDescriptionType', A.PartDescription FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  
+      LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
+      OUTER APPLY (  
        SELECT   
           STUFF((SELECT ', ' + I.PartDescription  
-           FROM SalesOrderQuotePartV1 S WITH (NOLOCK)  
-           Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
+           FROM DBO.SalesOrderQuotePartV1 S WITH (NOLOCK)  
+           LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
            Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PartDescription  
       ) A  
-      Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))  
-      Group By SQ.SalesOrderQuoteId,A.PartDescription  
-      ),PriorityCTE AS(  
-      Select SQ.SalesOrderQuoteId,(Case When Count(SP.SalesOrderQuotePartId) > 1 Then 'Multiple' ELse A.PriorityDescription End)  as 'PriorityType',A.PriorityDescription from SalesOrderQuote SQ WITH (NOLOCK)  
-      --Left Join SalesOrderQuotePart SP WITH (NOLOCK) On SQ.SalesOrderQuoteId=SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Left Join DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0
-      Outer Apply(  
+      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId = @StatusID))  
+      GROUP BY SQ.SalesOrderQuoteId,A.PartDescription  
+      ), PriorityCTE AS (  
+      SELECT SQ.SalesOrderQuoteId,(CASE WHEN COUNT(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PriorityDescription END) AS 'PriorityType', A.PriorityDescription FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  
+      LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0
+      OUTER APPLY (  
        SELECT   
           STUFF((SELECT ', ' + P.Description  
-           FROM SalesOrderQuotePartV1 S WITH (NOLOCK)  
-           Left Join Priority P WITH (NOLOCK) On P.PriorityId=S.PriorityId  
-           Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
+           FROM DBO.SalesOrderQuotePartV1 S WITH (NOLOCK)  
+           LEFT JOIN DBO.[Priority] P WITH (NOLOCK) On P.PriorityId = S.PriorityId  
+           WHERE S.SalesOrderQuoteId = SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PriorityDescription  
       ) A  
-      Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))   
-      Group By SQ.SalesOrderQuoteId,A.PriorityDescription  
-      ),Result AS(  
-      Select M.SalesOrderQuoteId,M.SalesOrderQuoteNumber,M.OpenDate as 'QuoteDate',M.CustomerId,M.Name as 'CustomerName',M.Status,  
+      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId = @StatusID))   
+      GROUP BY SQ.SalesOrderQuoteId,A.PriorityDescription  
+      ),Result AS (  
+      SELECT M.SalesOrderQuoteId,M.SalesOrderQuoteNumber,M.OpenDate as 'QuoteDate',M.CustomerId,M.Name as 'CustomerName',M.Status,  
          M.VersionNumber,IsNull(M.SalesPrice,0) as 'QuoteAmount',M.IsNewVersionCreated,M.StatusId,M.CustomerReference,  
          PR.PriorityDescription as 'Priority',PR.PriorityType,M.SalesPerson,PT.PartNumber,PT.PartNumberType,PD.PartDescription,  
          PD.PartDescriptionType,M.CustomerTypeName as 'CustomerType',M.SalesOrderNumber,IsNULL(M.SoAmount,0) as 'SoAmount',M.CreatedDate,  
          M.UpdatedDate,M.CreatedBy,M.UpdatedBy,MF.Manufacturer,MF.ManufacturerType   
-         from Main M   
-      Left Join PartCTE PT On M.SalesOrderQuoteId=PT.SalesOrderQuoteId  
-      Left Join PartDescCTE PD on PD.SalesOrderQuoteId=M.SalesOrderQuoteId  
-	   Left Join PartMFCTE MF on MF.SalesOrderQuoteId=M.SalesOrderQuoteId
-      Left Join PriorityCTE PR on PR.SalesOrderQuoteId=M.SalesOrderQuoteId  
-      Where (  
+         FROM Main M   
+      LEFT JOIN PartCTE PT On M.SalesOrderQuoteId=PT.SalesOrderQuoteId  
+      LEFT JOIN PartDescCTE PD on PD.SalesOrderQuoteId=M.SalesOrderQuoteId  
+	  LEFT JOIN PartMFCTE MF on MF.SalesOrderQuoteId=M.SalesOrderQuoteId
+      LEFT JOIN PriorityCTE PR on PR.SalesOrderQuoteId=M.SalesOrderQuoteId  
+      WHERE (
       (@GlobalFilter <>'' AND ((M.SalesOrderQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR  
         (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR  
         (M.Name like '%' +@GlobalFilter+'%') OR  
@@ -238,29 +228,26 @@ BEGIN
         (M.UpdatedBy like '%' +@GlobalFilter+'%')   
         ))  
         OR     
-        (@GlobalFilter='' AND (IsNull(@SOQNumber,'') ='' OR M.SalesOrderQuoteNumber like '%'+@SOQNumber+'%') and   
-        (IsNull(@SalesOrderNumber,'') ='' OR M.SalesOrderNumber like '%'+@SalesOrderNumber+'%') and  
-        (IsNull(@CustomerName,'') ='' OR M.Name like '%'+ @CustomerName+'%') and  
-        (IsNull(@Status,'') =''  OR M.Status like '%'+@Status+'%') and  
-        (@QuoteAmount is  null or M.SalesPrice=@QuoteAmount) and  
-        (@SoAmount is  null or M.SoAmount=@SoAmount) and  
-        (@QuoteDate is  null or Cast(M.OpenDate as date)=Cast(@QuoteDate as date)) and 
-        (IsNull(@SalesPerson,'') ='' OR M.SalesPerson like '%'+@SalesPerson+'%') and  
-        (IsNull(@PriorityType,'') ='' OR PR.PriorityType like '%'+ @PriorityType+'%') and  
-        (IsNull(@PartNumberType,'') ='' OR PT.PartNumberType like '%'+@PartNumberType+'%') and  
-        (IsNull(@PartDescriptionType,'') ='' OR PD.PartDescriptionType like '%'+@PartDescriptionType+'%') and  
-        (IsNull(@CustomerReference,'') ='' OR M.CustomerReference like '%'+@CustomerReference+'%') and  
-        (IsNull(@CustomerType,'') ='' OR M.CustomerTypeName like '%'+@CustomerType+'%') and  
-		(IsNull(@ManufacturerType,'') ='' OR MF.ManufacturerType like '%'+@ManufacturerType+'%') and  
-        (IsNull(@VersionNumber,'') ='' OR M.VersionNumber like '%'+@VersionNumber+'%') and  
-        (IsNull(@CreatedBy,'') ='' OR M.CreatedBy like '%'+@CreatedBy+'%') and  
-        (IsNull(@UpdatedBy,'') ='' OR M.UpdatedBy like '%'+@UpdatedBy+'%') and  
-        (IsNull(@CreatedDate,'') ='' OR Cast(M.CreatedDate as Date)=Cast(@CreatedDate as date)) and  
-        (IsNull(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate as date)=Cast(@UpdatedDate as date)))  
-        )  
-       
-     
-      ), CTE_Count AS (Select COUNT(SalesOrderQuoteId) AS NumberOfItems FROM Result)  
+        (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR M.SalesOrderQuoteNumber LIKE '%'+@SOQNumber+'%') AND
+        (ISNULL(@SalesOrderNumber,'') = '' OR M.SalesOrderNumber LIKE '%'+@SalesOrderNumber+'%') AND
+        (ISNULL(@CustomerName,'') = '' OR M.Name LIKE '%'+ @CustomerName+'%') AND  
+        (ISNULL(@Status,'') = ''  OR M.Status LIKE '%'+@Status+'%') AND  
+        (@QuoteAmount IS  NULL OR M.SalesPrice=@QuoteAmount) AND  
+        (@SoAmount IS  NULL OR M.SoAmount=@SoAmount) AND  
+        (@QuoteDate IS  NULL OR Cast(M.OpenDate AS DATE) = Cast(@QuoteDate AS DATE)) AND 
+        (ISNULL(@SalesPerson,'') ='' OR M.SalesPerson LIKE '%'+@SalesPerson+'%') AND  
+        (ISNULL(@PriorityType,'') ='' OR PR.PriorityType LIKE '%'+ @PriorityType+'%') AND  
+        (ISNULL(@PartNumberType,'') ='' OR PT.PartNumberType LIKE '%'+@PartNumberType+'%') AND  
+        (ISNULL(@PartDescriptionType,'') ='' OR PD.PartDescriptionType LIKE '%'+@PartDescriptionType+'%') AND  
+        (ISNULL(@CustomerReference,'') ='' OR M.CustomerReference LIKE '%'+@CustomerReference+'%') AND  
+        (ISNULL(@CustomerType,'') ='' OR M.CustomerTypeName LIKE '%'+@CustomerType+'%') AND  
+		(ISNULL(@ManufacturerType,'') ='' OR MF.ManufacturerType LIKE '%'+@ManufacturerType+'%') AND  
+        (ISNULL(@VersionNumber,'') ='' OR M.VersionNumber LIKE '%'+@VersionNumber+'%') AND  
+        (ISNULL(@CreatedBy,'') ='' OR M.CreatedBy LIKE '%'+@CreatedBy+'%') AND  
+        (ISNULL(@UpdatedBy,'') ='' OR M.UpdatedBy LIKE '%'+@UpdatedBy+'%') AND  
+        (ISNULL(@CreatedDate,'') ='' OR Cast(M.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
+        (ISNULL(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)))  
+        )), CTE_Count AS (SELECT COUNT(SalesOrderQuoteId) AS NumberOfItems FROM Result)  
       SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',QuoteAmount,IsNewVersionCreated,StatusId  
       ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  
       CreatedDate,UpdatedDate,NumberOfItems,UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy',UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType' FROM Result,CTE_Count  
@@ -305,7 +292,6 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
-	  --CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERTYPE')  THEN ManufacturerType END DESC
       OFFSET @RecordFrom ROWS   
       FETCH NEXT @PageSize ROWS ONLY  
      END  

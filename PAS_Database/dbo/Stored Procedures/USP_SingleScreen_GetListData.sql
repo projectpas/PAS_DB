@@ -15,6 +15,7 @@
     4    12/03/2025   Ekta Chandegra	Add Case for check EmployeeId and @CurrntEmpTimeZoneDesc having value
 	5    17/03/2025   Ayushi Patel		Converted the date into utc (created , updated) , Added a case to get timeZone
 	6	 01/04/2025   Devendra Shekh	Modified (For Task SS - Order By Description ASC)
+	7	 09/04/2025   Divyesh Kathiriya	Modified (For Aircraft Model SS - Order By Model Names ASC)
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
 	@PageNumber INT = NULL,
@@ -136,8 +137,11 @@ BEGIN
     SET @Orderby = ' ORDER BY '
     IF (ISNULL(@SortColumn, '') = '')
     BEGIN
-	
-		IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'SequenceNo')
+		IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'ModelName')
+		BEGIN
+			SET @Orderby += ' ModelName ASC '
+		END
+		ELSE IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @PageName AND column_name = 'SequenceNo')
 		BEGIN
 			SET @Orderby += ' SequenceNo ASC '
 		END

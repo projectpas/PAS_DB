@@ -10,6 +10,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   12/25/2024   Vishal Suthar		Created
+	2   04/10/2024   Ekta Chandegra		Add history when rearrange sequence number
 
 EXEC [DeleteWorkOrderTask] 3
 **************************************************************/
@@ -45,17 +46,38 @@ AS
 
 		EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @TaskName, '', @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy, NULL, @UpdatedBy, NULL
 
-		-- Rearrange the SequenceNumbers for the remaining rows
-		UPDATE WorkOrderTask
-		SET SequenceNumber = NewSequence.SequenceNumber
-		FROM WorkOrderTask
-		INNER JOIN (
-			SELECT WorkOrderTaskId,
-				   ROW_NUMBER() OVER (ORDER BY SequenceNumber) AS SequenceNumber
-			FROM WorkOrderTask
-			WHERE WorkOrderId = @WorkOrderId
-		) AS NewSequence
-		ON WorkOrderTask.WorkOrderTaskId = NewSequence.WorkOrderTaskId;
+		/* Resequence the remaining tasks */
+		DECLARE @TempSequence TABLE (WorkOrderTaskId BIGINT, SequenceNumber INT);
+
+		INSERT INTO @TempSequence (WorkOrderTaskId, SequenceNumber)
+		SELECT WorkOrderTaskId, 
+			   ROW_NUMBER() OVER (ORDER BY SequenceNumber)
+		FROM [dbo].[WorkOrderTask] WITH(NOLOCK)
+		WHERE WorkOrderId = @WorkOrderId;
+
+		-- Update the sequence numbers
+		UPDATE WOT
+		SET WOT.SequenceNumber = TS.SequenceNumber
+		FROM [dbo].[WorkOrderTask] WOT
+		INNER JOIN @TempSequence TS ON WOT.WorkOrderTaskId = TS.WorkOrderTaskId;
+
+		-- Add sequence change history
+		DECLARE @WOTID BIGINT, @SeqNum INT;
+			DECLARE cur CURSOR FOR 
+				SELECT WorkOrderTaskId, SequenceNumber 
+				FROM @TempSequence;
+
+			OPEN cur;
+			FETCH NEXT FROM cur INTO @WOTID, @SeqNum;
+
+			WHILE @@FETCH_STATUS = 0
+			BEGIN
+				EXEC [dbo].[USP_AddWorkOrderTaskHistory] @WOTID, @UpdatedBy, 0, @SeqNum;
+				FETCH NEXT FROM cur INTO @WOTID, @SeqNum;
+			END
+
+			CLOSE cur;
+			DEALLOCATE cur;
 
 	COMMIT TRANSACTION
 

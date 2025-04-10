@@ -3644,6 +3644,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItems.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPOListNonstockByMasterItemId.sql" />
     <Build Include="dbo\Stored Procedures\BindHeaderDataNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetROHeaderDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

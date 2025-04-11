@@ -11,6 +11,7 @@
 ** PR   Date			Author				Change Description  
 ** --   --------		-------				--------------------------------
 ** 1    18-Oct-2024		RAJESH GAMI		    CREATED
+   2    10-APR-2025     Moin Bloch          Updated [QuantityReceived] For StockLine Count
 
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 2671 ,NULL,NULL
 **************************************************************/ 
@@ -436,7 +437,8 @@ BEGIN
 							SET @swonum = (SELECT STRING_AGG(SubWorkOrderNo, ',') FROM DBO.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId IN (SELECT ReferenceId
 																					FROM DBO.PurchaseOrderPartReference WITH(NOLOCK)
 																					WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 5)); /* ModuleId = 6 for the Sub WO */
-							SET @StockLineCount = (SELECT SUM(ISNULL(Quantity,0)) FROM Dbo.Stockline WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(isDeleted,0) = 0 AND ISNULL(IsParent,0) = 1)
+							--SET @StockLineCount = (SELECT SUM(ISNULL(Quantity,0)) FROM Dbo.Stockline WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(isDeleted,0) = 0 AND ISNULL(IsParent,0) = 1)
+							SET @StockLineCount = (SELECT ISNULL([QuantityReceived],0) FROM [dbo].[PurchaseOrderPart] WITH(NOLOCK) WHERE [PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND ISNULL(isDeleted,0) = 0 AND ISNULL(IsParent,0) = 1)
 							SET @DraftedStockLineCount = (SELECT SUM(ISNULL(Quantity,0)) FROM  Dbo.StockLineDraft WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(isDeleted,0) = 0 AND ISNULL(IsParent,0) = 1 AND ISNULL(StockLineId,0) = 0)
 							INSERT INTO #mainReturnTable (
 								PartNumber,

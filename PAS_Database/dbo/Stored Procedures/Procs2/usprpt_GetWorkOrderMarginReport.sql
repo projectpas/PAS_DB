@@ -28,7 +28,7 @@
 10    04/25/2024   VISHAL SUTHAR		Added a fix to handle devide by zero exception
 11    04/30/2024   Devendra Shekh		Added a fix to handle devide by zero exception(for WithTotal result)
 12    05/01/2024   Devendra Shekh		report failed issue resolved
-13    10-APR-2025  Hemant Saliya		Updated for Get Revised Part number 
+13    11-APR-2025  Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -111,68 +111,67 @@ BEGIN
 			 BEGIN       
 			   SELECT @PageSize=COUNT(*)      
 			   FROM DBO.WorkOrder WO WITH (NOLOCK)      
-				 INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId      
-				 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
-				 INNER JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId    
-				 LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID           
-				 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0     
-				 LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0      
-				 LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id      
-				 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId      
-				 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId    
-				 LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId      
-				 LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
-				 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
-				 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
-				 LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      
-				 LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId    
+					 INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId      
+					 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
+					 INNER JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId    
+					 LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID           
+					 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0     
+					 LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0      
+					 LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id      
+					 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId      
+					 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId    
+					 LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId      
+					 LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
+					 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
+					 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
+					 LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      
+					 LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId    
 			   WHERE CAST(WOBI.invoicedate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)      
-				 AND WO.customerid=ISNULL(@customername,WO.customerid)       
-				 AND WO.mastercompanyid = @mastercompanyid AND WO.IsDeleted = 0      
-				 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
-				 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
-				 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
-				 AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
-				 AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
-				 AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
-				 AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
-				 AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
-				 AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
-				 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-				 AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))      
+					 AND WO.customerid=ISNULL(@customername,WO.customerid)       
+					 AND WO.mastercompanyid = @mastercompanyid AND WO.IsDeleted = 0      
+					 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
+					 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
+					 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
+					 AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
+					 AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
+					 AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
+					 AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
+					 AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
+					 AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
+					 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
+					 AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))      
   
 			   SELECT @PageSizeCM=COUNT(*)   
 				FROM DBO.CreditMemo CM WITH (NOLOCK)    
-				  INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
-				  LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
-				  LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
-				  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0    
-				  LEFT JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOBI.WorkOrderPartNoId = WOWF.WorkOrderPartNoId  
-				  LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId  
-				  LEFT JOIN DBO.Employee E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId  
-				  LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND WOQ.IsVersionIncrease = 0     
-				  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 2 AND MSD.ReferenceID = CMD.StocklineId      
-				  LEFT JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId      
-				  LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
-				  LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId    
-				  LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId    
-				  LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID         
-       
+					  INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
+					  LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
+					  LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
+					  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0    
+					  LEFT JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOBI.WorkOrderPartNoId = WOWF.WorkOrderPartNoId  
+					  LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId  
+					  LEFT JOIN DBO.Employee E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId  
+					  LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND WOQ.IsVersionIncrease = 0     
+					  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 2 AND MSD.ReferenceID = CMD.StocklineId      
+					  LEFT JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId      
+					  LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
+					  LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId    
+					  LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId    
+					  LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID         
 			   WHERE CAST(CM.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)      
-				 AND CM.customerid=ISNULL(@customername,CM.customerid)      
-				 AND CM.mastercompanyid = @mastercompanyid      
-				 AND ISNULL(CM.IsWorkOrder,0) = 1 AND ISNULL(CM.IsDeleted,0) = 0 
-				 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
-				 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
-				 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
-				 AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
-				 AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
-				 AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
-				 AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
-				 AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
-				 AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
-				 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-				 AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
+					 AND CM.customerid=ISNULL(@customername,CM.customerid)      
+					 AND CM.mastercompanyid = @mastercompanyid      
+					 AND ISNULL(CM.IsWorkOrder,0) = 1 AND ISNULL(CM.IsDeleted,0) = 0 
+					 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
+					 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
+					 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
+					 AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
+					 AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
+					 AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
+					 AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
+					 AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
+					 AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
+					 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
+					 AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
       
 			   SET @PageSize = ISNULL(@PageSize,0) + ISNULL(@PageSizeCM,0)   
 			END      
@@ -229,7 +228,8 @@ BEGIN
 						 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
 						 INNER JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId    
 						 LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID           
-						 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0        
+						 INNER JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0        
+						 INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.WorkOrderPartId = WOPN.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
 						 LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0      
 						 LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id      
 						 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId      
@@ -241,7 +241,6 @@ BEGIN
 						 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
 						 LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      
 						 LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId      
-	 
 						 LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 						 LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
 						 LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
@@ -292,18 +291,6 @@ BEGIN
 					0 AS 'ohcostper',  
 					0 AS 'revenueper',   
 					CASE WHEN ISNULL(CM.Amount,0) != 0 THEN (((ISNULL(CM.Amount,0)  * 100))/ISNULL(CM.Amount,0)) ELSE ISNULL(CM.Amount,0) END AS 'grossmarginrevper',  
-
-					--ISNULL(CM.Amount,0) 'revenue',      
-					--ISNULL(WOC.PartsCost,0) 'partscost',      
-					--ISNULL(WOC.LaborCost,0) 'laborcost',      
-					--ISNULL(WOC.OverHeadCost,0) 'overheadcost',      
-					--ISNULL(WOC.DirectCost,0) 'directcost',      
-					--CASE WHEN ISNULL(WOC.DirectCost,0) != 0 THEN CONVERT(DECIMAL(10,4), ISNULL(WOBI.GrandTotal,0) - ISNULL(WOC.DirectCost,0))  ELSE ISNULL(WOBI.GrandTotal,0) END 'margin',      
-					--CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.PartsCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'partsrevper',      
-					--CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.LaborCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'laborrevper',      
-					--CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.OverHeadCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'ohcostper',      
-					--CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.DirectCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END  'revenueper',      
-					--CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), ((ISNULL(WOBI.GrandTotal, 0) - ISNULL(WOC.DirectCost, 0)) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'grossmarginrevper',  
 					CASE      
 					  WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)      
 					  WHEN ApprovedDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)      
@@ -321,7 +308,6 @@ BEGIN
 				  LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
 				  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0   
 				  LEFT JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOBI.WorkOrderPartNoId = WOWF.WorkOrderPartNoId  
-				  -- LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
 				  LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId  
 				  LEFT JOIN DBO.Employee E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId  
 				  LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND WOQ.IsVersionIncrease = 0     

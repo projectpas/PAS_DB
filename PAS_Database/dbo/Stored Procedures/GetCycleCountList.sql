@@ -15,6 +15,7 @@
 	2    13-11-2024   Moin Bloch        Added Difference Amount New Field
 	3    28-11-2024   Moin Bloch        Added New Field
 	4    28-11-2024   Moin Bloch        Updated fixed Management Structuer duplicate issue
+	5	 09/04/2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
 
    EXEC [GetCycleCountList] 
 **************************************************************/ 
@@ -59,7 +60,26 @@ AS
 BEGIN
 		SET NOCOUNT ON;
 		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
 
 		DECLARE @RecordFrom INT;
 		DECLARE @Count INT;
@@ -107,13 +127,13 @@ BEGIN
 					CCC.[CycleCountNumber],
 					CCC.[StatusId],
 					CCS.[Status],					
-					CCC.[EntryDate],
+					(Cast(DBO.ConvertUTCtoLocal(CCC.[EntryDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate,
 					ISNULL(SUM(ABS(CCD.[DifferenceAmount])),0) AS [DifferenceAmount],
-					CCC.[PostedDate],
+					(Cast(DBO.ConvertUTCtoLocal(CCC.[PostedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as PostedDate,
 					CCC.[BatchName],
 					CASE WHEN CCC.[CountMethodId] = 1 THEN 'Online' WHEN CCC.[CountMethodId] = 2 THEN 'Manual' ELSE '' END [CountMethod],
-					CCC.[CreatedDate],					
-					CCC.[UpdatedDate],
+					(Cast(DBO.ConvertUTCtoLocal(CCC.[CreatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(CCC.[UpdatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 					ISNULL(CCE.[FirstName],'') + ' ' + ISNULL(CCE.[LastName],'') AS [RequestedBy],
 					ISNULL(CEE.[FirstName],'') + ' ' + ISNULL(CEE.[LastName],'') AS [CountedBy],					
 					ISNULL(CEA.[FirstName],'') + ' ' + ISNULL(CEA.[LastName],'') AS [ApprovedBy],					
@@ -154,15 +174,15 @@ BEGIN
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@CycleCountNumber,'') ='' OR CycleCountNumber LIKE '%' + @CycleCountNumber+'%') AND 
 					(ISNULL(@Status,'') ='' OR [Status] LIKE '%' + @Status+'%') AND
-					(ISNULL(@EntryDate,'') ='' OR CAST([EntryDate] AS DATE) = CAST(@EntryDate AS DATE)) AND
+					(ISNULL(@EntryDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal([EntryDate],@CurrntEmpTimeZoneDesc) AS DATE)) = CAST(@EntryDate AS DATE)) AND
 					(IsNull(@DifferenceAmount,'') ='' OR CAST([DifferenceAmount] AS VARCHAR(50)) LIKE '%' + @DifferenceAmount+'%' ) AND     
-					(ISNULL(@PostedDate,'') ='' OR CAST([PostedDate] AS DATE) = CAST(@PostedDate AS DATE)) AND
+					(ISNULL(@PostedDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal([PostedDate],@CurrntEmpTimeZoneDesc) AS DATE)) = CAST(@PostedDate AS DATE)) AND
 					(ISNULL(@BatchName,'') ='' OR [BatchName] LIKE '%' + @BatchName+'%') AND
 					(ISNULL(@CountMethod,'') ='' OR [CountMethod] LIKE '%' + @CountMethod+'%') AND
 					(ISNULL(@CountedBy,'') ='' OR [CountedBy] LIKE '%' + @CountedBy+'%') AND
 					(ISNULL(@ApprovedBy,'') ='' OR [ApprovedBy] LIKE '%' + @ApprovedBy +'%') AND
-					(ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE) = CAST(@CreatedDate AS DATE)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST([UpdatedDate] AS DATE) = CAST(@UpdatedDate AS DATE)) AND
+					(ISNULL(@CreatedDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal([CreatedDate],@CurrntEmpTimeZoneDesc) AS DATE)) = CAST(@CreatedDate AS DATE)) AND
+					(ISNULL(@UpdatedDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal([UpdatedDate],@CurrntEmpTimeZoneDesc) AS DATE)) = CAST(@UpdatedDate AS DATE)) AND
 					(ISNULL(@RequestedBy,'') ='' OR [RequestedBy] LIKE '%' + @RequestedBy +'%') AND
 					(ISNULL(@CurrentStockQuantity,'') ='' OR [CurrentStockQuantity] LIKE '%' + @CurrentStockQuantity +'%') AND
 					(ISNULL(@CountedQuantity,'') ='' OR [CountedQuantity] LIKE '%' + @CountedQuantity +'%') AND

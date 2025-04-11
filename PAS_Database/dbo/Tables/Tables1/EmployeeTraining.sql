@@ -20,6 +20,8 @@
     [AircraftManufacturerId] INT             NULL,
     [DurationTypeId]         INT             NULL,
     [IsDeleted]              BIT             CONSTRAINT [DF_EmployeeTraining_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [Memo]                   VARCHAR (MAX)   NULL,
+    [InternalReference]      VARCHAR (256)   NULL,
     CONSTRAINT [PK_EmployeeTraining] PRIMARY KEY CLUSTERED ([EmployeeTrainingId] ASC),
     CONSTRAINT [FK_EmployeeTraining_AircraftManufacturer] FOREIGN KEY ([AircraftManufacturerId]) REFERENCES [dbo].[AircraftType] ([AircraftTypeId]),
     CONSTRAINT [FK_EmployeeTraining_AircraftModel] FOREIGN KEY ([AircraftModelId]) REFERENCES [dbo].[AircraftModel] ([AircraftModelId]),
@@ -27,6 +29,8 @@
     CONSTRAINT [FK_EmployeeTraining_EmployeeTrainingType] FOREIGN KEY ([EmployeeTrainingTypeId]) REFERENCES [dbo].[EmployeeTrainingType] ([EmployeeTrainingTypeId]),
     CONSTRAINT [FK_EmployeeTraining_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

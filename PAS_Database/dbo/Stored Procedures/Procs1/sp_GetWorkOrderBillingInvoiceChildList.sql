@@ -19,6 +19,7 @@
 	14   20/02/2024   Devendra Shekh	    added [IsAllowIncreaseVersionForBillItem] field for select
 	15   26/02/2024   Devendra Shekh	    added default invoice name for STANDARD
 	16	 16/01/2025	  Devendra Shekh		Added New Fields (IsQuickBookGeneratedInvoice)
+	17	 11/04/2025	  Moin Bloch		    Updated Fix For Finished Goods 
 
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
@@ -352,8 +353,8 @@ BEGIN
 							LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId
 							LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 							LEFT JOIN DBO.InvoiceType INV WITH(NOLOCK) on INV.InvoiceTypeId = wobi.InvoiceTypeId
-						WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartId 
-						--AND (ISNULL(wop.IsFinishGood, 0) = 1)
+						WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartId 						
+						  AND (ISNULL(wop.IsFinishGood, 0) = 1 OR wobi.BillingInvoicingId IS NOT NULL)
 						GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
 							wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 							sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,

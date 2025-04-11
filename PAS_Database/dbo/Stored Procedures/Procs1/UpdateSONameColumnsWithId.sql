@@ -11,8 +11,9 @@
     1    23-Dec-2020   Vishal Suthar    Created         
     2    03-Apr-2024   Bhargav Saliya	Credit Terms Changes
 	3    11/05/2024	   Vishal Suthar	Modified to make use of new SO Part tables
+	4    10/04/2025	   Vishal Suthar	Modified to update value columns in SalesOrderPartV1 table
 
-	EXEC [dbo].[UpdateSONameColumnsWithId] 5
+	EXEC [dbo].[UpdateSONameColumnsWithId] 255
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
@@ -106,20 +107,21 @@ BEGIN
 		LEFT JOIN DBO.CreditTerms CTerm WITH (NOLOCK) ON CTerm.CreditTermsId = SO.CreditTermId
 		Where SO.SalesOrderId = @SalesOrderId
 
-		--Update SOP
-		--SET UnitSalesPricePerUnit = (sop.GrossSalePricePerUnit - sop.DiscountAmount),
-		--NetSales = (sop.GrossSalePricePerUnit - sop.DiscountAmount) * sop.Qty
-		--FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
-		--LEFT JOIN DBO.[SalesOrderStocklineV1] Stk WITH (NOLOCK) ON sop.SalesOrderPartId = Stk.SalesOrderPartId
-		--LEFT JOIN DBO.[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-		--LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		--LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON Stk.StockLineId = sl.StockLineId
-		--LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = sop.CurrencyId
-		--LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
-		--LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON sop.StatusId = st.Id
-		--LEFT JOIN DBO.Priority p WITH (NOLOCK) ON sop.PriorityId = p.PriorityId
-		--LEFT JOIN DBO.MasterSalesOrderQuoteStatus msoqs WITH (NOLOCK) ON sop.StatusId = msoqs.Id
-		--Where sop.SalesOrderId = @SalesOrderId
+		Update SOP
+		SET 
+		PartNumber = im.partnumber,
+		PartDescription = im.PartDescription,
+		ConditionName = c.Description,
+		CurrencyName = Curr.Code,
+		PriorityName = P.Description,
+		StatusName = st.Description
+		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
+		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
+		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = sop.CurrencyId
+		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
+		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON sop.StatusId = st.Id
+		LEFT JOIN DBO.Priority p WITH (NOLOCK) ON sop.PriorityId = p.PriorityId
+		Where sop.SalesOrderId = @SalesOrderId
 	END
 	COMMIT  TRANSACTION
 

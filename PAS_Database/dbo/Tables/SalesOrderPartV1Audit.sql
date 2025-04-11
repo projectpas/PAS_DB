@@ -26,8 +26,8 @@
     [IsActive]              BIT             NOT NULL,
     [IsDeleted]             BIT             NOT NULL,
     [OldSalesOrderPartId]   BIGINT          NULL,
-    [PartNumber]            VARCHAR (100)   NULL,
-    [PartDescription]       VARCHAR (100)   NULL,
+    [PartNumber]            VARCHAR (200)   NULL,
+    [PartDescription]       VARCHAR (MAX)   NULL,
     [ConditionName]         VARCHAR (100)   NULL,
     [CurrencyName]          VARCHAR (100)   NULL,
     [PriorityName]          VARCHAR (100)   NULL,
@@ -44,6 +44,8 @@
     [AltOrEqType]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
+
+
 
 
 

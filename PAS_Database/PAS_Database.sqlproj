@@ -3647,6 +3647,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetROHeaderDetails.sql" />
     <Build Include="dbo\Stored Procedures\SubWorkOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetShipViaAcctInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

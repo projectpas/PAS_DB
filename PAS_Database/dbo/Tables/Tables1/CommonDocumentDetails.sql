@@ -17,6 +17,8 @@
     [ExpirationDate]         DATETIME2 (7)  NULL,
     [ReferenceIndex]         INT            NULL,
     [ModuleType]             CHAR (2)       DEFAULT (NULL) NULL,
+    [SubModuleId]            INT            NULL,
+    [SubReferenceId]         BIGINT         NULL,
     CONSTRAINT [PK_CommonDocumentDetails] PRIMARY KEY CLUSTERED ([CommonDocumentDetailId] ASC),
     CONSTRAINT [FK_CommonDocumentDetails_Attachment] FOREIGN KEY ([AttachmentId]) REFERENCES [dbo].[Attachment] ([AttachmentId])
 );

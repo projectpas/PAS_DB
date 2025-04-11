@@ -30,6 +30,7 @@
     14   17-JAN-2025  RAJESH GAMI       Fixed Asset Inventory to insert RRQty by default as 1 instead of 0
 	15   07/01/2025   Ayushi Patel      cast PP_LastPurchaseDiscDate dateTime into Date
 	15   18-MAR-2025  HEMANT SALIYA     Updated DB Standards
+	16   10-APR-2025  Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -555,7 +556,7 @@ BEGIN
 						[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],
 						[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],
 						ISNULL([RepairOrderUnitCost], 0),GETUTCDATE(),@ReceiverNumber,[ReconciliationNumber],ISNULL([UnitSalesPrice], 0),ISNULL([CoreUnitCost], 0),[GLAccountId],[AssetId],[IsHazardousMaterial],
-						[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],
+						[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],
 						NULL,[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],
 						[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],
 						[WorkOrderId],CASE WHEN [WorkOrderMaterialsId] = 0 THEN NULL ELSE[WorkOrderMaterialsId]END,ISNULL([QuantityReserved], 0),ISNULL([QuantityTurnIn], 0),ISNULL([QuantityIssued], 0),CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
@@ -662,8 +663,10 @@ BEGIN
 
                         EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @ReceivingPurchaseOrderModule, @PurchaseOrderId, NULL, NULL, 11, @QtyAdded, @UpdatedBy;
                         EXEC USP_CreateStocklinePartHistory @NewStocklineId, 1, 0, 0, 0;
+
+						UPDATE [dbo].[PurchaseOrderPart] SET [QuantityReceived] += @QtyAdded WHERE [PurchaseOrderId] = @PurchaseOrderId AND [PurchaseOrderPartRecordId] = @SelectedPurchaseOrderPartRecordId
 						
-                        UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
+                        UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 
                         DECLARE @StkManagementStructureModuleId BIGINT = 2;
                         DECLARE @ManagementStructureEntityId BIGINT = 0;
@@ -696,7 +699,7 @@ BEGIN
                                   AND IsParent = 0
                                   AND isSerialized = 0
                                   AND IsSameDetailsForAllParts = 1
-                                  AND StockLineId IS NULL
+                                  AND StockLineId IS NULL 
                             ORDER BY StocklineDraftId DESC;
 
                             SELECT @LoopID_QtyToReceive = MAX(ID) FROM #StocklineDraftForQtyToReceive;
@@ -1854,7 +1857,7 @@ BEGIN
 						[CertificationFrequencyMonths],[CertificationFrequencyDays],[CertificationDefaultCost],[CertificationGlAccountId],[CertificationMemo],[InspectionMemo],[InspectionGlaAccountId],[InspectionDefaultCost],
 						[InspectionFrequencyMonths],[InspectionFrequencyDays],[VerificationFrequencyDays],[VerificationFrequencyMonths],[VerificationDefaultCost],[CalibrationDefaultCost],[CalibrationFrequencyMonths],
 						[CalibrationFrequencyDays],[CalibrationGlAccountId],[CalibrationMemo],[VerificationMemo],[VerificationGlAccountId],[CalibrationCurrencyId],[CertificationCurrencyId],[InspectionCurrencyId],[VerificationCurrencyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[AssetMaintenanceContractFileExt],[WarrantyFile],[WarrantyFileExt],[MasterPartId],[EntryDate],[InstallationCost],[Freight],[Insurance],[Taxes],
+						@UpdatedBy,@UpdatedBy,[CreatedDate],[UpdatedDate],[AssetMaintenanceContractFileExt],[WarrantyFile],[WarrantyFileExt],[MasterPartId],[EntryDate],[InstallationCost],[Freight],[Insurance],[Taxes],
 						[TotalCost],[WarrantyDefaultVendorId],[WarrantyGLAccountId],[IsDepreciable],[IsNonDepreciable],[IsAmortizable],[IsNonAmortizable],[SerialNo],[IsInsurance],[AssetLife],[WarrantyCompanyId],[WarrantyCompanyName],
 						[WarrantyCompanySelectId],[WarrantyMemo],[IsQtyReserved],1,@InventoryNumber_Asset,[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],@StockLineNumber_Asset,[AvailStatus],
 						[PartNumber],@ControlNumber_Asset,[RepairOrderId],[RepairOrderPartRecordId],[PurchaseOrderId],[PurchaseOrderPartRecordId],@ReceiverNumber_Asset,GETUTCDATE(),[SiteId],[SiteName],[WarehouseId],[Warehouse],
@@ -1906,7 +1909,9 @@ BEGIN
                         EXEC USP_AddUpdateStocklineHistory @NewStocklineId_Asset, @ReceivingPurchaseOrderModule_Asset, @PurchaseOrderId, NULL, NULL, 11, @QtyAdded_Asset, @UpdatedBy;
                         EXEC USP_CreateStocklinePartHistory @NewStocklineId_Asset, 1, 0, 0, 0;
 
-                        UPDATE CodePrefixes
+						UPDATE [dbo].[PurchaseOrderPart] SET [QuantityReceived] += @QtyAdded_Asset WHERE [PurchaseOrderId] = @PurchaseOrderId AND [PurchaseOrderPartRecordId] = @SelectedPurchaseOrderPartRecordId
+						
+                        UPDATE [dbo].[CodePrefixes]
                         SET CurrentNummber = @CNCurrentNumber_Asset
                         WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 
@@ -1964,7 +1969,7 @@ BEGIN
                                     FROM #StocklineDraftForQtyToReceive_Asset
                                     WHERE ID = @LoopID_QtyToReceive_Asset;
 
-                                    UPDATE AssetInventoryDraft
+                                    UPDATE dbo.AssetInventoryDraft
                                     SET AssetInventoryId = @NewStocklineId_Asset,
                                         StklineNumber = @StockLineNumber_Asset
                                     WHERE AssetInventoryDraftId = @CurrentStocklineDraftId_Asset;
@@ -2231,7 +2236,7 @@ BEGIN
 							[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost],[ExtendedCost],[Acquired],[IsHazardousMaterial],[ItemNonStockClassificationId],
 							[NonStockClassification],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],
 							[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId],[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],
-							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RRQty]
+							@UpdatedBy,@UpdatedBy,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RRQty]
 							FROM tempNonStockInventory 
 
                             SET @NewNonStockInventoryId = SCOPE_IDENTITY();
@@ -2245,6 +2250,8 @@ BEGIN
                                @PurchaseOrderUnitCostAdded_NonStock = UnitCost
 							FROM #tmpNonStockInventoryDraft WHERE NonStockInventoryDraftId = @TempNonStockId;
 
+							UPDATE [dbo].[PurchaseOrderPart] SET [QuantityReceived] += @QtyAdded_NonStock WHERE [PurchaseOrderId] = @PurchaseOrderId AND [PurchaseOrderPartRecordId] = @SelectedPurchaseOrderPartRecordId
+							
 							INSERT INTO @p4 VALUES (@NewNonStockInventoryId, @QtyAdded_NonStock, @PurchaseOrderUnitCostAdded_NonStock, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'NONSTOCK')
 
                             SELECT @MSId = MasterCompanyId,
@@ -2282,7 +2289,7 @@ BEGIN
 
                                 SET @NonStockInventoryNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@NonStockCurrentNo, @CodePrefix_NonStock, @CodeSuffix_NonStock))
 
-                                UPDATE ItemMasterNonStock
+                                UPDATE [dbo].[ItemMasterNonStock]
                                 SET CurrentStlNo = @NonStockCurrentNo,
                                     UpdatedDate = GETUTCDATE(),
                                     UpdatedBy = @UpdatedBy
@@ -2296,14 +2303,14 @@ BEGIN
                             
 							IF (ISNULL(@NonStockCurrentNumber, 0) <> 0)
                             BEGIN
-                                UPDATE CodePrefixes
+                                UPDATE [dbo].[CodePrefixes]
                                 SET CurrentNummber = @NonStockCurrentNumber + 1
                                 WHERE CodeTypeId = 68 AND MasterCompanyId = @MSId
                                 SET @NonStockCurrentNumber = @NonStockCurrentNumber + 1;
                                 SET @NonStockControlNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@NonStockCurrentNumber, @CodePrefix_NonStock, @CodeSuffix_NonStock))
                             END
 
-                            UPDATE NonStockInventory
+                            UPDATE [dbo].[NonStockInventory]
                             SET NonStockInventoryNumber = @NonStockInventoryNumber,
                                 ReceiverNumber = @ReceiverNumber_NonStock,
                                 ControlNumber = @NonStockControlNumber,
@@ -2367,7 +2374,7 @@ BEGIN
 										FROM #NonStocklineDraftForQtyToReceive
 										WHERE ID = @LoopID_QtyToReceive_NS;
 
-										UPDATE NonStockInventoryDraft
+										UPDATE [dbo].[NonStockInventoryDraft]
 										SET NonStockInventoryId = @NewNonStockInventoryId,
 											NonStockInventoryNumber = @NonStockInventoryNumber
 										WHERE NonStockInventoryDraftId = @CurrentNonStocklineDraftId;

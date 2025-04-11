@@ -27,7 +27,8 @@
 	11  26-02-2025      Shrey Chandegara    Modified due to datetime issue.
 	12  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	13  18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
-	14   07-04-2025     Shrey Chandegara   Modified due to PN-12013
+	14   07-04-2025    Shrey Chandegara    Modified due to PN-12013
+	15  10-04-2025     Moin Bloch          Modified change logic for QuantityReceived
       
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -191,9 +192,11 @@ BEGIN
 					PO.[Status],
 					PO.Requisitioner AS RequestedBy,
 					PO.ApprovedBy,
-					CAST(SUM(ISNULL(POP.QuantityOrdered,0)) AS varchar(100)) AS QuantityOrdered,
-					CAST(SUM(ISNULL(POP.QuantityBackOrdered,0)) AS varchar(100)) AS QuantityBackOrdered,
-					SUM(ISNULL(POP.QuantityOrdered,0)) - SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityReceived,
+					CAST(SUM(ISNULL(POP.QuantityOrdered,0)) AS VARCHAR(100)) AS [QuantityOrdered],
+					--CAST(SUM(ISNULL(POP.QuantityBackOrdered,0)) AS varchar(100)) AS [QuantityBackOrdered],
+					SUM(POP.[QuantityOrdered]) - ISNULL(SUM(POP.[QuantityReceived]),0) [QuantityBackOrdered],					
+					--SUM(ISNULL(POP.QuantityOrdered,0)) - SUM(ISNULL(POP.QuantityBackOrdered,0)) AS [QuantityReceived],					
+					ISNULL(SUM(POP.[QuantityReceived]),0) [QuantityReceived],					
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) End) as 'PartNumberType',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartDescription) End) as 'PartDescription',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  
@@ -210,7 +213,7 @@ BEGIN
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))   
 				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
-				GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,
+				GROUP BY PO.PurchaseOrderId, 				   
 					PO.PurchaseOrderNumber,
 					PO.OpenDate,
 					PO.ClosedDate,
@@ -273,9 +276,9 @@ BEGIN
 			(M.SalesOrderNumberType like '%' +@GlobalFilter+'%') OR      
 			(M.WorkOrderNumType like '%' +@GlobalFilter+'%') OR      
 			(M.RepairOrderNumberType like '%' +@GlobalFilter+'%') OR      
-			(CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR      
-			(CAST(QuantityBackOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
-			(CAST(QuantityReceived AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))      
+			(CAST(QuantityOrdered AS NVARCHAR(100)) LIKE '%' +@GlobalFilter+'%') OR      
+			(CAST(QuantityBackOrdered AS NVARCHAR(100)) LIKE '%' +@GlobalFilter+'%') OR       
+			(CAST(QuantityReceived AS NVARCHAR(100)) LIKE '%' +@GlobalFilter+'%')))      
 		OR         
 			(@GlobalFilter = '' AND (ISNULL(@PurchaseOrderNumber,'') = '' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber +'%') AND       
 			(ISNULL(@CreatedBy, '') = '' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND      
@@ -294,9 +297,9 @@ BEGIN
 			(IsNull(@SalesOrderNumberType, '') = '' OR M.SalesOrderNumberType like '%'+ @SalesOrderNumberType +'%') and      
 			(IsNull(@WorkOrderNumType, '') = '' OR M.WorkOrderNumType like '%'+ @WorkOrderNumType +'%') and      
 			(IsNull(@RepairOrderNumberType, '') = '' OR M.RepairOrderNumberType like '%'+ @RepairOrderNumberType +'%') and      
-			(IsNull(@QuantityOrdered, '') = '' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered +'%') AND       
-			(IsNull(@QuantityBackOrdered, '') = '' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+ @QuantityBackOrdered +'%') AND       
-			(IsNull(@QuantityReceived, '') = '' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+ @QuantityReceived +'%'))      
+			(IsNull(@QuantityOrdered, '') = '' OR CAST(QuantityOrdered as NVARCHAR(100)) like '%'+ @QuantityOrdered +'%') AND       
+			(IsNull(@QuantityBackOrdered, '') = '' OR CAST(QuantityBackOrdered as NVARCHAR(100)) like '%'+ @QuantityBackOrdered +'%') AND       
+			(IsNull(@QuantityReceived, '') = '' OR CAST(QuantityReceived as NVARCHAR(100)) like '%'+ @QuantityReceived +'%'))      
 			)      
 			), CTE_Count AS (Select COUNT(PurchaseOrderId) AS NumberOfItems FROM ResultData)      
       
@@ -394,8 +397,10 @@ BEGIN
 			CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryType,
 			POP.PurchaseOrderPartRecordId,
 			ISNULL(POP.QuantityOrdered,0) AS QuantityOrdered,
-			ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,
-			ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
+			--ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,
+			POP.[QuantityOrdered] - ISNULL(POP.[QuantityReceived],0) [QuantityBackOrdered],	
+			--ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived,  
+			ISNULL(POP.[QuantityReceived],0) [QuantityReceived]
 		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)  
 			INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      

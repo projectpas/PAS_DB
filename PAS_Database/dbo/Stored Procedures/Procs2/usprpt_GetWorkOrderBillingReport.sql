@@ -14,12 +14,13 @@
  **************************************************************             
  ** S NO   Date         Author      Change Description              
  ** --   --------     -------      --------------------------------      
-	1   24-Aug-2023  Bhargav Saliya   Convert Dates UTC To LegalEntity Time Zone
-    2   25-AUG-2023  Ekta Chandegra   Convert text into uppercase
-	3   31-JAN-2024   Devendra Shekh      changes for performInvoice
-	4   29-MARCH-2024  Ekta Chandegra  Add IsDeleted and IsActive flag  
-	5   01-SEPT-2024  Hemant Saliya  Add Is Performa Invoice Condition 
-	6   20-Nov-2024   Moin Bloch     Added Is Delete and Format SP
+	1   24-Aug-2023  Bhargav Saliya		Convert Dates UTC To LegalEntity Time Zone
+    2   25-AUG-2023  Ekta Chandegra		Convert text into uppercase
+	3   31-JAN-2024   Devendra Shekh	changes for performInvoice
+	4   29-MARCH-2024  Ekta Chandegra	Add IsDeleted and IsActive flag  
+	5   01-SEPT-2024  Hemant Saliya		Add Is Performa Invoice Condition 
+	6   20-Nov-2024   Moin Bloch		Added Is Delete and Format SP
+	5   10-APR-2025  Hemant Saliya		Updated for Get Revised Part number 
  
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
@@ -200,8 +201,8 @@ BEGIN
    WO.WorkOrderId,  
    UPPER(C.Name) 'customername',  
    UPPER(C.CustomerCode) 'customercode',  
-   UPPER(IM.partnumber) 'pn',  
-   UPPER(IM.PartDescription) 'pndescription',  
+   CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+   CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',  
    UPPER(SL.SerialNumber) 'serialnum',  
    UPPER(WOPN.WorkScope) 'workscope',  
    UPPER(WO.WorkOrderNum) 'wonum',  
@@ -231,7 +232,8 @@ BEGIN
   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
    INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
    INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
-   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+    INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
     LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
     LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
     LEFT JOIN [dbo].[WorkOrderShippingItem] AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.WorkOrderPartId  

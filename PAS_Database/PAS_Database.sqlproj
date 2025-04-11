@@ -3649,6 +3649,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetShipViaAcctInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_MapReceivingCustomerDocumentsToStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysis.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -16,18 +16,19 @@
  **************************************************************             
  ** PR   Date         Author   Change Description              
  ** --   --------     -------   --------------------------------            
- 1    05/26/2023   Vishal Suthar  Modified to return SUM of all the records before paging  
- 2    06/07/2023   HEMANT SALIYA  Updated for Number Formating for decimal columns  
- 3    11/07/2023   AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY  
- 4    17/07/2023   AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY updated  
- 5    20/07/2023   AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY updated - revenue changes  
- 6    24/08/2023   BHARGAV SALIYA Convert Dates UTC To LegalEntity Time Zone
- 7    04/09/2023   HEMANT SALIYA  Corrected Revenue Balance
- 8    01/31/2024   Devendra Shekh added isperforma Flage for WO
- 9    03/21/2024   HEMANT SALIYA  Added Is Deleted Condition for WO & CM
-10    04/25/2024   VISHAL SUTHAR  Added a fix to handle devide by zero exception
-11    04/30/2024   Devendra Shekh  Added a fix to handle devide by zero exception(for WithTotal result)
-12    05/01/2024   Devendra Shekh  report failed issue resolved
+ 1    05/26/2023   Vishal Suthar		Modified to return SUM of all the records before paging  
+ 2    06/07/2023   HEMANT SALIYA		Updated for Number Formating for decimal columns  
+ 3    11/07/2023   AYESHA SULTANA		CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY  
+ 4    17/07/2023   AYESHA SULTANA		CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY updated  
+ 5    20/07/2023   AYESHA SULTANA		CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY updated - revenue changes  
+ 6    24/08/2023   BHARGAV SALIYA		Convert Dates UTC To LegalEntity Time Zone
+ 7    04/09/2023   HEMANT SALIYA		Corrected Revenue Balance
+ 8    01/31/2024   Devendra Shekh		added isperforma Flage for WO
+ 9    03/21/2024   HEMANT SALIYA		Added Is Deleted Condition for WO & CM
+10    04/25/2024   VISHAL SUTHAR		Added a fix to handle devide by zero exception
+11    04/30/2024   Devendra Shekh		Added a fix to handle devide by zero exception(for WithTotal result)
+12    05/01/2024   Devendra Shekh		report failed issue resolved
+13    10-APR-2025  Hemant Saliya		Updated for Get Revised Part number 
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -188,8 +189,8 @@ BEGIN
 						WO.WorkOrderId,  
 						UPPER(C.name) 'customername',    
 						UPPER(C.CustomerCode) 'customercode',     
-						UPPER(IM.partnumber) 'pn',      
-						UPPER(IM.PartDescription) 'pndescription',      
+						CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+						CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
 						UPPER(SL.SerialNumber) 'serialnum',      
 						UPPER(WOPN.WorkScope) 'workscope',      
 						UPPER(WO.WorkOrderNum) 'wonum',      
@@ -233,7 +234,8 @@ BEGIN
 						 LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id      
 						 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId      
 						 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId    
-						 LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId      
+						 LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId   
+						 LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
 						 LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
 						 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
 						 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      

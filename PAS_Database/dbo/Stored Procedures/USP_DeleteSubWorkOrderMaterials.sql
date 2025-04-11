@@ -1,6 +1,6 @@
 ﻿/*************************************************************             
  ** File:   [USP_DeleteSubWorkOrderMaterials]             
- ** Author:  Devendra Shekh  
+ ** Author:  Amit Ghediya  
  ** Description: This stored procedure is used to delete SubWorkOrder Materials.  
  ** Purpose:           
  ** Date:    11/04/2025     

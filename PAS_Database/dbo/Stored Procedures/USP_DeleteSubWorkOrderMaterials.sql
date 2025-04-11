@@ -47,7 +47,7 @@ BEGIN
 			BEGIN
 				 SELECT 
 					@SubWorkOrderId = SubWorkOrderId
-				 FROM [DBO].[SubWorkOrderMaterials] 
+				 FROM [DBO].[SubWorkOrderMaterials] WITH(NOLOCK)
 				 WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId;
 
 				-- Call for UnMap PO.

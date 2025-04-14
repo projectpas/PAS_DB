@@ -11,7 +11,7 @@
  ** --   --------     -------		------------------------------- 
     1    unknown                    Created 
 	2    09/10/2023   Moin Bloch    Formetted SP 
-	3    10/04/2025   Amit Ghediya  Added new field (LastMSLevel,LegalEntityId)
+	3    10/04/2025   Amit Ghediya  Added new field (LastMSLevel)
 
 EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 10023,0
 ************************************************************************/
@@ -27,7 +27,6 @@ BEGIN
 	BEGIN
 
 			DECLARE @LastMSLevel VARCHAR(256),
-					@LegalEntityId BIGINT,
 					@MSModuleID INT = 4,
 					@ROMSModuleID INT = 24,
 					@IsPOType INT=0;
@@ -36,22 +35,20 @@ BEGIN
 
 			IF(@IsPOType = 1)
 			BEGIN
-				SELECT TOP 1 @LastMSLevel = MSD.[Level1Name], @LegalEntityId = MSL.[LegalEntityId]
+				SET @LastMSLevel = (SELECT TOP 1 MSD.[Level1Name] 
 									FROM [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK)
 										INNER JOIN [dbo].[PurchaseOrder] PUO  WITH (NOLOCK) ON RRCD.[PurchaseOrderId] = PUO.[PurchaseOrderId]
 										INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @MSModuleID AND MSD.[ReferenceID] = PUO.[PurchaseOrderId]
-										LEFT JOIN  [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON MSL.[Id] = MSd.[Level1Id]
-										WHERE RRCD.[ReceivingReconciliationId] = @ReceivingReconciliationId
+										WHERE RRCD.[ReceivingReconciliationId] = @ReceivingReconciliationId)
 			END
 
 			IF(@IsPOType = 2)
 			BEGIN
-				SELECT TOP 1 @LastMSLevel = MSD.[Level1Name], @LegalEntityId = MSL.[LegalEntityId]
+				SET @LastMSLevel = (SELECT TOP 1 MSD.[Level1Name]
 									FROM [dbo].[ReceivingReconciliationDetails] RRCD WITH (NOLOCK)
 										INNER JOIN [dbo].[RepairOrder] PUO WITH (NOLOCK) ON RRCD.[PurchaseOrderId] = PUO.[RepairOrderId]
 										INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @ROMSModuleID AND MSD.ReferenceID = PUO.[RepairOrderId]
-										LEFT JOIN  [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON MSL.[Id] = MSd.[Level1Id]
-										WHERE RRCD.[ReceivingReconciliationId] = @ReceivingReconciliationId
+										WHERE RRCD.[ReceivingReconciliationId] = @ReceivingReconciliationId)
 			END
 
 			INSERT INTO [dbo].[VendorPaymentDetails]
@@ -83,7 +80,7 @@ BEGIN
 						[MasterCompanyId],
 						[CreatedBy],
 						[UpdatedBy],
-						[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],[LastMSLevel],[LegalEntityId])
+						[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],[LastMSLevel])
 			     SELECT 0,
 				        [OpenDate],
 				        [VendorId],
@@ -117,8 +114,7 @@ BEGIN
 						[IsActive],
 						[IsDeleted],
 						[InvoiceTotal],
-						@LastMSLevel,
-						@LegalEntityId
+						@LastMSLevel
 				   FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) 
 				  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 			

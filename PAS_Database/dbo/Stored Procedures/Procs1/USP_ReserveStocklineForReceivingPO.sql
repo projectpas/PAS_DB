@@ -36,6 +36,8 @@
 	20   03/21/2025   HEMANT SALIYA		Added DB Standards
 	21   03/31/2025   RAJESH GAMI		Resolve the issue for SUBWO (Reserve QTY mismatch)
 	22   01/Apr/2025  RAJESH GAMI		Resolve the issue : WO and SUbWO Auto reserve issue due to wrong goto statement 
+	23   04/14/2025   HEMANT SALIYA	    Added Work Order Work Flow Id for UpdateWOMaterialsCost
+
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -525,7 +527,7 @@ BEGIN
 												FROM DBO.StocklineDraft StkDraft
 												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
 
-												EXEC USP_UpdateWOMaterialsCost @SelectedWorkOrderMaterialsId;
+												EXEC USP_UpdateWOMaterialsCost @SelectedWorkOrderMaterialsId, @WorkFlowWorkOrderId;
 												EXEC USP_UpdateWOTotalCostDetails @ReferenceId, @WorkFlowWorkOrderId, @UpdatedBy, @stkMasterCompanyId;
 												EXEC USP_UpdateWOCostDetails @ReferenceId, @WorkFlowWorkOrderId, @UpdatedBy, @stkMasterCompanyId;
 											END
@@ -782,7 +784,7 @@ BEGIN
 												FROM DBO.StocklineDraft StkDraft
 												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
 
-												EXEC USP_UpdateWOMaterialsCost @SelectedWorkOrderMaterialsKitId;
+												EXEC USP_UpdateWOMaterialsCost @SelectedWorkOrderMaterialsKitId, @WorkFlowWorkOrderKitId;
 												EXEC USP_UpdateWOTotalCostDetails @ReferenceId, @WorkFlowWorkOrderKitId, @UpdatedBy, @stkMasterCompanyId;
 												EXEC USP_UpdateWOCostDetails @ReferenceId, @WorkFlowWorkOrderKitId, @UpdatedBy, @stkMasterCompanyId;
 											END

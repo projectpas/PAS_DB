@@ -16,6 +16,7 @@ EXEC [USP_AutoReserveWorkOrderMaterials]
 ** 5    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 6    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
 ** 7    09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
+** 8    04/14/2025  HEMANT SALIYA    Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 EXEC USP_AutoReserveWorkOrderMaterials 638
 **************************************************************/ 
@@ -300,7 +301,7 @@ BEGIN
 								FROM #tmpReserveWOMaterialsStockline tmpWOM 
 								WHERE tmpWOM.ID = @count
 
-								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 								SET @count = @count + 1;
 							END;

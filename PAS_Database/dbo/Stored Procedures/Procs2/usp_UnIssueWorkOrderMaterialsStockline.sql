@@ -81,6 +81,7 @@ BEGIN
 					DECLARE @IWOBatchTriggerType BatchTriggerWorkOrderType;
 					DECLARE @WOBatchCount INT = 0;
 					DECLARE @IWOBatchCount INT = 0;
+					DECLARE @WorkFlowWorkOrderId BIGINT = 0;
 
 					SELECT @WONumber=WorkOrderNum from dbo.WorkOrder WO WITH(NOLOCK) WHERE WorkOrderId = (SELECT TOP 1 WorkOrderId FROM @tbl_MaterialsStocklineType)
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
@@ -300,11 +301,12 @@ BEGIN
 					--FOR UPDATE TOTAL WORK ORDER COST
 					WHILE @countBoth <= @TotalCountsBoth
 					BEGIN
-						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+						
+						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId, @WorkFlowWorkOrderId = tmpWOM.WorkFlowWorkOrderId
 						FROM #tmpUnIssueWOMaterialsStockline tmpWOM 
 						WHERE tmpWOM.ID = @countBoth
 
-						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 						SET @countBoth = @countBoth + 1;
 					END;
@@ -336,7 +338,7 @@ BEGIN
 								@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 								@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 								@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-								@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
+								@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
 
 						SELECT @historyModuleId = moduleId FROM Module WHERE ModuleName = 'WorkOrder';
 						SELECT @historySubModuleId = moduleId FROM Module WHERE ModuleName = 'WorkOrderMPN';

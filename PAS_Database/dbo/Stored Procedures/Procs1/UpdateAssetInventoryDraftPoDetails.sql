@@ -16,7 +16,7 @@
  ** --   --------     -------			--------------------------------              
     1    Unknown		Unknown				Created    
 	2    11-04-2024   Abhishek Jirawla		In AssetInventoryDraft SET Assetlife and Asset Location, Calibration details, warranty details
-           
+    3    11-04-2025   Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table      
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
 @PurchaseOrderId  bigint
@@ -187,9 +187,9 @@ BEGIN
           LEFT JOIN dbo.ShippingVia SV  WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId
           WHERE SD.PurchaseOrderId = @PurchaseOrderId;	    
 		
-	    UPDATE dbo.PurchaseOrderPart  SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Qty),0) FROM dbo.AssetInventory WITH (NOLOCK)
-	    WHERE PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND isParent = 1)) FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
-	    WHERE POP.PurchaseOrderID = @PurchaseOrderId AND pop.ItemTypeId = @StockType; 
+	    --UPDATE dbo.PurchaseOrderPart  SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Qty),0) FROM dbo.AssetInventory WITH (NOLOCK)
+	    --WHERE PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND isParent = 1)) FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
+	    --WHERE POP.PurchaseOrderID = @PurchaseOrderId AND pop.ItemTypeId = @StockType; 
 	    
 	    --UPDATE dbo.PurchaseOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) FROM dbo.PurchaseOrderPart WITH (NOLOCK)
 	    --where ParentId = POP.PurchaseOrderPartRecordId )) FROM dbo.PurchaseOrderPart POP  WITH (NOLOCK)
@@ -198,12 +198,17 @@ BEGIN
 	    --			from dbo.PurchaseOrderPart WITH (NOLOCK)
 	    --			where ParentId = POP.PurchaseOrderPartRecordId),0) > 0;
 
-		UPDATE dbo.PurchaseOrderPart SET  QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityOrdered) - SUM(QuantityBackOrdered),0) from dbo.PurchaseOrderPart WITH (NOLOCK)
-	    where ParentId = POP.PurchaseOrderPartRecordId AND QuantityOrdered != QuantityBackOrdered)) FROM dbo.PurchaseOrderPart POP  WITH (NOLOCK)
-	    where POP.PurchaseOrderID = @PurchaseOrderId AND POP.isParent = 1 AND POP.ItemTypeId = @StockType
-	    AND ISNULL((SELECT COUNT(PurchaseOrderPartRecordId)
-	    			from dbo.PurchaseOrderPart WITH (NOLOCK)
-	    			where ParentId = POP.PurchaseOrderPartRecordId),0) > 0;
+		--UPDATE dbo.PurchaseOrderPart SET  QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityOrdered) - SUM(QuantityBackOrdered),0) from dbo.PurchaseOrderPart WITH (NOLOCK)
+	 --   where ParentId = POP.PurchaseOrderPartRecordId AND QuantityOrdered != QuantityBackOrdered)) FROM dbo.PurchaseOrderPart POP  WITH (NOLOCK)
+	 --   where POP.PurchaseOrderID = @PurchaseOrderId AND POP.isParent = 1 AND POP.ItemTypeId = @StockType
+	 --   AND ISNULL((SELECT COUNT(PurchaseOrderPartRecordId)
+	 --   			from dbo.PurchaseOrderPart WITH (NOLOCK)
+	 --   			where ParentId = POP.PurchaseOrderPartRecordId),0) > 0;
+
+	   UPDATE POP SET [QuantityBackOrdered] = [QuantityOrdered] - ISNULL([QuantityReceived],0)
+	   FROM [dbo].[PurchaseOrderPart] POP WITH (NOLOCK)
+	   WHERE POP.[PurchaseOrderID] = @PurchaseOrderId AND pop.[ItemTypeId] = @StockType;
+
 	    
 	    SELECT PurchaseOrderNumber as value FROM dbo.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderID = @PurchaseOrderId;
 

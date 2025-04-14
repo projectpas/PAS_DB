@@ -52,9 +52,11 @@ BEGIN
  BEGIN  
   DECLARE @SOPartId BIGINT;  
   DECLARE @QtyRemaining BIGINT = 0, @TotalRervePart BIGINT = 0; 
-  
+  DECLARE @EnforcePickTicketConfirmation BIT;
+
   IF(@SOPickTicketId = 0)  
   BEGIN  
+	SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM DBO.SalesOrder WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId;
 
 	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
 	INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
@@ -107,11 +109,18 @@ BEGIN
    VALUES(@SOPickTicketNumber, @SalesOrderId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted,   
      @SalesOrderPartId, @SalesOrderStocklineId,  
      @Qty, @QtyToShip, @MasterCompanyId, @Status, @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@QtyRemaining);  
-  
-   IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  
-   BEGIN  
-    UPDATE DBO.CodePrefixes SET CurrentNummber = @CurrentNummber WHERE CodePrefixId = @CodePrefixId;  
-   END  
+	
+	SELECT @SOPickTicketId = SCOPE_IDENTITY()  
+
+	IF (ISNULL(@EnforcePickTicketConfirmation, 0) = 0)
+	BEGIN
+		UPDATE [dbo].[SOPickTicket] SET ConfirmedById = @PickedById, IsConfirmed = 1, ConfirmedDate = GETUTCDATE() WHERE SOPickTicketId = @SOPickTicketId;
+	END
+
+	IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  
+	BEGIN  
+		UPDATE DBO.CodePrefixes SET CurrentNummber = @CurrentNummber WHERE CodePrefixId = @CodePrefixId;  
+	END  
   END  
   ELSE IF(@SOPickTicketId > 0 AND @IsConfirmed = 0)  
   BEGIN  

@@ -18,6 +18,7 @@
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    01/03/2025   Moin Bloch     Removed Un-Used Table Join
+	4	 04/14/2025	  Devendra Shekh Added IsLaborTrackingTurnedOff to select
      
  EXECUTE [dbo].[sp_GetWorkOrderLaborHeader] 4284, 4737
 **************************************************************/
@@ -55,7 +56,8 @@ BEGIN
 									 wfwo.WorkFlowWorkOrderNo,
 									 deby.FirstName + ' ' + deby.LastName AS DataEnteredByName,			
 									 emp.FirstName + ' '+ emp.LastName AS EmployeeName,
-									 expr.[Description] AS ExpertiseType
+									 expr.[Description] AS ExpertiseType,
+									 ISNULL(lh.IsLaborTrackingTurnedOff, 0) AS IsLaborTrackingTurnedOff
 				FROM DBO.WorkOrderLaborHeader lh WITH(NOLOCK)
 					--LEFT JOIN DBO.WorkOrderLabor WL  WITH(NOLOCK) on lh.WorkOrderLaborHeaderId = WL.WorkOrderLaborHeaderId
 					LEFT JOIN DBO.Employee deby WITH(NOLOCK) ON deby.EmployeeId = lh.DataEnteredBy

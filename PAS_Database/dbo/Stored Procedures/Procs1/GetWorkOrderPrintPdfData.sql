@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -15,6 +14,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 3    21/01/20254 RAJESH GAMI      Return WorkOrderFormTypeId
 ** 4    17/02/2025  Moin Bloch       Updated (Added Publication PublicationNo)
 ** 5    03/APR/2025 RAJESH GAMI      Return @TravelerName blank if there is '0' or NULL
+** 6	04/APR/2025 Devendra Shekh	 Added IsLaborTrackingTurnedOff to select
 EXEC GetWorkOrderPrintPdfData 8560,8227
 
 **************************************************************/
@@ -112,7 +112,8 @@ BEGIN
 		   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
 		   FOR XML PATH('')              
 		   ), 1, 1, ''),
-		   Wo.WorkOrderFormTypeId as IsWorkOrderFormType
+		   Wo.WorkOrderFormTypeId as IsWorkOrderFormType,
+		   (SELECT TOP 1 ISNULL(WLH.IsLaborTrackingTurnedOff, 0) FROM [dbo].[WorkOrderLaborHeader] WLH WITH(NOLOCK) WHERE WLH.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND WLH.WorkOrderId = wf.WorkOrderId AND ISNULL(isDeleted, 0) = 0) AS IsLaborTrackingTurnedOff
 		FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 		INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId

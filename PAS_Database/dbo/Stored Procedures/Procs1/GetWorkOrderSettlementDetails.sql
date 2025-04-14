@@ -21,9 +21,10 @@
     4	 07/26/2022	  Subhash Saliya Add Calculated Field for Sipping or Invoiced are Completd
 	5	 06/08/2023	  Hemant Saliya  Updated for Calucation for Materilas Qty
 	6    10/04/2023   Hemant Saliya	 Condition Group Changes
-	7	 01/31/2024  Devendra Shekh	 added isperforma Flage for WO
-	8	 12/11/2024  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
-	9	 02/14/2025  BHARGAV SALIYA	  UTC Date Changes
+	7	 01/31/2024   Devendra Shekh added isperforma Flage for WO
+	8	 12/11/2024   Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
+	9	 02/14/2025   BHARGAV SALIYA UTC Date Changes
+	10	 04/14/2025	  Devendra Shekh Added changes for IsLaborTrackingTurnedOff
 
 EXEC [GetWorkOrderSettlementDetails] 3555,3025,3019
 **************************************************************/
@@ -71,6 +72,7 @@ BEGIN
 				DECLARE @IsBillingCompleled INT = 0;
 				DECLARE @AvailableStatusId INT;
 				DECLARE @ProvisionId INT = 1; -- FOR REPLACE
+				DECLARE @IsLaborTrackingTurnedOff BIT = 0;
 
 				SELECT  @qtyreq = SUM(ISNULL(Quantity,0)),
 						@QtyToTendered = SUM(ISNULL(QtyToTurnIn,0))
@@ -141,6 +143,9 @@ BEGIN
 						JOIN dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) ON WL.WorkOrderLaborHeaderId = WLH.WorkOrderLaborHeaderId
 					WHERE WLH.WorkFlowWorkOrderId = @workflowWorkorderId and WLh.WorkOrderId = @WorkorderId and WLH.IsDeleted= 0 AND ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
 					PRINT @IsLaborCompleled
+
+					SELECT @IsLaborTrackingTurnedOff = IsLaborTrackingTurnedOff 
+					FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workflowWorkorderId AND WorkOrderId = @WorkorderId AND ISNULL(IsDeleted, 0) = 0
 				END
 				ELSE
 				BEGIN
@@ -165,7 +170,7 @@ BEGIN
 						ISNULL(wosd.workOrderPartNoId,0) as workOrderPartNoId,
 						ISNULL(wosd.WorkOrderSettlementDetailId,0) as WorkOrderSettlementDetailId,
 						CASE WHEN wos.WorkOrderSettlementId = 1 THEN CASE WHEN ISNULL(@qtyrequested, 0) = (ISNULL(@qtyissued, 0)) THEN 1 ELSE 0 END 
-							 WHEN wos.WorkOrderSettlementId = 2 THEN CASE WHEN @IsLaborCompleled <= 0 THEN 1 ELSE 0 END 
+							 WHEN wos.WorkOrderSettlementId = 2 THEN CASE WHEN ISNULL(@IsLaborTrackingTurnedOff, 0) = 1 THEN 1 WHEN @IsLaborCompleled <= 0 THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 6 THEN CASE WHEN @AllToolsAreCheckOut <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.IsMastervalue END 
 						AS IsMastervalue,

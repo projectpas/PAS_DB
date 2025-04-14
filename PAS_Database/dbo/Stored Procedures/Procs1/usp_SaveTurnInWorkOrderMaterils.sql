@@ -9,21 +9,22 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
 **************************************************************     
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
-   1    07/30/2021  Hemant Saliya    Initilial Draft  
-   2    05/11/2023  Vishal Suthar    Added portion to tender the stockline for KIT  
-   3    05/23/2023  Subhash Saliya   Added portion to Unit Cost  
-   4    06/05/2023  Moin Bloch       Updated TendorStocklineCost, multiply by Qty with unit cost from Add tendor stockline  Line No 262  
-   5    07/30/2021  Hemant Saliya    Update Teardon text  
-   6    06/09/2023  Moin Bloch       Updated unit cost of old stockline when tendor stockline Line No 268  
-   7    06/14/2023  Devendra Shekh       changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
-   8    10/16/2023  Devendra Shekh    Timelife issue resolved
-   9    10/16/2023  Devendra Shekh    update for wopartnoId for insert stockline
-   10	03/05/2024  Bhargav saliya    UTC Date Changes
-   11	22/03/2024  Moin Bloch        Added New Field @EvidenceId
-   12	02/04/2024  Moin Bloch        Updated Inventory History Notes Turn in to Tendered  
-   13	04/04/2024  Moin Bloch        Updated CurrentSerialNumber Issue 
-   14	30/07/2024  Devendra Shekh	  Tender Stockline Issue Resolved
-   15	27/09/2024  Devendra Shekh	  Commented USP_CreateChildStockline
+   1    07/30/2021  Hemant Saliya		Initilial Draft  
+   2    05/11/2023  Vishal Suthar		Added portion to tender the stockline for KIT  
+   3    05/23/2023  Subhash Saliya		Added portion to Unit Cost  
+   4    06/05/2023  Moin Bloch			Updated TendorStocklineCost, multiply by Qty with unit cost from Add tendor stockline  Line No 262  
+   5    07/30/2021  Hemant Saliya		Update Teardon text  
+   6    06/09/2023  Moin Bloch			Updated unit cost of old stockline when tendor stockline Line No 268  
+   7    06/14/2023  Devendra Shekh		changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
+   8    10/16/2023  Devendra Shekh		Timelife issue resolved
+   9    10/16/2023  Devendra Shekh		update for wopartnoId for insert stockline
+   10	03/05/2024  Bhargav saliya		UTC Date Changes
+   11	22/03/2024  Moin Bloch			Added New Field @EvidenceId
+   12	02/04/2024  Moin Bloch			Updated Inventory History Notes Turn in to Tendered  
+   13	04/04/2024  Moin Bloch			Updated CurrentSerialNumber Issue 
+   14	30/07/2024  Devendra Shekh		Tender Stockline Issue Resolved
+   15	27/09/2024  Devendra Shekh		Commented USP_CreateChildStockline
+   16   04/14/2025  HEMANT SALIYA		Added Work Order Work Flow Id for UpdateWOMaterialsCost
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -435,7 +436,7 @@ BEGIN
        EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;  
   
        --UPDATE MATERIALS COST  
-       EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId;  
+       EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId;
         
       END  
      END  
@@ -513,7 +514,7 @@ BEGIN
        EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;  
   
        --UPDATE MATERIALS COST  
-       EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId;  
+       EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId;  
       END  
      END  
   

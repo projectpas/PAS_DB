@@ -22,12 +22,14 @@
 	5    12/29/2023   Hemant Saliya		Added Is null for Extended Cost
 	6    01/18/2024   Hemant Saliya     Updated for Update Materilas Qty
  ** 7    11/28/2024	  HEMANT SALIYA		Re-Calculate WOM Qty Res & Qty Issue
+	8    11/28/2024	  HEMANT SALIYA		Added Work Order Work Flow Id
      
  EXECUTE USP_UpdateWOMaterialsCost 7351
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOMaterialsCost]
 (
-	@WorkOrderMaterialsId BIGINT = NULL
+	@WorkOrderMaterialsId BIGINT = NULL,
+	@WorkFlowWorkOrderId BIGINT = NULL
 )
 AS
 BEGIN
@@ -61,19 +63,19 @@ SET NOCOUNT ON
 					(SELECT ISNULL(SUM(WOMSL.UnitCost), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
 					(SELECT ISNULL(SUM(WOMSL.ExtendedCost), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
 					(SELECT COUNT(1)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlCount,
-					(SELECT ISNULL(SUM(WOMSL.Quantity), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
+					(SELECT ISNULL(SUM(WOMSL.Quantity), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
 					0
 				FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
-				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId 
+				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 				UNION ALL
 				SELECT WOM.WorkOrderId, WOM.WorkFlowWorkOrderId, WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId, 
 					(SELECT ISNULL(SUM(WOMSL.UnitCost), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
 					(SELECT ISNULL(SUM(WOMSL.ExtendedCost), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
 					(SELECT COUNT(1)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlCount,
-					(SELECT ISNULL(SUM(WOMSL.Quantity), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
+					(SELECT ISNULL(SUM(WOMSL.Quantity), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
 					1
 				FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
-				WHERE WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId 
+				WHERE WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 				--Select * from #tmpWOMaterials
 
@@ -116,9 +118,9 @@ SET NOCOUNT ON
 				SET Quantity = GropWOM.Quantity	
 				FROM(
 					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsId   
-					FROM dbo.WorkOrderMaterials WOM 
-					JOIN dbo.WorkOrderMaterialStockLine WOMS ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
-					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+					FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+					JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					GROUP BY WOM.WorkOrderMaterialsId
 				) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)	
 
@@ -127,9 +129,9 @@ SET NOCOUNT ON
 				SET Quantity = GropWOM.Quantity	
 				FROM(
 					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId    
-					FROM dbo.WorkOrderMaterialsKit WOM 
-					JOIN dbo.WorkOrderMaterialStockLineKit WOMS ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
-					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+					FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
+					JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
+					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					GROUP BY WOM.WorkOrderMaterialsKitId
 				) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterialsKit.Quantity,0)	
 				
@@ -140,7 +142,7 @@ SET NOCOUNT ON
 					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
 					FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
 					JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
-					WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+					WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0 AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					GROUP BY WOM.WorkOrderMaterialsId
 				) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
 				(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
@@ -152,7 +154,7 @@ SET NOCOUNT ON
 					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsKitId   
 					FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
 					JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
-					WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0
+					WHERE ISNULL(WOMS.IsActive,0) = 1 AND ISNULL(WOMS.IsDeleted,0) = 0 AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					GROUP BY WOM.WorkOrderMaterialsKitId
 				) GropWOM WHERE GropWOM.WorkOrderMaterialsKitId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND 
 				(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterialsKit.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterialsKit.QuantityIssued,0))
@@ -174,13 +176,19 @@ SET NOCOUNT ON
 				)
 
 				INSERT INTO #tmpMaterilasPickTicket (WorkOrderMaterialsId, WorkordermaterialstocklineId,StocklineId,  QtyToReserve, QtyToShip)
-				SELECT WorkOrderMaterialsId,WOMStockLineId,StockLineId, (QtyReserved + QtyIssued),
-				(SELECT SUM(QtyToShip) FROM WorkorderPickTicket WHERE WorkOrderMaterialsId = woms.WorkOrderMaterialsId AND StocklineId =woms.StockLineId)
-				FROM dbo.WorkOrderMaterialStockLine woms WHERE woms.WorkOrderMaterialsId = @WorkOrderMaterialsId
+				SELECT woms.WorkOrderMaterialsId,WOMStockLineId,StockLineId, (QtyReserved + QtyIssued),
+				(SELECT SUM(QtyToShip) FROM dbo.WorkorderPickTicket WITH(NOLOCK) WHERE WorkOrderMaterialsId = woms.WorkOrderMaterialsId AND StocklineId =woms.StockLineId)
+				FROM dbo.WorkOrderMaterialStockLine woms WITH(NOLOCK) 
+				JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = woms.WorkOrderMaterialsId
+				WHERE woms.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
 				UNION ALL
-				SELECT WorkOrderMaterialsKitId, WorkOrderMaterialStockLineKitId, StockLineId, (QtyReserved + QtyIssued),
+
+				SELECT woms.WorkOrderMaterialsKitId, WorkOrderMaterialStockLineKitId, StockLineId, (QtyReserved + QtyIssued),
 				(SELECT SUM(QtyToShip) FROM WorkorderPickTicket WHERE WorkOrderMaterialsId = woms.WorkOrderMaterialsKitId AND StocklineId =woms.StockLineId)
-				FROM dbo.WorkOrderMaterialStockLineKit woms WHERE woms.WorkOrderMaterialsKitId = @WorkOrderMaterialsId
+				FROM dbo.WorkOrderMaterialStockLineKit woms WITH(NOLOCK)
+				JOIN dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = woms.WorkOrderMaterialsKitId
+				WHERE woms.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 				UPDATE #tmpMaterilasPickTicket SET QtyPtickTicketRemove = ISNULL(QtyToShip,0) -  ISNULL(QtyToReserve,0)
 				FROM #tmpMaterilasPickTicket		
@@ -203,7 +211,7 @@ SET NOCOUNT ON
 						PickTicketQtyToShip INT NULL,
 				)
 					
-				INSERT INTO #tmpremovePT  SELECT  TMP.WorkOrderMaterialsId,TMP.WorkOrderMaterialsId,TMP.StocklineId,TMP.QtyToReserve,TMP.QtyToShip,TMP.QtyPtickTicketRemove,WOP.PickTicketId,WOP.QtyToShip FROM  dbo.WorkorderPickTicket WOP INNER JOIN  #tmpMaterilasPickTicket TMP 
+				INSERT INTO #tmpremovePT  SELECT  TMP.WorkOrderMaterialsId,TMP.WorkOrderMaterialsId,TMP.StocklineId,TMP.QtyToReserve,TMP.QtyToShip,TMP.QtyPtickTicketRemove,WOP.PickTicketId,WOP.QtyToShip FROM  dbo.WorkorderPickTicket WOP WITH(NOLOCK) INNER JOIN  #tmpMaterilasPickTicket TMP 
 				ON TMP.WorkOrderMaterialsId = WOP.WorkOrderMaterialsId AND TMP.StocklineId = WOP.StocklineId WHERE TMP.QtyPtickTicketRemove > 0 AND  WOP.QtyToShip > 0 ORDER BY WOP.PickTicketId 
 		
 				DECLARE @LoopID AS INT;

@@ -14,6 +14,7 @@
     1    24/02/2025   HEMANT SALIYA    Created
 	2    11/03/2025   Moin Bloch       Updated
 	3    24/03/2025   Moin Bloch       Added UpdatedBy and Updated date 
+	4    14/04/2025   Devendra Shekh   handling null for @RequestedId
      
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -665,6 +666,8 @@ BEGIN
 			       @ApprovedbyId=[ApprovedbyId],@Approvedby=[Approvedby],@ApprovedDate=[ApprovedDate],@ReturnDate = [ReturnDate]				   
 			  FROM [dbo].[CustomerRMAHeader] WITH(NOLOCK) WHERE [RMAHeaderId] = @PartRMAHeaderId AND [RMAStatusId] = @OpenRMAStatus
 			
+			SET @RequestedId = ISNULL(@RequestedId, 0);
+
 			IF(@RMANumber IS NOT NULL AND @RMANumber <> '')
 			BEGIN
 			    -- Update Rma Header Data

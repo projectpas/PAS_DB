@@ -427,16 +427,17 @@ BEGIN
 
 					
 					PRINT 'Hem-4.2'
-					DECLARE @countBoth INT = 1;
-					--FOR UPDATE TOTAL WORK ORDER COST
-					WHILE @countBoth <= @TotalCountsBoth
-					BEGIN
-						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
-						FROM #tmpIssueWOMaterialsStockline tmpWOM 
-						WHERE tmpWOM.ID = @countBoth
-						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
-						SET @countBoth = @countBoth + 1;
-					END;
+					-- Commented BY Hemnat to Handle Time out Issue
+					--DECLARE @countBoth INT = 1;
+					----FOR UPDATE TOTAL WORK ORDER COST
+					--WHILE @countBoth <= @TotalCountsBoth
+					--BEGIN
+					--	SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+					--	FROM #tmpIssueWOMaterialsStockline tmpWOM 
+					--	WHERE tmpWOM.ID = @countBoth
+					--	EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+					--	SET @countBoth = @countBoth + 1;
+					--END;
 
 					PRINT 'Hem-5'
 

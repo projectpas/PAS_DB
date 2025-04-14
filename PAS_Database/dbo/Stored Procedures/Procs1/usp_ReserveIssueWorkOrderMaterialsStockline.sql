@@ -19,6 +19,7 @@ EXEC [usp_ReserveIssueWorkOrderMaterialsStockline]
 ** 8    11/28/2024	HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 9	11/22/2024	Devendra Shekh	 Modified (added fiels  IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 10	12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
+** 11   04/14/2025   HEMANT SALIYA	 Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -73,6 +74,7 @@ BEGIN
                     DECLARE @ModuleName varchar(200)='WO';
                     DECLARE @UpdateBy varchar(200);
 					DECLARE @IsKit BIGINT = 0;
+					DECLARE @WorkFlowWorkOrderId BIGINT = 0;
 
 					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
@@ -251,11 +253,12 @@ BEGIN
 						--FOR UPDATE TOTAL WORK ORDER COST
 						WHILE @count<= @TotalCounts
 						BEGIN
-							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+							
+							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId, @WorkFlowWorkOrderId = WorkFlowWorkOrderId
 							FROM #tmpReserveWOMaterialsStockline tmpWOM 
 							WHERE tmpWOM.ID = @count
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 							SET @count = @count + 1;
 						END;
@@ -385,11 +388,11 @@ BEGIN
 						--FOR UPDATE TOTAL WORK ORDER COST
 						WHILE @count<= @TotalCounts
 						BEGIN
-							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId, @WorkFlowWorkOrderId = WorkFlowWorkOrderId
 							FROM #tmpReserveWOMaterialsStockline tmpWOM 
 							WHERE tmpWOM.ID = @count
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId , @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 							SET @count = @count + 1;
 						END;

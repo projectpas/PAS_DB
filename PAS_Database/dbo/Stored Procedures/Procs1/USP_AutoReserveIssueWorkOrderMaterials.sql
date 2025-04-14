@@ -21,6 +21,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 ** 10   09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 11   10/03/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
 ** 12	03/19/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
+** 15   04/14/2025  HEMANT SALIYA    Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 **************************************************************/ 
@@ -374,7 +375,7 @@ BEGIN
 								FROM #tmpReserveWOMaterialsStockline tmpWOM 
 								WHERE tmpWOM.ID = @count
 
-								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 								SET @count = @count + 1;
 							END;

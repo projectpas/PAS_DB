@@ -18,7 +18,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    08/19/2021   Hemant Saliya Created
+    1    08/19/2021   Hemant Saliya		Created
+    2    04/14/2025   HEMANT SALIYA		Added Work Order Work Flow Id for UpdateWOMaterialsCost
      
  EXECUTE USP_CreateSubWOStocklineFromRO 134
 
@@ -205,7 +206,7 @@ SET NOCOUNT ON
 								EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkFlowWorkOrderId, @UpdatedBy = 'Admin' ;
 
 								--UPDATE MATERIALS COST
-								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @WorkOrderMaterialsId;
+								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 
 							END
 						ELSE
@@ -255,7 +256,7 @@ SET NOCOUNT ON
 								EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkFlowWorkOrderId, @UpdatedBy = 'Admin' ;
 
 								--UPDATE MATERIALS COST
-								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @WorkOrderMaterialsId;
+								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId;;
 							END
 						END
 					END

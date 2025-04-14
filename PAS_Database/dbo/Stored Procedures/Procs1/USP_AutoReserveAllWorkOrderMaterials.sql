@@ -26,6 +26,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 15	12/20/2024		 Devendra Shekh			ExtendedCost Calculation issue Resolved
 ** 16   03/06/2025		 HEMANT SALIYA	        UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
 ** 17   03/19/2025		 Devendra Shekh			Updated For Checking PMA/DER Restrict Parts
+** 18   04/14/2025		 HEMANT SALIYA	        Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 EXEC USP_AutoReserveAllWorkOrderMaterials 4761,0,0,98,0
 exec sp_executesql N'exec USP_AutoReserveAllWorkOrderMaterials @WorkFlowWorkOrderId, @IncludeAlternate, @IncludeEquiv, @EmployeeId, @IncludeCustomerStk',N'@WorkFlowWorkOrderId bigint,@IncludeAlternate bit,@IncludeEquiv bit,@EmployeeId bigint,@IncludeCustomerStk bit',@WorkFlowWorkOrderId=4761,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=98,@IncludeCustomerStk=0
@@ -475,7 +476,7 @@ BEGIN
 							FROM #tmpReserveWOMaterialsStockline tmpWOM 
 							WHERE tmpWOM.ID = @count1
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 							SET @count1 = @count1 + 1;
 						END;
@@ -779,7 +780,7 @@ BEGIN
 								FROM #tmpAutoReserveWOMKITAlt tmpWOM 
 								WHERE tmpWOM.ID = @Materialscount
 
-								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 								SET @Materialscount = @Materialscount + 1;
 							END;
@@ -1081,7 +1082,7 @@ BEGIN
 								FROM #tmpAutoReserveWOMMaterialsAlt tmpWOM 
 								WHERE tmpWOM.ID = @Materialscount
 
-								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 								SET @Materialscount = @Materialscount + 1;
 							END;
@@ -1373,7 +1374,7 @@ BEGIN
 								FROM #tmpAutoReserveWOMKITEqu tmpWOM 
 								WHERE tmpWOM.ID = @Materialscount
 
-								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 								SET @Materialscount = @Materialscount + 1;
 							END;
@@ -1673,7 +1674,7 @@ BEGIN
 								FROM #tmpAutoReserveWOMMaterialsEqu tmpWOM 
 								WHERE tmpWOM.ID = @Materialscount
 
-								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+								EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 								SET @Materialscount = @Materialscount + 1;
 							END;
@@ -1977,7 +1978,7 @@ BEGIN
 							FROM #tmpAutoReserveWOM tmpWOM 
 							WHERE tmpWOM.ID = @Materialscount
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 							SET @Materialscount = @Materialscount + 1;
 						END;
@@ -2275,7 +2276,7 @@ BEGIN
 							FROM #tmpAutoReserveWOMKIT tmpWOM 
 							WHERE tmpWOM.ID = @Materialscount
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					
 							SET @Materialscount = @Materialscount + 1;
 						END;

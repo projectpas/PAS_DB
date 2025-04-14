@@ -19,6 +19,7 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 8    11/28/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 9    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 10	12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
+** 11   04/14/2025	HEMANT SALIYA	 Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(830,835,122,70530,121,7,1,1,2,N'NEW',N'11022022',N'11022022_DESC',2,0,0,0,2,0,N'CNTL-000556',N'ID_NUM-000001',N'STL-000017',N'552233',N'ADMIN User',1,17)
@@ -61,6 +62,7 @@ BEGIN
 					DECLARE @stockLineQtyAvailable INT;
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @historyPartNumber VARCHAR(150);
+					DECLARE @WorkFlowWorkOrderId BIGINT;
 					DECLARE @MaterialRefNo VARCHAR(100) = 'UnReserve', @WONumber VARCHAR(100);
 
 					SELECT @WONumber=WorkOrderNum from dbo.WorkOrder WO WITH(NOLOCK) WHERE WorkOrderId = (SELECT TOP 1 WorkOrderId FROM @tbl_MaterialsStocklineType)
@@ -217,7 +219,7 @@ BEGIN
 								@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 								@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 								@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-								@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
+								@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
 
 						SELECT @historyModuleId = moduleId FROM Module WHERE ModuleName = 'WorkOrder';
 						SELECT @historySubModuleId = moduleId FROM Module WHERE ModuleName = 'WorkOrderMPN';
@@ -337,11 +339,11 @@ BEGIN
 					--FOR UPDATE TOTAL WORK ORDER COST
 					WHILE @countBoth <= @TotalCountsBoth
 					BEGIN
-						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
-						FROM #tmpUnReserveWOMaterialsStockline tmpWOM 
+						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId, @WorkFlowWorkOrderId = tmpWOM.WorkFlowWorkOrderId
+						FROM #tmpUnReserveWOMaterialsStockline tmpWOM
 						WHERE tmpWOM.ID = @countBoth
 
-						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 						SET @countBoth = @countBoth + 1;
 					END;

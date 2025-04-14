@@ -402,7 +402,7 @@ BEGIN
 
 								--UPDATE MATERIALS COST  
 								--Around 1 second
-								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
+								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId;
 
 								--Around 2 second when all three update SP executes
 							END
@@ -477,7 +477,7 @@ BEGIN
 								EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;  
   
 								--UPDATE MATERIALS COST  
-								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
+								EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId;
 
 								--Around 3 second when all three update SP executes
 							END

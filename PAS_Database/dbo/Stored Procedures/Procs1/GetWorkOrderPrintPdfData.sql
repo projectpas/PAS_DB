@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -15,6 +14,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 3    21/01/20254 RAJESH GAMI      Return WorkOrderFormTypeId
 ** 4    17/02/2025  Moin Bloch       Updated (Added Publication PublicationNo)
 ** 5    03/APR/2025 RAJESH GAMI      Return @TravelerName blank if there is '0' or NULL
+** 6	04/APR/2025 Devendra Shekh	 Added IsLaborTrackingTurnedOff to select
+** 7	14/APR/2025 RAJESH GAMI	     Change the traveler number logic: Get from the WO Partnumber table if available else get from the traveler_setup
 EXEC GetWorkOrderPrintPdfData 8560,8227
 
 **************************************************************/
@@ -27,21 +28,20 @@ BEGIN
  SET NOCOUNT ON;              
              
   BEGIN TRY              
-  --BEGIN TRANSACTION              
-  -- BEGIN            
+         
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
 		DECLARE @TravelerName AS varchar(250) = 0;            
    
 		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
                  
-		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0))            
+		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0))            
 		BEGIN            
-		SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0            
+		SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0            
 		END            
-		ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and IsVersionIncrease=0))            
+		ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ISNULL(IsVersionIncrease,0)=0))            
 		BEGIN            
-		SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
+		SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ISNULL(ItemMasterId,0) =0 and ISNULL(IsVersionIncrease,0)=0            
 		END            
            
 		SELECT  wo.WorkOrderId,              
@@ -100,10 +100,9 @@ BEGIN
 		wo.UpdatedDate,            
 		  CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN UPPER(con.Description) ELSE UPPER(wosc.conditionName) END as ReceivedCond,            
 		  UPPER(wop.WorkScope) as WorkScope,            
-		  --UPPER(Pub.PublicationId) as PublicationName,     
 		  UPPER(wop.PublicationNo) as PublicationName,  
 		  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
-		  CASE WHEN ISNULL(@TravelerName,'') = '' OR ISNULL(@TravelerName,'') = '0' THEN '' ELSE @TravelerName END as TravelerName,        
+		  CASE WHEN ISNULL(wop.TravelerNumber,'') = '' THEN (CASE WHEN ISNULL(@TravelerName,'') = '' OR ISNULL(@TravelerName,'') = '0' THEN '' ELSE @TravelerName END) ELSE ISNULL(wop.TravelerNumber,'') END as TravelerName,
 		  Isnull(wost.IsManualForm,0) as IsManualForm,    
 		  NHAPNs = STUFF((SELECT DISTINCT ', ' + imtt.partnumber              
 		FROM Dbo.ItemMaster imtt WITH(NOLOCK) INNER JOIN Dbo.Nha_Tla_Alt_Equ_ItemMapping nhatae WITH(NOLOCK)              
@@ -112,7 +111,9 @@ BEGIN
 		   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
 		   FOR XML PATH('')              
 		   ), 1, 1, ''),
-		   Wo.WorkOrderFormTypeId as IsWorkOrderFormType
+		   Wo.WorkOrderFormTypeId as IsWorkOrderFormType,
+		   (SELECT TOP 1 ISNULL(WLH.IsLaborTrackingTurnedOff, 0) FROM [dbo].[WorkOrderLaborHeader] WLH WITH(NOLOCK) WHERE WLH.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND WLH.WorkOrderId = wf.WorkOrderId AND ISNULL(isDeleted, 0) = 0) AS IsLaborTrackingTurnedOff,
+		   ISNULL(sl.ControlNumber,'') AS ControlNumber
 		FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 		INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId
@@ -136,19 +137,15 @@ BEGIN
 		LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
 		LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
 		LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = wop.ConditionId            
-		--LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
 		LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 		LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
 		LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
-		WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId              
-  -- END              
-  --COMMIT  TRANSACTION              
+		WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId                       
              
   END TRY                  
   BEGIN CATCH                    
    IF @@trancount > 0              
     PRINT 'ROLLBACK'              
-    --ROLLBACK TRAN;             
 	SELECT
     ERROR_NUMBER() AS ErrorNumber,
     ERROR_STATE() AS ErrorState,

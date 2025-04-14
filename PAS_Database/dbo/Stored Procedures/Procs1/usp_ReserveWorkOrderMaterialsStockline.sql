@@ -18,6 +18,7 @@ EXEC [usp_ReserveWorkOrderMaterialsStockline]
 ** 7    11/28/2024	HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 ** 8    11/22/2024	Devendra Shekh	 Modified (added fiels  ReservedById, ReservedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 9    12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
+** 10   04/14/2025  HEMANT SALIYA	 Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -257,11 +258,11 @@ BEGIN
 						--FOR UPDATE TOTAL WORK ORDER COST
 						WHILE @count<= @TotalCounts
 						BEGIN
-							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId, @WorkFlowWorkOrderId = WorkFlowWorkOrderId
 							FROM #tmpReserveWOMaterialsStockline tmpWOM 
 							WHERE tmpWOM.ID = @count
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 							SET @count = @count + 1;
 						END;
@@ -406,11 +407,11 @@ BEGIN
 						--FOR UPDATE TOTAL WORK ORDER COST
 						WHILE @count<= @TotalCounts
 						BEGIN
-							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+							SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId, @WorkFlowWorkOrderId = WorkFlowWorkOrderId
 							FROM #tmpReserveWOMaterialsStockline tmpWOM 
 							WHERE tmpWOM.ID = @count
 
-							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+							EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						
 							SET @count = @count + 1;
 						END;

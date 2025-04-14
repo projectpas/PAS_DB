@@ -3655,6 +3655,7 @@
     <Build Include="dbo\Stored Procedures\USP_updateActionForEmployeeTraining.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetEmployeeTrainingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeTrainingHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderStageDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

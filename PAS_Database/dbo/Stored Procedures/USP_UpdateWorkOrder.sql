@@ -8,10 +8,10 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    24/03/2025   Moin Bloch    Created
-     
+ ** PR   Date          Author		Change Description            
+ ** --   --------	   -------		--------------------------------          
+    1    24/03/2025    Moin Bloch    Created
+    2    14/APR/2025   RAJESH GAMI    Implement the traverler Number logic     
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -78,7 +78,8 @@ BEGIN
 	  DECLARE @NewWorkFlowName VARCHAR(256),@NewWorkFlowId BIGINT = NULL,@NewItemMasterId BIGINT=NULL,@WorkOrderPartId BIGINT=NULL
 	  DECLARE @NewPartNumber VARCHAR(200)=NULL,@TemplateBody NVARCHAR(MAX)='',@NewCMMName VARCHAR(MAX)='',@NewWorkPriorityId BIGINT = NULL
 	  DECLARE @NewWorkPriorityName VARCHAR(100),@NewWorkScopeName VARCHAR(500),@NewWorkScopeId BIGINT = NULL
-		
+	  DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
+	  DECLARE @TravelerName AS varchar(100) = 0 , @ItemMasterId BIGINT =0;        
 	SET @CreatedDate = GETUTCDATE();
     SET @UpdatedDate = GETUTCDATE();
 
@@ -339,10 +340,60 @@ BEGIN
 
 	WHILE @MinId <= @TotalRecord
 	BEGIN
-		SELECT @ID = ISNULL([ID],0) FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId
+			SELECT @ID = ISNULL([ID],0),@ItemMasterId = ItemMasterId, @WorkOrderScopeId = WorkOrderScopeId  FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId
+			IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0))            
+			BEGIN            
+				SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0            
+			END            
+			ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ISNULL(IsVersionIncrease,0)=0))            
+			BEGIN            
+				SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ISNULL(ItemMasterId,0)=0 and ISNULL(IsVersionIncrease,0)=0            
+			END   
 
 		IF(@ID > 0)
 		BEGIN
+			IF(@TravelerName = '' OR @TravelerName = '0')
+			BEGIN
+				SET @TravelerName = (SELECT ISNULL(TravelerNumber,'') FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @ID)
+			END
+			IF(@TravelerName = '')
+			BEGIN
+			/***** Prefixes : Reference Number*******/		   			
+				IF OBJECT_ID(N'tempdb..#tmpCodePrefixesWPN') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpCodePrefixesWPN
+				END
+	
+				CREATE TABLE #tmpCodePrefixesWPN
+				(
+						ID BIGINT NOT NULL IDENTITY, 
+						CodePrefixId BIGINT NULL,
+						CodeTypeId BIGINT NULL,
+						CurrentNumber BIGINT NULL,
+						CodePrefix VARCHAR(50) NULL,
+						CodeSufix VARCHAR(50) NULL,
+						StartsFrom BIGINT NULL,
+				)
+
+				INSERT INTO #tmpCodePrefixesWPN (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+				WHERE CT.CodeTypeId = @TravelerCodeTypeId
+				AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesWPN WHERE CodeTypeId = @TravelerCodeTypeId))
+				BEGIN
+					SET @CurrentNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+					FROM #tmpCodePrefixesWPN WHERE CodeTypeId = @TravelerCodeTypeId)
+					
+					SET @TravelerName = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+									ISNULL(@CurrentNumber,0)+1,
+									(SELECT CodePrefix FROM #tmpCodePrefixesWPN WHERE CodeTypeId = @TravelerCodeTypeId),
+									(SELECT CodeSufix FROM #tmpCodePrefixesWPN WHERE CodeTypeId = @TravelerCodeTypeId)))
+					UPDATE dbo.CodePrefixes SEt CurrentNummber = ISNULL(@CurrentNumber,0)+1 WHERE CodePrefixId = (SELECT TOP 1 CodePrefixId FROM #tmpCodePrefixesWPN)
+				END
+				/******End Prefixes******/	
+			END
+
 			UPDATE WOP
 			   SET WOP.[WorkOrderScopeId] = WOPT.[WorkOrderScopeId]
 				  ,WOP.[EstimatedShipDate] = WOPT.[EstimatedShipDate]
@@ -399,26 +450,66 @@ BEGIN
 				  ,WOP.[TechName] = WOPT.[TechName]
 				  ,WOP.[EmployeeStation] = WOPT.[EmployeeStation]
 				  ,WOP.[PublicationNo] = WOPT.[PublicationNo]
+				  ,WOP.TravelerNumber = @TravelerName
 			FROM [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK)    
 			INNER JOIN #tmprCreateWorkOrderPartNumber WOPT ON WOPT.ID = WOP.ID  
 			WHERE WOPT.[PKID] = @MinId		
 		END
 		ELSE
 		BEGIN
+			IF((@IsSinglePN = 1 AND (@TravelerName = '' OR @TravelerName = '0')) OR @IsSinglePN = 0)
+			BEGIN
+				/***** Prefixes : Reference Number*******/		   			
+				IF OBJECT_ID(N'tempdb..#tmpCodePrefixesWPNUInsert') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpCodePrefixesWPNUInsert
+				END
+	
+				CREATE TABLE #tmpCodePrefixesWPNUInsert
+				(
+						ID BIGINT NOT NULL IDENTITY, 
+						CodePrefixId BIGINT NULL,
+						CodeTypeId BIGINT NULL,
+						CurrentNumber BIGINT NULL,
+						CodePrefix VARCHAR(50) NULL,
+						CodeSufix VARCHAR(50) NULL,
+						StartsFrom BIGINT NULL,
+				)
+
+				INSERT INTO #tmpCodePrefixesWPNUInsert (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+				WHERE CT.CodeTypeId = @TravelerCodeTypeId
+				AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesWPNUInsert WHERE CodeTypeId = @TravelerCodeTypeId))
+				BEGIN
+					SET @CurrentNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+					FROM #tmpCodePrefixesWPNUInsert WHERE CodeTypeId = @TravelerCodeTypeId)
+					
+					SET @TravelerName = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+									ISNULL(@CurrentNumber,0)+1,
+									(SELECT CodePrefix FROM #tmpCodePrefixesWPNUInsert WHERE CodeTypeId = @TravelerCodeTypeId),
+									(SELECT CodeSufix FROM #tmpCodePrefixesWPNUInsert WHERE CodeTypeId = @TravelerCodeTypeId)))
+					UPDATE dbo.CodePrefixes SEt CurrentNummber = ISNULL(@CurrentNumber,0)+1 WHERE CodePrefixId = (SELECT TOP 1 CodePrefixId FROM #tmpCodePrefixesWPNUInsert)
+				END
+				/******End Prefixes******/	
+
+			END
+
 			INSERT INTO [dbo].[WorkOrderPartNumber]([WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 					[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
-					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo])
+					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber)
 			 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 					[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 					[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
-					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo]
+					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName
 			   FROM #tmprCreateWorkOrderPartNumber 
 			  WHERE [PKID] = @MinId
 

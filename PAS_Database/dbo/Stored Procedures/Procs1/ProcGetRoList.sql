@@ -22,6 +22,7 @@
 	06   18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
 	07	 30-Dec-2024	Vishal Suthar		Removed subqueries and used CTE for Performance imporvement
 	08   07-04-2025     Shrey Chandegara    Modified due to PN-12013
+	09   14-04-2025     Moin Bloch          Modified Fix Order Isuee in RO List
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -141,9 +142,9 @@ BEGIN
 				   RO.RepairOrderNumber AS RepairOrderNo,				   
 			       RO.OpenDate,
 				   RO.ClosedDate,
-				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
+				   case when CAST(RO.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
 				   RO.CreatedBy,
-				   case when CAST(RO.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+				   case when CAST(RO.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(RO.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
 				   RO.UpdatedBy,
 				   RO.IsActive,
 				   RO.IsDeleted,

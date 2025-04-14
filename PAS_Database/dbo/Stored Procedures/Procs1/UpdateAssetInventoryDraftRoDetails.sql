@@ -1,5 +1,24 @@
-﻿
+﻿/*************************************************************             
+ ** File:   [UpdateAssetInventoryDraftRoDetails]
+ ** Author:     
+ ** Description: This stored procedure is used to UPDATE stockline details for RO
+ ** Purpose:           
+ ** Date:   08/21/2023          
+            
+ ** PARAMETERS:  
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1       
+	2    14/04/2025   Moin Bloch        Modify(Update QuantityBackOrdered From QuantityReceived)  
+
 --- exec UpdateAssetInventoryDraftRoDetails  1133
+**************************************************************/ 
 CREATE    PROCEDURE [dbo].[UpdateAssetInventoryDraftRoDetails]
 @RepairOrderId  bigint
 AS
@@ -133,18 +152,21 @@ LEFT JOIN dbo.[Site] S  WITH (NOLOCK) ON S.SiteId = SD.SiteId
 LEFT JOIN dbo.ShippingVia SV  WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId
 WHERE SD.RepairOrderId = @RepairOrderId
 
-	UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Qty),0) FROM dbo.AssetInventory   WITH (NOLOCK)
-WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1
-)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
-WHERE ROP.RepairOrderId = @RepairOrderId and ROP.ItemTypeId<>1
+--	UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Qty),0) FROM dbo.AssetInventory   WITH (NOLOCK)
+--WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1
+--)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
+--WHERE ROP.RepairOrderId = @RepairOrderId and ROP.ItemTypeId<>1
 
 
-	UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
-where ParentId = POP.RepairOrderPartRecordId and POP.ItemTypeId<>1 )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
-where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1 and POP.ItemTypeId<>1
-AND ISNULL((SELECT COUNT(RepairOrderPartRecordId)
-			from dbo.RepairOrderPart  WITH (NOLOCK)
-			where POP.ItemTypeId<>1 and ParentId = POP.RepairOrderPartRecordId),0) > 0
+--	UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
+--where ParentId = POP.RepairOrderPartRecordId and POP.ItemTypeId<>1 )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
+--where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1 and POP.ItemTypeId<>1
+--AND ISNULL((SELECT COUNT(RepairOrderPartRecordId)
+--			from dbo.RepairOrderPart  WITH (NOLOCK)
+--			where POP.ItemTypeId<>1 and ParentId = POP.RepairOrderPartRecordId),0) > 0
+
+	UPDATE [dbo].[RepairOrderPart] SET [QuantityBackOrdered] = ([QuantityOrdered] - ISNULL([QuantityReceived],0)) WHERE [RepairOrderId] = @RepairOrderId AND [ItemTypeId] <> 1;
+
 
 	SELECT RepairOrderNumber as value FROM dbo.RepairOrder PO WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId	
 

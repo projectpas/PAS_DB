@@ -21,6 +21,8 @@
     [AircraftManufacturerId]  INT             NULL,
     [DurationTypeId]          INT             NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_EmployeeTrainingAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [Memo]                    VARCHAR (MAX)   NULL,
+    [InternalReference]       VARCHAR (256)   NULL,
     CONSTRAINT [PK_EmployeeTrainingAudit] PRIMARY KEY CLUSTERED ([EmployeeTrainingAuditId] ASC)
 );
 

@@ -3651,6 +3651,9 @@
     <Build Include="dbo\Stored Procedures\USP_MapReceivingCustomerDocumentsToStockline.sql" />
     <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysis.sql" />
     <Build Include="dbo\Stored Procedures\CreateUpdateReceivingCustomerWork.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateActionForEmployeeTraining.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetEmployeeTrainingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeTrainingHistoryById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

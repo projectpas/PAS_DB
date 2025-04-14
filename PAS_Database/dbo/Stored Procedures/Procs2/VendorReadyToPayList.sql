@@ -40,6 +40,7 @@
 	23   31/12/2024   AMIT GHEDIYA      Update for  DiscountDate.
 	24   01/JAN/2025  RAJESH GAMI       Remove Discount Percentage from the proforma invoice
 	25   11-03-2025   ABHISHEK JIRAWLA  IsVendorOnHold check for payment hold
+	26   11-03-2025   AMIT GHEDIYA      Update LegalEntityId condition to get from VendorPaymentDetailst table
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -269,7 +270,7 @@ BEGIN
 				AND ISNULL(RRC.[IsInvoiceOnHold],0) = 0
 				AND ISNULL(VPD.NonPOInvoiceId,0) = 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
-				AND RRC.LegalEntityId = @LegalEntityId
+				AND VPD.LegalEntityId = @LegalEntityId
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -360,7 +361,7 @@ BEGIN
 				AND ISNULL(VPD.NonPOInvoiceId,0) = 0
 				AND ISNULL(VPD.CreditMemoHeaderId,0) <> 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
-				AND LE.LegalEntityId = @LegalEntityId
+				AND VPD.LegalEntityId = @LegalEntityId
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -452,7 +453,7 @@ BEGIN
 		        AND [VPD].[RemainingAmount] > 0
 				AND ISNULL(VPD.NonPOInvoiceId,0) <> 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
-				AND LE.LegalEntityId = @LegalEntityId
+				AND VPD.LegalEntityId = @LegalEntityId
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -540,7 +541,7 @@ BEGIN
 				AND ISNULL(CCPD.IsProcessed,0) = 1
 				--AND  CCPD.IsMiscellaneous = 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
-				AND CP.LegalEntityId = @LegalEntityId
+				AND VPD.LegalEntityId = @LegalEntityId
 
 /****************************START  Vendor Proforma Invoice*********************************/
 			INSERT INTO #TempVendorReadyToPayList(VendorPaymentDetailsId, ReadyToPayId, DueDate, VendorId, VendorName, PaymentMethodId, PaymentMethodName, ReceivingReconciliationId
@@ -618,7 +619,7 @@ BEGIN
 		        AND [VPD].[RemainingAmount] > 0
 				AND ISNULL(VPD.VendorProformaInvoiceId,0) <> 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
-				AND LE.LegalEntityId = @LegalEntityId
+				AND VPD.LegalEntityId = @LegalEntityId
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),

@@ -36,12 +36,14 @@ BEGIN
 			 ,ET.EmployeeId
 			 ,ETP.[TrainingType] as TrainingType
 			 ,AFT.[Description] as AircraftManufacturer
-			 ,STRING_AGG(A.ModelName, ', ') as AircraftModel
-			 --,(SELECT STRING_AGG(am.ModelName, ',') FROM EmployeeTraining e
-				--INNER JOIN EmployeeAircraftModelMapping eam ON e.EmployeeId = eam.EmployeeId
-				--INNER JOIN AircraftModel am ON eam.AircraftModelId = am.AircraftModelId
-			 -- WHERE e.EmployeeId = @EmployeeId
-			 -- ) AS AircraftModel
+			 --,STRING_AGG(A.ModelName, ', ') as AircraftModel
+			 ,(	SELECT 
+					STRING_AGG(A.ModelName, ', ') as AircraftModel
+				FROM EmployeeTraining e
+                LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON e.EmployeeId = EAMP.EmployeeId and e.AircraftManufacturerId = EAMP.AircraftManufacturerId
+				LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
+				WHERE ET.EmployeeTrainingId = e.EmployeeTrainingId
+			  ) AS AircraftModel
 			 ,ET.[Provider]
 			 ,ET.[IndustryCode]
 			 ,FT.[FrequencyName] as FrequencyofTraining
@@ -59,8 +61,8 @@ BEGIN
 		--LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
 		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
-		LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId
-		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
+		--LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId and ET.AircraftManufacturerId = EAMP.AircraftManufacturerId
+		--LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
 
       WHERE ET.EmployeeId = @EmployeeId AND ET.MasterCompanyId = @MasterCompanyId AND ET.IsDeleted = @IsdeleteStatus 

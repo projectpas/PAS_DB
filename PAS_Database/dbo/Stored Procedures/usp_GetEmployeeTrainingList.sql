@@ -40,7 +40,7 @@ BEGIN
 			 --,STRING_AGG(A.ModelName, ', ') as AircraftModel
 			 ,(	SELECT 
 					STRING_AGG(A.ModelName, ', ') as AircraftModel
-				FROM EmployeeTraining e
+				FROM EmployeeTraining e WITH (NOLOCK)
                 LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON e.EmployeeId = EAMP.EmployeeId and e.AircraftManufacturerId = EAMP.AircraftManufacturerId
 				LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 				WHERE ET.EmployeeTrainingId = e.EmployeeTrainingId

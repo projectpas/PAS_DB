@@ -17,16 +17,38 @@
     2    18/09/2023  Bhargav Saliya  Added Fields PostedDate and Status 
 	3	 19/10/2023	 Nainshi Joshi    Added Field PostedBy
 	4	 30/10/2023	 Ayesha Sultana   Batch name retriving issue fix
+	5	 09/04/2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
 ************************************************************************/    
 --[GetJournalBatchDetailsViewById]  826    
 CREATE        PROCEDURE [dbo].[GetJournalBatchDetailsViewById]      
-@JournalBatchHeaderId bigint      
+@JournalBatchHeaderId bigint,
+@EmployeeId bigint
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
  SET NOCOUNT ON;      
 	 BEGIN TRY    
-	 
+	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
+
 		  SELECT JBH.JournalBatchHeaderId,
 				  JBD.JournalBatchDetailId,
 				  JBH.Module,
@@ -34,17 +56,17 @@ BEGIN
 				  ISNULL(JBD.DebitAmount,0) as DebitAmount,  
 				  ISNULL(JBD.CreditAmount,0) as CreditAmount,
 				  JBD.JournalTypeNumber,
-				  JBD.EntryDate,
+				  (Cast(DBO.ConvertUTCtoLocal(JBD.EntryDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate,
 				  JBD.JournalTypeName,  
 				  JT.JournalTypeCode,
 				  JBD.StatusId,
-				  JBD.CreatedDate,
-				  JBD.UpdatedDate,
+				  (Cast(DBO.ConvertUTCtoLocal(JBH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
+				  (Cast(DBO.ConvertUTCtoLocal(JBH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 				  JBD.CreatedBy,
 				  JBD.UpdatedBy,      
 				  JBD.AccountingPeriodId,
 				  JBD.AccountingPeriod,
-				  JBD.PostedDate,
+				  (Cast(DBO.ConvertUTCtoLocal(JBD.PostedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as PostedDate,
 				  JBD.PostedBy,
 				  BS.Name AS [Status]
   

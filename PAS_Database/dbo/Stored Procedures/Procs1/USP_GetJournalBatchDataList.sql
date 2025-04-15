@@ -16,7 +16,7 @@
 	3	 18/10/2023	  Nainshi Joshi		Add [PostedBy] field
 	4	 17/04/2024	  AMIT GHEDIYA		JeNumber filter added
 	5	 27/06/2024	  Bhargav Saliya    PostedBy filter added
-    6	 08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
+    6	 08/04/2025	  Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
 
  -- exec USP_GetJournalBatchDataList 92,1          
 **************************************************************/       
@@ -137,8 +137,8 @@ BEGIN
 				))        
 				OR           
 				(@GlobalFilter='' AND (IsNull(@BatchName,'') ='' OR BatchName like '%' + @BatchName+'%') AND        
-				(IsNull(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND        
-				(IsNull(@PostDate,'') ='' OR Cast(PostDate as Date)=Cast(@PostDate as date)) AND        
+				(IsNull(@EntryDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal(EntryDate ,@CurrntEmpTimeZoneDesc) as Date))=Cast(@EntryDate as date)) AND        
+				(IsNull(@PostDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal(PostDate,@CurrntEmpTimeZoneDesc) as Date))=Cast(@PostDate as date)) AND        
 				(IsNull(@AccountingPeriod,'') ='' OR AccountingPeriod like '%' + @AccountingPeriod+'%') AND        
 				(IsNull(@StatusName,'') ='' OR StatusName like '%' + @StatusName+'%') AND        
 				(IsNull(@JournalTypeName,'') ='' OR JournalTypeName like '%' + @JournalTypeName+'%') AND      
@@ -202,9 +202,9 @@ BEGIN
 		   SELECT COUNT(1) OVER () AS NumberOfItems        
 				  ,JBH.[JournalBatchHeaderId]      
 						   ,JBH.[BatchName]      
-						   ,JBH.[CurrentNumber]      
-						   ,JBH.[EntryDate]      
-						   ,JBH.[PostDate]      
+						   ,JBH.[CurrentNumber] 
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as PostDate
 						   ,JBH.[AccountingPeriod]      
 						   ,JBH.[StatusId]      
 						   ,JBH.[StatusName]      
@@ -216,8 +216,8 @@ BEGIN
 						   ,JBH.[MasterCompanyId]      
 						   ,JBH.[CreatedBy]      
 						   ,JBH.[UpdatedBy]      
-						   ,JBH.[CreatedDate]      
-						   ,JBH.[UpdatedDate]      
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[CreatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate
+						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[UpdatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate
 						   ,JBH.[IsActive]      
 						   ,JBH.[IsDeleted]  
 						   ,JBH.[PostedBy]
@@ -242,8 +242,8 @@ BEGIN
 				))        
 				OR           
 				(@GlobalFilter='' AND (IsNull(@BatchName,'') ='' OR BatchName like '%' + @BatchName+'%') AND        
-				(IsNull(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND        
-				(IsNull(@PostDate,'') ='' OR Cast(PostDate as Date)=Cast(@PostDate as date)) AND        
+				(IsNull(@EntryDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal(EntryDate,@CurrntEmpTimeZoneDesc) as Date))=Cast(@EntryDate as date)) AND        
+				(IsNull(@PostDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal(PostDate,@CurrntEmpTimeZoneDesc) as Date))=Cast(@PostDate as date)) AND        
 				(IsNull(@AccountingPeriod,'') ='' OR AccountingPeriod like '%' + @AccountingPeriod+'%') AND        
 				(IsNull(@StatusName,'') ='' OR StatusName like '%' + @StatusName+'%') AND        
 				(IsNull(@JournalTypeName,'') ='' OR JournalTypeName like '%' + @JournalTypeName+'%') AND      

@@ -106,8 +106,11 @@
     [WorkOrderMaterialsId]       BIGINT          NULL,
     [IsKitType]                  BIT             NULL,
     [ReferenceNumber]            VARCHAR (100)   NULL,
+    [QuantityReceived]           INT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
+
+
 
 
 

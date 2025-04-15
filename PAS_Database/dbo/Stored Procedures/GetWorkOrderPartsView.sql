@@ -12,10 +12,10 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    08-APR-2025   Abhishek Jirawla	Created
-     
+    2    15-APR-2025   RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE   PROCEDURE dbo.GetWorkOrderPartsView
+CREATE   PROCEDURE [dbo].[GetWorkOrderPartsView]
     @WorkOrderId INT
 AS
 BEGIN
@@ -42,6 +42,7 @@ BEGIN
 		SELECT @WorkOrderMPNModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'WorkOrderMPN'
 
 		SELECT DISTINCT
+		Wop.ID,
 			wop.ManagementStructureId,
 			wop.ItemMasterId AS itemMasterId,
 			-- Use COALESCE to handle NULL values and prioritize RevisedPartNumber/Description/SerialNumber
@@ -115,8 +116,8 @@ BEGIN
 
 		WHERE wop.WorkOrderId = @WorkOrderId
 		  AND wop.IsDeleted = 0
-		  AND (cm.Name IS NULL OR cm.Code = @CorrectiveActionCode);
-		
+		  AND (cm.Name IS NULL OR cm.Code = @CorrectiveActionCode)
+		Order by Wop.ID
 
 	END TRY    
 	BEGIN CATCH      

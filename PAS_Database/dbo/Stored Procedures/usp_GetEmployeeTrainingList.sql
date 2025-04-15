@@ -13,6 +13,7 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    04-09-2025    Bhargav Saliya		Created  
+    1    04-15-2025    Bhargav Saliya		Modefied  
 
 	--EXEC [usp_GetEmployeeTrainingList] @EmployeeId= 243, @MasterCompanyId = 1 , @IsdeleteStatus = 0
 ********************************************************************************/ 
@@ -39,7 +40,7 @@ BEGIN
 			 --,STRING_AGG(A.ModelName, ', ') as AircraftModel
 			 ,(	SELECT 
 					STRING_AGG(A.ModelName, ', ') as AircraftModel
-				FROM EmployeeTraining e
+				FROM EmployeeTraining e WITH (NOLOCK)
                 LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON e.EmployeeId = EAMP.EmployeeId and e.AircraftManufacturerId = EAMP.AircraftManufacturerId
 				LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 				WHERE ET.EmployeeTrainingId = e.EmployeeTrainingId
@@ -58,11 +59,8 @@ BEGIN
 			 ,ET.[IsDeleted]
 			 ,ET.[MasterCompanyId]
       FROM DBO.EmployeeTraining ET WITH (NOLOCK)
-		--LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
 		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
-		--LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId and ET.AircraftManufacturerId = EAMP.AircraftManufacturerId
-		--LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
 
       WHERE ET.EmployeeId = @EmployeeId AND ET.MasterCompanyId = @MasterCompanyId AND ET.IsDeleted = @IsdeleteStatus 
@@ -81,7 +79,7 @@ BEGIN
 				 MasterCompanyId
 		    FROM FinalCTE FC
 
-			ORDER BY EmployeeId DESC
+			ORDER BY EmployeeTrainingId DESC
   END TRY  
   
   BEGIN CATCH  

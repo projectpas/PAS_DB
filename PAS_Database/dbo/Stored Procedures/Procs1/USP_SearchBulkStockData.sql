@@ -13,6 +13,7 @@
  ** --   --------       -----------				--------------------------------            
     1    12/10/2023     AMIT GHEDIYA			Created
 	2    06/12/2023     AMIT GHEDIYA			Modify(Added Adjustment Type column)
+	3	 09/04/2025	    Ekta Chandegra	        Convert date using dbo.ConvertUTCtoLocal
        
 -- EXEC USP_SearchBulkStockData
   
@@ -31,13 +32,35 @@ CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@UpdatedDate  datetime = NULL,
 	@IsDeleted bit = NULL,
 	@MasterCompanyId bigint = NULL,
-	@AdjustmentType varchar(150) = NULL
+	@AdjustmentType varchar(150) = NULL,
+	@EmployeeId bigint
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
    BEGIN  
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
+
     DECLARE @RecordFrom int;  
     DECLARE  @VendorRMADetailStatus VARCHAR(100)= NULL;  
     SET @RecordFrom = (@PageNumber-1) * @PageSize;  
@@ -62,9 +85,9 @@ BEGIN
 		;WITH Result AS(  
 		SELECT stadt.[Name] AS 'AdjustmentType',
 					   bsadj.BulkStkLineAdjId,
-					   bsadj.BulkStkLineAdjNumber,                    
-					   bsadj.CreatedDate,
-                       bsadj.UpdatedDate,
+					   bsadj.BulkStkLineAdjNumber,   
+					   (Cast(DBO.ConvertUTCtoLocal(bsadj.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
+					   (Cast(DBO.ConvertUTCtoLocal(bsadj.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 					   bsadj.CreatedBy,
                        bsadj.UpdatedBy,	
 					   bsadj.IsDeleted,

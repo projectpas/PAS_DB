@@ -21,6 +21,7 @@
 	6    01/16/2024		Moin Bloch					    modified InvoiceNumber From Detail Table To Header
 	7    12/27/2024     AMIT GHEDIYA					added COntrolNumber
 	8    07-03-2025     Shrey Chandegara				Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+    9	 10/04/2025	    Ekta Chandegra	                Convert date using dbo.ConvertUTCtoLocal
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -53,7 +54,8 @@ CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @NPONumber varchar(100) = NULL,
 @InvoiceNum  varchar(100) = NULL,
 @ControlNumber varchar(50)=null,
-@IsUpdated BIT = NULL
+@IsUpdated BIT = NULL,
+@EmployeeId bigint = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -63,6 +65,26 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+				)
+			FROM
+				dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN
+				dbo.TimeZone ETZ WITH (NOLOCK)
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN
+				dbo.LegalEntity LE WITH (NOLOCK)
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN
+				dbo.TimeZone LTZ WITH (NOLOCK)
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE
+				E.EmployeeId = @EmployeeId;
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -109,8 +131,8 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						NPH.IsActive,
 						NPH.IsDeleted,
-						NPH.CreatedDate,
-						NPH.UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
 						Upper(NPH.UpdatedBy) UpdatedBy,
 						NPH.MasterCompanyId,
@@ -225,8 +247,8 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						NPH.IsActive,
 						NPH.IsDeleted,
-						NPH.CreatedDate,
-						NPH.UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
 						Upper(NPH.UpdatedBy) UpdatedBy,
 						NPH.MasterCompanyId,

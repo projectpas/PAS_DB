@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -16,8 +17,8 @@
     2    24-FEB-2025	 RAJESH GAMI		Fixed the Total Amount Issue
 	3    06-APR-2025	 HEMANT SALIYA		Updated for Get correct PN and Serial Number
 	4    09-APR-2025	 Devendra Shekh		Comparing @CorrectiveActionCode instead of @corrective
-
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6561,'7844',0  
+    5    15-APR-2025   RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6586,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
@@ -329,7 +330,7 @@ BEGIN
 			SET @currentRow = @currentRow + 1;
 		END
 
-	SELECT * FROM #tblTempQuoteMain
+	SELECT * FROM #tblTempQuoteMain ORDER BY ID 
 		
    END  
   COMMIT  TRANSACTION  

@@ -17,11 +17,12 @@
  ** --   --------     -------		--------------------------------          
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
+	3	 04/16/2025	  Devendra Shekh Added IsLaborTrackingTurnedOff to select
 
      
  EXECUTE [sp_GetWOShippingParentList] 34, 39
 **************************************************************/
-Create     Procedure [dbo].[sp_GetSubWorkOrderLaborHeader]
+CREATE     Procedure [dbo].[sp_GetSubWorkOrderLaborHeader]
 @subWOPartNoId  bigint
 AS
 BEGIN
@@ -54,7 +55,8 @@ BEGIN
                                      lh.TotalWorkHours,
 									 deby.FirstName + ' ' + deby.LastName as DataEnteredByName,			
 									 emp.FirstName + ' '+ emp.LastName as EmployeeName,
-									 expr.Description as ExpertiseType
+									 expr.Description as ExpertiseType,
+									 ISNULL(lh.IsLaborTrackingTurnedOff, 0) AS IsLaborTrackingTurnedOff
 				FROM DBO.SubWorkOrderLaborHeader lh WITH(NOLOCK)
 					LEFT JOIN DBO.SubWorkOrderLabor WL  WITH(NOLOCK) on lh.SubWorkOrderLaborHeaderId = WL.SubWorkOrderLaborHeaderId
 					LEFT JOIN DBO.Employee deby WITH(NOLOCK) on deby.EmployeeId = lh.DataEnteredBy

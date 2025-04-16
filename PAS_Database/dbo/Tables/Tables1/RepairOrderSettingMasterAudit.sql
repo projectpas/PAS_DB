@@ -19,14 +19,7 @@
     [TaxCOGSRefrenceId]         INT           NULL,
     [IsVendorCapsBypass]        BIT           NULL,
     [NoQuoteDays]               INT           NULL,
+    [IsEnforcePickTicket]       BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([RepairOrderSettingAuditId] ASC)
 );
-
-
-
-
-
-
-
-
 

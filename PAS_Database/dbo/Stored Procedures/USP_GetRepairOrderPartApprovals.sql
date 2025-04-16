@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetRepairOrderPartApprovals]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get RepairOrder Part Approvals List By RepairOrder Id
@@ -12,8 +11,9 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    30/03/2023   Rajesh Gami     Created
+	2    14-04-2025   Shrey Chandegara Updated Due to change Actionstatus ( @SentForCustomerApproval --> @SentForInternalApprovalId as per LINQ code)
 **************************************************************
-exec USP_GetRepairOrderPartApprovals @RepairOrderId=2542,@IsInternalApprove=1 
+exec USP_GetRepairOrderPartApprovals @RepairOrderId=2553,@IsInternalApprove=0
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetRepairOrderPartApprovals] 
 	@RepairOrderId BIGINT,
@@ -68,8 +68,8 @@ BEGIN
 				CASE 
 					WHEN @IsInternalApprove = 0 AND roa.RepairOrderApprovalId IS NULL THEN @SendforApprovalStr
 					WHEN roa.RepairOrderApprovalId IS NULL THEN @SendforApprovalStr
-					WHEN roa.ActionId = @SentForCustomerApproval AND roa.StatusId = @RejectStatusId THEN @ReturnedtoRequisitionerStr -- Rejected
-					WHEN roa.ActionId = @SentForCustomerApproval THEN @SendforApprovalStr
+					WHEN roa.ActionId = @SentForInternalApprovalId AND roa.StatusId = @RejectStatusId THEN @ReturnedtoRequisitionerStr -- Rejected
+					WHEN roa.ActionId = @SentForInternalApprovalId THEN @SendforApprovalStr
 					WHEN roa.ActionId = @SubmitInternalApproval THEN @SubmitApprovalStr
 					ELSE @ApprovedStr
 				END AS ActionStatus,

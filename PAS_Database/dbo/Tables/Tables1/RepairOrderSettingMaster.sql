@@ -18,6 +18,7 @@
     [TaxCOGSRefrenceId]     INT           DEFAULT ((1)) NULL,
     [IsVendorCapsBypass]    BIT           NULL,
     [NoQuoteDays]           INT           NULL,
+    [IsEnforcePickTicket]   BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMaster] PRIMARY KEY CLUSTERED ([RepairOrderSettingId] ASC),
     CONSTRAINT [FK_RepairOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

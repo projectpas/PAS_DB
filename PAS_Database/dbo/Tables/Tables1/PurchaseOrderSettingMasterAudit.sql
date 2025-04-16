@@ -22,8 +22,11 @@
     [IsCreateStocklineWithoutDraft]  BIT           NULL,
     [FreightCOGSRefrenceId]          INT           NULL,
     [TaxCOGSRefrenceId]              INT           NULL,
+    [NoQuoteDays]                    INT           DEFAULT ((90)) NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
+
+
 
 
 

@@ -213,7 +213,7 @@ BEGIN
 				DECLARE @CurrentIdNumber AS BIGINT;
 				DECLARE @ReceiverNumber AS VARCHAR(50),@CreatedBy VARCHAR(250),@UpdatedBy VARCHAR(250)
 				DECLARE @IdCodeTypeId BIGINT;				
-				DECLARE @NHAItemMasterId BIGINT,@TLAItemMasterId BIGINT,@LegalEntityId BIGINT,@ManagementStructureId BIGINT,@RevicedPNId BIGINT,@TimeLifeCyclesId BIGINT
+				DECLARE @NHAItemMasterId BIGINT,@TLAItemMasterId BIGINT,@LegalEntityId BIGINT,@ManagementStructureId BIGINT,@RevicedPNId BIGINT,@TimeLifeCyclesId BIGINT, @ConditionId BIGINT
 				DECLARE @StockLineNumber VARCHAR(100);
 				DECLARE @CNCurrentNumber BIGINT;
 				DECLARE @ControlNumber VARCHAR(50);
@@ -234,6 +234,7 @@ BEGIN
 					   @ReceivingCustomerWorkId = [ReceivingCustomerWorkId],
 					   @TimeLifeCyclesId = [TimeLifeCyclesId],
 					   @ManagementStructureId = [ManagementStructureId], 
+					   @ConditionId = [ConditionId], 
 					   --@IsTimeLIfe = [IsTimeLIfe],
 					   @TimeLifeDetailsNotProvided = ISNULL([TimeLifeDetailsNotProvided],0),
 					   @CreatedBy = [CreatedBy],
@@ -625,7 +626,7 @@ BEGIN
 						  ,ST.[EngineSerialNumber] = TR.[EngineSerialNumber]
 						  ,ST.[ShippingAccount] = TR.[ShippingAccount]
 						  ,ST.[ShippingReference] = TR.[ShippingReference]
-						  ,ST.[TimeLifeDetailsNotProvided] = TR.[TimeLifeDetailsNotProvided]
+						  ,ST.[TimeLifeDetailsNotProvided] = ISNULL(TR.[TimeLifeDetailsNotProvided], 0)
 						  --,ST.[QuantityOnHand] = <QuantityOnHand, int,>
 						  --,ST.[QuantityAvailable] = <QuantityAvailable, int,>
 						  --,ST.[QuantityOnOrder] = <QuantityOnOrder, int,>
@@ -792,11 +793,36 @@ BEGIN
 
 					 EXEC [dbo].[UpdateReceivingCustomerColumnsWithId] @ReceivingCustomerWorkId;
 
-					 DECLARE @RCModuleId BIGINT;
+					 DECLARE @RCModuleId BIGINT, @WOMPNModuleId BIGINT;
 					
 					 SELECT @RCModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'RecevingCustomer';
-				
+
+					 SELECT @WOMPNModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
+					 
+					DECLARE @WorkOrderPartNumberId BIGINT
+
+					SELECT TOP 1 @WorkOrderPartNumberId = ID
+					FROM WorkOrderPartNumber WITH (NOLOCK)
+					WHERE ReceivingCustomerWorkId = @ReceivingCustomerWorkId
+
+					IF @WorkOrderPartNumberId IS NOT NULL
+					BEGIN
+						UPDATE WOMPN
+						SET 
+							WOMPN.WorkOrderScopeId = TR.WorkScopeId,
+							WOMPN.CustomerReference = TR.Reference,
+							WOMPN.ACTailNum = TR.ACTailNum,
+							WOMPN.CurrentSerialNumber = TR.SerialNumber,
+							WOMPN.ManagementStructureId = @ManagementStructureId
+							FROM  WorkOrderPartNumber WOMPN  INNER JOIN #tmprReceiveCustomer TR ON WOMPN.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
+						WHERE WOMPN.ID = @WorkOrderPartNumberId
+
+						EXEC [dbo].[USP_UpdateWOMSDetails] @WOMPNModuleId, @WorkOrderPartNumberId, @ManagementStructureId, @UpdatedBy
+					END
+
 					 EXEC [dbo].[USP_UpdateWOMSDetails] @RCModuleId, @ReceivingCustomerWorkId, @ManagementStructureId, @UpdatedBy
+
+					 EXEC [dbo].[UpdatePartAfterWOCreated] @ItemMasterId, @ConditionId, @WorkOrderPartNumberId
 
 					 DECLARE @UpdateExchangeSalesOrderId BIGINT = 0
 					SELECT @UpdateExchangeSalesOrderId = ExchangeSalesOrderId FROM #tmprReceiveCustomer WHERE ID = @MinId

@@ -23,6 +23,7 @@
 	8	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	9	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	10	 23/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
+	11	 15/04/2025   Devendra Shekh Shipping Accounting Entry Issue Resolved
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -226,10 +227,11 @@ BEGIN
 			IF(UPPER(@DistributionCode) = UPPER('EX-SHIPMENT'))
 	        BEGIN				
 				SELECT @InvoiceNo = [SOShippingNum] FROM [dbo].[ExchangeSalesOrderShipping] WITH(NOLOCK) WHERE [ExchangeSalesOrderShippingId] = @InvoiceId;
-				
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+				SET @ValidDistribution = 0;
+
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId)
 				BEGIN
-					SET @ValidDistribution = 0;
+					SET @ValidDistribution = 1;
 				END
 
 				IF(@ValidDistribution = 1)

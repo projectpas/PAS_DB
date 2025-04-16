@@ -1,0 +1,100 @@
+﻿/*************************************************************               
+ ** File:   [USP_Refresh_Customer_Vendor_ByModule]               
+ ** Author: RAJESH GAMI 
+ ** Description:  This Store Procedure use to  Refresh customer / vendor by module wise
+ ** Purpose:             
+ ** Date:   15 April 2025      
+              
+ ** RETURN VALUE:               
+ **********************************************************               
+ ** Refresh CreditLimit and Terms               
+ **********************************************************               
+ ** PR   Date			Author			Change Description                
+ ** --   --------		-------			--------------------------------              
+    1    15 April 2025	RAJESH GAMI		CREATED 
+ 
+ EXEC [USP_WO_Refresh_Customer] 4291,8646
+ EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 0,4781,6739,13,''
+********************************************************************/ 
+
+CREATE     PROCEDURE [dbo].[USP_Refresh_Customer_Vendor_ByModule]
+	@customerId BIGINT = 0,
+	@vendorId BIGINT = 0,
+	@referenceId BIGINT =0,
+	@moduleId INT = 0,
+	@module VARCHAR(50) =''
+AS
+BEGIN
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	SET NOCOUNT ON;
+
+	BEGIN TRY
+		BEGIN TRANSACTION
+			IF(@moduleId > 0)
+			BEGIN
+				DECLARE @RFQPOModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorRFQPurchaseOrder')	
+				DECLARE @RFQROModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorRFQRepairOrder')
+				DECLARE @POModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='PurchaseOrder')
+				DECLARE @ROModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='RepairOrder')
+				DECLARE @VendorRMAModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorRMA')
+				DECLARE @SOQModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='SalesQuote')
+				DECLARE @SalesModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='SalesOrder')
+				DECLARE @ExchangeQuoteModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='ExchangeQuote')
+				DECLARE @ExchangeModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='ExchangeSalesOrder')
+				DECLARE @SpeedQuoteModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='SpeedQuote')
+				DECLARE @ReceivingCustomerModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='ReceivingCustomerWork')
+				DECLARE @WOModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='WorkOrder')
+				DECLARE @WOQModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='WOQuote')
+				DECLARE @CustomerRMAModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='CustomerRMA')
+				DECLARE @CreditMemoModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='CreditMemo')
+				DECLARE @ReceivingReconciliationModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='ReceivingReconciliation')
+				DECLARE @NonPOModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='NonPOInvoice')
+				DECLARE @VendorPaymentModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorPayment')
+				DECLARE @VendorProformaInvoiceModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorProformaInvoice')
+				IF(@customerId > 0)
+				BEGIN
+					DECLARE @CustomerName VARCHAR(100) = (SELECT TOP 1 C.[Name]	FROM [dbo].[Customer] C WITH(NOLOCK)   WHERE CustomerId = @customerId)
+
+					IF(@moduleId = @WOModuleId) /***********>>>>>>> Work Order Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[Workorder] SET [CustomerName] = @CustomerName	  WHERE WorkorderId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[Workorder] W WITH (NOLOCK) WHERE WorkorderId = @referenceId 
+					END
+				END
+				ELSE IF(@vendorId > 0)
+				BEGIN
+					DECLARE @VendorName VARCHAR(100) = (SELECT TOP 1 C.VendorName FROM [dbo].[Vendor] C WITH(NOLOCK)  WHERE VendorId = @vendorId)
+
+					IF(@moduleId = @POModuleId)  /***********>>>>>>> Purchase Order Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[PurchaseOrder] SET [VendorName] = @VendorName	 WHERE PurchaseOrderId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[PurchaseOrder] W WITH (NOLOCK) WHERE PurchaseOrderId = @referenceId  
+					END
+				END
+			END	
+
+		COMMIT  TRANSACTION
+
+	END TRY    
+		BEGIN CATCH      
+			IF @@trancount > 0
+				--PRINT 'ROLLBACK'
+				ROLLBACK TRAN;
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'USP_Refresh_Customer_Vendor_ByModule' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@customerId, '') + ''
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+
+              exec spLogException 
+                       @DatabaseName			= @DatabaseName
+                     , @AdhocComments			= @AdhocComments
+                     , @ProcedureParameters		= @ProcedureParameters
+                     , @ApplicationName         = @ApplicationName
+                     , @ErrorLogID              = @ErrorLogID OUTPUT ;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+		END CATCH
+END

@@ -3662,6 +3662,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveSubWorkOrderSettlementDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderWorkflowDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateSubWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Refresh_Customer_Vendor_ByModule.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCertificationTypeList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorRFQPOROStatusAutomatic.sql" />
   </ItemGroup>

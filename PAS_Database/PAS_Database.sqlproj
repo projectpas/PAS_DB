@@ -3665,6 +3665,7 @@
     <Build Include="dbo\Stored Procedures\USP_Refresh_Customer_Vendor_ByModule.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCertificationTypeList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorRFQPOROStatusAutomatic.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOAssetInventoryList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description                  
  ** --   --------     -------		  --------------------------------                
 	1    20-Mar-2025		Shrey Chandegara		Created  	
+	2    16-Apr-2025		Abhishek Jirawla		Added Is Repair Management
 
  --exec dbo.getReceivingCustomerWorkById 5837
       
@@ -185,7 +186,8 @@ AS BEGIN
 				im.IsManufacturingDateAvailable,
 				im.IsReceivedDateAvailable,
 				im.IsTagDateAvailable,
-				rc.IsPiecePart
+				rc.IsPiecePart,
+				rc.IsRepairManagement
 			FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].[CustomerContact] cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId

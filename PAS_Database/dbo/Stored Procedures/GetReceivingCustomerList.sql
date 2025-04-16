@@ -29,6 +29,8 @@
 	12   15/01/2025   Bhargav Saliya    Get Requested Date as ReceivedDate
 	13   17/03/2025   Sahdev Saliya     Change the Date format to Datetime
 	14   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date)
+	15   16/04/2025   ABHISHEK JIRAWLA  Updated (Added Repair Management Filter)
+
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -74,6 +76,7 @@ BEGIN
 		DECLARE @Count INT;
 		DECLARE @MSModuleID INT = 1; -- Receving Customer Management Structure Module ID
 		DECLARE @PiecePart BIT; 
+		DECLARE @RepairManagement BIT; 
 		DECLARE @EmpLegalEntiyId BIGINT = 0;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
@@ -118,13 +121,21 @@ BEGIN
 		IF (@PiecePartFilter = 1)
 		BEGIN
 			SET @PiecePart = 0;
+			SET @RepairManagement = 0;
 		END
 		ELSE IF(@PiecePartFilter = 2)
 		BEGIN
 			SET @PiecePart = 1;
+			SET @RepairManagement = 0;
 		END
 		IF (@PiecePartFilter = 3)
 		BEGIN
+			SET @PiecePart = 0;
+			SET @RepairManagement = 1;
+		END
+		IF (@PiecePartFilter = 4)
+		BEGIN
+			SET @RepairManagement = NULL;
 			SET @PiecePart = NULL;
 		END 
 		
@@ -175,6 +186,7 @@ BEGIN
 					MSD.LastMSLevel,
 					MSD.AllMSlevels,
 					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
+					CASE WHEN RC.IsRepairManagement = 1 THEN 1 ELSE 0 END IsRepairManagement,
 					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
 					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
 					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) AS ReceivedDate
@@ -193,14 +205,30 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrderStage] WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
 					LEFT JOIN [dbo].[WorkOrderStatus] WOST WITH (NOLOCK) ON WOP.WorkOrderStatusId = WOST.Id					
 				WHERE (RC.MasterCompanyId = @MasterCompanyId AND RC.IsActive = 1 AND RC.IsDeleted = 0
-				        AND (@PiecePart IS NULL OR ISNULL(RC.IsPiecePart,0) = @PiecePart)
+				        AND (
+								(
+									-- Rotable: both NULL or 0
+									(@PiecePart IS NULL OR @PiecePart = 0) 
+									AND (@RepairManagement IS NULL OR @RepairManagement = 0)
+									AND ISNULL(RC.IsPiecePart, 0) = 0 
+									AND ISNULL(RC.IsRepairManagement, 0) = 0
+								)
+								OR (
+									-- PiecePart
+									@PiecePart = 1 AND ISNULL(RC.IsPiecePart, 0) = 1
+								)
+								OR (
+									-- RepairManagement
+									@RepairManagement = 1 AND ISNULL(RC.IsRepairManagement, 0) = 1
+								)
+							)
 						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 
 						OR (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) 
 						OR (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll OR RO.RepairOrderNumber IS NOT NULL OR RO.RepairOrderNumber IS NULL))))
 			), ResultCount AS(SELECT COUNT(ReceivingCustomerWorkId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (
-			(@GlobalFilter <>'' AND ((CustomerName like '%' +@GlobalFilter+'%' ) OR 
+					(@GlobalFilter <>'' AND ((CustomerName like '%' +@GlobalFilter+'%' ) OR 
 					(PartNumber like '%' +@GlobalFilter+'%') OR
 					(PartDescription like '%' +@GlobalFilter+'%') OR
 					(SerialNumber like '%' +@GlobalFilter+'%') OR

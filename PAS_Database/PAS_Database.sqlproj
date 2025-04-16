@@ -3666,6 +3666,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetCertificationTypeList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorRFQPOROStatusAutomatic.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOAssetInventoryList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderPackaginSlip.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderPackaginSlipItemsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -21,9 +21,12 @@
     [IsCreateStocklineWithoutDraft]  BIT           NULL,
     [FreightCOGSRefrenceId]          INT           DEFAULT ((1)) NULL,
     [TaxCOGSRefrenceId]              INT           DEFAULT ((1)) NULL,
+    [NoQuoteDays]                    INT           DEFAULT ((90)) NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMaster] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingId] ASC),
     CONSTRAINT [FK_PurchaseOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

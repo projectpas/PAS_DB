@@ -14,6 +14,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 3    20/02/2024  Shrey Chandegara  Updated for Technum is getting wrong.
 ** 4    17/02/2025   Moin Bloch       Updated (Added Publication PublicationNo)
 ** 5    28/02/2025   RAJESH GAMI      Modify the SP WO Part details to Sub Wo Part detail (Previously showoing WO MPN Details instead of SubWOMPN detail)
+** 6    04/16/2025   Devendra Shekh   Added IsLaborTrackingTurnedOff to select
 EXEC GetSubWorkOrderPrintPdfData 573,559
 
 **************************************************************/
@@ -114,7 +115,8 @@ AS
 				   WHERE nhatae.ItemMasterId = imt.ItemMasterId              
 				   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
 				   FOR XML PATH('')              
-				   ), 1, 1, '')              
+				   ), 1, 1, '')
+				   ,(SELECT TOP 1 ISNULL(SWLH.IsLaborTrackingTurnedOff, 0) FROM [dbo].[SubWorkOrderLaborHeader] SWLH WITH(NOLOCK) WHERE SWLH.SubWorkOrderId = SWOPN.SubWorkOrderId AND SWLH.SubWOPartNoId = SWOPN.SubWOPartNoId AND SWLH.WorkOrderId = SWOPN.WorkOrderId AND ISNULL(isDeleted, 0) = 0) AS IsLaborTrackingTurnedOff
 			FROM dbo.SubWorkOrder SWO WITH(NOLOCK) 
 				INNER JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
 				INNER JOIN Dbo.WorkOrder wo WITH(NOLOCK) ON SWO.WorkOrderId = wo.WorkOrderId             

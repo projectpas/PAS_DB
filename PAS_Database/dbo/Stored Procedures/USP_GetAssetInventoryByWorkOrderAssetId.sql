@@ -70,7 +70,7 @@ BEGIN
 			ISNULL(cob.FirstName + ' ' + cob.LastName, '') AS CheckOutBy,
 			CW.UpdatedDate,
 			CW.CreatedDate
-		FROM AssetInventory AI WITH(NOLOCK)
+		FROM [DBO].AssetInventory AI WITH(NOLOCK)
 		INNER JOIN [DBO].Asset A WITH(NOLOCK) ON AI.AssetRecordId = A.AssetRecordId
 		INNER JOIN [DBO].AssetAttributeType AT WITH(NOLOCK) ON A.AssetAcquisitionTypeId = AT.AssetAttributeTypeId
 		INNER JOIN [DBO].CheckInCheckOutWorkOrderAssetAudit cw WITH(NOLOCK) ON AI.AssetInventoryId = cw.AssetInventoryId

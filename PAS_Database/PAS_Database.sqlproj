@@ -3668,6 +3668,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWOAssetInventoryList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderPackaginSlip.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderPackaginSlipItemsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderPartsForView.sql" />
     <Build Include="dbo\Tables\ROPickTicketAudit.sql" />
     <Build Include="dbo\Tables\ROPickTicket.sql" />
     <Build Include="dbo\Stored Procedures\sp_savePickTicketItemInterfaceForRO.sql" />

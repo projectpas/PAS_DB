@@ -97,7 +97,8 @@
     [CustReqCertType]         VARCHAR (MAX)  NULL,
     [RepairOrderPartRecordId] BIGINT         NULL,
     [IsExchangeBatchEntry]    BIT            NULL,
-    [IsPiecePart]             BIT            CONSTRAINT [Cnt_ReceivingCustomerWork_IsPiecePart] DEFAULT ((0)) NULL,
+    [IsPiecePart]             BIT            CONSTRAINT [DF_ReceivingCustomerWork_IsPiecePart1] DEFAULT ((0)) NULL,
+    [IsRepairManagement]      BIT            CONSTRAINT [Cnt_ReceivingCustomerWork_IsPiecePart] DEFAULT ((0)) NULL,
     [IsSkipShippingReference] BIT            NULL,
     CONSTRAINT [PK_ReceivingCustomerWork] PRIMARY KEY CLUSTERED ([ReceivingCustomerWorkId] ASC),
     CONSTRAINT [FK_ReceivingCustomerWork_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -118,6 +119,8 @@
     CONSTRAINT [FK_ReceivingCustomerWork_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_ReceivingCustomerWork_WorkScopeId] FOREIGN KEY ([WorkScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 

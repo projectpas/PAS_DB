@@ -3678,6 +3678,10 @@
     <Build Include="dbo\Stored Procedures\GetRepairOrderPickTicketByRepairOrderId.sql" />
     <Build Include="dbo\Stored Procedures\GetPickTicketPrint_RO.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSalesQuoteVerificationResult.sql" />
+    <Build Include="dbo\Tables\CommonTeardownTemplateAudit.sql" />
+    <Build Include="dbo\Tables\CommonTeardownTemplate.sql" />
+    <Build Include="dbo\Views\vw_CommonTeardownTemplateAudit.sql" />
+    <Build Include="dbo\Views\vw_CommonTeardownTemplate.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -31,7 +31,7 @@ BEGIN
 	   DECLARE @CurrentStockLineNumber AS BIGINT;    
 	   DECLARE @TotalRecord int = 0;   
 	   DECLARE @MinId BIGINT = 1; 
-	   DECLARE @CurrentIndex BIGINT;
+	   DECLARE @CurrentIndex BIGINT, @RCCurrentIndex BIGINT;
 	   DECLARE @StockIdCodeTypeId INT = 0; 
 	   DECLARE @IdNumberCodeTypeId INT = 0; 
 	   DECLARE @ControlNumberCodeTypeId INT = 0; 
@@ -211,9 +211,9 @@ BEGIN
 		
 		WHILE @MinId <= @TotalRecord
 		BEGIN				
-				DECLARE @CurrentIdNumber AS BIGINT;
+				DECLARE @CurrentIdNumber AS BIGINT, @RCCurrentIdNumber AS BIGINT;
 				DECLARE @ReceiverNumber AS VARCHAR(50),@CreatedBy VARCHAR(250),@UpdatedBy VARCHAR(250)
-				DECLARE @IdCodeTypeId BIGINT;				
+				DECLARE @IdCodeTypeId BIGINT, @RCIdCodeTypeId BIGINT;					
 				DECLARE @NHAItemMasterId BIGINT,@TLAItemMasterId BIGINT,@LegalEntityId BIGINT,@ManagementStructureId BIGINT,@RevicedPNId BIGINT,@TimeLifeCyclesId BIGINT, @ConditionId BIGINT
 				DECLARE @StockLineNumber VARCHAR(100);
 				DECLARE @CNCurrentNumber BIGINT;
@@ -228,6 +228,7 @@ BEGIN
 				DECLARE @ShelfLife BIT,@IsHazardousMaterial BIT,@IsPMA BIT,@IsDER BIT,@OEM BIT,@IsTimeLIfe BIT,@TimeLifeDetailsNotProvided BIT, @GlAccountId BIGINT, @GlAccountName VARCHAR(100)
 
                 SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'Stock Line';
+				SELECT @RCIdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'Receiving Customer Work';
   			    
 				SELECT @ItemMasterId = [ItemMasterId], 
 				       @ManufacturerId = [ManufacturerId], 
@@ -290,6 +291,28 @@ BEGIN
 					FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 					WHERE CT.CodeTypeId = @IdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 					
+					IF OBJECT_ID(N'tempdb..#tmpRCCodePrefixes') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpRCCodePrefixes
+					END
+
+					CREATE TABLE #tmpRCCodePrefixes
+					(
+						[ID] BIGINT NOT NULL IDENTITY,
+						[CodePrefixId] BIGINT NULL,
+						[CodeTypeId] BIGINT NULL,
+						[CurrentNumber] BIGINT NULL,
+						[CodePrefix] VARCHAR(50) NULL,
+						[CodeSufix] VARCHAR(50) NULL,
+						[StartsFrom] BIGINT NULL,
+					)
+
+					INSERT INTO #tmpRCCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
+					SELECT [CodePrefixId],CP.[CodeTypeId],[CurrentNummber],[CodePrefix],[CodeSufix],[StartsFrom] 
+					FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+					WHERE CT.CodeTypeId = @RCIdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+
+
 					IF (@CurrentIndex = 0)
 					BEGIN
 						SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END
@@ -302,11 +325,24 @@ BEGIN
 					END
 
 					SET @ReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
-														
-					IF(@MinId = 1 )
+
+					IF (@RCCurrentIndex = 0)
 					BEGIN
-						SET @RCReceiverNumber = @ReceiverNumber;
-					END				
+						SELECT @RCCurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END
+						FROM #tmpRCCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId
+					END
+					ELSE
+					BEGIN
+						SELECT @RCCurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END
+						FROM #tmpRCCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId
+					END
+
+					SET @RCReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@RCCurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId)))
+														
+					--IF(@MinId = 1 )
+					--BEGIN
+					--	SET @RCReceiverNumber = @ReceiverNumber;
+					--END				
 					/* PN Manufacturer Combination Stockline logic */
                 
 					IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL                
@@ -475,6 +511,8 @@ BEGIN
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 
 					EXEC [dbo].[UpdateReceivingCustomerColumnsWithId] @ReceivingCustomerWorkId;
+
+					UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @RCCurrentIdNumber WHERE [CodeTypeId] = @RCIdCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;	
 										
 					IF (@IsTimeLIfe = 1)
                     BEGIN

@@ -14,6 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/04/2025  Ayushi Patel     Created
+    2    16/04/2025  Vishal Suthar    Added IsEnforcePickTicket flag
+
+ EXEC [USP_GetROHeaderDetails] 2554
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetROHeaderDetails]
     @RepairOrderId BIGINT
@@ -74,7 +77,8 @@ BEGIN
             ro.LotId,
             ISNULL(ro.FunctionalCurrencyId, 0) AS FunctionalCurrencyId,
             ISNULL(ro.ReportCurrencyId, 0) AS ReportCurrencyId,
-            ISNULL(ro.ForeignExchangeRate, 0) AS ForeignExchangeRate
+            ISNULL(ro.ForeignExchangeRate, 0) AS ForeignExchangeRate,
+			ISNULL(ro.IsEnforcePickTicket, 0) AS IsEnforcePickTicket
         FROM dbo.RepairOrder ro WITH (NOLOCK)
         LEFT JOIN dbo.RepairOrderManagementStructureDetails msd WITH (NOLOCK)
             ON ro.RepairOrderId = msd.ReferenceID 

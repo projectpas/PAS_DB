@@ -3669,6 +3669,15 @@
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderPackaginSlip.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderPackaginSlipItemsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPurchaseOrderPartsForView.sql" />
+    <Build Include="dbo\Tables\ROPickTicketAudit.sql" />
+    <Build Include="dbo\Tables\ROPickTicket.sql" />
+    <Build Include="dbo\Stored Procedures\sp_savePickTicketItemInterfaceForRO.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetROPickTicketChildList.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetROPickTicketApproveList.sql" />
+    <Build Include="dbo\Stored Procedures\SearchStockLinePickTicketPopForRO.sql" />
+    <Build Include="dbo\Stored Procedures\GetRepairOrderPickTicketByRepairOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\GetPickTicketPrint_RO.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetSalesQuoteVerificationResult.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

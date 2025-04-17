@@ -16,6 +16,7 @@
 	3   26-Feb-2025		Devendra Shekh			Updated to Get Revised PartNumber
 	4   26-Feb-2025		Devendra Shekh			Added Changes for SubWO
 	5	09-APR-2025		Devendra Shekh			Comparing @CorrectiveActionCode instead of name
+	6	17-APR-2025		Devendra Shekh			Reading Memo Text From [CorrectiveActionTemplate]
 	
  EXECUTE [USP_GetTeardownReasonDetails] 73, '', 7976, 1, 0
  EXECUTE [USP_GetTeardownReasonDetails] 147, '', 0, 1, 222
@@ -36,6 +37,8 @@ BEGIN
 		DECLARE @NeoSourceCompanyId INT = 0;
 		DECLARE @RPPubTypeId BIGINT = 0;
 		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
+
+		SELECT @NeoSourceMemoText = ISNULL([TemplateBody], @NeoSourceMemoText) FROM [dbo].[CommonTeardownTemplate] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TemplateCode] = @CorrectiveActionCode;
 
 		DECLARE @ConditionName VARCHAR(256),@CMMIds VARCHAR(256), @Publications VARCHAR(500), @CurrentSerialNumber VARCHAR(100), @RevisedSerialNumber VARCHAR(100), @PartNumber VARCHAR(200),
 		@PublicationName NVARCHAR(MAX), @RevisionDate NVARCHAR(MAX), @RevisionNum NVARCHAR(MAX);

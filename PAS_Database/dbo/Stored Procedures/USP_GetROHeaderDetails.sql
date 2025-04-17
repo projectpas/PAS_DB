@@ -78,7 +78,8 @@ BEGIN
             ISNULL(ro.FunctionalCurrencyId, 0) AS FunctionalCurrencyId,
             ISNULL(ro.ReportCurrencyId, 0) AS ReportCurrencyId,
             ISNULL(ro.ForeignExchangeRate, 0) AS ForeignExchangeRate,
-			ISNULL(ro.IsEnforcePickTicket, 0) AS IsEnforcePickTicket
+			ISNULL(ro.IsEnforcePickTicket, 0) AS IsEnforcePickTicket,
+			ISNULL(ro.EnforcePickTicketConfirmation, 0) AS EnforcePickTicketConfirmation
         FROM dbo.RepairOrder ro WITH (NOLOCK)
         LEFT JOIN dbo.RepairOrderManagementStructureDetails msd WITH (NOLOCK)
             ON ro.RepairOrderId = msd.ReferenceID 

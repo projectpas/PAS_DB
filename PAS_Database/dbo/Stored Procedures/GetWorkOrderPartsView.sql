@@ -13,19 +13,21 @@
  ** --   --------		-------			--------------------------------          
     1    08-APR-2025   Abhishek Jirawla	Created
     2    15-APR-2025   RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
+    3    17-APR-2025   Abhishek Jirawla Adding Item Group and other modifications
+
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetWorkOrderPartsView]
+CREATE     PROCEDURE [dbo].[GetWorkOrderPartsView]
     @WorkOrderId INT
 AS
 BEGIN
     SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @PendingStatusId INT, @ApprovedStatusId INT, @WaitingForApprovalStatusId INT;
+		DECLARE @PendingStatusId INT, @PendingStatusName VARCHAR(20), @ApprovedStatusId INT, @WaitingForApprovalStatusId INT;
 		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
 
-		SELECT @PendingStatusId = ApprovalStatusId FROM dbo.ApprovalStatus WITH (NOLOCK) WHERE Name = 'Pending'
+		SELECT @PendingStatusId = ApprovalStatusId, @PendingStatusName = Name FROM dbo.ApprovalStatus WITH (NOLOCK) WHERE Name = 'Pending'
 		SELECT @ApprovedStatusId = ApprovalStatusId FROM dbo.ApprovalStatus WITH (NOLOCK) WHERE Name = 'Approved'
 		SELECT @WaitingForApprovalStatusId = ApprovalStatusId FROM dbo.ApprovalStatus WITH (NOLOCK) WHERE Name = 'Waiting for Approval'
 
@@ -51,6 +53,7 @@ BEGIN
 			COALESCE(NULLIF(wop.RevisedSerialNumber, ''), sl.SerialNumber) AS SerialNumber,
 			im.ManufacturerName,
 			im.RevisedPart AS RevisedPartNo,
+			ig.Description AS ItemGroup,
 			wop.CMMIds,
 			wop.WorkflowId,
 			wop.NTE,
@@ -65,7 +68,7 @@ BEGIN
 				WHEN wopp.ApprovalActionId = CAST(@ApprovedProcessId AS INT) THEN appsC.Description
 				WHEN wopp.ApprovalActionId = CAST(@SentForInternalApprovalProcessId AS INT) THEN COALESCE(appsI.Description, appsA.Description)
 				WHEN wopp.ApprovalActionId = CAST(@SentForCustomerApprovalProcessId AS INT) THEN COALESCE(appsC.Description, appsA.Description)
-				ELSE CAST(@PendingStatusId AS VARCHAR(20))
+				ELSE CAST(@PendingStatusName AS VARCHAR(20))
 			END AS WorkOrderStatus,
 			pr.Description AS Priority,
 			wop.CustomerRequestDate,
@@ -85,7 +88,7 @@ BEGIN
 			wop.Quantity,
 			CONCAT(wf.WorkOrderNumber, '_', wf.Version) AS WorkFlowNo,
 			ts.StationName AS TechStation,
-			wop.ContractNo,
+			ISNULL(wop.ContractNo, '') AS ContractNo,
 			COALESCE(cmot.Memo, '') AS NotesSection,
 			wowf.WorkFlowWorkOrderId,
 			COALESCE(cmot.CommonWorkOrderTearDownId, 0) AS CommonWorkOrderTearDownId,

@@ -129,13 +129,13 @@ BEGIN
 			[part].[Manufacturer],
 			(
 				SELECT TOP 1 [LastMSLevel]
-				FROM [PurchaseOrderManagementStructureDetails]
+				FROM [dbo].[PurchaseOrderManagementStructureDetails] WITH(NOLOCK)
 				WHERE [ReferenceID] = [part].[PurchaseOrderPartRecordId] 
 				  AND [ModuleID] = @PurchaseOrderPartMSId
 			) AS [LastMSLevel],
 			(
 				SELECT TOP 1 [AllMSlevels]
-				FROM [PurchaseOrderManagementStructureDetails]
+				FROM [dbo].[PurchaseOrderManagementStructureDetails] WITH(NOLOCK)
 				WHERE [ReferenceID] = [part].[PurchaseOrderPartRecordId] 
 				  AND [ModuleID] = @PurchaseOrderPartMSId
 			) AS [AllMSlevels],
@@ -156,10 +156,10 @@ BEGIN
 			[part].[StockType],		
 			ISNULL([part].[QuantityReceived],0) [StockLineCount],
 			[part].[POPartSplitUser] AS [PoPartSplitUserName]
-		FROM [PurchaseOrderPart] part WITH(NOLOCK)
-		LEFT JOIN [ItemMaster] itm WITH(NOLOCK) ON [part].[ItemMasterId] = [itm].[ItemMasterId]
-		LEFT JOIN [Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
-		LEFT JOIN [ItemMasterNonStock] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[MasterPartId]
+		FROM [dbo].[PurchaseOrderPart] part WITH(NOLOCK)
+		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON [part].[ItemMasterId] = [itm].[ItemMasterId]
+		LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
+		LEFT JOIN [dbo].[ItemMasterNonStock] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[MasterPartId]
 		WHERE [part].[PurchaseOrderPartRecordId] IN (SELECT [PurchaseOrderPartRecordId] FROM #tblPurchaseOrderPartRecordIds)
    
 		END
@@ -176,7 +176,7 @@ BEGIN
 			CASE WHEN [SL].[IsSerialized] = 1 THEN [SL].[Quantity]
 			ELSE (
 			  SELECT ISNULL(SUM([x].[Quantity]),0)
-			  FROM [StocklineDraft] AS [x]
+			  FROM [dbo].[StocklineDraft] AS [x] WITH(NOLOCK)
 			  WHERE [x].[PurchaseOrderId] = [SL].[PurchaseOrderId]
 				AND [x].[PurchaseOrderPartRecordId] = [SL].[PurchaseOrderPartRecordId]
 				AND [x].[StockLineId] = SL.[StockLineId]
@@ -236,7 +236,7 @@ BEGIN
 			SL.[ShelfId],
 			SL.[BinId],
 			SL.[Manufacturer] AS [ManufacturerText],			
-			'' AS ShippingViaText,
+			SV.[Name] AS ShippingViaText,
 			SL.[Site] AS SiteText,
 			SL.[Warehouse] AS WarehouseText,
 			SL.[Location] AS LocationText,
@@ -262,6 +262,7 @@ BEGIN
 			CASE WHEN SL.[PurchaseOrderUnitCost] > 0 THEN SL.[PurchaseOrderUnitCost] ELSE 0 END [UnitCost],
 			SL.[StockLineId] 
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
 		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
 		

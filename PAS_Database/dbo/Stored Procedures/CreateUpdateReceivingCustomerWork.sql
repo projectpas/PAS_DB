@@ -18,6 +18,7 @@
 CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
 	@ReceivingCustomerWorkId [bigint] NULL,
 	@MasterCompanyId [int] NULL,
+	@IsRepairManagement [bit] NULL,
 	@tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY      
 AS    
 BEGIN    
@@ -434,23 +435,6 @@ BEGIN
 					
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @NewStocklineId;
 
-				    IF (@IsTimeLIfe = 1)
-                    BEGIN
-						INSERT INTO dbo.TimeLife([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
-												 [TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],
-												 [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],
-												 [DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId],[VendorRMAId],[VendorRMADetailId])
-                                          SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
-                                                 [TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],@MasterCompanyId,
-                                                 @CreatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,NULL,NULL, @NewStocklineId,0,NULL,NULL,NULL,NULL
-										    FROM #tmprReceiveCustomer WHERE ID = @MinId;
-
-						SELECT @TimeLifeCyclesId = SCOPE_IDENTITY(); 
-
-						UPDATE [dbo].[Stockline] SET [TimeLifeCyclesId] = @TimeLifeCyclesId WHERE [StockLineId] = @NewStocklineId  AND [MasterCompanyId] = @MasterCompanyId;
-
-					END
-
 					UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @CNCurrentNumber WHERE [CodeTypeId] = @ControlNumberCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
 
 					UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @CurrentIdNumber WHERE [CodeTypeId] = @IdCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;					
@@ -474,7 +458,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedBy] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart],[IsSkipShippingReference])
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart], [IsRepairManagement],[IsSkipShippingReference])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
 						       ,[IsSerialized] ,[SerialNumber] ,[Quantity] ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
@@ -486,12 +470,31 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedByName] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],0,[IsSkipShippingReference] FROM #tmprReceiveCustomer WHERE ID = @MinId;	
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],0, ISNULL(@IsRepairManagement, 0),[IsSkipShippingReference] FROM #tmprReceiveCustomer WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 
 					EXEC [dbo].[UpdateReceivingCustomerColumnsWithId] @ReceivingCustomerWorkId;
 										
+					IF (@IsTimeLIfe = 1)
+                    BEGIN
+						INSERT INTO dbo.TimeLife([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
+												 [TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],
+												 [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],
+												 [DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId],[VendorRMAId],[VendorRMADetailId])
+                                          SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
+                                                 [TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],@MasterCompanyId,
+                                                 @CreatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,NULL,NULL, @NewStocklineId,0,NULL,NULL,NULL,NULL
+										    FROM #tmprReceiveCustomer WHERE ID = @MinId;
+
+						SELECT @TimeLifeCyclesId = SCOPE_IDENTITY(); 
+
+						UPDATE [dbo].[Stockline] SET [TimeLifeCyclesId] = @TimeLifeCyclesId WHERE [StockLineId] = @NewStocklineId  AND [MasterCompanyId] = @MasterCompanyId;
+
+						UPDATE [dbo].[ReceivingCustomerWork] SET [TimeLifeCyclesId] = @TimeLifeCyclesId WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId  AND [MasterCompanyId] = @MasterCompanyId;
+
+					END
+
 					DECLARE @RCManagementStructureModuleId BIGINT;
 					
 					SELECT @RCManagementStructureModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'RecevingCustomer';
@@ -686,6 +689,8 @@ BEGIN
 							SELECT @TimeLifeCyclesId = SCOPE_IDENTITY(); 
 
 							UPDATE [dbo].[Stockline] SET [TimeLifeCyclesId] = @TimeLifeCyclesId WHERE [StockLineId] = @StocklineId  AND [MasterCompanyId] = @MasterCompanyId;
+
+							UPDATE [dbo].[ReceivingCustomerWork] SET [TimeLifeCyclesId] = @TimeLifeCyclesId WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId  AND [MasterCompanyId] = @MasterCompanyId;
 
 						END
 						ELSE

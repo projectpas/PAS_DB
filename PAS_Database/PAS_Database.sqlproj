@@ -3682,6 +3682,9 @@
     <Build Include="dbo\Tables\CommonTeardownTemplate.sql" />
     <Build Include="dbo\Views\vw_CommonTeardownTemplateAudit.sql" />
     <Build Include="dbo\Views\vw_CommonTeardownTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderDetailsByWorkFlowWorkOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderDetailsBySubWOPartNoId.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

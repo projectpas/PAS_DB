@@ -18,6 +18,7 @@
 	4    08/02/2021   Added Is Verion Increase flag
 	5    11/03/2025   Sahdev Saliya  Added New Field TemplateDescription
 	6    20/03/2025   Ekta Chandegra Convert date using dbo.ConvertUTCtoLocal
+	7    18-04-2025   Shrey Chandegara  Modifed due to datefilter issue
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
@@ -127,7 +128,7 @@ BEGIN
 					wf.Memo,
 					wf.IsActive,
 					wf.IsDeleted,
-					(Cast(DBO.ConvertUTCtoLocal(wf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
+					(Cast(DBO.ConvertUTCtoLocal(wf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) CreatedDate,
 					wf.CreatedBy,
 					(Cast(DBO.ConvertUTCtoLocal(wf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 					wf.UpdatedBy,
@@ -166,8 +167,10 @@ BEGIN
 					(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
 					(IsNull(@WorkflowCreateDate,'') ='' OR Cast(WorkflowCreateDate as Date)=Cast(@WorkflowCreateDate as date)) and
 					(IsNull(@WorkflowExpirationDate,'') ='' OR Cast(WorkflowExpirationDate as Date)=Cast(@WorkflowExpirationDate as date)) and
-					(IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@CreatedDate AS DATE)) and
-					(IsNull(@UpdatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@UpdatedDate AS DATE)))
+					(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
+					--(IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@CreatedDate AS DATE)) and
+					--(IsNull(@UpdatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@UpdatedDate AS DATE))
+					(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as Date)=Cast(@UpdatedDate as date)))
 					)
 			
 			SELECT @Count = COUNT(WorkflowId) from #TempResult			

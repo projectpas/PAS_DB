@@ -11,6 +11,7 @@
  ** --   --------		-------				--------------------------------          
 	1	05/03/2025		Moin Bloch			    Created
 	2	11/03/2025		Moin Bloch			    Fixed Issue For Duplicate Records
+	3	18/04/2025		Devendra Shekh			Fixed Issue For Duplicate Records for Alt/Equ Part for parent Download
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsDownload] 4257,3782, 0
  exec dbo.USP_GetWorkOrderMaterialsDownload 8354,7964,1,1
@@ -171,18 +172,19 @@ SET NOCOUNT ON
 					;WITH MaterialResult AS ( 
 					SELECT DISTINCT CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 							IM.[PartNumber],
-							(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
-							(CASE 
-								WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
-								THEN 
-									CASE 
-									WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
-									THEN 0
-									ELSE MSTL.[EquPartMasterPartId]
-									END
-								ELSE MSTL.[AltPartMasterPartId]
-								END)
-							) AS [AlterPartNumber],							
+							(CASE WHEN (SELECT SUM(CASE WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) <> 0 THEN 1 WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) <> 0 THEN 1 ELSE 0 END) FROM [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) WHERE MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0) > 0 THEN 'Yes' ELSE 'No' END) AS [AlterPartNumber],	
+							--(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
+							--(CASE 
+							--	WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
+							--	THEN 
+							--		CASE 
+							--		WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
+							--		THEN 0
+							--		ELSE MSTL.[EquPartMasterPartId]
+							--		END
+							--	ELSE MSTL.[AltPartMasterPartId]
+							--	END)
+							--) AS [AlterPartNumber],							
 							IM.[PartDescription],	
 							IM.[ManufacturerName],
 							CO.[Description] [Condition],
@@ -250,7 +252,7 @@ SET NOCOUNT ON
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
-							 LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0							
+							 --LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0							
 							  LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IM.[ItemMasterId] = IMPS.[ItemMasterId] AND WOM.[ConditionCodeId] = IMPS.[ConditionId]
 							  LEFT JOIN [dbo].[ItemClassification] ITC WITH (NOLOCK) ON ITC.[ItemClassificationId] = IM.[ItemClassificationId]
 							  LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.[ProvisionId] = WOM.[ProvisionId]
@@ -265,18 +267,19 @@ SET NOCOUNT ON
 
 						SELECT DISTINCT CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 						IM.[PartNumber],
-						(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
-						(CASE 
-							WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
-							THEN 
-								CASE 
-								WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
-								THEN 0
-								ELSE MSTL.[EquPartMasterPartId]
-								END
-							ELSE MSTL.[AltPartMasterPartId]
-							END)
-						) [AlterPartNumber],
+						(CASE WHEN (SELECT SUM(CASE WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) <> 0 THEN 1 WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) <> 0 THEN 1 ELSE 0 END) FROM [dbo].[WorkOrderMaterialStockLineKit] MSTL WHERE MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0) > 0 THEN 'Yes' ELSE 'No' END) AS [AlterPartNumber],	
+							--(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
+							--(CASE 
+							--	WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
+							--	THEN 
+							--		CASE 
+							--		WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
+							--		THEN 0
+							--		ELSE MSTL.[EquPartMasterPartId]
+							--		END
+							--	ELSE MSTL.[AltPartMasterPartId]
+							--	END)
+							--) AS [AlterPartNumber],
 						IM.[PartDescription],
 						IM.[ManufacturerName],
 						CO.[Description] [Condition],
@@ -347,7 +350,7 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = WOM.ConditionCodeId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
-						 LEFT JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
+						 --LEFT JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
 						 LEFT JOIN [dbo].[ItemClassification] ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId
 						 LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.ProvisionId = WOM.ProvisionId						 
@@ -364,18 +367,19 @@ SET NOCOUNT ON
 					;WITH MaterialResult AS ( 
 					  SELECT DISTINCT CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 							IM.[PartNumber],
-							(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
-							(CASE 
-								WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
-								THEN 
-									CASE 
-									WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
-									THEN 0
-									ELSE MSTL.[EquPartMasterPartId]
-									END
-								ELSE MSTL.[AltPartMasterPartId]
-								END)
-							) AS [AlterPartNumber],							
+							(CASE WHEN (SELECT SUM(CASE WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) <> 0 THEN 1 WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) <> 0 THEN 1 ELSE 0 END) FROM [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) WHERE MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0) > 0 THEN 'Yes' ELSE 'No' END) AS [AlterPartNumber],	
+							--(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
+							--(CASE 
+							--	WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
+							--	THEN 
+							--		CASE 
+							--		WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
+							--		THEN 0
+							--		ELSE MSTL.[EquPartMasterPartId]
+							--		END
+							--	ELSE MSTL.[AltPartMasterPartId]
+							--	END)
+							--) AS [AlterPartNumber],				
 							IM.[PartDescription],	
 							IM.[ManufacturerName],
 							CO.[Description] [Condition],
@@ -443,7 +447,7 @@ SET NOCOUNT ON
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
-							 LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0
+							 --LEFT JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.[WorkOrderMaterialsId] = WOM.[WorkOrderMaterialsId] AND MSTL.[IsDeleted] = 0
 							  LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IM.[ItemMasterId] = IMPS.[ItemMasterId] AND WOM.[ConditionCodeId] = IMPS.[ConditionId]
 							  LEFT JOIN [dbo].[ItemClassification] ITC WITH (NOLOCK) ON ITC.[ItemClassificationId] = IM.[ItemClassificationId]
 							  LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.[ProvisionId] = WOM.[ProvisionId]
@@ -457,18 +461,19 @@ SET NOCOUNT ON
 
 						SELECT DISTINCT CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE T.[Description] END AS TaskName,
 						IM.[PartNumber],
-						(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
-						(CASE 
-							WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
-							THEN 
-								CASE 
-								WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
-								THEN 0
-								ELSE MSTL.[EquPartMasterPartId]
-								END
-							ELSE MSTL.[AltPartMasterPartId]
-							END)
-						) [AlterPartNumber],
+						(CASE WHEN (SELECT SUM(CASE WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) <> 0 THEN 1 WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) <> 0 THEN 1 ELSE 0 END) FROM [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) WHERE MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0) > 0 THEN 'Yes' ELSE 'No' END) AS [AlterPartNumber],	
+							--(SELECT [partnumber] FROM [dbo].[ItemMaster] IM WHERE IM.[ItemMasterId] = 
+							--(CASE 
+							--	WHEN ISNULL(MSTL.[AltPartMasterPartId], 0) = 0 
+							--	THEN 
+							--		CASE 
+							--		WHEN ISNULL(MSTL.[EquPartMasterPartId], 0) = 0 
+							--		THEN 0
+							--		ELSE MSTL.[EquPartMasterPartId]
+							--		END
+							--	ELSE MSTL.[AltPartMasterPartId]
+							--	END)
+							--) AS [AlterPartNumber],
 						IM.[PartDescription],
 						IM.[ManufacturerName],
 						CO.[Description] [Condition],
@@ -539,7 +544,7 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = WOM.ConditionCodeId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
-						 LEFT JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0						
+						 --LEFT JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0						
 						 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
 						 LEFT JOIN [dbo].[ItemClassification] ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId
 						 LEFT JOIN [dbo].[Provision] PV WITH (NOLOCK) ON PV.ProvisionId = WOM.ProvisionId

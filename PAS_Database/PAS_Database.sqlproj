@@ -3687,6 +3687,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderDetailsByWorkFlowWorkOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderDetailsBySubWOPartNoId.sql" />
     <Build Include="dbo\Stored Procedures\GetPickTicketForEdit_RO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderLaborHeader.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

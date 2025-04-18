@@ -1,7 +1,7 @@
 ﻿--sp_helptext USP_CreateTravelerLabourTask
 
 /*************************************************************             
- ** File:   [USP_AddEdit_WorkOrderTurnArroundTime]             
+ ** File:   [USP_CreateTravelerLabourTask]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA     
  ** Purpose:           
@@ -21,9 +21,9 @@
 	2    01/09/2025   Moin Bloch 	  ADDED [StandardHours],[StandardMinute]
 	3	 01/23/2024	  Moin Bloch	  Modified (check table for WorkOrderFormTypeId)
 	4	 04/14/2025	  Devendra Shekh  Added changes for IsLaborTrackingTurnedOff
-
+	5	 04/18/2025	  Moin Bloch	  Modified (for existing [WorkOrderLaborHeader] Data)
        
--- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44  
+-- EXEC [USP_CreateTravelerLabourTask] 44  
 **************************************************************/  
   
 CREATE    PROCEDURE [dbo].[USP_CreateTravelerLabourTask]  
@@ -82,93 +82,95 @@ BEGIN
      BEGIN  
         SELECT top 1 @Traveler_setupid = Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND IsVersionIncrease=0 AND ISNULL(Isactive,1)=1 AND ISNULL(IsDeleted,0)=0   
      END  
-             IF(@Traveler_setupid >0 and @IstravelerTask=1)  
-               BEGIN  
-                 IF(NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId))  
-                  BEGIN   
-                                  INSERT INTO [dbo].[WorkOrderLaborHeader]  
-                                                 ([WorkOrderId]  
-                                                 ,[WorkFlowWorkOrderId]  
-                                                 ,[DataEnteredBy]  
-                                                 ,[HoursorClockorScan]  
-                                                 ,[IsTaskCompletedByOne]  
-                                                 ,[WorkOrderHoursType]  
-                                                 ,[LabourMemo]  
-                                                 ,[MasterCompanyId]  
-                                                 ,[CreatedBy]  
-                                                 ,[UpdatedBy]  
-                                                 ,[CreatedDate]  
-                                                 ,[UpdatedDate]  
-                                                 ,[IsActive]  
-                                                 ,[IsDeleted]  
-                                                 ,[ExpertiseId]  
-                                                 ,[EmployeeId]  
-                                                 ,[TotalWorkHours]  
-                                                 ,[WOPartNoId]
-												 ,[IsLaborTrackingTurnedOff])  
-                                           VALUES  
-                                                 (@WorkOrderId  
-                                                 ,@WorkFlowWorkOrderId  
-                                                 ,@DataEnteredBy  
-                                                 ,@HoursorClockorScan  
-                                                 ,@IsTaskCompletedByOne  
-                                                 ,@WorkOrderHoursType  
-                                                 ,''  
-                                                 ,@MasterCompanyId  
-                                                 ,@CreatedBy  
-                                                 ,@CreatedBy  
-                                                 ,GETUTCDATE()  
-                                                 ,GETUTCDATE()  
-                                                 ,1  
-                                                 ,0  
-                                                 ,@ExpertiseId  
-                                                 ,@EmployeeId  
-                                                 ,@TotalWorkHours  
-                                                 ,0
-												 ,@IsLaborTrackingTurnedOff)  
-                 
-                   SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
-                 
-                              INSERT INTO [dbo].[WorkOrderLabor]  
-                                       ([WorkOrderLaborHeaderId]  
-                                       ,[TaskId]  
-                                       ,[ExpertiseId]  
-                                       ,TaskInstruction  
-                                       ,[CreatedBy]  
-                                       ,[UpdatedBy]  
-                                       ,[CreatedDate]  
-                                       ,[UpdatedDate]  
-                                       ,[IsActive]  
-                                       ,[IsDeleted]  
-                                       ,[BillableId]  
-                                       ,[IsFromWorkFlow]  
-                                       ,[MasterCompanyId]  
-                                       ,[TaskStatusId]
-									   ,[StandardHours]
-									   ,[StandardMinute]
-									   )  
-                                SELECT @WorkOrderLaborHeaderId  
-                                       ,TST.TaskId  
-                                       ,@ExpertiseId  
-                                       ,TST.Notes  
-                                       ,@CreatedBy  
-                                       ,@CreatedBy  
-                                       ,GETUTCDATE()  
-                                       ,GETUTCDATE()  
-                                       ,1  
-                                       ,0  
-                                       ,1  
-                                       ,0  
-                                       ,@MasterCompanyId  
-                                       ,@TaskStatusId  
-									   ,TSK.[StandardHours]
-									   ,TSK.[StandardMinute]
-                                  FROM [dbo].[Traveler_Setup_Task] TST WITH(NOLOCK) 
-								  LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
-								  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
-                  END  
-               END 
-	  END
+     IF(@Traveler_setupid >0 and @IstravelerTask=1)  
+     BEGIN  
+		IF(NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId))  
+        BEGIN   
+			INSERT INTO [dbo].[WorkOrderLaborHeader]  
+                                    ([WorkOrderId]  
+                                    ,[WorkFlowWorkOrderId]  
+                                    ,[DataEnteredBy]  
+                                    ,[HoursorClockorScan]  
+                                    ,[IsTaskCompletedByOne]  
+                                    ,[WorkOrderHoursType]  
+                                    ,[LabourMemo]  
+                                    ,[MasterCompanyId]  
+                                    ,[CreatedBy]  
+                                    ,[UpdatedBy]  
+                                    ,[CreatedDate]  
+                                    ,[UpdatedDate]  
+                                    ,[IsActive]  
+                                    ,[IsDeleted]  
+                                    ,[ExpertiseId]  
+                                    ,[EmployeeId]  
+                                    ,[TotalWorkHours]  
+                                    ,[WOPartNoId]
+									,[IsLaborTrackingTurnedOff])  
+                              VALUES  
+                                    (@WorkOrderId  
+                                    ,@WorkFlowWorkOrderId  
+                                    ,@DataEnteredBy  
+                                    ,@HoursorClockorScan  
+                                    ,@IsTaskCompletedByOne  
+                                    ,@WorkOrderHoursType  
+                                    ,''  
+                                    ,@MasterCompanyId  
+                                    ,@CreatedBy  
+                                    ,@CreatedBy  
+                                    ,GETUTCDATE()  
+                                    ,GETUTCDATE()  
+                                    ,1  
+                                    ,0  
+                                    ,@ExpertiseId  
+                                    ,@EmployeeId  
+                                    ,@TotalWorkHours  
+                                    ,0
+									,@IsLaborTrackingTurnedOff)  
+                
+			SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
+        END 
+		ELSE
+		BEGIN
+			SELECT @WorkOrderLaborHeaderId [WorkOrderLaborHeaderId] FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND [WorkOrderId] = @WorkOrderId AND [MasterCompanyId]=@MasterCompanyId  
+		END					
+		INSERT INTO [dbo].[WorkOrderLabor]  
+                    ([WorkOrderLaborHeaderId]  
+                    ,[TaskId]  
+                    ,[ExpertiseId]  
+                    ,TaskInstruction  
+                    ,[CreatedBy]  
+                    ,[UpdatedBy]  
+                    ,[CreatedDate]  
+                    ,[UpdatedDate]  
+                    ,[IsActive]  
+                    ,[IsDeleted]  
+                    ,[BillableId]  
+                    ,[IsFromWorkFlow]  
+                    ,[MasterCompanyId]  
+                    ,[TaskStatusId]
+					,[StandardHours]
+					,[StandardMinute])  
+              SELECT @WorkOrderLaborHeaderId  
+                     ,TST.[TaskId]  
+                     ,@ExpertiseId  
+                     ,TST.[Notes]  
+                     ,@CreatedBy  
+                     ,@CreatedBy  
+                     ,GETUTCDATE()  
+                     ,GETUTCDATE()  
+                     ,1  
+                     ,0  
+                     ,1  
+                     ,0  
+                     ,@MasterCompanyId  
+                     ,@TaskStatusId  
+					 ,TSK.[StandardHours]
+					 ,TSK.[StandardMinute]
+                FROM [dbo].[Traveler_Setup_Task] TST WITH(NOLOCK) 
+			LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
+			  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
+		END 
+	 END
    END  
   COMMIT  TRANSACTION  
   

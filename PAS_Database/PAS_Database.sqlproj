@@ -3644,6 +3644,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoicingItems.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPOListNonstockByMasterItemId.sql" />
     <Build Include="dbo\Stored Procedures\BindHeaderDataNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateActionForEmployeeCertification.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeCertificationWithModels.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetEmployeeCertificationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeCertificationHistoryById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

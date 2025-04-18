@@ -51,8 +51,6 @@ BEGIN
 		FROM [dbo].[EmployeeCertificationAudit] ECA WITH(NOLOCK)  
 				LEFT JOIN [dbo].[EmployeeCertificationType] ECT WITH(NOLOCK) ON ECA.EmployeeCertificationTypeId = ECT.EmployeeCertificationTypeId
 		WHERE ECA.[EmployeeCertificationId] = @EmployeeCertificationId 
-		GROUP BY ECA.EmployeeCertificationId,ECA.EmployeeId,ECA.[CertificationNumber],ECT.[Description],ECA.[CertifyingInstitution],ECA.[CertificationDate],
-			ECA.[ExpirationDate],ECA.[IsCertificationInForce],ECA.[IsCertificationInForce],ECA.[Memo],ECA.[IsActive],ECA.[IsDeleted],ECA.[CreatedBy],ECA.[UpdatedBy],ECA.[UpdatedDate],ECA.[MasterCompanyId]
 	ORDER BY ECA.[EmployeeCertificationId] DESC	
   END    
   END TRY    
@@ -62,7 +60,7 @@ BEGIN
    ROLLBACK TRAN;    
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
-            , @AdhocComments     VARCHAR(150)    = 'USP_GetEmployeeTrainingHistoryById'     
+            , @AdhocComments     VARCHAR(150)    = 'USP_GetEmployeeCertificationHistoryById'     
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@EmployeeCertificationId, '') + ''    
             , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    

@@ -52,7 +52,7 @@ BEGIN
     DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(),  
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            @AdhocComments varchar(150) = 'USP_GetEmployeeTrainingWithAircraftModels',  
+            @AdhocComments varchar(150) = 'USP_GetEmployeeCertificationWithModels',  
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@EmployeeId, '') AS varchar(100)) +    
             '@Parameter2 = ''' + CAST(ISNULL(@EmployeeCertificationId, '') AS varchar(100)),  
             @ApplicationName varchar(100) = 'PAS'   

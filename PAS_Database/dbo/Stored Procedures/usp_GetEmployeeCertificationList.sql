@@ -68,7 +68,7 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'GetCertificationInformationsList' 
+              , @AdhocComments     VARCHAR(150)    = 'usp_GetEmployeeCertificationList' 
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@EmployeeId, '') AS varchar(100)) + 
 			  '@Parameter2 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100)) +    
               '@Parameter3 = ''' + CAST(ISNULL(@IsdeleteStatus, '') AS varchar(max)) 

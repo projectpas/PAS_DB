@@ -131,7 +131,7 @@ BEGIN
         END 
 		ELSE
 		BEGIN
-			SELECT @WorkOrderLaborHeaderId [WorkOrderLaborHeaderId] FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND [WorkOrderId] = @WorkOrderId AND [MasterCompanyId]=@MasterCompanyId  
+			SELECT @WorkOrderLaborHeaderId = [WorkOrderLaborHeaderId] FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND [WorkOrderId] = @WorkOrderId AND [MasterCompanyId]=@MasterCompanyId  
 		END					
 		INSERT INTO [dbo].[WorkOrderLabor]  
                     ([WorkOrderLaborHeaderId]  

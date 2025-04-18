@@ -3688,6 +3688,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderDetailsBySubWOPartNoId.sql" />
     <Build Include="dbo\Stored Procedures\GetPickTicketForEdit_RO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderAuditList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateActionForEmployeeCertification.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeCertificationWithModels.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetEmployeeCertificationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeCertificationHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingCostDetails.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetWorkOrderAndQuoteCostDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_Refresh_Vendor_CreditLimit_Terms.sql" />

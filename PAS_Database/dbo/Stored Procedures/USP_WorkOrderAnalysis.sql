@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    11-04-2025		Shrey Chandegara		Created  	
-	2    11-04-2025		Hemnat Saliya			Added DB Standards  	
+	2    18-04-2025		Hemnat Saliya			Added DB Standards  	
 		
 	exec dbo.USP_WorkOrderAnalysis 8631,8331
 **************************************************************/
@@ -49,10 +49,10 @@ BEGIN
 					THEN ROUND((ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00)) * 100.00 / woc.Revenue, 2) 
 					ELSE 0 
 				END AS DirectCostRevenuePercentage,
-				(ISNULL(woc.Revenue, 0) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0))) AS Margin,
+				(ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00))) AS Margin,
 				CASE 
 					WHEN ISNULL(woc.Revenue, 0) > 0 
-					THEN ROUND((ISNULL(woc.Revenue, 0) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00))) * 100.00 / woc.Revenue, 2) 
+					THEN ROUND((ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00))) * 100.00 / woc.Revenue, 2) 
 					ELSE 0 
 				END AS MarginPercentage,
 				c.Name AS CustomerName,
@@ -63,12 +63,12 @@ BEGIN
 			FROM WorkOrderMPNCostDetails woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
-				LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wbi WITH(NOLOCK) ON wop.ID = wbi.WorkOrderPartId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1
-				LEFT JOIN [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1
 				INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON wo.CustomerId = c.CustomerId
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
 				INNER JOIN [dbo].[WorkOrderStage] s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
+				LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wbi WITH(NOLOCK) ON wop.ID = wbi.WorkOrderPartId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1
+				LEFT JOIN [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1
 			WHERE wo.WorkOrderId = @WorkOrderId AND woc.WOPartNoId = @WorkOrderPartNoId
 			ORDER BY wop.ID;
 		END
@@ -110,10 +110,10 @@ BEGIN
 				ISNULL(woc.DirectCost, 0) DirectCost,
 				CASE 
 					WHEN ISNULL(q.Revenue, 0) > 0 
-					THEN ROUND(ISNULL(woc.DirectCost, 0) * 100.00 / q.Revenue, 2) 
+					THEN ROUND(ISNULL(woc.DirectCost, 0.00) * 100.00 / q.Revenue, 2) 
 					ELSE 0 
 				END AS DirectCostRevenuePercentage,
-				(ISNULL(q.Revenue, 0) - ISNULL(woc.DirectCost, 0)) AS Margin,
+				(ISNULL(q.Revenue, 0.00) - ISNULL(woc.DirectCost, 0)) AS Margin,
 				CASE 
 					WHEN ISNULL(q.Revenue, 0) > 0 
 					THEN ROUND((ISNULL(q.Revenue, 0.00) - ISNULL(woc.DirectCost, 0.00)) * 100.00 / q.Revenue, 2) 
@@ -127,11 +127,11 @@ BEGIN
 			FROM WorkOrderMPNCostDetails woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
-				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
 				INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON wo.CustomerId = c.CustomerId
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
 				INNER JOIN [dbo].[WorkOrderStage] s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
+				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
 			WHERE wo.WorkOrderId = @WorkOrderId AND woc.WOPartNoId = @WorkOrderPartNoId
 			ORDER BY wop.ID;
 		END

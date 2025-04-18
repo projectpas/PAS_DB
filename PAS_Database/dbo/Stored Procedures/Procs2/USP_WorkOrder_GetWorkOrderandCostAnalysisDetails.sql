@@ -22,8 +22,9 @@
 	5    10/19/2023   Vishal Suthar		Fixed Backorder qty calculation
 	6    12/31/2024   Hemant Saliya		Update for Modify Work Order cost analysis Summary
 	7    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
+	8    04/17/2025   Hemant Saliya		Repair Cost at Part wise
 
-EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 4247, 4702     
+EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 8374, 8688     
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
@@ -38,8 +39,8 @@ BEGIN
 				@QtyIssued INT,@SubQtyIssued INT,@QtyOnBkOrder INT,@SubQtyOnBkOrder INT,@QtyReserved INT,@SubQtyReserved INT ,@POQuantity BIGINT=0,@poid BIGINT,@UnitCost DECIMAL(18,2),
 				@bkUnitCost DECIMAL(18,2),@SubUnitCost DECIMAL(18,2),@QtyToTurnIn INT,@SubQtyToTurnIn INT,@QtyToTurnCost DECIMAL(18,2) = 0.0,@SubQtyToTurnCost DECIMAL(18,2) = 0.0,
 				@WorkOrderLaborHeaderId BIGINT,@SubWorkOrderLaborHeaderId BIGINT,@DirectLaborOHCost DECIMAL(18,2) = 0.0, @BurdenRateAmount DECIMAL(18,2) = 0.0,@DirectLaborCost DECIMAL(18,2) = 0.0,
-				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceCost DECIMAL(18,2),
-				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2),@IsSubWO BIT = 0;
+				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceMaterialsCost DECIMAL(18,2),
+				@OutSideServiceKitCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2),@IsSubWO BIT = 0,@OutSideServiceCost DECIMAL(18,2),@SubOutSideServiceCost DECIMAL(18,2);
 		DECLARE @exchangeProvisionId int = (SELECT TOP 1 ProvisionId FROM Provision Where Description = 'EXCHANGE')
 
 		DECLARE @POStatusIds VARCHAR(100);
@@ -255,10 +256,25 @@ BEGIN
 		END
 
 		--Outside Cost
-		SELECT @OutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
+		SELECT @OutSideServiceMaterialsCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
 			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+				JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = ROP.WorkOrderMaterialsId AND WOM.WorkOrderId = ROP.WorkOrderId AND ROP.MasterCompanyId = WOM.MasterCompanyId
 				JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
 		WHERE ROP.WorkOrderId = @WorkOrderId;
+
+		SELECT @OutSideServiceKitCost =  SUM(ISNULL(ROP.ExtendedCost,0)) 
+			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+				JOIN [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = ROP.WorkOrderMaterialsId AND WOM.WorkOrderId = ROP.WorkOrderId AND ROP.MasterCompanyId = WOM.MasterCompanyId
+				JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
+		WHERE ROP.WorkOrderId = @WorkOrderId;
+
+		SET @OutSideServiceCost = @OutSideServiceMaterialsCost + @OutSideServiceKitCost;
+		--Old  OutSideServiceCost Code
+		--SELECT @OutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
+		--FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+		--	LEFT JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMS.RepairOrderId
+		--	LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId			
+		--WHERE ROP.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
 
 		--Labor Cost
 		SELECT @WorkOrderLaborHeaderId = WOLH.WorkOrderLaborHeaderId , @TotalWorkHours = TotalWorkHours

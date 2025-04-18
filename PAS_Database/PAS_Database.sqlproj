@@ -3688,6 +3688,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderDetailsBySubWOPartNoId.sql" />
     <Build Include="dbo\Stored Procedures\GetPickTicketForEdit_RO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderAuditList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Refresh_Vendor_CreditLimit_Terms.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

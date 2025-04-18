@@ -60,7 +60,7 @@ BEGIN
 			CASE WHEN CAST(ro.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(ro.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END [CreatedDate],
 			ro.CreatedBy,
 			ro.UpdatedBy
-		FROM [dbo].[RepairOrderAudit] ro
+		FROM [dbo].[RepairOrderAudit] ro WITH(NOLOCK)
 		WHERE ro.RepairOrderId = @RepairOrderId
 		ORDER BY ro.RepairOrderAuditId DESC;
 	

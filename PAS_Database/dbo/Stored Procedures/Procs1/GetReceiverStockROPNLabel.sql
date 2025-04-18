@@ -18,8 +18,9 @@
     2    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
 	3    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
 	4    03/13/2025   Vishal Suthar		Changed DataType OF ReceivedDate From DATETIME to DATE
+	5    14/04/2025   Moin Bloch        Modify(Update Qty Logic)
   
--- EXEC GetReceiverStockROPNLabel 1110,'0','0','0','RecNo-000004'
+-- EXEC GetReceiverStockROPNLabel 2553,'0',1,1,'RecNo-000009'
 
 exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
 **************************************************************/
@@ -61,7 +62,7 @@ BEGIN
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
 				  --sl.Quantity AS Qty,
-				  CASE WHEN sd.WOQty > 0 THEN sd.WOQty WHEN sd.SOQty > 0 THEN sd.SOQty WHEN sd.ForStockQty > 0 THEN sd.ForStockQty ELSE sl.Quantity END AS Qty,	
+				  CASE WHEN sd.WOQty > 0 THEN sd.WOQty WHEN sd.SOQty > 0 THEN sd.SOQty WHEN sd.ForStockQty > 0 THEN sd.ForStockQty ELSE CASE WHEN sl.QuantityAdjustment > 0 THEN sd.Quantity ELSE sl.Quantity END END AS Qty,	
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,

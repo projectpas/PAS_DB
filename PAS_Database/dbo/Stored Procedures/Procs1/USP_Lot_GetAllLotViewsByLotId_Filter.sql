@@ -16,6 +16,7 @@
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	4    19 Nov 2024  RAJESH GAMI		Added condition for PNSoldView (If revised the invoice then show the latest on)
     5    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
+	6    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -96,7 +97,8 @@ CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@Type VARCHAR(50) = '',
 	@IsAvailableQty BIT = 0,
 	@MasterCompanyId int,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@ReferenceNumber varchar(100) = NULL
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -285,6 +287,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sobi.InvoiceDate InvoiceDate,
 				--,case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
+				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -307,6 +310,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				 (
 					(@GlobalFilter <>'' AND (
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
+					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(Partnumber LIKE '%' + @GlobalFilter + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
@@ -401,6 +405,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
 					
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
+					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
 					(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
 					(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
@@ -495,6 +500,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN LotNumber END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN LotNumber END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotName')  THEN LotName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotName')  THEN LotName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNum')  THEN ReferenceNum END ASC,
@@ -614,6 +621,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 				,ISNULL(sl.Adjustment,0) Adjustment
 				,ltCal.CreatedDate
+				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -666,6 +674,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(Bin like '%' + @GlobalFilter + '%') OR
 
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
+					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(Uom LIKE '%' + @GlobalFilter + '%') OR
 					--(PercentValue LIKE '%' + @GlobalFilter + '%') OR
@@ -714,6 +723,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@Bin,'') ='' OR Bin LIKE '%' + @Bin + '%') AND
 
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
+					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
 					--(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
 					--(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
@@ -794,6 +804,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN LotNumber END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN LotNumber END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotName')  THEN LotName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotName')  THEN LotName END DESC,
 				--CASE WHEN (@SortOrder=1 and @SortColumn='TransUnitCost')  THEN TransUnitCost END ASC,
@@ -1178,6 +1190,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,ltCal.CreatedDate
 				,im.ManufacturerName
+				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -1234,6 +1247,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(TotalDirectCost like '%' + @GlobalFilter + '%') OR
 					
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
+					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(ControlNumber like '%' + @GlobalFilter + '%') OR
 					(IdNumber like '%' + @GlobalFilter + '%') OR
@@ -1285,6 +1299,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@TotalDirectCost, 0) = 0 OR CAST(TotalDirectCost as VARCHAR(10)) = @TotalDirectCost) AND
 			
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
+					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
 					--(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
 					--(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
@@ -1379,6 +1394,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN LotNumber END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN LotNumber END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotName')  THEN LotName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotName')  THEN LotName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
@@ -1491,6 +1508,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(sl.Adjustment,0) Adjustment
 				,ltCal.CreatedDate
 				,im.ManufacturerName
+				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -1544,6 +1562,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ExtendedPrice like '%' + @GlobalFilter + '%') OR
 					
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
+					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(Uom LIKE '%' + @GlobalFilter + '%') OR
 					(ControlNumber like '%' + @GlobalFilter + '%') OR
@@ -1595,6 +1614,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%')AND
 					
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
+					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
@@ -1676,6 +1696,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN (@SortOrder=-1 and @SortColumn='ExtendedPrice')  THEN ExtendedPrice END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN LotNumber END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN LotNumber END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotName')  THEN LotName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotName')  THEN LotName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
@@ -1722,6 +1744,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,part.PartDescription
 				,part.Condition
 				,part.Manufacturer
+				--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.PurchaseOrder po WITH(NOLOCK)
 					 INNER JOIN DBO.LOT lot WITH(NOLOCK) on po.LotId = lot.LotId
 					 INNER JOIN PurchaseOrderPart part WITH(NOLOCK) on part.PurchaseOrderId = po.PurchaseOrderId
@@ -1751,6 +1774,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,part.PartDescription
 					,part.Condition
 					,part.Manufacturer
+					--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 					FROM DBO.LOT lot WITH(NOLOCK) 
 						 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
 						 INNER JOIN RepairOrder ro WITH(NOLOCK) on part.RepairOrderId = ro.RepairOrderId
@@ -1777,6 +1801,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(PartDescription like '%' + @GlobalFilter + '%') OR
 					(Manufacturer like '%' + @GlobalFilter + '%') OR
 					(FreightCost like '%' + @GlobalFilter + '%') OR
+					--(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(ChargesCost like '%' + @GlobalFilter + '%')
 					))
 					OR
@@ -1789,6 +1814,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(IsNull(@PartNumber, '') = '' OR PartNumber like '%' + @PartNumber + '%') AND
 					(IsNull(@Description, '') = '' OR PartDescription like '%' + @Description + '%') AND
 					(IsNull(@ManufacturerName, '') = '' OR Manufacturer like '%' + @ManufacturerName + '%') AND
+					--(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					
 					(ISNULL(@FreightCost, 0) = 0 OR CAST(FreightCost as VARCHAR(10)) = @FreightCost) AND
 					(ISNULL(@ChargesCost, 0) = 0 OR CAST(ChargesCost as VARCHAR(10)) = @ChargesCost) AND
@@ -1821,7 +1847,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PartDescription END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				
+				--CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+				--CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='PoDate')  THEN PoDate END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='PoDate')  THEN PoDate END DESC
 
@@ -1883,7 +1910,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		        ,ISNULL(sl.Adjustment,0) Adjustment		
 				,im.ManufacturerName
 			    ,(CASE WHEN ISNULL(lc.IsRevenue,0) = 1 THEN 'REVENUE' WHEN ISNULL(lc.IsMargin,0) = 1 THEN 'MARGIN' WHEN ISNULL(lc.IsFixedAmount,0) = 1 THEN 'FIXED AMOUNT' WHEN ISNULL(lc.IsRevenueSplit,0) = 1 THEN 'REVENUE SPLIT' ELSE '' END) HowCalculate
-
+				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
@@ -1902,6 +1929,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				 (
 					(@GlobalFilter <>'' AND (
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
+					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(Partnumber LIKE '%' + @GlobalFilter + '%') OR
 					([Description] LIKE '%' + @GlobalFilter + '%') OR
@@ -1939,6 +1967,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE '%' + @InvoiceNum + '%') AND
 					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
+					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
 					(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
@@ -1978,6 +2007,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotNumber')  THEN LotNumber END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotNumber')  THEN LotNumber END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LotName')  THEN LotName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LotName')  THEN LotName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNum')  THEN ReferenceNum END ASC,

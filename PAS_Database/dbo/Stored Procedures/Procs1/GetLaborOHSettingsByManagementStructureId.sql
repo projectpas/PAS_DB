@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetLaborOHSettingsByManagementStructureId]             
  ** Author:   Hemant Saliya  
  ** Description: This Stored Procedure is used Get Labor OHSettings By ManagementStructureId      
@@ -13,10 +12,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    05/20/2020   Hemant Saliya Created  
- 2    07/10/2020   Hemant Saliya Added Quote Average Rate  
+ ** PR   Date         Author				Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    05/20/2020   Hemant Saliya				Created  
+	2    07/10/2020   Hemant Saliya				Added Quote Average Rate  
+	3	 04/11/2025	  Devendra Shekh			Added IsLaborTrackingTurnedOff to select
        
 -- EXEC [GetLaborOHSettingsByManagementStructureId] 67, 1  
 **************************************************************/  
@@ -72,7 +72,8 @@ BEGIN
       LO.Level1 AS levelCode1,  
       LO.Level2 AS levelCode2,  
       LO.Level3 AS levelCode3,  
-      LO.Level4 AS levelCode4  
+      LO.Level4 AS levelCode4,
+      ISNULL(LO.IsLaborTrackingTurnedOff, 0) AS IsLaborTrackingTurnedOff
      FROM dbo.LaborOHSettings LO WITH(NOLOCK)  
       --LEFT JOIN dbo.Currency FC WITH(NOLOCK) on LO.FunctionalCurrencyId = FC.CurrencyId  
       --LEFT JOIN dbo.Currency TC WITH(NOLOCK) on LO.FunctionalCurrencyId = TC.CurrencyId  
@@ -126,7 +127,8 @@ BEGIN
       LO.Level1 AS levelCode1,  
       LO.Level2 AS levelCode2,  
       LO.Level3 AS levelCode3,  
-      LO.Level4 AS levelCode4  
+      LO.Level4 AS levelCode4,
+	  ISNULL(LO.IsLaborTrackingTurnedOff, 0) AS IsLaborTrackingTurnedOff
      FROM dbo.LaborOHSettings LO WITH(NOLOCK)  
       --LEFT JOIN dbo.Currency FC WITH(NOLOCK) on LO.FunctionalCurrencyId = FC.CurrencyId  
       --LEFT JOIN dbo.Currency TC WITH(NOLOCK) on LO.FunctionalCurrencyId = TC.CurrencyId  

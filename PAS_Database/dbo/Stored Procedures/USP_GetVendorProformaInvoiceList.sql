@@ -15,6 +15,7 @@
  ** --   --------		 -------					--------------------------------          
     1    04/Dec/2024		RAJESH GAMI				CREATED
 	2    27/Dec/2024		RAJESH GAMI				Get the SUM of Amount when it's multiple
+	3    10/04/2025	        Ekta Chandegra	        Convert date using dbo.ConvertUTCtoLocal
 
 exec USP_GetVendorProformaInvoiceList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=1,@ViewType=N'pnview',@VendorName=NULL,@VendorCode=NULL,
@@ -44,12 +45,34 @@ CREATE     PROCEDURE [dbo].[USP_GetVendorProformaInvoiceList]
 @GLAccount varchar(100) = NULL,
 @InvoiceNum  varchar(100) = NULL,
 @VendorProformaInvoiceNo varchar(100) = NULL,
-@ReferenceNumber varchar(100) = NULL
+@ReferenceNumber varchar(100) = NULL,
+@EmployeeId BIGINT
 AS
 BEGIN	
 	    SET NOCOUNT ON;
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
+
 		DECLARE @AllStatusId INT = 8;
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
@@ -100,8 +123,8 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						ISNULL(VPI.IsActive,0) IsActive,
 						ISNULL(VPI.IsDeleted,1) IsDeleted,
-						VPI.CreatedDate,
-						VPI.UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(VPI.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(VPI.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 						VPI.CreatedBy CreatedBy,
 						VPI.UpdatedBy UpdatedBy,
 						VPI.MasterCompanyId,
@@ -160,8 +183,8 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@VendorProformaInvoiceNo,'') ='' OR VendorProformaInvoiceNo LIKE '%' + @VendorProformaInvoiceNo + '%') AND		
 					(ISNULL(@ReferenceNumber,'') ='' OR VendorProformaInvoiceNo LIKE '%' + @ReferenceNumber + '%') AND						
-					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
+					(ISNULL(@CreatedDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal(CreatedDate,@CurrntEmpTimeZoneDesc) AS Date))=CAST(@CreatedDate AS date)) AND
+					(ISNULL(@UpdatedDate,'') ='' OR (Cast(DBO.ConvertUTCtoLocal(UpdatedDate,@CurrntEmpTimeZoneDesc) AS date))=CAST(@UpdatedDate AS date)))
 					)
 
 			SELECT @Count = COUNT(VendorProformaInvoiceId) FROM #TempResult			

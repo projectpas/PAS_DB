@@ -23,6 +23,7 @@
 	10   12/04/2024   RAJESH GAMI	   Create RMA from SO :Duplicate stocklines comes in to grid
 	12   12/04-05/2024   AMIT GHEDIYA	   Create RMA/CM from SO : UnitPrice & Amount wrong issue.
 	13   01/02/2025   Abhishek Jirawla	Updating the part cost
+	14   14/04/2025   Devendra Shekh	removed duplicate AltPartNumber field for WOInv Select
 
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -276,7 +277,7 @@ BEGIN
 				BEGIN	
 					SELECT WOBI.BillingInvoicingId as InvoiceId, WOBI.InvoiceNo [InvoiceNo], WOBII.WOBillingInvoicingItemId as BillingInvoicingItemId,
 						WOBI.InvoiceStatus [InvoiceStatus], WOBI.InvoiceDate [InvoiceDate], WO.WorkOrderNum as ReferenceNo,				
-						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as AltPartNumber,'' as CustPartNumber,
+						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 						WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,WOBII.NoofPieces as Qty,WOBII.GrandTotal as UnitPrice,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount,
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,

@@ -10,18 +10,39 @@ EXEC [USP_GetPNLabelSettingData]
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    09/14/2023		RAJESH GAMI		 created
+   2	10/04/2025	    Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
 
 exec dbo.USP_GetProformaInvoiceHistory_ById 1,1
 **********************/   
 
 CREATE     PROCEDURE [dbo].[USP_GetProformaInvoiceHistory_ById]
 @VendorProformaInvoiceId bigint,
-@MasterCompanyId bigint
+@MasterCompanyId bigint,
+@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+			SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
@@ -39,8 +60,8 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						VPHA.IsActive,
 						VPHA.IsDeleted,
-						VPHA.CreatedDate,
-						VPHA.UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(VPHA.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(VPHA.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate,
 						Upper(VPHA.CreatedBy) CreatedBy,
 						Upper(VPHA.UpdatedBy) UpdatedBy,
 						VPHA.MasterCompanyId,

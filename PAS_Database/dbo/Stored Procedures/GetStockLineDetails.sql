@@ -18,6 +18,7 @@
 	2    07/01/2025  Bhavesh Raval 		Add GL Account Details
     3    21-01-25    Bhavesh Raval   Remove Name and Notes Columns 
 	4	 11/02/2025	 Bhargav Saliya  get InventoryGLAccName Changes
+	5	 09/02/2025	 Devendra Shekh	 Added new field 'QuantityAdjustment'
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -316,6 +317,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.RevenueSoGLAccName        
 			,stl.RevenueExchGLAccId
 			,stl.RevenueExchGLAccName   
+			,ISNULL(stl.[QuantityAdjustment],0) QuantityAdjustment
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

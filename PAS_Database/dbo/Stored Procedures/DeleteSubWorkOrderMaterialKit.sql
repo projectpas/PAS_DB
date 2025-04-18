@@ -13,6 +13,8 @@ EXEC [DeleteSubWorkOrderMaterialKit]
 ** 1    12/12/2023	 Devendra Shekh			Created
 ** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 ** 3    29/10/2024  RAJESH GAMI      Un Mapped WO if there is no other material link with the same workorder in the Same PO (Updated)
+** 4    14/04/2025  AMIT GHEDIYA     DELETE WOM KIT FOR NO STOCKLINE EXIST
+
 exec dbo.[DeleteSubWorkOrderMaterialKit] 17
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[DeleteSubWorkOrderMaterialKit]
@@ -82,7 +84,14 @@ BEGIN
 					END
 
 					DELETE FROM [dbo].[SubWorkOrderMaterialStockLineKit] WHERE SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsKitId FROM [DBO].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId));
-					DELETE FROM [DBO].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId);
+					
+					--DELETE WOM KIT FOR NO STOCKLINE EXIST
+					IF NOT EXISTS(SELECT TOP 1 1 FROM [dbo].[SubWorkOrderMaterialStockLineKit] WITH(NOLOCK) WHERE [SubWorkOrderMaterialsKitId] IN (SELECT SubWorkOrderMaterialsKitId FROM [DBO].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId)))
+					BEGIN
+						DELETE FROM [dbo].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId)
+					END
+					--DELETE FROM [DBO].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId);
+					
 					DELETE FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId;
 				END
 

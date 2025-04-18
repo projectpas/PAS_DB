@@ -13,6 +13,7 @@
  ** --   --------     -------			--------------------------------          
     1    21/01/2025   Moin Bloch		Created
     2    18/02/2025   Devendra Shekh    Added Memo to Filter/Sorting
+    3    16/04/2025   Devendra Shekh    Added IsLaborTrackingTurnedOff to select
 
 	EXEC dbo.GetTravelerTaskList 10,1,'CreatedDate',-1,'','','','','',0,1,2
 	exec dbo.GetTravelerTaskList @PageSize=15,@PageNumber=1,@SortColumn=default,@SortOrder=-1,@GlobalFilter=N'',@WONumber=default,@EmployeeName=default,@TaskStatusName=default,@TaskName=default,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=219
@@ -99,7 +100,8 @@ BEGIN
 					   woh.[DataEnteredBy],
 					   deb.[FirstName] + ' ' + deb.[LastName] AS DataEnteredByName,			
 					   ISNULL(wop.[IsTraveler],0) IsTraveler,
-					   woh.[HoursorClockorScan]
+					   woh.[HoursorClockorScan],
+					   ISNULL(woh.IsLaborTrackingTurnedOff,0) AS IsLaborTrackingTurnedOff
 				FROM [dbo].[WorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
 					LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId

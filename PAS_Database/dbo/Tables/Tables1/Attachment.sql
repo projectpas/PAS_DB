@@ -9,6 +9,8 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_Attachment_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]        BIT           CONSTRAINT [DF_Attachment_IsActive] DEFAULT ((1)) NULL,
     [IsDeleted]       BIT           CONSTRAINT [DF_Attachment_IsDeleted] DEFAULT ((0)) NULL,
+    [SubModuleId]     INT           NULL,
+    [SubReferenceId]  BIGINT        NULL,
     CONSTRAINT [PK_Attachment] PRIMARY KEY CLUSTERED ([AttachmentId] ASC),
     CONSTRAINT [FK_Attachment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

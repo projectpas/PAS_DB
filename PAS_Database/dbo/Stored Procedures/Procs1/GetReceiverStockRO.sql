@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    29/05/2023   MOIN BLOCH    UPDATE TO Show WO#, SO#, and For Stock based on grouping 
+	2    14/04/2025   Moin Bloch    Modify(Update Qty Logic)
      
 --  EXEC GetReceiverStockRO 1123,'0',1,1,'RecNo-000001'
 --  EXEC GetReceiverStockRO 1122,'0',1,1,'RecNo-000001'
@@ -57,7 +58,7 @@ BEGIN
 				  sl.StockLineNumber,
 				  sl.SerialNumber,
 				  --sl.Quantity as Qty,
-				  CASE WHEN sd.WOQty > 0 THEN sd.WOQty WHEN sd.SOQty > 0 THEN sd.SOQty WHEN sd.ForStockQty > 0 THEN sd.ForStockQty ELSE sl.Quantity END AS Qty,	
+				  CASE WHEN sd.WOQty > 0 THEN sd.WOQty WHEN sd.SOQty > 0 THEN sd.SOQty WHEN sd.ForStockQty > 0 THEN sd.ForStockQty ELSE CASE WHEN sl.QuantityAdjustment > 0 THEN sd.Quantity ELSE sl.Quantity END END AS Qty,	
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,

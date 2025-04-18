@@ -99,11 +99,8 @@
     [RepairOrderPartRecordId]      BIGINT         NULL,
     [IsExchangeBatchEntry]         BIT            NULL,
     [IsPiecePart]                  BIT            CONSTRAINT [Cnt_ReceivingCustomerWorkAudit_IsPiecePart] DEFAULT ((0)) NULL,
+    [IsRepairManagement]           BIT            CONSTRAINT [DF_ReceivingCustomerWorkAudit_IsRepairManagement] DEFAULT ((0)) NULL,
     [IsSkipShippingReference]      BIT            NULL,
     CONSTRAINT [PK_ReceivingCustomerWorkAudit] PRIMARY KEY CLUSTERED ([AuditReceivingCustomerWorkId] ASC)
 );
-
-
-
-
 

@@ -18,6 +18,7 @@
     [UpdatedDate]               DATETIME2 (7)   CONSTRAINT [DF_SubWorkOrderLaborHeader_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                  BIT             CONSTRAINT [SubWorkOrderLaborHeader_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [SubWorkOrderLaborHeader_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [IsLaborTrackingTurnedOff]  BIT             NULL,
     CONSTRAINT [PK_SubWorkOrderLaborHeader] PRIMARY KEY CLUSTERED ([SubWorkOrderLaborHeaderId] ASC),
     CONSTRAINT [FK_SubWorkOrderLaborHeader_DataEnteredBy] FOREIGN KEY ([DataEnteredBy]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SubWorkOrderLaborHeader_EmployeeExpertise] FOREIGN KEY ([ExpertiseId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),

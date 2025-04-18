@@ -36,12 +36,8 @@
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
     [CreditMemoHeaderId]            BIGINT          NULL,
     [VendorProformaInvoiceId]       BIGINT          NULL,
+    [LastMSLevel]                   VARCHAR (256)   NULL,
+    [LegalEntityId]                 BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetailsAudit] PRIMARY KEY CLUSTERED ([AuditVendorPaymentId] ASC)
 );
-
-
-
-
-
-
 

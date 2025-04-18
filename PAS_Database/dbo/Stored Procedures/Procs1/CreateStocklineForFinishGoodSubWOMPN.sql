@@ -30,6 +30,7 @@
 12    10/16/2023   Devendra Shekh  update revised serialnum close sub wo
 13	  03/06/2023   Bhargav Saliya  Update History When We Close The Sub WO 
 14    09/13/2024   RAJESH GAMI	   Implemented Stockline History for the IssueReserve
+15    04/14/2025   HEMANT SALIYA   Added Work Order Work Flow Id for UpdateWOMaterialsCost
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -475,7 +476,7 @@ BEGIN
        EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;  
   
        --UPDATE MATERIALS COST  
-       EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId; 
+       EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId; 
 
 	   --  Added SubWorkOrder Labor + Part Cost Reverse Batch Entry 
 	   IF NOT EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)

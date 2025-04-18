@@ -10,6 +10,8 @@
     [UpdatedDate]       DATETIME2 (7) NOT NULL,
     [IsActive]          BIT           NULL,
     [IsDeleted]         BIT           NULL,
+    [SubModuleId]       INT           NULL,
+    [SubReferenceId]    BIGINT        NULL,
     CONSTRAINT [PK_AttachmentAudit] PRIMARY KEY CLUSTERED ([AttachmentAuditId] ASC)
 );
 

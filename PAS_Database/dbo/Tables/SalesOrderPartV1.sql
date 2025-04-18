@@ -25,8 +25,8 @@
     [IsActive]              BIT             CONSTRAINT [DF_SalesOrderPartV1_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_SalesOrderPartV1_IsDeleted] DEFAULT ((0)) NOT NULL,
     [OldSalesOrderPartId]   BIGINT          NULL,
-    [PartNumber]            VARCHAR (100)   NULL,
-    [PartDescription]       VARCHAR (100)   NULL,
+    [PartNumber]            VARCHAR (200)   NULL,
+    [PartDescription]       VARCHAR (MAX)   NULL,
     [ConditionName]         VARCHAR (100)   NULL,
     [CurrencyName]          VARCHAR (100)   NULL,
     [PriorityName]          VARCHAR (100)   NULL,
@@ -45,6 +45,8 @@
     CONSTRAINT [FK_SalesOrderPartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
+
+
 
 
 

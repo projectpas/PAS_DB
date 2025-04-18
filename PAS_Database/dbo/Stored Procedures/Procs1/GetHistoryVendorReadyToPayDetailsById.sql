@@ -14,16 +14,39 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/01/2024  Moin Bloch     Table Commented Not in Use
+	2	 14/04/2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
         
 --EXEC GetHistoryVendorReadyToPayDetailsById 29  
 ************************************************************************/  
 CREATE       PROCEDURE [dbo].[GetHistoryVendorReadyToPayDetailsById]  
-@ReadyToPayId bigint  
+@ReadyToPayId bigint,
+@EmployeeId bigint
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
- BEGIN TRY  
+ BEGIN TRY 
+ DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	
+	SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;	
+
     SELECT   VRTPD.[ReadyToPayDetailsId]  
                  ,VRTPD.[ReadyToPayId]  
                  ,VRTPD.[DueDate]  
@@ -40,12 +63,12 @@ BEGIN
                  ,VRTPD.[PaymentMade]  
                  ,VRTPD.[AmountDue]  
                  ,VRTPD.[DaysPastDue]  
-                 ,VRTPD.[DiscountDate]  
+                 ,(Cast(DBO.ConvertUTCtoLocal(VRTPD.[DiscountDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) AS DiscountDate
                  ,VRTPD.[DiscountAvailable]  
                  ,VRTPD.[DiscountToken]
 				 ,VRTPD.[VendorPaymentDetailsId]
-				 ,VRTPD.[CreatedDate]  
-                 ,VRTPD.[UpdatedDate]  
+				 ,(Cast(DBO.ConvertUTCtoLocal(VRTPD.[CreatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
+				 ,(Cast(DBO.ConvertUTCtoLocal(VRTPD.[UpdatedDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) AS UpdatedDate
                  ,VRTPD.[UpdatedBy]
 				 ,VRTPD.[CreatedBy]
 				 ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) >0 then 1 else 0 end  FROM DBO.VendorCheckPayment VP WITH(NOLOCK) INNER JOIN CheckPayment ch WITH(NOLOCK) on ch.CheckPaymentId=vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId and ch.IsDeleted=0),

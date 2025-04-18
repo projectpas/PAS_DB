@@ -12,6 +12,7 @@
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
     1    26/12/2023   Shrey Chandegara     Created 
+	2    10/04/2025   Moin Bloch           Modified change logic for QuantityReceived
 
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
@@ -50,7 +51,8 @@ BEGIN
 			POP.isParent AS 'IsParent',
 			POP.ManagementStructureId,
 			POP.QuantityOrdered,
-			POP.QuantityBackOrdered,
+			--POP.QuantityBackOrdered,
+			POP.[QuantityOrdered] - ISNULL(POP.[QuantityReceived],0) [QuantityBackOrdered],	
 			POP.DiscountPerUnit,
 			POP.ExtendedCost,
 			POP.UnitCost,
@@ -61,23 +63,21 @@ BEGIN
 			POP.ItemType,
 			POP.ItemTypeId,
 			POP.StockType,
-			CASE WHEN POP.ItemTypeId=1 THEN 
-			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1)  
-			WHEN  POP.ItemTypeId=2 THEN 
-			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[NonStockInventory] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1) 
-			WHEN POP.ItemTypeId = 11 THEN
-			(SELECT ISNULL(SUM(Qty),0) FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 ) 
-			ELSE 0 END AS StockLineCount ,
+			--CASE WHEN POP.ItemTypeId=1 THEN 
+			--(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1)  
+			--WHEN  POP.ItemTypeId=2 THEN 
+			--(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[NonStockInventory] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1) 
+			--WHEN POP.ItemTypeId = 11 THEN
+			--(SELECT ISNULL(SUM(Qty),0) FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 ) 
+			--ELSE 0 END AS StockLineCount,
+			POP.[QuantityReceived] [StockLineCount],
 			CASE WHEN POP.ItemTypeId=1 THEN 
 			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[StocklineDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (StockLineId = 0 OR StockLineId IS  NULL))  
 			WHEN POP.ItemTypeId = 2 THEN
 			(SELECT ISNULL(SUM(Quantity),0) FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND (NonStockInventoryId = 0 OR NonStockInventoryId IS  NULL))  
 			WHEN POP.ItemTypeId = 11 THEN
 			(SELECT ISNULL(SUM(Qty),0) FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE [PurchaseOrderId] = POP.[PurchaseOrderId] AND [PurchaseOrderPartRecordId] = POP.PurchaseOrderPartRecordId AND IsDeleted = 0 AND IsParent = 1 AND AssetInventoryId = 0)  
-			ELSE 0 END AS StockLineDraftCount
-			
-			
-			
+			ELSE 0 END AS StockLineDraftCount			
 		FROM DBO.[PurchaseOrderPart] POP WITH (NOLOCK)
 		LEFT JOIN  [dbo].[PurchaseOrder] P WITH(NOLOCK) ON P.PurchaseOrderId = @PurchaseOrderId 
 		
@@ -88,6 +88,7 @@ BEGIN
 			POP.AltEquiPartDescription,
 			POP.ItemType,
 			POP.ItemTypeId,
+			POP.[QuantityReceived],
 			POP.StockType,POP.ItemMasterId,POP.ManufacturerId,POP.PriorityId,POP.DiscountPercent,POP.GlAccountId,P.PurchaseOrderNumber,POP.PartNumber,POP.PartDescription
 
 		/* START SELECT FROM StocklineDrfat */

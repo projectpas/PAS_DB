@@ -11,6 +11,7 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    27-03-2025   HEMANT SALIYA			Created
+	2    04/14/2025   HEMANT SALIYA			Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 	EXEC USP_DeleteWorkOrderMaterialkitStocklineById 18573, 188319, 'Brandon  Taylor'
 **************************************************************/
@@ -31,6 +32,7 @@ BEGIN
 		
 		DECLARE @WorkOrderId BIGINT;
 		DECLARE @WorkOrderPartNoId BIGINT;
+		DECLARE @WorkFlowWorkOrderId BIGINT;
 		DECLARE @PurchaseOrderId BIGINT;
 		DECLARE @IsKit BIT = 1;
 		DECLARE @IsSubWO BIT = 0;
@@ -53,7 +55,7 @@ BEGIN
 		END
 
 		--GET DATA FOR WO HISTORY  AND History
-		SELECT @WorkOrderId = WMK.WorkOrderId, @WorkOrderPartNoId = WMK.WOPartNoId, @MasterCompanyId = WMK.MasterCompanyId, @PartNumber = IM.partnumber, @PurchaseOrderId = POId
+		SELECT @WorkOrderId = WMK.WorkOrderId, @WorkFlowWorkOrderId = wmk.WorkFlowWorkOrderId, @WorkOrderPartNoId = WMK.WOPartNoId, @MasterCompanyId = WMK.MasterCompanyId, @PartNumber = IM.partnumber, @PurchaseOrderId = POId
 		FROM [dbo].WorkOrderMaterialsKit WMK WITH(NOLOCK)
 		JOIN [dbo].ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WMK.ItemMasterId
 		JOIN [dbo].Condition C WITH(NOLOCK) ON C.ConditionId = WMK.ConditionCodeId
@@ -76,7 +78,7 @@ BEGIN
 
 		EXEC USP_UnMappedPOByWorkOrderMaterialsId @WorkOrderMaterialsKitId, @IsKit, @IsSubWO, @WorkOrderId, @PurchaseOrderId, @UpdatedBy;
 
-		EXEC USP_UpdateWOMaterialsCost	@WorkOrderMaterialsKitId;
+		EXEC USP_UpdateWOMaterialsCost	@WorkOrderMaterialsKitId, @WorkFlowWorkOrderId;
 
 	END
 	COMMIT TRANSACTION

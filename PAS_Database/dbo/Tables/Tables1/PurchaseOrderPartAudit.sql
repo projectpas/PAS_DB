@@ -96,8 +96,11 @@
     [TagDate]                   DATETIME2 (7)   NULL,
     [IsKit]                     BIT             NULL,
     [IsSubWO]                   BIT             NULL,
+    [QuantityReceived]          INT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
+
+
 
 
 

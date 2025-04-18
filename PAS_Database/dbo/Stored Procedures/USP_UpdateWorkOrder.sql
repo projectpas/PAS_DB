@@ -11,7 +11,9 @@
  ** PR   Date          Author		Change Description            
  ** --   --------	   -------		--------------------------------          
     1    24/03/2025    Moin Bloch    Created
-    2    14/APR/2025   RAJESH GAMI    Implement the traverler Number logic     
+    2    14/04/2025    RAJESH GAMI   Implement the traverler Number logic    
+	3    18/04/2025    Moin Bloch    Added For CREATING TRAVELER LABOUR HEADER
+
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -553,6 +555,9 @@ BEGIN
 			   
 	-- UPDATING WORK ORDER FIELDS NAMES
 	EXEC [dbo].[UpdateWorkOrderColumnsWithId] @WorkOrderId;
+
+	-- CREATING TRAVELER LABOUR HEADER
+	EXEC [dbo].[USP_CreateWorkOrderLaborHeader] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
 	-- CREATING TRAVELER LABOUR TASK
 	EXEC [dbo].[CreateTravelerLabourTask] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;

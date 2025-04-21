@@ -21,7 +21,7 @@
 	3    01/08/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
 	4	 22/01/2025	  Moin Bloch		Modified (Added WorkOrderTask Table For conditionally check table for Task)
      
- EXECUTE [sp_GetListSubWorkOrderLaborTask] 34, 39
+ EXECUTE [sp_GetListSubWorkOrderLaborTask] 126
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetListSubWorkOrderLaborTask]
 @SubWorkOrderLaborHeaderId  BIGINT
@@ -75,7 +75,7 @@ BEGIN
 									 expr.[Description] AS Expertise
 				FROM [dbo].[SubWorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
-					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId
+					LEFT JOIN [dbo].[SubWorkOrderTask] WOT WITH (NOLOCK) ON WOT.SubWorkOrderTaskId = wol.TaskId
 					LEFT JOIN [dbo].[ExpertiseType] expr WITH(NOLOCK) ON expr.ExpertiseTypeId = wol.ExpertiseId
 					LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = wol.EmployeeId
 					INNER JOIN [dbo].[SubWorkOrderLaborHeader] lh WITH(NOLOCK) ON lh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId 

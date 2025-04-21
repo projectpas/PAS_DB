@@ -1,6 +1,4 @@
-﻿-----------------------------------------------------------------------------------------------------
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetLaborMainTaskListSub_WorkOrder]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA   
@@ -15,15 +13,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    01/03/2023   Subhash Saliya		Created
-	
-     
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/03/2023   Subhash Saliya	Created
+    2    04/21/2025   Vishal Suthar		Corrected the table name and added DB standards
+
 -- EXEC [USP_GetLaborMainTaskListSub_WorkOrder] 692,682
 **************************************************************/
-
-create     PROCEDURE [dbo].[USP_GetLaborMainTaskListSub_WorkOrder]
+CREATE   PROCEDURE [dbo].[USP_GetLaborMainTaskListSub_WorkOrder]
  @subWOPartNoId bigint ,
  @subWorkOrderId bigint
 AS
@@ -34,48 +31,46 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-
-				declare @DataEnteredBy bigint =0
+				DECLARE @DataEnteredBy BIGINT = 0
 				DECLARE @Traveler_setupid AS BIGINT = 0;
 				DECLARE @WorkOrderPartId AS BIGINT = 0;
 				DECLARE @WorkScopeId AS BIGINT = 0;
 				DECLARE @ItemMasterId AS BIGINT = 0;
-				declare @IstravelerTask bit =0
-			    declare @highestSequence bigint =0
+				DECLARE @IstravelerTask BIT = 0
+			    DECLARE @highestSequence BIGINT = 0
                 
 				SET @WorkOrderPartId=@subWOPartNoId
-				--select top 1 @WorkOrderPartId=WorkOrderPartNoId from WorkOrderWorkFlow  where WorkFlowWorkOrderId=@WorkFlowWorkOrderId
-                select top 1 @ItemMasterId=ItemMasterId,@WorkScopeId=SubWorkOrderScopeId,@IstravelerTask=IsTraveler from SubWorkOrderPartNumber  where SubWOPartNoId=@WorkOrderPartId
+				SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=SubWorkOrderScopeId,@IstravelerTask=IsTraveler from DBO.SubWorkOrderPartNumber WITH (NOLOCK) WHERE SubWOPartNoId = @WorkOrderPartId
 
-			     IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0))
-				 BEGIN
-				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0
-				 
-					select  top 1 @highestSequence= Sequence from Traveler_Setup_Task    where  Traveler_setupid =@Traveler_setupid order by Sequence desc
-				 END
-				 else IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0))
-				 BEGIN
-				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0
+			    IF (EXISTS (SELECT 1 FROM DBO.Traveler_Setup WITH (NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId = @ItemMasterId AND IsVersionIncrease = 0))
+				BEGIN
+				   SELECT TOP 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WITH (NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId = @ItemMasterId AND IsVersionIncrease = 0
+				
+				SELECT TOP 1 @highestSequence= Sequence FROM DBO.Traveler_Setup_Task WITH (NOLOCK) WHERE Traveler_setupid =@Traveler_setupid ORDER BY Sequence DESC
+				END
+				ELSE IF (EXISTS (SELECT 1 FROM DBO.Traveler_Setup WITH (NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND IsVersionIncrease = 0))
+				BEGIN
+				   SELECT TOP 1 @Traveler_setupid= Traveler_setupid FROM DBO.Traveler_Setup WITH (NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId IS NULL AND IsVersionIncrease = 0
 
-					select  top 1 @highestSequence= Sequence from Traveler_Setup_Task    where  Traveler_setupid =@Traveler_setupid order by Sequence desc
-				 END
+				SELECT TOP 1 @highestSequence = Sequence FROM DBO.Traveler_Setup_Task WITH (NOLOCK) where Traveler_setupid = @Traveler_setupid ORDER BY Sequence DESC
+				END
 
 				SELECT 
-                wl.[TaskId]
-                ,Max([TaskInstruction]) as TaskInstruction
-	            ,Max(UPPER(T.Description)) as Task
-				,Max(SubWorkOrderLaborId) as WorkOrderLaborId
-				,Max(Isnull(TTS.Sequence,9999)) as Sequence,
-				 Max(@highestSequence) as HighestSequence
+                wl.[TaskId],
+				Max([TaskInstruction]) as TaskInstruction,
+				Max(UPPER(T.Description)) as Task,
+				Max(SubWorkOrderLaborId) as WorkOrderLaborId,
+				Max(Isnull(TTS.Sequence,9999)) as Sequence,
+				Max(@highestSequence) as HighestSequence
                 FROM [dbo].[SubWorkOrderLabor] wl  WITH(NOLOCK) 
-                Inner Join SubWorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.SubWorkOrderLaborHeaderId=wl.SubWorkOrderLaborHeaderId
-                Left Join Task T WITH(NOLOCK) on T.TaskId= wl.TaskId
-				Left Join Traveler_Setup_Task TTS WITH(NOLOCK) on TTS.TaskId= wl.TaskId and Traveler_SetupId= @Traveler_setupid
-                where wl.IsDeleted=0 and wlh.SubWOPartNoId=@WorkOrderPartId and wlh.SubWorkOrderId =@subWorkOrderId group by  wl.[TaskId] order by Sequence asc
-                
+                INNER JOIN DBO.SubWorkOrderLaborHeader wlh WITH(NOLOCK)  ON wlh.SubWorkOrderLaborHeaderId = wl.SubWorkOrderLaborHeaderId
+                INNER JOIN DBO.SubWorkOrderTask SWOT WITH(NOLOCK) ON SWOT.SubWorkOrderTaskId = wl.TaskId
+                LEFT JOIN DBO.Task T WITH(NOLOCK) ON T.TaskId= SWOT.TaskId
+				LEFT JOIN DBO.Traveler_Setup_Task TTS WITH(NOLOCK) ON TTS.TaskId = wl.TaskId AND Traveler_SetupId = @Traveler_setupid
+                WHERE wl.IsDeleted = 0 AND wlh.SubWOPartNoId = @WorkOrderPartId AND wlh.SubWorkOrderId = @subWorkOrderId
+				GROUP BY wl.[TaskId] ORDER BY Sequence ASC
 			END
 		COMMIT  TRANSACTION
-
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0

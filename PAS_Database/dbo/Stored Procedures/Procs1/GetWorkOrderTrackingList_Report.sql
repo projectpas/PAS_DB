@@ -19,7 +19,7 @@
 	3   04-SEPT-2023    Ekta Chandegra      Convert text into uppercase
 	4   27-AUG-2024     Devendra Shekh      date issue resolved
 	5   23-Oct-2024     Sahdev Saliya       Added new field WO Number in the Work Order Management Report for filter  
-
+	3   18/04/2025      Ayushi              Added the condition for pn , pndescription
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderTrackingList_Report] 
@@ -161,11 +161,11 @@ BEGIN
 				MAX(WO.WorkOrderId) AS WorkOrderId,
 				MAX(WPN.ID) AS WorkorderPartId,
 				MAX(WO.CustomerId) AS CustomerId, 
-				MAX(IM.ItemMasterId) AS ItemMasterId, 
-				MAX(IM.partnumber) AS PartNos,  
-				MAX(IM.partnumber) AS PartNoType,  
-				MAX(IM.PartDescription) AS PNDescription,  
-				MAX(IM.PartDescription) AS PNDescriptionType,  
+				MAX(IM.ItemMasterId) AS ItemMasterId,  
+				CASE WHEN MAX(ISNULL(WPN.RevisedItemmasterid,0)) > 0 THEN  UPPER(MAX(RIM.partnumber)) ELSE  UPPER(MAX(IM.partnumber)) END AS PartNos, 
+				CASE WHEN MAX(ISNULL(WPN.RevisedItemmasterid,0)) > 0 THEN  UPPER(MAX(RIM.partnumber)) ELSE  UPPER(MAX(IM.partnumber)) END AS PartNoType,  
+				CASE WHEN MAX(ISNULL(WPN.RevisedItemmasterid,0)) > 0 THEN  UPPER(MAX(RIM.PartDescription)) ELSE  UPPER(MAX(IM.PartDescription)) END AS PNDescription,
+				CASE WHEN MAX(ISNULL(WPN.RevisedItemmasterid,0)) > 0 THEN  UPPER(MAX(RIM.PartDescription)) ELSE  UPPER(MAX(IM.PartDescription)) END AS PNDescriptionType,
 				MAX(WPN.WorkScope) AS WorkScope,  
 				MAX(WPN.WorkScope) AS WorkScopeType,  
 				MAX(PR.Description) As Priority,    
@@ -220,7 +220,8 @@ BEGIN
 			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
-			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
+			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId 
+			LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
 			LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId AND WO.WorkOrderTypeId = wost.WorkOrderTypeId
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  

@@ -17,7 +17,7 @@
  ** --   --------     -------  --------------------------------     
  1 17-08-2023   Rajesh CREATED  
  2 25-Aug-2023  Bhargav Saliya   Convert Dates UTC To LegalEntity Time Zone
-  
+ 3 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum 
           
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
@@ -133,13 +133,13 @@ BEGIN
     promisedatesince,estshipdatesince,shipdatesince,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId)  
     AS (SELECT 0 AS TotalRecordsCount,    
     WO.WorkOrderId,  
-    MAX(UPPER(C.Name)) 'customername',  
-    MAX(UPPER(IM.partnumber)) 'pn',    
-    MAX(UPPER(IM.PartDescription)) 'pndescription',    
+    MAX(UPPER(C.Name)) 'customername',   
+	CASE WHEN MAX(ISNULL(WOPN.RevisedItemmasterid,0)) > 0 THEN  MAX(UPPER(RIM.partnumber)) ELSE MAX(UPPER(IM.partnumber)) END AS 'pn',  
+	CASE WHEN MAX(ISNULL(WOPN.RevisedItemmasterid,0)) > 0 THEN  MAX(UPPER(RIM.PartDescription)) ELSE MAX(UPPER(IM.PartDescription)) END AS 'pndescription',  
     --MAX(ISNULL((SELECT ISNULL(MAX(RepairOrderNumber),0) FROM dbo.RepairOrder rep WITH(NOLOCK) where rep.RepairOrderId = SL.RepairOrderId),0)) 'ronum',  
     MAX(ISNULL(ro.RepairOrderNumber,'')) 'ronum',  
     MAX(UPPER(WO.WorkOrderNum)) 'wonum',    
-    MAX(UPPER(SL.serialnumber)) 'serialnum',    
+	CASE WHEN MAX(ISNULL(WOPN.RevisedSerialNumber,'')) = '' THEN MAX(UPPER(SL.serialnumber))ELSE MAX(UPPER( WOPN.RevisedSerialNumber)) END AS 'serialnum', 
     MAX(UPPER(WOS.Stage)) 'stagecode',    
     (isnull((sum(WTT.[Days])+ (sum(WTT.[Hours])/24)+ (sum(WTT.[Mins])/1440)),0)) + ISNULL(DATEDIFF(day, Max(WTT.StatusChangedDate), GETDATE()), 0) as totalDaysinStage,  
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 107) END 'opendate',  
@@ -165,7 +165,8 @@ BEGIN
    FROM DBO.WorkOrder WO WITH (NOLOCK)      
     INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
-    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId    
+    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
+	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
     INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN dbo.WorkOrderTurnArroundTime WTT WITH(NOLOCK) ON WTT.WorkOrderPartNoId = WOPN.ID AND WOPN.WorkOrderStageId = WTT.CurrentStageId  
     LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON WOPN.RepairOrderId = RO.RepairOrderId  

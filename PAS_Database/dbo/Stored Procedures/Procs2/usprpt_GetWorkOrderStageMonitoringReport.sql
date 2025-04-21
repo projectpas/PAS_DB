@@ -17,6 +17,7 @@
 	1	25-AUG-2023 	Ekta Chandegra		Convert text into uppercase
 	2   25-Aug-2023     Bhargav Saliya      Conver Dates UTC to Legal Entity Time Zone
 	3   12-Sept-2024    Shrey Chandegara	Modified due to add TotalQuoteAmount and TotalQuoteApprovalAmount
+	4   18/04/2025      Ayushi Added        the condition for pn , pndescription , serialnum
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderStageMonitoringReport]
 	@PageNumber INT = 1,
@@ -147,10 +148,10 @@ BEGIN
 						COUNT(1) OVER () AS TotalRecordsCount,
 						MAX(WPN.ID) AS workorderPartId,  
 						UPPER(MAX(WO.CustomerName)) AS customername,  
-						UPPER(MAX(IM.partnumber)) AS pn, 
+						CASE WHEN MAX(ISNULL(WPN.RevisedItemmasterid,0)) > 0 THEN  UPPER(MAX(RIM.partnumber)) ELSE  UPPER(MAX(IM.partnumber)) END AS pn,
 						UPPER(MAX(IM.partnumber)) AS partNos, 
-						UPPER(MAX(IM.PartDescription)) AS pndescription, 
-						UPPER(MAX(STL.SerialNumber)) AS serialnum,  
+						CASE WHEN MAX(ISNULL(WPN.RevisedItemmasterid,0)) > 0 THEN  UPPER(MAX(RIM.PartDescription)) ELSE  UPPER(MAX(IM.PartDescription)) END AS pndescription,
+						CASE WHEN MAX(ISNULL(WPN.RevisedSerialNumber,'')) = '' THEN UPPER(MAX(STL.SerialNumber))ELSE  UPPER(MAX(WPN.RevisedSerialNumber)) END AS serialnum, 
 						UPPER(MAX(WPN.WorkScope)) AS workscope,
 						MAX(WO.WorkOrderId) AS workOrderId,   
 						UPPER(MAX(WO.WorkOrderNum)) AS wonum,   
@@ -213,6 +214,7 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderQuote workOrderQ WITH (NOLOCK) ON workOrderQ.WorkOrderId = WO.WorkOrderId
 					LEFT JOIN dbo.WorkOrderQuoteDetails woq WITH (NOLOCK) ON woq.WOPartNoId = WPN.ID  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
+					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 					LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON WPN.StockLineId = STL.StockLineId
 					LEFT JOIN dbo.WorkOrderStage WOSG_Old WITH (NOLOCK) ON WTT.OldStageId = WOSG_Old.WorkOrderStageId  
 					LEFT JOIN dbo.WorkOrderStage WOSG WITH (NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId  

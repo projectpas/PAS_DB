@@ -19,7 +19,7 @@
 	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
 	4   11-Oct-2024     Sahdev Saliya       Date format changes
 	5   23-Oct-2024     Sahdev Saliya       Added new field PartNumber in the Technician Labor Entry Report for filter
-
+	6   18/04/2025      Ayushi              Added the condition for pn , pndescription
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -146,8 +146,8 @@ BEGIN
 			SELECT 
 			--COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(WO.WorkOrderNum) 'woNum',
-			UPPER(IM.partnumber) 'pn',
-			UPPER(IM.PartDescription) 'pnDescription',
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',  
 			UPPER(IM.ManufacturerName) 'manufacturerName',
 			UPPER(T.[Description]) 'task',
 			UPPER(TS.[Description]) 'taskStatus',
@@ -178,7 +178,8 @@ BEGIN
 					INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
 					INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
+					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
+					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
 					LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOT.EmployeeId 		
@@ -211,8 +212,8 @@ BEGIN
 			SELECT 
 			--COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(WO.WorkOrderNum) 'woNum',
-			UPPER(IM.partnumber) 'pn',
-			UPPER(IM.PartDescription) 'pnDescription',
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
 			UPPER(IM.ManufacturerName) 'manufacturerName',
 			UPPER(T.[Description]) 'task',
 			UPPER(TS.[Description]) 'taskStatus',
@@ -242,7 +243,8 @@ BEGIN
 					INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
 					INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
+					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
+					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
 					LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOL.EmployeeId 		

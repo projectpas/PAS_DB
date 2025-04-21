@@ -17,7 +17,7 @@
  1 18-Nov-2022  Subhash Saliya  Update to Angular Reports  
  2 25/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone       
  3 08/04/2024   Devendra Shekh   added customerReference     
- 
+ 4 18/04/2025   Ayushi			Added the condition for pn , pndescription , serialnum 
 EXECUTE   [dbo].[USP_GetScrapReportList] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetScrapReportList]   
@@ -127,9 +127,9 @@ BEGIN
   SELECT COUNT(1) OVER () AS TotalRecordsCount,  
    UPPER(WO.customerName) 'customername',  
    UPPER(ST.ControlNumber) 'cntrlNum',  
-   UPPER(IM.partnumber) 'partNumber',  
-   UPPER(IM.PartDescription) 'partDescription',  
-   UPPER(ST.SerialNumber) 'serialNumber',  
+   CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'partNumber', 
+   CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'partDescription', 
+   CASE WHEN ISNULL(WOPN.RevisedSerialNumber,'') = '' THEN UPPER(ST.SerialNumber)ELSE  UPPER( WOPN.RevisedSerialNumber) END AS 'serialNumber', 
    UPPER(case when isnull(SC.IsExternal,0)  =1 then vo.vendorName else (EM.FirstName +'  '+EM.LastName) end) 'scrapedByEmployee',  
    UPPER(WO.WorkOrderNum) 'workOrderNumber',  
    UPPER(SR.Reason) 'scrapReason',  
@@ -141,6 +141,7 @@ BEGIN
   FROM dbo.WorkOrder WO WITH (NOLOCK)  
     INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId  
     INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId  
+	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
     INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1  
     INNER JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId  
     LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId  

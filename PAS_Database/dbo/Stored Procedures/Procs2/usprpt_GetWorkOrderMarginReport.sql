@@ -190,7 +190,7 @@ BEGIN
 						UPPER(C.CustomerCode) 'customercode',     
 						CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
 						CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
-						UPPER(SL.SerialNumber) 'serialnum',      
+						CASE WHEN ISNULL(WOPN.RevisedSerialNumber,'') = '' THEN UPPER(SL.SerialNumber)ELSE  UPPER( WOPN.RevisedSerialNumber) END AS 'serialnum',
 						UPPER(WOPN.WorkScope) 'workscope',      
 						UPPER(WO.WorkOrderNum) 'wonum',      
 						UPPER(WOQ.QuoteNumber) 'quotenum',      

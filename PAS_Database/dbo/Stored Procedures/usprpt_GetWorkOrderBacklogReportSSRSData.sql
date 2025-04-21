@@ -18,7 +18,7 @@
  **	2	24-04-2022   Devendra Shekh			showing quote amt after customer approved    
  **	3	25-04-2022   Devendra Shekh			showing approved amt only after customer approved
  **	4	13-08-2022   Devendra Shekh			increased length for temptable fields
- 
+ ** 5   18/04/2025   Ayushi  Patel          Added the condition for pn , pndescription , serialnum 
 exec usprpt_GetWorkOrderBacklogReportSSRSData 
 @mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
@@ -134,11 +134,11 @@ BEGIN
     SELECT    
     WO.WorkOrderId,  
 	WOWF.WorkOrderPartNoId,
-    UPPER(C.Name) 'Customername',  
-    UPPER(IM.partnumber) 'PN',    
-    UPPER(IM.PartDescription) 'PNdescription',    
+    UPPER(C.Name) 'Customername',   
+	CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'PN',  
+	CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'PNdescription',  
     UPPER(WO.WorkOrderNum) 'WONum',    
-    UPPER(SL.SerialNumber) 'SerialNum',    
+	CASE WHEN ISNULL(WOPN.RevisedSerialNumber,'') = '' THEN UPPER(SL.SerialNumber)ELSE  UPPER( WOPN.RevisedSerialNumber) END AS 'SerialNum',
     UPPER(WOT.Description) 'WOType',    
     UPPER(WOS.Stage) 'StageCode',    
     UPPER(WOSS.Description) 'StatusCode',    
@@ -174,7 +174,8 @@ BEGIN
    FROM DBO.WorkOrder WO WITH (NOLOCK)      
     INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
-    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId    
+    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
+	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
     INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
     --LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  

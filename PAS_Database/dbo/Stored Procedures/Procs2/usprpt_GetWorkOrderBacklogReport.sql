@@ -18,7 +18,8 @@
  2 07-04-2023   Devendra changes stage to multiselect like tag type  
  3 24-04-2022   Hemant Added Condition for remove Closed WO list    
  3 16-06-2023   Hemant made changes to do total   
- 4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone        
+ 4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
+ 5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
@@ -149,11 +150,11 @@ BEGIN
     level9, level10, masterCompanyId)  
     AS (SELECT 0 AS TotalRecordsCount,    
     WO.WorkOrderId,  
-    UPPER(C.Name) 'customername',  
-    UPPER(IM.partnumber) 'pn',    
-    UPPER(IM.PartDescription) 'pndescription',    
+    UPPER(C.Name) 'customername',   
+	CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+	CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
     UPPER(WO.WorkOrderNum) 'wonum',    
-    UPPER(SL.serialnumber) 'serialnum',    
+	CASE WHEN ISNULL(WOPN.RevisedSerialNumber,'') = '' THEN UPPER(SL.SerialNumber)ELSE  UPPER( WOPN.RevisedSerialNumber) END AS 'serialnum', 
     UPPER(WOT.Description) 'wotype',    
     UPPER(WOS.Stage) 'stagecode',    
     UPPER(WOSS.Description) 'statuscode',    
@@ -188,7 +189,8 @@ BEGIN
    FROM DBO.WorkOrder WO WITH (NOLOCK)      
     INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
-    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId    
+    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
+	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
     INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
     LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  

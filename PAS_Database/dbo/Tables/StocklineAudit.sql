@@ -159,7 +159,7 @@
     [CertTypeId]                          VARCHAR (MAX)   NULL,
     [CertType]                            VARCHAR (MAX)   NULL,
     [TagTypeId]                           BIGINT          NULL,
-    [IsFinishGood]                        BIT             DEFAULT ((0)) NULL,
+    [IsFinishGood]                        BIT             CONSTRAINT [DF__Stockline__IsFin__1495D873] DEFAULT ((0)) NULL,
     [IsTurnIn]                            BIT             NULL,
     [IsCustomerRMA]                       BIT             NULL,
     [RMADeatilsId]                        BIGINT          NULL,
@@ -168,7 +168,7 @@
     [TagDays]                             INT             NULL,
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
-    [RRQty]                               INT             DEFAULT ((0)) NOT NULL,
+    [RRQty]                               INT             CONSTRAINT [DF__Stockline__RRQty__10C5478F] DEFAULT ((0)) NOT NULL,
     [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
     [IsManualEntry]                       BIT             NULL,
     [WorkOrderMaterialsKitId]             BIGINT          NULL,
@@ -193,7 +193,8 @@
     [SubWorkOrderMaterialsId]             BIGINT          NULL,
     [SubWorkOrderMaterialsKitId]          BIGINT          NULL,
     [EvidenceId]                          INT             NULL,
-    [IsGenerateReleaseForm]               BIT             DEFAULT ((0)) NULL,
+    [IntegrationPortal]                   VARCHAR (50)    NULL,
+    [IsGenerateReleaseForm]               BIT             CONSTRAINT [DF__Stockline__IsGen__12AD9001] DEFAULT ((0)) NULL,
     [ExistingCustomerId]                  BIGINT          NULL,
     [RepairOrderNumber]                   VARCHAR (100)   NULL,
     [ExistingCustomer]                    VARCHAR (200)   NULL,
@@ -233,6 +234,4 @@
     [QuantityAdjustment]                  INT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
-
-
 

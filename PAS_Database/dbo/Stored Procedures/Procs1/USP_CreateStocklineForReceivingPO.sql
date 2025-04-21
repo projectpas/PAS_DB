@@ -31,6 +31,8 @@
 	15   07/01/2025   Ayushi Patel      cast PP_LastPurchaseDiscDate dateTime into Date
 	15   18-MAR-2025  HEMANT SALIYA     Updated DB Standards
 	16   10-APR-2025  Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table
+	17   18-APR-2025  Abhishek Jirawla  Added Integration Portal in Stockline
+
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -533,6 +535,18 @@ BEGIN
                             )
                         END
 
+						DECLARE @IntegrationPortal VARCHAR(50)
+
+						SELECT
+							@IntegrationPortal = STRING_AGG(CAST(mp.IntegrationPortalId AS VARCHAR), ',')
+						FROM dbo.ItemMaster iM WITH(NOLOCK)
+						LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+						LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
+						WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+						GROUP BY iM.ItemMasterId
+
+
+
                         INSERT INTO DBO.Stockline
                         ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
 						[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],
@@ -549,7 +563,7 @@ BEGIN
 						[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],
 						[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],
 						[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId],[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],
-						[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife])
+						[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife], [IntegrationPortal])
 
                         SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],@ControlNumber,[ItemMasterId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
 							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
@@ -569,7 +583,7 @@ BEGIN
 						[Level3],[Level4],[Condition],NULL,NULL,[Warehouse],[Location],NULL,NULL,[UnitOfMeasure],NULL,NULL,NULL,NULL,NULL,NULL,NULL,[CustomerId],NULL,ISNULL([isCustomerstockType], 0),'',NULL,NULL,
 						NULL,[TaggedBy],[TaggedByName],(ISNULL(PurchaseOrderUnitCost, 0) + ISNULL(RepairOrderUnitCost, 0) + ISNULL(Adjustment, 0)),[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],
 						[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,NULL,1,NULL,
-						[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],ISNULL(Adjustment, 0),[IsStkTimeLife]
+						[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],ISNULL(Adjustment, 0),[IsStkTimeLife], ISNULL(@IntegrationPortal, '')
                         FROM #tmpStocklineDraft
                         WHERE StockLineDraftId = @SelectedStockLineDraftId;
 

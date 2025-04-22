@@ -108,7 +108,6 @@ BEGIN
 			BEGIN 
 				SELECT @PageSize=COUNT(*)
 				 FROM dbo.WorkOrderLaborTracking WOT WITH(NOLOCK) 
-				    INNER JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
 					INNER JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
 					INNER JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
@@ -116,6 +115,8 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId
+					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOT.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
 					LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOT.EmployeeId 		
 					LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID

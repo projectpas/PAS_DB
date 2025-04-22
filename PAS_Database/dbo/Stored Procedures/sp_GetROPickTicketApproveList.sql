@@ -16,7 +16,7 @@
  ** --   --------     -------			--------------------------------          
 	1    04/14/2025   Vishal Suthar		Created
      
--- EXEC [dbo].[sp_GetROPickTicketApproveList] 2547
+-- EXEC [dbo].[sp_GetROPickTicketApproveList] 2564
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetROPickTicketApproveList]
 	@RepairOrderId bigint
@@ -55,7 +55,8 @@ BEGIN
 			LEFT JOIN RepairOrder ro WITH (NOLOCK) on ro.RepairOrderId = rop.RepairOrderId
 			LEFT JOIN ROPickTicket ropt WITH (NOLOCK) on ropt.RepairOrderId = rop.RepairOrderId and ropt.RepairOrderPartId = rop.RepairOrderPartRecordId
 			LEFT JOIN Vendor cr WITH (NOLOCK) on cr.VendorId = ro.VendorId
-		WHERE rop.RepairOrderId = @RepairOrderId AND (rop.QuantityReserved > 0)
+		WHERE rop.IsParent = 1 AND
+		rop.RepairOrderId = @RepairOrderId AND (rop.QuantityReserved > 0)
 		GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,
 		sl.QuantityAvailable,ro.RepairOrderNumber,rop.ItemMasterId,sl.ConditionId,cr.[VendorName],cr.VendorCode,sl.isSerialized;
 	END

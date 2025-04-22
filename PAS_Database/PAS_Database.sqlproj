@@ -3699,6 +3699,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateShippingViaFromAddressTab.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateTravelerLabourTaskHeader_SubWorkorder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSummarisedQuotationAnalysisData.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTileOEMCrossReferenceList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

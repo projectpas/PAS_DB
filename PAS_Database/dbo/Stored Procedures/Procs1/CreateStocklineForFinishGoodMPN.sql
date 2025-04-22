@@ -33,6 +33,7 @@
  ** 15   02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
     16   04/19/2024   Moin Bloch        Modify(Added RepairOrderNumber in New Stockline)
 	17   05/04/2024	  HEMANT SALIYA	    Updated for Add Existing Customer Details
+	18   18/04/2025   ABHISHEK JIRAWLA  Added Integration Portal in Stockline
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
@@ -233,6 +234,15 @@ BEGIN
     BEGIN  
      ROLLBACK TRAN;  
     END  
+
+	DECLARE @IntegrationPortal VARCHAR(50)
+	SELECT
+		@IntegrationPortal = STRING_AGG(CAST(mp.IntegrationPortalId AS VARCHAR), ',')
+	FROM dbo.ItemMaster iM WITH(NOLOCK)
+	LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+	LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
+	WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+	GROUP BY iM.ItemMasterId
   
     INSERT INTO [dbo].[Stockline]  
        ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId]  
@@ -258,7 +268,7 @@ BEGIN
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife]
 	   ,[LotId],[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
 	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
-	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm)  
+	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, [IntegrationPortal])  
     SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,  
      @StockLineNumber,[StocklineMatchKey],Stockline.ControlNumber,@ItemMasterId,1,@RevisedConditionId  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
@@ -287,7 +297,7 @@ BEGIN
        [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
 	   [LotId],[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
 	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
-	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm
+	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, @IntegrationPortal
    FROM [dbo].[Stockline] WITH(NOLOCK)  
    WHERE [StockLineId] = @StocklineId  
 

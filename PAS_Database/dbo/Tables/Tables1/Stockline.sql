@@ -192,6 +192,7 @@
     [SubWorkOrderMaterialsId]             BIGINT          NULL,
     [SubWorkOrderMaterialsKitId]          BIGINT          NULL,
     [EvidenceId]                          INT             NULL,
+    [IntegrationPortal]                   VARCHAR (50)    NULL,
     [IsGenerateReleaseForm]               BIT             CONSTRAINT [DF__tmp_ms_xx__IsGen__46CC5285] DEFAULT ((0)) NULL,
     [ExistingCustomerId]                  BIGINT          NULL,
     [RepairOrderNumber]                   VARCHAR (100)   NULL,
@@ -246,6 +247,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

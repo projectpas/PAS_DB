@@ -19,6 +19,8 @@
 	2    03/11/2024   ABHISHEK JIRAWLA	Modified - Added updated memo description to the new stockline created
 	3    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
     4    09/24/2024   RAJESH GAMI    	Added BulkAdjustment Reference number while create new stockline.
+    5    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
+
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_CreateStockline_BulkStockLineAdjustment]
@@ -774,6 +776,15 @@ BEGIN
 					
 					SELECT @qtyonhand = NewQty, @ManagementStructureId =ToManagementStructureId FROM BulkStockLineAdjustmentDetails WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 					
+					DECLARE @IntegrationPortal VARCHAR(50)
+					SELECT
+						@IntegrationPortal = STRING_AGG(CAST(mp.IntegrationPortalId AS VARCHAR), ',')
+					FROM dbo.ItemMaster iM WITH(NOLOCK)
+					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
+					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
+					GROUP BY iM.ItemMasterId
+
 					INSERT INTO DBO.Stockline ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],
 					[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],
 					[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],
@@ -790,7 +801,7 @@ BEGIN
 					[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],
 					[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],
 					[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId],[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],
-					[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife])
+					[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife], [IntegrationPortal])
 			
 					SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],@ControlNumber,[ItemMasterId],@qtyonhand ,[ConditionId],[SerialNumber],[ShelfLife],
 					[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],
@@ -809,7 +820,7 @@ BEGIN
 					[TaggedBy],[TaggedByName], (0 + 0 + 0)
 					,[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,
 					0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId], @qtyonhand, NULL, 1, NULL,
-					[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],0, [IsStkTimeLife]
+					[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],0, [IsStkTimeLife], @IntegrationPortal
 					FROM #tmpStockline
 					WHERE StockLineId = @SelectedStockLineId;
 

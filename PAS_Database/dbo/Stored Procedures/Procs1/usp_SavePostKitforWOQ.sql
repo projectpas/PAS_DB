@@ -21,10 +21,12 @@
     1    06/02/2020		Subhash Saliya		Created  
 	2	 01/16/2025		Moin Bloch			Modified (Added TaskId In Type)
     3	 26 FEB 2025	RAJESH GAMI			Update the WorkOrderQuoteDetails COST
+	4	 21 APR 2025	HEMANT SALIYA		Update For WOM Kit Cost is not updating
+
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
 
-CREATE         PROCEDURE [dbo].[usp_SavePostKitforWOQ]
+CREATE PROCEDURE [dbo].[usp_SavePostKitforWOQ]
 	@tbl_KITPartType WOQMaterialKitMappingType READONLY
 AS
 BEGIN
@@ -94,7 +96,7 @@ BEGIN
 		    [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 		    SELECT woqkit.WOQMaterialKitMappingId,woqkit.[KitId],tmp.[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],tmp.[Qty],tmp.[UnitCost],[PartNumber],[PartDescription],[Manufacturer],
 		    [Condition],[UOM],woqkit.[MasterCompanyId],woqkit.[CreatedBy],woqkit.[UpdatedBy],GETUTCDATE(),GETUTCDATE(),1,0
-		    FROM [dbo].[KitItemMasterMapping]  tmp
+		    FROM [dbo].[KitItemMasterMapping]  tmp WITH (NOLOCK)
 			INNER JOIN #KITPartType kim WITH (NOLOCK) ON kim.KitId = tmp.KitId 
 			INNER JOIN [dbo].[WorkOrderQuoteMaterialKitMapping] woqkit WITH (NOLOCK) ON woqkit.KitId = kim.KitId  and woqkit.WorkflowWorkOrderId = kim.WorkflowWorkOrderId
 
@@ -131,17 +133,24 @@ BEGIN
 			BEGIN
 			PRINT 'Test----'
 					DECLARE @TotalMaterialCost decimal(18,2)=0, @TotalKitCost decimal(18,2)=0,@WorkOrderWorkflowId BIGINT = (SELECT TOP 1 WorkflowWorkOrderId FROM @tbl_KITPartType), @WorkOrderQuoteDetailsId BIGINT =0,@TotalAmount decimal(18,2)=0 ;
-			DECLARE @WorkOrderQuoteId BIGINT = (SELECT TOP 1 WorkOrderQuoteId FROM @tbl_KITPartType), @MasterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM @tbl_KITPartType)
-			DECLARE @IsUpdateQuoteDetail BIGINT = (SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType);
+					DECLARE @WorkOrderQuoteId BIGINT = (SELECT TOP 1 WorkOrderQuoteId FROM @tbl_KITPartType), @MasterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM @tbl_KITPartType)
+					DECLARE @IsUpdateQuoteDetail BIGINT = (SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType);
+					DECLARE @TotalMaterialBilling decimal(18,2)=0, @TotalKitBilling decimal(18,2)=0, @TotalBilling decimal(18,2)=0
 
-				SET @WorkOrderQuoteDetailsId = (SELECT TOP 1  WOQD.WorkOrderQuoteDetailsId
-				FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK) 
-					JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOQD.WorkflowWorkOrderId = WOWF.WorkFlowWorkOrderId AND WOQD.WOPartNoId = WOWF.WorkOrderPartNoId
-				WHERE WOQD.WorkflowWorkOrderId = @WorkOrderWorkflowId AND WOQD.IsVersionIncrease = 0 AND WOWF.WorkOrderPartNoId = WOQD.WOPartNoId AND WOQD.WorkOrderQuoteId= @WorkOrderQuoteId AND WOQD.MasterCompanyId = @MasterCompanyId)
-				SET @TotalMaterialCost = (SELECT SUM(ISNULL(BillingAmount,0)) FROM DBO.WorkOrderQuoteMaterial WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
-				SET @TotalKitCost = (SELECT SUM(ISNULL(BillingAmount,0)) FROM [dbo].[WorkOrderQuoteMaterialKitMapping] kim WITH (NOLOCK) WHERE WorkflowWorkOrderId = @WorkOrderWorkflowId AND WorkOrderQuoteId = @WorkOrderQuoteId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
-				SET @TotalAmount = ISNULL(@TotalMaterialCost,0.00) +  ISNULL(@TotalKitCost,0.00)
-				UPDATE  dbo.WorkOrderQuoteDetails SET MaterialFlatBillingAmount=@TotalAmount ,MaterialBilling=@TotalAmount,MaterialRevenue=@TotalAmount WHERE  WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
+					SET @WorkOrderQuoteDetailsId = (SELECT TOP 1  WOQD.WorkOrderQuoteDetailsId
+					FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK) 
+						JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOQD.WorkflowWorkOrderId = WOWF.WorkFlowWorkOrderId AND WOQD.WOPartNoId = WOWF.WorkOrderPartNoId
+					WHERE WOQD.WorkflowWorkOrderId = @WorkOrderWorkflowId AND WOQD.IsVersionIncrease = 0 AND WOWF.WorkOrderPartNoId = WOQD.WOPartNoId AND WOQD.WorkOrderQuoteId= @WorkOrderQuoteId AND WOQD.MasterCompanyId = @MasterCompanyId)
+					
+					SET @TotalMaterialBilling = (SELECT SUM(ISNULL(BillingAmount,0)) FROM DBO.WorkOrderQuoteMaterial WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
+					SET @TotalKitBilling = (SELECT SUM(ISNULL(BillingAmount,0)) FROM [dbo].[WorkOrderQuoteMaterialKitMapping] kim WITH (NOLOCK) WHERE WorkflowWorkOrderId = @WorkOrderWorkflowId AND WorkOrderQuoteId = @WorkOrderQuoteId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
+					SET @TotalBilling = ISNULL(@TotalMaterialBilling,0.00) +  ISNULL(@TotalKitBilling,0.00)
+
+					SET @TotalMaterialCost = (SELECT SUM(ISNULL(BillingAmount,0)) FROM DBO.WorkOrderQuoteMaterial WITH(NOLOCK) WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
+					SET @TotalKitCost = (SELECT SUM(ISNULL(BillingAmount,0)) FROM [dbo].[WorkOrderQuoteMaterialKitMapping] kim WITH (NOLOCK) WHERE WorkflowWorkOrderId = @WorkOrderWorkflowId AND WorkOrderQuoteId = @WorkOrderQuoteId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId = @MasterCompanyId)
+					SET @TotalAmount = ISNULL(@TotalMaterialCost,0.00) +  ISNULL(@TotalKitCost,0.00)
+				
+					UPDATE  dbo.WorkOrderQuoteDetails SET MaterialFlatBillingAmount=@TotalBilling, MaterialCost = @TotalAmount ,MaterialBilling=@TotalBilling,MaterialRevenue=@TotalBilling WHERE  WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
 			END
 			
 			END

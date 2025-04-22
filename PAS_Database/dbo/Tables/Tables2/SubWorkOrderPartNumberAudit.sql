@@ -44,8 +44,11 @@
     [RevisedStockLineId]      BIGINT         NULL,
     [RevisedSerialNumber]     VARCHAR (50)   NULL,
     [PublicationNo]           VARCHAR (MAX)  NULL,
+    [TravelerNumber]          VARCHAR (100)  NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([SubWOPartNoAuditId] ASC)
 );
+
+
 
 
 

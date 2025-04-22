@@ -16,6 +16,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 5    28/02/2025   RAJESH GAMI      Modify the SP WO Part details to Sub Wo Part detail (Previously showoing WO MPN Details instead of SubWOMPN detail)
 ** 6    04/16/2025   Devendra Shekh   Added IsLaborTrackingTurnedOff to select
 ** 7    04/18/2025   RAJESH GAMI	  Added ControlNumber
+** 7	22/APR/2025  RAJESH GAMI	   Change the traveler number logic: Get from the SubWO Partnumber table if available else get from the traveler_setup
 EXEC GetSubWorkOrderPrintPdfData 573,559
 
 **************************************************************/
@@ -107,8 +108,8 @@ AS
 				  UPPER(scope.WorkScopeCode) as WorkScope,            
 				  --UPPER(Pub.PublicationId) as PublicationName, 
 				  UPPER(SWOPN.PublicationNo) as PublicationName, 
-				  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
-				  @TravelerName as TravelerName,        
+				  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',      
+				  CASE WHEN ISNULL(SWOPN.TravelerNumber,'') = '' THEN (CASE WHEN ISNULL(@TravelerName,'') = '' OR ISNULL(@TravelerName,'') = '0' THEN '' ELSE @TravelerName END) ELSE ISNULL(SWOPN.TravelerNumber,'') END as TravelerName,
 				  Isnull(wost.IsManualForm,0) as IsManualForm,    
 				  NHAPNs = STUFF((SELECT DISTINCT ', ' + imtt.partnumber              
 				FROM Dbo.ItemMaster imtt WITH(NOLOCK) INNER JOIN Dbo.Nha_Tla_Alt_Equ_ItemMapping nhatae WITH(NOLOCK)              

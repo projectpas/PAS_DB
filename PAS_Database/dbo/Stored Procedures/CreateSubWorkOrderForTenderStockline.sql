@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [CreateSubWorkOrderForTenderStockline]           
  ** Author:   Hemant Saliya
  ** Description: Create Sub Work Order For Tender Stockline 
@@ -56,10 +57,13 @@ BEGIN
 		DECLARE @ReferenceId BIGINT;
 		DECLARE @SubReferenceId BIGINT;
 		DECLARE @ActionId INT = 0 ;
+		DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
+		DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL,@ItemMasterId BIGINT=NULL ,@IsSinglePN BIT = 0; 
 
 		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
 		SELECT @ActionId = ActionId FROM [DBO].[StklineHistory_Action] WHERE [Type] = 'Create-Sub-WorkOrder' -- For SUB WORK ORDER Cretae History
 		SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'SubWorkOrderMaterials'; -- For SUB WORK ORDER Materials Module
+
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
         BEGIN  
@@ -173,12 +177,66 @@ BEGIN
 
 						SET @SubWorkOrderId = SCOPE_IDENTITY(); 
 
+							SELECT  @ItemMasterId = tmpWOM.ItemMasterId, @WorkOrderScopeId = Assy.WorkscopeId
+							FROM #tmpWorkOrderMaterials tmpWOM 
+								JOIN dbo.WorkOrderPartNumber WOP ON tmpWOM.WorkOrderPartNumberId = WOP.ID
+								JOIN dbo.Assemply Assy ON tmpWOM.ItemMasterId = Assy.MappingItemMasterId AND WOP.ItemMasterId = Assy.ItemMasterId AND Assy.ProvisionId = @SubWOProvisionID AND Assy.PopulateWoMaterialList = 1
+								JOIN #WorkOrderSettings WOS ON WOP.MasterCompanyId = WOS.MasterCompanyId AND WOS.WorkOrderTypeId = @WorkOrderTypeId
+							WHERE tmpWOM.ID = @count
+
+							IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0))            
+							BEGIN            
+								SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0            
+							END            
+							ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ISNULL(IsVersionIncrease,0)=0))            
+							BEGIN            
+								SELECT top 1 @TravelerName= CONVERT(varchar(250),ISNULL(TravelerId,'')) FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkOrderScopeId and ISNULL(ItemMasterId,0)=0 and ISNULL(IsVersionIncrease,0)=0            
+							END 
+							
+							IF(@TravelerName = '' OR @TravelerName = '0')
+							BEGIN
+								/***** Prefixes : Reference Number*******/		   			
+								IF OBJECT_ID(N'tempdb..#tmpCodePrefixesWPNUInserted') IS NOT NULL
+								BEGIN
+									DROP TABLE #tmpCodePrefixesWPNUInserted
+								END
+	
+								CREATE TABLE #tmpCodePrefixesWPNUInserted
+								(
+										ID BIGINT NOT NULL IDENTITY, 
+										CodePrefixId BIGINT NULL,
+										CodeTypeId BIGINT NULL,
+										CurrentNumber BIGINT NULL,
+										CodePrefix VARCHAR(50) NULL,
+										CodeSufix VARCHAR(50) NULL,
+										StartsFrom BIGINT NULL,
+								)
+
+								INSERT INTO #tmpCodePrefixesWPNUInserted (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+								SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+								FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+								WHERE CT.CodeTypeId = @TravelerCodeTypeId
+								AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+								IF (EXISTS (SELECT 1 FROM #tmpCodePrefixesWPNUInserted WHERE CodeTypeId = @TravelerCodeTypeId))
+								BEGIN
+									SET @CurrentNumber = (SELECT CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+									FROM #tmpCodePrefixesWPNUInserted WHERE CodeTypeId = @TravelerCodeTypeId)
+					
+									SET @TravelerName = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+													ISNULL(@CurrentNumber,0)+1,
+													(SELECT CodePrefix FROM #tmpCodePrefixesWPNUInserted WHERE CodeTypeId = @TravelerCodeTypeId),
+													(SELECT CodeSufix FROM #tmpCodePrefixesWPNUInserted WHERE CodeTypeId = @TravelerCodeTypeId)))
+									UPDATE dbo.CodePrefixes SEt CurrentNummber = ISNULL(@CurrentNumber,0)+1 WHERE CodePrefixId = (SELECT TOP 1 CodePrefixId FROM #tmpCodePrefixesWPNUInserted)
+								END
+								/******End Prefixes******/	
+							END
+
 						INSERT INTO SubWorkOrderPartNumber(WorkOrderId,SubWorkOrderId,ItemMasterId,SubWorkOrderScopeId,EstimatedShipDate,CustomerRequestDate,PromisedDate,EstimatedCompletionDate,NTE,Quantity,StockLineId,
 								CMMIds,WorkflowId,SubWorkOrderStageId,SubWorkOrderStatusId,SubWorkOrderPriorityId,IsPMA,IsDER,TechStationId,TATDaysStandard,TechnicianId,ConditionId,TATDaysCurrent,MasterCompanyId,CreatedBy,UpdatedBy,
-								CreatedDate,UpdatedDate,IsActive,IsDeleted,IsClosed,PDFPath,islocked,IsFinishGood,RevisedConditionId,CustomerReference,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO,PublicationNo)
+								CreatedDate,UpdatedDate,IsActive,IsDeleted,IsClosed,PDFPath,islocked,IsFinishGood,RevisedConditionId,CustomerReference,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO,PublicationNo,TravelerNumber)
 						SELECT tmpWOM.WorkOrderId,@SubWorkOrderId, tmpWOM.ItemMasterId, Assy.WorkscopeId, EstimatedShipDate, CustomerRequestDate, PromisedDate, EstimatedCompletionDate, NTE, tmpWOM.Quantity, tmpWOM.StockLineId,
 								WOP.CMMIds, WorkflowId, WOS.DefaultStageCodeId, WOS.DefaultStatusId, WOP.WorkOrderPriorityId, IsPMA, IsDER, TechStationId, TATDaysStandard, TechnicianId, tmpWOM.ConditionId, TATDaysCurrent, WOP.MasterCompanyId, WOP.CreatedBy, WOP.UpdatedBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,0,NULL,0,0,tmpWOM.ConditionId,CustomerReference,tmpWOM.ItemMasterId,ISNULL(WOS.IsTraveler, 0),ISNULL(WOS.IsManualForm, 0), NULL,WOP.PublicationNo 
+								GETUTCDATE(),GETUTCDATE(),1,0,0,NULL,0,0,tmpWOM.ConditionId,CustomerReference,tmpWOM.ItemMasterId,ISNULL(WOS.IsTraveler, 0),ISNULL(WOS.IsManualForm, 0), NULL,WOP.PublicationNo,@TravelerName 
 						FROM #tmpWorkOrderMaterials tmpWOM 
 							JOIN dbo.WorkOrderPartNumber WOP ON tmpWOM.WorkOrderPartNumberId = WOP.ID
 							JOIN dbo.Assemply Assy ON tmpWOM.ItemMasterId = Assy.MappingItemMasterId AND WOP.ItemMasterId = Assy.ItemMasterId AND Assy.ProvisionId = @SubWOProvisionID AND Assy.PopulateWoMaterialList = 1

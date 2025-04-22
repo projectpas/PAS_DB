@@ -15,6 +15,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 4    17/02/2025   Moin Bloch       Updated (Added Publication PublicationNo)
 ** 5    28/02/2025   RAJESH GAMI      Modify the SP WO Part details to Sub Wo Part detail (Previously showoing WO MPN Details instead of SubWOMPN detail)
 ** 6    04/16/2025   Devendra Shekh   Added IsLaborTrackingTurnedOff to select
+** 7    04/18/2025   RAJESH GAMI	  Added ControlNumber
 EXEC GetSubWorkOrderPrintPdfData 573,559
 
 **************************************************************/
@@ -37,13 +38,13 @@ AS
 			SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId = SubWorkOrderScopeId FROM dbo.SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId 
 			--SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
                  
-			IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0))            
+			IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0))            
 			BEGIN            
-			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0            
+			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and ISNULL(IsVersionIncrease,0)=0            
 			END            
-			ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and IsVersionIncrease=0))            
+			ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ISNULL(IsVersionIncrease,0)=0))            
 			BEGIN            
-			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ISNULL(ItemMasterId,0)=0 and IsVersionIncrease=0            
+			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ISNULL(ItemMasterId,0)=0 and ISNULL(IsVersionIncrease,0)=0            
 			END            
            
 			SELECT DISTINCT wo.WorkOrderId,              
@@ -117,6 +118,8 @@ AS
 				   FOR XML PATH('')              
 				   ), 1, 1, '')
 				   ,(SELECT TOP 1 ISNULL(SWLH.IsLaborTrackingTurnedOff, 0) FROM [dbo].[SubWorkOrderLaborHeader] SWLH WITH(NOLOCK) WHERE SWLH.SubWorkOrderId = SWOPN.SubWorkOrderId AND SWLH.SubWOPartNoId = SWOPN.SubWOPartNoId AND SWLH.WorkOrderId = SWOPN.WorkOrderId AND ISNULL(isDeleted, 0) = 0) AS IsLaborTrackingTurnedOff
+				   ,ISNULL(sl.ControlNumber,'') AS ControlNumber,
+				   	ISNULL(wo.WorkOrderFormTypeId,0) IsWorkOrderFormType
 			FROM dbo.SubWorkOrder SWO WITH(NOLOCK) 
 				INNER JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
 				INNER JOIN Dbo.WorkOrder wo WITH(NOLOCK) ON SWO.WorkOrderId = wo.WorkOrderId             

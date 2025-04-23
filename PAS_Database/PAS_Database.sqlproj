@@ -3706,6 +3706,7 @@
     <Build Include="dbo\Stored Procedures\CreateSalesOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerATAMapped.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerATAMappedAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAircraftMapping.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

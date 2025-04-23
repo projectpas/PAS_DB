@@ -3705,6 +3705,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetTravelerNameByWorkScopeId.sql" />
     <Build Include="dbo\Stored Procedures\CreateSalesOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerATAMapped.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerATAMappedAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

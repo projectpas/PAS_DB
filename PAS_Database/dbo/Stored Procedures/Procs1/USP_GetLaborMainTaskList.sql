@@ -179,7 +179,7 @@ BEGIN
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
 				ORDER BY SequenceNumber;
-					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber ASC
+					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber,SrNo ASC
 				 END
 				 ELSE
 				 BEGIN

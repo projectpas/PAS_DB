@@ -16,14 +16,13 @@
     1     17/04/2025      Ekta Chandegra        Created  
 
 
--- exec dbo.CreateSalesOrderQuote @QuoteTypeId=1,@OpenDate='2025-04-22 00:00:00',@ValidForDays=30,
-	@QuoteExpireDate='2025-05-22 00:00:00',@CustomerId=44,@CustomerReference=N'',@SalesPersonId=0,
-	@CustomerServiceRepId=0,@ProbabilityId=0,@LeadSourceId=0,@EmployeeId=223,@ApprovedDate=null,
-	@CustomerWarningId=0,@Memo=N'',@Notes=N'',@MasterCompanyId=1,@CreatedBy=N'EKTA CHANDEGRA',
-	@StatusId=1,@StatusChangeDate='2025-04-22 23:14:46.843',@ManagementStructureId=1,@QtyRequested=0,
-	@QtyToBeQuoted=0,@QuoteSentDate=null,@IsNewVersionCreated=0,@QuoteParentId=0,@TotalFreight=0,
-	@TotalCharges=0,@FreightBilingMethodId=0,@ChargesBilingMethodId=0,@FunctionalCurrencyId=1,
-	@ReportCurrencyId=1,@ForeignExchangeRate=1.000000,@IsCopySOQData=0,@CopyOldSOQId=0
+-- exec dbo.CreateSalesOrderQuote @QuoteTypeId=1,@OpenDate='2025-04-23 00:00:00',@ValidForDays=30,
+	@QuoteExpireDate='2025-05-23 00:00:00',@CustomerId=44,@CustomerReference=N'',@SalesPersonId=55,
+	@CustomerServiceRepId=0,@ProbabilityId=2,@LeadSourceId=6,@EmployeeId=223,@CustomerWarningId=0,
+	@Memo=N'',@Notes=N'',@MasterCompanyId=1,@CreatedBy=N'EKTA CHANDEGRA',@StatusId=1,@StatusChangeDate='2025-04-23 16:24:41.990',
+	@ManagementStructureId=1,@QtyRequested=0,@QtyToBeQuoted=0,@IsNewVersionCreated=0,@QuoteParentId=0,@TotalFreight=0,@TotalCharges=0,
+	@FreightBilingMethodId=0,@ChargesBilingMethodId=0,@FunctionalCurrencyId=1,@ReportCurrencyId=1,@ForeignExchangeRate=1.000000,
+	@IsCopySOQData=0,@CopyOldSOQId=0
 
 ************************/   
 CREATE   PROCEDURE [dbo].[CreateSalesOrderQuote]
@@ -38,7 +37,6 @@ CREATE   PROCEDURE [dbo].[CreateSalesOrderQuote]
 	@ProbabilityId INT,
 	@LeadSourceId INT,
 	@EmployeeId BIGINT,
-	@ApprovedDate DATETIME = NULL,
 	@CustomerWarningId BIGINT,
 	@Memo NVARCHAR(MAX),
 	@Notes NVARCHAR(MAX),
@@ -49,7 +47,6 @@ CREATE   PROCEDURE [dbo].[CreateSalesOrderQuote]
 	@ManagementStructureId BIGINT,
 	@QtyRequested INT,
 	@QtyToBeQuoted INT,
-	@QuoteSentDate DATETIME = NULL,
 	@IsNewVersionCreated BIT,
 	@QuoteParentId BIGINT,
 	@TotalFreight DECIMAL(20,2),
@@ -86,19 +83,19 @@ BEGIN
 				DECLARE @RestrictDER BIT;
 
 				DECLARE @QuoteTypeName VARCHAR(50);
-				DECLARE @AccountTypeName VARCHAR(50);
+				DECLARE @AccountTypeName VARCHAR(256);
 				DECLARE @CustomerName VARCHAR(100);
-				DECLARE @SalesPersonName VARCHAR(50);
-				DECLARE @CustomerServiceRepName VARCHAR(50);
+				DECLARE @SalesPersonName VARCHAR(80);
+				DECLARE @CustomerServiceRepName VARCHAR(80);
 				DECLARE @ProbabilityName VARCHAR(50);
 				DECLARE @LeadSourceName VARCHAR(50);
-				DECLARE @EmployeeName VARCHAR(50);
+				DECLARE @EmployeeName VARCHAR(80);
 				DECLARE @CustomerWarningName VARCHAR(500);
-				DECLARE @ManagementStructureName VARCHAR(50);
+				DECLARE @ManagementStructureName VARCHAR(286);
 				DECLARE @CustomerContactName VARCHAR(200);
 				DECLARE @VersionNumber VARCHAR(50);
-				DECLARE @CustomerCode VARCHAR(50);
-				DECLARE @CustomerContactEmail VARCHAR(50);
+				DECLARE @CustomerCode VARCHAR(100);
+				DECLARE @CustomerContactEmail VARCHAR(200);
 				DECLARE @CreditTermName VARCHAR(50);
 				DECLARE @StatusName VARCHAR(50);
 				DECLARE @IsEnforceApproval BIT;
@@ -269,9 +266,9 @@ BEGIN
 				SELECT
 					@QuoteTypeId,@OpenDate,@ValidForDays,@QuoteExpireDate,@AccountTypeId,@CustomerId,@CustomerContactId,@CustomerReference,
 					@ContractReference,@SalesPersonId,NULL,@CustomerServiceRepId,@ProbabilityId,@LeadSourceId,@CreditLimit,
-					@CreditTermId,@EmployeeId,@RestrictPMA,@RestrictDER,@ApprovedDate,NULL,@CustomerWarningId,@Memo,
+					@CreditTermId,@EmployeeId,@RestrictPMA,@RestrictDER,NULL,NULL,@CustomerWarningId,@Memo,
 					@Notes,@MasterCompanyId,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),0,@StatusId,@StatusChangeDate,
-					@ManagementStructureId,@Vesrion,NULL,@QtyRequested,@QtyToBeQuoted,@SalesOrderNumber,@QuoteSentDate,
+					@ManagementStructureId,@Vesrion,NULL,@QtyRequested,@QtyToBeQuoted,@SalesOrderNumber,NULL,
 					@IsNewVersionCreated,1,@QuoteParentId,@QuoteTypeName,@AccountTypeName,@CustomerName,@SalesPersonName,
 					@CustomerServiceRepName,@ProbabilityName,@LeadSourceName,@CreditTermName,@EmployeeName,NULL,
 					@CustomerWarningName,@ManagementStructureName,@CustomerContactName,@VersionNumber,@CustomerCode,
@@ -355,29 +352,27 @@ BEGIN
 													@Parameter9 = '''+ CAST(ISNULL(@ProbabilityId, '') AS varchar(100) ) + ''',
 													@Parameter10 = '''+ CAST(ISNULL(@LeadSourceId, '') AS varchar(100) ) + ''',
 													@Parameter11 = '''+ CAST(ISNULL(@EmployeeId, '') AS varchar(100) ) + ''',
-													@Parameter12 = '''+ CAST(ISNULL(@ApprovedDate , '') AS varchar(100) ) + ''',
-													@Parameter13 = '''+ CAST(ISNULL(@CustomerWarningId, '') AS varchar(100) ) + ''',
-													@Parameter14 = '''+ CAST(ISNULL(@Memo, '') AS varchar(100) ) + ''',
-													@Parameter15 = '''+ CAST(ISNULL(@Notes, '') AS varchar(100) ) + ''',
-													@Parameter16 = '''+ CAST(ISNULL(@MasterCompanyId , '') AS varchar(100) ) + ''',
-													@Parameter17 = '''+ CAST(ISNULL(@CreatedBy, '') AS varchar(100) ) + ''',
-													@Parameter18 = '''+ CAST(ISNULL(@StatusId, '') AS varchar(100) ) + ''',
-													@Parameter19 = '''+ CAST(ISNULL(@StatusChangeDate, '') AS varchar(100) ) + ''',
-													@Parameter20 = '''+ CAST(ISNULL(@ManagementStructureId, '') AS varchar(100) ) + ''',
-													@Parameter21 = '''+ CAST(ISNULL(@QtyRequested , '') AS varchar(100) ) + ''',
-													@Parameter22 = '''+ CAST(ISNULL(@QtyToBeQuoted , '') AS varchar(100) ) + ''',
-													@Parameter23 = '''+ CAST(ISNULL(@QuoteSentDate , '') AS varchar(100) ) + ''',
-													@Parameter24 = '''+ CAST(ISNULL(@IsNewVersionCreated, '') AS varchar(100) ) + ''',
-													@Parameter25 = '''+ CAST(ISNULL(@QuoteParentId, '') AS varchar(100) ) + ''',
-													@Parameter26 = '''+ CAST(ISNULL(@TotalFreight , '') AS varchar(100) ) + ''',
-													@Parameter27 = '''+ CAST(ISNULL(@TotalCharges , '') AS varchar(100) ) + ''',
-													@Parameter28 = '''+ CAST(ISNULL(@FreightBilingMethodId, '') AS varchar(100) ) + ''',
-													@Parameter29 = '''+ CAST(ISNULL(@ChargesBilingMethodId , '') AS varchar(100) ) + ''',
-													@Parameter30 = '''+ CAST(ISNULL(@FunctionalCurrencyId , '') AS varchar(100) ) + ''',
-													@Parameter31 = '''+ CAST(ISNULL(@ReportCurrencyId , '') AS varchar(100) ) + ''',
-													@Parameter32 = '''+ CAST(ISNULL(@ForeignExchangeRate, '') AS varchar(100) ) + ''',
-													@Parameter33 = '''+ CAST(ISNULL(@IsCopySOQData, '') AS varchar(100) ) + ''',
-													@Parameter34 = '''+ CAST(ISNULL(@CopyOldSOQId, '') AS varchar(100) ) + '' 
+													@Parameter12 = '''+ CAST(ISNULL(@CustomerWarningId, '') AS varchar(100) ) + ''',
+													@Parameter13 = '''+ CAST(ISNULL(@Memo, '') AS varchar(100) ) + ''',
+													@Parameter14 = '''+ CAST(ISNULL(@Notes, '') AS varchar(100) ) + ''',
+													@Parameter15 = '''+ CAST(ISNULL(@MasterCompanyId , '') AS varchar(100) ) + ''',
+													@Parameter16 = '''+ CAST(ISNULL(@CreatedBy, '') AS varchar(100) ) + ''',
+													@Parameter17 = '''+ CAST(ISNULL(@StatusId, '') AS varchar(100) ) + ''',
+													@Parameter18 = '''+ CAST(ISNULL(@StatusChangeDate, '') AS varchar(100) ) + ''',
+													@Parameter19 = '''+ CAST(ISNULL(@ManagementStructureId, '') AS varchar(100) ) + ''',
+													@Parameter20 = '''+ CAST(ISNULL(@QtyRequested , '') AS varchar(100) ) + ''',
+													@Parameter21 = '''+ CAST(ISNULL(@QtyToBeQuoted , '') AS varchar(100) ) + ''',
+													@Parameter22 = '''+ CAST(ISNULL(@IsNewVersionCreated, '') AS varchar(100) ) + ''',
+													@Parameter23 = '''+ CAST(ISNULL(@QuoteParentId, '') AS varchar(100) ) + ''',
+													@Parameter24 = '''+ CAST(ISNULL(@TotalFreight , '') AS varchar(100) ) + ''',
+													@Parameter25 = '''+ CAST(ISNULL(@TotalCharges , '') AS varchar(100) ) + ''',
+													@Parameter26 = '''+ CAST(ISNULL(@FreightBilingMethodId, '') AS varchar(100) ) + ''',
+													@Parameter27 = '''+ CAST(ISNULL(@ChargesBilingMethodId , '') AS varchar(100) ) + ''',
+													@Parameter28 = '''+ CAST(ISNULL(@FunctionalCurrencyId , '') AS varchar(100) ) + ''',
+													@Parameter29 = '''+ CAST(ISNULL(@ReportCurrencyId , '') AS varchar(100) ) + ''',
+													@Parameter31 = '''+ CAST(ISNULL(@ForeignExchangeRate, '') AS varchar(100) ) + ''',
+													@Parameter32 = '''+ CAST(ISNULL(@IsCopySOQData, '') AS varchar(100) ) + ''',
+													@Parameter33 = '''+ CAST(ISNULL(@CopyOldSOQId, '') AS varchar(100) ) + '' 
 
 			,@ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    

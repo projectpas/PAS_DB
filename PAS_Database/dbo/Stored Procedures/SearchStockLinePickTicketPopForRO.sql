@@ -27,7 +27,7 @@ BEGIN
 		IF (@IsMultiplePickTicket = 1)
 		BEGIN
 			SELECT DISTINCT
-					sop.RepairOrderPartRecordId RepairOrderPartId
+					rop.RepairOrderPartRecordId RepairOrderPartId
 					,im.PartNumber
 					,sl.StockLineId
 					,im.ItemMasterId As PartId
@@ -36,7 +36,7 @@ BEGIN
 					,ig.Description AS ItemGroup
 					,mf.Name AS Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
-					,sop.ConditionId
+					,rop.ConditionId
 					,'' AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER'
@@ -68,7 +68,7 @@ BEGIN
 						 ,'S' AS MethodType
 						 ,CONVERT(BIT,0) AS PMA
 						 ,Smf.Name as StkLineManufacturer
-						 ,((sop.QuantityReserved + 0
+						 ,((rop.QuantityReserved + 0
 						 --(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 							--INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @RepairOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 							--INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)
@@ -76,10 +76,8 @@ BEGIN
 						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
-				--LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
-				LEFT JOIN DBO.RepairOrderPart sop on sop.ItemMasterId = im.ItemMasterId AND sop.StockLineId = sl.StockLineId
-				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
-				--INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = @RepairOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId  AND SOR.StockLineId = stk.StockLineId
+				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
+				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
 				LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
@@ -87,11 +85,11 @@ BEGIN
 				LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-				LEFT JOIN DBO.ROPickTicket Pick WITH(NOLOCK) ON Pick.RepairOrderPartId = sop.RepairOrderPartRecordId and sl.StocklineId = pick.StocklineId
+				LEFT JOIN DBO.ROPickTicket Pick WITH(NOLOCK) ON Pick.RepairOrderPartId = rop.RepairOrderPartRecordId and sl.StocklineId = pick.StocklineId
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					so.RepairOrderId = @RepairOrderId AND 
-					((sop.QuantityReserved + 0
+					((rop.QuantityReserved + 0
 					--(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 					--	INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @RepairOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 					--	INNER JOIN ROPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)
@@ -101,7 +99,7 @@ BEGIN
 		ELSE
 		BEGIN
 			SELECT DISTINCT
-					sop.RepairOrderPartRecordId RepairOrderPartId
+					rop.RepairOrderPartRecordId RepairOrderPartId
 					,im.PartNumber
 					,sl.StockLineId
 					,im.ItemMasterId As PartId
@@ -110,7 +108,7 @@ BEGIN
 					,ig.Description AS ItemGroup
 					,mf.Name AS Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
-					,sop.ConditionId
+					,rop.ConditionId
 					,'' AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER'
@@ -142,7 +140,7 @@ BEGIN
 						 ,'S' AS MethodType
 						 ,CONVERT(BIT,0) AS PMA
 						 ,Smf.Name as StkLineManufacturer
-						 ,((sop.QuantityReserved + 0
+						 ,((rop.QuantityReserved + 0
 						 -- (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 						 --INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @RepairOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 						 --INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)
@@ -152,8 +150,8 @@ BEGIN
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
 				--LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
-				LEFT JOIN DBO.RepairOrderPart sop on sop.ItemMasterId = im.ItemMasterId AND sop.StockLineId = sl.StockLineId
-				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
+				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
+				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
 				--INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.RepairOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
@@ -162,12 +160,12 @@ BEGIN
 				LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-				LEFT JOIN DBO.ROPickTicket Pick WITH(NOLOCK) ON Pick.RepairOrderPartId = sop.RepairOrderPartRecordId and sl.StockLineId = pick.StockLineId
+				LEFT JOIN DBO.ROPickTicket Pick WITH(NOLOCK) ON Pick.RepairOrderPartId = rop.RepairOrderPartRecordId and sl.StockLineId = pick.StockLineId
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.RepairOrderId = @RepairOrderId AND 
-					((sop.QuantityReserved + 0
+					((rop.QuantityReserved + 0
 					--(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 					--	INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @RepairOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 					--	INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)

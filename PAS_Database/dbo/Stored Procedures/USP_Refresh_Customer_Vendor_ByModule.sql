@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    15 April 2025	RAJESH GAMI		CREATED 
+    2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po
  
  EXEC [USP_WO_Refresh_Customer] 4291,8646
  EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 0,4781,6739,13,''
@@ -69,6 +70,24 @@ BEGIN
 					BEGIN
 						UPDATE [dbo].[PurchaseOrder] SET [VendorName] = @VendorName	 WHERE PurchaseOrderId = @referenceId AND VendorId = @vendorId
 						SELECT VendorName [Name] FROM [dbo].[PurchaseOrder] W WITH (NOLOCK) WHERE PurchaseOrderId = @referenceId  
+					END
+
+					ELSE IF(@moduleId = @ROModuleId)  /***********>>>>>>> Repair Order Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[RepairOrder] SET [VendorName] = @VendorName	 WHERE RepairOrderId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[RepairOrder] W WITH (NOLOCK) WHERE RepairOrderId = @referenceId  
+					END
+
+					ELSE IF(@moduleId = @RFQPOModuleId)  /***********>>>>>>> Vendor RFQ PO Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[VendorRFQPurchaseOrder] SET [VendorName] = @VendorName	 WHERE VendorRFQPurchaseOrderId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[VendorRFQPurchaseOrder] W WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @referenceId  
+					END
+
+					ELSE IF(@moduleId = @RFQROModuleId)  /***********>>>>>>> Vendor RFQ RO Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[VendorRFQRepairOrder] SET [VendorName] = @VendorName	 WHERE VendorRFQRepairOrderId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[VendorRFQRepairOrder] W WITH (NOLOCK) WHERE VendorRFQRepairOrderId = @referenceId  
 					END
 				END
 			END	

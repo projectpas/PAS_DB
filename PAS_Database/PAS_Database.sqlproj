@@ -3701,6 +3701,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetSummarisedQuotationAnalysisData.sql" />
     <Build Include="dbo\Stored Procedures\GetPNTileOEMCrossReferenceList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRFQPurchaseOrderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoiceItem_ByWFWOId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTravelerNameByWorkScopeId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

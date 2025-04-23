@@ -19,11 +19,11 @@
  ** --   --------     -------		--------------------------------          
     1    01/03/2023   Subhash Saliya		Created
   	2    18-Apr-2025  RAJESH GAMI			Modified to add logic for the get TASK based on the WorkOrderFormTypeId condition(Task base or Teardown WO).	
-     
+    3    23-Apr-2025  RAJESH GAMI			Change the Order By 
 -- EXEC [USP_GetLaborMainTaskListSub_WorkOrder] 692,682
 **************************************************************/
 
-CREATE     PROCEDURE [dbo].[USP_GetLaborMainTaskListSub_WorkOrder]
+CREATE       PROCEDURE [dbo].[USP_GetLaborMainTaskListSub_WorkOrder]
  @subWOPartNoId bigint ,
  @subWorkOrderId bigint
 AS
@@ -177,7 +177,7 @@ BEGIN
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
 				ORDER BY SequenceNumber;
-					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber ASC
+					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber,SrNo ASC
 				 END
 				 ELSE
 				 BEGIN

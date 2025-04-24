@@ -247,7 +247,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			 ,ISNULL(CONCAT(empr.[FirstName], ' ', empr.[LastName]), '') 'RequestedByName'
              ,ISNULL(CONCAT(empi.[FirstName], ' ', empi.[LastName]), '')  'InspectionByName'
 			 
-			 ,ISNULL(stl.IntegrationPortal, ISNULL(ipAgg.integrationPortal, '')) AS IntegrationPortalDescriptions
+			 --,ISNULL(stl.IntegrationPortal, ISNULL(ipAgg.integrationPortal, '')) AS IntegrationPortalDescriptions
+			 ,ISNULL(ipFromStockLine.IntegrationPortalDescriptions, ISNULL(ipAgg.integrationPortal, '')) AS IntegrationPortalDescriptions
+
 			 ,ISNULL(NULLIF(stl.IntegrationPortal, ''), ISNULL(ipAgg.IntegrationPortalStringIds, '')) AS IntegrationPortalStringIds
 			 --,(SELECT STRING_AGG(inte.[Description], ',') 
 				--FROM [dbo].[ItemMaster] v WITH(NOLOCK)
@@ -326,6 +328,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
+		OUTER APPLY (
+			SELECT STRING_AGG(ip.Description, ', ') AS IntegrationPortalDescriptions
+			FROM dbo.SplitString(stl.IntegrationPortal, ',') AS ids
+			JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON ids.Item = ip.IntegrationPortalId
+		) AS ipFromStockLine
 		LEFT JOIN (
 			SELECT
 				iM.ItemMasterId,

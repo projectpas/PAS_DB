@@ -12,7 +12,7 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    15 April 2025	RAJESH GAMI		CREATED 
-    2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po
+    2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po, SO,SOQ,Exchange Quote
  
  EXEC [USP_WO_Refresh_Customer] 4291,8646
  EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 0,4781,6739,13,''
@@ -60,6 +60,24 @@ BEGIN
 					BEGIN
 						UPDATE [dbo].[Workorder] SET [CustomerName] = @CustomerName	  WHERE WorkorderId = @referenceId AND CustomerId = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[Workorder] W WITH (NOLOCK) WHERE WorkorderId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @SalesModuleId) /***********>>>>>>> Sales Order Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[SalesOrder] SET [CustomerName] = @CustomerName WHERE SalesOrderId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[SalesOrder] S WITH (NOLOCK) WHERE SalesOrderId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @SOQModuleId) /***********>>>>>>> Sales Order Quote Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[SalesOrderQuote] SET [CustomerName] = @CustomerName WHERE SalesOrderQuoteId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[SalesOrderQuote] Sq WITH (NOLOCK) WHERE SalesOrderQuoteId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @ExchangeQuoteModuleId) /***********>>>>>>> Exchange Quote Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[ExchangeQuote] SET [CustomerName] = @CustomerName WHERE ExchangeQuoteId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[ExchangeQuote] Sq WITH (NOLOCK) WHERE ExchangeQuoteId = @referenceId 
 					END
 				END
 				ELSE IF(@vendorId > 0)

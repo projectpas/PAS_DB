@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_AddUpdateWorkOrderLaborTrackingDetailManual]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Add/Update WorkOrder Labor Tracking Detail 
@@ -12,7 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/02/2023   Subhash Saliya	Created 
-	2    19/05/2023   Subhash Saliya	changes update task statusid  
+	2    19/05/2023   Subhash Saliya	changes update task statusid 
+	3    23/04/2025   Amit Ghediya		update task StatusChangedDate while first time labor hr add with start button. 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AddUpdateWorkOrderLaborTrackingDetailManual]
  @WorkOrderLaborId bigint,
@@ -67,8 +67,8 @@ BEGIN
 										  wot.IsCompleted = 1, 
 										  wot.UpdatedBy = @UserName, UpdatedDate = GETUTCDATE()
 								 From [dbo].[WorkOrderLaborTracking] as wot WITH(NOLOCK)  WHERE WorkOrderLaborTrackingId = @woLaborTrackingId
-								 		print 'as'
-								     SELECT @totalHours =  SUM(ISNULL(TotalHours,0)), @totalMinutes = SUM(ISNULL(TotalMinutes,0)) FROM [dbo].[WorkOrderLaborTracking] WHERE WorkOrderLaborId =@woLaborId AND TaskId = @TaskId AND EmployeeId = @EmployeeId 
+								     
+									 SELECT @totalHours =  SUM(ISNULL(TotalHours,0)), @totalMinutes = SUM(ISNULL(TotalMinutes,0)) FROM [dbo].[WorkOrderLaborTracking] WHERE WorkOrderLaborId =@woLaborId AND TaskId = @TaskId AND EmployeeId = @EmployeeId 
 									 set @totalCalulatedHours = @totalHours + (CONVERT(int,(@totalMinutes / 60 + (@totalMinutes % 60) / 100.0)))
 									 set @totalCalculatedMinutes = convert(int,(CASE WHEN @totalMinutes > 60 THEN (PARSENAME(CONVERT(decimal(10,2),(convert(int,@totalMinutes) / 60 + (convert(int,@totalMinutes) % 60) / 100.0)),1)) ELSE @totalMinutes END))
 									 set @totalMainHours = convert(decimal(10,2),(convert(varchar(20),isnull(@totalCalulatedHours,0)) +'.'+ convert(varchar(20),format(isnull(@totalCalculatedMinutes,0),'00'))))
@@ -80,7 +80,6 @@ BEGIN
 									 set @TotalAdjustedMinutes = convert(int,(CASE WHEN (ISNULL(@totalCalculatedMinutes,0) + ISNULL(@AdjustedMinutestemp,0)) > 60 THEN (PARSENAME(CONVERT(decimal(10,2),(convert(int,(ISNULL(@totalCalculatedMinutes,0) + ISNULL(@AdjustedMinutestemp,0))) / 60 + (convert(int,(ISNULL(@totalCalculatedMinutes,0) + ISNULL(@AdjustedMinutestemp,0))) % 60) / 100.0)),1)) ELSE (ISNULL(@totalCalculatedMinutes,0) + ISNULL(@AdjustedMinutestemp,0)) END))
 									 set @FinalAdjustedHours = CONCAT(Cast(isnull(@TotalAdjustedHours,0) as int),'.', format(isnull(@TotalAdjustedMinutes,0),'00')) --cast((convert(varchar(20),isnull(@TotalAdjustedHours,0)) +'.'+ convert(varchar(20),format(isnull(@TotalAdjustedMinutes,0),'00'))) as decimal(18,2))
 
-									 print @FinalAdjustedHours
 								    UPDATE WL set [Hours]= @totalMainHours , AdjustedHours = @FinalAdjustedHours,
 											   BurdenRateAmount = (CASE WHEN ISNULL(BurdaenRatePercentageId,0) = 0 THEN BurdenRateAmount ELSE (CONVERT(decimal(10,2),(DirectLaborOHCost * P.PercentValue)/100))END),
 											   TotalCostPerHour = (ISNULL(DirectLaborOHCost,0) + (CASE WHEN ISNULL(BurdaenRatePercentageId,0) = 0 THEN BurdenRateAmount ELSE (CONVERT(decimal(10,2),(DirectLaborOHCost * P.PercentValue)/100))END))
@@ -140,7 +139,7 @@ BEGIN
 							   if(@CurrentTaskStatusId = @PendingTaskStatusId)
 							   begin
 							      UPDATE WL set 
-											   TaskStatusId = @InprogressTaskStatusId,UpdatedBy = @UserName,UpdatedDate = GETUTCDATE()
+											   TaskStatusId = @InprogressTaskStatusId,UpdatedBy = @UserName,UpdatedDate = GETUTCDATE(),StatusChangedDate = GETUTCDATE() 
 									  FROM dbo.WorkOrderLabor WL  WITH(NOLOCK)
 									  WHERE  Wl.WorkOrderLaborId = @woLaborId
 							   end

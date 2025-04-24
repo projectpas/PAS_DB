@@ -25,6 +25,7 @@
 	10	 23/01/2025   AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level)
 	11	 15/04/2025   Devendra Shekh Shipping Accounting Entry Issue Resolved
 	12	 17/04/2025   Devendra Shekh Invoice Accounting Entry Issue Resolved
+	13	 24/04/2025	  Devendra Shekh Modify (Added [IsManualText] check for DistributionSetup)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -227,12 +228,11 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('EX-SHIPMENT'))
 	        BEGIN				
-				SELECT @InvoiceNo = [SOShippingNum] FROM [dbo].[ExchangeSalesOrderShipping] WITH(NOLOCK) WHERE [ExchangeSalesOrderShippingId] = @InvoiceId;
-				SET @ValidDistribution = 0;
+				SELECT @InvoiceNo = [SOShippingNum] FROM [dbo].[ExchangeSalesOrderShipping] WITH(NOLOCK) WHERE [ExchangeSalesOrderShippingId] = @InvoiceId;				
 
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
-					SET @ValidDistribution = 1;
+					SET @ValidDistribution = 0;
 				END
 
 				IF(@ValidDistribution = 1)
@@ -790,11 +790,10 @@ BEGIN
 				BEGIN
 
 				SELECT @InvoiceNo = [InvoiceNo],@InvoiceDate = [InvoiceDate] FROM [dbo].[ExchangeSalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @InvoiceId;
-				SET @ValidDistribution = 0;
 
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
-					SET @ValidDistribution = 1;
+					SET @ValidDistribution = 0;
 				END
 				IF(@ValidDistribution = 1)
 				BEGIN

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodSubWOMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For SUB Finished Good.      
@@ -32,6 +31,7 @@
 14    09/13/2024   RAJESH GAMI	   Implemented Stockline History for the IssueReserve
 15    04/14/2025   HEMANT SALIYA   Added Work Order Work Flow Id for UpdateWOMaterialsCost
 16    04/18/2025   ABHISHEK JIRAWLA  Added Integration Portal in Stockline
+17	  24/04/2025   Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -489,13 +489,13 @@ BEGIN
        EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId, @WorkFlowWorkOrderId = @WorkOrderWorkflowId; 
 
 	   --  Added SubWorkOrder Labor + Part Cost Reverse Batch Entry 
-	   IF NOT EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+	   IF NOT EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 	   BEGIN
 			EXEC [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder] @DistributionMasterId,@SubWorkOrderId,@SubWOPartNumberId,@OldWorkOrderMaterialsId,0,@OldStocklineId,@SubWorkOrderQty,'',1,@TotalSubWorkOrderCost,@ModuleName,@MasterCompanyId,@UpdatedBy
 	   END	
 	   
 	   --  Added WO Part Issue Batch Entry 
-	   IF NOT EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+	   IF NOT EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 	   BEGIN
 	   		EXEC [dbo].[USP_BatchTriggerBasedonDistribution] @DistributionMasterId,@WorkOrderId,0,@WorkFlowWorkOrderId,@InvoiceId,@NewStocklineId,@SubWorkOrderQty,@laborType,@issued,0,@WOModuleName,@MasterCompanyId,@UpdatedBy
 	   END

@@ -22,6 +22,7 @@
 	6	 14/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	7	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	8	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
+	9	 24/04/2025	  Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -313,7 +314,7 @@ BEGIN
 				  WHERE [ReadyToPayId] = @ReadyToPayId;
 				  				
 		
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
 				END

@@ -25,6 +25,7 @@
 	12   19/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
 	13	 14/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	14	 04/11/2024  Devendra Shekh Added ReferenceModule For [CommonBatchDetails]
+	15	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
@@ -505,7 +506,7 @@ BEGIN
 
 					SET @miscellaneousAmount = CASE WHEN ISNULL(@Ismiscellaneous, 0) = 0 THEN @RemainingAmount ELSE @miscellaneousAmount END;
 
-					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND [IsManualText] = 0 AND ISNULL(GlAccountId,0) = 0)
+					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
 					END

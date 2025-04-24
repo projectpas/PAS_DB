@@ -18,6 +18,7 @@
 	7	 13/01/2025		Devendra Shekh		Modify (StockLine GL selection Changes)
 	8	 22/01/2025		Devendra Shekh		Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 	9	 28/01/2025		Devendra Shekh		Modify (Reverse Entry Issue Resolved)
+	10	 24/04/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
@@ -313,7 +314,7 @@ BEGIN
 					SELECT	@GlAccountId = SL.WorkInProgressGLAccId	FROM DBO.Stockline SL WITH(NOLOCK) WHERE SL.StockLineId = @StocklineId;
 					SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName	FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 
-					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] =@DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] =@DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
 					END
@@ -474,7 +475,7 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							SET @ValidDistribution = 0;
 						END
@@ -684,7 +685,7 @@ BEGIN
 
 					IF NOT EXISTS(SELECT woB.WorkOrderBatchId from WorkOrderBatchDetails woB WITH(NOLOCK)  WHERE PiecePNId= @ReferencePieceId and Batchtype=@Batchtype and DistributionSetupId=@DistributionSetupId)
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						 IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						 BEGIN
 							SET @ValidDistribution = 0;
 						 END
@@ -891,7 +892,7 @@ BEGIN
 						 END
 						 ELSE
 						 BEGIN
-							IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							 BEGIN
 								SET @ValidDistribution = 0;
 							 END
@@ -1104,7 +1105,7 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							SET @ValidDistribution = 0;
 						END
@@ -1379,7 +1380,7 @@ BEGIN
 					INSERT INTO #tmpFinalStockLineResult([ExtendedCost], [WOPartNoId], [WorkInProgressGLAccId])
 					SELECT SUM([ExtendedCost]) AS [ExtendedCost], [WOPartNoId], [WorkInProgressGLAccId]  FROM #tmpStockLineResult GROUP BY [WOPartNoId], [WorkInProgressGLAccId]
 
-					IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
 					END
@@ -2144,7 +2145,7 @@ BEGIN
 					  LEFT JOIN [dbo].[Lot] LO ON LO.[LotId] = STL.[LotId]			  
 					  WHERE WOP.[ID] = @ReferencePartId;
 			
-					IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
 					END

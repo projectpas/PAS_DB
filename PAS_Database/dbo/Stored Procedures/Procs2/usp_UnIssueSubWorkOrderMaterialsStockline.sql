@@ -14,6 +14,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 3    12/20/2023  HEMANT SALIYA    Added KIT in SWO Issue
 ** 4    10/08/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
+** 6	24/04/2025  Devendra Shekh   Modify (Added [IsManualText] check for DistributionSetup)
 
 declare @p1 dbo.SubWOMaterialsStocklineType
 insert into @p1 values(3801,187,161,79,161326,20751,7,1,10,2,N'NE',N'PART9',N'A COCKPIT OR FLIGHT DECK IS THE AREA, USUALLY NEAR THE FRONT OF AN AIRCRAFT OR SPACECRAFT, FROM WHICH A PILOT CONTROLS THE AIRCRAFT. THE COCKPIT OF AN AIRCRAFT CONTAINS FLIGHT INSTRUMENTS ON AN INSTRUMENT PANEL, AND THE CONTROLS THAT ENABLE THE PILOT TO FLY THE AIRCRAFT',1,0,0,0,0,1,N'CNTL-001540',N'ID_NUM-000010',N'STL000004',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -331,7 +332,7 @@ BEGIN
 						-- Sub Work Order Accounting Batch Entry --
 						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
 						BEGIN
-							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder] @DistributionMasterId,@ReferenceId,@ReferencePartId,@SubReferenceId,0,@StocklineId,@IssueQty,'',@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 							END
@@ -339,7 +340,7 @@ BEGIN
 
 						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId)
 						BEGIN
-							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalSubWorkOrder] @DistributionMasterId,@ReferenceId,@ReferencePartId,@SubReferenceId,0,@StocklineId,@IssueQty,'',@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 							END

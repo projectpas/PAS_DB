@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForInternalSubWorkOrder]
  ** Author:  Satish Gohil
  ** Description: This stored procedure is used to Accounting entry for Internal SWO
@@ -19,6 +18,7 @@
 	4	 08/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	5	 11/05/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	6	 13/01/2025  Devendra Shekh Modify (GL selection Changes)
+	7	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalSubWorkOrder]
@@ -252,7 +252,7 @@ BEGIN
 				SELECT	@GlAccountId = SL.WorkInProgressGLAccId	FROM DBO.Stockline SL WITH(NOLOCK) WHERE SL.StockLineId = @StocklineId;
 				SELECT	@GlAccountNumber = AccountCode, @GlAccountName = AccountName	FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId
 							   
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
 				END
@@ -641,7 +641,7 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
 					END
@@ -1160,7 +1160,7 @@ BEGIN
 
 				IF NOT EXISTS(SELECT wob.[WorkOrderBatchId] FROM [dbo].[WorkOrderBatchDetails] wob WITH(NOLOCK) WHERE [PiecePNId] = @ReferencePieceId AND [Batchtype] = @Batchtype AND [DistributionSetupId]=@DistributionSetupId)
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+					 IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 					 BEGIN
 						SET @ValidDistribution = 0;
 					 END					
@@ -1765,7 +1765,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN
-						IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						 BEGIN
 							SET @ValidDistribution = 0;
 						 END
@@ -1972,7 +1972,7 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						SET @ValidDistribution = 0;
 					END

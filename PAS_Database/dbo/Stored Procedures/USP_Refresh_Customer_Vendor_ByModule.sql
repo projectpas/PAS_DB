@@ -15,10 +15,10 @@
     2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po, SO,SOQ,Exchange Quote
  
  EXEC [USP_WO_Refresh_Customer] 4291,8646
- EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 0,4781,6739,13,''
+ EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 1122,0,6639,23,''
 ********************************************************************/ 
 
-CREATE     PROCEDURE [dbo].[USP_Refresh_Customer_Vendor_ByModule]
+CREATE PROCEDURE [dbo].[USP_Refresh_Customer_Vendor_ByModule]
 	@customerId BIGINT = 0,
 	@vendorId BIGINT = 0,
 	@referenceId BIGINT =0,
@@ -79,6 +79,30 @@ BEGIN
 						UPDATE [dbo].[ExchangeQuote] SET [CustomerName] = @CustomerName WHERE ExchangeQuoteId = @referenceId AND CustomerId = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[ExchangeQuote] Sq WITH (NOLOCK) WHERE ExchangeQuoteId = @referenceId 
 					END
+
+					ELSE IF(@moduleId = @SpeedQuoteModuleId) /***********>>>>>>> Speed Quote Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[SpeedQuote] SET [CustomerName] = @CustomerName WHERE SpeedQuoteId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[SpeedQuote] Sq WITH (NOLOCK) WHERE SpeedQuoteId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @WOQModuleId) /***********>>>>>>> WO Quote Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[WorkOrderQuote] SET [CustomerName] = @CustomerName WHERE WorkOrderQuoteId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[WorkOrderQuote] RC WITH (NOLOCK) WHERE WorkOrderQuoteId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @CustomerRMAModuleId) /***********>>>>>>> CustomerRMA Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[CustomerRMAHeader] SET [CustomerName] = @CustomerName WHERE RMAHeaderId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[CustomerRMAHeader] RC WITH (NOLOCK) WHERE RMAHeaderId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @CreditMemoModuleId) /***********>>>>>>> Credit Memo Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[CreditMemo] SET [CustomerName] = @CustomerName WHERE CreditMemoHeaderId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[CreditMemo] C WITH (NOLOCK) WHERE CreditMemoHeaderId = @referenceId 
+					END
 				END
 				ELSE IF(@vendorId > 0)
 				BEGIN
@@ -106,6 +130,24 @@ BEGIN
 					BEGIN
 						UPDATE [dbo].[VendorRFQRepairOrder] SET [VendorName] = @VendorName	 WHERE VendorRFQRepairOrderId = @referenceId AND VendorId = @vendorId
 						SELECT VendorName [Name] FROM [dbo].[VendorRFQRepairOrder] W WITH (NOLOCK) WHERE VendorRFQRepairOrderId = @referenceId  
+					END
+
+					ELSE IF(@moduleId = @ReceivingReconciliationModuleId)  /***********>>>>>>> Receiving ReConciliation Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[ReceivingReconciliationHeader] SET [VendorName] = @VendorName	 WHERE ReceivingReconciliationId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[ReceivingReconciliationHeader] W WITH (NOLOCK) WHERE ReceivingReconciliationId = @referenceId  
+					END
+
+					ELSE IF(@moduleId = @NonPOModuleId)  /***********>>>>>>> Non PO Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[NonPOInvoiceHeader] SET [VendorName] = @VendorName	 WHERE NonPOInvoiceId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[NonPOInvoiceHeader] W WITH (NOLOCK) WHERE NonPOInvoiceId = @referenceId  
+					END
+
+					ELSE IF(@moduleId = @VendorProformaInvoiceModuleId)  /***********>>>>>>> Vendor Proforma Invoice Vendor name REFRESH  <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[VendorProformaInvoiceHeader] SET [VendorName] = @VendorName	 WHERE VendorProformaInvoiceId = @referenceId AND VendorId = @vendorId
+						SELECT VendorName [Name] FROM [dbo].[VendorProformaInvoiceHeader] VI WITH (NOLOCK) WHERE VendorProformaInvoiceId = @referenceId  
 					END
 				END
 			END	

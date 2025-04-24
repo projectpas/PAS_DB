@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
  ** Author:   Abhishek Jirawla
  ** Description: Get work order parts view
@@ -11,7 +12,8 @@
  **************************************************************           
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
-    1    08-APR-2025   Abhishek Jirawla	Created
+    1    08-APR-2025   Abhishek Jirawla		Created
+	2	 24-APR-2025    Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
      
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -573,6 +575,7 @@ BEGIN
 							WHERE DistributionMasterId = @DistributionMasterId
 							  AND MasterCompanyId = @MasterCompanyId
 							  AND GlAccountId = 0
+							  AND ISNULL([IsManualText],0) = 0
 						)
 						BEGIN
 							-- Step 3: Prepare and use the "SOBatchTriggerModel"
@@ -899,6 +902,7 @@ BEGIN
 							WHERE DistributionMasterId = @UpdateDistributionMasterId
 							  AND MasterCompanyId = @MasterCompanyId
 							  AND GlAccountId = 0
+							  AND ISNULL([IsManualText],0) = 0
 						)
 						BEGIN
 							-- Step 3: Prepare and use the "SOBatchTriggerModel"

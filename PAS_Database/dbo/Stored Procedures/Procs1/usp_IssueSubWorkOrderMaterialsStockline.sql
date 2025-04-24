@@ -15,6 +15,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** 4    10/08/2024  RAJESH GAMI      Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
 ** 6    02/13/2025	Hemnat Saliya	 Updated - Re_calculate MPN Cost
+** 7	04/24/2025	Devendra Shekh	 Modify (Added [IsManualText] check for DistributionSetup)
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -460,7 +461,7 @@ BEGIN
 
 						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
 						BEGIN
-							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder] @DistributionMasterId,@ReferenceId,@ReferencePartId,@SubReferenceId,0,@StocklineId,@IssueQty,'',@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 							END
@@ -468,7 +469,7 @@ BEGIN
 
 						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId)
 						BEGIN
-							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalSubWorkOrder] @DistributionMasterId,@ReferenceId,@ReferencePartId,@SubReferenceId,0,@StocklineId,@IssueQty,'',@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 							END

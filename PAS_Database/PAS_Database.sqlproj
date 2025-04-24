@@ -3704,6 +3704,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoiceItem_ByWFWOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTravelerNameByWorkScopeId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRFQRepairOrderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

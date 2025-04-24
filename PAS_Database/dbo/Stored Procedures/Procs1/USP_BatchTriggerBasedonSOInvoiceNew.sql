@@ -31,6 +31,7 @@
 	17	 12/05/2024  Devendra Shekh Fixed amount issue while shipping/billing(cogs/inventory) accounting entry
 	18	 12/06/2024  Moin Bloch     Fixed Duplicate amount issue 
 	19	 06/01/2025  AMIT GHEDIYA   Modify(get Distribution based on new settings from stockline level with single bill)
+	20	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
@@ -250,7 +251,7 @@ BEGIN
 				IF NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderBatchDetails] SOD WITH(NOLOCK) WHERE SOD.[SalesOrderId] = @ReferenceId AND SOD.[DocumentId] = @InvoiceId)
 				BEGIN
 
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
 				END
@@ -731,7 +732,7 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('SO_SHIPMENT'))
 	        BEGIN				
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
 				END

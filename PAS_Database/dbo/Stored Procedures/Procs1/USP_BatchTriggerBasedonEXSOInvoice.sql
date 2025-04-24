@@ -2086,7 +2086,7 @@ BEGIN
 			IF(UPPER(@DistributionCode) = UPPER('EX-CORERETURNED'))
 	        BEGIN
 				SELECT @InvoiceNo = [ReceivingNumber] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @InvoiceId;
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
 				END

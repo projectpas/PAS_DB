@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
  ** File:   [USP_GetVendorRFQPurchaseOrderDetails]           
  ** Author:   Bhargav Saliya 
- ** Description: Get Data for RFQ PO Header Data    
+ ** Description: Get Data for RFQ RO Header Data    
  ** Purpose:         
- ** Date:   22-April-2025      
+ ** Date:   23-April-2025      
           
  ** PARAMETERS:           
  @POId varchar(60)   
@@ -15,22 +15,22 @@
  **************************************************************           
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
-    1    22-April-2025   Bhargav Saliya		Created
+    1    23-April-2025   Bhargav Saliya		Created
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetVendorRFQPurchaseOrderDetails]
-    @VendorRFQPurchaseOrderId BIGINT
+CREATE   PROCEDURE [DBO].[USP_GetVendorRFQRepairOrderDetails]
+    @VendorRFQRepairOrderId BIGINT
 AS
 BEGIN
-    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
 	BEGIN TRY
 
-		DECLARE @MSModuleId BIGINT = (SELECT ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName = 'VendorRFQPOHeader');
+		DECLARE @MSModuleId BIGINT = (SELECT ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) where ModuleName = 'VendorRFQROHeader');
 
 		SELECT TOP 1
-			po.VendorRFQPurchaseOrderId,
-			po.VendorRFQPurchaseOrderNumber,
+			po.VendorRFQRepairOrderId,
+			po.VendorRFQRepairOrderNumber,
 			po.OpenDate,
 			po.ClosedDate,
 			po.NeedByDate,
@@ -45,7 +45,7 @@ BEGIN
 			po.CreditTermsId,
 			po.Terms,
 			po.CreditLimit,
-			po.RequestedBy,
+			po.RequisitionerId,
 			po.Requisitioner,
 			po.StatusId,
 			po.Status,
@@ -78,9 +78,9 @@ BEGIN
 			CASE WHEN po.FunctionalCurrencyId > 0 THEN po.FunctionalCurrencyId ELSE 0 END AS FunctionalCurrencyId,
 			CASE WHEN po.ReportCurrencyId > 0 THEN po.ReportCurrencyId ELSE 0 END AS ReportCurrencyId,
 			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate
-		FROM [dbo].[VendorRFQPurchaseOrder] po WITH(NOLOCK)
-		LEFT JOIN [dbo].[PurchaseOrderManagementStructureDetails] msd WITH(NOLOCK) ON po.VendorRFQPurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @MSModuleId 
-		WHERE po.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId
+		FROM [dbo].[VendorRFQRepairOrder] po WITH(NOLOCK)
+		LEFT JOIN [dbo].[RepairOrderManagementStructureDetails] msd WITH(NOLOCK) ON po.VendorRFQRepairOrderId = msd.ReferenceID AND msd.ModuleID = @MSModuleId  -- Replace 101 with the actual value of (int)ManagementStructureModuleEnum.VendorRFQROHeader
+		WHERE po.VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 	END TRY
 	BEGIN CATCH      
 			IF @@trancount > 0
@@ -89,8 +89,8 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetVendorRFQPurchaseOrderDetails' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@VendorRFQPurchaseOrderId, '') + ''
+              , @AdhocComments     VARCHAR(150)    = 'USP_GetVendorRFQRepairOrderDetails' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@VendorRFQRepairOrderId, '') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

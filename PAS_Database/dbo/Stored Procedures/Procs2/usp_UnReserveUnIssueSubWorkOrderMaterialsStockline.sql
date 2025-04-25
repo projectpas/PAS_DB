@@ -16,6 +16,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 5    09/12/2024  RAJESH GAMI 	Add new Stk History Action (UnIssueUnReserve)
 ** 6    10/08/2024  RAJESH GAMI 	Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 7    11/22/2024	Devendra Shekh	Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine AND SubWorkOrderMaterialStockLineKit)
+** 8	24/04/2025	Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveUnIssueSubWorkOrderMaterialsStockline]
@@ -327,7 +328,7 @@ BEGIN
 						END
 
 						-- batch trigger unissue qty
-						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
 							@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy

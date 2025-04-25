@@ -20,8 +20,8 @@
 	3    29-MARCH-2024  Ekta Chandegra     IsDeleted and IsActive flag is added
 	4    10-APRL-2024   Shrey Chandegara   poage changes   ( DATEDIFF(DAY, PO.OpenDate, GETDATE()) to DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) )
 	5    05-AUG-2024   Shrey Chandegara   Changes for PO View AND PN View.
-	6    06-aug-2024  Shrey Chandegara  MOdify due to chek isnull in closedateand when it is null then use getDate() as ClosedDate.
-	
+	6    06-aug-2024   Shrey Chandegara  MOdify due to chek isnull in closedateand when it is null then use getDate() as ClosedDate.
+	7    23 Apr 2025   RAJESH GAMI         Get only parent parts (Exclude the split part inthe report)
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseOrderReport] 
@@ -118,7 +118,7 @@ BEGIN
 			BEGIN 
 					SELECT @PageSize=COUNT(*)
 					FROM dbo.PurchaseOrder PO WITH (NOLOCK)
-						INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+						INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND ISNULL(POP.isParent,0) = 1
 						INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
 						LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 					WHERE PO.StatusId IN (SELECT value FROM String_split(@status, ','))
@@ -180,7 +180,7 @@ BEGIN
 				UPPER(MSD.Level10Name) AS level10,
 				PO.MasterCompanyId
 			FROM dbo.PurchaseOrder PO WITH (NOLOCK)
-				INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+				INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND ISNULL(POP.isParent,0) = 1
 				INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
 				LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			WHERE PO.StatusId IN (SELECT value FROM String_split(@status, ','))
@@ -260,7 +260,7 @@ BEGIN
 						UPPER(MSD.Level10Name) AS level10,
 						PO.MasterCompanyId
 					FROM dbo.PurchaseOrder PO WITH (NOLOCK)
-						INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+						INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId AND ISNULL(POP.isParent,0) = 1
 						INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleIDForPO AND MSD.ReferenceID = PO.PurchaseOrderId
 						LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 					WHERE PO.StatusId IN (SELECT value FROM String_split(@status, ',')) 

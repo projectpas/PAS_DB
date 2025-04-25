@@ -18,8 +18,9 @@ EXEC [usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
 ** 7    09/24/2024      HEMANT SALIYA	    Re-Calculate WOM Qty Res & Qty Issue
 ** 8    10/04/2024      RAJESH GAMI 	    Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
 ** 9    11/28/2024		HEMANT SALIYA		Re-Calculate WOM Qty Res & Qty Issue
-** 10    11/22/2024		Devendra Shekh		Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
-** 11    12/20/2024		Devendra Shekh		ExtendedCost Calculation issue Resolved
+** 10   11/22/2024		Devendra Shekh		Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
+** 11   12/20/2024		Devendra Shekh		ExtendedCost Calculation issue Resolved
+** 12	04/24/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
@@ -379,7 +380,7 @@ BEGIN
 						END
 
 						-- batch trigger unissue qty
-						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN						
 							INSERT INTO @WOBatchTriggerType VALUES
 							(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
@@ -398,7 +399,7 @@ BEGIN
 
 					IF(ISNULL(@IsAccountByPass, 0) = 0 AND @WOBatchCount > 0)
 					BEGIN
-						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
 						END

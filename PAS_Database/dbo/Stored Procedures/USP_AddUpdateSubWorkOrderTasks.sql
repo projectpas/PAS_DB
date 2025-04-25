@@ -10,6 +10,7 @@
  ** PR   Date         Author  		 Change Description
  ** --   --------     -------		 --------------------------------
     1    03/18/2025   Vishal Suthar	 Created
+	2    24/Apr/2025  RAJESH GAMI    add the WorkOrderPartNumberId where condition while adding the Sequence Number (We need to increase Sequence By Part No Id)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateSubWorkOrderTasks]
 	@SubWorkOrderTaskId BIGINT,
@@ -54,7 +55,7 @@ BEGIN
 	BEGIN
 		DECLARE @CurrentSequenceNo INT = 0;
 
-		SELECT @CurrentSequenceNo = ISNULL(MAX(SequenceNumber), 0) FROM DBO.SubWorkOrderTask WHERE WorkOrderId = @WorkOrderId AND SubWorkOrderId = @SubWorkOrderId;
+		SELECT @CurrentSequenceNo = ISNULL(MAX(SequenceNumber), 0) FROM DBO.SubWorkOrderTask WHERE WorkOrderId = @WorkOrderId AND SubWorkOrderId = @SubWorkOrderId AND ISNULL(SubWOPartNoId,0) = ISNULL(@SWOPartNumberId,0);
 		DECLARE @InsertedWorkOrderTaskId BIGINT = 0;
 
 		INSERT INTO DBO.SubWorkOrderTask ([WorkOrderId],[SubWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],

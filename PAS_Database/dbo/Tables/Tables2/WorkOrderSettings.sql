@@ -56,10 +56,13 @@
     [Is813013aeOr14ae]              INT            DEFAULT ((1)) NULL,
     [ByPassCMMSettingAtReceiving]   BIT            NULL,
     [ByPassCapesSettingAtReceiving] BIT            NULL,
+    [IsFlatRate]                    BIT            NULL,
     CONSTRAINT [PK_WorkOrderSettings] PRIMARY KEY CLUSTERED ([WorkOrderSettingId] ASC),
     CONSTRAINT [FK_WorkOrderSettings_ConditionId] FOREIGN KEY ([DefaultConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

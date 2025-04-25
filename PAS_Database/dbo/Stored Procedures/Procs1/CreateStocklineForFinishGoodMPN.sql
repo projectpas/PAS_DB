@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For Finished Good.      
@@ -34,6 +33,7 @@
     16   04/19/2024   Moin Bloch        Modify(Added RepairOrderNumber in New Stockline)
 	17   05/04/2024	  HEMANT SALIYA	    Updated for Add Existing Customer Details
 	18   18/04/2025   ABHISHEK JIRAWLA  Added Integration Portal in Stockline
+	19	 24/04/2025   Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
@@ -376,7 +376,7 @@ BEGIN
 
 	IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 	BEGIN
-		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 		BEGIN
 
 			EXEC [dbo].[USP_BatchTriggerBasedonDistribution]   
@@ -387,7 +387,7 @@ BEGIN
 
 	IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 	BEGIN
-		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 		BEGIN
 
 			EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]  

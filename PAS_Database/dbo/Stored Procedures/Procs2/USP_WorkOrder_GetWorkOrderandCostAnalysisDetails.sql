@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get WorkOrder/SubWorkOrder CostAnalysis Details.
@@ -22,11 +21,11 @@
 	5    10/19/2023   Vishal Suthar		Fixed Backorder qty calculation
 	6    12/31/2024   Hemant Saliya		Update for Modify Work Order cost analysis Summary
 	7    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
-	8    04/21/2025   Hemant Saliya		Repair Cost at Part wise
+	8    04/22/2025   Hemant Saliya		Repair Cost at Part wise from Srockline
 
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 8416, 8718     
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
+CREATE    PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT
@@ -256,26 +255,19 @@ BEGIN
 		END
 
 		--Outside Cost
-		SELECT @OutSideServiceMaterialsCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
-			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-				JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = ROP.WorkOrderMaterialsId AND WOM.WorkOrderId = ROP.WorkOrderId AND ROP.MasterCompanyId = WOM.MasterCompanyId
-				JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
-		WHERE ROP.WorkOrderId = @WorkOrderId;		
+		SELECT @OutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))) 
+		FROM [DBO].[Stockline] SL WITH(NOLOCK)
+			JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+			JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId			
+		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
 
-		SELECT @OutSideServiceKitCost =  SUM(ISNULL(ROP.ExtendedCost,0)) 
-			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-				JOIN [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = ROP.WorkOrderMaterialsId AND WOM.WorkOrderId = ROP.WorkOrderId AND ROP.MasterCompanyId = WOM.MasterCompanyId
-				JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
-		WHERE ROP.WorkOrderId = @WorkOrderId;		
+		SELECT @OutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))) 
+		FROM [DBO].[Stockline] SL WITH(NOLOCK)
+			JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+			JOIN [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId			
+		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
 
 		SET @OutSideServiceCost = ISNULL(@OutSideServiceMaterialsCost, 0) + ISNULL(@OutSideServiceKitCost, 0);
-		
-		--Old  OutSideServiceCost Code
-		--SELECT @OutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
-		--FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-		--	LEFT JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMS.RepairOrderId
-		--	LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId			
-		--WHERE ROP.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
 
 		--Labor Cost
 		SELECT @WorkOrderLaborHeaderId = WOLH.WorkOrderLaborHeaderId , @TotalWorkHours = TotalWorkHours

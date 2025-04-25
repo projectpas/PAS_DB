@@ -14,6 +14,7 @@
 	2    June/28/2024   Hemant Saliya	Updated for Aounting Entry for Close all Labor 
 	3    June/30/2024	Devendra Shekh	Modified For Same JE Changes
 	4    22-Jan-2025	Devendra Shekh	Modified (allowing Accounting Entry for Teardown WO)
+	5	 24-APR-2025	Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 
 EXEC USP_CompleteAllWorkOrderLabor 3395
 **************************************************************/
@@ -248,7 +249,7 @@ BEGIN
 						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 						BEGIN
 							PRINT '7'
-							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								PRINT '7.1.1'
 								 --EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
@@ -261,7 +262,7 @@ BEGIN
 						IF(ISNULL(@WOTypeId, 0) IN (@InternalWOTypeId, @TeardownWOTypeId) AND ISNULL(@IsAccountByPass, 0) = 0)
 						BEGIN
 							PRINT '8'
-							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 
 								--@DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy
@@ -285,7 +286,7 @@ BEGIN
 
 				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
 				BEGIN
-					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
 					END
@@ -293,7 +294,7 @@ BEGIN
 
 				IF(ISNULL(@WOTypeId, 0) IN (@InternalWOTypeId, @TeardownWOTypeId) AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @IWOBatchCount > 0)
 				BEGIN
-					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 					BEGIN
 						EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
 					END

@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_AddUpdateWorkOrderTasks]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -13,6 +14,7 @@
     2    01/17/2025   Vishal Suthar	 Added History for Add and Update
     3    02/06/2025   Ekta Chandegra Added Task Resolution History for Add and Update instead of Descrepancy
     4    10/Feb/2025  RAJESH GAMI    Added @IsPrintInspector,@IsPrintTechnician
+	5    24/Apr/2025  RAJESH GAMI    add the WorkOrderPartNumberId where condition while adding the Sequence Number (We need to increase Sequence By Part No Id)
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@WorkOrderTaskId BIGINT,
@@ -57,7 +59,7 @@ BEGIN
 	BEGIN
 		DECLARE @CurrentSequenceNo INT = 0;
 
-		SELECT @CurrentSequenceNo = ISNULL(MAX(SequenceNumber), 0) FROM DBO.WorkOrderTask WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+		SELECT @CurrentSequenceNo = ISNULL(MAX(SequenceNumber), 0) FROM DBO.WorkOrderTask WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WorkOrderPartNumberId = ISNULL(@WorkOrderPartNumberId,0);
 		DECLARE @InsertedWorkOrderTaskId BIGINT = 0;
 
 		INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],

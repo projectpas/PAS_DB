@@ -21,6 +21,7 @@
 	10  17-02-2025      Shrey Chandegara        Modified Due to Add @IsDownload.
 	11  18-02-2025      Shrey Chandegara        Modified Due to Add @IsParent
     12  07-03-2025		Moin Bloch			    Modified (Added isKitItem)
+    13  18-04-2025		Devendra Shekh		    Modified (Added total Material/stockline Parts Calculation)
 
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
@@ -65,7 +66,7 @@ SET NOCOUNT ON
 				DECLARE @WOPartNoId BIGINT;
 				DECLARE @TotalExtendedCost DECIMAL(13,2);
 				DECLARE @WorkOrderFormTypeId BIT = 0; 
-				
+				DECLARE @TotalMaterialParts INT = 0, @TotalStkParts INT = 0;
 
 				IF @Local_SortColumn IS NULL
 				BEGIN  
@@ -1440,6 +1441,51 @@ SET NOCOUNT ON
 					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
 				END
 
+				--	Calculating Total Material Parts and StockLine Parts	: Start
+				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
+				BEGIN
+					SET @TotalMaterialParts = ISNULL((SELECT COUNT([WorkOrderMaterialsId])
+						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+
+					SET @TotalMaterialParts = ISNULL(@TotalMaterialParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialsKitId])
+						FROM [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) 
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+
+					--	StockLine Part
+					SET @TotalStkParts = ISNULL((SELECT COUNT([WOMStockLineId])
+						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
+						INNER JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+
+					SET @TotalStkParts = ISNULL(@TotalStkParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialStockLineKitId])
+						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+						INNER JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)),0)
+				END
+				ELSE
+				BEGIN
+					SET @TotalMaterialParts = ISNULL((SELECT COUNT([WorkOrderMaterialsId])
+						FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+
+					SET @TotalMaterialParts = ISNULL(@TotalMaterialParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialsKitId])
+						FROM [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) 
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+
+					--	StockLine Part
+					SET @TotalStkParts = ISNULL((SELECT COUNT([WOMStockLineId])
+						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
+						INNER JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+
+					SET @TotalStkParts = ISNULL(@TotalStkParts, 0) + ISNULL((SELECT COUNT([WorkOrderMaterialStockLineKitId])
+						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+						INNER JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
+						WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId),0)
+				END
+				--	Calculating Total Material Parts and StockLine Parts	: End
+
 				--IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1) 
 				--	SELECT @Count = COUNT(1) from #finalMaterialListResult;
 				--ELSE
@@ -1452,7 +1498,9 @@ SET NOCOUNT ON
 				SELECT *, @Count As NumberOfItems,
 				@IsFullyReserved AS IsFullyReserved,
 				@IsFullyIssued AS IsFullyIssued,
-				ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost
+				ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost,
+				@TotalMaterialParts AS TotalMaterialParts,
+				@TotalStkParts AS TotalStockLineParts
 				FROM #finalMaterialListResult FR
 				WHERE --@IsDownload = 0 OR FR.StockLineNumber IS NOT NULL
 				(@IsDownload = 1 AND @IsParent = 0 AND FR.StockLineNumber IS NOT NULL)

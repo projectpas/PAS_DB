@@ -15,7 +15,9 @@
 	2    11/03/2025   Moin Bloch       Updated
 	3    24/03/2025   Moin Bloch       Added UpdatedBy and Updated date 
 	4    14/04/2025   Devendra Shekh   handling null for @RequestedId
-    5    15/APR/2025  RAJESH GAMI    Implement the traverler Number logic 
+    5    15/04/2025   RAJESH GAMI      Implement the traverler Number logic 
+	6    18/04/2025   Moin Bloch       Added For CREATING TRAVELER LABOUR HEADER
+
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_CreateWorkOrder]
@@ -932,6 +934,9 @@ BEGIN
 
 	-- COMPANY NOT AVAIALABLE WITH MASTERCOMPANYCODE LIKE 'AIR'
 	-- CreateCommonWorkOrderCustomerInspecionTearDown(workOrder.PartNumbers, workOrder.WorkOrderId, workOrder.CreatedBy);
+
+	-- CREATING TRAVELER LABOUR HEADER
+	EXEC [dbo].[USP_CreateWorkOrderLaborHeader] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 	
 	-- CREATING TRAVELER LABOUR TASK
 	EXEC [dbo].[CreateTravelerLabourTask] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;

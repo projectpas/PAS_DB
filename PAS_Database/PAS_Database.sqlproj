@@ -3692,6 +3692,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeCertificationWithModels.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetEmployeeCertificationList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeCertificationHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetWorkOrderAndQuoteCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Refresh_Vendor_CreditLimit_Terms.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderLaborHeader.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

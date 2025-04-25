@@ -104,7 +104,7 @@ BEGIN
 						SELECT [CustomerName] [Name] FROM [dbo].[CreditMemo] C WITH (NOLOCK) WHERE CreditMemoHeaderId = @referenceId 
 					END
 
-					ELSE IF(@moduleId = @ExchangeModuleId) /***********>>>>>>> Credit Memo Customer Name REFRESH <<<<<<<************/
+					ELSE IF(@moduleId = @ExchangeModuleId) /***********>>>>>>> Exchange Customer Name REFRESH <<<<<<<************/
 					BEGIN
 						UPDATE [dbo].[ExchangeSalesOrder] SET [CustomerName] = @CustomerName WHERE ExchangeSalesOrderId = @referenceId AND CustomerId = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[ExchangeSalesOrder] C WITH (NOLOCK) WHERE ExchangeSalesOrderId = @referenceId 
@@ -156,7 +156,7 @@ BEGIN
 						SELECT VendorName [Name] FROM [dbo].[VendorProformaInvoiceHeader] VI WITH (NOLOCK) WHERE VendorProformaInvoiceId = @referenceId  
 					END
 
-					ELSE IF(@moduleId = @ExchangeModuleId) /***********>>>>>>> Credit Memo Customer Name REFRESH <<<<<<<************/
+					ELSE IF(@moduleId = @ExchangeModuleId) /***********>>>>>>> Exchange Vendor Name REFRESH <<<<<<<************/
 					BEGIN
 						UPDATE [dbo].[ExchangeSalesOrder] SET [CustomerName] = @VendorName	 WHERE ExchangeSalesOrderId = @referenceId AND CustomerId = @vendorId
 						SELECT [CustomerName] [Name] FROM [dbo].[ExchangeSalesOrder] ES WITH (NOLOCK) WHERE ExchangeSalesOrderId = @referenceId  

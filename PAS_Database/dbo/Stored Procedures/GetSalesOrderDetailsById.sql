@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetSalesOrderDetailsById]            
  ** Author:  EKTA CHANDEGRA
  ** Description: This stored procedure is used GetSalesOrderDetailsById
@@ -14,6 +15,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    05/12/2024		EKTA CHANDEGRA	 Created  
+	2	 04/25/2025     Bhargav Saliya   Customer Name Get from the SO table instead of the Customer table
 
  EXEC GetSalesOrderDetailsById 1484 
 ************************************************************************/   
@@ -42,7 +44,7 @@ BEGIN
         soq.NumberOfItems,
         soq.AccountTypeName,
         soq.CustomerId,
-        ISNULL(cust.Name, '') AS CustomerName,
+        ISNULL(soq.CustomerName, '') AS CustomerName,
         ISNULL(cust.CustomerCode, '') AS CustomerCode,
         ISNULL(cuad.Line1, '') AS CustToAddress1,
         ISNULL(cuad.Line2, '') AS CustToAddress2,

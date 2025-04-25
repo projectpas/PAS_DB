@@ -3703,6 +3703,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorRFQPurchaseOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoiceItem_ByWFWOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTravelerNameByWorkScopeId.sql" />
+    <Build Include="dbo\Stored Procedures\CreateSalesOrderQuote.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerATAMapped.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerATAMappedAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAircraftMapping.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRFQRepairOrderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteDetails.sql" />
   </ItemGroup>

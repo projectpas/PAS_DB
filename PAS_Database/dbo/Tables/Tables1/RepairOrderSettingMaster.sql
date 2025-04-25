@@ -20,9 +20,12 @@
     [NoQuoteDays]                   INT           NULL,
     [IsEnforcePickTicket]           BIT           NULL,
     [EnforcePickTicketConfirmation] BIT           NULL,
+    [IsAutoUpdateROStatus]          BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMaster] PRIMARY KEY CLUSTERED ([RepairOrderSettingId] ASC),
     CONSTRAINT [FK_RepairOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

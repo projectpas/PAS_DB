@@ -21,8 +21,7 @@
     [NoQuoteDays]                   INT           NULL,
     [IsEnforcePickTicket]           BIT           NULL,
     [EnforcePickTicketConfirmation] BIT           NULL,
+    [IsAutoUpdateROStatus]          BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([RepairOrderSettingAuditId] ASC)
 );
-
-
 

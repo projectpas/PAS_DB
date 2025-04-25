@@ -23,12 +23,7 @@
     [FreightCOGSRefrenceId]          INT           NULL,
     [TaxCOGSRefrenceId]              INT           NULL,
     [NoQuoteDays]                    INT           NULL,
+    [IsAutoUpdatePOStatus]           BIT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
-
-
-
-
-
-
 

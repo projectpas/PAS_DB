@@ -8,7 +8,9 @@
  **************************************************************             
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
-    1    18-04-2025		Hemnat Saliya			Created  		
+    1    18-04-2025		Hemnat Saliya			Created
+	2    23-04-2025		Moin Bloch			    Fix For Analysis Revenue Amount
+	
 		
 	exec dbo.usp_GetWorkOrderAndQuoteCostDetails 8374,8688
 **************************************************************/
@@ -51,65 +53,64 @@ BEGIN
         @QuoteLabourHeaderId BIGINT,
         @WOPartNoId BIGINT;
 		
-
 		-- Calculate parts cost (Materials)
 		SELECT @PartsCost = ISNULL(SUM(ISNULL(WOMS.UnitCost,0) * ISNULL(WOMS.QtyIssued,0)), 0)
-		FROM [dbo].WorkOrderMaterials WOM WITH(NOLOCK)
-		JOIN [dbo].WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
-		WHERE WOM.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOM.IsDeleted = 0;
+		FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
+		JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
+		WHERE WOM.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND ISNULL(WOM.IsDeleted, 0) = 0 AND ISNULL(WOM.IsActive, 0) = 1;
 
 		-- Add Kit materials
-		SELECT @PartsCost = @PartsCost + ISNULL(SUM(ISNULL(WOMS.UnitCost,0) * ISNULL(WOMS.QtyIssued,0)), 0)
-		FROM [dbo].WorkOrderMaterialsKit WOM WITH(NOLOCK)
-		JOIN [dbo].WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
-		WHERE WOM.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOM.IsDeleted = 0;
+		SELECT @PartsCost = ISNULL(@PartsCost, 0) + ISNULL(SUM(ISNULL(WOMS.UnitCost,0) * ISNULL(WOMS.QtyIssued,0)), 0)
+		FROM [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK)
+		JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
+		WHERE WOM.[WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND ISNULL(WOM.[IsDeleted], 0) = 0 AND ISNULL(WOM.[IsActive], 0) = 1;
 
 		-- Charges
 		SELECT @MicCharges = ISNULL(SUM(ISNULL(ExtendedCost, 0)), 0)
-		FROM [dbo].WorkOrderCharges WITH(NOLOCK)
-		WHERE WorkFlowWorkOrderId = @WorkOrderWorkflowId AND IsActive = 1 AND IsDeleted = 0;
+		FROM [dbo].[WorkOrderCharges] WITH(NOLOCK)
+		WHERE [WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
 
 		-- Freight
 		SELECT @FreightCost = ISNULL(SUM(ISNULL(Amount, 0)), 0)
-		FROM [dbo].WorkOrderFreight WITH(NOLOCK)
-		WHERE WorkFlowWorkOrderId = @WorkOrderWorkflowId AND IsActive = 1 AND IsDeleted = 0;
+		FROM [dbo].[WorkOrderFreight] WITH(NOLOCK)
+		WHERE [WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
 
 		-- Labour Cost
-		SELECT TOP 1 @LabourCost = ISNULL(SUM(l.TotalCost), 0)
-		FROM [dbo].WorkOrderLaborHeader lh WITH(NOLOCK)
-		JOIN [dbo].WorkOrderLabor l WITH(NOLOCK) ON lh.WorkOrderLaborHeaderId = l.WorkOrderLaborHeaderId
-		WHERE lh.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND l.BillableId = 1 AND l.IsActive = 1 AND l.IsDeleted = 0;
+		SELECT TOP 1 @LabourCost = ISNULL(SUM(l.[TotalCost]), 0)
+		FROM [dbo].[WorkOrderLaborHeader] lh WITH(NOLOCK)
+		JOIN [dbo].[WorkOrderLabor] l WITH(NOLOCK) ON lh.WorkOrderLaborHeaderId = l.WorkOrderLaborHeaderId
+		WHERE lh.[WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND ISNULL(l.[BillableId], 0) = 1 AND ISNULL(l.[IsActive], 0) = 1 AND ISNULL(l.[IsDeleted], 0) = 0;
 
 		-- Step 1: Get QuoteId
 		SELECT TOP 1 @QuoteId = WorkOrderQuoteId 
-		FROM [dbo].WorkOrderQuote WITH(NOLOCK)
-		WHERE WorkOrderId = @WorkOrderId AND IsVersionIncrease = 0;
+		FROM [dbo].[WorkOrderQuote] WITH(NOLOCK)
+		WHERE [WorkOrderId] = @WorkOrderId AND [IsVersionIncrease] = 0;
 		
-		IF(EXISTS (SELECT 1 FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND WorkOrderQuoteId = @QuoteId AND ISNULL(IsVersionIncrease, 0) = 0))  
+		IF(EXISTS (SELECT 1 FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND [WorkOrderQuoteId] = @QuoteId AND ISNULL(IsVersionIncrease, 0) = 0))  
 		BEGIN
-			-- Step 2: Get Quote Details
+			-- Step 2: Get Quote Details			
 			SELECT TOP 1 
-				@QuoteDetailsId = WorkOrderQuoteDetailsId,
-				@QuoteMethod = ISNULL(QuoteMethod, 0),
-				@LaborFlatBillingAmount = ISNULL(LaborFlatBillingAmount, 0),
-				@LaborCost = ISNULL(LaborCost, 0),
-				@MaterialFlatBillingAmount = ISNULL(MaterialFlatBillingAmount, 0),
-				@MaterialCost = ISNULL(MaterialCost, 0),
-				@ChargesFlatBillingAmount = ISNULL(ChargesFlatBillingAmount, 0),
+				@QuoteDetailsId = [WorkOrderQuoteDetailsId],				
+				@QuoteMethod = ISNULL([QuoteMethod], 0),
+				@LaborFlatBillingAmount = CASE WHEN [LaborBuildMethod] = 3 THEN ISNULL([LaborFlatBillingAmount], 0) ELSE ISNULL([LaborBilling], 0) END,
+				@LaborCost = ISNULL([LaborCost], 0),
+				@MaterialFlatBillingAmount = CASE WHEN [MaterialBuildMethod] = 3 THEN ISNULL([MaterialFlatBillingAmount], 0) ELSE ISNULL([MaterialBilling], 0) END,
+				@MaterialCost = ISNULL([MaterialCost], 0),
+				@ChargesFlatBillingAmount = CASE WHEN [ChargesBuildMethod] = 3 THEN ISNULL([ChargesFlatBillingAmount], 0) ELSE ISNULL([ChargesBilling], 0) END,
 				@ChargesCost = ISNULL(ChargesCost, 0),
-				@FreightFlatBillingAmount = ISNULL(FreightFlatBillingAmount, 0),
-				@CommonFlatRate = ISNULL(CommonFlatRate, 0),
-				@LaborBuildMethod = LaborBuildMethod,
-				@MaterialBuildMethod = MaterialBuildMethod,
-				@ChargesBuildMethod = ChargesBuildMethod,
-				@FreightBuildMethod = FreightBuildMethod
-			FROM [dbo].WorkOrderQuoteDetails WITH(NOLOCK)
-			WHERE WorkOrderQuoteId = @QuoteId AND WorkflowWorkOrderId = @WorkOrderWorkflowId AND IsVersionIncrease = 0;
+				@FreightFlatBillingAmount = CASE WHEN [FreightBuildMethod] = 3 THEN ISNULL([FreightFlatBillingAmount], 0) ELSE ISNULL([FreightBilling], 0) END,
+				@CommonFlatRate = ISNULL([CommonFlatRate], 0),
+				@LaborBuildMethod = [LaborBuildMethod],
+				@MaterialBuildMethod = [MaterialBuildMethod],
+				@ChargesBuildMethod = [ChargesBuildMethod],
+				@FreightBuildMethod = [FreightBuildMethod]
+			FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK)
+			WHERE [WorkOrderQuoteId] = @QuoteId AND [WorkflowWorkOrderId] = @WorkOrderWorkflowId AND ISNULL([IsVersionIncrease], 0) = 0;
 
 			-- Step 3: Get Labor Header
 			SELECT TOP 1 
 				@QuoteLabourHeaderId = WorkOrderQuoteLaborHeaderId,
-				@MarkupFixedPrice = MarkupFixedPrice
+				@MarkupFixedPrice = ISNULL(MarkupFixedPrice, 0)
 			FROM [dbo].WorkOrderQuoteLaborHeader  WITH(NOLOCK)
 			WHERE WorkOrderQuoteDetailsId = @QuoteDetailsId AND IsDeleted = 0;
 
@@ -118,13 +119,13 @@ BEGIN
 			IF @MarkupFixedPrice IS NOT NULL AND @MarkupFixedPrice != '3'
 			BEGIN
 				SELECT @LabourAmountPrice = ISNULL(SUM(BillingAmount), 0)
-				FROM [dbo].WorkOrderQuoteLabor WITH(NOLOCK)
-				WHERE WorkOrderQuoteLaborHeaderId = @QuoteLabourHeaderId AND BillableId = 1 AND IsActive = 1 AND IsDeleted = 0;
+				FROM [dbo].[WorkOrderQuoteLabor] WITH(NOLOCK)
+				WHERE [WorkOrderQuoteLaborHeaderId] = @QuoteLabourHeaderId AND ISNULL([BillableId], 0) = 1 AND ISNULL([IsActive], 0) = 1 AND ISNULL([IsDeleted], 0) = 0;
 			END
 		END
 
 		-- Step 5: Revenue Source Check
-		IF(EXISTS (SELECT 1 FROM [dbo].WorkOrderBillingInvoicing WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsVersionIncrease, 0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0))  
+		IF(EXISTS (SELECT 1 FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsVersionIncrease, 0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0))  
 		BEGIN
 			SELECT TOP 1 @WOPartNoId = WorkOrderPartNoId
 			FROM [dbo].WorkOrderWorkFlow WITH(NOLOCK)
@@ -137,10 +138,11 @@ BEGIN
 			SET @IsRevenueFromWO = 1;
 		END
 
-		SET @TotalPrice = @PartsCost + @LabourCost + @MicCharges;
-		SET @TotalCost = @PartsCost + @LabourCost + @MicCharges;
+		SET @TotalPrice = ISNULL(@PartsCost, 0) + ISNULL(@LabourCost, 0) + ISNULL(@MicCharges, 0);
+		SET @TotalCost =  ISNULL(@PartsCost, 0) + ISNULL(@LabourCost, 0) + ISNULL(@MicCharges, 0);
 
 		-- OUTPUT (temporary table for example)
+		
 		SELECT 
 			QuoteMethod = @QuoteMethod,
 			QuoteLabourCost = CASE WHEN @QuoteMethod = 1 THEN 0 ELSE @LaborCost END,

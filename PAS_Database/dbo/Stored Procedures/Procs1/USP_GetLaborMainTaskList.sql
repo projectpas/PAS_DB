@@ -13,15 +13,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    01/03/2023    Subhash Saliya			Created
-	2    02/21/2023	   Hemant Saliya			Updaetd to Upper Case
-  	3    21-JAN-2025   RAJESH GAMI			    Modified to add logic for the get TASK based on the WorkOrderFormTypeId condition.
-	4    27-JAN-2025   RAJESH GAMI			    remove the condition PrintInWO for the WorkOrderFormType, Need to display all the task and information..
-	5    11-FEB-2025   RAJESH GAMI			    implemented IsPrintInspector IsPrintTechnician in traver print
-	6    03-MAR-2025   RAJESH GAMI			    Sequence Number Change
--- EXEC [USP_GetLaborMainTaskList] 692,682
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/03/2023    Subhash Saliya	Created
+	2    02/21/2023	   Hemant Saliya	Updaetd to Upper Case
+  	3    21-JAN-2025   RAJESH GAMI		Modified to add logic for the get TASK based on the WorkOrderFormTypeId condition.
+	4    27-JAN-2025   RAJESH GAMI		remove the condition PrintInWO for the WorkOrderFormType, Need to display all the task and information..
+	5    11-FEB-2025   RAJESH GAMI		implemented IsPrintInspector IsPrintTechnician in traver print
+	6    03-MAR-2025   RAJESH GAMI		Sequence Number Change
+	7    03-MAR-2025   Vishal Suthar	Fixed an issue with sequence number
+
+-- EXEC [USP_GetLaborMainTaskList] 8394,8759
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetLaborMainTaskList]
@@ -66,13 +68,65 @@ BEGIN
 
 				 IF(@IsWorkOrderFormType = 1)
 				 BEGIN
-					;WITH CTE AS (
+				--	;WITH CTE AS (
+				--	SELECT
+				--		ISNULL(WOT.WorkOrderTaskId, 0) AS WorkOrderTaskId,
+				--		ISNULL(WOT.WorkOrderId, 0) AS WorkOrderId,
+				--		ISNULL(WOT.WorkOrderPartNumberId, 0) AS WorkOrderPartNumberId,
+				--		ISNULL(WOT.WorkFlowWorkOrderId, 0) AS WorkFlowWorkOrderId,
+				--		--ISNULL(WOT.TaskId, 0) AS TaskId,
+				--		ISNULL(WOT.SequenceNumber, 0) AS SequenceNumber,
+				--		WOT.OpenDate AS OpenDate,
+				--		ISNULL(WOT.OpenBy, '') AS OpenBy,
+				--		ISNULL(WOT.IsIncludeInPrint, 0) AS IsIncludeInPrint,
+				--		ISNULL(WOT.HasInstruction, 0) AS HasInstruction,
+				--		ISNULL(WOT.TaskName, '') AS TaskName,
+				--		ISNULL(WOTD.TechId, 0) AS TechId,
+				--		ISNULL(WOTD.TechName, '') AS TechName,
+				--		WOTD.TechUpdatedDate AS TechUpdatedDate,
+				--		ISNULL(WOTD.InspectorId, 0) AS InspectorId,
+				--		ISNULL(WOTD.InspectorName, '') AS InspectorName,
+				--		WOTD.InspectorUpdatedDate AS InspectorUpdatedDate,
+				--		ISNULL(WOTD.Descrepancy, '') AS Descrepancy,
+				--		ISNULL(WOTD.Resolution, '') AS Resolution,
+				--		ISNULL(WOT.MasterCompanyId, 0) AS MasterCompanyId,
+				--		ISNULL(WOT.CreatedBy, '') AS CreatedBy,
+				--		ISNULL(WOT.CreatedDate, '') AS CreatedDate,
+				--		ISNULL(WOT.UpdatedBy, '') AS UpdatedBy,
+				--		ISNULL(WOT.UpdatedDate, '') AS UpdatedDate,
+				--		WOTI.WorkOrderTaskInstructionId,
+				--		ISNULL(WOTI.ParentId, 0) AS ParentId,
+				--		ISNULL(WOTI.IsParent, 0) AS IsParent,
+				--		ISNULL(WOTI.InstructionTitle, '') AS InstructionTitle,
+				--		ISNULL(WOTI.SequenceNumber, 0) AS ChildSequenceNumber,
+				--		ISNULL(WOTI.InstructionDetails, '') AS InstructionDetails,
+				--		ISNULL(WOTI.TechId, 0) AS ChildTechId,
+				--		ISNULL(WOTI.TechName, '') AS ChildTechName,
+				--		WOTI.TechUpdatedDate AS ChildTechUpdatedDate,
+				--		ISNULL(WOTI.InspectorId, 0) AS ChildInspectorId,
+				--		ISNULL(WOTI.InspectorName, '') AS ChildInspectorName,
+				--		WOTI.InspectorUpdatedDate AS ChildInspectorUpdatedDate,
+				--		ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
+				--		ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ,
+				--		0 as WorkOrderLaborId,
+				--		wl.[TaskId],
+				--		ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
+				--		ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician,
+				--		ROW_NUMBER() OVER (ORDER BY WOT.SequenceNumber, WOTI.WorkOrderTaskInstructionId) AS RowNum
+				--	FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
+				--	Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
+				--	INNER JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) on wl.TaskId = WOT.WorkOrderTaskId
+				--	INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+				--	LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId -- --AND ISNULL(WOTI.PrintInWO,0) = 1
+				--	WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 --AND ISNULL(WOTD.PrintInWO,0) = 1
+				--	ORDER BY SequenceNumber, WorkOrderTaskInstructionId
+				--),
+
 					SELECT DISTINCT
 						ISNULL(WOT.WorkOrderTaskId, 0) AS WorkOrderTaskId,
 						ISNULL(WOT.WorkOrderId, 0) AS WorkOrderId,
 						ISNULL(WOT.WorkOrderPartNumberId, 0) AS WorkOrderPartNumberId,
 						ISNULL(WOT.WorkFlowWorkOrderId, 0) AS WorkFlowWorkOrderId,
-						--ISNULL(WOT.TaskId, 0) AS TaskId,
 						ISNULL(WOT.SequenceNumber, 0) AS SequenceNumber,
 						WOT.OpenDate AS OpenDate,
 						ISNULL(WOT.OpenBy, '') AS OpenBy,
@@ -110,34 +164,31 @@ BEGIN
 						wl.[TaskId],
 						ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
 						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician
+					INTO #TempTable
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
 					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) on wl.TaskId = WOT.WorkOrderTaskId
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
-					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId -- --AND ISNULL(WOTI.PrintInWO,0) = 1
-					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 --AND ISNULL(WOTD.PrintInWO,0) = 1
-				),
-				RecursiveCTE AS (				
+					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
+					ORDER BY SequenceNumber, WorkOrderTaskInstructionId
+
+				;WITH RecursiveCTE AS (				
 					SELECT 
 						c.*
-						--,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-					FROM CTE c
+						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.WorkOrderTaskInstructionId ASC) AS NVARCHAR(MAX)) AS SrNo
+					FROM #TempTable c
 					WHERE c.ParentId = 0
 					UNION ALL
 				
 					SELECT 
 						c.*,
-						--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
-						--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS Seq
-						 CAST(r.SrNo + '.' + 
-							 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
-							 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
-							 )
-							 AS SrNo
-					FROM CTE c
+						CAST(r.SrNo + '.' + 
+						CAST(ROW_NUMBER() OVER (
+							PARTITION BY c.WorkOrderTaskInstructionId 
+							ORDER BY c.WorkOrderTaskInstructionId ASC
+						) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+					FROM #TempTable c
 					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 				)
 				SELECT 
@@ -178,8 +229,8 @@ BEGIN
 					IsPrintInspector,IsPrintTechnician
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
-				ORDER BY SequenceNumber;
-					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber ASC
+				ORDER BY SequenceNumber, WorkOrderTaskInstructionId;
+					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber, WorkOrderTaskInstructionId ASC
 				 END
 				 ELSE
 				 BEGIN
@@ -224,7 +275,8 @@ BEGIN
 					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					Left Join Task T WITH(NOLOCK) on T.TaskId= wl.TaskId
 					Left Join Traveler_Setup_Task TTS WITH(NOLOCK) on TTS.TaskId= wl.TaskId and Traveler_SetupId= @Traveler_setupid
-					where wl.IsDeleted=0 and wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId group by  wl.[TaskId] order by Sequence asc
+					where wl.IsDeleted=0 and wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId 
+					group by  wl.[TaskId] order by SequenceNumber, WorkOrderTaskInstructionId asc
 				 END				
                 
 			END

@@ -57,6 +57,7 @@
     [Is813013aeOr14ae]              INT            DEFAULT ((1)) NULL,
     [ByPassCMMSettingAtReceiving]   BIT            NULL,
     [ByPassCapesSettingAtReceiving] BIT            NULL,
+    [IsFlatRate]                    BIT            NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
 

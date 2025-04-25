@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get WorkOrder/SubWorkOrder CostAnalysis Details.
@@ -22,10 +21,11 @@
 	5    10/19/2023   Vishal Suthar		Fixed Backorder qty calculation
 	6    12/31/2024   Hemant Saliya		Update for Modify Work Order cost analysis Summary
 	7    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
+	8    04/22/2025   Hemant Saliya		Repair Cost at Part wise from Srockline
 
-EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 4247, 4702     
+EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 8416, 8718     
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
+CREATE    PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT
@@ -38,8 +38,8 @@ BEGIN
 				@QtyIssued INT,@SubQtyIssued INT,@QtyOnBkOrder INT,@SubQtyOnBkOrder INT,@QtyReserved INT,@SubQtyReserved INT ,@POQuantity BIGINT=0,@poid BIGINT,@UnitCost DECIMAL(18,2),
 				@bkUnitCost DECIMAL(18,2),@SubUnitCost DECIMAL(18,2),@QtyToTurnIn INT,@SubQtyToTurnIn INT,@QtyToTurnCost DECIMAL(18,2) = 0.0,@SubQtyToTurnCost DECIMAL(18,2) = 0.0,
 				@WorkOrderLaborHeaderId BIGINT,@SubWorkOrderLaborHeaderId BIGINT,@DirectLaborOHCost DECIMAL(18,2) = 0.0, @BurdenRateAmount DECIMAL(18,2) = 0.0,@DirectLaborCost DECIMAL(18,2) = 0.0,
-				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceCost DECIMAL(18,2),
-				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2),@IsSubWO BIT = 0;
+				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceMaterialsCost DECIMAL(18,2),
+				@OutSideServiceKitCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2),@IsSubWO BIT = 0,@OutSideServiceCost DECIMAL(18,2),@SubOutSideServiceCost DECIMAL(18,2);
 		DECLARE @exchangeProvisionId int = (SELECT TOP 1 ProvisionId FROM Provision Where Description = 'EXCHANGE')
 
 		DECLARE @POStatusIds VARCHAR(100);
@@ -98,14 +98,14 @@ BEGIN
 		SELECT  DISTINCT @WorkOrderWorkflowId, 
 				WOMS.WorkOrderMaterialsId,
 				WOMS.StocklineId,
-				CASE WHEN ISNULL(WOMS.RepairOrderId, 0) > 0 THEN ISNULL(WOMS.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE WOMS.UnitCost END AS UnitCost,
-				WOMS.ExtendedCost,
-				WOMS.QtyIssued,
-				WOMS.QtyReserved,
+				CASE WHEN ISNULL(WOMS.RepairOrderId, 0) > 0 THEN ISNULL(WOMS.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE ISNULL(WOMS.UnitCost, 0) END AS UnitCost,
+				ISNULL(WOMS.ExtendedCost, 0),
+				ISNULL(WOMS.QtyIssued, 0),
+				ISNULL(WOMS.QtyReserved,0),
 				CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
 					 THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
 					 ELSE ISNULL(POPartReferece.Qty, 0) END,
-				CASE WHEN ISNULL(WOM.UnitCost,0) = 0 THEN POP.UnitCost ELSE WOM.UnitCost END,
+				CASE WHEN ISNULL(WOM.UnitCost,0) = 0 THEN ISNULL(POP.UnitCost, 0) ELSE ISNULL(WOM.UnitCost, 0) END,
 				WOM.POId,
 				--WOM.QtyToTurnIn
 				CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN WOM.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
@@ -126,16 +126,16 @@ BEGIN
 			WOMSK.StocklineId,
 			--WOMSK.UnitCost,
 			CASE WHEN ISNULL(WOMSK.RepairOrderId, 0) > 0 THEN ISNULL(WOMSK.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE WOMSK.UnitCost END AS UnitCost,
-			WOMSK.ExtendedCost,
-			WOMSK.QtyIssued,
-			WOMSK.QtyReserved,
+			ISNULL(WOMSK.ExtendedCost, 0),
+			ISNULL(WOMSK.QtyIssued, 0),
+			ISNULL(WOMSK.QtyReserved, 0),
 			CASE WHEN (ISNULL(WOMK.Quantity, 0) - (ISNULL(WOMK.QuantityReserved, 0) + ISNULL(WOMK.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
 				THEN (ISNULL(WOMK.Quantity, 0) - (ISNULL(WOMK.QuantityReserved, 0) + ISNULL(WOMK.QuantityIssued, 0))) 
 				ELSE ISNULL(POPartReferece.Qty, 0) END,
-			CASE WHEN ISNULL(WOMK.UnitCost,0) = 0 THEN POP.UnitCost ELSE WOMK.UnitCost END,
+			CASE WHEN ISNULL(WOMK.UnitCost,0) = 0 THEN ISNULL(POP.UnitCost, 0) ELSE ISNULL(WOMK.UnitCost, 0) END,
 			WOMK.POId,
 			--WOMK.QtyToTurnIn
-			CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN WOMK.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
+			CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN ISNULL(WOMK.QtyToTurnIn,0) ELSE 0 END AS QtyToTurnIn
 		FROM [DBO].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMSK ON WOMK.WorkOrderMaterialsKitId = WOMSK.WorkOrderMaterialsKitId
 			LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON WOMSK.StockLineId = ROP.StockLineId AND ROP.RepairOrderId = WOMSK.RepairOrderId
@@ -195,12 +195,12 @@ BEGIN
 			
 			IF(ISNULL(@QtyIssued, 0) > 0)
 			BEGIN
-				SET @partsCost = @partsCost + (@QtyIssued * @UnitCost);
+				SET @partsCost = ISNULL(@partsCost, 0) + ISNULL((@QtyIssued * @UnitCost), 0);
 			END
 
 			IF(@QtyToTurnIn > 0)
 			BEGIN
-				SET @QtyToTurnCost = @QtyToTurnCost + (@QtyToTurnIn * @UnitCost);
+				SET @QtyToTurnCost = ISNULL(@QtyToTurnCost, 0) + ISNULL((@QtyToTurnIn * @UnitCost), 0);
 			END
 
 			SET @QtyIssued = 0;
@@ -227,7 +227,7 @@ BEGIN
 			
 			IF(@QtyReserved > 0)
 			BEGIN
-				SET @ReservedCost = @ReservedCost + (@QtyReserved * @UnitCost);
+				SET @ReservedCost = ISNULL(@ReservedCost, 0) + ISNULL((@QtyReserved * @UnitCost),0);
 			END
 
 			IF(@QtyOnBkOrder > 0)
@@ -255,10 +255,19 @@ BEGIN
 		END
 
 		--Outside Cost
-		SELECT @OutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 
-			FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
-				JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
-		WHERE ROP.WorkOrderId = @WorkOrderId;
+		SELECT @OutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))) 
+		FROM [DBO].[Stockline] SL WITH(NOLOCK)
+			JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+			JOIN [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId			
+		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
+
+		SELECT @OutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))) 
+		FROM [DBO].[Stockline] SL WITH(NOLOCK)
+			JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+			JOIN [DBO].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId			
+		WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId  = @WorkOrderWorkflowId;
+
+		SET @OutSideServiceCost = ISNULL(@OutSideServiceMaterialsCost, 0) + ISNULL(@OutSideServiceKitCost, 0);
 
 		--Labor Cost
 		SELECT @WorkOrderLaborHeaderId = WOLH.WorkOrderLaborHeaderId , @TotalWorkHours = TotalWorkHours
@@ -307,15 +316,15 @@ BEGIN
 				   @tmpAdjustedHoursdata = PARSENAME(tmpWOL.AdjustedHours,1)
 			FROM #tmpWorkOrderLabor tmpWOL WHERE tmpWOL.ID = @count; 
 
-			SET @tmpBurdonLaborCost = @tmpBurdonLaborCost + (@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2));
-			SET @tmpDirectLaborCost = @tmpDirectLaborCost + (@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2));
+			SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ISNULL((@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2)), 0);
+			SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ISNULL((@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2)), 0);
 
-			SET @tmpAdjustedHoursdata1 = cast((cast(@tmpAdjustedHoursdata as decimal(18,2))/ 100 )as decimal(18,2));
+			SET @tmpAdjustedHoursdata1 = CAST((CAST(@tmpAdjustedHoursdata AS DECIMAL(18,2))/ 100 )AS DECIMAL(18,2));
 
 			IF(@tmpAdjustedHoursdata > 0)
 			BEGIN
-				SET @tmpBurdonLaborCost = @tmpBurdonLaborCost + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpBurdenRateAmount);
-				SET @tmpDirectLaborCost = @tmpDirectLaborCost + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpDirectLaborOHCost);
+				SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpBurdenRateAmount);
+				SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpDirectLaborOHCost);
 			END
 
 			SET @tmpBurdenRateAmount =0.0;
@@ -341,7 +350,7 @@ BEGIN
 		WHERE WOC.WorkFlowWorkOrderId = @WorkOrderWorkflowId;
 
 		--Total RowMaterial cost
-		SET @RowMaterialTotalCost = (@ReservedCost + @partsCost + @QtyToTurnCost + @BkOrderCost);
+		SET @RowMaterialTotalCost = (ISNULL(@ReservedCost, 0) + ISNULL(@partsCost, 0) + ISNULL(@QtyToTurnCost, 0) + ISNULL(@BkOrderCost, 0));
 
 	-------------------------------------------------------------------------------------------------------------------------
 		--Sub-WorkOrder Start
@@ -375,7 +384,7 @@ BEGIN
 				CASE WHEN (ISNULL(SWOM.Quantity, 0) - (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
 					 THEN (ISNULL(SWOM.Quantity, 0) - (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0))) 
 					 ELSE ISNULL(POPartReferece.Qty, 0) END,
-				CASE WHEN ISNULL(SWOM.UnitCost,0) = 0 THEN POP.UnitCost ELSE SWOM.UnitCost END,
+				CASE WHEN ISNULL(SWOM.UnitCost,0) = 0 THEN ISNULL(POP.UnitCost, 0) ELSE ISNULL(SWOM.UnitCost, 0) END,
 				SWOM.POId,
 				CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN SWOM.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
 				--SWOM.QtyOnBkOrder,
@@ -413,22 +422,22 @@ BEGIN
 
 			IF(@SubQtyReserved > 0)
 			BEGIN
-				SET @SubReservedCost = @SubReservedCost + (@SubQtyReserved * @SubUnitCost);
+				SET @SubReservedCost = ISNULL(@SubReservedCost, 0) + (@SubQtyReserved * @SubUnitCost);
 			END
 
 			IF(@SubQtyOnBkOrder > 0)
 			BEGIN
-				SET @SubBkOrderCost = @SubBkOrderCost + (@SubQtyOnBkOrder * @SubUnitCost);
+				SET @SubBkOrderCost = ISNULL(@SubBkOrderCost, 0) + (@SubQtyOnBkOrder * @SubUnitCost);
 			END
 			
 			IF(@SubQtyIssued > 0)
 			BEGIN
-				SET @SubpartsCost = @SubpartsCost + (@SubQtyIssued * @SubUnitCost);
+				SET @SubpartsCost = ISNULL(@SubpartsCost, 0) + (@SubQtyIssued * @SubUnitCost);
 			END
 
 			IF(@SubQtyToTurnIn > 0)
 			BEGIN
-				SET @SubQtyToTurnCost = @SubQtyToTurnCost + (@SubQtyToTurnIn * @SubUnitCost);
+				SET @SubQtyToTurnCost = ISNULL(@SubQtyToTurnCost, 0) + (@SubQtyToTurnIn * @SubUnitCost);
 			END
 
 			SET @SubQtyIssued = 0;
@@ -441,7 +450,7 @@ BEGIN
 		END
 
 		--Total SubRowMaterial cost
-		SET @SubRowMaterialTotalCost = (@SubReservedCost + @SubpartsCost + @SubQtyToTurnCost + @SubBkOrderCost);
+		SET @SubRowMaterialTotalCost = (ISNULL(@SubReservedCost, 0) + ISNULL(@SubpartsCost, 0) + ISNULL(@SubQtyToTurnCost, 0) + ISNULL(@SubBkOrderCost, 0));
 
 		--SubOutside Cost
 		SELECT @SubOutSideServiceCost = SUM(ISNULL(ROP.ExtendedCost,0)) 

@@ -17,6 +17,7 @@
     [IsApprovalRule]               BIT           NULL,
     [effectivedate]                DATETIME      NULL,
     [TearDownTypes]                VARCHAR (50)  NULL,
+    [IsFlatRate]                   BIT           NULL,
     CONSTRAINT [PK_WorkOrderQuoteSettingsAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteSettingAuditId] ASC)
 );
 

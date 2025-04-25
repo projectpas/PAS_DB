@@ -16,7 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    19-Mar-2024  Rajesh Gami   Created  
 	2    13-sept-2024  Shrey Chandegara Modified due to add sum total revenue.
-
+	3    18/04/2025   Ayushi            Added the condition for pn , pndescription 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
 @PageNumber int = 1,
@@ -127,8 +127,8 @@ BEGIN
 			WO.CustomerId CustomerId,
 			ROW_NUMBER() OVER(Partition by IM.ItemMasterId ORDER BY IM.PartNumber) AS Row_Number,
 			IM.ItemMasterId,
-			UPPER(IM.PartNumber) 'pn',  
-			UPPER(IM.PartDescription) 'pnDescription',  
+			CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+			CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
 			--UPPER(WS.WorkScopeCode) 'workscopes',
 			UPPER(CN.Description) 'workscopes',  
 			ISNULL(WOBIT.GrandTotal,0) AS GrandTotal,
@@ -152,6 +152,7 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId
+			LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
 			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 		  

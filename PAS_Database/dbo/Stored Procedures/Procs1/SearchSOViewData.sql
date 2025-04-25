@@ -16,6 +16,7 @@
 	3    20-09-2024  Shrey Chandegara	ADD New Column in list (@ContractReference)
 	4	 22-01-2025  Ayushi Patel		converted the date into utc (created , updated) , Added a case to get timeZone
 	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
+	6	 25-04-2025  Bhargav Saliya		Customer Name Get from the SO table instead of the Customer table
 
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
@@ -113,7 +114,7 @@ BEGIN
     
     ;WITH Main AS (    
       SELECT DISTINCT SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber as 'SalesQuoteNumber',SO.ContractReference as ContractReference,     
-      SOQ.VersionNumber, SO.OpenDate, SOQ.OpenDate AS 'QuoteDate', C.CustomerId, C.Name, SO.CustomerReference, C.CustomerCode, MST.Name as 'Status',    
+      SOQ.VersionNumber, SO.OpenDate, SOQ.OpenDate AS 'QuoteDate', C.CustomerId,SO.CustomerName as [Name], SO.CustomerReference, C.CustomerCode, MST.Name as 'Status',    
       B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson, SO.AccountTypeName CustomerTypeName, SO.ShippedDate, A.SoAmount,
 	  (Cast(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
 	  (Cast(DBO.ConvertUTCtoLocal(SO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,

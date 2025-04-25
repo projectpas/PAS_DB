@@ -3696,6 +3696,21 @@
     <Build Include="dbo\Stored Procedures\usp_GetWorkOrderAndQuoteCostDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_Refresh_Vendor_CreditLimit_Terms.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderLaborHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateShippingViaFromAddressTab.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateTravelerLabourTaskHeader_SubWorkorder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSummarisedQuotationAnalysisData.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTileOEMCrossReferenceList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRFQPurchaseOrderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderBillingInvoiceItem_ByWFWOId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTravelerNameByWorkScopeId.sql" />
+    <Build Include="dbo\Stored Procedures\CreateSalesOrderQuote.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerATAMapped.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerATAMappedAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAircraftMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRFQRepairOrderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateROStatusFromMail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdatePOStatusFromMail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

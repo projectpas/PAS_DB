@@ -19,6 +19,8 @@
     3    21-01-25    Bhavesh Raval   Remove Name and Notes Columns 
 	4	 11/02/2025	 Bhargav Saliya  get InventoryGLAccName Changes
 	5	 09/02/2025	 Devendra Shekh	 Added new field 'QuantityAdjustment'
+	6    21/04/2025  Abhishek Jirawla Added Integration portal changes
+
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -244,11 +246,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
              ,stl.[InspectionDate]
 			 ,ISNULL(CONCAT(empr.[FirstName], ' ', empr.[LastName]), '') 'RequestedByName'
              ,ISNULL(CONCAT(empi.[FirstName], ' ', empi.[LastName]), '')  'InspectionByName'
-			 ,(SELECT STRING_AGG(inte.[Description], ',') 
-				FROM [dbo].[ItemMaster] v WITH(NOLOCK)
-				INNER JOIN [dbo].[ItemMasterIntegrationPortal] mp WITH(NOLOCK) ON v.[ItemMasterId] = mp.[ItemMasterId]
-				INNER JOIN [dbo].[IntegrationPortal] inte WITH(NOLOCK) ON mp.[IntegrationPortalId] = CAST(inte.[IntegrationPortalId] AS BIGINT)
-				WHERE v.[ItemMasterId] = im.[ItemMasterId]) 'integrationPortal'
+			 
+			 --,ISNULL(stl.IntegrationPortal, ISNULL(ipAgg.integrationPortal, '')) AS IntegrationPortalDescriptions
+			 ,ISNULL(ipFromStockLine.IntegrationPortalDescriptions, ISNULL(ipAgg.integrationPortal, '')) AS IntegrationPortalDescriptions
+
+			 ,ISNULL(NULLIF(stl.IntegrationPortal, ''), ISNULL(ipAgg.IntegrationPortalStringIds, '')) AS IntegrationPortalStringIds
+			 --,(SELECT STRING_AGG(inte.[Description], ',') 
+				--FROM [dbo].[ItemMaster] v WITH(NOLOCK)
+				--INNER JOIN [dbo].[ItemMasterIntegrationPortal] mp WITH(NOLOCK) ON v.[ItemMasterId] = mp.[ItemMasterId]
+				--INNER JOIN [dbo].[IntegrationPortal] inte WITH(NOLOCK) ON mp.[IntegrationPortalId] = CAST(inte.[IntegrationPortalId] AS BIGINT)
+				--WHERE v.[ItemMasterId] = im.[ItemMasterId]) 'integrationPortal'
 			  ,rPart.[PartNumber] 'RevisedPart'
               ,im.[RevisedPartId]
               ,stl.[WorkOrderNumber]				  
@@ -321,6 +328,22 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
+		OUTER APPLY (
+			SELECT STRING_AGG(ip.Description, ', ') AS IntegrationPortalDescriptions
+			FROM dbo.SplitString(stl.IntegrationPortal, ',') AS ids
+			JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON ids.Item = ip.IntegrationPortalId
+		) AS ipFromStockLine
+		LEFT JOIN (
+			SELECT
+				iM.ItemMasterId,
+				STRING_AGG(CAST(ip.[Description] AS NVARCHAR(MAX)), ',') AS integrationPortal,
+				STRING_AGG(CAST(mp.IntegrationPortalId AS VARCHAR), ',') AS IntegrationPortalStringIds
+			FROM dbo.ItemMaster iM WITH(NOLOCK)
+			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
+			WHERE mp.IntegrationPortalId IS NOT NULL
+			GROUP BY iM.ItemMasterId
+		) AS ipAgg ON stl.ItemMasterId = ipAgg.ItemMasterId
 		LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
 		 LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON im.[ItemMasterId] = imx.[ItemMasterId]
 		 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.[PurchaseOrderId] = po.[PurchaseOrderId]

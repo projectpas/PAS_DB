@@ -19,7 +19,8 @@
 	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
 	4   11-Oct-2024     Sahdev Saliya       Date format changes
 	5   23-Oct-2024     Sahdev Saliya       Added new field PartNumber in the Technician Labor Entry Report for filter
-
+	6   18/04/2025      Ayushi              Added the condition for pn , pndescription
+	7   22/04/2025      Amit Ghediya        Update for task table baseed on wo type.
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -107,7 +108,6 @@ BEGIN
 			BEGIN 
 				SELECT @PageSize=COUNT(*)
 				 FROM dbo.WorkOrderLaborTracking WOT WITH(NOLOCK) 
-				    INNER JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
 					INNER JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
 					INNER JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
@@ -115,6 +115,8 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId
+					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOT.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
 					LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOT.EmployeeId 		
 					LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -146,10 +148,10 @@ BEGIN
 			SELECT 
 			--COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(WO.WorkOrderNum) 'woNum',
-			UPPER(IM.partnumber) 'pn',
-			UPPER(IM.PartDescription) 'pnDescription',
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',  
 			UPPER(IM.ManufacturerName) 'manufacturerName',
-			UPPER(T.[Description]) 'task',
+			CASE WHEN ISNULL(WO.WorkOrderFormTypeId, 0) > 0 THEN WT.TaskName ELSE UPPER(T.[Description]) END AS 'task',
 			UPPER(TS.[Description]) 'taskStatus',
 			
 
@@ -172,14 +174,16 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			UPPER(EMP.FirstName) + ' ' + UPPER(EMP.LastName) As employeeName
 		 FROM dbo.WorkOrderLaborTracking WOT WITH(NOLOCK) 
-				    INNER JOIN dbo.Task T WITH(NOLOCK) on WOT.TaskId = T.TaskId 
 					INNER JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
 					INNER JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
 					INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
+					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
+					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId
+					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOL.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
 					LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOT.EmployeeId 		
 					LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -211,10 +215,10 @@ BEGIN
 			SELECT 
 			--COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(WO.WorkOrderNum) 'woNum',
-			UPPER(IM.partnumber) 'pn',
-			UPPER(IM.PartDescription) 'pnDescription',
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
 			UPPER(IM.ManufacturerName) 'manufacturerName',
-			UPPER(T.[Description]) 'task',
+			CASE WHEN ISNULL(WO.WorkOrderFormTypeId, 0) > 0 THEN WT.TaskName ELSE UPPER(T.[Description]) END AS 'task',
 			UPPER(TS.[Description]) 'taskStatus',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 'MM/dd/yyyy hh:mm tt') ELSE CONVERT(VARCHAR(50),(select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 100) END 'statusChangeDate', 
 			NULL AS 'startDate', 
@@ -236,14 +240,16 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			UPPER(EMP.FirstName) + ' ' + UPPER(EMP.LastName) As employeeName
 		 FROM dbo.WorkOrderLabor WOL WITH(NOLOCK) 
-				    INNER JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId 
 					--INNER JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) on WOT.WorkOrderLaborId = WOL.WorkOrderLaborId
 					INNER JOIN dbo.WorkOrderLaborHeader LH WITH(NOLOCK) on WOL.WorkOrderLaborHeaderId = LH.WorkOrderLaborHeaderId
 					INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on LH.WorkOrderId = WO.WorkOrderId
 					INNER JOIN dbo.WorkOrderWorkFlow WOF WITH(NOLOCK) on LH.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
+					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
+					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId
+					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOL.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
 					LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOL.EmployeeId 		
 					LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -269,7 +275,7 @@ BEGIN
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 					AND WOL.Adjustments >0
-					AND (SELECT COUNT(1) FROM dbo.WorkOrderLaborTracking WOT WITH(NOLOCK) WHERE WOL.WorkOrderLaborId = WOT.WorkOrderLaborId) > 0
+					-- AND (SELECT COUNT(1) FROM dbo.WorkOrderLaborTracking WOT WITH(NOLOCK) WHERE WOL.WorkOrderLaborId = WOT.WorkOrderLaborId) > 0
 
 		--ORDER BY IM.partnumber
 		--OFFSET((@PageNumber-1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY

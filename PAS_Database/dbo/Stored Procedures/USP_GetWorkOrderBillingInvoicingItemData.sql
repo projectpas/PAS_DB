@@ -10,7 +10,8 @@
  ******************************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    27/03/2025   Moin Bloch    Created
+    1    27/03/2025   Moin Bloch		Created
+    2    22/04/2025   Devendra Shekh	Added WorkOrderPartNoId,WorkFlowWorkOrderId to select
      
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7929,1,3193
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7930,1,3193
@@ -85,9 +86,12 @@ BEGIN
 			(WOP.[Quantity] - ISNULL(@qtyShipped,0)) [QTYOnBACKOrder],
 			0 [Amount],
 			BID.[UnitPrice],
-			BI.[CostPlusType] 
+			BI.[CostPlusType],
+			WOF.WorkOrderPartNoId,
+			WOF.WorkFlowWorkOrderId
 		FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 		INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
+		INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOP.[ID] = WOF.[WorkOrderPartNoId]
 		INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] BID WITH(NOLOCK) ON WOP.[ID] = BID.[WorkOrderPartId]
 		INNER JOIN [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK) ON BID.[BillingInvoicingId] = BI.[BillingInvoicingId]
 		INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WOP.[ItemMasterId] = IM.[ItemMasterId]

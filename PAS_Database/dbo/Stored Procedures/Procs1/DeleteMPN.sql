@@ -1,5 +1,4 @@
-﻿-- EXEC [DeleteMPN] 181,118,103,271,'admin'
-
+﻿-- EXEC [DeleteMPN] 8803,8765,6543,202397,'ADMIN ADMIN'
 CREATE PROCEDURE [dbo].[DeleteMPN]
 @WOPartNoId BIGINT,
 @WorkFlowWorkOrderId BIGINT,
@@ -82,11 +81,17 @@ AS
 			DELETE FROM WorkOrderAssets WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 			/*Asset Audit*/
-			DELETE FROM WorkOrderAssetAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+			--DELETE FROM WorkOrderAssetAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 			/*Address*/
 			DELETE FROM WorkOrderAddress WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
+			/*WorkOrderTask*/
+			DELETE FROM WorkOrderTask WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
+			/*WorkOrderTask*/
+			DELETE FROM WorkOrderSettlementDetails WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+			
 			/*WorkOrderWorkFlow*/
 			DELETE FROM WorkOrderWorkFlow WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
@@ -127,7 +132,7 @@ AS
 				DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'DeleteMPN' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WOPartNoId, '') + ''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

@@ -22,8 +22,8 @@
 	4	 01/16/2025	  Moin Bloch		 Modified (Added TaskId For Kit)
 	5	 01/17/2025	  Moin Bloch		 Modified (Added @WorkOrderFormTypeId from WO Kit)
 	6	 02/10/2025	  Moin Bloch		 Modified (Added condition @WorkOrderQuoteDetailsId in [WorkOrderQuoteDetails] from duplicate WO Kit)
+	7	 02/10/2025	  Abhishek Jirawla	 Added Billing Name
 
-     
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
@@ -78,6 +78,7 @@ BEGIN
 					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
+					   wom.BillingName,
                        wom.HeaderMarkupId,
                        wom.ExtendedCost,
                        wom.BillingRate,
@@ -140,6 +141,7 @@ BEGIN
 					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE ts.[Description] END AS TaskName,
 					   wom.MarkupFixedPrice,
                        wom.BillingMethodId,
+                       wom.BillingName,
                        wom.HeaderMarkupId,
                        wom.ExtendedCost,
                        wom.BillingRate,

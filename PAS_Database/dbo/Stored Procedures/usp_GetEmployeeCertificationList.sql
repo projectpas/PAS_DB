@@ -12,7 +12,8 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    18-04-2025    Sahdev Saliya       Created  
+    1    18-04-2025    Sahdev Saliya       Created 
+	2    25-04-2025    Sahdev Saliya       Added New Field Inforce
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetEmployeeCertificationList]
@@ -26,7 +27,7 @@ BEGIN
   SET NOCOUNT ON  
   BEGIN TRY
 			 ;WITH rptCTE (TotalRecordsCount, EmployeeCertificationId,EmployeeId, CertificationNumber, certType, CertifyingInstitution, CertificationDate, ExpirationDate,
-				IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId) 
+				IsCertificationInForce, Inforce, Memo, IsActive, IsDeleted, MasterCompanyId) 
 				 AS (
 
 		 SELECT COUNT(1) OVER () AS TotalRecordsCount,
@@ -37,7 +38,8 @@ BEGIN
 					EC.CertifyingInstitution AS ascertifyingInstitution,  
 					EC.CertificationDate AS certDate, 
 					EC.ExpirationDate AS expirationDate,
-					EC.[IsCertificationInForce] AS inforce,
+					EC.[IsCertificationInForce],
+					CASE WHEN EC.[IsCertificationInForce] = 1 THEN 'Yes' ELSE 'No' END AS Inforce,
 					EC.[Memo], 
 					EC.[IsActive],
 					EC.[IsDeleted],
@@ -51,13 +53,13 @@ BEGIN
 			             EC.[ExpirationDate],EC.[IsCertificationInForce],EC.[IsCertificationInForce],EC.[Memo],EC.[IsActive],EC.[IsDeleted],EC.[CreatedBy],EC.[UpdatedBy],EC.[UpdatedDate],EC.[MasterCompanyId]
 						 )
 				         ,FinalCTE(TotalRecordsCount, EmployeeCertificationId,EmployeeId, CertificationNumber, certType, CertifyingInstitution, CertificationDate, ExpirationDate,
-				          IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId) 
+				          IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId, Inforce) 
 				
 			             AS (SELECT DISTINCT TotalRecordsCount, EmployeeCertificationId,EmployeeId, CertificationNumber, certType, CertifyingInstitution, CertificationDate, ExpirationDate,
-				           IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId FROM rptCTE)
+				           IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId, Inforce FROM rptCTE)
 
 			             SELECT COUNT(2) OVER () AS TotalRecordsCount, EmployeeCertificationId,EmployeeId, CertificationNumber, certType, CertifyingInstitution, CertificationDate, ExpirationDate,
-				             IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId
+				             IsCertificationInForce, Memo, IsActive, IsDeleted, MasterCompanyId, Inforce
 		                 FROM FinalCTE FC
 
 	                    ORDER BY EmployeeCertificationId DESC	

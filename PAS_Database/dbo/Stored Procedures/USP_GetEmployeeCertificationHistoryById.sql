@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    18-04-2025    Sahdev Saliya       Created  
+	2    25-04-2025    Sahdev Saliya       Added New Field Inforce
 
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_GetEmployeeCertificationHistoryById]    
@@ -40,7 +41,8 @@ BEGIN
 			,ECA.[CertifyingInstitution]
 			,ECA.[CertificationDate] AS certDate
 			,ECA.[ExpirationDate]
-			,ECA.[IsCertificationInForce] AS inforce
+			,ECA.[IsCertificationInForce]
+			,CASE WHEN ECA.[IsCertificationInForce] = 1 THEN 'Yes' ELSE 'No' END AS Inforce
 			,ECA.[Memo]
 			,ECA.[CreatedBy] 
 			,ECA.[UpdatedBy]  

@@ -17,6 +17,7 @@
     1    12/29/2020   Hemant Saliya		Created
     2    12/29/2024   Ayushi Patel		Order By Sequence Id
     3    04/01/2025   Devendra Shekh	Modified (Order By Description ASC)
+	4    28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 --EXEC [AutoCompleteDropdownsTaskByWorkFlowId] '',1,20,10169,1
 **************************************************************/
 
@@ -59,24 +60,24 @@ BEGIN
 		END
 
 		SELECT DISTINCT  
-			T.TaskId AS Value, 
-			T.Description AS Label,		
-			T.TaskId,
-			T.Description, 
-			T.Sequence
-		FROM dbo.Task T WITH(NOLOCK)					
+			T.[TaskId] AS Value, 
+			T.[Description] AS Label,		
+			T.[TaskId],
+			T.[Description], 
+			T.[Sequence]
+		FROM [dbo].[Task] T WITH(NOLOCK)					
 		WHERE T.MasterCompanyId = @MasterCompanyId AND (T.IsActive = 1 AND ISNULL(T.IsDeleted, 0) = 0 AND (T.Description LIKE @StartWith + '%'))
 		UNION     
 		SELECT DISTINCT  
-			T.TaskId AS Value, 
-			T.Description AS Label,		
-			T.TaskId,
-			T.Description, 
-			T.Sequence
-		FROM dbo.Task T WITH(NOLOCK)
-				JOIN #tmpTaskIds tmpT ON T.TaskId = tmpT.TaskId
+			T.[TaskId] AS Value, 
+			T.[Description] AS Label,		
+			T.[TaskId],
+			T.[Description], 
+			T.[Sequence]
+		FROM [dbo].[Task] T WITH(NOLOCK)
+		JOIN #tmpTaskIds tmpT ON T.TaskId = tmpT.TaskId
 		WHERE T.MasterCompanyId = @MasterCompanyId  
-		ORDER BY T.Description ASC
+		ORDER BY T.[Sequence]
 
 		IF OBJECT_ID(N'tempdb..#tmpTaskIds') IS NOT NULL
 		BEGIN

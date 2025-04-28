@@ -30,7 +30,7 @@
 	13   31/Mar/2025  Sahdev Saliya     Added case for EmployeeCertifyingStaff table.
 	14	 01/Mar/2025  Devendra Shekh	Modified (For Task Table - Order By Description ASC)
 	15   14/Apr/2025  Moin Bloch	    Modified (Added field IsOEM for ItemMaster Table)
-	
+	16   28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
@@ -112,7 +112,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Description asc
+                         ORDER BY [Sequence] ASC
                      END
                      ELSE 
 					 BEGIN
@@ -123,7 +123,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Description asc
+                         ORDER BY [Sequence] ASC
                      END
             END
             ELSE IF(@TableName='ConsigneeLot')BEGIN
@@ -380,7 +380,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Description asc
+                         ORDER BY [Sequence] ASC
                      END
                      ELSE BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution
@@ -390,7 +390,7 @@ AS BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY Description asc
+                         ORDER BY [Sequence] ASC
                      END
             END
             ELSE IF(@TableName='ConsigneeLot')BEGIN

@@ -14,6 +14,7 @@
     1    09/01/2025   Moin Bloch  		Cretaed
 	2    28/01/2025   Moin Bloch  		Added field IsTravelerTask, StandardHours, StandardMinute for Task Table 
 	3    01/04/2025   Devendra Shekh	Modified (Order By [TaskName] ASC)
+	4    28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 
     EXEC AutoCompleteDropdownsForTask 'Task','TaskId','Description','',1,0,'0',1,4740,4305 
 	EXEC AutoCompleteDropdownsForTask 'WorkOrderTask','TaskId','TaskName','',1,0,'11',1,4739,4304 
@@ -75,7 +76,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
 					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [TaskName] asc
+					ORDER BY [Sequence] ASC
 					END
 					ELSE 
 					BEGIN                        
@@ -106,7 +107,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
 					AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [TaskName] asc
+					ORDER BY [Sequence] ASC
 				END
             END
 			ELSE IF(@TableName='SubWorkOrderTask')
@@ -140,7 +141,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
 					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [TaskName] asc
+					ORDER BY [Sequence] ASC
 					END
 					ELSE 
 					BEGIN                        
@@ -171,7 +172,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
 					AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [TaskName] asc
+					ORDER BY [Sequence] ASC
 				END
 			END
         END
@@ -212,7 +213,7 @@ AS BEGIN
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId 
 					  AND  WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                      ORDER BY [TaskName] ASC
+                      ORDER BY [Sequence] ASC
                 END
                 ELSE
 				BEGIN
@@ -247,7 +248,7 @@ AS BEGIN
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId 
 					     AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [TaskName] asc
+                         ORDER BY [Sequence] ASC
                 END
             END
 			ELSE IF (@TableName='WorkOrderTask')
@@ -285,7 +286,7 @@ AS BEGIN
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
 					  AND  WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                      ORDER BY [TaskName] ASC
+                      ORDER BY [Sequence] ASC
                 END
                 ELSE
 				BEGIN
@@ -320,7 +321,7 @@ AS BEGIN
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 
 					     AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [TaskName] asc
+                         ORDER BY [Sequence] ASC
                 END
 			END
         END

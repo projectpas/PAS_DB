@@ -13,16 +13,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/30/2020   Hemant Saliya Created
-	2    07/19/2021   Hemant Saliya Added SP Call for WO Status Update
-	3    10/16/2024   Moin Bloch    Updated RevisedPartDescription if not exists
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/30/2020   Hemant Saliya		Created
+	2    07/19/2021   Hemant Saliya		Added SP Call for WO Status Update
+	3    10/16/2024   Moin Bloch		Updated RevisedPartDescription if not exists
 	4    10/21/2024   Devendra Shekh	added Fields for WPN update
-    5    14/Feb/2025  RAJESH GAMI	added PublicationNo in WO Part Number
+    5    14/Feb/2025  RAJESH GAMI		added PublicationNo in WO Part Number
+    6    28/APR/2025  Vishal Suthar		added partnumber column to update from itemmaster
+
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
-
 CREATE   PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
 @WorkOrderPartNumberId int
 AS
@@ -93,6 +94,7 @@ BEGIN
 					WPN.Level2 = WMS.Level2,
 					WPN.Level3 = WMS.Level3,
 					WPN.Level4 = WMS.Level4,
+					WPN.[PartNumber] = IM.[partnumber],
 					WPN.[PartDescription] = IM.[PartDescription],
 					WPN.[WorkOrderStatus] = WOS.[Description],
 					WPN.[Priority] = PR.[Description],

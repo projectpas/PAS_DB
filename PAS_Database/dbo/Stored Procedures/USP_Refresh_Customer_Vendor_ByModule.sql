@@ -110,7 +110,7 @@ BEGIN
 						SELECT [CustomerName] [Name] FROM [dbo].[ExchangeSalesOrder] C WITH (NOLOCK) WHERE ExchangeSalesOrderId = @referenceId 
 					END
 
-					ELSE IF(@moduleId = @ReceivingCustomerModuleId) /***********>>>>>>> Exchange Customer Name REFRESH <<<<<<<************/
+					ELSE IF(@moduleId = @ReceivingCustomerModuleId) /***********>>>>>>> Receiving Cust Customer Name REFRESH <<<<<<<************/
 					BEGIN
 						UPDATE [dbo].[ReceivingCustomerWork] SET [CustomerName] = @CustomerName WHERE ReceivingCustomerWorkId = @referenceId AND CustomerId = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[ReceivingCustomerWork] C WITH (NOLOCK) WHERE ReceivingCustomerWorkId = @referenceId 

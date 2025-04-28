@@ -12,7 +12,7 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    15 April 2025	RAJESH GAMI		CREATED 
-    2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po, SO,SOQ,Exchange Quote
+    2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po,Non PO,VendorProformaInvoice,Exchange,SO,SOQ,Exchange Quote,Exchange,Speed Quote,CustomerRMA,Receiving Cust
  
  EXEC [USP_WO_Refresh_Customer] 4291,8646
  EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 1122,0,6639,23,''
@@ -108,6 +108,12 @@ BEGIN
 					BEGIN
 						UPDATE [dbo].[ExchangeSalesOrder] SET [CustomerName] = @CustomerName WHERE ExchangeSalesOrderId = @referenceId AND CustomerId = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[ExchangeSalesOrder] C WITH (NOLOCK) WHERE ExchangeSalesOrderId = @referenceId 
+					END
+
+					ELSE IF(@moduleId = @ReceivingCustomerModuleId) /***********>>>>>>> Exchange Customer Name REFRESH <<<<<<<************/
+					BEGIN
+						UPDATE [dbo].[ReceivingCustomerWork] SET [CustomerName] = @CustomerName WHERE ReceivingCustomerWorkId = @referenceId AND CustomerId = @customerId			
+						SELECT [CustomerName] [Name] FROM [dbo].[ReceivingCustomerWork] C WITH (NOLOCK) WHERE ReceivingCustomerWorkId = @referenceId 
 					END
 				END
 				ELSE IF(@vendorId > 0)

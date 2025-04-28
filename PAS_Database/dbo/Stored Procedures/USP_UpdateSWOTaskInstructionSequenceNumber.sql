@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
 	1    03/21/2025   Vishal Suthar		Created
+	2    04/28/2025   Ekta Chandegra 	Fix parent-child sequence update issue
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateSWOTaskInstructionSequenceNumber]
@@ -20,7 +21,9 @@ CREATE   PROCEDURE [dbo].[USP_UpdateSWOTaskInstructionSequenceNumber]
 	@NewSubWorkOrderTaskInstructionId BIGINT,
 	@SequenceNumber BIGINT,
 	@NewSequenceNumber BIGINT,
-	@UpdatedBy VARCHAR(50)
+	@UpdatedBy VARCHAR(50),
+	@InstructionListId VARCHAR(250),
+	@SubWorkOrderTaskId BIGINT
 )
 AS
 BEGIN 
@@ -37,6 +40,81 @@ BEGIN
 		UpdatedBy = @UpdatedBy,
 		UpdatedDate = GETUTCDATE() 
 		WHERE SubWorkOrderTaskInstructionId = @NewSubWorkOrderTaskInstructionId
+
+		-- Recursive CTE to update both ParentSequenceNumber and SequenceNumber
+		;WITH RecursiveCTE AS (
+			-- Anchor member (top-level instructions)
+			SELECT 
+				SWOTI.SubWorkOrderTaskInstructionId,
+				SWOTI.SubWorkOrderTaskId,
+				SWOT.TaskId,
+				SWOT.TaskName,
+				SWOTI.InstructionTitle,
+				SWOTI.InstructionDetails,
+				SWOTI.SequenceNumber,
+				SWOTI.TechId,
+				SWOTI.TechName,
+				SWOTI.TechUpdatedDate,
+				SWOTI.InspectorId,
+				SWOTI.InspectorName,
+				SWOTI.InspectorUpdatedDate,
+				SWOTI.PrintInWO,
+				SWOTI.PrintInWOQ,
+				SWOTI.MasterCompanyId,
+				SWOTI.IsActive,
+				SWOTI.IsDeleted,
+				SWOTI.IsParent,
+				SWOTI.ParentId,
+				CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS ParentSequenceNumber
+			FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+			LEFT JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+			WHERE SWOTI.ParentId IS NULL
+
+			UNION ALL
+
+			-- Recursive member (child instructions)
+			SELECT 
+				SWOTI.SubWorkOrderTaskInstructionId,
+				SWOTI.SubWorkOrderTaskId,
+				SWOT.TaskId,
+				SWOT.TaskName,
+				SWOTI.InstructionTitle,
+				SWOTI.InstructionDetails,
+				SWOTI.SequenceNumber,
+				SWOTI.TechId,
+				SWOTI.TechName,
+				SWOTI.TechUpdatedDate,
+				SWOTI.InspectorId,
+				SWOTI.InspectorName,
+				SWOTI.InspectorUpdatedDate,
+				SWOTI.PrintInWO,
+				SWOTI.PrintInWOQ,
+				SWOTI.MasterCompanyId,
+				SWOTI.IsActive,
+				SWOTI.IsDeleted,
+				SWOTI.IsParent,
+				SWOTI.ParentId,
+				CAST(R.ParentSequenceNumber + '.' + CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS VARCHAR(MAX)) AS ParentSequenceNumber
+			FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+			INNER JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+			INNER JOIN RecursiveCTE R ON SWOTI.ParentId = R.SubWorkOrderTaskInstructionId
+		)
+
+		UPDATE SWOTI
+		SET 
+			SWOTI.SequenceNumber = R.SequenceNumber,
+			SWOTI.ParentSequenceNumber = R.ParentSequenceNumber,
+			SWOTI.UpdatedBy = @UpdatedBy,
+			SWOTI.UpdatedDate = GETUTCDATE()
+		FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI
+		INNER JOIN RecursiveCTE R ON SWOTI.SubWorkOrderTaskInstructionId = R.SubWorkOrderTaskInstructionId;
+
+		-- Add Work Order Task Instruction History
+		EXEC dbo.USP_InsertSubWorkOrderTaskInstructionHistory @SubWorkOrderTaskInstructionId , @UpdatedBy , @InstructionListId , @NewSubWorkOrderTaskInstructionId;
+
+		-- Add Work Order Task History
+		EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @UpdatedBy , @SubWorkOrderTaskInstructionId , NULL;
+
 	END
 	END TRY
 	BEGIN CATCH

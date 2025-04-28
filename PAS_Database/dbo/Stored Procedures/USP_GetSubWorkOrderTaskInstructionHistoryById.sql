@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    03/28/2025   Ekta Chandegra	Created
+    2    04/28/2025   Ekta Chandegra	Retrieve ParentSequenceNumber field
 
  exec dbo.USP_GetSubWorkOrderTaskInstructionHistoryById @SubWorkOrderTaskInstructionId=10
 **************************************************************/
@@ -50,6 +51,7 @@ BEGIN
 				,[IsDeleted]
 				,[ParentId]
 				,[IsParent]
+				,[ParentSequenceNumber]
 			FROM 
 			[dbo].[SubWorkOrderTaskInstructionHistory] WITH(NOLOCK)
 			WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId

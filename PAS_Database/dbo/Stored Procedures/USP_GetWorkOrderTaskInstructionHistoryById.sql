@@ -15,8 +15,9 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    02/18/2025   Ekta Chandegra	Created
+    2    04/28/2025   Ekta Chandegra	Retrieve ParentSequenceNumber
 
--- EXEC dbo.USP_GetWorkOrderTaskInstructionHistoryById @WorkOrderTaskInstructionId=1142
+-- exec dbo.USP_GetWorkOrderTaskInstructionHistoryById @WorkOrderTaskInstructionId=2874
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTaskInstructionHistoryById]
 @WorkOrderTaskInstructionId BIGINT
@@ -27,33 +28,35 @@ BEGIN
 	BEGIN TRY
 		BEGIN
 			SELECT
-				[WorkOrderTaskInstructionHistoryId]
-				,[WorkOrderTaskInstructionId]
-				,[WorkOrderTaskId]
-				,[TaskId]
-				,[TaskName]
-				,[InstructionTitle]
-				,[InstructionDetails]
-				,[SequenceNumber]
-				,[TechId]
-				,[TechName]
-				,[TechUpdatedDate]
-				,[InspectorId]
-				,[InspectorName]
-				,[InspectorUpdatedDate]
-				,[PrintInWO]
-				,[PrintInWOQ]
-				,[MasterCompanyId]
-				,[UpdatedBy]
-				,[UpdatedDate]
-				,[IsActive]
-				,[IsDeleted]
-				,[ParentId]
-				,[IsParent]
+				WOTIH.[WorkOrderTaskInstructionHistoryId]
+				,WOTIH.[WorkOrderTaskInstructionId]
+				,WOTIH.[WorkOrderTaskId]
+				,WOTIH.[TaskId]
+				,WOTIH.[TaskName]
+				,WOTIH.[InstructionTitle]
+				,WOTIH.[InstructionDetails]
+				,WOTIH.[SequenceNumber]
+				,WOTIH.[TechId]
+				,WOTIH.[TechName]
+				,WOTIH.[TechUpdatedDate]
+				,WOTIH.[InspectorId]
+				,WOTIH.[InspectorName]
+				,WOTIH.[InspectorUpdatedDate]
+				,WOTIH.[PrintInWO]
+				,WOTIH.[PrintInWOQ]
+				,WOTIH.[MasterCompanyId]
+				,WOTIH.[UpdatedBy]
+				,WOTIH.[UpdatedDate]
+				,WOTIH.[IsActive]
+				,WOTIH.[IsDeleted]
+				,WOTIH.[ParentId]
+				,WOTIH.[IsParent]
+				,WOTIH.[ParentSequenceNumber]
 			FROM 
-			[dbo].[WorkOrderTaskInstructionHistory] WITH(NOLOCK)
-			WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
-			ORDER BY UpdatedDate DESC
+			[dbo].[WorkOrderTaskInstructionHistory] WOTIH WITH(NOLOCK)
+			WHERE WOTIH.WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+			ORDER BY WOTIH.UpdatedDate DESC
+			
 		END
 	END TRY
 	BEGIN CATCH

@@ -71,7 +71,7 @@ BEGIN
 				SELECT SubWorkOrderId FROM [DBO].[SubWorkOrder] SWO WITH(NOLOCK) INNER JOIN [DBO].[WorkOrderWorkFlow] WF ON SWO.WorkOrderId = WF.WorkOrderId 
 																				AND WF.WorkOrderPartNoId = SWO.WorkOrderPartNumberId
 				WHERE SWO.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkOrderWorkflowId;
-			
+
 			SET @woNumber = (SELECT STRING_AGG([SubWorkOrderNo], ', ') FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId);
 			SET @subItemMasterIds = (SELECT STRING_AGG([ItemMasterId], ', ') FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId);
 			SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ','));
@@ -156,8 +156,9 @@ BEGIN
 			WHILE @SubWoCount <= @SubWoTotalCounts
 			BEGIN
 				SELECT	@MainSubWorkOrderId = SubWorkOrderId 
-				FROM #tmpSubWorkOrder tmpSWO WHERE tmpSWO.ID = @SubWoCount; 
-
+				FROM #tmpSubWorkOrder tmpSWO WHERE tmpSWO.ID = @SubWoCount;
+				
+				PRINT '1.1'
 				--Insert SWOM data
 				INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
 					SELECT SWOMS.SubWorkOrderMaterialsId,
@@ -214,12 +215,15 @@ BEGIN
 				--	JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
 				--WHERE ROP.SubWorkOrderId = @MainSubWorkOrderId;
 
+				PRINT @WorkOrderId
+				PRINT @MainSubWorkOrderId
+
 				--Sub Outside Cost
 				SELECT @OutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))) , 
 					   @ReserveOutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
 					   @IssueOutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyIssued, 0)))
 				FROM [DBO].[Stockline] SL WITH(NOLOCK)
-					JOIN [DBO].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+					JOIN [DBO].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId --AND SL.RepairOrderId = WOMS.RepairOrderId
 					JOIN [DBO].[SubWorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId			
 				WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.SubWorkOrderId  = @MainSubWorkOrderId;
 
@@ -227,7 +231,7 @@ BEGIN
 					   @ReserveOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
 					   @IssueOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyIssued, 0)))
 				FROM [DBO].[Stockline] SL WITH(NOLOCK)
-					JOIN [DBO].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+					JOIN [DBO].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId --AND SL.RepairOrderId = WOMS.RepairOrderId
 					JOIN [DBO].[SubWorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsKitId = WOMS.SubWorkOrderMaterialsKitId			
 				WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.SubWorkOrderId  = @MainSubWorkOrderId;
 
@@ -320,7 +324,7 @@ BEGIN
 					   @ReserveOutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
 					   @IssueOutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyIssued, 0)))
 				FROM [DBO].[Stockline] SL WITH(NOLOCK)
-					JOIN [DBO].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+					JOIN [DBO].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId --AND SL.RepairOrderId = WOMS.RepairOrderId
 					JOIN [DBO].[SubWorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId			
 				WHERE WOM.SubWorkOrderId  = @WorkOrderId;
 
@@ -328,7 +332,7 @@ BEGIN
 					   @ReserveOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
 					   @IssueOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyIssued, 0)))
 				FROM [DBO].[Stockline] SL WITH(NOLOCK)
-					JOIN [DBO].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+					JOIN [DBO].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId --AND SL.RepairOrderId = WOMS.RepairOrderId
 					JOIN [DBO].[SubWorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsKitId = WOMS.SubWorkOrderMaterialsKitId			
 				WHERE WOM.SubWorkOrderId  = @WorkOrderId;
 
@@ -415,7 +419,7 @@ BEGIN
 					   @ReserveOutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
 					   @IssueOutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyIssued, 0)))
 				FROM [DBO].[Stockline] SL WITH(NOLOCK)
-					JOIN [DBO].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+					JOIN [DBO].[SubWorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId --AND SL.RepairOrderId = WOMS.RepairOrderId
 					JOIN [DBO].[SubWorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId			
 				WHERE WOM.SubWorkOrderId  = @WorkOrderId;
 
@@ -423,7 +427,7 @@ BEGIN
 					   @ReserveOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0))),
 					   @IssueOutSideServiceKitCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyIssued, 0)))
 				FROM [DBO].[Stockline] SL WITH(NOLOCK)
-					JOIN [DBO].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId AND SL.RepairOrderId = WOMS.RepairOrderId
+					JOIN [DBO].[SubWorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) ON WOMS.StockLineId = SL.StockLineId --AND SL.RepairOrderId = WOMS.RepairOrderId
 					JOIN [DBO].[SubWorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsKitId = WOMS.SubWorkOrderMaterialsKitId			
 				WHERE WOM.SubWorkOrderId  = @WorkOrderId;
 

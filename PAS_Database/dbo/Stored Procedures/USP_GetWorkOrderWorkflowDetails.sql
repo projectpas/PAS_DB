@@ -11,12 +11,11 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    15-04-2025   HEMANT SALIYA			Created
+    2    29-04-2025   Vishal Suthar			Fixed issue with using revisedpartnumber instead of partnumber
 
-	EXEC USP_GetWorkOrderWorkflowDetails 8635
+EXEC USP_GetWorkOrderWorkflowDetails 8635
 **************************************************************/
-
-
-CREATE     PROCEDURE [dbo].[USP_GetWorkOrderWorkflowDetails]
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderWorkflowDetails]
     @WorkOrderId INT
 AS
 BEGIN
@@ -54,7 +53,7 @@ BEGIN
 			ISNULL(wf.WorkOrderNumber, '') AS WorkflowNo,
 			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,
 			im.PartDescription AS Description,
-			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber ELSE wop.RevisedPartNumber + '-' + sl.ControlNumber END AS PartNumberLabel,
+			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber ELSE wop.PartNumber + '-' + sl.ControlNumber END AS PartNumberLabel,
 			im.ManufacturerName AS Manufacturer,
 			ws.Description AS Workscope,
 			wop.NTE,

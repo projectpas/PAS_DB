@@ -18,6 +18,7 @@
 	2    30-June-2023  Devendra Shekh      Made changes for total    
 	3    04-Sep-2023   Bhargav Saliya      Excel Data Order By Issue REsolved Using [OrderByDate] Field
 	4    29-MARCH-2024  Ekta Chandegra     IsActive and IsDeleted flag is added
+	5    29-APR-2024  Abhishek Jirawla     Divide By Zero resolved in TotalMarginAmtPerc
 
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderQuotesReport]   
@@ -218,7 +219,12 @@ BEGIN
     TotalDirectCost,  
     TotalMarginAmt,  
     --(((PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US')) * 100) / (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US'))) TotalMarginAmtPerc  
-    ((PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US') * 100) / (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US'))) TotalMarginAmtPerc  
+    --((PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US') * 100) / (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US'))) TotalMarginAmtPerc  
+	CASE 
+		WHEN PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US') = 0 THEN 0
+		ELSE (PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US') * 100) 
+			 / PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US')
+	END AS TotalMarginAmtPerc
     FROM WithTotal  
     GROUP BY masterCompanyId, TotalRevenue, TotalDirectCost, TotalMarginAmt, TotalMarginAmtPerc)  
   

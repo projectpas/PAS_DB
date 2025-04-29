@@ -3711,6 +3711,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateROStatusFromMail.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePOStatusFromMail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

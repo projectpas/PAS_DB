@@ -11,47 +11,112 @@
 ** --   --------     -------			----------------------
 	1   03/21/2025   Vishal Suthar		Created
 	2   03/28/2025   Ekta Chandegra		Add Sub Work Order Task History
+	3   04/29/2025   Ekta Chandegra		Rearrange sequence of remaining instructions after delete
 
 EXEC [DeleteSubWorkOrderTaskInstruction] 3
 **************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteSubWorkOrderTaskInstruction]
-	@SubWorkOrderTaskInstructionId BIGINT,
-	@CreatedBy VARCHAR(256),
-	@SubWorkOrderTaskId BIGINT
+    @SubWorkOrderTaskInstructionId BIGINT,
+    @CreatedBy VARCHAR(256),
+    @SubWorkOrderTaskId BIGINT,
+	@InstructionListId VARCHAR(250)
 AS
-	BEGIN
-	BEGIN TRY
+BEGIN
+    BEGIN TRY
+        -- Start transaction
+        BEGIN TRANSACTION;
 
-		EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId, @CreatedBy, @SubWorkOrderTaskInstructionId, NULL
+        -- Log history before deletion
+        EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId, @CreatedBy, @SubWorkOrderTaskInstructionId, NULL;
 
-		;WITH CTE AS (
-			-- Anchor member: Start with the record to be deleted
-			SELECT SubWorkOrderTaskInstructionId
-			FROM DBO.SubWorkOrderTaskInstruction WITH (NOLOCK)
-			WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId
+          -- STEP 2: Recursive delete
+        ;WITH RecursiveDelete AS (
+            SELECT SubWorkOrderTaskInstructionId
+            FROM dbo.SubWorkOrderTaskInstruction WITH (NOLOCK)
+            WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId
 
-			UNION ALL
+            UNION ALL
 
-			-- Recursive member: Get all child records
-			SELECT w.SubWorkOrderTaskInstructionId
-			FROM DBO.SubWorkOrderTaskInstruction w WITH (NOLOCK)
-			INNER JOIN CTE c
-			ON w.ParentId = c.SubWorkOrderTaskInstructionId
-		)
-		-- Delete all identified records
-		DELETE FROM DBO.SubWorkOrderTaskInstruction
-		WHERE SubWorkOrderTaskInstructionId IN (SELECT SubWorkOrderTaskInstructionId FROM CTE);
+            SELECT child.SubWorkOrderTaskInstructionId
+            FROM dbo.SubWorkOrderTaskInstruction child WITH (NOLOCK)
+            INNER JOIN RecursiveDelete parent 
+                ON child.ParentId = parent.SubWorkOrderTaskInstructionId
+        )
+        DELETE FROM dbo.SubWorkOrderTaskInstruction
+        WHERE SubWorkOrderTaskInstructionId IN (SELECT SubWorkOrderTaskInstructionId FROM RecursiveDelete);
 
-		UPDATE [dbo].[SubWorkOrderTaskHistory]
-		SET IsDeleted = 1
-		WHERE [SubWorkOrderTaskHistoryId] IN
-		(
-			SELECT TOP 1 [SubWorkOrderTaskHistoryId]
-			FROM [dbo].[SubWorkOrderTaskHistory] WITH (NOLOCK)
-			WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId
-			ORDER BY [SubWorkOrderTaskHistoryId] DESC
-		) 
-	END TRY
+        -- STEP 3: Mark deleted in SubWorkOrderTaskHistory
+        UPDATE dbo.SubWorkOrderTaskHistory
+        SET IsDeleted = 1
+        WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId;
+
+        -- STEP 4: Re-sequence remaining instructions
+        ;WITH PreSequence AS (
+            SELECT 
+                SubWorkOrderTaskInstructionId,
+                ParentId,
+                ROW_NUMBER() OVER (PARTITION BY ParentId ORDER BY SubWorkOrderTaskInstructionId) AS NewSequence
+            FROM dbo.SubWorkOrderTaskInstruction
+            WHERE SubWorkOrderTaskId = @SubWorkOrderTaskId
+        )
+        , Hierarchy AS (
+            -- Anchor: top-level
+            SELECT 
+                s.SubWorkOrderTaskInstructionId,
+                s.ParentId,
+                s.NewSequence,
+                CAST(s.NewSequence AS VARCHAR(MAX)) AS ParentSequenceNumber
+            FROM PreSequence s
+            WHERE s.ParentId IS NULL
+
+            UNION ALL
+
+            -- Recursion: children
+            SELECT 
+                s.SubWorkOrderTaskInstructionId,
+                s.ParentId,
+                s.NewSequence,
+                CAST(p.ParentSequenceNumber + '.' + CAST(s.NewSequence AS VARCHAR) AS VARCHAR(MAX))
+            FROM PreSequence s
+            INNER JOIN Hierarchy p ON s.ParentId = p.SubWorkOrderTaskInstructionId
+        )
+        UPDATE SWOTI
+        SET 
+            SWOTI.SequenceNumber = H.NewSequence,
+            SWOTI.ParentSequenceNumber = H.ParentSequenceNumber,
+            SWOTI.UpdatedBy = @CreatedBy,
+            SWOTI.UpdatedDate = GETUTCDATE()
+        FROM dbo.SubWorkOrderTaskInstruction SWOTI
+        INNER JOIN Hierarchy H ON SWOTI.SubWorkOrderTaskInstructionId = H.SubWorkOrderTaskInstructionId;
+
+        -- STEP 5: Log instruction update history for all remaining instructions
+        DECLARE @UpdatedInstructionId BIGINT;
+        DECLARE UpdatedCursor CURSOR FOR
+        SELECT SubWorkOrderTaskInstructionId
+        FROM dbo.SubWorkOrderTaskInstruction
+        WHERE SubWorkOrderTaskId = @SubWorkOrderTaskId;
+
+        OPEN UpdatedCursor;
+        FETCH NEXT FROM UpdatedCursor INTO @UpdatedInstructionId;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC dbo.USP_InsertSubWorkOrderTaskInstructionHistory 
+                @UpdatedInstructionId, @CreatedBy, @InstructionListId, NULL;
+
+			EXEC dbo.USP_AddSubWorkOrderTaskHistory 
+                @SubWorkOrderTaskId, @CreatedBy, @UpdatedInstructionId, NULL;
+
+            FETCH NEXT FROM UpdatedCursor INTO @UpdatedInstructionId;
+        END
+
+        CLOSE UpdatedCursor;
+        DEALLOCATE UpdatedCursor;
+
+
+        COMMIT TRANSACTION;
+
+    END TRY
 	BEGIN CATCH
 			IF @@trancount > 0
 			PRINT 'ROLLBACK'

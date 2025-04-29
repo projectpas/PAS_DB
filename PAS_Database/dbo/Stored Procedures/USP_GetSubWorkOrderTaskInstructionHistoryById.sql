@@ -27,7 +27,7 @@ BEGIN
 	SET NOCOUNT ON;	
 	BEGIN TRY
 		BEGIN
-			SELECT
+			SELECT DISTINCT
 				[SubWorkOrderTaskInstructionHistoryId]
 				,[SubWorkOrderTaskInstructionId]
 				,[SubWorkOrderTaskId]

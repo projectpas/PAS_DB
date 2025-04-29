@@ -16,7 +16,7 @@
 **************************************************************/
 
 
-CREATE   PROCEDURE [dbo].[USP_GetWorkOrderWorkflowDetails]
+CREATE     PROCEDURE [dbo].[USP_GetWorkOrderWorkflowDetails]
     @WorkOrderId INT
 AS
 BEGIN
@@ -84,7 +84,8 @@ BEGIN
 			wop.WorkOrderStageId,
 			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedSerialNumber ELSE ISNULL(sl.SerialNumber, '') END AS SerialNumber,
 			wo.workOrderFormTypeId,
-			wo.IsWoAlwaysOrOndemandId
+			wo.IsWoAlwaysOrOndemandId,
+			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN 1 WHEN ISNULL(sl.SerialNumber, '') != '' THEN 1 ELSE 0 END AS IsSerialNumber
 		FROM [dbo].WorkOrderWorkFlow w WITH(NOLOCK)
 			INNER JOIN [dbo].WorkOrderPartNumber wop WITH(NOLOCK) ON w.WorkOrderPartNoId = wop.ID
 			INNER JOIN [dbo].WorkOrder wo WITH(NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId

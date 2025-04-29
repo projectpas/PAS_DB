@@ -23,6 +23,7 @@
 	07	 30-Dec-2024	Vishal Suthar		Removed subqueries and used CTE for Performance imporvement
 	08   07-04-2025     Shrey Chandegara    Modified due to PN-12013
 	09   14-04-2025     Moin Bloch          Modified Fix Order Isuee in RO List
+	10   25-04-2025     HEMANT SALIYA       Modified Fix Default Order Isuee in RO List Created By
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -98,9 +99,9 @@ BEGIN
 			Set @IsDeleted = 0
 		End	
 		
-		IF @SortColumn IS NULL
+		IF @SortColumn IS NULL OR @SortColumn = Upper('CreatedDate')
 		Begin
-			Set @SortColumn = Upper('CreatedDate')
+			Set @SortColumn = Upper('RepairOrderId')
 		End 
 		Else
 		Begin 
@@ -275,7 +276,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -402,7 +405,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNumType')  THEN WorkOrderNumType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END

@@ -21,7 +21,8 @@ EXECUTE   [dbo].[USP_UpdatePOStatusFromMail] 6760,'admin'
 CREATE     PROCEDURE [dbo].[USP_UpdatePOStatusFromMail]
 	@PurchaseOrderId BIGINT,
 	@MasterCompanyId BIGINT,
-	@UpdatedBy VARCHAR(100)
+	@UpdatedBy VARCHAR(100),
+	@IsView BIT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -29,7 +30,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				IF(@PurchaseOrderId > 0)
+				IF(@PurchaseOrderId > 0 AND @IsView = 0)
 				BEGIN
 					DECLARE @StatusId INT,
 							@StatusName VARCHAR(100),

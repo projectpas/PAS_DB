@@ -96,7 +96,7 @@ AS
         DECLARE @UpdatedInstructionId BIGINT;
         DECLARE UpdatedCursor CURSOR FOR
         SELECT WorkOrderTaskInstructionId
-        FROM dbo.WorkOrderTaskInstruction
+        FROM dbo.WorkOrderTaskInstruction WITH(NOLOCK)
         WHERE WorkOrderTaskId = @WorkOrderTaskId;
 
         OPEN UpdatedCursor;

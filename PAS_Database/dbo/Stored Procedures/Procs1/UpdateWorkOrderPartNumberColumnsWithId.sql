@@ -21,6 +21,7 @@
 	4    10/21/2024   Devendra Shekh	added Fields for WPN update
     5    14/Feb/2025  RAJESH GAMI		added PublicationNo in WO Part Number
     6    28/APR/2025  Vishal Suthar		added partnumber column to update from itemmaster
+	7    30/APR/2025  Hemant Saliya		Added Revised PN, Revised Serial Number , Revised PN Desc
 
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
@@ -101,7 +102,8 @@ BEGIN
 					WPN.[WorkOrderStage] = WOSG.[Code] + '-' + WOSG.[Stage],
 					WPN.[ManufacturerName] = IM.[ManufacturerName],
 					WPN.[TechName] = UPPER(EMP.FirstName + ' ' + EMP.LastName),
-					WPN.[EmployeeStation] = UPPER(EMPS.StationName)
+					WPN.[EmployeeStation] = UPPER(EMPS.StationName),
+					WPN.[RevisedItemmasterid] = CASE WHEN WPN.[RevisedItemmasterid] > 0 THEN WPN.[RevisedItemmasterid] ELSE WPN.ItemMasterId END
 				FROM [dbo].WorkOrderPartNumber WPN WITH(NOLOCK) 
 				LEFT JOIN #WorkOrderPartMSDATA WMS ON WMS.MSID = WPN.ManagementStructureId
 				LEFT JOIN [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
@@ -121,12 +123,31 @@ BEGIN
 					WHERE WPN.[ID] = @WorkOrderPartNumberId
 				END		
 
-				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND [RevisedPartNumber] IS NULL)
+				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND ISNULL([RevisedPartNumber] ,'') = '')
 				BEGIN					
 					UPDATE WPN SET 
-						WPN.[RevisedPartNumber] = IM.[PartNumber]								
+						WPN.[RevisedPartNumber] = IM.[PartNumber],	
+						WPN.[RevisedPartDescription] = IM.[PartDescription]
 					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WPN.[RevisedItemmasterid]
+					WHERE WPN.[ID] = @WorkOrderPartNumberId
+				END
+
+				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND ISNULL([CurrentSerialNumber], '') = '')
+				BEGIN					
+					UPDATE WPN SET 
+						WPN.[CurrentSerialNumber] = SL.[SerialNumber]								
+					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
+					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = WPN.[StockLineId]
+					WHERE WPN.[ID] = @WorkOrderPartNumberId
+				END
+
+				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND ISNULL([RevisedSerialNumber], '') = '')
+				BEGIN					
+					UPDATE WPN SET 
+						WPN.[RevisedSerialNumber] = CASE WHEN ISNULL(WPN.CurrentSerialNumber, '') = '' THEN SL.[SerialNumber] ELSE WPN.CurrentSerialNumber END								
+					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
+					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = WPN.[StockLineId]
 					WHERE WPN.[ID] = @WorkOrderPartNumberId
 				END
 								

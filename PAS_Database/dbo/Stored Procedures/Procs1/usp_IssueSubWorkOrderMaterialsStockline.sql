@@ -16,6 +16,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
 ** 6    02/13/2025	Hemnat Saliya	 Updated - Re_calculate MPN Cost
 ** 7	04/24/2025	Devendra Shekh	 Modify (Added [IsManualText] check for DistributionSetup)
+** 8	04/30/2025	Abhishek Jirawla In loop checked Whether it is kit or material
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -431,7 +432,17 @@ BEGIN
 							   @Partnumber = PartNumber,@historyQuantityActIssued = QuantityActIssued 
 						FROM #tmpIssueSWOMaterialsStockline WHERE ID = @slcount;
 
-						SELECT @SubWorkOrderPartNoId = SubWOPartNoId, @historySubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @HistorySubWorkOrderMaterialsId;
+						--SELECT @SubWorkOrderPartNoId = SubWOPartNoId, @historySubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @HistorySubWorkOrderMaterialsId;
+
+						IF ISNULL(@KITID, 0) = 0
+						BEGIN
+							SELECT @SubWorkOrderPartNoId = SubWOPartNoId, @historySubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @HistorySubWorkOrderMaterialsId;
+						END
+						ELSE
+						BEGIN
+							SELECT @SubWorkOrderPartNoId = SubWOPartNoId, @historySubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderMaterialsKit WITH(NOLOCK) WHERE SubWorkOrderMaterialsKitId = @HistorySubWorkOrderMaterialsId;
+						END
+
 						SELECT @ItemMasterId = SWOP.ItemMasterId, @MPNPartnumber = IM.partnumber FROM dbo.SubWorkOrderPartNumber AS SWOP WITH(NOLOCK)
 							JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
 						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId;

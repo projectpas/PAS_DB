@@ -12,27 +12,28 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date         Author      Change Description              
- ** --   --------     -------      --------------------------------      
-	1   24-Aug-2023  Bhargav Saliya		Convert Dates UTC To LegalEntity Time Zone
-    2   25-AUG-2023  Ekta Chandegra		Convert text into uppercase
-	3   31-JAN-2024   Devendra Shekh	changes for performInvoice
-	4   29-MARCH-2024  Ekta Chandegra	Add IsDeleted and IsActive flag  
-	5   01-SEPT-2024  Hemant Saliya		Add Is Performa Invoice Condition 
-	6   20-Nov-2024   Moin Bloch		Added Is Delete and Format SP
-	5   10-APR-2025  Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
- 
-EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
+ ** S NO   Date         Author				Change Description              
+ ** --  --------		-------				--------------------------------      
+	1   24-Aug-2023		Bhargav Saliya		Convert Dates UTC To LegalEntity Time Zone
+    2   25-AUG-2023		Ekta Chandegra		Convert text into uppercase
+	3   31-JAN-2024		Devendra Shekh		changes for performInvoice
+	4   29-MARCH-2024	Ekta Chandegra		Add IsDeleted and IsActive flag  
+	5   01-SEPT-2024	Hemant Saliya		Add Is Performa Invoice Condition 
+	6   20-Nov-2024		Moin Bloch			Added Is Delete and Format SP
+	7   10-APR-2025		Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
+	8   10-APR-2025		Vishal Suthar		Added WOBillingInvoicingItemId column in the select statement to display all the records
+
+EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBillingReport]   
-@PageNumber INT = 1,  
-@PageSize INT = NULL,  
-@mastercompanyid INT,  
-@xmlFilter XML  
-AS  
-BEGIN  
-  SET NOCOUNT ON;  
-  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
+CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBillingReport]
+	@PageNumber INT = 1,
+	@PageSize INT = NULL,
+	@mastercompanyid INT,
+	@xmlFilter XML
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
@@ -194,11 +195,12 @@ BEGIN
 		   SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END  
   
 		   --INSERT INTO #tmpBilling  
-		  ;WITH rptCTE (TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
+		  ;WITH rptCTE (TotalRecordsCount, WorkOrderId, WOBillingInvoicingItemId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
 				 quotenum, receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
 				 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId) AS (  
 		  SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,  
 			   WO.WorkOrderId,  
+			   WOBIM.WOBillingInvoicingItemId,
 			   UPPER(C.Name) 'customername',  
 			   UPPER(C.CustomerCode) 'customercode',  
 			   CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
@@ -207,7 +209,8 @@ BEGIN
 			   UPPER(WOPN.WorkScope) 'workscope',  
 			   UPPER(WO.WorkOrderNum) 'wonum',  
 			   WOBI.InvoiceNo 'invoicenum',  
-			   ISNULL(WOBI.GrandTotal,0) 'revenue',   
+			   --ISNULL(WOBI.GrandTotal,0) 'revenue',   
+			   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue',   
 			   UPPER(WOQ.QuoteNumber) 'quotenum',  
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
@@ -273,6 +276,7 @@ BEGIN
   
 			SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,  
 				 CM.WorkOrderId,  
+				 WOBIM.WOBillingInvoicingItemId,
 				 UPPER(CM.CustomerName) 'customername',  
 				 UPPER(CM.CustomerCode) 'customercode',  
 				 UPPER(CMD.partnumber) 'pn',  
@@ -352,10 +356,10 @@ BEGIN
 				  AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
 			  )      
         
-		   ,FinalCTE(TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
+		   ,FinalCTE(TotalRecordsCount, WorkOrderId, WOBillingInvoicingItemId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
 			 quotenum, receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
 			 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId)   
-			 AS (SELECT DISTINCT TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
+			 AS (SELECT DISTINCT TotalRecordsCount, WorkOrderId, WOBillingInvoicingItemId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
 			 quotenum, receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
 			 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId FROM rptCTE)  
   
@@ -365,7 +369,7 @@ BEGIN
 			FROM FinalCTE  
 			GROUP BY masterCompanyId)  
   
-			 SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
+			 SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, WOBillingInvoicingItemId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 				 receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate,   
 				 FORMAT(ISNULL(revenue,0) , 'N', 'en-us') 'revenue',      
 				 tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  

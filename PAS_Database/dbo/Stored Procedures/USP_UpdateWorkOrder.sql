@@ -13,7 +13,7 @@
     1    24/03/2025    Moin Bloch    Created
     2    14/04/2025    RAJESH GAMI   Implement the traverler Number logic    
 	3    18/04/2025    Moin Bloch    Added For CREATING TRAVELER LABOUR HEADER
-
+	4    30/04/2025    Rajesh Gami   Fix the RevisedItemMasterId, Desc and PartNumber related issue.
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -432,9 +432,9 @@ BEGIN
 				  ,WOP.[AssignDate] = WOPT.[AssignDate]
 				  ,WOP.[ReceivingCustomerWorkId] = WOPT.[ReceivingCustomerWorkId]
 				  ,WOP.[ExpertiseId] = WOPT.[ExpertiseId]
-				  ,WOP.[RevisedItemmasterid] = WOPT.[RevisedItemmasterid]
-				  ,WOP.[RevisedPartNumber] = WOPT.[RevisedPartNumber]
-				  ,WOP.[RevisedPartDescription] = WOPT.[RevisedPartDescription]
+				  ,WOP.[RevisedItemmasterid] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.ItemMasterId ELSE WOPT.[RevisedItemmasterid] END
+				  ,WOP.[RevisedPartNumber] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.partNumber ELSE WOPT.[RevisedPartNumber] END
+				  ,WOP.[RevisedPartDescription] = CASE WHEN ISNULL(WOPT.[RevisedItemmasterid],0) = 0 THEN Im.PartDescription ELSE  WOPT.[RevisedPartDescription] END
 				  ,WOP.[IsTraveler] = WOPT.[IsTraveler]
 				  ,WOP.[AllowInvoiceBeforeShipping] = WOPT.[AllowInvoiceBeforeShipping]
 				  ,WOP.[WOFPrintDate] = WOPT.[WOFPrintDate]
@@ -454,6 +454,7 @@ BEGIN
 				  ,WOP.[PublicationNo] = WOPT.[PublicationNo]
 				  ,WOP.TravelerNumber = @TravelerName
 			FROM [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK)    
+			INNER JOIN dbo.ItemMaster Im WITH(NOLOCK)     ON WOP.ItemMasterId = Im.ItemMasterId
 			INNER JOIN #tmprCreateWorkOrderPartNumber WOPT ON WOPT.ID = WOP.ID  
 			WHERE WOPT.[PKID] = @MinId		
 		END
@@ -509,7 +510,7 @@ BEGIN
 					[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 					[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
-					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
+					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],ItemMasterId,[PartNumber],[PartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName
 			   FROM #tmprCreateWorkOrderPartNumber 

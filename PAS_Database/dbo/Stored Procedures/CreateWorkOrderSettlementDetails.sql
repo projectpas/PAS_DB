@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    17/03/2025   Moin Bloch		Created
     2    03/04/2025   Devendra Shekh    Resolved issue for Save Details for Multiple MPN
+	3    30/04/2025   Moin Bloch		Fix For Duplicate Settlement
      
 --   EXEC [dbo].[CreateWorkOrderSettlementDetails]
 **************************************************************/

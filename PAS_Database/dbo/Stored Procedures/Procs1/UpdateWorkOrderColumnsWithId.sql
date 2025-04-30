@@ -20,8 +20,8 @@
 	3    07/19/2021   Hemant Saliya Added Is NUll Condition
 	4    10/21/2024   Devendra Shekh	added Fields for WPN update
 	5    12/30/2024   Devendra Shekh	added Missing Fields for WPN update
-     
--- EXEC [UpdateWorkOrderColumnsWithId] 6
+	5    04/30/2025   Rajesh Gami	    added Missing Fields for WPN update (Revised Part Number and Description)     
+-- EXEC [UpdateWorkOrderColumnsWithId] 8792
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[UpdateWorkOrderColumnsWithId]
@@ -53,6 +53,9 @@ BEGIN
 					WPN.RevisedConditionId = CASE WHEN ISNULL(WPN.RevisedConditionId, 0) > 0 THEN WPN.RevisedConditionId ELSE WPN.ConditionId END,
 					WPN.[WorkOrderStage] = WOSG.[Code] + '-' + WOSG.[Stage],
 					WPN.[PartDescription] = IM.[PartDescription],
+					WPN.[PartNumber] = IM.[PartNumber],
+					WPN.[RevisedPartDescription] = RIM.[PartDescription],
+					WPN.[RevisedPartNumber] = RIM.[PartNumber],
 					WPN.[WorkOrderStatus] = WOS.[Description],
 					WPN.[Priority] = PR.[Description], 
 					WPN.[ManufacturerName] = IM.[ManufacturerName],
@@ -63,7 +66,8 @@ BEGIN
 					JOIN dbo.WorkScope WS WITH(NOLOCK) ON WPN.WorkOrderScopeId = WS.WorkScopeId
 					LEFT JOIN [dbo].[WorkOrderStage] WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId
 					LEFT JOIN [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
-					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
+					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
+					LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = WPN.RevisedItemMasterId         
 					LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 					LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
 					LEFT JOIN [dbo].[EmployeeStation] EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId

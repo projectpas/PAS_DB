@@ -12,8 +12,9 @@
  ** --   --------     -------				--------------------------------          
     1    15-04-2025   HEMANT SALIYA			Created
     2    29-04-2025   Vishal Suthar			Fixed issue with using revisedpartnumber instead of partnumber
+	3    30-04-2025   HEMANT SALIYA			UPDATED for revisedpartnumber
 
-EXEC USP_GetWorkOrderWorkflowDetails 8635
+EXEC USP_GetWorkOrderWorkflowDetails 8736
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderWorkflowDetails]
     @WorkOrderId INT
@@ -51,9 +52,10 @@ BEGIN
 			ISNULL(st.Status, '') AS Status,
 			ISNULL(wf.WorkflowId, 0) AS WorkflowId,
 			ISNULL(wf.WorkOrderNumber, '') AS WorkflowNo,
-			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,
+			CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,
 			im.PartDescription AS Description,
-			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber ELSE wop.PartNumber + '-' + sl.ControlNumber END AS PartNumberLabel,
+			CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+				WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.PartNumber + '-' + sl.ControlNumber END AS PartNumberLabel,
 			im.ManufacturerName AS Manufacturer,
 			ws.Description AS Workscope,
 			wop.NTE,

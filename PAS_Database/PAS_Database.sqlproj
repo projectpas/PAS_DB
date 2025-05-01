@@ -3714,6 +3714,8 @@
     <Build Include="dbo\Tables\MASTERTABLEGroupBy.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerContactsByCustomerId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerInternationalShippingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetContactAuditHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

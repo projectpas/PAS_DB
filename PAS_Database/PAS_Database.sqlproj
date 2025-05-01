@@ -3716,6 +3716,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerContactsByCustomerId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerInternationalShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetContactAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllShippingAddressDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -1,11 +1,25 @@
-﻿-- EXEC [DeleteMPN] 8803,8765,6543,202397,'ADMIN ADMIN'
-CREATE PROCEDURE [dbo].[DeleteMPN]
-@WOPartNoId BIGINT,
-@WorkFlowWorkOrderId BIGINT,
-@RecustomerId BIGINT,
-@StockLineId BIGINT,
-@UpdatedBy VARCHAR(256)
-
+﻿/********************************************************************
+ ** File:  [DeleteMPN]
+ ** Author:  Vishal Suthar
+ ** Description: This stored procedure is used to Get Work Order Details
+ ** Date:   28/04/2025
+ ** PARAMETERS: @WorkOrderId bigint,@ReceivingCustomerId bigint,@RMAHeaderId bigint,@StockLineId bigint
+ ** RETURN VALUE:
+ ********************************************************************
+ ** Change History
+ ********************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			-----------------------------
+    1    28/04/2025   Vishal Suthar		Added History
+     
+EXEC [DeleteMPN] 8803,8765,6543,202397,'ADMIN ADMIN'
+********************************************************************/
+CREATE   PROCEDURE [dbo].[DeleteMPN]
+	@WOPartNoId BIGINT,
+	@WorkFlowWorkOrderId BIGINT,
+	@RecustomerId BIGINT,
+	@StockLineId BIGINT,
+	@UpdatedBy VARCHAR(256)
 AS
 	BEGIN
 	DECLARE @TeardownId BIGINT
@@ -111,11 +125,11 @@ AS
 			DELETE FROM WorkOrderPartNumber WHERE ID = @WOPartNoId
 
 			/* Stock Line*/
-			UPDATE Stockline SET WorkOrderId = 0, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() 
+			UPDATE Stockline SET WorkOrderId = NULL, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() 
 			WHERE StockLineId=@StockLineId
 
 			/*Receiving*/
-			UPDATE ReceivingCustomerWork SET WorkOrderId = 0, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE()
+			UPDATE ReceivingCustomerWork SET WorkOrderId = NULL, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE()
 			WHERE ReceivingCustomerWorkId = @RecustomerId
 
 	COMMIT TRANSACTION

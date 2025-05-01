@@ -13,10 +13,11 @@
  ** --   --------     -------		--------------------------------          
     1    17/03/2025   Moin Bloch		Created
     2    03/04/2025   Devendra Shekh    Resolved issue for Save Details for Multiple MPN
+	3    30/04/2025   Moin Bloch		Fix For Duplicate Settlement
      
 --   EXEC [dbo].[CreateWorkOrderSettlementDetails]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[CreateWorkOrderSettlementDetails]
+CREATE    PROCEDURE [dbo].[CreateWorkOrderSettlementDetails]
 @tbl_WorkOrderPartNumberType WorkOrderPartNumberType READONLY,
 @WorkOrderId BIGINT,
 @WorkOrderTypeId BIGINT,
@@ -68,6 +69,8 @@ BEGIN
 	    DECLARE @ID [BIGINT] = NULL,@WorkFlowWorkOrderId [BIGINT] = NULL,@WorkOrderSettlementDetailId [BIGINT] = NULL,@WorkOrderSettlementId [BIGINT] = NULL
 
 		SELECT @ID=[ID] FROM #tmprCreateWorkOrderSettlementDetails WHERE [PKID] = @MinId
+		
+		TRUNCATE TABLE #tmprWorkOrderSettlement
 
 		INSERT INTO #tmprWorkOrderSettlement([WorkOrderSettlementId])
 		SELECT [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [IsDeleted] = 0;
@@ -76,6 +79,7 @@ BEGIN
 
 		IF NOT EXISTS(SELECT TOP 1 [WorkOrderSettlementDetailId] FROM [dbo].[WorkOrderSettlementDetails] WITH(NOLOCK) WHERE [IsDeleted] = 0 AND [workOrderPartNoId] = @ID)
 		BEGIN
+			
 			SELECT @SMTotalRecord = COUNT(*), @SMMinId = MIN([SMID]) FROM #tmprWorkOrderSettlement  
 			WHILE @SMMinId <= @SMTotalRecord
 			BEGIN
@@ -101,7 +105,7 @@ BEGIN
 
 				SET @SMMinId = @SMMinId + 1
 			END
-			TRUNCATE TABLE #tmprWorkOrderSettlement
+			
 		END	
 		SET @MinId = @MinId + 1
 	END

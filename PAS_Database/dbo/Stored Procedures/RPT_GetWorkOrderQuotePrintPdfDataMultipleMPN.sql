@@ -17,8 +17,9 @@
     2    24-FEB-2025	 RAJESH GAMI		Fixed the Total Amount Issue
 	3    06-APR-2025	 HEMANT SALIYA		Updated for Get correct PN and Serial Number
 	4    09-APR-2025	 Devendra Shekh		Comparing @CorrectiveActionCode instead of @corrective
-    5    15-APR-2025   RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 6586,'',0  
+    5    15-APR-2025	 RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
+	6    01-MAY-2025	 HEMANT SALIYA		Updated Hangle Error on Corrective Action
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7342,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
@@ -150,12 +151,22 @@ BEGIN
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId  and t.Code !='SALES TAX'
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-				Memo =
-				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
-					FROM
-						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
-						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
+				CAST((
+					SELECT TOP 1
+						REPLACE(REPLACE(ctd.Memo, '</p><p>', ' '), '<br>', '')
+					FROM dbo.CommonWorkOrderTearDown ctd WITH (NOLOCK)
+					LEFT JOIN dbo.CommonTeardownType ctt WITH (NOLOCK) 
+						ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId
+					  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
+					FOR XML PATH(''), TYPE
+				).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				--Memo =
+				--(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+				--	FROM
+				--		dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+				--		LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+				--	WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -204,7 +215,6 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			
 				;WITH WOQPartCte AS (
 				SELECT DISTINCT  
 				wop.ID,
@@ -256,12 +266,22 @@ BEGIN
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-				Memo =
-				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
-					FROM
-						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
-						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-						WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
+				CAST((
+					SELECT TOP 1
+						REPLACE(REPLACE(ctd.Memo, '</p><p>', ' '), '<br>', '')
+					FROM dbo.CommonWorkOrderTearDown ctd WITH (NOLOCK)
+					LEFT JOIN dbo.CommonTeardownType ctt WITH (NOLOCK) 
+						ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId
+					  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
+					FOR XML PATH(''), TYPE
+				).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				--Memo =
+				--(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+				--	FROM
+				--		dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+				--		LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+				--		WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode) AND ctd.MasterCompanyId = 20 )
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -339,6 +359,13 @@ BEGIN
   BEGIN CATCH        
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     ROLLBACK TRAN;  
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

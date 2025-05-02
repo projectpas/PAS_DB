@@ -3725,5 +3725,6 @@
     <None Include="Snapshots\PAS_SPRINT_53.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_53_Minor.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_55.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_56.dacpac" />
   </ItemGroup>
 </Project>

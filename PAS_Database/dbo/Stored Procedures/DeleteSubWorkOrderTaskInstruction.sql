@@ -56,7 +56,7 @@ BEGIN
                 SubWorkOrderTaskInstructionId,
                 ParentId,
                 ROW_NUMBER() OVER (PARTITION BY ParentId ORDER BY SubWorkOrderTaskInstructionId) AS NewSequence
-            FROM dbo.SubWorkOrderTaskInstruction
+            FROM dbo.SubWorkOrderTaskInstruction WITH(NOLOCK)
             WHERE SubWorkOrderTaskId = @SubWorkOrderTaskId
         )
         , Hierarchy AS (

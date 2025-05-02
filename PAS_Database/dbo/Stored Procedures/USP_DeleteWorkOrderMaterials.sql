@@ -28,7 +28,8 @@ BEGIN
 	 BEGIN TRY  
 	  
 			DECLARE @WorkOrderId BIGINT,
-					@POId BIGINT;
+					@POId BIGINT,
+					@QtyReservedIssued INT;
 			
 			--Update StockLine
 			IF EXISTS(SELECT TOP 1 StockLineId FROM [DBO].[StockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
@@ -66,10 +67,16 @@ BEGIN
 				 DELETE FROM [DBO].[WorkOrderStockLineReserve] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
 			END
 
-			--Delete WorkOrderMaterialStockLine
-			IF EXISTS(SELECT TOP 1 WOMStockLineId FROM [DBO].[WorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
+			--Get for allow delete material or not
+			SELECT @QtyReservedIssued = (ISNULL(SUM(QtyReserved),0) + ISNULL(SUM(QtyIssued),0)) FROM [DBO].[WorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
+
+			IF(@QtyReservedIssued = 0)
 			BEGIN
-				 DELETE FROM [DBO].[WorkOrderMaterialStockLine] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+				--Delete WorkOrderMaterialStockLine
+				IF EXISTS(SELECT TOP 1 WOMStockLineId FROM [DBO].[WorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
+				BEGIN
+					 DELETE FROM [DBO].[WorkOrderMaterialStockLine] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+				END
 			END
 
 			--If Exists SubWorkOrder
@@ -101,9 +108,12 @@ BEGIN
 					 @WorkOrderId, -- for ReferenceId
 					 @POId,
 					 @UpdatedBy;
-
-				 -- Delete WorkOrderMaterials
-				 DELETE FROM [DBO].[WorkOrderMaterials] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+					
+				IF(@QtyReservedIssued = 0)
+				BEGIN
+					 -- Delete WorkOrderMaterials
+					 DELETE FROM [DBO].[WorkOrderMaterials] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+				END
 			END
 			
 		 COMMIT TRANSACTION;

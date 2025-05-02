@@ -54,7 +54,7 @@ BEGIN
         wos.ShipToZip AS ShipToPostalCode,
         country.countries_name AS ShipToCountry,
         cust.CustomerPhone AS ShipToPhone,
-        @WOShippingId AS WOShippingId,
+        wos.WorkOrderShippingId AS WOShippingId,
         wos.ShipSizeLength AS Length,
         wos.ShipSizeWidth AS Width,
         wos.ShipSizeHeight AS Height,

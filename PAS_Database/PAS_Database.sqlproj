@@ -3718,6 +3718,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterialStockline.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterials.sql" />
     <Build Include="dbo\Stored Procedures\USP_SubWorkOrderHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOShippingLabel.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

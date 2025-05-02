@@ -80,6 +80,7 @@ BEGIN
 			INSERT INTO #tmprCMMIDsDetails ([CMMId])
 			SELECT [PublicationRecordId] --(SELECT Item FROM DBO.SPLITSTRING(wop.CMMIds, ',')) AS cmmids 
 			FROM [dbo].[Publication] WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
+			ORDER BY PublicationTypeId DESC
 		END			
 		
 		DECLARE @FAA INT = 1;  

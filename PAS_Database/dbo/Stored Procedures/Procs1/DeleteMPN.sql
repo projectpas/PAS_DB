@@ -1,12 +1,25 @@
-﻿-- EXEC [DeleteMPN] 181,118,103,271,'admin'
-
-CREATE PROCEDURE [dbo].[DeleteMPN]
-@WOPartNoId BIGINT,
-@WorkFlowWorkOrderId BIGINT,
-@RecustomerId BIGINT,
-@StockLineId BIGINT,
-@UpdatedBy VARCHAR(256)
-
+﻿/********************************************************************
+ ** File:  [DeleteMPN]
+ ** Author:  Vishal Suthar
+ ** Description: This stored procedure is used to Get Work Order Details
+ ** Date:   28/04/2025
+ ** PARAMETERS: @WorkOrderId bigint,@ReceivingCustomerId bigint,@RMAHeaderId bigint,@StockLineId bigint
+ ** RETURN VALUE:
+ ********************************************************************
+ ** Change History
+ ********************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			-----------------------------
+    1    28/04/2025   Vishal Suthar		Added History
+     
+EXEC [DeleteMPN] 8803,8765,6543,202397,'ADMIN ADMIN'
+********************************************************************/
+CREATE   PROCEDURE [dbo].[DeleteMPN]
+	@WOPartNoId BIGINT,
+	@WorkFlowWorkOrderId BIGINT,
+	@RecustomerId BIGINT,
+	@StockLineId BIGINT,
+	@UpdatedBy VARCHAR(256)
 AS
 	BEGIN
 	DECLARE @TeardownId BIGINT
@@ -82,11 +95,17 @@ AS
 			DELETE FROM WorkOrderAssets WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 			/*Asset Audit*/
-			DELETE FROM WorkOrderAssetAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+			--DELETE FROM WorkOrderAssetAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 			/*Address*/
 			DELETE FROM WorkOrderAddress WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
+			/*WorkOrderTask*/
+			DELETE FROM WorkOrderTask WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
+			/*WorkOrderTask*/
+			DELETE FROM WorkOrderSettlementDetails WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+			
 			/*WorkOrderWorkFlow*/
 			DELETE FROM WorkOrderWorkFlow WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
@@ -106,11 +125,11 @@ AS
 			DELETE FROM WorkOrderPartNumber WHERE ID = @WOPartNoId
 
 			/* Stock Line*/
-			UPDATE Stockline SET WorkOrderId = 0, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() 
+			UPDATE Stockline SET WorkOrderId = NULL, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() 
 			WHERE StockLineId=@StockLineId
 
 			/*Receiving*/
-			UPDATE ReceivingCustomerWork SET WorkOrderId = 0, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE()
+			UPDATE ReceivingCustomerWork SET WorkOrderId = NULL, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE()
 			WHERE ReceivingCustomerWorkId = @RecustomerId
 
 	COMMIT TRANSACTION
@@ -127,7 +146,7 @@ AS
 				DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'DeleteMPN' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WOPartNoId, '') + ''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

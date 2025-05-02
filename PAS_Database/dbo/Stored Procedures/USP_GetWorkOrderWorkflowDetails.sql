@@ -11,11 +11,11 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    15-04-2025   HEMANT SALIYA			Created
+    2    29-04-2025   Vishal Suthar			Fixed issue with using revisedpartnumber instead of partnumber
+	3    30-04-2025   HEMANT SALIYA			UPDATED for revisedpartnumber
 
-	EXEC USP_GetWorkOrderWorkflowDetails 8635
+EXEC USP_GetWorkOrderWorkflowDetails 8736
 **************************************************************/
-
-
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderWorkflowDetails]
     @WorkOrderId INT
 AS
@@ -52,9 +52,10 @@ BEGIN
 			ISNULL(st.Status, '') AS Status,
 			ISNULL(wf.WorkflowId, 0) AS WorkflowId,
 			ISNULL(wf.WorkOrderNumber, '') AS WorkflowNo,
-			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,
+			CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,
 			im.PartDescription AS Description,
-			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber ELSE wop.RevisedPartNumber + '-' + sl.ControlNumber END AS PartNumberLabel,
+			CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+				WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.PartNumber + '-' + sl.ControlNumber END AS PartNumberLabel,
 			im.ManufacturerName AS Manufacturer,
 			ws.Description AS Workscope,
 			wop.NTE,
@@ -84,7 +85,8 @@ BEGIN
 			wop.WorkOrderStageId,
 			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedSerialNumber ELSE ISNULL(sl.SerialNumber, '') END AS SerialNumber,
 			wo.workOrderFormTypeId,
-			wo.IsWoAlwaysOrOndemandId
+			wo.IsWoAlwaysOrOndemandId,
+			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN 1 WHEN ISNULL(sl.SerialNumber, '') != '' THEN 1 ELSE 0 END AS IsSerialNumber
 		FROM [dbo].WorkOrderWorkFlow w WITH(NOLOCK)
 			INNER JOIN [dbo].WorkOrderPartNumber wop WITH(NOLOCK) ON w.WorkOrderPartNoId = wop.ID
 			INNER JOIN [dbo].WorkOrder wo WITH(NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId

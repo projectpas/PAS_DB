@@ -92,7 +92,7 @@ BEGIN
 			dt.Reason,
 			Memo = 
 				CASE 
-					WHEN @MasterCompanyId = @NeoSourceCompanyId AND (tt.Code) = @CorrectiveActionCode THEN dt.Memo + ' ' + @NeoSourceMemoText
+					WHEN @MasterCompanyId = @NeoSourceCompanyId AND (tt.Code) = @CorrectiveActionCode THEN dt.Memo + ' ' + UPPER(@NeoSourceMemoText)
 					WHEN tt.CommonTeardownTypeId IS NULL THEN dt.Memo
 					WHEN (tt.Code) = @CorrectiveActionCode 
 						 AND UPPER(dt.Memo) LIKE '%CMM ATA%' 

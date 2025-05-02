@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    14/02/2024   Moin Bloch    Created
 	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
+	3    14/02/2024   Hemant Saliya Created for Marerials, labor, flat rate changes
      
 --   EXEC [USP_GetCustomerTax_Information_Repair_WOQ] 2169,4106,3596
 **************************************************************/
@@ -106,7 +107,8 @@ BEGIN
 		 	      
    ---------------------------------Freight--------------------------------------------------------
  	
-	SELECT @TotalFreight = CASE WHEN ISNULL(WQD.[QuoteMethod],0) > 0 THEN 0.00 ELSE ISNULL(SUM(WQD.[FreightFlatBillingAmount]),0) END 
+	SELECT @TotalFreight = CASE WHEN ISNULL(WQD.[QuoteMethod],0) > 0 THEN 0.00 ELSE CASE WHEN MAX(ISNULL(wqd.FreightBuildMethod,0)) = 3 THEN SUM(wqd.FreightFlatBillingAmount) ELSE 
+						SUM(wqd.FreightRevenue) END END 
 	FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 		 INNER JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.WorkOrderId  
 		 INNER JOIN [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK) ON WOQ.[WorkOrderQuoteId] = WQD.[WorkOrderQuoteId]  
@@ -116,7 +118,8 @@ BEGIN
 
 	-------------------------------- Charges--------------------------------------------------------
 
-	SELECT @TotalCharges = CASE WHEN ISNULL(WQD.[QuoteMethod],0) > 0 THEN 0.00 ELSE ISNULL(SUM(WQD.[ChargesFlatBillingAmount]),0) END
+	SELECT @TotalCharges = CASE WHEN ISNULL(WQD.[QuoteMethod],0) > 0 THEN 0.00 ELSE CASE WHEN MAX(ISNULL(wqd.ChargesBuildMethod,0)) = 3 THEN SUM(wqd.ChargesFlatBillingAmount) ELSE 
+						SUM(wqd.ChargesRevenue) END END
 	FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 		 INNER JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId]  
 		 INNER JOIN [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK) ON WOQ.[WorkOrderQuoteId] = WQD.[WorkOrderQuoteId]  
@@ -143,7 +146,13 @@ BEGIN
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 
 		SELECT @Total = CASE WHEN ISNULL(WQD.[QuoteMethod],0) > 0 THEN ISNULL(WQD.[CommonFlatRate],0) 
-			ELSE SUM(ISNULL(WQD.[MaterialFlatBillingAmount], 0) + ISNULL(WQD.[LaborFlatBillingAmount], 0) +  ISNULL(WQD.[ChargesFlatBillingAmount], 0) + ISNULL(WQD.[FreightFlatBillingAmount],0))
+			ELSE CASE WHEN MAX(ISNULL(wqd.MaterialBuildMethod,0)) = 3 THEN SUM(wqd.MaterialFlatBillingAmount) ELSE 
+						SUM(wqd.MaterialRevenue) END 
+				+ CASE WHEN MAX(ISNULL(wqd.LaborBuildMethod,0)) = 3 THEN SUM(wqd.LaborFlatBillingAmount) ELSE 
+							SUM(wqd.LaborRevenue) END
+				+ CASE WHEN MAX(ISNULL(wqd.ChargesBuildMethod,0)) = 3 THEN SUM(wqd.ChargesFlatBillingAmount) ELSE 
+							SUM(wqd.ChargesRevenue) END
+			--ELSE SUM(ISNULL(WQD.[MaterialFlatBillingAmount], 0) + ISNULL(WQD.[LaborFlatBillingAmount], 0) +  ISNULL(WQD.[ChargesFlatBillingAmount], 0) + ISNULL(WQD.[FreightFlatBillingAmount],0))
 		 END 
 		 FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 			 INNER JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId] 

@@ -17,7 +17,8 @@
 	3    02/07/2024		VISHAL SUTHAR		Updated to handle Flat Rate and calculate tax in SP level itself
 	4    21/JAN/2025	RAJESH GAMI			Updated to WorkScopeCode Instead of their Description
 	5    07-APR-2025	RAJESH GAMI			Updated for Get correct PN and Serial Number
-	6    28-APR-2025	Abhishek Jirawla       Added Corrective Action Data
+	6    28-APR-2025	Abhishek Jirawla    Added Corrective Action Data
+	7    01-MAY-2025    Hemant Saliya		Created for Marerials, labor, flat rate changes
 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
@@ -38,7 +39,15 @@ BEGIN
 		 CASE WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber ELSE im.PartNumber END PartNumber,    
 		 CASE WHEN ISNULL(wop.RevisedPartDescription, '') != '' THEN wop.RevisedPartDescription ELSE im.PartDescription END PartDescription,  
 		 RevisedPartNo = CASE WHEN im1.ItemMasterId IS null THEN  '' ELSE im1.PartNumber END,  
-		 Revenue = SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)),  
+		 --Revenue = SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)),  
+		 Revenue =
+		 CASE WHEN MAX(ISNULL(wqd.MaterialBuildMethod,0)) = 3 THEN SUM(wqd.MaterialFlatBillingAmount) ELSE 
+						SUM(wqd.MaterialRevenue) END 
+		 + CASE WHEN MAX(ISNULL(wqd.LaborBuildMethod,0)) = 3 THEN SUM(wqd.LaborFlatBillingAmount) ELSE 
+						SUM(wqd.LaborRevenue) END
+		 + CASE WHEN MAX(ISNULL(wqd.ChargesBuildMethod,0)) = 3 THEN SUM(wqd.ChargesFlatBillingAmount) ELSE 
+						SUM(wqd.ChargesRevenue) END,
+
 		 SUM(wqd.MaterialCost) AS 'MaterialCost',  
 		 SUM(wqd.MaterialRevenuePercentage) AS 'MaterialRevenuePercentage',  
 		 SUM(wqd.LaborCost) AS 'LaborCost',  
@@ -57,17 +66,40 @@ BEGIN
 		 SUM(wqd.MaterialRevenue) AS 'MaterialRevenue',  
 		 SUM(wqd.LaborRevenue) AS 'LaborRevenue',  
 		 SUM(wqd.ChargesRevenue) AS 'ChargesRevenue',  
-		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN wqd.CommonFlatRate ELSE SUM(wqd.MaterialFlatBillingAmount) END AS 'MaterialFlatBillingAmount' ,  
-		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.LaborFlatBillingAmount) END AS 'LaborFlatBillingAmount',  
-		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.ChargesFlatBillingAmount) END AS 'ChargesFlatBillingAmount',  
-		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.FreightFlatBillingAmount) END AS 'FreightFlatBillingAmount',  
+		 --CASE WHEN ISNULL(wqd.MaterialBuildMethod,0) > 0 THEN wqd.CommonFlatRate ELSE SUM(wqd.MaterialFlatBillingAmount) END AS 'MaterialFlatBillingAmount' ,  
+		 --CASE WHEN ISNULL(wqd.LaborBuildMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.LaborFlatBillingAmount) END AS 'LaborFlatBillingAmount',  
+		 --CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.ChargesFlatBillingAmount) END AS 'ChargesFlatBillingAmount',  
+		 --CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.FreightFlatBillingAmount) END AS 'FreightFlatBillingAmount',  
+		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN wqd.CommonFlatRate ELSE 
+					CASE WHEN MAX(ISNULL(wqd.MaterialBuildMethod,0)) = 3 THEN SUM(wqd.MaterialFlatBillingAmount) ELSE 
+						SUM(wqd.MaterialRevenue) END END AS 'MaterialFlatBillingAmount' , 
+						
+		CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE 
+					CASE WHEN MAX(ISNULL(wqd.LaborBuildMethod,0)) = 3 THEN SUM(wqd.LaborFlatBillingAmount) ELSE 
+						SUM(wqd.LaborRevenue) END END AS 'LaborFlatBillingAmount' , 
+
+		CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE 
+					CASE WHEN MAX(ISNULL(wqd.ChargesBuildMethod,0)) = 3 THEN SUM(wqd.ChargesFlatBillingAmount) ELSE 
+						SUM(wqd.ChargesRevenue) END END AS 'ChargesFlatBillingAmount' ,
+
+		CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE 
+					CASE WHEN MAX(ISNULL(wqd.FreightBuildMethod,0)) = 3 THEN SUM(wqd.FreightFlatBillingAmount) ELSE 
+						SUM(wqd.FreightRevenue) END END AS 'FreightFlatBillingAmount' ,
+
 		 wop.Quantity,  
 		 ISNULL(wqd.QuoteMethod,0) AS QuoteMethod,  
 		 wqd.CommonFlatRate,  
 		 wop.TATDaysStandard ,
 		 ISNULL(wqd.EvalFees,0) AS EvalFees,
 		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN wqd.CommonFlatRate 
-		 ELSE SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0) + ISNULL(wqd.FreightFlatBillingAmount,0))
+		 ELSE (CASE WHEN MAX(ISNULL(wqd.MaterialBuildMethod,0)) = 3 THEN SUM(wqd.MaterialFlatBillingAmount) ELSE 
+						SUM(wqd.MaterialRevenue) END 
+		 + CASE WHEN MAX(ISNULL(wqd.LaborBuildMethod,0)) = 3 THEN SUM(wqd.LaborFlatBillingAmount) ELSE 
+						SUM(wqd.LaborRevenue) END
+		 + CASE WHEN MAX(ISNULL(wqd.ChargesBuildMethod,0)) = 3 THEN SUM(wqd.ChargesFlatBillingAmount) ELSE 
+						SUM(wqd.ChargesRevenue) END
+		 + CASE WHEN MAX(ISNULL(wqd.FreightBuildMethod,0)) = 3 THEN SUM(wqd.FreightFlatBillingAmount) ELSE 
+						SUM(wqd.FreightRevenue) END)
 		 END AS subtotalfortax,
 		 TAXRates = (SELECT SUM(ISNULL(tr.TaxRate,0)) FROM dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)
 					LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
@@ -78,7 +110,18 @@ BEGIN
 					LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 				WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 )
 		,Memo =
-				(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
+				(SELECT CAST('<x>' + 
+					REPLACE(
+						REPLACE(
+							REPLACE(
+								REPLACE(
+									REPLACE(
+										REPLACE(ctd.Memo, '&', '&amp;'),
+									'<', '&lt;'),
+								'>', '&gt;'),
+							'"', '&quot;'),
+						'''', '&apos;'),
+					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)')
 					FROM
 						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 

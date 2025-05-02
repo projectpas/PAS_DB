@@ -20,12 +20,12 @@
 	4    12/22/2023    Amit Ghediya		Updated (get data from SWOkit also)	
 	5    12/27/2024   Hemnat Saliya		Update for Modify Work Order cost analysis Summary
 	6    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
-	7    04/25/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
+	7    04/28/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 4324, 641, false, 627     
 exec USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails @WorkOrderWorkflowId=4324,@WorkOrderId=4776,@IsSubWOFromWo=1,@SubWOPartNoId=0
 **************************************************************/
-CREATE       PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
+CREATE PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT,
@@ -158,11 +158,9 @@ BEGIN
 				SELECT	@MainSubWorkOrderId = SubWorkOrderId 
 				FROM #tmpSubWorkOrder tmpSWO WHERE tmpSWO.ID = @SubWoCount;
 				
-				PRINT '1.1'
 				--Insert SWOM data
 				INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
 					SELECT SWOMS.SubWorkOrderMaterialsId,
-						--SWOMS.UnitCost,
 						CASE WHEN ISNULL(SWOMS.RepairOrderId, 0) > 0 THEN ISNULL(SWOMS.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE ISNULL(SWOMS.UnitCost, 0) END AS UnitCost,
 						ISNULL(SWOMS.ExtendedCost, 0),
 						ISNULL(SWOMS.QtyIssued, 0),
@@ -182,14 +180,10 @@ BEGIN
 						LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = SWOM.SubWorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 					WHERE SWOM.SubWorkOrderId = @MainSubWorkOrderId AND SWOM.IsDeleted = 0;
 
-				--SELECT '1'
-				--SELECT * FROM #tmpSubWorkOrderMaterials
-
 				--Insert SWOMK data
 				INSERT INTO #tmpSWorkOrderMaterialsKit (WorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
 				SELECT DISTINCT 
 					SWOMSK.SubWorkOrderMaterialsKitId,
-					--SWOMSK.UnitCost,
 					CASE WHEN ISNULL(SWOMSK.RepairOrderId, 0) > 0 THEN ISNULL(SWOMSK.UnitCost, 0) - ISNULL(SL.RepairOrderUnitCost, 0) ELSE ISNULL(SWOMSK.UnitCost, 0) END AS UnitCost,
 					ISNULL(SWOMSK.ExtendedCost, 0),
 					ISNULL(SWOMSK.QtyIssued, 0),
@@ -199,7 +193,6 @@ BEGIN
 						ELSE ISNULL(POPartReferece.Qty, 0) END,
 					CASE WHEN ISNULL(SWOMK.UnitCost,0) = 0 THEN ISNULL(POP.UnitCost, 0) ELSE ISNULL(SWOMK.UnitCost, 0) END,
 					SWOMK.POId,
-					--SWOMK.QtyToTurnIn
 					CASE WHEN ISNULL(PO.PurchaseOrderId, 0) > 0 THEN SWOMK.QtyToTurnIn ELSE 0 END AS QtyToTurnIn
 				FROM [DBO].[SubWorkOrderMaterialsKit] SWOMK WITH(NOLOCK)
 					LEFT JOIN [DBO].[SubWorkOrderMaterialStockLineKit] SWOMSK  WITH(NOLOCK) ON SWOMK.SubWorkOrderMaterialsKitId = SWOMSK.SubWorkOrderMaterialsKitId
@@ -214,9 +207,6 @@ BEGIN
 				--	FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 				--	JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId --AND RO.StatusId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ROStatusIds,',')) 
 				--WHERE ROP.SubWorkOrderId = @MainSubWorkOrderId;
-
-				PRINT @WorkOrderId
-				PRINT @MainSubWorkOrderId
 
 				--Sub Outside Cost
 				SELECT @OutSideServiceMaterialsCost = SUM(ISNULL(SL.RepairOrderUnitCost,0) * (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0))) , 

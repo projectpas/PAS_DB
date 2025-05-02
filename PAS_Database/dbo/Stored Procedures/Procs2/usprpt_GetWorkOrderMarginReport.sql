@@ -28,7 +28,7 @@
 10    04/25/2024   VISHAL SUTHAR		Added a fix to handle devide by zero exception
 11    04/30/2024   Devendra Shekh		Added a fix to handle devide by zero exception(for WithTotal result)
 12    05/01/2024   Devendra Shekh		report failed issue resolved
-13    11-APR-2025  Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
+13    02-MAY-2025  Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -109,7 +109,7 @@ BEGIN
 
 		  IF ISNULL(@PageSize,0)=0      
 			 BEGIN       
-			   SELECT @PageSize=COUNT(*)      
+			   SELECT @PageSize=COUNT(WOPN.ID)      
 			   FROM DBO.WorkOrder WO WITH (NOLOCK)      
 					 INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId      
 					 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
@@ -179,13 +179,14 @@ BEGIN
 			 SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
 			 SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END      
      
-			 ;WITH rptCTE (TotalRecordsCount,WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
+			 ;WITH rptCTE (TotalRecordsCount,WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 				receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
 				grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
 				 level9, level10, masterCompanyId)  
 				 AS ( SELECT DISTINCT    
 						COUNT(1) OVER () AS TotalRecordsCount,    
-						WO.WorkOrderId,  
+						WO.WorkOrderId, 
+						WOPN.ID 'WorkOrderPartNoId', 
 						UPPER(C.name) 'customername',    
 						UPPER(C.CustomerCode) 'customercode',     
 						CASE WHEN WOPN.RevisedItemmasterid > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
@@ -201,12 +202,13 @@ BEGIN
 						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'quotedate',       
 						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 107) END 'quoteapprovaldate',       
 						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOS.ShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOS.ShipDate, 107) END 'shipdate',       
-						ISNULL(WOBI.GrandTotal,0) 'revenue',      
+						--ISNULL(WOBI.GrandTotal,0) 'revenue',   
+						CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue',  
 						ISNULL(WOC.PartsCost,0) 'partscost',      
 						ISNULL(WOC.LaborCost,0) 'laborcost',      
 						ISNULL(WOC.OverHeadCost,0) 'overheadcost',      
 						ISNULL(WOC.DirectCost,0) 'directcost',      
-						CASE WHEN ISNULL(WOC.DirectCost,0) != 0 THEN CONVERT(DECIMAL(10,4), ISNULL(WOBI.GrandTotal,0) - ISNULL(WOC.DirectCost,0))  ELSE ISNULL(WOBI.GrandTotal,0) END 'margin',      
+						CASE WHEN ISNULL(WOC.DirectCost,0) != 0 THEN CONVERT(DECIMAL(10,4), ISNULL(WOBI.GrandTotal,0) - ISNULL(WOC.DirectCost,0))  ELSE CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END END 'margin',      
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.PartsCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'partsrevper',      
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.LaborCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'laborrevper',      
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.OverHeadCost,0) / ISNULL(WOBI.GrandTotal,0))*100) ELSE 0 END 'ohcostper',      
@@ -263,6 +265,7 @@ BEGIN
 			SELECT DISTINCT    
 					COUNT(1) OVER () AS TotalRecordsCount,    
 					CM.WorkOrderId,  
+					WOPN.ID 'WorkOrderPartNoId',
 					UPPER(CM.CustomerName) 'customername',    
 					UPPER(CM.CustomerCode) 'customercode',     
 					UPPER(CMD.partnumber) 'pn',      
@@ -339,11 +342,11 @@ BEGIN
 			)  
   
   
-			,FinalCTE(TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
+			,FinalCTE(TotalRecordsCount, WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 			receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
 			grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
 			   level9, level10, masterCompanyId)   
-			 AS (SELECT DISTINCT TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
+			 AS (SELECT DISTINCT TotalRecordsCount, WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 			receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
 			grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
 			   level9, level10, masterCompanyId FROM rptCTE)  
@@ -364,7 +367,7 @@ BEGIN
 				FROM FinalCTE  
 				GROUP BY masterCompanyId)  
   
-			 SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
+			 SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 				 receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate,   
 				 FORMAT(ISNULL(revenue,0) , 'N', 'en-us') 'revenue',      
 				 FORMAT(ISNULL(partscost,0) , 'N', 'en-us') 'partscost',      

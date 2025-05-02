@@ -18,8 +18,8 @@
     1    25-April-2025   Bhargav Saliya		Created
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SubWorkOrderHeaderDetails]
-    @WorkOrderId INT,
-    @WorkOrderPartNumberId INT
+    @WorkOrderId BIGINT,
+    @WorkOrderPartNumberId BIGINT
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

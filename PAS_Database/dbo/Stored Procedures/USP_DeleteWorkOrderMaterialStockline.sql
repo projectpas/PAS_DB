@@ -28,84 +28,31 @@ BEGIN
 	 BEGIN TRANSACTION;
 	 BEGIN TRY  
 	  
-			DECLARE @WorkOrderId BIGINT,
-					@POId BIGINT;
+			DECLARE @WorkFlowWorkOrderId BIGINT;
 			
-			--Update StockLine
-			IF EXISTS(SELECT TOP 1 StockLineId FROM [DBO].[StockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
-			BEGIN
-				 UPDATE [DBO].[Stockline] SET WorkOrderMaterialsId = NULL WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
-			END
-
-			--Delete WorkOrderIssuedStock
-			IF EXISTS(SELECT TOP 1 WOIssuedStockId FROM [DBO].[WorkOrderIssuedStock] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
-			BEGIN
-				 DELETE FROM [DBO].[WorkOrderIssuedStock] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
-			END
-
-			--Delete WorkOrderUnIssuedStock
-			IF EXISTS(SELECT TOP 1 WOUnIssuedStockId FROM [DBO].[WorkOrderUnIssuedStock] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
-			BEGIN
-				 DELETE FROM [DBO].[WorkOrderUnIssuedStock] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
-			END
-
 			--Delete WorkOrderReservedStock
-			IF EXISTS(SELECT TOP 1 WOReservedStockId FROM [DBO].[WorkOrderReservedStock] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
+			IF EXISTS(SELECT TOP 1 WOReservedStockId FROM [DBO].[WorkOrderReservedStock] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId AND [StockLIneId] = @StocklineId)
 			BEGIN
-				 DELETE FROM [DBO].[WorkOrderReservedStock] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
-			END
-
-			--Delete  WorkOrderUnReservedStock
-			IF EXISTS(SELECT TOP 1 WOUnReservedStockId FROM [DBO].[WorkOrderUnReservedStock] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
-			BEGIN
-				 DELETE FROM [DBO].[WorkOrderUnReservedStock] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+				 DELETE FROM [DBO].[WorkOrderReservedStock] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId AND [StockLIneId] = @StocklineId;
 			END
 
 			--Delete WorkOrderStockLineReserve
-			IF EXISTS(SELECT TOP 1 WOSReserveId FROM [DBO].[WorkOrderStockLineReserve] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
+			IF EXISTS(SELECT TOP 1 WOSReserveId FROM [DBO].[WorkOrderStockLineReserve] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId AND [StockLIneId] = @StocklineId)
 			BEGIN
-				 DELETE FROM [DBO].[WorkOrderStockLineReserve] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+				 DELETE FROM [DBO].[WorkOrderReservedStock] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId AND [StockLIneId] = @StocklineId;
 			END
 
-			--Delete WorkOrderMaterialStockLine
-			IF EXISTS(SELECT TOP 1 WOMStockLineId FROM [DBO].[WorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
+			--Delete WorkOrderStockLineReserve
+			IF EXISTS(SELECT TOP 1 WOMStockLineId FROM [DBO].[WorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId AND [StockLIneId] = @StocklineId)
 			BEGIN
-				 DELETE FROM [DBO].[WorkOrderMaterialStockLine] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+				 DELETE FROM [DBO].[WorkOrderMaterialStockLine] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId AND [StockLIneId] = @StocklineId;
 			END
 
-			--If Exists SubWorkOrder
-			IF EXISTS(SELECT TOP 1 SubWorkOrderId FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
-			BEGIN
-				 SELECT @WorkOrderId = [WorkOrderId], @POId = [POId] FROM [DBO].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
+			--GET WorkFlowWorkOrderId
+			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
 
-				 -- Call for UnMappedPOByWorkOrderMaterialsId.
-				 EXEC [DBO].[USP_UnMappedPOByWorkOrderMaterialsId] 
-					 @WorkOrderMaterialsId,
-					 0,  -- false for kit
-					 0,  -- false for subWO
-					 @WorkOrderId, -- for ReferenceId
-					 @POId,
-					 @UpdatedBy;
-
-				--Update WorkOrderMaterials
-				UPDATE [DBO].[WorkOrderMaterials] SET [IsDeleted] = 1 WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
-			END
-			ELSE
-			BEGIN
-				 SELECT @WorkOrderId = [WorkOrderId], @POId = [POId] FROM [DBO].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
-
-				 -- Call for UnMappedPOByWorkOrderMaterialsId.
-				 EXEC [DBO].[USP_UnMappedPOByWorkOrderMaterialsId] 
-					 @WorkOrderMaterialsId,
-					 0,  -- false for kit
-					 0,  -- false for subWO
-					 @WorkOrderId, -- for ReferenceId
-					 @POId,
-					 @UpdatedBy;
-
-				 -- Delete WorkOrderMaterials
-				 DELETE FROM [DBO].[WorkOrderMaterials] WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
-			END
+			--Call for UpadteMaterialsCost
+			EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId,@WorkFlowWorkOrderId;
 			
 		 COMMIT TRANSACTION;
 	 END TRY      

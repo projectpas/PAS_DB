@@ -19,6 +19,7 @@
     1    05/25/2021   Hemant Saliya  Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 02/23/2024	  Moin Bloch     Added WorkOrderId,CustomerId Fields For Tax Info
+	4    05/01/2025   Hemant Saliya  Updated for Handle Falt Billing Amount
      
 -- EXEC [GetWorkOrderQuoteDetailsForInvioce] 3566, 3596
 **************************************************************/
@@ -52,10 +53,14 @@ BEGIN
 					 WQD.ChargesBilling,
 					 WQD.FreightCost,
 					 WQD.FreightBilling,
-                     WQD.LaborFlatBillingAmount,
-                     WQD.MaterialFlatBillingAmount,
-                     WQD.ChargesFlatBillingAmount,
-                     WQD.FreightFlatBillingAmount,
+					 MaterialFlatBillingAmount = CASE WHEN ISNULL(wqd.MaterialBuildMethod,0) = 3 THEN ISNULL(wqd.MaterialFlatBillingAmount,0) ELSE ISNULL(wqd.MaterialRevenue,0) END,
+					 LaborFlatBillingAmount = CASE WHEN ISNULL(wqd.LaborBuildMethod,0) = 3 THEN ISNULL(wqd.LaborFlatBillingAmount,0) ELSE ISNULL(wqd.LaborRevenue,0) END,
+					 ChargesFlatBillingAmount = CASE WHEN ISNULL(wqd.ChargesBuildMethod,0) = 3 THEN ISNULL(wqd.ChargesFlatBillingAmount,0) ELSE ISNULL(wqd.ChargesRevenue,0) END,
+					 FreightFlatBillingAmount = CASE WHEN ISNULL(wqd.FreightBuildMethod,0) = 3 THEN ISNULL(wqd.FreightFlatBillingAmount,0) ELSE ISNULL(wqd.FreightRevenue,0) END,
+                     --WQD.LaborFlatBillingAmount,
+                     --WQD.MaterialFlatBillingAmount,
+                     --WQD.ChargesFlatBillingAmount,
+                     --WQD.FreightFlatBillingAmount,
                      WQD.MaterialBuildMethod,
                      WQD.LaborBuildMethod,
                      WQD.ChargesBuildMethod,

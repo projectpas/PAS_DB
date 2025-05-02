@@ -13,7 +13,8 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    08-APR-2025   Abhishek Jirawla		Created
-	2	 24-APR-2025    Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
+	2	 24-APR-2025   Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
+	3	 30-APR-2025   ABHISHEK JIRAWLA		Adding IsPiecePart and IsRepairManagement to the Stockline
      
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -209,10 +210,15 @@ BEGIN
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference]							
 						FROM @tbl_ReceivingCustomerWorkType
 
-		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprReceiveCustomer    
+		SELECT @TotalRecord = MIN(Quantity), @MinId = MIN(ID) FROM #tmprReceiveCustomer    
 		
-		WHILE @MinId <= @TotalRecord
+		DECLARE @TotalCount INT = @MinId
+
+		PRINT @TotalRecord + ''
+
+		WHILE @TotalCount <= @TotalRecord
 		BEGIN				
+				PRINT @TotalCount + ''
 				DECLARE @CurrentIdNumber AS BIGINT, @RCCurrentIdNumber AS BIGINT;
 				DECLARE @ReceiverNumber AS VARCHAR(50),@CreatedBy VARCHAR(250),@UpdatedBy VARCHAR(250)
 				DECLARE @IdCodeTypeId BIGINT, @RCIdCodeTypeId BIGINT;					
@@ -339,8 +345,11 @@ BEGIN
 						FROM #tmpRCCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId
 					END
 
-					SET @RCReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@RCCurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId)))
-														
+					IF(@TotalCount = 1 )
+					BEGIN
+						SET @RCReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@RCCurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId)))
+					END						
+						
 					--IF(@MinId = 1 )
 					--BEGIN
 					--	SET @RCReceiverNumber = @ReceiverNumber;
@@ -454,7 +463,7 @@ BEGIN
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
 						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal])                       
-				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],ISNULL([Quantity],0),[ConditionId],ISNULL([SerialNumber],''),						   
+				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],1,[ConditionId],ISNULL([SerialNumber],''),						   
 						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
 							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
 							'',GETUTCDATE(),NULL,ISNULL([UnitCost], 0),0,NULL,0,GETUTCDATE(),	
@@ -463,7 +472,7 @@ BEGIN
 							[SiteId],[ObtainFromTypeId],[OwnerTypeId],[TraceableToTypeId],NULL,NULL,ISNULL(@IDNumber,''), -- [IdNumber]	
 							0,0,ISNULL([MFGTrace],''),[ExpDate],[ACTailNum],ISNULL([ShippingViaId], NULL),ISNULL([EngineSerialNumber],''),								
 							0,NULL,ISNULL([ShippingAccount],''),ISNULL([ShippingReference],''),NULL,ISNULL([TimeLifeDetailsNotProvided],0),NULL,
-							NULL,0,0,0,[Quantity],[Quantity],NULL,0,
+							NULL,0,0,0,1,1,NULL,0,
 							0,0,'',0,'',0,'',NULL,1,		
 							0,0,0,[IsCustomerStock],GETUTCDATE(),0,@NHAItemMasterId,@TLAItemMasterId,
 							NULL,NULL,NULL,'','','',NULL,NULL,NULL,1,
@@ -505,9 +514,9 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedBy] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart], [IsRepairManagement],[IsSkipShippingReference])
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsSkipShippingReference])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
-						       ,[IsSerialized] ,[SerialNumber] ,[Quantity] ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
+						       ,[IsSerialized] ,[SerialNumber] ,1 ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
 							   ,[MFGLotNo] ,[IsExpDate] ,[ExpDate] ,[IsTimeLife] ,[TagDate] ,[TagType] ,[TagTypeId] ,[TimeLifeDate] ,[TimeLifeOrigin] 
 							   ,TimeLifeCyclesId ,[Memo] ,[PartCertificationNumber] ,[ManagementStructureId] ,@NewStocklineId ,[WorkOrderId] ,[MasterCompanyId] 
@@ -517,14 +526,17 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedByName] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],0, ISNULL(@IsRepairManagement, 0),[IsSkipShippingReference] FROM #tmprReceiveCustomer WHERE ID = @MinId;	
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsSkipShippingReference] FROM #tmprReceiveCustomer WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 
 					EXEC [dbo].[UpdateReceivingCustomerColumnsWithId] @ReceivingCustomerWorkId;
 
-					UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @RCCurrentIdNumber WHERE [CodeTypeId] = @RCIdCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;	
-										
+					IF(@TotalCount = 1 )
+					BEGIN
+						UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @RCCurrentIdNumber WHERE [CodeTypeId] = @RCIdCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;	
+					END				
+
 					IF (@IsTimeLIfe = 1)
                     BEGIN
 						INSERT INTO dbo.TimeLife([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
@@ -959,7 +971,7 @@ BEGIN
 
 				END
 				
-				SET @MinId = @MinId + 1;
+				SET @TotalCount = @TotalCount + 1;
 		END	
 	
 		SELECT [ReceivingCustomerWorkId],[ReceivingNumber] FROM [dbo].[ReceivingCustomerWork] WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;

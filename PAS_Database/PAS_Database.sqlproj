@@ -3712,6 +3712,10 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateROStatusFromMail.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePOStatusFromMail.sql" />
     <Build Include="dbo\Tables\MASTERTABLEGroupBy.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderPackagingLabelByWorkOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterialStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteWorkOrderMaterials.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

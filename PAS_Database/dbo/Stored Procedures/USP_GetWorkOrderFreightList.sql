@@ -19,7 +19,7 @@
 
 	
 **************************************************************/
---EXEC [USP_GetWorkOrderFreightList] @WorkOrderQuoteDetailsId = 6778
+--EXEC [USP_GetWorkOrderFreightList] @WorkOrderQuoteDetailsId = 6795, @BuildMethodId= 4
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderFreightList]
     @WorkOrderQuoteDetailsId BIGINT,
     @BuildMethodId BIGINT
@@ -32,12 +32,16 @@ BEGIN
 
 		-- First, get the WorkOrderId
 		DECLARE @WorkOrderId BIGINT;
+		DECLARE @WorOrderTypeId BIT;
 
 		SELECT TOP 1 @WorkOrderId = woq.WorkOrderId 
 		FROM [dbo].[WorkOrderQuoteDetails] wq WITH(NOLOCK)
 		INNER JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wq.WorkOrderQuoteId = woq.WorkOrderQuoteId
 		WHERE wq.IsDeleted = 0 AND wq.WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
 
+
+		SELECT @WorOrderTypeId = WorkOrderFormTypeId FROM [dbo].[WorkOrder] w WITH(NOLOCK) where w.WorkOrderId = @WorkOrderId   
+		
 		-- Now get the freight list
 		SELECT DISTINCT
 			wf.Amount,
@@ -61,7 +65,7 @@ BEGIN
 			--) AS ShipViaName,
 			wf.MarkupPercentageId,
 			wf.TaskId,
-			CASE WHEN wof.WorkOrderFormTypeId = 1 THEN ISNULL(wot.TaskName, '') ELSE ISNULL(ts.Description, '') END AS TaskName,
+			CASE WHEN @WorOrderTypeId = 1 THEN ISNULL(wot.TaskName, '') ELSE ISNULL(ts.Description, '') END AS TaskName,
 			wf.HeaderMarkupId,
 			wf.BillingMethodId,
 			wf.BillingRate,
@@ -84,7 +88,6 @@ BEGIN
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON wf.UOMId = uom.UnitOfMeasureId
 			LEFT JOIN [dbo].[UnitOfMeasure] duom WITH(NOLOCK) ON wf.DimensionUOMId = duom.UnitOfMeasureId
 			LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON wf.CurrencyId = cur.CurrencyId
-			INNER JOIN [dbo].[WorkOrder] wof WITH(NOLOCK) ON woq.WorkOrderId = wof.WorkOrderId
 			LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] cdss WITH(NOLOCK) ON cdss.CustomerDomensticShippingShipViaId = wf.ShipViaId
 		WHERE wf.IsDeleted = 0 AND wf.WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;
 	END TRY

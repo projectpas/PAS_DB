@@ -3730,6 +3730,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSitesByManagementStructrue.sql" />
     <Build Include="dbo\Stored Procedures\GetInvoiceListForCSVExportByRefereceId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRoPartHistoryList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysisDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

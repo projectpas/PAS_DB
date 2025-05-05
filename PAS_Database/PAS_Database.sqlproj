@@ -3738,6 +3738,7 @@
     <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysisDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTaxTypeRateMappingAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTaxTypeRateMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerCreditCardPayments.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

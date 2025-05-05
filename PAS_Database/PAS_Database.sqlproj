@@ -3720,6 +3720,7 @@
     <Build Include="dbo\Stored Procedures\USP_SubWorkOrderHeaderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOShippingLabel.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOPackagingLabelData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -62,7 +62,7 @@ BEGIN
 			sos.ShipToName AS ShipToContactName,
 			ISNULL(
 				CASE 
-					WHEN sos.IsCustomerShipping = 0 THEN sv1.Name
+					WHEN ISNULL(sos.IsCustomerShipping, 0) = 0 THEN sv1.Name
 					WHEN sos.CustomerDomensticShippingShipViaId > 0 THEN sv2.Name
 					ELSE @CustShipvia
 				END, @CustShipvia
@@ -94,7 +94,7 @@ BEGIN
 		LEFT JOIN DBO.WorkOrderPackaginSlipHeader spb WITH (NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
 		LEFT JOIN DBO.WorkOrderShippingItem sosi WITH (NOLOCK) ON wopkt.PickTicketId = sosi.WOPickTicketId
 		LEFT JOIN DBO.WorkOrderShipping sos WITH (NOLOCK) ON sosi.WorkOrderShippingId = sos.WorkOrderShippingId
-		LEFT JOIN DBO.WorkOrderBillingInvoicing sobi WITH (NOLOCK) ON sos.WorkOrderShippingId = sobi.WorkOrderShippingId AND sobi.IsVersionIncrease = 0 AND sobi.IsPerformaInvoice != 1
+		LEFT JOIN DBO.WorkOrderBillingInvoicing sobi WITH (NOLOCK) ON sos.WorkOrderShippingId = sobi.WorkOrderShippingId AND ISNULL(sobi.IsVersionIncrease, 0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) != 1
 		LEFT JOIN DBO.Employee saemp WITH (NOLOCK) ON wo.SalesPersonId = saemp.EmployeeId
 		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON part.StockLineId = qs.StockLineId
 		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId

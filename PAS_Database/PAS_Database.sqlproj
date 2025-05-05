@@ -3725,6 +3725,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetContactAuditHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllShippingAddressDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOMPNDataByPartNumberId.sql" />
     <Build Include="dbo\Stored Procedures\GetWOPackagingLabelData.sql" />
   </ItemGroup>
   <ItemGroup>

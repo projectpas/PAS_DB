@@ -15,6 +15,7 @@
  ** PR    Date					Author				Change Description            
  ** --    --------			-----------				--------------------------------          
 	 1    4-29-2025			Amit Ghediya			Created
+	 2	  05-MAY-2025		Divyesh Kathiriya		Add EnforceMpnPickTicketConfirmation Flag
 
 	 EXEC [dbo].[USP_GetWorkOrderSettings] 167,225
 ****************************************************************************************/
@@ -101,7 +102,8 @@ BEGIN
 					wos.is813013aeOr14ae,
 					wos.byPassCMMSettingAtReceiving,
 					wos.byPassCapesSettingAtReceiving,
-					wos.isFlatRate
+					wos.isFlatRate,
+					ISNULL(wos.EnforceMpnPickTicketConfirmation, 0) AS enforceMpnPickTicketConfirmation
 				FROM [DBO].[WorkOrderSettings] wos WITH(NOLOCK)
 				LEFT JOIN [DBO].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 				LEFT JOIN [DBO].[Condition] c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

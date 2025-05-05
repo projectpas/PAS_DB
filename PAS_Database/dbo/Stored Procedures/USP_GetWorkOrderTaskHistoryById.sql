@@ -17,6 +17,7 @@
     1    02/11/2025   Ekta Chandegra	Created
 	2    02/25/2025   Ekta Chandegra	Retrieve Task instruction details
 	3    04/03/2025   Bhargav Saliya	UTC Date Changes
+	4    04/28/2025   Ekta Chandegra	Retrieve WorkOrderTaskInstructionSequence 
 
  EXEC USP_GetWorkOrderTaskHistoryById 146
 **************************************************************/
@@ -69,7 +70,8 @@ BEGIN
 			[WorkOrderTaskInstructionInspectorName],
 			[WorkOrderTaskInstructionInspectorUpdatedDate] ,
 			[WorkOrderTaskInstructionPrintInWO], 
-			[WorkOrderTaskInstructionPrintInWOQ]
+			[WorkOrderTaskInstructionPrintInWOQ],
+			[WorkOrderTaskInstructionSequence]
 		FROM [dbo].[WorkOrderTaskHistory] WITH(NOLOCK)
 		WHERE WorkOrderTaskId = @WorkOrderTaskId
 		ORDER BY UpdatedDate DESC

@@ -29,6 +29,7 @@
     [SubWorkOrderTaskInstructionInspectorName]        VARCHAR (100)  NULL,
     [SubWorkOrderTaskInstructionInspectorUpdatedDate] DATETIME2 (7)  NULL,
     [SubWorkOrderTaskInstructionPrintInWO]            BIT            NULL,
-    [SubWorkOrderTaskInstructionPrintInWOQ]           BIT            NULL
+    [SubWorkOrderTaskInstructionPrintInWOQ]           BIT            NULL,
+    [SubWorkOrderTaskInstructionSequence]             INT            NULL
 );
 

@@ -22,6 +22,8 @@
     [UpdatedDate]                        DATETIME2 (7)  NULL,
     [IsActive]                           BIT            NULL,
     [IsDeleted]                          BIT            NULL,
+    [InstructionListId]                  VARCHAR (250)  NULL,
+    [ParentSequenceNumber]               VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_SubWorkOrderTaskInstructionAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderTaskInstructionAuditId] ASC)
 );
 

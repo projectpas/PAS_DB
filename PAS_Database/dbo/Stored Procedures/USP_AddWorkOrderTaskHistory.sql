@@ -19,6 +19,7 @@
     3    03/18/2025   Ekta Chandegra	Add Sequence number of Work order task instead of Work order task instruction
     4    03/21/2025   Ekta Chandegra	Add history for effected records when change work order task sequence
     5    03/25/2025   Ekta Chandegra	Add Work Order Task  Instruction details
+    6    04/28/2025   Ekta Chandegra	Add full sequence number (with parent)
 
 exec dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId=978,@CreatedBy=N'EKTA CHANDEGRA'
 **************************************************************/
@@ -56,7 +57,7 @@ BEGIN
 				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[WorkOrderTaskInstructionId],
 				[WorkOrderTaskInstructionTechId], [WorkOrderTaskInstructionTechName],[WorkOrderTaskInstructionTechUpdatedDate],
 				[WorkOrderTaskInstructionInspectorId], [WorkOrderTaskInstructionInspectorName],[WorkOrderTaskInstructionInspectorUpdatedDate] ,
-				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ]
+				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ],[WorkOrderTaskInstructionSequence]
 			)
 			SELECT TOP 1
 				@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
@@ -65,7 +66,7 @@ BEGIN
 				WOT.[SequenceNumber],WOTI.[IsActive], WOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),@WorkOrderTaskInstructionId,
 				WOTI.TechId, WOTI.TechName, WOTI.TechUpdatedDate,
 				WOTI.InspectorId, WOTI.InspectorName, WOTI.InspectorUpdatedDate,
-				WOTI.PrintInWO, WOTI.PrintInWOQ
+				WOTI.PrintInWO, WOTI.PrintInWOQ, WOTI.[ParentSequenceNumber]
 			FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId
@@ -83,7 +84,7 @@ BEGIN
 				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[WorkOrderTaskInstructionId],
 				[WorkOrderTaskInstructionTechId], [WorkOrderTaskInstructionTechName],[WorkOrderTaskInstructionTechUpdatedDate],
 				[WorkOrderTaskInstructionInspectorId], [WorkOrderTaskInstructionInspectorName],[WorkOrderTaskInstructionInspectorUpdatedDate] ,
-				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ]
+				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ],[WorkOrderTaskInstructionSequence]
 			)
 			SELECT TOP 1
 				@WorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
@@ -92,7 +93,7 @@ BEGIN
 				WOT.[SequenceNumber],WOTI.[IsActive], WOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),WOTI.[WorkOrderTaskInstructionId],
 				WOTI.TechId, WOTI.TechName, WOTI.TechUpdatedDate,
 				WOTI.InspectorId, WOTI.InspectorName, WOTI.InspectorUpdatedDate,
-				WOTI.PrintInWO, WOTI.PrintInWOQ
+				WOTI.PrintInWO, WOTI.PrintInWOQ,WOTI.[ParentSequenceNumber]
 			FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId
@@ -111,7 +112,7 @@ BEGIN
 				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[WorkOrderTaskInstructionId],
 				[WorkOrderTaskInstructionTechId], [WorkOrderTaskInstructionTechName],[WorkOrderTaskInstructionTechUpdatedDate],
 				[WorkOrderTaskInstructionInspectorId], [WorkOrderTaskInstructionInspectorName],[WorkOrderTaskInstructionInspectorUpdatedDate] ,
-				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ]
+				[WorkOrderTaskInstructionPrintInWO], [WorkOrderTaskInstructionPrintInWOQ], [WorkOrderTaskInstructionSequence]
 			)
 			SELECT TOP 1
 				@NewWorkOrderTaskId, WOT.[TaskName], WOTD.[Descrepancy], WOTD.[Resolution], WOTD.[TechId],
@@ -120,7 +121,7 @@ BEGIN
 				WOT.[SequenceNumber],WOTI.[IsActive], WOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),WOTI.[WorkOrderTaskInstructionId],
 				WOTI.TechId, WOTI.TechName, WOTI.TechUpdatedDate,
 				WOTI.InspectorId, WOTI.InspectorName, WOTI.InspectorUpdatedDate,
-				WOTI.PrintInWO, WOTI.PrintInWOQ
+				WOTI.PrintInWO, WOTI.PrintInWOQ,WOTI.[ParentSequenceNumber]
 			FROM
 			[dbo].[WorkOrderTask] WOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOTD.WorkOrderTaskId = WOT.WorkOrderTaskId

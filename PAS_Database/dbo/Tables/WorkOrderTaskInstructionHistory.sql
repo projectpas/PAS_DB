@@ -21,6 +21,8 @@
     [IsActive]                          BIT            NULL,
     [IsDeleted]                         BIT            NULL,
     [ParentId]                          BIGINT         NULL,
-    [IsParent]                          BIT            NULL
+    [IsParent]                          BIT            NULL,
+    [InstructionListId]                 VARCHAR (250)  NULL,
+    [ParentSequenceNumber]              VARCHAR (MAX)  NULL
 );
 

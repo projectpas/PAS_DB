@@ -12,6 +12,7 @@
     1    03/20/2025   Vishal Suthar	   Created
     2    03/25/2025   Vishal Suthar	   Fix for adding child node for Instruction
     3    03/27/2025   EKTA CHANDEGRA   Add history call for Sub Work Order Task Instructions and  Sub Work Order Task
+    4    04/28/2025   EKTA CHANDEGRA   Manage instruction sequence for parent and child
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateSubWorkOrderTaskInstructions]
@@ -37,6 +38,8 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
   BEGIN TRANSACTION
+
+  DECLARE @SequenceNo INT;
 	
 	IF (ISNULL(@SubWorkOrderTaskInstructionId, 0) = 0)
 	BEGIN
@@ -133,6 +136,10 @@ BEGIN
 			OPEN TaskCursor;
 			FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @Title, @ParentId, @IsParent, @SequenceNumber, @Description;
 
+			SELECT @SequenceNo = ISNULL(MAX(SequenceNumber), 0) + 1
+			FROM [dbo].[SubWorkOrderTaskInstruction] WITH(NOLOCK)
+			WHERE SubWorkOrderTaskId = @SubWorkOrderTaskId AND ParentId IS NULL
+
 			WHILE @@FETCH_STATUS = 0
 			BEGIN
 				-- Get the new ParentId from mapping if the current record has a ParentId
@@ -143,34 +150,129 @@ BEGIN
 				END
 
 				-- Insert the record into WorkOrderTaskInstruction table
-				INSERT INTO SubWorkOrderTaskInstruction (
-					SubWorkOrderTaskId, 
-					ParentId, 
-					IsParent, 
-					InstructionTitle, 
-					SequenceNumber,
-					[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
-					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
-				)
-				VALUES (
-					@SubWorkOrderTaskId, 
-					@NewParentId, 
-					@IsParent, 
-					@Title, 
-					@SequenceNumber,
-					@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
-					@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-				);
+				IF(@NewParentId > 0)
+				BEGIN
+					INSERT INTO [dbo].[SubWorkOrderTaskInstruction] (
+						SubWorkOrderTaskId, 
+						ParentId, 
+						IsParent, 
+						InstructionTitle, 
+						SequenceNumber,
+						[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+						[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+						[ParentSequenceNumber],[InstructionListId]
+					)
+					VALUES (
+						@SubWorkOrderTaskId, 
+						@NewParentId, 
+						@IsParent, 
+						@Title, 
+						@SequenceNumber,
+						@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+						@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
+						NULL,@InstructionListId
+					);
+				END
+				ELSE
+				BEGIN
+					INSERT INTO [dbo].[SubWorkOrderTaskInstruction] (
+						SubWorkOrderTaskId, 
+						ParentId, 
+						IsParent, 
+						InstructionTitle, 
+						SequenceNumber,
+						[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+						[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+						[ParentSequenceNumber],[InstructionListId]
+					)
+					VALUES (
+						@SubWorkOrderTaskId, 
+						@NewParentId, 
+						@IsParent, 
+						@Title, 
+						@SequenceNo,
+						@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+						@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
+						NULL,@InstructionListId
+					);
+				END
 
 				-- Get the newly generated ID
 				DECLARE @NewSubWorkOrderTaskInstructionId INT = SCOPE_IDENTITY();
+
+				WITH RecursiveCTE AS (
+				-- Anchor member (top-level instructions)
+				SELECT 
+					SWOTI.SubWorkOrderTaskInstructionId,
+					SWOTI.SubWorkOrderTaskId,
+					SWOT.TaskId,
+					SWOT.TaskName,
+					SWOTI.InstructionTitle,
+					SWOTI.InstructionDetails,
+					SWOTI.SequenceNumber,
+					SWOTI.TechId,
+					SWOTI.TechName,
+					SWOTI.TechUpdatedDate,
+					SWOTI.InspectorId,
+					SWOTI.InspectorName,
+					SWOTI.InspectorUpdatedDate,
+					SWOTI.PrintInWO,
+					SWOTI.PrintInWOQ,
+					SWOTI.MasterCompanyId,
+					SWOTI.IsActive,
+					SWOTI.IsDeleted,
+					SWOTI.IsParent,
+					SWOTI.ParentId,
+					CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS ParentSequenceNumber
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+				LEFT JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+				WHERE SWOTI.ParentId IS NULL
+
+				UNION ALL
+
+				-- Recursive member (child instructions)
+				SELECT 
+					SWOTI.SubWorkOrderTaskInstructionId,
+					SWOTI.SubWorkOrderTaskId,
+					SWOT.TaskId,
+					SWOT.TaskName,
+					SWOTI.InstructionTitle,
+					SWOTI.InstructionDetails,
+					SWOTI.SequenceNumber,
+					SWOTI.TechId,
+					SWOTI.TechName,
+					SWOTI.TechUpdatedDate,
+					SWOTI.InspectorId,
+					SWOTI.InspectorName,
+					SWOTI.InspectorUpdatedDate,
+					SWOTI.PrintInWO,
+					SWOTI.PrintInWOQ,
+					SWOTI.MasterCompanyId,
+					SWOTI.IsActive,
+					SWOTI.IsDeleted,
+					SWOTI.IsParent,
+					SWOTI.ParentId,
+					CAST(R.ParentSequenceNumber + '.' + CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS VARCHAR(MAX)) AS ParentSequenceNumber
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+				INNER JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+				INNER JOIN RecursiveCTE R ON SWOTI.ParentId = R.SubWorkOrderTaskInstructionId
+				)
+
+				UPDATE SWOTI
+				SET 
+					SWOTI.SequenceNumber = R.SequenceNumber,
+					SWOTI.ParentSequenceNumber = R.ParentSequenceNumber,  
+					SWOTI.UpdatedBy = @CreatedBy,
+					SWOTI.UpdatedDate = GETUTCDATE()
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI
+				INNER JOIN RecursiveCTE R ON SWOTI.SubWorkOrderTaskInstructionId = R.SubWorkOrderTaskInstructionId;
 
 				-- Store the mapping of TaskInstructionId to the new WorkOrderTaskInstructionId
 				INSERT INTO @IdMapping (TaskInstructionId, WorkOrderTaskInstructionId)
 				VALUES (@TaskInstructionId, @NewSubWorkOrderTaskInstructionId);
 
 				-- Add Sub Work Order Task Instruction History 
-				EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewSubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
+				EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewSubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL;
 
 				-- Add Sub Work Order Task history
 				EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @NewSubWorkOrderTaskInstructionId , NULL
@@ -221,10 +323,10 @@ BEGIN
 			DECLARE @Id INT = SCOPE_IDENTITY();
 
 			-- Add Sub Work Order Task Instruction History 
-			EXEC USP_InsertSubWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId
+			EXEC USP_InsertSubWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId , NULL;
 
 			-- Add Sub Work Order Task history
-			EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @Id , NULL
+			EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @Id , NULL;
 
 			--/* START: Add Entry in History Table */
 			--SET @StatusCode = 'CreateWorkOrderTaskInstruction';
@@ -293,6 +395,10 @@ BEGIN
 			OPEN TaskCursor;
 			FETCH NEXT FROM TaskCursor INTO @TaskInstructionId, @Title, @ParentId, @IsParent, @SequenceNumber, @Description;
 
+			SELECT @SequenceNo = ISNULL(MAX(SequenceNumber), 0) + 1
+			FROM [dbo].[SubWorkOrderTaskInstruction] WITH(NOLOCK)
+			WHERE SubWorkOrderTaskId = @SubWorkOrderTaskId AND (ParentId IS NULL OR ParentId = @SubWorkOrderTaskInstructionId)
+
 			WHILE @@FETCH_STATUS = 0
 			BEGIN
 				-- Get the new ParentId from mapping if the current record has a ParentId
@@ -308,31 +414,132 @@ BEGIN
 				END
 
 				-- Insert the record into WorkOrderTaskInstruction table
-				INSERT INTO SubWorkOrderTaskInstruction (
-					SubWorkOrderTaskId, 
-					ParentId, 
-					IsParent, 
-					InstructionTitle, 
-					SequenceNumber,
-					[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
-					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
-				)
-				VALUES (
-					@SubWorkOrderTaskId, 
-					@NewParentId, 
-					@IsParent, 
-					@Title, 
-					@SequenceNumber,
-					@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
-					@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0
-				);
+				IF(@NewParentId > 0)
+				BEGIN
+					INSERT INTO [dbo].[SubWorkOrderTaskInstruction] (
+						SubWorkOrderTaskId, 
+						ParentId, 
+						IsParent, 
+						InstructionTitle, 
+						SequenceNumber,
+						[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+						[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+						[ParentSequenceNumber],[InstructionListId]
+					)
+					VALUES (
+						@SubWorkOrderTaskId, 
+						@NewParentId, 
+						@IsParent, 
+						@Title, 
+						@SequenceNumber,
+						@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+						@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
+						NULL,@InstructionListId
+					);
+				END
+				ELSE
+				BEGIN
+					INSERT INTO [dbo].[SubWorkOrderTaskInstruction] (
+						SubWorkOrderTaskId, 
+						ParentId, 
+						IsParent, 
+						InstructionTitle, 
+						SequenceNumber,
+						[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+						[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+						[ParentSequenceNumber],[InstructionListId]
+					)
+					VALUES (
+						@SubWorkOrderTaskId, 
+						@NewParentId, 
+						@IsParent, 
+						@Title, 
+						@SequenceNo,
+						@Description,@TechId,@TechName,@TechUpdatedDate,@InspectorId,@InspectorName,
+						@InspectorUpdatedDate,@PrintInWO,@PrintInWOQ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
+						NULL,@InstructionListId
+					);
+				END
 
 				-- Get the newly generated ID
 				DECLARE @NewSubWorkOrderTaskInstructionId_1 INT = SCOPE_IDENTITY();
 
+				WITH RecursiveCTE AS (
+				-- Anchor member (top-level instructions)
+				SELECT 
+					SWOTI.SubWorkOrderTaskInstructionId,
+					SWOTI.SubWorkOrderTaskId,
+					SWOT.TaskId,
+					SWOT.TaskName,
+					SWOTI.InstructionTitle,
+					SWOTI.InstructionDetails,
+					SWOTI.SequenceNumber,
+					SWOTI.TechId,
+					SWOTI.TechName,
+					SWOTI.TechUpdatedDate,
+					SWOTI.InspectorId,
+					SWOTI.InspectorName,
+					SWOTI.InspectorUpdatedDate,
+					SWOTI.PrintInWO,
+					SWOTI.PrintInWOQ,
+					SWOTI.MasterCompanyId,
+					SWOTI.IsActive,
+					SWOTI.IsDeleted,
+					SWOTI.IsParent,
+					SWOTI.ParentId,
+					CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS ParentSequenceNumber
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+				LEFT JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+				WHERE SWOTI.ParentId IS NULL
+
+				UNION ALL
+
+				-- Recursive member (child instructions)
+				SELECT 
+					SWOTI.SubWorkOrderTaskInstructionId,
+					SWOTI.SubWorkOrderTaskId,
+					SWOT.TaskId,
+					SWOT.TaskName,
+					SWOTI.InstructionTitle,
+					SWOTI.InstructionDetails,
+					SWOTI.SequenceNumber,
+					SWOTI.TechId,
+					SWOTI.TechName,
+					SWOTI.TechUpdatedDate,
+					SWOTI.InspectorId,
+					SWOTI.InspectorName,
+					SWOTI.InspectorUpdatedDate,
+					SWOTI.PrintInWO,
+					SWOTI.PrintInWOQ,
+					SWOTI.MasterCompanyId,
+					SWOTI.IsActive,
+					SWOTI.IsDeleted,
+					SWOTI.IsParent,
+					SWOTI.ParentId,
+					CAST(R.ParentSequenceNumber + '.' + CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS VARCHAR(MAX)) AS ParentSequenceNumber
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+				INNER JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+				INNER JOIN RecursiveCTE R ON SWOTI.ParentId = R.SubWorkOrderTaskInstructionId
+				)
+
+				UPDATE SWOTI
+				SET 
+					SWOTI.SequenceNumber = R.SequenceNumber,
+					SWOTI.ParentSequenceNumber = R.ParentSequenceNumber,  
+					SWOTI.UpdatedBy = @CreatedBy,
+					SWOTI.UpdatedDate = GETUTCDATE()
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI
+				INNER JOIN RecursiveCTE R ON SWOTI.SubWorkOrderTaskInstructionId = R.SubWorkOrderTaskInstructionId;
+
 				-- Store the mapping of TaskInstructionId to the new SubWorkOrderTaskInstructionId
 				INSERT INTO @IdMapping_1 (TaskInstructionId, WorkOrderTaskInstructionId)
 				VALUES (@TaskInstructionId, @NewSubWorkOrderTaskInstructionId_1);
+
+				-- Add Sub Work Order Task Instruction History 
+				EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewSubWorkOrderTaskInstructionId_1 , @CreatedBy, @InstructionListId , NULL;
+
+				-- Add Sub Work Order Task history
+				EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @NewSubWorkOrderTaskInstructionId_1 , NULL;
 
 				--IF (@ParentId IS NULL)
 				--BEGIN
@@ -374,19 +581,86 @@ BEGIN
 			DECLARE @NewSequenceNumber INT = @MaxSequenceNumber + 1;
 
 			-- Insert the new child node with the next sequence number
-			INSERT INTO SubWorkOrderTaskInstruction ([SubWorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
-				[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+			INSERT INTO [dbo].[SubWorkOrderTaskInstruction] ([SubWorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle],[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+				[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ParentSequenceNumber],[InstructionListId])
 			VALUES (@SubWorkOrderTaskId, @SubWorkOrderTaskInstructionId, 0, @InstructionTitle, @NewSequenceNumber, @InstructionDetails, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, 
-				@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0);
+				@InspectorUpdatedDate, @PrintInWO, @PrintInWOQ, @MasterCompanyId, @CreatedBy, @CreatedBy, GETDATE(), GETDATE(), 1, 0, NULL, @InstructionListId);
 			 	
 			-- Get new generated WorkOrderTaskInstructionId
 			DECLARE @NewWOTIID INT = SCOPE_IDENTITY();
+
+			WITH RecursiveCTE AS (
+				-- Anchor member (top-level instructions)
+				SELECT 
+					SWOTI.SubWorkOrderTaskInstructionId,
+					SWOTI.SubWorkOrderTaskId,
+					SWOT.TaskId,
+					SWOT.TaskName,
+					SWOTI.InstructionTitle,
+					SWOTI.InstructionDetails,
+					SWOTI.SequenceNumber,
+					SWOTI.TechId,
+					SWOTI.TechName,
+					SWOTI.TechUpdatedDate,
+					SWOTI.InspectorId,
+					SWOTI.InspectorName,
+					SWOTI.InspectorUpdatedDate,
+					SWOTI.PrintInWO,
+					SWOTI.PrintInWOQ,
+					SWOTI.MasterCompanyId,
+					SWOTI.IsActive,
+					SWOTI.IsDeleted,
+					SWOTI.IsParent,
+					SWOTI.ParentId,
+					CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS ParentSequenceNumber
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+				LEFT JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+				WHERE SWOTI.ParentId IS NULL
+
+				UNION ALL
+
+				-- Recursive member (child instructions)
+				SELECT 
+					SWOTI.SubWorkOrderTaskInstructionId,
+					SWOTI.SubWorkOrderTaskId,
+					SWOT.TaskId,
+					SWOT.TaskName,
+					SWOTI.InstructionTitle,
+					SWOTI.InstructionDetails,
+					SWOTI.SequenceNumber,
+					SWOTI.TechId,
+					SWOTI.TechName,
+					SWOTI.TechUpdatedDate,
+					SWOTI.InspectorId,
+					SWOTI.InspectorName,
+					SWOTI.InspectorUpdatedDate,
+					SWOTI.PrintInWO,
+					SWOTI.PrintInWOQ,
+					SWOTI.MasterCompanyId,
+					SWOTI.IsActive,
+					SWOTI.IsDeleted,
+					SWOTI.IsParent,
+					SWOTI.ParentId,
+					CAST(R.ParentSequenceNumber + '.' + CAST(SWOTI.SequenceNumber AS VARCHAR(MAX)) AS VARCHAR(MAX)) AS ParentSequenceNumber
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI WITH (NOLOCK)
+				INNER JOIN [dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK) ON SWOT.SubWorkOrderTaskId = SWOTI.SubWorkOrderTaskId
+				INNER JOIN RecursiveCTE R ON SWOTI.ParentId = R.SubWorkOrderTaskInstructionId
+				)
+
+				UPDATE SWOTI
+				SET 
+					SWOTI.SequenceNumber = R.SequenceNumber,
+					SWOTI.ParentSequenceNumber = R.ParentSequenceNumber,  
+					SWOTI.UpdatedBy = @CreatedBy,
+					SWOTI.UpdatedDate = GETUTCDATE()
+				FROM [dbo].[SubWorkOrderTaskInstruction] SWOTI
+				INNER JOIN RecursiveCTE R ON SWOTI.SubWorkOrderTaskInstructionId = R.SubWorkOrderTaskInstructionId;
 		
 			-- Add Sub Work Order Task Instruction History 
-			EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId
+			EXEC USP_InsertSubWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId, NULL;
 
 			-- Add Sub Work Order Task history
-			EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @NewWOTIID , NULL
+			EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @NewWOTIID , NULL;
 
 			--/* START: Add Entry in History Table */
 			--SET @StatusCode = 'CreateWorkOrderTaskInstruction';
@@ -418,7 +692,7 @@ BEGIN
 		WHERE SubWorkOrderTaskInstructionId = @SubWorkOrderTaskInstructionId;
 
 		-- Add Sub Work Order Task Instruction History 
-		EXEC USP_InsertSubWorkOrderTaskInstructionHistory @SubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId
+		EXEC USP_InsertSubWorkOrderTaskInstructionHistory @SubWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL;
 
 		-- Add Sub Work Order Task history
 		EXEC dbo.USP_AddSubWorkOrderTaskHistory @SubWorkOrderTaskId , @CreatedBy, @SubWorkOrderTaskInstructionId , NULL

@@ -325,6 +325,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.RevenueExchGLAccId
 			,stl.RevenueExchGLAccName   
 			,ISNULL(stl.[QuantityAdjustment],0) QuantityAdjustment
+			,ISNULL(stl.IsPiecePart, 0) IsPiecePart
+			,ISNULL(stl.IsRepairManagement, 0) IsRepairManagement
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

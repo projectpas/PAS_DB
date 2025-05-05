@@ -231,6 +231,8 @@
     [COGS_ExchSalesOrderGLAccId]          BIGINT          NULL,
     [COGS_ExchSalesOrderGLAccName]        VARCHAR (255)   NULL,
     [QuantityAdjustment]                  INT             NULL,
+    [IsPiecePart]                         BIT             CONSTRAINT [DF_Stockline_IsPiecePart] DEFAULT ((0)) NULL,
+    [IsRepairManagement]                  BIT             CONSTRAINT [DF_Stockline_IsRepairManagement] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -247,6 +249,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

@@ -3728,6 +3728,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWOMPNDataByPartNumberId.sql" />
     <Build Include="dbo\Stored Procedures\GetWOPackagingLabelData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSitesByManagementStructrue.sql" />
+    <Build Include="dbo\Stored Procedures\GetInvoiceListForCSVExportByRefereceId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRoPartHistoryList.sql" />
   </ItemGroup>
   <ItemGroup>

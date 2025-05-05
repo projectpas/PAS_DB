@@ -3734,6 +3734,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveVendorRMASettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMASettings.sql" />
     <Build Include="dbo\Stored Procedures\usp_ROListByMasterItemId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteDetailsList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

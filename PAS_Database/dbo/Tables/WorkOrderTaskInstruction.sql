@@ -22,6 +22,8 @@
     [IsActive]                   BIT            NULL,
     [IsDeleted]                  BIT            NULL,
     [IsFromWorkFlow]             BIT            NULL,
+    [InstructionListId]          VARCHAR (250)  NULL,
+    [ParentSequenceNumber]       VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderTaskInstruction] PRIMARY KEY CLUSTERED ([WorkOrderTaskInstructionId] ASC)
 );
 
@@ -43,7 +45,8 @@ BEGIN
  SELECT [WorkOrderTaskInstructionId],[WorkOrderTaskId],[ParentId],[IsParent],[InstructionTitle], 
 		[SequenceNumber],[InstructionDetails],[TechId],[TechName],[TechUpdatedDate],
 		[InspectorId],[InspectorName],[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],
-		[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+		[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+		[ParentSequenceNumber],[InstructionListId]
  FROM INSERTED  
  SET NOCOUNT ON;  
 END

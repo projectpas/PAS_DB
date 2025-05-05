@@ -29,6 +29,7 @@
     [WorkOrderTaskInstructionInspectorName]        VARCHAR (100)  NULL,
     [WorkOrderTaskInstructionInspectorUpdatedDate] DATETIME2 (7)  NULL,
     [WorkOrderTaskInstructionPrintInWO]            BIT            NULL,
-    [WorkOrderTaskInstructionPrintInWOQ]           BIT            NULL
+    [WorkOrderTaskInstructionPrintInWOQ]           BIT            NULL,
+    [WorkOrderTaskInstructionSequence]             INT            NULL
 );
 

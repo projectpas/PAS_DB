@@ -15,13 +15,15 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    02/17/2025   Ekta Chandegra	Created
+    2    04/28/2025   Ekta Chandegra	Add history when change sequence
 
 -- EXEC dbo.USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId=1142,@UpdatedBy=N'EKTA CHANDEGRA'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_InsertWorkOrderTaskInstructionHistory]
+CREATE    PROCEDURE [dbo].[USP_InsertWorkOrderTaskInstructionHistory]
 	@WorkOrderTaskInstructionId BIGINT,
 	@UpdatedBy VARCHAR(100),
-	@InstructionListId VARCHAR(250)
+	@InstructionListId VARCHAR(250),
+	@NewWorkOrderTaskInstructionId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -53,7 +55,9 @@ BEGIN
 					  WOTI.IsActive,
 					  WOTI.IsDeleted,
 					  WOTI.IsParent,
-					  WOTI.ParentId
+					  WOTI.ParentId,
+					  WOTI.ParentSequenceNumber,
+					  WOTI.InstructionListId
 					FROM [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK)
 					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
 					WHERE WOTI.WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
@@ -81,11 +85,12 @@ BEGIN
 					  WOTI.IsActive,
 					  WOTI.IsDeleted,
 					  WOTI.IsParent,
-					  WOTI.ParentId
+					  WOTI.ParentId,
+					  WOTI.ParentSequenceNumber,
+					  WOTI.InstructionListId
 					FROM [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
 					INNER JOIN RecursiveCTE R ON WOTI.ParentId = R.WorkOrderTaskInstructionId
-
 				)
 
 				INSERT INTO [dbo].[WorkOrderTaskInstructionHistory]
@@ -93,17 +98,15 @@ BEGIN
 					[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId] ,[TaskName],[InstructionTitle],
 					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
 					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[UpdatedBy],
-					[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent]
+					[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent],[ParentSequenceNumber],[InstructionListId]
 				)
 				
 				SELECT 
 					[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId],[TaskName],[InstructionTitle],
 					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
 					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],@UpdatedBy,
-					GETUTCDATE(),[IsActive],[IsDeleted],[ParentId],[IsParent]
-				FROM [RecursiveCTE]  WITH(NOLOCK)
-				WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
-
+					GETUTCDATE(),[IsActive],[IsDeleted],[ParentId],[IsParent],[ParentSequenceNumber],[InstructionListId]
+				FROM [RecursiveCTE];
 			END
 			ELSE
 			BEGIN
@@ -112,17 +115,114 @@ BEGIN
 					[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId] ,[TaskName],[InstructionTitle],
 					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
 					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[UpdatedBy],
-					[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent]
+					[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent],[ParentSequenceNumber],[InstructionListId]
 				)
 				
 				SELECT 
 					WOTI.[WorkOrderTaskInstructionId],WOTI.[WorkOrderTaskId],WOT.[TaskId],WOT.[TaskName],WOTI.[InstructionTitle],
 					WOTI.[InstructionDetails],WOTI.[SequenceNumber],WOTI.[TechId],WOTI.[TechName],WOTI.[TechUpdatedDate],WOTI.[InspectorId],WOTI.[InspectorName],
 					WOTI.[InspectorUpdatedDate],WOTI.[PrintInWO],WOTI.[PrintInWOQ],WOTI.[MasterCompanyId],@UpdatedBy,
-					GETUTCDATE(),WOTI.[IsActive],WOTI.[IsDeleted],WOTI.[ParentId],WOTI.[IsParent]
+					GETUTCDATE(),WOTI.[IsActive],WOTI.[IsDeleted],WOTI.[ParentId],WOTI.[IsParent],WOTI.[ParentSequenceNumber],WOTI.[InstructionListId]
 				FROM [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK)
 				LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
 				WHERE WOTI.WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+			END
+			IF(@NewWorkOrderTaskInstructionId > 0 AND ISNULL(@InstructionListId, '') <> '')
+			BEGIN
+
+				;WITH RecursiveCTE AS (
+					-- Anchor member (base case)
+					SELECT 
+					  WOTI.WorkOrderTaskInstructionId,
+					  WOTI.WorkOrderTaskId,
+					  WOT.TaskId,
+					  WOT.TaskName,
+					  WOTI.InstructionTitle,
+					  WOTI.InstructionDetails,
+					  WOTI.SequenceNumber,
+					  WOTI.TechId,
+					  WOTI.TechName,
+					  WOTI.TechUpdatedDate,
+					  WOTI.InspectorId,
+					  WOTI.InspectorName,
+					  WOTI.InspectorUpdatedDate,
+					  WOTI.PrintInWO,
+					  WOTI.PrintInWOQ,
+					  WOTI.MasterCompanyId,
+					  WOTI.IsActive,
+					  WOTI.IsDeleted,
+					  WOTI.IsParent,
+					  WOTI.ParentId,
+					  WOTI.ParentSequenceNumber,
+					  WOTI.InstructionListId
+					FROM [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK)
+					LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+					WHERE WOTI.WorkOrderTaskInstructionId = @NewWorkOrderTaskInstructionId
+
+					UNION ALL
+
+					-- Recursive member
+					SELECT 
+					  WOTI.WorkOrderTaskInstructionId,
+					  WOTI.WorkOrderTaskId,
+					  WOT.TaskId,
+					  WOT.TaskName,
+					  WOTI.InstructionTitle,
+					  WOTI.InstructionDetails,
+					  WOTI.SequenceNumber,
+					  WOTI.TechId,
+					  WOTI.TechName,
+					  WOTI.TechUpdatedDate,
+					  WOTI.InspectorId,
+					  WOTI.InspectorName,
+					  WOTI.InspectorUpdatedDate,
+					  WOTI.PrintInWO,
+					  WOTI.PrintInWOQ,
+					  WOTI.MasterCompanyId,
+					  WOTI.IsActive,
+					  WOTI.IsDeleted,
+					  WOTI.IsParent,
+					  WOTI.ParentId,
+					  WOTI.ParentSequenceNumber,
+					  WOTI.InstructionListId
+					FROM [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK)
+					INNER JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+					INNER JOIN RecursiveCTE R ON WOTI.ParentId = R.WorkOrderTaskInstructionId
+				)
+
+				INSERT INTO [dbo].[WorkOrderTaskInstructionHistory]
+				(	
+					[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId] ,[TaskName],[InstructionTitle],
+					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[UpdatedBy],
+					[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent],[ParentSequenceNumber],[InstructionListId]
+				)
+				
+				SELECT 
+					[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId],[TaskName],[InstructionTitle],
+					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],@UpdatedBy,
+					GETUTCDATE(),[IsActive],[IsDeleted],[ParentId],[IsParent],[ParentSequenceNumber],[InstructionListId]
+				FROM [RecursiveCTE]; 
+			END
+			ELSE
+			BEGIN
+				INSERT INTO [dbo].[WorkOrderTaskInstructionHistory]
+				(	
+					[WorkOrderTaskInstructionId],[WorkOrderTaskId],[TaskId] ,[TaskName],[InstructionTitle],
+					[InstructionDetails],[SequenceNumber],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],
+					[InspectorUpdatedDate],[PrintInWO],[PrintInWOQ],[MasterCompanyId],[UpdatedBy],
+					[UpdatedDate],[IsActive],[IsDeleted],[ParentId],[IsParent],[ParentSequenceNumber],[InstructionListId]
+				)
+				
+				SELECT 
+					WOTI.[WorkOrderTaskInstructionId],WOTI.[WorkOrderTaskId],WOT.[TaskId],WOT.[TaskName],WOTI.[InstructionTitle],
+					WOTI.[InstructionDetails],WOTI.[SequenceNumber],WOTI.[TechId],WOTI.[TechName],WOTI.[TechUpdatedDate],WOTI.[InspectorId],WOTI.[InspectorName],
+					WOTI.[InspectorUpdatedDate],WOTI.[PrintInWO],WOTI.[PrintInWOQ],WOTI.[MasterCompanyId],@UpdatedBy,
+					GETUTCDATE(),WOTI.[IsActive],WOTI.[IsDeleted],WOTI.[ParentId],WOTI.[IsParent],WOTI.[ParentSequenceNumber],WOTI.[InstructionListId]
+				FROM [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK)
+				LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+				WHERE WOTI.WorkOrderTaskInstructionId = @NewWorkOrderTaskInstructionId
 			END
 		END
 	END TRY

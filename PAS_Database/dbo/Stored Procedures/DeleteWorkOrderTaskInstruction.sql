@@ -12,47 +12,112 @@
 	1   01/13/2025   Vishal Suthar		Created
 	2   03/21/2025   Ekta Chandegra		Add dbo.USP_AddWorkOrderTaskHistory call to add history
 	3   03/24/2025   Ekta Chandegra		Update IsDeleted value of deleted Work Order Task Instruction in WorkOrderTaskHistory 
+	4   04/29/2025   Ekta Chandegra		Rearrange sequence of remaining instructions after delete
 
 EXEC [DeleteWorkOrderTaskInstruction] 3
 **************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteWorkOrderTaskInstruction]
 	@WorkOrderTaskInstructionId BIGINT,
 	@CreatedBy VARCHAR(256),
-	@WorkOrderTaskId BIGINT
+	@WorkOrderTaskId BIGINT,
+	@InstructionListId VARCHAR(250)
+
 AS
 	BEGIN
 	BEGIN TRY
+		BEGIN TRANSACTION
 
 		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId,@CreatedBy,@WorkOrderTaskInstructionId,NULL
 
-		;WITH CTE AS (
-			-- Anchor member: Start with the record to be deleted
-			SELECT WorkOrderTaskInstructionId
-			FROM DBO.WorkOrderTaskInstruction WITH (NOLOCK)
-			WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
+		   -- STEP 2: Recursive delete
+        ;WITH RecursiveDelete AS (
+            SELECT WorkOrderTaskInstructionId
+            FROM dbo.WorkOrderTaskInstruction WITH (NOLOCK)
+            WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
 
-			UNION ALL
+            UNION ALL
 
-			-- Recursive member: Get all child records
-			SELECT w.WorkOrderTaskInstructionId
-			FROM DBO.WorkOrderTaskInstruction w WITH (NOLOCK)
-			INNER JOIN CTE c
-			ON w.ParentId = c.WorkOrderTaskInstructionId
-		)
+            SELECT child.WorkOrderTaskInstructionId
+            FROM dbo.WorkOrderTaskInstruction child WITH (NOLOCK)
+            INNER JOIN RecursiveDelete parent 
+                ON child.ParentId = parent.WorkOrderTaskInstructionId
+        )
 
 		-- Delete all identified records
 		DELETE FROM DBO.WorkOrderTaskInstruction
-		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM CTE);
+		WHERE WorkOrderTaskInstructionId IN (SELECT WorkOrderTaskInstructionId FROM RecursiveDelete);
 
-		UPDATE [dbo].[WorkOrderTaskHistory]
-		SET IsDeleted = 1
-		WHERE [WorkOrderTaskHistoryId] IN
-		(
-			SELECT TOP 1 [WorkOrderTaskHistoryId]
-			FROM [dbo].[WorkOrderTaskHistory]
-			WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
-			ORDER BY [WorkOrderTaskHistoryId] DESC
-		) 
+		 -- STEP 3: Mark deleted in SubWorkOrderTaskHistory
+        UPDATE dbo.WorkOrderTaskHistory
+        SET IsDeleted = 1
+        WHERE WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId;
+
+		 -- STEP 4: Re-sequence remaining instructions
+        ;WITH PreSequence AS (
+            SELECT 
+                WorkOrderTaskInstructionId,
+                ParentId,
+                ROW_NUMBER() OVER (PARTITION BY ParentId ORDER BY WorkOrderTaskInstructionId) AS NewSequence
+            FROM dbo.WorkOrderTaskInstruction WITH(NOLOCK)
+            WHERE WorkOrderTaskId = @WorkOrderTaskId
+        )
+        , Hierarchy AS (
+            -- Anchor: top-level
+            SELECT 
+                s.WorkOrderTaskInstructionId,
+                s.ParentId,
+                s.NewSequence,
+                CAST(s.NewSequence AS VARCHAR(MAX)) AS ParentSequenceNumber
+            FROM PreSequence s
+            WHERE s.ParentId IS NULL
+
+            UNION ALL
+
+            -- Recursion: children
+            SELECT 
+                s.WorkOrderTaskInstructionId,
+                s.ParentId,
+                s.NewSequence,
+                CAST(p.ParentSequenceNumber + '.' + CAST(s.NewSequence AS VARCHAR) AS VARCHAR(MAX))
+            FROM PreSequence s
+            INNER JOIN Hierarchy p ON s.ParentId = p.WorkOrderTaskInstructionId
+        )
+
+		UPDATE WOTI
+        SET 
+            WOTI.SequenceNumber = H.NewSequence,
+            WOTI.ParentSequenceNumber = H.ParentSequenceNumber,
+            WOTI.UpdatedBy = @CreatedBy,
+            WOTI.UpdatedDate = GETUTCDATE()
+        FROM dbo.WorkOrderTaskInstruction WOTI
+        INNER JOIN Hierarchy H ON WOTI.WorkOrderTaskInstructionId = H.WorkOrderTaskInstructionId;
+
+		 -- STEP 5: Log instruction update history for all remaining instructions
+        DECLARE @UpdatedInstructionId BIGINT;
+        DECLARE UpdatedCursor CURSOR FOR
+        SELECT WorkOrderTaskInstructionId
+        FROM dbo.WorkOrderTaskInstruction WITH(NOLOCK)
+        WHERE WorkOrderTaskId = @WorkOrderTaskId;
+
+        OPEN UpdatedCursor;
+        FETCH NEXT FROM UpdatedCursor INTO @UpdatedInstructionId;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC dbo.USP_InsertWorkOrderTaskInstructionHistory 
+                @UpdatedInstructionId, @CreatedBy, @InstructionListId, NULL;
+
+			EXEC dbo.USP_AddWorkOrderTaskHistory 
+                @WorkOrderTaskId, @CreatedBy, @UpdatedInstructionId, NULL;
+
+            FETCH NEXT FROM UpdatedCursor INTO @UpdatedInstructionId;
+        END
+
+        CLOSE UpdatedCursor;
+        DEALLOCATE UpdatedCursor;
+
+
+        COMMIT TRANSACTION;
 
 	END TRY
 	BEGIN CATCH

@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    03/27/2025   Ekta Chandegra	Created
+    2    04/28/2025   Ekta Chandegra	Insert full sequence number (with parent)
 
 exec dbo.USP_AddSubWorkOrderTaskHistory @WorkOrderTaskId=978,@CreatedBy=N'EKTA CHANDEGRA',@SubWorkOrderTaskInstructionId = 17 , @NewSubWorkOrderTaskId = 0
 **************************************************************/
@@ -50,16 +51,16 @@ BEGIN
 				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[SubWorkOrderTaskInstructionId],
 				[SubWorkOrderTaskInstructionTechId], [SubWorkOrderTaskInstructionTechName],[SubWorkOrderTaskInstructionTechUpdatedDate],
 				[SubWorkOrderTaskInstructionInspectorId], [SubWorkOrderTaskInstructionInspectorName],[SubWorkOrderTaskInstructionInspectorUpdatedDate] ,
-				[SubWorkOrderTaskInstructionPrintInWO], [SubWorkOrderTaskInstructionPrintInWOQ]
+				[SubWorkOrderTaskInstructionPrintInWO], [SubWorkOrderTaskInstructionPrintInWOQ],[SubWorkOrderTaskInstructionSequence]
 			)
 			SELECT TOP 1
 				@SubWorkOrderTaskId, SWOT.[TaskName], SWOTD.[Descrepancy], SWOTD.[Resolution],SWOTD.[TechId],
 				SWOTD.[TechName], SWOTD.[TechUpdatedDate], SWOTD.[InspectorId], SWOTD.[InspectorName], SWOTD.[InspectorUpdatedDate],
 				SWOTD.[PrintInWO], SWOTD.[PrintInWOQ], SWOTI.[IsParent], SWOTI.[ParentId], SWOTI.[InstructionTitle], SWOTI.[InstructionDetails],
 				SWOT.[SequenceNumber],SWOTI.[IsActive], SWOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),@SubWorkOrderTaskInstructionId,
-				SWOTI.TechId, SWOTI.TechName, SWOTI.TechUpdatedDate,
-				SWOTI.InspectorId, SWOTI.InspectorName, SWOTI.InspectorUpdatedDate,
-				SWOTI.PrintInWO, SWOTI.PrintInWOQ
+				SWOTI.[TechId], SWOTI.[TechName], SWOTI.[TechUpdatedDate],
+				SWOTI.[InspectorId], SWOTI.[InspectorName], SWOTI.[InspectorUpdatedDate],
+				SWOTI.[PrintInWO], SWOTI.[PrintInWOQ],SWOTI.[ParentSequenceNumber]
 			FROM
 			[dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[SubWorkOrderTaskDetails] SWOTD WITH (NOLOCK) ON SWOTD.SubWorkOrderTaskId = SWOT.SubWorkOrderTaskId
@@ -77,16 +78,16 @@ BEGIN
 				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[SubWorkOrderTaskInstructionId],
 				[SubWorkOrderTaskInstructionTechId], [SubWorkOrderTaskInstructionTechName],[SubWorkOrderTaskInstructionTechUpdatedDate],
 				[SubWorkOrderTaskInstructionInspectorId], [SubWorkOrderTaskInstructionInspectorName],[SubWorkOrderTaskInstructionInspectorUpdatedDate] ,
-				[SubWorkOrderTaskInstructionPrintInWO], [SubWorkOrderTaskInstructionPrintInWOQ]
+				[SubWorkOrderTaskInstructionPrintInWO], [SubWorkOrderTaskInstructionPrintInWOQ],[SubWorkOrderTaskInstructionSequence]
 			)
 			SELECT TOP 1
 				@SubWorkOrderTaskId, SWOT.[TaskName], SWOTD.[Descrepancy], SWOTD.[Resolution], SWOTD.[TechId],
 				SWOTD.[TechName], SWOTD.[TechUpdatedDate], SWOTD.[InspectorId], SWOTD.[InspectorName], SWOTD.[InspectorUpdatedDate],
 				SWOTD.[PrintInWO], SWOTD.[PrintInWOQ], SWOTI.[IsParent], SWOTI.[ParentId], SWOTI.[InstructionTitle], SWOTI.[InstructionDetails],
 				SWOT.[SequenceNumber],SWOTI.[IsActive], SWOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),SWOTI.[SubWorkOrderTaskInstructionId],
-				SWOTI.TechId, SWOTI.TechName, SWOTI.TechUpdatedDate,
-				SWOTI.InspectorId, SWOTI.InspectorName, SWOTI.InspectorUpdatedDate,
-				SWOTI.PrintInWO, SWOTI.PrintInWOQ
+				SWOTI.[TechId], SWOTI.[TechName], SWOTI.[TechUpdatedDate],
+				SWOTI.[InspectorId], SWOTI.[InspectorName], SWOTI.[InspectorUpdatedDate],
+				SWOTI.[PrintInWO], SWOTI.[PrintInWOQ],SWOTI.[ParentSequenceNumber]
 			FROM
 			[dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[SubWorkOrderTaskDetails] SWOTD WITH (NOLOCK) ON SWOTD.SubWorkOrderTaskId = SWOT.SubWorkOrderTaskId
@@ -105,16 +106,16 @@ BEGIN
 				[SequenceNumber],[IsActive], [IsDeleted], [UpdatedBy], [UpdatedDate],[SubWorkOrderTaskInstructionId],
 				[SubWorkOrderTaskInstructionTechId], [SubWorkOrderTaskInstructionTechName],[SubWorkOrderTaskInstructionTechUpdatedDate],
 				[SubWorkOrderTaskInstructionInspectorId], [SubWorkOrderTaskInstructionInspectorName],[SubWorkOrderTaskInstructionInspectorUpdatedDate] ,
-				[SubWorkOrderTaskInstructionPrintInWO], [SubWorkOrderTaskInstructionPrintInWOQ]
+				[SubWorkOrderTaskInstructionPrintInWO], [SubWorkOrderTaskInstructionPrintInWOQ], [SubWorkOrderTaskInstructionSequence]
 			)
 			SELECT TOP 1
 				@NewSubWorkOrderTaskId, SWOT.[TaskName], SWOTD.[Descrepancy], SWOTD.[Resolution], SWOTD.[TechId],
 				SWOTD.[TechName], SWOTD.[TechUpdatedDate], SWOTD.[InspectorId], SWOTD.[InspectorName], SWOTD.[InspectorUpdatedDate],
 				SWOTD.[PrintInWO], SWOTD.[PrintInWOQ], SWOTI.[IsParent], SWOTI.[ParentId], SWOTI.[InstructionTitle], SWOTI.[InstructionDetails],
 				SWOT.[SequenceNumber],SWOTI.[IsActive], SWOTI.[IsDeleted],@CreatedBy, GETUTCDATE(),SWOTI.[SubWorkOrderTaskInstructionId],
-				SWOTI.TechId, SWOTI.TechName, SWOTI.TechUpdatedDate,
-				SWOTI.InspectorId, SWOTI.InspectorName, SWOTI.InspectorUpdatedDate,
-				SWOTI.PrintInWO, SWOTI.PrintInWOQ
+				SWOTI.[TechId], SWOTI.[TechName], SWOTI.[TechUpdatedDate],
+				SWOTI.[InspectorId], SWOTI.[InspectorName], SWOTI.[InspectorUpdatedDate],
+				SWOTI.[PrintInWO], SWOTI.[PrintInWOQ],SWOTI.[ParentSequenceNumber]
 			FROM
 			[dbo].[SubWorkOrderTask] SWOT WITH (NOLOCK)
 			LEFT JOIN [dbo].[SubWorkOrderTaskDetails] SWOTD WITH (NOLOCK) ON SWOTD.SubWorkOrderTaskId = SWOT.SubWorkOrderTaskId

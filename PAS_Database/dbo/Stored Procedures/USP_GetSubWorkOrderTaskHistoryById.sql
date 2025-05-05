@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    03/28/2025   Ekta Chandegra	Created
+    2    04/28/2025   Ekta Chandegra	Retrieve SubWorkOrderTaskInstructionSequence 
 
  exec dbo.USP_GetSubWorkOrderTaskHistoryById @SubWorkOrderTaskId=10
 **************************************************************/
@@ -57,7 +58,8 @@ BEGIN
 			[SubWorkOrderTaskInstructionInspectorName],
 			[SubWorkOrderTaskInstructionInspectorUpdatedDate] ,
 			[SubWorkOrderTaskInstructionPrintInWO], 
-			[SubWorkOrderTaskInstructionPrintInWOQ]
+			[SubWorkOrderTaskInstructionPrintInWOQ],
+			[SubWorkOrderTaskInstructionSequence]
 		FROM [dbo].[SubWorkOrderTaskHistory] WITH(NOLOCK)
 		WHERE SubWorkOrderTaskId = @SubWorkOrderTaskId
 		ORDER BY SubWorkOrderTaskHistoryId DESC

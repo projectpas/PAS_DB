@@ -3763,6 +3763,7 @@
     <Build Include="dbo\Stored Procedures\GetAllBillingAddressDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsAuditHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTeardownDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

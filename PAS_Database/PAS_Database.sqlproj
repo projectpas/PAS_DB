@@ -3739,6 +3739,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsByTypeList.sql" />
     <Build Include="dbo\Tables\ExcludedLocation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityHistory.sql" />
     <Build Include="dbo\Stored Procedures\VendorShippingStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorBillingAddressStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_ShippingBillingAddressHistory.sql" />
@@ -3758,6 +3759,7 @@
     <Build Include="dbo\Stored Procedures\GetVendorBillingAddressAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetAllBillingAddressDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsAuditHistory.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

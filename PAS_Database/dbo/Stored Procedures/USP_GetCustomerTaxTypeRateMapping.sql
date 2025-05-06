@@ -36,9 +36,9 @@ BEGIN
 			ISNULL(cd.SiteName, '') AS SiteName,
 			c.ShipFromSiteId,
 			ISNULL(st.Name, '') AS ShipFromSiteName,
-			c.IsRepair,
-			c.IsProductSale,
-			c.IsTaxExempt,
+			ISNULL(c.IsRepair, 0) AS IsRepair,
+			ISNULL(c.IsProductSale, 0) AS IsProductSale,
+			ISNULL(c.IsTaxExempt, 0) AS IsTaxExempt,
 			c.TaxId
 		FROM [dbo].[CustomerTaxTypeRateMapping] c WITH(NOLOCK)
 		LEFT JOIN [dbo].[TaxType] ty WITH(NOLOCK) ON c.TaxTypeId = ty.TaxTypeId
@@ -46,7 +46,7 @@ BEGIN
 		LEFT JOIN [dbo].[CustomerDomensticShipping] cd WITH(NOLOCK) ON c.SiteId = cd.CustomerDomensticShippingId
 		LEFT JOIN [dbo].[Site] st WITH(NOLOCK) ON c.ShipFromSiteId = st.SiteId
 		WHERE c.CustomerId = @CustomerId
-		  AND c.IsDeleted = @IsDeleted;
+		  AND ISNULL(c.IsDeleted, 0) = @IsDeleted;
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT

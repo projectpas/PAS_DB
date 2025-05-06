@@ -16,6 +16,7 @@
  ** --   --------			-------			-------------------          
     1    02-19-2024			Vishal Suthar	Added History
 	2    11-25-2024			Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
+	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
      
  EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 **************************************************************/ 
@@ -152,7 +153,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
-				AND (sl.IsCustomerStock = 0) --OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+				--AND (sl.IsCustomerStock = 0) --OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+				AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
 				AND sl.IsParent = 1
 			
 			UNION

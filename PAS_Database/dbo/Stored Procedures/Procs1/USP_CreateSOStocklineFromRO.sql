@@ -22,6 +22,8 @@
     6	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
 	7	 11/29/2024	  Abhishek Jirawla  Adding a condition where the QtyOrder is taken from Stockline.
 	8    12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
+	9	 05/05/2025	  Abhishek Jirawla  Updated the unit cost to the new stockline cost(including repair order).
+
  EXECUTE USP_CreateSOStocklineFromRO 1780
 
 **************************************************************/
@@ -54,6 +56,7 @@ BEGIN
 		DECLARE @StlQuantity BIGINT;
 		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
 		DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
+		DECLARE @RPUpdatedBy VARCHAR(256) = '';
 		DECLARE @RefNumber VARCHAR(100) = '';
 
         IF OBJECT_ID(N'tempdb..#ROStockLineSamePart') IS NOT NULL
@@ -143,7 +146,7 @@ BEGIN
 			INSERT INTO #StockLineData (StockLineID) SELECT StockLineID FROM #StockLine
 		  END
 
-		  SELECT @Quantity = SOPS.QtyOrder, @SalesOrderId = SOP.SalesOrderId, @MasterCompanyId = SOPS.MasterCompanyId
+		  SELECT @Quantity = SOPS.QtyOrder, @SalesOrderId = SOP.SalesOrderId, @MasterCompanyId = SOPS.MasterCompanyId, @RPUpdatedBy = RP.UpdatedBy
 			FROM [dbo].[RepairOrderPart] RP WITH (NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON RP.StockLineId = SOPS.StocklineId
 			LEFT JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
@@ -445,6 +448,7 @@ BEGIN
 
                 IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
                 BEGIN
+				
 					DECLARE @OldConditionId BIGINT = 0;
 					DECLARE @NewConditionId BIGINT = 0;
 					DECLARE @OldItemMasterId BIGINT = 0;
@@ -472,6 +476,7 @@ BEGIN
 					JOIN [dbo].[RepairOrderPart] RP WITH (NOLOCK) ON RP.StockLineId = SOS.StocklineId
 					WHERE RP.RepairOrderId = @RepairOrderId AND RP.RepairOrderPartRecordId = @RepairOrderPartId 
 					AND SOP.SalesOrderId = @SalesOrderId AND RP.ItemTypeId=1
+					
 
 					INSERT INTO DBO.SalesOrderStocklineV1 (SalesOrderPartId,StockLineId,ConditionId,QtyOrder,QtyReserved,QtyAvailable,QtyOH,
 					CustomerRequestDate,PromisedDate,EstimatedShipDate,StatusId,MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,
@@ -524,6 +529,7 @@ BEGIN
 
 					SELECT @NewSalesOrderStocklineId = SCOPE_IDENTITY()
 
+
 					INSERT INTO DBO.SalesOrderStockLineCost (SalesOrderId,SalesOrderPartId,SalesOrderStocklineId,UnitSalesPrice,UnitSalesPriceExtended,
 					UnitCost,UnitCostExtended,MarkUpPercentage,MarkUpAmount,DiscountPercentage,DiscountAmount,MarginAmount,MarginPercentage,NetSaleAmount,
 					MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted)
@@ -533,7 +539,7 @@ BEGIN
 					@NewSalesOrderStocklineId,
 					SOPSC.UnitSalesPrice,
 					SOPSC.UnitSalesPriceExtended,
-					SOPSC.UnitCost,
+					SL.UnitCost,
 					SOPSC.UnitCostExtended,
 					SOPSC.MarkUpPercentage,
 					SOPSC.MarkUpAmount,
@@ -562,6 +568,17 @@ BEGIN
 						LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPS.SalesOrderPartId
 						WHERE SOPS.SalesOrderStocklineId = @ExSalesOrderStocklineId);
 						--SOP.SalesOrderPartId = @ExSalesOrderPartId);
+					
+
+
+					EXEC USP_UpdateSOPartCostDetails
+						@SalesOrderId, -- SalesOrderId BIGINT = NULL,
+						@ExSalesOrderPartId,
+						@RPUpdatedBy,
+						@MasterCompanyId,
+						0,
+						0,
+						0
 
 						INSERT INTO #SalesOrderPartDetails (SalesOrderPartId) SELECT @SalesOrderPartId
 

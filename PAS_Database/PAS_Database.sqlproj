@@ -3727,6 +3727,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderFreightList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOMPNDataByPartNumberId.sql" />
     <Build Include="dbo\Stored Procedures\GetWOPackagingLabelData.sql" />
+    <Build Include="dbo\Tables\RepairOrderTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateROTemplateStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetROTemplateList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetROTemplateById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateRoTemplate.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

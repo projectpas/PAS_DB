@@ -64,29 +64,116 @@
 
 
 
+
+
 GO
-
-
-
-
-Create TRIGGER [dbo].[Trg_LegalEntityAudit] ON [dbo].[LegalEntity]
+CREATE TRIGGER [dbo].[Trg_LegalEntityAudit] ON [dbo].[LegalEntity]
 
    AFTER INSERT,DELETE,UPDATE  
 
 AS   
 
-BEGIN  
+BEGIN    
 
-  
+ INSERT INTO [dbo].[LegalEntityAudit] (
+	[LegalEntityId],
+	[Name],
+	[DoingLegalAs],
+	[AddressId],
+	[PhoneNumber],
+	[FaxNumber],
+	[FunctionalCurrencyId],
+	[ReportingCurrencyId],
+	[IsBalancingEntity],
+	[CageCode],
+	[FAALicense],
+	[TaxId],
+	[MasterCompanyId],
+	[CreatedBy],
+	[UpdatedBy],
+	[CreatedDate],
+	[UpdatedDate],
+	[IsActive],
+	[IsDeleted],
+	[CompanyCode],
+	[InvoiceAddressPosition],
+	[InvoiceFaxPhonePosition],
+	[LastLevel],
+	[PhoneExt],
+	[AttachmentId],
+	[CompanyName],
+	[IsAddressForBilling],
+	[IsAddressForShipping],
+	[LedgerId],
+	[TagName],
+	[BillingAddressId],
+	[ShippingAddressId],
+	[EASALicense],
+	[CAACLicense],
+	[TCCALicense],
+	[TimeZoneId],
+	[IsPrintCheckNumber],
+	[IsTurnOffMgmt],
+	[CurrencyFormatId],
+	[DecimalPrecisionId],
+	[ShortDateTimeFormatId],
+	[LongDateTimeFormatId],
+	[TextTransformId],
+	[EnableLockScreen],
+	[TimeoutInMinutes],
+	[UKCAALicense] )
 
- INSERT INTO [dbo].[LegalEntityAudit]  
-
- SELECT * FROM INSERTED  
-
-  
-
+ SELECT 
+ 
+	[LegalEntityId],
+	[Name],
+	[DoingLegalAs],
+	[AddressId],
+	[PhoneNumber],
+	[FaxNumber],
+	[FunctionalCurrencyId],
+	[ReportingCurrencyId],
+	[IsBalancingEntity],
+	[CageCode],
+	[FAALicense],
+	[TaxId],
+	[MasterCompanyId],
+	[CreatedBy],
+	[UpdatedBy],
+	[CreatedDate],
+	[UpdatedDate],
+	[IsActive],
+	[IsDeleted],
+	[CompanyCode],
+	[InvoiceAddressPosition],
+	[InvoiceFaxPhonePosition],
+	[LastLevel],
+	[PhoneExt],
+	[AttachmentId],	
+	[CompanyName],
+	[IsAddressForBilling],
+	[IsAddressForShipping],
+	[LedgerId],
+	[TagName],
+	[BillingAddressId],
+	[ShippingAddressId],
+	[EASALicense],
+	[CAACLicense],
+	[TCCALicense],
+	[TimeZoneId],
+	[IsPrintCheckNumber],
+	[IsTurnOffMgmt],
+	[CurrencyFormatId],
+	[DecimalPrecisionId],
+	[ShortDateTimeFormatId],
+	[LongDateTimeFormatId],
+	[TextTransformId],
+	[EnableLockScreen],
+	[TimeoutInMinutes],
+	[UKCAALicense] 
+ 
+ FROM INSERTED  
+ 
  SET NOCOUNT ON;  
-
-  
-
-END
+ 
+ END

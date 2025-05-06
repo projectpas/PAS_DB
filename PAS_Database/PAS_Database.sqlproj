@@ -3757,6 +3757,7 @@
     <Build Include="dbo\Stored Procedures\GetVendorCapabilityAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorBillingAddressAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetAllBillingAddressDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsAuditHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

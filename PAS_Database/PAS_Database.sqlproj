@@ -3762,7 +3762,7 @@
     <Build Include="dbo\Stored Procedures\GetVendorBillingAddressAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetAllBillingAddressDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsAuditHistory.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

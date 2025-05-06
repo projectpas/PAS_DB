@@ -3737,6 +3737,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteDetailsList.sql" />
     <Build Include="dbo\Stored Procedures\USP_WorkOrderAnalysisDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsByTypeList.sql" />
+    <Build Include="dbo\Tables\ExcludedLocation.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

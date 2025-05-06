@@ -28,7 +28,23 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 	BEGIN TRY
-    SELECT atd.*
+    SELECT atd.AttachmentDetailId,
+    atd.AttachmentId,
+    atd.FileName,
+    atd.Description,
+    atd.Link,
+    atd.FileFormat,
+    atd.FileSize,
+    atd.FileType,
+    atd.CreatedDate,
+    atd.UpdatedDate,
+    atd.CreatedBy,
+    atd.UpdatedBy,
+    atd.IsActive,
+    atd.IsDeleted,
+    atd.Name,
+    atd.Memo,
+    atd.TypeId
     FROM DBO.Attachment at WITH (NOLOCK)
     INNER JOIN DBO.AttachmentDetails atd WITH (NOLOCK) ON at.AttachmentId = atd.AttachmentId
     WHERE 

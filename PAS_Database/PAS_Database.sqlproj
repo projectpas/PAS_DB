@@ -3739,6 +3739,24 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsByTypeList.sql" />
     <Build Include="dbo\Tables\ExcludedLocation.sql" />
+    <Build Include="dbo\Stored Procedures\VendorShippingStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateVendorBillingAddressStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ShippingBillingAddressHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreVendorShippingViaAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreVendorShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreVendorBillingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorWithId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteVendorShippingViaAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteVendorShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteVendorBillingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorROMemoList.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorProcessListForFinance.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorPOMemoList.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorGeneralDocumentDetailById.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorCapabilityAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorBillingAddressAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetAllBillingAddressDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

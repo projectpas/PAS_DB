@@ -69,8 +69,8 @@ BEGIN
             ad.CreatedBy,
             ad.UpdatedBy,
             ad.IsPrimary,
-            ISNULL(ad.IsActive,0),
-            ISNULL(ad.IsDeleted,0)
+            ISNULL(ad.IsActive,0) AS IsActive,
+            ISNULL(ad.IsDeleted,0) AS IsDeleted
         FROM 
             dbo.ShippingBillingAddressAudit ad WITH (NOLOCK)
         LEFT JOIN 

@@ -15,7 +15,7 @@
     1    01/05/2025  Ayushi Patel	    Created
  *******************************************************************************************/           
 
-CREATE   PROCEDURE dbo.GetAllBillingAddressDetails
+CREATE   PROCEDURE [dbo].[GetAllBillingAddressDetails]
     @VendorId BIGINT,
     @EmployeeId BIGINT
 AS
@@ -64,9 +64,9 @@ BEGIN
         v.CreatedBy,
         v.UpdatedBy,
         v.VendorId,
-        ISNULL(v.IsActive,0),
-        ISNULL(v.IsPrimary,0),
-        ISNULL(v.IsDeleted,0)
+        ISNULL(v.IsActive,0) AS IsActive,
+        ISNULL(v.IsPrimary,0) AS IsPrimary,
+        ISNULL(v.IsDeleted,0) AS IsDeleted
     FROM dbo.VendorBillingAddress v WITH (NOLOCK)
     INNER JOIN dbo.Address ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
     LEFT JOIN dbo.Countries cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id

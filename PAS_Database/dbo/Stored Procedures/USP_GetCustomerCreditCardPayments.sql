@@ -33,16 +33,16 @@ BEGIN
 			c.Address,
 			c.State,
 			c.PostalCode,
-			c.InActive,
-			c.IsDefault,
+			ISNULL(c.InActive, 0) As InActive,
+			ISNULL(c.IsDefault, 0) As IsDefault,
 			c.MasterCompanyId,
-			c.IsDeleted,
+			ISNULL(c.IsDeleted, 0) IsDeleted,
 			c.ExpirationDate,
 			c.CreatedBy,
 			c.CreatedDate,
 			c.UpdatedBy,
 			c.UpdatedDate,
-			c.IsActive
+			ISNULL(c.IsActive, 0) IsActive
 		FROM [dbo].[CreditCardPayment] c WITH(NOLOCK)
 		LEFT JOIN [dbo].[SupportedPaymentMethods] sp WITH(NOLOCK) ON c.PaymentMethodId = sp.Id
 		WHERE 

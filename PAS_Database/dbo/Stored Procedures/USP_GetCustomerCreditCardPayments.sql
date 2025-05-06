@@ -47,7 +47,7 @@ BEGIN
 		LEFT JOIN [dbo].[SupportedPaymentMethods] sp WITH(NOLOCK) ON c.PaymentMethodId = sp.Id
 		WHERE 
 			c.MasterCompanyId = @MasterCompanyId AND
-			c.IsDeleted = @IsDeleted AND
+			ISNULL(c.IsDeleted, 0) = @IsDeleted AND
 			c.CustomerId = @CustomerId AND
 			c.CustomerFinancialId = @CustomerFinancialId
 		ORDER BY c.CreatedDate DESC;

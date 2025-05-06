@@ -65,11 +65,11 @@ BEGIN
             vca.CreatedBy,
             vca.UpdatedBy,
             vca.CapabilityTypeDescription,
-            ISNULL(vca.IsActive,0),
+            ISNULL(vca.IsActive,0) AS IsActive,
             vcat.CapabilityTypeDesc AS CapabilityType,
             itm.PartNumber,
             itm.PartDescription,
-            ISNULL(vca.IsDeleted,0)
+            ISNULL(vca.IsDeleted,0) AS IsDeleted
         FROM 
             dbo.VendorCapabilityAudit vca WITH (NOLOCK)
         LEFT JOIN 

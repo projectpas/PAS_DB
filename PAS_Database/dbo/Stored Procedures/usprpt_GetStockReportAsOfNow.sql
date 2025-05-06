@@ -16,8 +16,9 @@
  ** --   --------		-------				--------------------------------          
 	1	 01-01-2024		VISHAL SUTHAR		Created
 	2    18-03-2024     ABHISHEK JIRAWLA    Modified Added and filtered using id5 and id6 for Location details and partnumber respectively
-	3    02-04-2024     RAJESH GAMI    Modified: Add Removed From OH from AsOfNow till Today
-	3    09-04-2024     RAJESH GAMI    Modified: Add reduce reserve from AsOfNow till Today
+	3    02-04-2024     RAJESH GAMI			Modified: Add Removed From OH from AsOfNow till Today
+	4    09-04-2024     RAJESH GAMI			Modified: Add reduce reserve from AsOfNow till Today
+	5    05-05-2025     VISHAL SUTHAR		Added one more parameter for (excluded locations)
      
 exec usprpt_GetStockReportAsOfNow @mastercompanyid=1, @id=N'04/01/2024',@id2=N'', @id3=0, @id5='', @id6=459, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
@@ -28,6 +29,7 @@ CREATE     PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@id3 bit,
 	@id5 VARCHAR(MAX),
 	@id6 BIGINT,
+	@id8 VARCHAR(MAX),
 	@strFilter VARCHAR(MAX) = NULL
 AS
 BEGIN
@@ -270,6 +272,7 @@ BEGIN
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
 	 AND  (@id6 IS NULL OR im.ItemMasterId=@id6)
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 
 	/* Reduce Received Items from AsOfNow till Today */
 	IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
@@ -312,6 +315,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 
 	 UPDATE StkOriginal
 	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkReceived.Qty,
@@ -414,6 +418,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	 GROUP BY StkHistory.StockLineId, stl.MasterCompanyId
 
 	 UPDATE StkOriginal
@@ -547,6 +552,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkHistory.StockLineId, stl.MasterCompanyId;
 
 	-- Increase Consumed Qty
@@ -595,6 +601,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkHistory.StockLineId, stl.MasterCompanyId;
 
 	-- Remove Un-Issued Qty
@@ -644,6 +651,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Reduced (StocklineId, QTY_OH, MasterCompanyId)
@@ -673,6 +681,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Increase Adjusted Qty (Decreased Qty)
@@ -722,6 +731,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Increased (StocklineId, QTY_OH, MasterCompanyId)
@@ -751,6 +761,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Removed Adjusted Qty (Increased Qty)
@@ -800,6 +811,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal
@@ -847,6 +859,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal
@@ -895,6 +908,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 AND  (ISNULL(@id8,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@id8,',')))
 	GROUP BY BStkAdjustD.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal

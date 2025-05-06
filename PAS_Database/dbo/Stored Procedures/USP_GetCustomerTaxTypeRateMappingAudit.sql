@@ -36,9 +36,9 @@ BEGIN
 			c.IsDeleted,
 			c.SiteName,
 			c.ShipFromSiteName,
-			c.IsRepair,
-			c.IsProductSale,
-			c.IsTaxExempt,
+			ISNULL(c.IsRepair, 0) AS IsRepair,
+			ISNULL(c.IsProductSale, 0) AS IsProductSale,
+			ISNULL(c.IsTaxExempt, 0) AS IsTaxExempt,
 			c.TaxId
 		FROM [dbo].[CustomerTaxTypeRateMappingAudit] c WITH(NOLOCK)
 		LEFT JOIN [dbo].[TaxType] ty WITH(NOLOCK) ON c.TaxTypeId = ty.TaxTypeId

@@ -12,8 +12,8 @@
  ** --   --------     -------		--------------------------------          
     1    26/03/2025   Moin Bloch    Created
 	2    07/04/2025   Moin Bloch    Added [IsVersionIncrease] Condition
-     
---   EXEC [USP_GetWorkOrderBillingInvoicingPdfData] 3190
+ 	3    06/05/2025   RAJESH GAMI   Customer Domenstic Shipping Via ID Changes 
+--   EXEC [USP_GetWorkOrderBillingInvoicingPdfData] 3296
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderBillingInvoicingPdfData]
 @BillingInvoicingId BIGINT = NULL
@@ -73,7 +73,7 @@ BEGIN
 			WO.[WorkOrderNum] [WONum],
 			FORMAT(WO.[OpenDate], 'MM/dd/yyyy') [OrderDate],
 			FORMAT(SHIPPINGINFO.[ShipDate], 'MM/dd/yyyy') [ShipDate],
-			ISNULL(SHIPINFOVIA.[Name], '') [ShipVia],
+			(CASE WHEN ISNULL(BI.IsCustomerShipping,0) = 1 THEN ISNULL(SHIPVIACust.[Name], '') ELSE  ISNULL(SHIPINFOVIA.[Name], '') END) AS [ShipVia],
 			BI.[ShippingAccountInfo] [ShipAccNumber],
 			SHIPPINGINFO.[WOShippingNum] [ShippingOrderNumber],
 			ISNULL(SHIPPINGINFO.[AirwayBill], '') [Awb],
@@ -111,6 +111,7 @@ BEGIN
 		 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON BI.[CurrencyId] = CUR.[CurrencyId]
 		 LEFT JOIN [dbo].[WorkOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[WorkOrderShippingId]
 		 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BI.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
+		 LEFT JOIN [dbo].[ShippingVia] SHIPVIACust WITH(NOLOCK) ON BI.[CustomerDomensticShippingShipViaId] = SHIPVIACust.[ShippingViaId]
 		 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 		 LEFT JOIN (
 			SELECT WOP.[CustomerReference], WFWO.[WorkFlowWorkOrderId]

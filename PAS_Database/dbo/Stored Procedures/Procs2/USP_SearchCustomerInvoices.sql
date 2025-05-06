@@ -495,6 +495,7 @@ BEGIN
 				C.Name [CustomerName],
 				CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt], 
+				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(WOBII.UnitPrice),0) ELSE ISNULL(SUM(WOBII.GrandTotal),0) END [InvoiceAmt],
 				ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,
 				ISNULL(ISNULL(WOBI.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,				
 				IM.partnumber [PN], 

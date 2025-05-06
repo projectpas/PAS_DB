@@ -143,12 +143,23 @@ SET NOCOUNT ON
 							UPDATE DBO.SalesOrderStockLineCost
 							SET UnitSalesPriceExtended = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
 							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
-							NetSaleAmountPerUnit = (ISNULL(UnitSalesPrice, 0) + (MarkUpAmount / @StockLineQty)) - (DiscountAmount / @StockLineQty),
+							--NetSaleAmountPerUnit = (ISNULL(UnitSalesPrice, 0) + (MarkUpAmount / @StockLineQty)) - (DiscountAmount / @StockLineQty),
+							NetSaleAmountPerUnit = 
+								(ISNULL(UnitSalesPrice, 0) + 
+								(CASE WHEN @StockLineQty = 0 THEN 0 ELSE MarkUpAmount / @StockLineQty END)) 
+								- (CASE WHEN @StockLineQty = 0 THEN 0 ELSE DiscountAmount / @StockLineQty END),
 							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount,
 							MarginAmount = (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0),
-							MarginPercentage = CASE WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) > 0 THEN
-												((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
-												ELSE 0 END
+							--MarginPercentage = CASE WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) > 0 THEN
+							--					((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
+							--					ELSE 0 END
+							MarginPercentage = 
+								CASE 
+									WHEN (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) = 0 THEN 0
+									ELSE 
+										((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100.0) 
+										/ (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount - DiscountAmount))
+								END
 							WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							SET @MasterLoopID = @MasterLoopID - 1;

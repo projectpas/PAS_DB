@@ -43,7 +43,8 @@ BEGIN
             wos.UpdatedDate,
             wos.effectivedate,
             ISNULL(wos.IsApprovalRule, 0) AS IsApprovalRule,
-            wos.TearDownTypes
+            wos.TearDownTypes,
+            ISNULL(wos.IsFlatRate, 0) AS IsFlatRate
         FROM dbo.WorkOrderQuoteSettings wos WITH (NOLOCK)
         INNER JOIN dbo.WorkOrderType wot WITH (NOLOCK) ON wos.WorkOrderTypeId = wot.Id
         WHERE ISNULL(wos.IsDeleted,0) != 1 AND wos.MasterCompanyId = @MasterCompanyId;

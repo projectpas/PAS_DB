@@ -3768,6 +3768,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetROTemplateList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetROTemplateById.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateRoTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTeardownDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteChargesDetails.sql" />
+
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

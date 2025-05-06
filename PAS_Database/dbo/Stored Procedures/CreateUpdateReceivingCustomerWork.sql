@@ -462,7 +462,7 @@ BEGIN
 						   ,[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost]
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
-						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal])                       
+						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement])                       
 				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],1,[ConditionId],ISNULL([SerialNumber],''),						   
 						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
 							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
@@ -485,7 +485,7 @@ BEGIN
 							0,'',0,NULL,NULL,NULL,0,0,0,0,
 							0,NULL,NULL,NULL,0,NULL,0,NULL,
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
-						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal FROM #tmprReceiveCustomer WHERE ID = @MinId
+						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0) FROM #tmprReceiveCustomer WHERE ID = @MinId
 
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					
@@ -514,7 +514,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedBy] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsSkipShippingReference])
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart], [IsRepairManagement],[IsSkipShippingReference])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
 						       ,[IsSerialized] ,[SerialNumber] ,1 ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
@@ -526,7 +526,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedByName] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsSkipShippingReference] FROM #tmprReceiveCustomer WHERE ID = @MinId;	
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],0, ISNULL(@IsRepairManagement, 0),[IsSkipShippingReference] FROM #tmprReceiveCustomer WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 

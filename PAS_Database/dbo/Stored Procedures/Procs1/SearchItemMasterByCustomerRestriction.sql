@@ -18,6 +18,7 @@
 	2    05-10-2020		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
 	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
 	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
+	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
      
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
@@ -78,7 +79,10 @@ BEGIN
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
 					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 
-					AND sl.IsCustomerStock = 0
+					AND (
+							(sl.IsRepairManagement = 1) OR 
+							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
+						)
 					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId

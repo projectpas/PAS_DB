@@ -14,6 +14,7 @@
     1    19/08/2024   Moin Bloch    Created
 	2    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
 	3	 18/04/2025	  ABHISHEK JIRAWLA Updated Receiving Number for Receiving Customer Work
+	4	 30/04/2025	  ABHISHEK JIRAWLA Adding IsPiecePart and IsRepairManagement to the Stockline
 	     
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
@@ -444,7 +445,7 @@ BEGIN
 						   ,[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost]
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
-						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal])                       
+						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement])                       
 				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],ISNULL([Quantity],0),[ConditionId],ISNULL([SerialNumber],''),						   
 						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
 							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
@@ -467,7 +468,7 @@ BEGIN
 							0,'',0,NULL,NULL,NULL,0,0,0,0,
 							0,NULL,NULL,NULL,0,NULL,0,NULL,
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
-						    0,NULL,'','','',0,GETUTCDATE(), @IntegrationPortal FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId
+						    0,NULL,'','','',0,GETUTCDATE(), @IntegrationPortal, 1, 0 FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId
 
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					

@@ -3771,6 +3771,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTeardownDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteChargesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityDataById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

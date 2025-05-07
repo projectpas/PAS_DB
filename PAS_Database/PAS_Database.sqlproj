@@ -3770,8 +3770,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddUpdateRoTemplate.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTeardownDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteChargesDetails.sql" />
-
-
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -55,10 +55,10 @@ BEGIN
 		--LEFT JOIN DBO.SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId and ship_item.SalesOrderPartId = sopp.SalesOrderPartId
 		--WHERE sopp.SalesOrderId = @SalesOrderId AND sopp.ItemMasterId = sop.ItemMasterId AND sopp.ConditionId = sop.ConditionId
 		--)
-		(SELECT (SUM(agg.QtyReserved) + SUM(ISNULL(ship.QtyShipped, 0)) - SUM(ISNULL(sopt.QtyToShip, 0))) AS FinalTotal
+		(SELECT (SUM(ISNULL(agg.QtyReserved, 0)) + SUM(ISNULL(ship.QtyShipped, 0)) - SUM(ISNULL(sopt.QtyToShip, 0))) AS FinalTotal
 		FROM 
 		(
-			SELECT sopp.SalesOrderPartId, SUM(sopp.QtyReserved) AS QtyReserved
+			SELECT sopp.SalesOrderPartId, SUM(sos.QtyReserved) AS QtyReserved
 			FROM DBO.SalesOrderPartV1 sopp WITH(NOLOCK) 
 			INNER JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
 			WHERE sopp.SalesOrderId = @SalesOrderId AND sopp.ItemMasterId = sop.ItemMasterId AND sopp.ConditionId = sop.ConditionId

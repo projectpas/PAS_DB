@@ -328,7 +328,9 @@ BEGIN
 						FROM [DBO].[StockLine] Stkl 
 						WHERE Stkl.StockLineId = @StockLineId;
 
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping, 1;
+						DECLARE @IsReserve BIT;
+						SET @IsReserve = CASE WHEN @ReserveStatusId = @PartStatusId THEN 1 ELSE 0 END;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping, @IsReserve;
 					END
 				END
 				ELSE
@@ -361,7 +363,10 @@ BEGIN
 							WHERE SalesOrderPartId = @PartSalesOrderPartId AND StockLineId = @StockLineId;
 						END
 
-						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping, 1;
+						DECLARE @IsReserved BIT;
+
+						SET @IsReserved = CASE WHEN @ReserveStatusId = @PartStatusId THEN 1 ELSE 0 END;
+						EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @PartSalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping, @IsReserved;
 					END
 				END
 			END
@@ -449,7 +454,10 @@ BEGIN
 					AND StockLineId = @StockLineId AND ISNULL(QtyReserved,0) = 0
 				END
 
-				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping, 0;
+				DECLARE @IsReserved1 BIT;
+
+				SET @IsReserved1 = CASE WHEN @ReserveStatusId = @PartStatusId THEN 1 ELSE 0 END;
+				EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId, @IsUnreserve, @IsFromShipping, @IsReserved1;
 			END
 			ELSE
 			BEGIN 

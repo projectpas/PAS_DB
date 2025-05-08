@@ -18,7 +18,7 @@
     1    07-May-2025   Bhargav Saliya		Created
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
+CREATE OR ALTER  PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
 	@StocklineId BIGINT,
 	@WorkOrderMaterialsId BIGINT,
 	@PickTicketId BIGINT,
@@ -50,7 +50,7 @@ BEGIN
 			stl.Bin AS binName,
 			ISNULL(ve.VendorName, '') AS VendorName,
 			CASE 
-				WHEN stl.QuantityOnHand > 0 THEN CAST(stl.QuantityOnHand AS INT)
+				WHEN ISNULL(stl.QuantityOnHand, 0) > 0 THEN CAST(stl.QuantityOnHand AS INT)
 				ELSE 0
 			END AS Quantity,
 			stl.IdNumber AS ControlId,
@@ -78,7 +78,7 @@ BEGIN
 		LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.VendorId = ve.VendorId
 		LEFT JOIN [dbo].[WorkOrderMaterials] womst WITH(NOLOCK) ON stl.WorkOrderMaterialsId = womst.WorkOrderMaterialsId
 		LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
-		WHERE stl.IsDeleted = 0 AND stl.StockLineId = @StocklineId;
+		WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId;
 	END
 	ELSE IF(@SubWorkOrderMaterialId > 0)
 	BEGIN
@@ -127,7 +127,7 @@ BEGIN
         LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLIneId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
         LEFT JOIN [dbo].[SubWorkOrderMaterials] womst WITH(NOLOCK) ON mst.SubWorkOrderMaterialsId = womst.SubWorkOrderMaterialsId
         LEFT JOIN [dbo].[SubWorkOrder] wo WITH(NOLOCK) ON womst.SubWorkOrderId = wo.SubWorkOrderId
-        WHERE stl.IsDeleted = 0 AND stl.StockLineId = @StocklineId
+        WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 	END
 	ELSE IF(@PickTicketId > 0)
 	BEGIN
@@ -181,8 +181,8 @@ BEGIN
 			LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
-			WHERE stl.IsDeleted = 0 AND stl.StockLineId = @StockLineId
-		END
+			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StockLineId
+		END 
 		ELSE
 		BEGIN
 			SELECT TOP 1
@@ -235,7 +235,7 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
 
-			WHERE stl.IsDeleted = 0
+			WHERE ISNULL(stl.IsDeleted, 0) = 0
 			  AND stl.StockLineId = @StockLineId;
 		END
 	END
@@ -296,7 +296,7 @@ BEGIN
 			LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 
-			WHERE stl.IsDeleted = 0 AND stl.StockLineId = @StocklineId
+			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 		END
 		ELSE
 		BEGIN
@@ -349,7 +349,7 @@ BEGIN
 			LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 
-			WHERE stl.IsDeleted = 0 AND stl.StockLineId = @StocklineId
+			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 		END
 	END
 	END TRY

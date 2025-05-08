@@ -19,9 +19,10 @@
 	3	 07-05-2024		Moin Bloch 		    Modified Added Deposit logic
 	4    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
 	5    16-05-2024		Moin Bloch 		    Modified Added Total Amounts For Footer
-	6    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables     
+	6    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	7	 07-05-2025		HEMANT SALIYA  		Updated for Customer Ref Data length
 
-EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=10,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2024-05-02 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=1,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=2,@MasterCompanyId=1
+EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2025-05-05 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=0,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=180,@MasterCompanyId=20
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
 @PageNumber INT = NULL,
@@ -1029,7 +1030,7 @@ BEGIN
 				[DSI] INT NULL,
 				[DSO] INT NULL,
 				[DSS] INT NULL,
-				[CustomerRef] VARCHAR(100),
+				[CustomerRef] VARCHAR(2000),
 		 		[Salesperson] VARCHAR(100),
 		        [CreditTerms] VARCHAR(100),
 				[BalanceAmount] DECIMAL(18, 2) NULL,

@@ -291,6 +291,7 @@ BEGIN
 				INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) on SOP.SalesOrderId = SOBI.SalesOrderId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 				WHERE SOBI.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
 				BEGIN
+					PRINT '2.1.1.1'
 					INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
@@ -580,7 +581,7 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) ON SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId 
-						INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId AND SOR.SalesOrderId = @SalesOrderId
+						--INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId AND SOR.SalesOrderId = @SalesOrderId
 						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR sobii.StockLineId IS NULL)
 						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma, 0) = 0 AND sobi.SalesOrderId = @SalesOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
@@ -592,6 +593,7 @@ BEGIN
 						INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 						WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId
+						AND (sobi.SOBillingInvoicingId IS NOT NULL OR ISNULL(stk.QtyReserved, 0) > 0)
 					)
 
 					INSERT INTO #SalesOrderBillingInvoiceChildList (IndexColumn,
@@ -621,10 +623,11 @@ BEGIN
 						AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyToBill = tmpcash.QtyToBill
-						FROM (SELECT CASE WHEN SOSI.SalesOrderShippingId IS NOT NULL THEN ISNULL(SOSI.QtyShipped, 0) ELSE 0 END QtyToBill, tmpSOBI.SalesOrderShippingId, tmpSOBI.StockLineId
+						FROM (SELECT CASE WHEN SOSI.SalesOrderShippingId IS NOT NULL THEN ISNULL(SOSI.QtyShipped, 0) ELSE ISNULL(SOP.QtyReserved, 0) END QtyToBill, tmpSOBI.SalesOrderShippingId, tmpSOBI.StockLineId
 							FROM #SalesOrderBillingInvoiceChildList tmpSOBI 
 									LEFT JOIN DBO.SOPickTicket SOPick WITH (NOLOCK) ON SOPick.SalesOrderId = @SalesOrderId AND tmpSOBI.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
 									LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOPick.SOPickTicketId = SOSI.SOPickTicketId AND tmpSOBI.SalesOrderShippingId = SOSI.SalesOrderShippingId
+									LEFT JOIN DBO.SalesOrderStocklineV1 SOP WITH (NOLOCK) ON SOP.StockLineId = tmpSOBI.StockLineId
 						) tmpcash WHERE tmpcash.SalesOrderShippingId = #SalesOrderBillingInvoiceChildList.SalesOrderShippingId
 						AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 					  

@@ -3773,6 +3773,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteChargesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityDataById.sql" />
+    <Build Include="dbo\Stored Procedures\GetShippingBillingAddressAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerBillingAddresses.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

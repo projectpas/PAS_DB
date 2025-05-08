@@ -112,7 +112,7 @@ BEGIN
            ([LotId],[IsUseMargin],[IsOverallLotCost],[IsCostToPN],[IsReturnCoreToLot],[IsMaintainStkLine] ,[MasterCompanyId] ,[CreatedBy]
            ,[UpdatedBy] ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],MarginPercentageId)
 			VALUES
-           (@LotId,0,0,0,0,0,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,0)
+           (@LotId,0,0,0,0,1,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,0)
 		END
 		ELSE
 		BEGIN			

@@ -1,24 +1,5 @@
-﻿/*************************************************************           
- ** File:   [USP_GetStocklinePrintDataByStockLineId]           
- ** Author:   Bhargav Saliya 
- ** Description: Get Stockline Print Data By StockLine Id
- ** Purpose:         
- ** Date:   07-May-2025      
-          
- ** PARAMETERS:           
- @POId varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date			 Author			Change Description            
- ** --   --------		 -------		--------------------------------          
-    1    07-May-2025   Bhargav Saliya		Created
-
-**************************************************************/
-CREATE OR ALTER  PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
+﻿
+CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
 	@StocklineId BIGINT,
 	@WorkOrderMaterialsId BIGINT,
 	@PickTicketId BIGINT,

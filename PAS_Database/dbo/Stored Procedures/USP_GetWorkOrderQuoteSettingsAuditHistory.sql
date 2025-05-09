@@ -16,6 +16,7 @@
 ** PR   Date         Author		    Change Description            
 ** --   --------     -------		--------------------------------          
    1    24/04/2025  Ayushi Patel     Created
+   2    09/05/2025	Devendra Shekh	 Added IsPrintCorrectiveAction to select
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteSettingsAuditHistory]
     @WorkOrderQuoteSettingId BIGINT,
@@ -63,7 +64,8 @@ BEGIN
 			      case when CAST(wos.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(wos.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
 			      wos.EffectiveDate,
             ISNULL(wos.IsApprovalRule, 0) AS IsApprovalRule,  
-            ISNULL(wos.IsFlatRate, 0) AS IsFlatRate          
+            ISNULL(wos.IsFlatRate, 0) AS IsFlatRate,
+			 ISNULL(wos.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
         FROM dbo.WorkOrderQuoteSettingsAudit wos WITH (NOLOCK)
         INNER JOIN dbo.WorkOrderType wot WITH (NOLOCK) ON wos.WorkOrderTypeId = wot.Id
         WHERE wos.WorkOrderQuoteSettingId = @WorkOrderQuoteSettingId

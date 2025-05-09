@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId_Filter]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -17,6 +18,7 @@
 	4    19 Nov 2024  RAJESH GAMI		Added condition for PNSoldView (If revised the invoice then show the latest on)
     5    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
 	6    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
+	7    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -219,7 +221,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.ExtSalesUnitPrice ExtPrice
 				,ltCal.MarginAmount MarginAmt
 				,CASE WHEN ISNULL(ltCal.ExtSalesUnitPrice,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(ltCal.MarginAmount,0))/ISNULL(ltCal.ExtSalesUnitPrice,1)))END Margin
-				--,ltCal.Margin Margin
 				,(CASE WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_LOT,' ','')  THEN @LotTransIn 
 					    WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','')  THEN @LotTransOut
 						WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_PO,' ','')  THEN @LotPO
@@ -233,11 +234,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					   WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_SO,' ','')  THEN so.SalesOrderNumber 
 					   WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransIn_WO,' ','')  THEN (CASE WHEN ISNULL(SL.WorkOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 wod.WorkOrderNum FROM dbo.WorkOrder wod WITH(NOLOCK) WHERE wod.WorkOrderId = sl.WorkOrderId) END)
 				ELSE '' END) AS AcquiredRef
-				--,po.PurchaseOrderNumber PoNum
 				,(CASE WHEN ISNULL(SL.PurchaseOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 pod.PurchaseOrderNumber FROM dbo.PurchaseOrder pod WITH(NOLOCK) WHERE pod.PurchaseOrderId = sl.PurchaseOrderId) END) PoNum
-				--,ro.RepairOrderNumber RoNum
 				,(CASE WHEN ISNULL(SL.RepairOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 rod.RepairOrderNumber FROM dbo.RepairOrder rod WITH(NOLOCK) WHERE rod.RepairOrderId = sl.RepairOrderId) END) RoNum
-				--,wo.WorkOrderNum WoNum
 				,(CASE WHEN ISNULL(SL.WorkOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 wod.WorkOrderNum FROM dbo.WorkOrder wod WITH(NOLOCK) WHERE wod.WorkOrderId = sl.WorkOrderId) END) WoNum
 				,''  QuoteNum
 				,So.SalesOrderNumber SoNum
@@ -278,14 +276,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.TaggedByType
 				,ISNULL(lot.InitialPOCost,0)InitialPOCost
 				,ISNULL(lot.StocklineTotalCost,0)StocklineTotalCost
-				,(ISNULL(lot.InitialPOCost,0) - ISNULL(lot.StocklineTotalCost,0))AS RemainStocklineCost
+				--,(ISNULL(lot.InitialPOCost,0) - ISNULL(lot.StocklineTotalCost,0))AS RemainStocklineCost
+				,(ISNULL(SL.UnitCost,0))AS RemainStocklineCost
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
 				,SL.LotMainStocklineId
 		        ,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,im.ManufacturerName
 				,sobi.InvoiceDate InvoiceDate,
-				--,case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)

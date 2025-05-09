@@ -3774,9 +3774,13 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorProcessListFromTransaction.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklinePrintDataByStockLineId.sql" />
     <Build Include="dbo\Stored Procedures\GetShippingBillingAddressAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerBillingAddresses.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkFlowWorkOrderQuoteList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOTemplateData.sql" />
+
     <Build Include="dbo\Stored Procedures\USP_VendorDataFilter.sql" />
   </ItemGroup>
   <ItemGroup>

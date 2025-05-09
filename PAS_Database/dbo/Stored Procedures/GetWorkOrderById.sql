@@ -77,7 +77,14 @@ BEGIN
 		[Shelf] VARCHAR(100) NULL, 
 		[Bin] VARCHAR(100) NULL, 
 		[IsFinishedGood] BIT NULL, 
-		[LastMSLevel] VARCHAR(100),
+		[LastMSLevel] VARCHAR(100) NULL, 
+		[AllMSlevels] VARCHAR(MAX) NULL,
+		[WorkOrderPriorityId] BIGINT NULL,
+		[WorkOrderStageId] BIGINT NULL,
+		[DefaultWorkOrderStatusId] BIGINT NULL,
+		[WorkFlowNo] VARCHAR(256) NULL,
+		[WorkFlowId] BIGINT NULL,
+		[WorkflowExpirationDate] DATETIME2(7) NULL,
 		[IsRepairManagement] BIT NULL
 	)
 

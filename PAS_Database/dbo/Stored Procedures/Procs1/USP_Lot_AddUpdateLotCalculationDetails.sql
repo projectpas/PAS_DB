@@ -165,8 +165,6 @@ BEGIN
 				END
 					
 				SET @count = @count + 1;
-
-				PRINT'1'		
 			END
 
 			
@@ -232,7 +230,6 @@ BEGIN
 		END
 		ELSE IF(UPPER(@Type) = UPPER('Trans Out (SO)'))
 		BEGIN	
-		print 'start'
 			Set @PercentValue = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] Where PercentId = @MarginPercentageId),0);
 			INSERT INTO #tmpLotCalculationDetailsType ([LotCalculationId], [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
 												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
@@ -243,7 +240,6 @@ BEGIN
 						FROM @tbl_LotCalculationDetailsType
 		
 			SELECT @TotalCounts = COUNT(ID) FROM #tmpLotCalculationDetailsType;
-			print 'step 1'
 			SELECT TOP 1 @ConPercentId = ISNULL(LC.PercentId,0), @ConsignmentPercent = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] P WITH(NOLOCK) WHERE P.PercentId = ISNULL(LC.PercentId,0)),0), @ConsignmentFixedAmt = ISNULL(LC.PerAmount,0),@IsRevenue = ISNULL(LC.IsRevenue,0), @IsMargin = ISNULL(LC.IsMargin,0), @IsFixedAmount = ISNULL(LC.IsFixedAmount,0), @IsRevenueSplit = ISNULL(LC.IsRevenueSplit,0)   FROM DBO.LotConsignment LC WHERE LotId = @LotId
 
 			WHILE @count<= @TotalCounts
@@ -293,26 +289,22 @@ BEGIN
 
 				IF(@IsRevenue =1)
 				BEGIN
-				print '1'
 					SET @TotalSalesCost = ISNULL((SELECT ISNULL(ExtSalesUnitPrice,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
 					SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalSalesCost * @ConsignmentPercent)/100)),0)
 				END
 				ELSE IF(@IsMargin = 1)
 				BEGIN
-				print '2'
 					SET @TotalMarginCost = ISNULL((SELECT ISNULL(MarginAmount,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
 					SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalMarginCost * @ConsignmentPercent)/100)),0)
 				END
 				ELSE IF(@IsFixedAmount = 1)
 				BEGIN
-				print '3'
 					SET @QtyLot = ISNULL((SELECT ISNULL(Qty,0) FROM DBO.LotCalculationDetails where LotCalculationId = @LatestId),0)
 						SET @CommissionCost = CONVERT(Decimal(18,2),ISNULL((@ConsignmentFixedAmt * @QtyLot),0))
 					--SET @CommissionCost =ISNULL(CONVERT(Decimal(18,2),(ISNULL(CONVERT(Decimal(18,2),@ConsignmentFixedAmt),0) * @QtyLot)),0);
 				END
 				ELSE IF(@IsRevenueSplit =1)
 				BEGIN
-				print '1'
 					SET @TotalSalesCost = ISNULL((SELECT ISNULL(ExtSalesUnitPrice,0) from DBO.LotCalculationDetails WITH (NOLOCK) WHERE LotCalculationId = @LatestId),0)
 					SET @CommissionCost = ISNULL(CONVERT(Decimal(18,2),((@TotalSalesCost * @ConsignmentPercent)/100)),0)
 				END

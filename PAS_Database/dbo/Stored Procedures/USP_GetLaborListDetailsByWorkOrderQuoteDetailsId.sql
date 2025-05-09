@@ -27,6 +27,10 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  SET NOCOUNT ON;
 	 BEGIN TRY
+
+	 DECLARE @WOQLaborHeaderId BIGINT;
+	 SELECT @WOQLaborHeaderId = WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId
+
 		SELECT top 1
 			lh.CreatedBy,
 			lh.CreatedDate,
@@ -83,7 +87,7 @@ BEGIN
 		LEFT JOIN [dbo].[EmployeeExpertise] expr WITH(NOLOCK) ON wol.ExpertiseId = expr.EmployeeExpertiseId
 		LEFT JOIN [dbo].[Task] task WITH(NOLOCK) ON wol.TaskId = task.TaskId
 		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON wol.EmployeeId = emp.EmployeeId
-		WHERE ISNULL(wol.IsDeleted,0) = 0 AND wol.WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE IsDeleted = 0 AND WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId);
+		WHERE ISNULL(wol.IsDeleted,0) = 0 AND wol.WorkOrderQuoteLaborHeaderId = @WOQLaborHeaderId;
 	END TRY
 	BEGIN CATCH  
    

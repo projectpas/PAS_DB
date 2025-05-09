@@ -10,6 +10,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			------------------------------ 
 	1    02/11/2023   Devendra Shekh		created
+	1    07/05/2025   Amit Ghediya		add LegalEntityId
 
 EXEC [dbo].[USP_AddVendorPaymentDetailsForNonPOById] 5
 ************************************************************************/
@@ -22,15 +23,26 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+			DECLARE @moduleId BIGINT = 0,
+			@LEId BIGINT = 0;
+
+			SELECT @moduleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='NonPOInvoiceHeader'
+
+			SELECT 
+				@LEId = MSL.[LegalEntityId]
+			FROM [dbo].[NonPOInvoiceManagementStructureDetails] NONS WITH(NOLOCK)
+			INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON NONS.Level1Id = MSL.ID
+			WHERE ReferenceID = @NonPOInvoiceId AND ModuleID = @moduleId;
+
 			INSERT INTO [dbo].[VendorPaymentDetails]
 				       ([ReadyToPayId], [DueDate], [VendorId], [VendorName], [PaymentMethodId], [PaymentMethodName], [ReceivingReconciliationId], [InvoiceNum], [CurrencyId], [CurrencyName],
 						[FXRate], [OriginalAmount], [PaymentMade], [AmountDue], [DaysPastDue], [DiscountDate], [DiscountAvailable], [DiscountToken], [OriginalTotal], [RRTotal], [InvoiceTotal],
 						[DIfferenceAmount], [TotalAdjustAmount], [StatusId], [Status], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],
-						[NonPOInvoiceId])
+						[NonPOInvoiceId],[LegalEntityId])
 			     SELECT 0, GETUTCDATE(),  [VendorId], [VendorName], 0, NULL, 0, NPH.[NPONumber], NPH.[CurrencyId], CU.[Code],
 						0, part.ExtendedPrice, 0, 0, 0, NULL, 0, 0, part.ExtendedPrice, 0, part.ExtendedPrice,
 						0, 0,  [StatusId], NPHS.[Description], NPH.[MasterCompanyId], NPH.[CreatedBy], NPH.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), NPH.[IsActive], NPH.[IsDeleted], part.ExtendedPrice,
-						@NonPOInvoiceId
+						@NonPOInvoiceId,@LEId
 				   FROM [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) 
 				   INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH(NOLOCK) ON NPHS.[NonPOInvoiceHeaderStatusId] = NPH.[StatusId]
 				   INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.[CurrencyId] = NPH.[CurrencyId]

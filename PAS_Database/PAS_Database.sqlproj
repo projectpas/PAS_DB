@@ -3742,6 +3742,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteSettingsByTypeList.sql" />
     <Build Include="dbo\Tables\ExcludedLocation.sql" />
+    <Build Include="dbo\Stored Procedures\GetInvoiceListForCSVExportByInvoicingIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityHistory.sql" />
     <Build Include="dbo\Stored Procedures\VendorShippingStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorBillingAddressStatus.sql" />
@@ -3772,6 +3773,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteChargesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorProcessListFromTransaction.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityDataById.sql" />
+    <Build Include="dbo\Stored Procedures\GetShippingBillingAddressAudit.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerBillingAddresses.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorShipVia.sql" />
   </ItemGroup>
   <ItemGroup>

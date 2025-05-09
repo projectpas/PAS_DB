@@ -3777,6 +3777,7 @@
     <Build Include="dbo\Stored Procedures\GetShippingBillingAddressAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerBillingAddresses.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\USP_VendorDataFilter.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

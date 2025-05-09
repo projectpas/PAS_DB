@@ -18,7 +18,7 @@
     1    09-May-2025   Bhargav Saliya		Created
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetLaborListDetailsByWorkOrderQuoteDetailsId]
+CREATE    PROCEDURE [dbo].[USP_GetLaborListDetailsByWorkOrderQuoteDetailsId]
     @WorkOrderQuoteDetailsId BIGINT,
     @BuildMethodId BIGINT
 AS
@@ -27,7 +27,12 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  SET NOCOUNT ON;
 	 BEGIN TRY
-		SELECT top 1
+		
+		DECLARE @WorkOrderQuoteLaborHeaderId BIGINT;
+
+		SELECT TOP 1 @WorkOrderQuoteLaborHeaderId = WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE IsDeleted = 0 AND WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId
+
+		SELECT TOP 1
 			lh.CreatedBy,
 			lh.CreatedDate,
 			lh.DataEnteredBy,
@@ -80,10 +85,10 @@ BEGIN
 			wol.Billabletype,
 			wol.BurdaenRatePercentage
 		FROM [dbo].[WorkOrderQuoteLabor] wol WITH(NOLOCK)
-		LEFT JOIN [dbo].[EmployeeExpertise] expr WITH(NOLOCK) ON wol.ExpertiseId = expr.EmployeeExpertiseId
-		LEFT JOIN [dbo].[Task] task WITH(NOLOCK) ON wol.TaskId = task.TaskId
-		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON wol.EmployeeId = emp.EmployeeId
-		WHERE ISNULL(wol.IsDeleted,0) = 0 AND wol.WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE IsDeleted = 0 AND WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId);
+			LEFT JOIN [dbo].[EmployeeExpertise] expr WITH(NOLOCK) ON wol.ExpertiseId = expr.EmployeeExpertiseId
+			LEFT JOIN [dbo].[Task] task WITH(NOLOCK) ON wol.TaskId = task.TaskId
+			LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON wol.EmployeeId = emp.EmployeeId
+		WHERE ISNULL(wol.IsDeleted,0) = 0 AND wol.WorkOrderQuoteLaborHeaderId = @WorkOrderQuoteLaborHeaderId;
 	END TRY
 	BEGIN CATCH  
    

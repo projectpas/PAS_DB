@@ -35,6 +35,7 @@
     [CreditTerms]               VARCHAR (200)   NULL,
     [ReportCurrencyId]          INT             NULL,
     [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
+    [IsPrintCorrectiveAction]   BIT             NULL,
     CONSTRAINT [PK_WorkOrderQuote] PRIMARY KEY CLUSTERED ([WorkOrderQuoteId] ASC),
     CONSTRAINT [FK_WorkOrderQuote_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_WorkOrderQuote_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),

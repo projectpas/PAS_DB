@@ -15,6 +15,7 @@
 ** PR   Date         Author		    Change Description            
 ** --   --------     -------		--------------------------------          
    1    24/04/2025  Ayushi Patel    Created
+   2    09/05/2025	Devendra Shekh	Added IsPrintCorrectiveAction to select
 
  -- EXEC [USP_GetWorkOrderQuoteSettingsList] 1
 ************************************************************************/
@@ -44,7 +45,8 @@ BEGIN
             wos.effectivedate,
             ISNULL(wos.IsApprovalRule, 0) AS IsApprovalRule,
             wos.TearDownTypes,
-            ISNULL(wos.IsFlatRate, 0) AS IsFlatRate
+            ISNULL(wos.IsFlatRate, 0) AS IsFlatRate,
+            ISNULL(wos.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
         FROM dbo.WorkOrderQuoteSettings wos WITH (NOLOCK)
         INNER JOIN dbo.WorkOrderType wot WITH (NOLOCK) ON wos.WorkOrderTypeId = wot.Id
         WHERE ISNULL(wos.IsDeleted,0) != 1 AND wos.MasterCompanyId = @MasterCompanyId;

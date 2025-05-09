@@ -83,7 +83,7 @@ BEGIN
 		LEFT JOIN [dbo].[EmployeeExpertise] expr WITH(NOLOCK) ON wol.ExpertiseId = expr.EmployeeExpertiseId
 		LEFT JOIN [dbo].[Task] task WITH(NOLOCK) ON wol.TaskId = task.TaskId
 		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON wol.EmployeeId = emp.EmployeeId
-		WHERE ISNULL(wol.IsDeleted,0) = 0 AND wol.WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM WorkOrderQuoteLaborHeader WITH(NOLOCK) WHERE IsDeleted = 0 AND WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId);
+		WHERE ISNULL(wol.IsDeleted,0) = 0 AND wol.WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE IsDeleted = 0 AND WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId);
 	END TRY
 	BEGIN CATCH  
    

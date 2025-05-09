@@ -3772,6 +3772,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderQuoteChargesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorProcessListFromTransaction.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorShipVia.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

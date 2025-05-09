@@ -107,12 +107,8 @@
     [IsKitType]                  BIT             NULL,
     [ReferenceNumber]            VARCHAR (100)   NULL,
     [QuantityReceived]           INT             DEFAULT ((0)) NULL,
+    [RepairOrderTemplateId]      BIGINT          NULL,
+    [RepairOrderTemplateNumber]  VARCHAR (256)   NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
-
-
-
-
-
-
 

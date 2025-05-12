@@ -29,16 +29,22 @@ SET NOCOUNT ON;
 				[RepairOrderTemplateNumber],
 				[Instruction]
 				FROM [DBO].[RepairOrderTemplate]  WITH(NOLOCK)
-				WHERE [ItemMasterId] = @ItemId AND ISNULL([WorkPerformedId],0) = @WorkPerformId AND [MasterCompanyId] = @MasterCompanyID;
+				WHERE [ItemMasterId] = @ItemId 
+				AND ISNULL([WorkPerformedId],0) = @WorkPerformId 
+				AND [MasterCompanyId] = @MasterCompanyID
+				AND [IsActive] = 1
+				AND [IsDeleted] = 0;
 			END
-			ELSE
+			ELSE IF(ISNULL(@ItemId,0) = 0 AND ISNULL(@WorkPerformId,0) = 0)
 			BEGIN
 				SELECT 
 				[RepairOrderTemplateId],
 				[RepairOrderTemplateNumber],
 				[Instruction]
 				FROM [DBO].[RepairOrderTemplate]  WITH(NOLOCK)
-				WHERE [MasterCompanyId] = @MasterCompanyID;
+				WHERE [MasterCompanyId] = @MasterCompanyID
+				AND [IsActive] = 1
+				AND [IsDeleted] = 0;
 			END
 	END TRY    
 	BEGIN CATCH      

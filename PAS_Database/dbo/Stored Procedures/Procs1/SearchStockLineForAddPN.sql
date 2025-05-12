@@ -17,6 +17,7 @@
  ** 3    08/08/2023	  HEMANT SALIYA	  Cistomer Stock Validation Changes
  ** 4    10/11/2023	  HEMANT SALIYA   Added Condition Group Changes
  ** 5    08/29/2024	  Devendra Shekh  Duplicate StockLine Issue Resolved
+ ** 6    05/12/2025	  Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
        
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
@@ -115,7 +116,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
 			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
-		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2);  
+		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0;  
   
 		INSERT INTO #StockLineResult (
 			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],

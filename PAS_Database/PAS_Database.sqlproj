@@ -3783,6 +3783,7 @@
     <Build Include="dbo\Stored Procedures\USP_VendorDataFilter.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLaborListDetailsByWorkOrderQuoteDetailsId.sql" />
     <Build Include="dbo\Stored Procedures\USP_VendorContactDataFilter.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorContactDataByVendorId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

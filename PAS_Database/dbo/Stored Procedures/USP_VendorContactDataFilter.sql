@@ -49,7 +49,7 @@ BEGIN
             C.Email,
             C.WorkPhone,
             C.WorkPhoneExtn,
-            ISNULL(VC.IsDefaultContact,0)
+            ISNULL(VC.IsDefaultContact,0) AS IsDefaultContact
         FROM dbo.VendorContact VC WITH (NOLOCK)
         INNER JOIN dbo.Contact C WITH (NOLOCK) ON VC.ContactId = C.ContactId
         WHERE ISNULL(VC.IsActive,0) = 1
@@ -73,7 +73,7 @@ BEGIN
                 C.Email,
                 C.WorkPhone,
                 C.WorkPhoneExtn,
-                ISNULL(VC.IsDefaultContact,0)
+                ISNULL(VC.IsDefaultContact,0) AS IsDefaultContact
             FROM dbo.VendorContact VC WITH (NOLOCK)
             INNER JOIN dbo.Contact C WITH (NOLOCK) ON VC.ContactId = C.ContactId
             INNER JOIN Ids ON VC.VendorContactId = TRY_CAST(Ids.VendorContactId AS BIGINT)

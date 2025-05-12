@@ -42,12 +42,12 @@ BEGIN
 			WHILE(@TotalMaterialCount >= @CurrentRowId)
 			BEGIN
 				
-				IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterials] WOM INNER JOIN #tmpWorkOrderMaterial TMP ON WOM.ItemMasterId = TMP.ItemMasterId AND WOM.ConditionCodeId = TMP.ConditionCodeId 
+				IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) INNER JOIN #tmpWorkOrderMaterial TMP ON WOM.ItemMasterId = TMP.ItemMasterId AND WOM.ConditionCodeId = TMP.ConditionCodeId 
 						AND WOM.TaskId = TMP.TaskId AND ISNULL(WOM.Item, '') = ISNULL(TMP.Item, '') AND ISNULL(WOM.Figure, '') = ISNULL(TMP.Figure, '') AND WOM.WorkFlowWorkOrderId = TMP.WorkFlowWorkOrderId AND WOM.WorkOrderId = TMP.WorkOrderId
 						WHERE TMP.RowId = @CurrentRowId)
 				BEGIN
 					UPDATE TMP
-					SET TMP.WorkOrderMaterialsId = (SELECT TOP 1 WOM.WorkOrderMaterialsId FROM [dbo].[WorkOrderMaterials] WOM INNER JOIN #tmpWorkOrderMaterial TMP ON WOM.ItemMasterId = TMP.ItemMasterId AND WOM.ConditionCodeId = TMP.ConditionCodeId 
+					SET TMP.WorkOrderMaterialsId = (SELECT TOP 1 WOM.WorkOrderMaterialsId FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) INNER JOIN #tmpWorkOrderMaterial TMP ON WOM.ItemMasterId = TMP.ItemMasterId AND WOM.ConditionCodeId = TMP.ConditionCodeId 
 												AND WOM.TaskId = TMP.TaskId AND ISNULL(WOM.Item, '') = ISNULL(TMP.Item, '') AND ISNULL(WOM.Figure, '') = ISNULL(TMP.Figure, '') AND WOM.WorkFlowWorkOrderId = TMP.WorkFlowWorkOrderId AND WOM.WorkOrderId = TMP.WorkOrderId),
 						TMP.isExistingMaterilas = 1
 					FROM #tmpWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId
@@ -222,7 +222,7 @@ BEGIN
 				DECLARE @woQuoteApproveId INT = 5, @CustWorkOrderTypeEnumId INT = 1, @InternalWorkOrderTypeEnumId INT = 1, @ReplaceProvisionEnumId INT = 1, @ReplcaeProvisionId INT = 0, @arConditionId INT = 0, @ARCondDesc VARCHAR(30) = 'AR', @PickTicketFulfillingStatusEnumId INT = 1,
 						@PickTicketNumber VARCHAR(50),  @PickTicketMemo NVARCHAR(MAX);
 
-				IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) INNER JOIN [dbo].[WorkOrder] WO ON WOQ.WorkOrderId = WO.WorkOrderId WHERE WOQ.QuoteStatusId = @woQuoteApproveId)
+				IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOQ.WorkOrderId = WO.WorkOrderId WHERE WOQ.QuoteStatusId = @woQuoteApproveId)
 				BEGIN
 					
 					SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpWorkOrderMaterial;

@@ -30,7 +30,7 @@ BEGIN
 		1, 0, STK.[UnitCost], (ISNULL(STK.UnitCost, 0) * ISNULL(StocklineQuantity, 0)), STK.[UnitCost], TMP.Figure, TMP.[Item], @CreatedMaterial,
 		CASE WHEN ISNULL([IsAltPart], 0) = 1 THEN [IsAlternatePart] ELSE [AltPartMasterPartId] END, [IsAltPart], CASE WHEN ISNULL([IsEquPart], 0) = 1 THEN [IsAlternatePart] ELSE [EquPartMasterPartId] END, [IsEquPart]
 		FROM @tbl_WorkOrderMaterialsType TMP
-		LEFT JOIN [DBO].[StockLine] STK ON TMP.StockLineId = STK.StockLineId
+		LEFT JOIN [DBO].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 		 
 	COMMIT TRANSACTION  
 	END TRY      

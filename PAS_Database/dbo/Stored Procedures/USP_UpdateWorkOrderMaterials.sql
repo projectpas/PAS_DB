@@ -69,7 +69,7 @@ BEGIN
 				
 				SELECT @WorkOrderMaterialsId = [WorkOrderMaterialsId], @Quantity = [Quantity], @isExistingMaterilas = [isExistingMaterilas], @WOMStockLineId = [StockLineId] FROM #tmpWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId
 
-				IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterials] WOM INNER JOIN #tmpWorkOrderMaterial TMP ON WOM.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId WHERE TMP.RowId = @CurrentRowId)
+				IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) INNER JOIN #tmpWorkOrderMaterial TMP ON WOM.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId WHERE TMP.RowId = @CurrentRowId)
 				BEGIN
 					-- Add Entry in History Table	: Start
 					IF(ISNULL(@Quantity, 0) > 0)
@@ -200,7 +200,7 @@ BEGIN
 			BEGIN
 				SELECT @WorkOrderMaterialsId = [WorkOrderMaterialsId], @Quantity = [Quantity], @isExistingMaterilas = [isExistingMaterilas], @WOMStockLineId = [StockLineId] FROM #tmpWorkOrderMaterialKit TMP WHERE TMP.RowId = @CurrentRowId
 				
-				IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterialsKit] WOM INNER JOIN #tmpWorkOrderMaterialKit TMP ON WOM.WorkOrderMaterialsKitId = TMP.WorkOrderMaterialsId WHERE TMP.RowId = @CurrentRowId)
+				IF EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) INNER JOIN #tmpWorkOrderMaterialKit TMP ON WOM.WorkOrderMaterialsKitId = TMP.WorkOrderMaterialsId WHERE TMP.RowId = @CurrentRowId)
 				BEGIN
 					UPDATE WOM
 					SET WOM.Quantity = ISNULL(TMP.Quantity, 0),

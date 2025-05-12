@@ -815,7 +815,8 @@ BEGIN
 				[AllMSlevels] NVARCHAR(MAX) NULL,
 				[LastMSLevel] VARCHAR(100) NULL, 
 				[IsVerified]  BIT NULL,
-				[IsWoadded]  BIT NULL				
+				[IsWoadded]  BIT NULL,
+				[IsRepairManagement]  BIT NULL	
 			)
 
 			SELECT @WorkOrderNum=[WorkOrderNum],@PrimarySalesPersonId=[SalesPersonId],@CsrId =[CsrId] ,@EmployeeId=[EmployeeId],@CustomerId = [CustomerId],
@@ -940,7 +941,8 @@ BEGIN
 						@Bin = sl.[Bin],						
 						@IsFinishedGood = wop.[IsFinishGood],
 						@LastMSLevel = msd.LastMSLevel,
-						@AllMSlevels = msd.AllMSlevels					
+						@AllMSlevels = msd.AllMSlevels,
+						@IsRepairManagement = ISNULL(sl.IsRepairManagement, 0)
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wop.[StockLineId] = sl.[StockLineId]
 					INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.[ItemMasterId] = im.[ItemMasterId]
@@ -1037,7 +1039,8 @@ BEGIN
                            [IsFinishGood] = @IsFinishedGood,
                            [AllMSlevels] = @AllMSlevels,
                            [LastMSLevel] = @LastMSLevel,
-						   [IsWoadded] = @IsWoadded
+						   [IsWoadded] = @IsWoadded,
+						   [IsRepairManagement] = @IsRepairManagement
 					 WHERE [PKID] = @MinIds;
 
 					SET @MinIds = @MinIds + 1;

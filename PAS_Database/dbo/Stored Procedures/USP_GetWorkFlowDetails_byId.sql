@@ -72,7 +72,7 @@ BEGIN
 					[COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName], [FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName],
 					[COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName], [COGS_ExchSalesOrderGLAccName], [QuickBooksReferenceId], [IsUpdated], [LastSyncDate],
 					[SyncToken], [WorkOrderFormTypeId] 
-			INTO #tmpItemMaster FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @WFWorkScopeId;
+			INTO #tmpItemMaster FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @WFItemMasterId;
 			
 			-- Getting WorkScope Details
 			SELECT	[WorkScopeId], [WorkScopeCode], [Description], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [WorkScopeCodeNew], [ConditionId]

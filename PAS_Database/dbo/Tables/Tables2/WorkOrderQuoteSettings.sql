@@ -17,6 +17,7 @@
     [effectivedate]           DATETIME      NULL,
     [TearDownTypes]           VARCHAR (50)  NULL,
     [IsFlatRate]              BIT           NULL,
+    [IsPrintCorrectiveAction] BIT           NULL,
     CONSTRAINT [PK_WorkOrderQuoteSettings] PRIMARY KEY CLUSTERED ([WorkOrderQuoteSettingId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderQuoteSettings_WorkOrderTypeId] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id])

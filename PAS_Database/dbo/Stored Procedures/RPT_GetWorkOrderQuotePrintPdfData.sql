@@ -19,6 +19,7 @@
 	5    07-APR-2025	RAJESH GAMI			Updated for Get correct PN and Serial Number
 	6    28-APR-2025	Abhishek Jirawla    Added Corrective Action Data
 	7    01-MAY-2025    Hemant Saliya		Created for Marerials, labor, flat rate changes
+	8    09-MAY-2025	Devendra Shekh		Added IsPrintCorrectiveAction to select
 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
@@ -126,6 +127,7 @@ BEGIN
 						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
+		,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 	FROM dbo.WorkOrder wo WITH(NOLOCK)        
 		 INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
@@ -141,7 +143,7 @@ BEGIN
 	GROUP BY im.PartNumber,  
 		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,  
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wop.RevisedPartNumber, wop.RevisedPartDescription
-		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId),
+		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 	SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal FROM AfterTax FinalQuote;

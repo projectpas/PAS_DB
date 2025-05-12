@@ -36,6 +36,7 @@
     [CreditTerms]               VARCHAR (200)   NULL,
     [ReportCurrencyId]          INT             NULL,
     [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
+    [IsPrintCorrectiveAction]   BIT             NULL,
     CONSTRAINT [PK_WorkOrderQuoteAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteAuditId] ASC)
 );
 

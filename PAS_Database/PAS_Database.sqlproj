@@ -3785,6 +3785,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkFlowDetails_byId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderMaterialsStoclkine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderMaterials.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderMaterialsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

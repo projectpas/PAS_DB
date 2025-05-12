@@ -12,6 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1    26/02/2025   Moin Bloch    Created
 	2    12/03/2025   Moin Bloch    Fixed Multiple MPN Issue
+	3    09/05/2025	  Abhishek Jirawla Add Repair Management
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -83,7 +84,8 @@ BEGIN
 		[DefaultWorkOrderStatusId] BIGINT NULL,
 		[WorkFlowNo] VARCHAR(256) NULL,
 		[WorkFlowId] BIGINT NULL,
-		[WorkflowExpirationDate] DATETIME2(7) NULL
+		[WorkflowExpirationDate] DATETIME2(7) NULL,
+		[IsRepairManagement] BIT NULL
 	)
 
     DECLARE @CustomerId BIGINT=0,@CustomerContactId BIGINT=0,@ReceivingCustomerWorkId BIGINT=0,@ItemMasterId BIGINT=0,@ConditionId BIGINT=0,@RecStockLineId BIGINT=0,@WorkScopeId BIGINT=0,@CsrId BIGINT=0,@EmployeeId BIGINT=0
@@ -98,6 +100,7 @@ BEGIN
     DECLARE @SiteId BIGINT = 0,@Site  VARCHAR(100)='',@Warehouse VARCHAR(100)='',@Location VARCHAR(100)='',@Shelf VARCHAR(100)='',@Bin VARCHAR(100)=''
     DECLARE @IsFinishedGood BIT = 0,@LastMSLevel VARCHAR(100)='',@AllMSlevels VARCHAR(MAX)='',@WorkFlowNo NVARCHAR(500)='',@WorkflowId BIGINT=0,@WorkflowExpirationDate DATETIME2(7)=NULL
 	DECLARE @IsSinglePN BIT = 1,@WorkOrderMPNMSModuleEnum INT=12 
+	DECLARE @IsRepairManagement BIT = 0
 
 	-- For ReceivingCustomer
 	IF(@Opr=1)
@@ -186,7 +189,8 @@ BEGIN
 			   @Bin = sl.[Bin],
 			   @IsFinishedGood = 0,			
 			   @LastMSLevel = COALESCE(msd.[LastMSLevel], ''),
-			   @AllMSlevels = COALESCE(msd.[AllMSlevels], '') 
+			   @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
+			   @IsRepairManagement = ISNULL(sl.IsRepairManagement, 0)
 		  FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 		INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[StockLineId] = sl.[StockLineId]
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
@@ -266,8 +270,8 @@ BEGIN
 			   ISNULL(@DefaultStatusId,0) [DefaultWorkOrderStatusId],
 			   CASE WHEN @WorkflowId = 0 THEN NULL ELSE @WorkflowId END [WorkFlowId],
                @WorkFlowNo [WorkFlowNo],
-               @WorkflowExpirationDate [WorkflowExpirationDate]		
-
+               @WorkflowExpirationDate [WorkflowExpirationDate],
+			   @IsRepairManagement [IsRepairManagement]
 	END
 	-- For Customer RMA
 	IF(@Opr=2)
@@ -375,13 +379,14 @@ BEGIN
 				INSERT INTO #TempTableForPartsDetailsWO([ReceivingCustomerWorkId],[Partnumber],[PartDescription],[RevisedPartNo],[Condition],[ConditionId],
 					[StockLineNumber],[StockLineId],[SerialNumber],[Reference],[ReceivedDate],[ManagementStructureId],[CustReqDate],[Quantity],[ItemMasterId],
 					[ItemGroup],[WorkOrderScopeId],[NTE],[IsPMA],[IsDER],[ACTailNum],[SiteId],[Site],[Warehouse],[Location],[Shelf],[Bin],[IsFinishedGood],
-					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate])				
+					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement])				
 				SELECT 0,im.[PartNumber],im.[PartDescription],im.[RevisedPart],con.[Description],COALESCE(wopn.[RevisedConditionId], 0),
 					sl.[StockLineNumber],sl.[StockLineId],sl.[SerialNumber],rc.[CustomerReference],CRM.[OpenDate],CRM.[ManagementStructureId],CRM.[OpenDate],1,rc.[ItemMasterId],
 					COALESCE(ig.[ItemGroupCode], ''),wopn.[WorkOrderScopeId],ISNULL((im.[OverhaulHours] + COALESCE(im.[mfgHours], 0) + im.[RPHours] + im.[TestHours]),0),
 					CASE WHEN @PMACOUNT > 0 THEN 0 ELSE c.[RestrictPMA] END,CASE WHEN @DERCOUNT > 0 THEN 0 ELSE c.[RestrictDER] END,wopn.[ACTailNum],
 					sl.[SiteId],sl.[Site],sl.[Warehouse],sl.[Location],sl.[Shelf],sl.[Bin],0,COALESCE(msd.[LastMSLevel], ''),COALESCE(msd.[AllMSlevels], ''),
-					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),(wf.[WorkOrderNumber] + '_' + wf.[Version]),(CASE WHEN wf.WorkflowId = 0 THEN NULL ELSE wf.WorkflowId END),wf.WorkflowExpirationDate
+					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),(wf.[WorkOrderNumber] + '_' + wf.[Version]),
+					(CASE WHEN wf.WorkflowId = 0 THEN NULL ELSE wf.WorkflowId END),wf.WorkflowExpirationDate, sl.IsRepairManagement
 				FROM [dbo].[CustomerRMADeatils] rc WITH(NOLOCK)
 				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[RMADeatilsId] = sl.[RMADeatilsId]
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
@@ -400,13 +405,13 @@ BEGIN
 				INSERT INTO #TempTableForPartsDetailsWO([ReceivingCustomerWorkId],[Partnumber],[PartDescription],[RevisedPartNo],[Condition],[ConditionId],
 					[StockLineNumber],[StockLineId],[SerialNumber],[Reference],[ReceivedDate],[ManagementStructureId],[CustReqDate],[Quantity],[ItemMasterId],
 					[ItemGroup],[WorkOrderScopeId],[NTE],[IsPMA],[IsDER],[ACTailNum],[SiteId],[Site],[Warehouse],[Location],[Shelf],[Bin],[IsFinishedGood],
-					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate])	
+					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement])	
 				SELECT 0,im.[PartNumber],im.[PartDescription],im.[RevisedPart],con.[Description],COALESCE(wopn.[ConditionId], 0),
 				    sl.[StockLineNumber],sl.[StockLineId],sl.[SerialNumber],rc.[CustomerReference],CRM.[OpenDate],CRM.[ManagementStructureId],CRM.[OpenDate],1,rc.[ItemMasterId],
 				    COALESCE(ig.[ItemGroupCode], ''),NULL,ISNULL((im.OverhaulHours + COALESCE(im.mfgHours, 0) + im.RPHours + im.TestHours),0),
 					CASE WHEN @PMACOUNT > 0 THEN 0 ELSE c.[RestrictPMA] END,CASE WHEN @DERCOUNT > 0 THEN 0 ELSE c.[RestrictDER] END,NULL,
 					sl.[SiteId],sl.[Site],sl.[Warehouse],sl.[Location],sl.[Shelf],sl.[Bin],0,COALESCE(msd.[LastMSLevel], ''),COALESCE(msd.[AllMSlevels], ''),
-					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),NULL,NULL,NULL
+					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),NULL,NULL,NULL, sl.IsRepairManagement
 				FROM [dbo].[CustomerRMADeatils] rc WITH(NOLOCK)
 				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[RMADeatilsId] = sl.[RMADeatilsId]
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]

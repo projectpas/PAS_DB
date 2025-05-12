@@ -174,6 +174,7 @@
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     [IsKitType]                           BIT             NULL,
     [IsSubWOType]                         BIT             NULL,
+    [IsRepairManagement]                  BIT             CONSTRAINT [DF_StocklineDraft_IsRepairManagement] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineDraft] PRIMARY KEY CLUSTERED ([StockLineDraftId] ASC),
     CONSTRAINT [FK_StocklineDraft_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_StocklineDraft_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -191,6 +192,8 @@
     CONSTRAINT [FK_StocklineDraft_SiteId] FOREIGN KEY ([SiteId]) REFERENCES [dbo].[Site] ([SiteId]),
     CONSTRAINT [FK_StocklineDraft_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
 
 
 

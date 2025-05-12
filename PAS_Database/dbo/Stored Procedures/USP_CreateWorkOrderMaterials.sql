@@ -268,7 +268,7 @@ BEGIN
 								END
 								ELSE
 								BEGIN
-									SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+									SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
 									UPDATE [dbo].[CodePrefixes]
 									SET [CurrentNummber] = @CurrentNo 
 									WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;

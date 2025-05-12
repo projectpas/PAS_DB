@@ -181,7 +181,7 @@ BEGIN
 							WOMS.Item = TMP.Item
 						FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 						INNER JOIN #tmpWorkOrderMaterial TMP ON WOMS.StockLineId = TMP.StockLineId
-						INNER JOIN [dbo].[Stockline] STK ON TMP.StockLineId = STK.StockLineId
+						INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 						WHERE TMP.RowId = @CurrentRowId;
 					END
 				END

@@ -3782,6 +3782,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSOTemplateData.sql" />
     <Build Include="dbo\Stored Procedures\USP_VendorDataFilter.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLaborListDetailsByWorkOrderQuoteDetailsId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -175,10 +175,7 @@
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     [IsKitType]                           BIT             NULL,
     [IsSubWOType]                         BIT             NULL,
+    [IsRepairManagement]                  BIT             CONSTRAINT [DF_StockLineDraftAudit_IsRepairManagement] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
-
-
-
-
 

@@ -27,8 +27,11 @@
     [NewUnitCostTotransfer]     DECIMAL (18, 2) NULL,
     [QuantityOnHand]            DECIMAL (18, 2) NULL,
     [UnitOfMeasure]             VARCHAR (100)   NULL,
+    [AdjustmentReasonId]        BIGINT          NULL,
     CONSTRAINT [PK_BulkStockLineAdjustmentDetails] PRIMARY KEY CLUSTERED ([BulkStkLineAdjDetailsId] ASC)
 );
+
+
 
 
 

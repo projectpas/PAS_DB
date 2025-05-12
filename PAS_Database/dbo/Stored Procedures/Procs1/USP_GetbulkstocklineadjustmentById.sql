@@ -83,8 +83,8 @@ BEGIN
 			   BSAD.[ToManagementStructureId],
 			   BSAD.[QuantityOnHand],
 			   BSAD.[UnitOfMeasure],
-			   BSAD.[NewUnitCostTotransfer]
-
+			   BSAD.[NewUnitCostTotransfer],
+			   BSAD.[AdjustmentReasonId]
 		  FROM [dbo].[BulkStockLineAdjustmentDetails] BSAD WITH (NOLOCK)  
 		  INNER JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON  STL.StockLineId = BSAD.StockLineId
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON STL.[ItemMasterId] = IM.[ItemMasterId]

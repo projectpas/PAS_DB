@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------              
 	1    18/04/2025   Moin Bloch       Created
+	2	 13/05/2025	  Abhishek Jirawla DataEnteredBy space correction
 
 --   EXEC [USP_CreateWorkOrderLaborHeader] 
 **************************************************************/
@@ -49,8 +50,8 @@ BEGIN
 
 	SELECT @EmployeeId = ISNULL([EmployeeId],0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE [FirstName]='TBD' AND [MasterCompanyId]=@MasterCompanyId;  
 	SELECT @ExpertiseId= [EmployeeExpertiseId]  FROM [dbo].[EmployeeExpertise] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [EmpExpCode]='TECHNICIAN' 
-	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK) WHERE CONCAT(TRIM([FirstName]),'',TRIM([LastName])) IN (REPLACE(@CreatedBy, ' ', '')) AND [MasterCompanyId]=@MasterCompanyId  
-	
+	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK) WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@CreatedBy, ' ', '')) AND [MasterCompanyId]=@MasterCompanyId  
+
 	INSERT INTO #tempCreateTravelerLabourHeaderForCreateWO([ID],[ManagementStructureId])
 	SELECT [ID],[ManagementStructureId] FROM @tbl_WorkOrderPartNumberType
 

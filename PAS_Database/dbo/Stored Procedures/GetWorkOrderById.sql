@@ -13,6 +13,7 @@
     1    26/02/2025   Moin Bloch    Created
 	2    12/03/2025   Moin Bloch    Fixed Multiple MPN Issue
 	3    09/05/2025	  Abhishek Jirawla Add Repair Management
+	4    13/05/2025	  Abhishek Jirawla Isue with create work order with stockline
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -553,7 +554,8 @@ BEGIN
 			    @Bin = sl.[Bin],
 			    @IsFinishedGood = 0,
 				@LastMSLevel = COALESCE(msd.[LastMSLevel], ''),
-			    @AllMSlevels = COALESCE(msd.[AllMSlevels], '') 
+			    @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
+				@IsRepairManagement = COALESCE(sl.[IsRepairManagement], 0)
 			FROM [dbo].[StockLine] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sl.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON sl.[CustomerId] = c.[CustomerId]
@@ -592,7 +594,8 @@ BEGIN
 			    @Bin = sl.[Bin],
 			    @IsFinishedGood = 0,				
 				@LastMSLevel = COALESCE(msd.[LastMSLevel], ''),
-			    @AllMSlevels = COALESCE(msd.[AllMSlevels], '') 
+			    @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
+				@IsRepairManagement = COALESCE(sl.[IsRepairManagement], 0)
 			FROM [dbo].[StockLine] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im ON sl.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[Condition] con ON sl.[ConditionId] = con.[ConditionId]
@@ -644,7 +647,7 @@ BEGIN
 			   @RevisedPartNo [RevisedPartNo],
 			   @ItemMasterId [ItemMasterId],
 			   @ConditionId [ConditionId],
-			   @RecStockLineId [StockLineId],
+			   @StockLineId [StockLineId],
 			   @ReceivedDate [ReceivedDate],
 			   @ReceivingNumber [ReceivingNumber],
 			   @ManagementStructureId [ManagementStructureId],
@@ -671,7 +674,8 @@ BEGIN
 			   CASE WHEN @WorkflowId = 0 THEN NULL ELSE @WorkflowId END [WorkFlowId],
                @WorkFlowNo [WorkFlowNo],
                @WorkflowExpirationDate [WorkflowExpirationDate],	 
-			   @Reference Reference
+			   @Reference Reference,
+    		   ISNULL(@IsRepairManagement, 0) [IsRepairManagement]
 	END	
 	-- For Work Order
 	IF(@Opr=4)

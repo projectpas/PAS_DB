@@ -68,7 +68,7 @@ SET NOCOUNT ON;
 			IF(@ModuleId = @woModuleId) /******************* START: WORK ORDER MODULE *******************/
 			BEGIN
 					 
-					Select 
+					Select DISTINCT
 					   WOBI.InvoiceNo,
 					   Wo.CustomerName Customer,
 					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -90,7 +90,7 @@ SET NOCOUNT ON;
 					FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 						 INNER JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
-						 INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOBII.ItemMasterId = WOP.ItemMasterId
+						 INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOBII.ItemMasterId = WOP.RevisedItemmasterid
 					WHERE 
 						WOBI.MasterCompanyId=@MasterCompanyId AND
 						(@IsSelectAllInvoice = 1 AND 

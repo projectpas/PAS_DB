@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [ProcGetRoList]           
  ** Author:   Moin Bloch  
  ** Description: Get Data for Repair Order listing
@@ -24,6 +25,7 @@
 	08   07-04-2025     Shrey Chandegara    Modified due to PN-12013
 	09   14-04-2025     Moin Bloch          Modified Fix Order Isuee in RO List
 	10   25-04-2025     HEMANT SALIYA       Modified Fix Default Order Isuee in RO List Created By
+	11   13-05-2025     Bhargav Saliya      MULTIPLE checking for  WO and SO Number was improper so corrected it
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -126,6 +128,8 @@ BEGIN
 				SELECT 
 					ROP.RepairOrderId,
 					COUNT(ROP.RepairOrderPartRecordId) AS PartCount,
+					COUNT(ROP.WorkOrderId) AS WorkOrderCount,
+					COUNT(ROP.SalesOrderId) AS SalesOrderCount,
 					MAX(ROP.PartNumber) AS MaxPartNumber,
 					MAX(ROP.PartDescription) AS MaxPartDescription,
 					MAX(ROP.EstRecordDate) AS MaxEstRecordDate,
@@ -160,8 +164,8 @@ BEGIN
 					CASE WHEN ROPA.PartCount > 1 THEN 'Multiple' ELSE ROPA.MaxPartDescription END AS PartDescription,
 					CASE WHEN ROPA.PartCount > 1 THEN 'Multiple' ELSE CAST(CONVERT(VARCHAR, ROPA.MaxEstRecordDate, 101) AS VARCHAR(MAX)) END AS EstDeliveryType,
 					CASE WHEN ROPA.PartCount > 1 THEN 'Multiple' ELSE ROPA.MaxManufacturer END AS ManufacturerType,
-					CASE WHEN ROPA.PartCount > 1 THEN 'Multiple' ELSE ROPA.MaxWorkOrderNo END AS WorkOrderNumType,
-					CASE WHEN ROPA.PartCount > 1 THEN 'Multiple' ELSE ROPA.MaxSalesOrderNo END AS SalesOrderNumberType,
+					CASE WHEN ROPA.WorkOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxWorkOrderNo END AS WorkOrderNumType,
+					CASE WHEN ROPA.SalesOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxSalesOrderNo END AS SalesOrderNumberType,
 					0 AS isStkLable
 			INTO #tmpReceivingRoviewList
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
@@ -179,7 +183,7 @@ BEGIN
 				   ROPA.MaxEstRecordDate,
 				   ROPA.MaxManufacturer,
 				   ROPA.MaxWorkOrderNo,
-				   ROPA.MaxSalesOrderNo
+				   ROPA.MaxSalesOrderNo,ROPA.WorkOrderCount,ROPA.SalesOrderCount
 
 		    UPDATE TMP
 				SET TMP.isStkLable = case when result.StkCount > 0 then 1 else 0 end

@@ -258,7 +258,7 @@ BEGIN
 							
 						END
 
-						EXEC UpdateLegalEntityColumnsWithId @LegalEntityId;
+						EXEC [DBO].[UpdateLegalEntityColumnsWithId] @LegalEntityId;
 
 					END
 					ELSE

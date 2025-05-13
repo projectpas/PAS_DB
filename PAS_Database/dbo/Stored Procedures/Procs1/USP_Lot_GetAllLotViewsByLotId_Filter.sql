@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId_Filter]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -277,7 +276,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(lot.InitialPOCost,0)InitialPOCost
 				,ISNULL(lot.StocklineTotalCost,0)StocklineTotalCost
 				--,(ISNULL(lot.InitialPOCost,0) - ISNULL(lot.StocklineTotalCost,0))AS RemainStocklineCost
-				,(ISNULL(SL.UnitCost,0))AS RemainStocklineCost
+				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) AS RemainStocklineCost
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
 				,SL.LotMainStocklineId

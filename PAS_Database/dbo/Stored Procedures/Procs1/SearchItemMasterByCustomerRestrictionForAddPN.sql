@@ -17,6 +17,7 @@
 	1    10-May-2022		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
 	2    27-July-2023		Hemant Saliya	Allow Customer stockline use in other customer
 	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
+	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
      
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
@@ -54,7 +55,7 @@ BEGIN
 					,c.ConditionId ConditionId
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
-					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
+					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1 AND M.IsActive = 1 AND M.IsDeleted = 0
 					FOR XML PATH('')
 					)
 					,1,1,''), '') AlternateFor

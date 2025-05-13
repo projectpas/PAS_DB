@@ -23,7 +23,7 @@
 	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
      
- exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1810
+ exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=803
 **************************************************************/
 CREATE    PROC [dbo].[GetReserveStockPartsListBySOId]
 	@SalesOrderId  BIGINT,
@@ -85,8 +85,8 @@ BEGIN
 		 INNER JOIN DBO.SOPickTicket SOPick ON SOPick.SOPickTicketId = SOSI.SOPickTicketId
 		  WHERE SOPick.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND SOS.SalesOrderId = @SalesOrderId)) AS StkQtyToBeReserved,
 		ISNULL(sop.QtyReserved, 0) AS QuantityReserved,
-		ISNULL(sl.QuantityAvailable, 0) + 200 AS QuantityAvailable, 
-		ISNULL(sl.QuantityOnHand, 0) + 200 AS QuantityOnHand, 
+		ISNULL(sl.QuantityAvailable, 0)  AS QuantityAvailable, 
+		ISNULL(sl.QuantityOnHand, 0) AS QuantityOnHand, 
 		ISNULL((SELECT ISNULL(Part.QtyRequested, 0) FROM DBO.SalesOrderPartV1 Part WITH (NOLOCK) WHERE Part.SalesOrderPartId = SOP.SalesOrderPartId), 0) PartQuantityOnOrder, 
 		ISNULL((SELECT ISNULL(SUM(StkV1.QtyOrder), 0) FROM DBO.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId ), 0) QuantityOnOrder, --AND StkV1.StockLineId = SL.StockLineId), 0) QuantityOnOrder, 
 		sl.StockLineId,

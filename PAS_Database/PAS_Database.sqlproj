@@ -3786,6 +3786,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderSettingsDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkFlowDetails_byId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkFlowNos.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorContactDataByVendorId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorCreditTermsByVendorId.sql" />
   </ItemGroup>

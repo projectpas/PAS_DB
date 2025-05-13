@@ -36,6 +36,7 @@
     [UpdatedBy]                            NVARCHAR (256) NULL,
     [CreatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklistAudit_CreatedDate] DEFAULT (getdate()) NULL,
     [UpdatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklistAudit_UpdatedDate] DEFAULT (getdate()) NULL,
+    [InspectionConditionId]                BIGINT         NULL,
     CONSTRAINT [PK_WOInspectionChecklistAudit] PRIMARY KEY CLUSTERED ([WOInspectionAuditId] ASC)
 );
 

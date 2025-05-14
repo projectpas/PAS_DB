@@ -12,9 +12,10 @@
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    09-05-2025     Moin Bloch        created
+	2    14-05-2025     Amit Ghediya      added Adjusted By filed.
 
 **************************************************************/
-create     PROCEDURE [dbo].[usprpt_GetInventoryQuantityAdjustmentReport]     
+CREATE     PROCEDURE [dbo].[usprpt_GetInventoryQuantityAdjustmentReport]     
 @PageNumber int = 1,    
 @PageSize int = NULL,    
 @mastercompanyid int,    
@@ -155,7 +156,7 @@ BEGIN
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
 
    ;WITH rptCTE ([TotalRecordsCount], [pn], [pndescription], [cond], [location], [sernum], [slnum], [ctrlnum], [ponum], [ronum], [unitcost], [uom], 
-                 [priviousqtyonhand], [updatedqtyonhand], [qtyadjusted], [adjustmentamount], [reasoncode],[adjdate],[level1], [level2], [level3], [level4], 
+                 [priviousqtyonhand], [updatedqtyonhand], [qtyadjusted], [adjustmentamount], [reasoncode],[adjdate],[adjby],[level1], [level2], [level3], [level4], 
 				 [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId])
 	AS (     
 	 SELECT COUNT(1) OVER () AS TotalRecordsCount,    
@@ -178,6 +179,7 @@ BEGIN
 		     ELSE (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedFrom] AS INT), 0) - ISNULL(CAST(stladj.[ChangedTo] AS INT), 0))) * (-1) END 'adjustmentamount',		
 		sar.[Description] 'reasoncode',
 		stladj.[CreatedDate] 'adjdate',
+		stladj.[CreatedBy] 'adjby',
 		UPPER(MSD.[Level1Name]) AS 'level1',     
 		UPPER(MSD.[Level2Name]) AS 'level2',    
 		UPPER(MSD.[Level3Name]) AS 'level3',    
@@ -216,11 +218,11 @@ BEGIN
    AND (ISNULL(@Level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))))
 
    ,FinalCTE([TotalRecordsCount], [pn], [pndescription], [cond], [location], [sernum], [slnum], [ctrlnum],[ponum],[ronum],
-             [unitcost],[uom],[priviousqtyonhand],[updatedqtyonhand],[qtyadjusted],[adjustmentamount],[reasoncode],[adjdate],
+             [unitcost],[uom],[priviousqtyonhand],[updatedqtyonhand],[qtyadjusted],[adjustmentamount],[reasoncode],[adjdate],[adjby],
 			 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],[masterCompanyId]) 
 
     AS (SELECT DISTINCT [TotalRecordsCount], [pn], [pndescription], [cond], [location], [sernum], [slnum], [ctrlnum],[ponum],[ronum],
-	        [unitcost],[uom],[priviousqtyonhand],[updatedqtyonhand],[qtyadjusted],[adjustmentamount],[reasoncode],[adjdate],
+	        [unitcost],[uom],[priviousqtyonhand],[updatedqtyonhand],[qtyadjusted],[adjustmentamount],[reasoncode],[adjdate],[adjby],
 			[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],[masterCompanyId]
 	   FROM rptCTE)
 
@@ -247,6 +249,7 @@ BEGIN
 					CASE WHEN FC.[adjustmentamount] < 0 THEN '(' + CAST(ABS(FC.[adjustmentamount]) AS VARCHAR(100)) + ')' ELSE CAST(FC.[adjustmentamount] AS VARCHAR(100)) END [adjustmentamount],
 					FC.[reasoncode],
 					FC.[adjdate],
+					FC.[adjby],
 					FC.[level1],
 					FC.[level2],
 					FC.[level3],

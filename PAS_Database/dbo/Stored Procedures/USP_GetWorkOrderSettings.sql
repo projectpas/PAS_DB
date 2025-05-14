@@ -105,7 +105,7 @@ BEGIN
 					wos.byPassCapesSettingAtReceiving,
 					wos.isFlatRate,
 					ISNULL(wos.EnforceMpnPickTicketConfirmation, 0) AS enforceMpnPickTicketConfirmation,
-					wos.isDisplayFooter
+					Isnull(wos.isDisplayFooter,0) as isDisplayFooter 
 				FROM [DBO].[WorkOrderSettings] wos WITH(NOLOCK)
 				LEFT JOIN [DBO].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 				LEFT JOIN [DBO].[Condition] c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

@@ -10,7 +10,7 @@
  ** --   --------     -------		--------------------------------          
 	1    7 May 2025   RAJESH GAMI	CREATED
 	2   13 May 2025   RAJESH GAMI	Implemented SO and Exchange 
-** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3294,3295,3291,3297'
+** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
 	@ModuleId INT,
@@ -83,10 +83,11 @@ SET NOCOUNT ON;
 					   WOP.RevisedPartNumber as Item,
 					   WOP.RevisedPartDescription as ItemDescription,
 					   ISNULL(WOP.Quantity,0) as ItemQuantity,
-					   ISNULL(WOBII.GrandTotal,0) as ItemRate,
-					   (ISNULL(WOP.Quantity,0) * ISNULL(WOBII.GrandTotal,0)) as ItemAmount,
+					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemRate,
+					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemAmount,
 					   GETDATE() as ServiceDate,
-					    WOBI.InvoiceStatus 
+					    WOBI.InvoiceStatus,
+						WOBII.WOBillingInvoicingItemId
 					FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 						 INNER JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId

@@ -19,6 +19,7 @@
 	3    02/28/2025   HEMANT SALIYA		Updated for Task Sequence.
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
+	6    05/14/2025   EKTA CHANDEGRA	Update SequenceNUmber and ParentSequenceNumber for parent-child hierarchy
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -1374,6 +1375,49 @@ SET NOCOUNT ON;
 
 										SET @CurrentRecordId += 1;
 									END
+
+									-- Update SequenceNumber recursively
+									;WITH Numbered AS (
+										SELECT 
+											WorkOrderTaskInstructionId,
+											ROW_NUMBER() OVER (
+												PARTITION BY ParentId, WorkOrderTaskId
+												ORDER BY WorkOrderTaskInstructionId
+											) AS NewSequenceNumber
+										FROM [dbo].[WorkOrderTaskInstruction] WITH(NOLOCK)
+										WHERE WorkOrderTaskId = @WorkOrderTaskId
+									)
+									UPDATE WOTI
+									SET 
+										WOTI.SequenceNumber = N.NewSequenceNumber,
+										WOTI.UpdatedBy = @CreatedBy,
+										WOTI.UpdatedDate = GETUTCDATE()
+									FROM [dbo].[WorkOrderTaskInstruction] WOTI
+									INNER JOIN Numbered N ON WOTI.WorkOrderTaskInstructionId = N.WorkOrderTaskInstructionId;
+
+									-- Update ParentSequenceNumber recursively
+									;WITH RecursiveCTE AS (
+										SELECT 
+											WorkOrderTaskInstructionId, ParentId, SequenceNumber,
+											CAST(SequenceNumber AS VARCHAR(MAX)) AS ParentSequenceNumber
+										FROM [dbo].[WorkOrderTaskInstruction] WITH(NOLOCK)
+										WHERE WorkOrderTaskId = @WorkOrderTaskId AND ParentId IS NULL
+
+										UNION ALL
+
+										SELECT 
+											W.WorkOrderTaskInstructionId, W.ParentId, W.SequenceNumber,
+											CAST(R.ParentSequenceNumber + '.' + CAST(W.SequenceNumber AS VARCHAR) AS VARCHAR(MAX))
+										FROM [dbo].[WorkOrderTaskInstruction] W WITH(NOLOCK)
+										INNER JOIN RecursiveCTE R ON W.ParentId = R.WorkOrderTaskInstructionId
+										WHERE W.WorkOrderTaskId = @WorkOrderTaskId
+									)
+									UPDATE WOTI
+									SET WOTI.ParentSequenceNumber = R.ParentSequenceNumber,
+										WOTI.UpdatedBy = @CreatedBy,
+										WOTI.UpdatedDate = GETUTCDATE()
+									FROM [dbo].[WorkOrderTaskInstruction] WOTI
+									INNER JOIN RecursiveCTE R ON WOTI.WorkOrderTaskInstructionId = R.WorkOrderTaskInstructionId;
 
 									IF OBJECT_ID(N'tempdb..#tmpWorkflowDirection') IS NOT NULL
 									BEGIN

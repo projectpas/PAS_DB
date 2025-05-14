@@ -17,6 +17,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 6    08 Nov 2024 Sahdev Saliya       Added New Field RevisedSerialNumber
 ** 7    11 Feb 2025 RAJESH GAMI         Change the call function to store procedure (For the merge address) due to performance
 ** 8    17/02/2025  Moin Bloch          Updated (Added Publication PublicationNo)
+** 9	13/May/2025 Bhargav Saliya	    Added IsDisplayFooter to select
 
 EXEC RPT_GetWorkOrderPrintPdfData 4398,3937
 
@@ -177,6 +178,7 @@ BEGIN
 			   FOR XML PATH('')              
 			   ), 1, 1, '')     
 			   ,ISNULL(wop.RevisedSerialNumber, '') as RevisedSerialNumber
+			   ,Isnull(wost.IsDisplayFooter,0) as IsDisplayFooter 
 			FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 			INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 			INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId

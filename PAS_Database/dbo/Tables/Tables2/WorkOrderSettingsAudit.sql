@@ -59,6 +59,7 @@
     [ByPassCapesSettingAtReceiving]    BIT            NULL,
     [IsFlatRate]                       BIT            NULL,
     [EnforceMpnPickTicketConfirmation] BIT            NULL,
+    [IsDisplayFooter]                  BIT            NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
 

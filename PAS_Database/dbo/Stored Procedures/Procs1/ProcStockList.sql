@@ -34,6 +34,8 @@
 	17   12/02/2025   Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone
 	18   08/04/2025   Amit Ghediya		Added new field 'PoNumber,RoNumber & ReceiverNumber' for list
 	19   09/04/2025   Devendra Shekh	Added new field 'QuantityAdjustment, IsDocument' for list
+	20   13/05/2025   Hemant Saliya		Remove 'PoNumber, RoNumber, IsDocument join to Improve Performance.
+	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
 @PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,
@@ -117,27 +119,33 @@ BEGIN
 	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL; 
 	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	  DECLARE @AttachmentModuleId INT = 0;
+	  DECLARE @BaseUtcOffsetSec INT;
 		
-				SELECT 
-						@CurrntEmpTimeZoneDesc = COALESCE(
-							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
-							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-						)
-					FROM 
-						dbo.Employee E WITH (NOLOCK) 
-					LEFT JOIN 
-						dbo.TimeZone ETZ WITH (NOLOCK) 
-						ON E.TimeZoneId = ETZ.TimeZoneId
-					LEFT JOIN 
-						dbo.LegalEntity LE WITH (NOLOCK) 
-						ON E.LegalEntityId = LE.LegalEntityId
-					LEFT JOIN 
-						dbo.TimeZone LTZ WITH (NOLOCK) 
-						ON LE.TimeZoneId = LTZ.TimeZoneId
-					WHERE 
-						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+	   SELECT 
+	   		@CurrntEmpTimeZoneDesc = COALESCE(
+	   			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+	   			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+	   		)
+	   	FROM 
+	   		dbo.Employee E WITH (NOLOCK) 
+	   	LEFT JOIN 
+	   		dbo.TimeZone ETZ WITH (NOLOCK) 
+	   		ON E.TimeZoneId = ETZ.TimeZoneId
+	   	LEFT JOIN 
+	   		dbo.LegalEntity LE WITH (NOLOCK) 
+	   		ON E.LegalEntityId = LE.LegalEntityId
+	   	LEFT JOIN 
+	   		dbo.TimeZone LTZ WITH (NOLOCK) 
+	   		ON LE.TimeZoneId = LTZ.TimeZoneId
+	   	WHERE E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+	  
 	  SET @RecordFROM = (@PageNumber-1)*@PageSize;         
-	  SET @MSModuelId = 2;   -- For Stockline        
+	  SET @MSModuelId = 2;   -- For Stockline  
+	  
+	  -- Fetch the UTC offset in seconds
+	  SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec  
+	  FROM dbo.TimeZone WITH(NOLOCK)  
+	  WHERE [Description] = @CurrntEmpTimeZoneDesc 
         
 	  IF @SortColumn IS NULL        
 	  BEGIN        
@@ -218,7 +226,8 @@ BEGIN
 		stl.CertifiedBy,        
 		stl.CertifiedDate,        
 		--stl.UpdatedDate,
-		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+		CASE WHEN CAST(stl.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE Cast(stl.UpdatedDate AS DATE) END UpdatedDate,
+		--case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date) then null else (Cast(DATEADD(SECOND, @BaseUtcOffsetSec, stl.UpdatedDate) as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -242,21 +251,23 @@ BEGIN
 	    Stl.CustomerName 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
 	   '' AS WorkOrderStage, --Remove Workorderstage due to performance issue  
-	   ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
-	   ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+	   '' AS 'PONumber',
+	   '' AS 'RONumber',
+	   --ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+	   --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-	   CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
+	   'No' AS 'IsDocument'
+	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		  LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
-		  LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
+		  --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+		  --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
+		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
-		 AND stl.IsParent = 1 
-		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND ISNULL(stl.IsParent, 0) = 1 
 		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT *,
@@ -324,7 +335,6 @@ BEGIN
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND    
 		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and   
-		  --(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		  (ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
@@ -491,7 +501,8 @@ BEGIN
 		stl.CertifiedBy,        
 		stl.CertifiedDate,        
 		--stl.UpdatedDate, 
-		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+		CASE WHEN CAST(stl.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE Cast(stl.UpdatedDate AS DATE) END UpdatedDate,
+		--case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DATEADD(SECOND, @BaseUtcOffsetSec, stl.UpdatedDate) as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -515,18 +526,21 @@ BEGIN
 		stl.CustomerName 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,
 		'' as WorkOrderStage,
-		ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
-		ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+		'' AS 'PONumber',
+		'' AS 'RONumber',
+		--ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+		--ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 		ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 		CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-	    CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
+		'No' AS 'IsDocument'
+	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		 LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
-		 LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
+		 --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+		 --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
+		WHERE stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
   
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
@@ -596,7 +610,6 @@ BEGIN
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
 		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
-		--(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
@@ -768,7 +781,8 @@ BEGIN
 		stl.PartCertificationNumber,        
 		stl.CertifiedBy,          stl.CertifiedDate,        
 		--stl.UpdatedDate,  
-		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+		CASE WHEN CAST(stl.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE Cast(stl.UpdatedDate AS DATE) END UpdatedDate,
+		--case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DATEADD(SECOND, @BaseUtcOffsetSec, stl.UpdatedDate)  as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -791,11 +805,14 @@ BEGIN
 	   Stl.SiteId,
 	   ISNULL(stl.CustomerId,0) as CustomerId,
 	   '' AS WorkOrderStage,
-	   ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
-	   ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+	   '' AS 'PONumber',
+		'' AS 'RONumber',
+	   --ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+	   --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-	   CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
+	   'No' AS 'IsDocument'
+	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
@@ -803,8 +820,8 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-	   LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
-	   LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
+	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
@@ -876,7 +893,6 @@ BEGIN
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND   
 		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
-		  --(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		  (ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
@@ -1042,7 +1058,8 @@ BEGIN
 		stl.CertifiedBy,        
 		stl.CertifiedDate,        
 		--stl.UpdatedDate, 
-		case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(stl.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
+		CASE WHEN CAST(stl.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE Cast(stl.UpdatedDate AS DATE) END UpdatedDate,
+		--case when CAST(stl.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DATEADD(SECOND, @BaseUtcOffsetSec, stl.UpdatedDate)  as Date))end UpdatedDate,
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
 		stl.level2 AS BuName,        
@@ -1065,11 +1082,14 @@ BEGIN
 		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,
 		'' as WorkOrderStage,
-		ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
-	    ISNULL(RO.RepairOrderNumber,'') 'RONumber',
+		'' AS 'PONumber',
+		'' AS 'RONumber',
+		--ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
+	    --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	    ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 		CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-	    CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
+		'No' AS 'IsDocument'
+	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
@@ -1077,8 +1097,8 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-	   LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
-	   LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
+	   --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
+	   --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 	 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl
   
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
@@ -1152,7 +1172,6 @@ BEGIN
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND  
 		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
-		--(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        

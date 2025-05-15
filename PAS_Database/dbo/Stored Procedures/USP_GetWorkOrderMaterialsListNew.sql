@@ -23,6 +23,7 @@
     12  07-03-2025		Moin Bloch			    Modified (Added isKitItem)
     13  18-04-2025		Devendra Shekh		    Modified (Added total Material/stockline Parts Calculation)
     14  25-04-2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
+    15  14-05-2025		Devendra Shekh		    Modified (Added ISNULL to qty fields)
 
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
@@ -657,38 +658,38 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
 						QuantityReserved = ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
-						QunatityRemaining = ISNULL((WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+						QunatityRemaining = ISNULL((ISNULL(WOM.Quantity, 0) + ISNULL(WOM.QtyToTurnIn, 0)) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + ISNULL(
 											(SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
 											JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 											Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 											AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
 											), 0)),0),
-						QunatityPicked = ISNULL((SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
+						QunatityPicked = ISNULL((SELECT SUM(ISNULL(wopt.QtyToShip, 0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),0),
 						
 						ISNULL(MSTL.QtyReserved,0) AS StocklineQtyReserved,
-						ISNULL(ISNULL(WOM.Quantity, 0) - Isnull((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - Isnull((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+						ISNULL(ISNULL(WOM.Quantity, 0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0)  AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
 						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
-						WOM.QtyOnOrder, 
-						WOM.QtyOnBkOrder,
+						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
+						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						NULL AS ReceivedDate,
 						ISNULL(WOM.POId, 0),
-						WOM.Quantity,
+						ISNULL(WOM.Quantity, 0) as Quantity,
 						ISNULL(MSTL.Quantity,0) AS StocklineQuantity,
 						ISNULL((CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
 													 JOIN dbo.Stockline SL ON WOP.WorkOrderId = SL.WorkOrderId AND WOP.ID = SL.WorkOrderPartNoId AND Sl.WorkOrderId = @Local_WorkOrderId   AND ISNULL(SL.isActive,0) = 1 AND ISNULL(SL.isDeleted,0) = 0
 													 WHERE SL.WorkOrderId = WOM.WorkOrderId AND Sl.ConditionId = WOM.ConditionCodeId AND SL.ItemMasterId = IM.ItemMasterId),0) END) 
-							  ELSE WOM.QtyToTurnIn END),0) AS PartQtyToTurnIn,
-						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
-							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
+							  ELSE ISNULL(WOM.QtyToTurnIn, 0) END),0) AS PartQtyToTurnIn,
+						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN ISNULL(MSTL.Quantity, 0)
+							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN ISNULL(SL.QuantityTurnIn, 0) ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
 						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
@@ -830,7 +831,7 @@ SET NOCOUNT ON
 						WOM.UnitCost,
 						ISNULL(IMPS.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
-						WOM.TotalStocklineQtyReq,
+						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
@@ -898,35 +899,35 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
 						QuantityReserved = ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
-						QunatityRemaining = ISNULL((WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+						QunatityRemaining = ISNULL((ISNULL(WOM.Quantity, 0) + ISNULL(WOM.QtyToTurnIn, 0)) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + ISNULL(
 											(SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLineKit womsl WITH (NOLOCK)
 											JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 											Where womsl.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND womsl.ConditionId = WOM.ConditionCodeId
 											AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
 											), 0)),0),
-						QunatityPicked = ISNULL((SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
+						QunatityPicked = ISNULL((SELECT SUM(ISNULL(wopt.QtyToShip, 0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND wopt.WorkorderId = WOM.WorkOrderId),0),
 						
 						ISNULL(MSTL.QtyReserved,0) AS StocklineQtyReserved,
-						ISNULL(ISNULL(WOM.Quantity, 0) - Isnull((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - Isnull((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+						ISNULL(ISNULL(WOM.Quantity, 0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
 						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
-						WOM.QtyOnOrder, 
-						WOM.QtyOnBkOrder,
+						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
+						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						NULL AS ReceivedDate,
 						ISNULL(WOM.POId, 0),
-						WOM.Quantity,
+						ISNULL(WOM.Quantity, 0) as Quantity, 
 						ISNULL(MSTL.Quantity,0) AS StocklineQuantity,
 						ISNULL(WOM.QtyToTurnIn,0) AS PartQtyToTurnIn,
-						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
-							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
+						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN ISNULL(MSTL.Quantity, 0) 
+							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN ISNULL(SL.QuantityTurnIn, 0) ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
 						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
@@ -1070,7 +1071,7 @@ SET NOCOUNT ON
 						WOM.UnitCost,
 						ISNULL(IMPS.PP_UnitPurchasePrice,0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
-						WOM.TotalStocklineQtyReq,
+						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
@@ -1143,38 +1144,38 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
 						QuantityReserved = ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
-						QunatityRemaining = ISNULL((WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+						QunatityRemaining = ISNULL((ISNULL(WOM.Quantity, 0) + ISNULL(WOM.QtyToTurnIn, 0)) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + ISNULL(
 											(SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
 											JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 											Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 											AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
 											), 0)),0),
-						QunatityPicked = ISNULL((SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
+						QunatityPicked = ISNULL((SELECT SUM(ISNULL(wopt.QtyToShip, 0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),0),
 						
 						ISNULL(MSTL.QtyReserved,0) AS StocklineQtyReserved,
-						ISNULL(ISNULL(WOM.Quantity, 0) - Isnull((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - Isnull((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+						ISNULL(ISNULL(WOM.Quantity, 0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
 						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
-						WOM.QtyOnOrder, 
-						WOM.QtyOnBkOrder,
+						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
+						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
 						ISNULL(WOM.POId, 0),
-						WOM.Quantity,
+						ISNULL(WOM.Quantity, 0) as Quantity,
 						ISNULL(MSTL.Quantity, 0) as StocklineQuantity,
 						(CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
 													 JOIN dbo.Stockline SL ON WOP.WorkOrderId = SL.WorkOrderId AND WOP.ID = SL.WorkOrderPartNoId AND Sl.WorkOrderId = @Local_WorkOrderId AND ISNULL(SL.isActive,0) = 1 AND ISNULL(SL.isDeleted,0) = 0
 													 WHERE SL.WorkOrderId = WOM.WorkOrderId AND Sl.ConditionId = WOM.ConditionCodeId AND SL.ItemMasterId = IM.ItemMasterId),0) END) 
-							  ELSE WOM.QtyToTurnIn END) AS PartQtyToTurnIn,
-						CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
-							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END AS 'StocklineQtyToTurnIn',
+							  ELSE ISNULL(WOM.QtyToTurnIn, 0) END) AS PartQtyToTurnIn,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN ISNULL(MSTL.Quantity, 0) 
+							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN ISNULL(SL.QuantityTurnIn, 0) ELSE 0 END END AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
 						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
@@ -1315,7 +1316,7 @@ SET NOCOUNT ON
 						WOM.UnitCost,
 						ISNULL(IMPS.PP_UnitPurchasePrice, 0) AS ItemMasterUnitCost,
 						WOM.ExtendedCost,
-						WOM.TotalStocklineQtyReq,
+						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost, 0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
@@ -1383,35 +1384,35 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0), 0),
 						QuantityReserved = ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0), 0),
-						QunatityRemaining = ISNULL((WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+						QunatityRemaining = ISNULL((ISNULL(WOM.Quantity, 0) + ISNULL(WOM.QtyToTurnIn, 0)) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + ISNULL(
 											(SELECT SUM(ISNULL(sl.QuantityOnOrder,0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK)
 											JOIN #tmpStocklineKit sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 											Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.ConditionId = WOM.ConditionCodeId
 											AND womsl.isActive = 1 AND womsl.isDeleted = 0
 											), 0)), 0),
-						QunatityPicked = ISNULL((SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
+						QunatityPicked = ISNULL((SELECT SUM(ISNULL(wopt.QtyToShip, 0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND wopt.WorkorderId = WOM.WorkOrderId), 0),
 						
 						ISNULL(MSTL.QtyReserved, 0) AS StocklineQtyReserved,
-						ISNULL(ISNULL(WOM.Quantity, 0) - Isnull((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - Isnull((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+						ISNULL(ISNULL(WOM.Quantity, 0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0), 0) AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued, 0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
 						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
-						WOM.QtyOnOrder, 
-						WOM.QtyOnBkOrder,
+						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
+						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
 						ISNULL(WOM.POId, 0),
-						WOM.Quantity,
+						ISNULL(WOM.Quantity, 0) as Quantity,
 						ISNULL(MSTL.Quantity, 0) AS StocklineQuantity,
-						WOM.QtyToTurnIn AS PartQtyToTurnIn,
-						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
-							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END, 0) AS 'StocklineQtyToTurnIn',
+						ISNULL(WOM.QtyToTurnIn, 0) AS PartQtyToTurnIn,
+						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN ISNULL(MSTL.Quantity, 0)
+							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN ISNULL(SL.QuantityTurnIn, 0) ELSE 0 END END, 0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
 						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
@@ -1547,9 +1548,9 @@ SET NOCOUNT ON
 				--	SELECT @Count = COUNT(1) from #finalMaterialListResult;
 				--ELSE
 					SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
-					SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #TMPWOMaterialParentQtySum);
-					SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #TMPWOMaterialParentQtySum;
-					SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #TMPWOMaterialParentQtySum;
+					SET @TotalQty = (SELECT SUM(CAST(ISNULL(Quantity, 0) AS INT)) from  #TMPWOMaterialParentQtySum);
+					SELECT @TotalIssued = SUM(CAST(ISNULL(QuantityIssued, 0) AS INT)) from  #TMPWOMaterialParentQtySum;
+					SELECT @TotalReserved = SUM(CAST(ISNULL(QuantityReserved, 0) AS INT)) from  #TMPWOMaterialParentQtySum;
 					SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT) + CAST(ISNULL(@TotalReserved, 0) AS INT))) = 0  THEN 1 ELSE 0 END)
 					SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
 				SELECT *, @Count As NumberOfItems,

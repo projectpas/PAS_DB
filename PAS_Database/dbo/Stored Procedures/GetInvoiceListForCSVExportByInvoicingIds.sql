@@ -10,6 +10,7 @@
  ** --   --------     -------		--------------------------------          
 	1    7 May 2025   RAJESH GAMI	CREATED
 	2   13 May 2025   RAJESH GAMI	Implemented SO and Exchange 
+	3   15 May 2025   RAJESH GAMI	Added Taxable Column 
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
@@ -57,7 +58,7 @@ SET NOCOUNT ON;
 					ON E.TimeZoneId = ETZ.TimeZoneId
 				LEFT JOIN 
 					dbo.LegalEntity LE WITH (NOLOCK) 
-					ON E.LegalEntityId = LE.LegalEntityId
+					ON E.LegalEntityId = LE.LegalEntityId 
 				LEFT JOIN 
 					dbo.TimeZone LTZ WITH (NOLOCK) 
 					ON LE.TimeZoneId = LTZ.TimeZoneId
@@ -87,7 +88,8 @@ SET NOCOUNT ON;
 					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemAmount,
 					   GETDATE() as ServiceDate,
 					    WOBI.InvoiceStatus,
-						WOBII.WOBillingInvoicingItemId
+						WOBII.WOBillingInvoicingItemId,
+						'N' as Taxable
 					FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 						 INNER JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
@@ -134,7 +136,8 @@ SET NOCOUNT ON;
 					   (CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (CONVERT(DECIMAL(10,2),ISNULL(SOBII.GrandTotal,0)/ ISNULL(SOBII.NoofPieces,0))) ELSE  ISNULL(SOBII.GrandTotal,0) END) as ItemRate,
 					   (ISNULL(SOBII.GrandTotal,0)) as ItemAmount,
 					   GETDATE() as ServiceDate,
-					   SOBII.SOBillingInvoicingItemId
+					   SOBII.SOBillingInvoicingItemId,
+					   'N' as Taxable
 					FROM dbo.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) 
 						 INNER JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 						 INNER JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
@@ -213,7 +216,8 @@ SET NOCOUNT ON;
 					   1 as ItemQuantity,
 					   SUM(ISNULL(ESOBII.GrandTotal,0)) as ItemRate,
 					   SUM((ISNULL(ESOBII.GrandTotal,0))) as ItemAmount,
-					   GETDATE() as ServiceDate
+					   GETDATE() as ServiceDate,
+					   'N' as Taxable
 					FROM dbo.ExchangeSalesOrderBillingInvoicing ESOBI WITH(NOLOCK) 
 						 INNER JOIN  dbo.ExchangeSalesOrderBillingInvoicingItem ESOBII WITH(NOLOCK) ON ESOBI.SOBillingInvoicingId = ESOBII.SOBillingInvoicingId
 						 INNER JOIN dbo.ExchangeSalesOrder ESO WITH(NOLOCK) ON ESOBI.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId

@@ -3798,6 +3798,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntity.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerContactATAMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetModuleNumberForSelectedPart.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

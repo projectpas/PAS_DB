@@ -9,14 +9,15 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    23/10/2024   Moin Bloch    Created
-	2    26/12/2024   Moin Bloch    Added LegalEntityId Field	
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    23/10/2024   Moin Bloch		Created
+	2    26/12/2024   Moin Bloch		Added LegalEntityId Field	
+	3    14/05/2025   Amit Ghediya      Added Adjustment Reason.
 
   EXEC [dbo].[USP_CycleCountDetail_AddUpdate]  
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CycleCountDetail_AddUpdate]
+CREATE     PROCEDURE [dbo].[USP_CycleCountDetail_AddUpdate]
 @TableCycleCountDetailType CycleCountDetailType READONLY  
 AS  
 BEGIN  
@@ -72,7 +73,8 @@ BEGIN
 				[LegalEntityId] [bigint] NULL,
 				[MasterCompanyId] [int] NULL,
 				[CreatedBy] [varchar](256) NULL,
-				[UpdatedBy] [varchar](256) NULL)
+				[UpdatedBy] [varchar](256) NULL,
+				[AdjustmentReasonId] [bigint] NULL)
 				
 				INSERT INTO #TempCycleCountDetail([CycleCountDetailId],[CycleCountId],[StockLineId],[StockLineNumber],[ControlNumber],
 				            [IdNumber],[SerialNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],
@@ -80,14 +82,14 @@ BEGIN
 							[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],
 							[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],
 							[DifferenceQuantity],[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],
-							[MasterCompanyId],[CreatedBy],[UpdatedBy])
+							[MasterCompanyId],[CreatedBy],[UpdatedBy],[AdjustmentReasonId])
 					 SELECT [CycleCountDetailId],[CycleCountId],[StockLineId],[StockLineNumber],[ControlNumber],
 				            [IdNumber],[SerialNumber],[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],
 							[ManufacturerName],[ConditionId],[ConditionName],[UnitOfMeasureId],[UnitOfMeasureName],
 							[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],
 							[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],
 							[DifferenceQuantity],[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],
-							[MasterCompanyId],[CreatedBy],[UpdatedBy] 
+							[MasterCompanyId],[CreatedBy],[UpdatedBy],[AdjustmentReasonId]
 					   FROM @TableCycleCountDetailType;
 				
 				SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #TempCycleCountDetail    
@@ -106,13 +108,13 @@ BEGIN
 									[UnitOfMeasureId],[UnitOfMeasureName],[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],
 									[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],
 									[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
-									[UpdatedDate],[IsActive],[IsDeleted])
+									[UpdatedDate],[IsActive],[IsDeleted],[AdjustmentReasonId])
 							 SELECT [CycleCountId],[StockLineId],[StockLineNumber],[ControlNumber],[IdNumber],[SerialNumber],
 									[ItemMasterId],[PartNumber],[PartDescription],[ManufacturerId],[ManufacturerName],[ConditionId],[ConditionName],
 									[UnitOfMeasureId],[UnitOfMeasureName],[UnitCost],[CurrencyId],[CurrencyName],[SiteId],[Site],[WarehouseId],[Warehouse],
 									[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],
 									[DifferenceAmount],[IsCustomerStock],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),
-									GETUTCDATE(),1,0					
+									GETUTCDATE(),1,0,[AdjustmentReasonId]					
 							   FROM #TempCycleCountDetail WHERE [ID] = @MinId;
 
 						     SELECT @CycleCountDetailId = SCOPE_IDENTITY();  
@@ -142,6 +144,7 @@ BEGIN
 								  ,CD.[DifferenceAmount] = TR.[DifferenceAmount]
 								  ,CD.[UpdatedBy] = TR.[UpdatedBy]
 								  ,CD.[UpdatedDate] = GETUTCDATE()
+								  ,CD.[AdjustmentReasonId] = TR.[AdjustmentReasonId]
 							 FROM [dbo].[CycleCountDetail] CD WITH(NOLOCK)
 							 INNER JOIN #TempCycleCountDetail TR ON CD.[CycleCountDetailId] = TR.[CycleCountDetailId]
 				           WHERE CD.[CycleCountDetailId] = @CycleCountDetailId;

@@ -9,12 +9,13 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
+ ** PR   Date         Author			Change Description            
  ** -----------------------------------------------------------          
-    1    23/10/2024   Moin Bloch    Created
-	2    18/11/2024   Moin Bloch    Added IsSerialized Field
-	3    25/11/2024   Moin Bloch    Added QuantityReserved Field	
-	4    26/12/2024   Moin Bloch    Added LegalEntityId Field	
+    1    23/10/2024   Moin Bloch		Created
+	2    18/11/2024   Moin Bloch		Added IsSerialized Field
+	3    25/11/2024   Moin Bloch		Added QuantityReserved Field	
+	4    26/12/2024   Moin Bloch		Added LegalEntityId Field	
+	5    14/05/2025   Amit Ghediya      Added Adjustment Reason.
 	     
     EXEC USP_CycleCountDetail_GetDetailsById 7,1
 ************************************************************************/    
@@ -76,6 +77,7 @@ BEGIN
 			  ,CC.[IsDeleted]
 			  ,MS.[LastMSLevel]
 			  ,MS.[AllMSlevels]
+			  ,CC.[AdjustmentReasonId]
 		 FROM [dbo].[CycleCountDetail] CC WITH(NOLOCK)	
 		 INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = CC.[StockLineId]
 		 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CycleCountReviewDetail_GetDetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to get Cycle Count Review Details 
@@ -10,11 +9,12 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
+ ** PR   Date         Author			Change Description            
  ** -----------------------------------------------------------          
-    1    06/11/2024   Moin Bloch    Created
-	2    07/11/2024   Moin Bloch    Added IsActive,IsDeleted
-	3    27/12/2024   Moin Bloch    Added LegalEntityId,[LedgerId] Field	
+    1    06/11/2024   Moin Bloch		Created
+	2    07/11/2024   Moin Bloch		Added IsActive,IsDeleted
+	3    27/12/2024   Moin Bloch		Added LegalEntityId,[LedgerId] Field	
+	4    14/05/2025   Amit Ghediya      Added Adjustment Reason.
 	     
     EXEC USP_CycleCountReviewDetail_GetDetailsById 23,1
 ************************************************************************/    
@@ -81,10 +81,12 @@ BEGIN
 			      ,MS.[LastMSLevel]
 			      ,MS.[AllMSlevels]
 				  ,CO.[StatusId]
+				  ,sar.[Description] 'AdjustmentReasonName'
 			FROM [dbo].[CycleCountDetail] CC WITH(NOLOCK)	
 				INNER JOIN [dbo].[CycleCount] CO WITH(NOLOCK) ON CO.[CycleCountId] = CC.[CycleCountId]
 				INNER JOIN [dbo].[CycleCountApproval] CA WITH(NOLOCK) ON CA.[CycleCountDetailId] = CC.[CycleCountDetailId] AND CA.[StatusId] = @ApprovalStatusId
 				LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 
+				LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON CC.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	
 			WHERE CC.[MasterCompanyId] = @MasterCompanyId 
 				AND CC.[CycleCountId] = @CycleCountId	
 				AND CC.[IsActive] = 1 AND CC.IsDeleted = 0;				
@@ -138,9 +140,11 @@ BEGIN
 			  ,MS.[LastMSLevel]
 			  ,MS.[AllMSlevels]
 			  ,CA.[StatusId]
+			  ,sar.[Description] 'AdjustmentReasonName'
 		 FROM [dbo].[CycleCountDetail] CC WITH(NOLOCK)	
 		 INNER JOIN [dbo].[CycleCount] CA WITH(NOLOCK) ON CA.[CycleCountId] = CC.[CycleCountId]
 		 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 
+		 LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON CC.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	
 		  WHERE CC.[MasterCompanyId] = @MasterCompanyId 
 		    AND CC.[CycleCountId] = @CycleCountId	
 			AND CC.[IsActive] = 1 AND CC.IsDeleted = 0;		

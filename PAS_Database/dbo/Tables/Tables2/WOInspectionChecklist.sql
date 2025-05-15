@@ -35,6 +35,7 @@
     [UpdatedBy]                            NVARCHAR (256) NOT NULL,
     [CreatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklist_CreatedDate] DEFAULT (getdate()) NOT NULL,
     [UpdatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklist_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [InspectionConditionId]                BIGINT         NULL,
     CONSTRAINT [PK_WOInspectionChecklist] PRIMARY KEY CLUSTERED ([WOInspectionId] ASC),
     CONSTRAINT [FK_WOInspectionChecklist_ReceivingCustomerWorkId] FOREIGN KEY ([ReceivingCustomerWorkId]) REFERENCES [dbo].[ReceivingCustomerWork] ([ReceivingCustomerWorkId])
 );

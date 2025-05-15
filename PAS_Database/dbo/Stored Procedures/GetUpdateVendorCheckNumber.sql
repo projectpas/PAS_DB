@@ -40,8 +40,9 @@ BEGIN
 			PCS.PrintingId,
 			PCS.StartNum
 			FROM [dbo].[PrintCheckSetup] PCS WITH(NOLOCK) WHERE PrintingId = @PrintingId;
-			--UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber
-			--WHERE PrintingId = @PrintingId;
+
+			UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber
+			WHERE PrintingId = @PrintingId;
 		END
 	END
 	ELSE

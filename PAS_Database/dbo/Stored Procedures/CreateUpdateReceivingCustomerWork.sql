@@ -15,7 +15,7 @@
     1    08-APR-2025   Abhishek Jirawla		Created
 	2	 24-APR-2025   Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 	3	 30-APR-2025   ABHISHEK JIRAWLA		Adding IsPiecePart and IsRepairManagement to the Stockline
-     
+    4	 15-MAY-2025   AYUSHI PATEL 		Inserted CustReq Date into table by removing UTCDATE 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
@@ -521,7 +521,7 @@ BEGIN
 							   ,[MFGLotNo] ,[IsExpDate] ,[ExpDate] ,[IsTimeLife] ,[TagDate] ,[TagType] ,[TagTypeId] ,[TimeLifeDate] ,[TimeLifeOrigin] 
 							   ,TimeLifeCyclesId ,[Memo] ,[PartCertificationNumber] ,[ManagementStructureId] ,@NewStocklineId ,[WorkOrderId] ,[MasterCompanyId] 
 							   ,[CreatedBy] ,[UpdatedBy] ,GETUTCDATE() ,GETUTCDATE() ,1 ,0 ,[IsSkipSerialNo] ,[IsSkipTimeLife] ,[Reference] 
-							   ,[CertifiedBy] ,GETUTCDATE() ,GETUTCDATE() ,[Level1] ,[Level2] ,[Level3] ,[Level4] ,[EmployeeName] ,[CustomerName] ,[WorkScopeId] 
+							   ,[CertifiedBy] ,GETUTCDATE() ,[CustReqDate] ,[Level1] ,[Level2] ,[Level3] ,[Level4] ,[EmployeeName] ,[CustomerName] ,[WorkScopeId] 
 							   ,[CustomerCode] ,[ManufacturerName] ,[InspectedById] ,[CertifiedDate] ,[ObtainFromName] ,[OwnerName] ,[TraceableToName] ,[PartNumber] 
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedByName] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 

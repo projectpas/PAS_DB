@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    09-May-2025		Divyesh Kathiriya	Created
+	2	 16-May-2025		Divyesh Kathiriya	Add Nullable Parameter.
     
  -- EXEC [USP_CreateLegalEntity] @Name=N'LEGAL ENTITY',@AddressId=0,@PhoneNumber=N'98989892333',@FaxNumber=default,@FunctionalCurrencyId=2,@ReportingCurrencyId=2,
 								 @IsBalancingEntity=1,@TagNames=N'',@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@MasterCompanyId=1,@CompanyCode=N'LEGAL ENTITY CODE',
@@ -230,17 +231,17 @@ BEGIN
 					IF(@LegalEntityId > 0)
 					BEGIN
 						
-						IF(@IsAddressForShipping = 1)
+						IF(ISNULL(@IsAddressForShipping, 0) = 1)
 						BEGIN
 							
-							EXEC [DBO].[USP_LegalEntityShippingAddress] @LegalEntityId,	0, @CompanyName, @Address1,	@Address2, @StateOrProvince, @City,	@PostalCode, @CountryId, 1, @CreatedBy, @UpdatedBy, @MasterCompanyId;
+							EXEC [DBO].[USP_LegalEntityShippingAddress] @LegalEntityId,	0, @CompanyName, @Address1,	@Address2, @StateOrProvince, @City,	@PostalCode, @CountryId, 1, @CreatedBy, @UpdatedBy, @MasterCompanyId, NULL;
 							
-						END
+						END						
 						
-						IF(@IsAddressForBilling = 1)
+						IF(ISNULL(@IsAddressForBilling, 0) = 1)
 						BEGIN
 
-							EXEC [DBO].[USP_LegalEntityBillingAddress] @LegalEntityId,	0, @CompanyName, @Address1,	@Address2, @StateOrProvince, @City,	@PostalCode, @CountryId, 1, @CreatedBy, @UpdatedBy, @MasterCompanyId;
+							EXEC [DBO].[USP_LegalEntityBillingAddress] @LegalEntityId,	0, @CompanyName, @Address1,	@Address2, @StateOrProvince, @City,	@PostalCode, @CountryId, 1, @CreatedBy, @UpdatedBy, @MasterCompanyId, NULL;
 							
 						END
 

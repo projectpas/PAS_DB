@@ -3797,9 +3797,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntity.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorInternationalShipping.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_GetCustomerContactATAMapping.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetModuleNumberForSelectedPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSubWorkOrderMaterials.sql" />
@@ -3808,6 +3806,9 @@
     <Build Include="dbo\User Defined Types\SubWorkOrderMaterialsType.sql" />
 
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsById.sql" />
+
+    <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntity.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

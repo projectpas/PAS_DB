@@ -3804,6 +3804,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateSubWorkOrderMaterialsStoclkine.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateSubWorkOrderMaterials.sql" />
     <Build Include="dbo\User Defined Types\SubWorkOrderMaterialsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntity.sql" />
     <Build Include="dbo\Tables\RepairOrderShippingItemAudit.sql" />
     <Build Include="dbo\Tables\RepairOrderShippingItem.sql" />

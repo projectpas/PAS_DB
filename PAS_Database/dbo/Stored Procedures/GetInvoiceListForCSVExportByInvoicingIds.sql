@@ -9,8 +9,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    7 May 2025   RAJESH GAMI	CREATED
-
-** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3294,3295,3291,3297'
+	2   13 May 2025   RAJESH GAMI	Implemented SO and Exchange 
+	3   15 May 2025   RAJESH GAMI	Added Taxable Column 
+** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
 	@ModuleId INT,
@@ -57,7 +58,7 @@ SET NOCOUNT ON;
 					ON E.TimeZoneId = ETZ.TimeZoneId
 				LEFT JOIN 
 					dbo.LegalEntity LE WITH (NOLOCK) 
-					ON E.LegalEntityId = LE.LegalEntityId
+					ON E.LegalEntityId = LE.LegalEntityId 
 				LEFT JOIN 
 					dbo.TimeZone LTZ WITH (NOLOCK) 
 					ON LE.TimeZoneId = LTZ.TimeZoneId
@@ -74,26 +75,28 @@ SET NOCOUNT ON;
 					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 							CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
 					   ELSE (CAST(WOBI.InvoiceDate AS DATE)) END InvoiceDate,
-					   DATEADD(DAY, WO.NetDays, (CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					   DATEADD(DAY, ISNULL(WO.NetDays,0), (CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 							CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
 					   ELSE (CAST(WOBI.InvoiceDate AS DATE)) END)) AS DueDate,
 					   WO.CreditTerms as Terms,
 					   '' as [Location],
-					   WO.Notes as Memo,
+					   WO.Memo as Memo,
 					   WOP.RevisedPartNumber as Item,
 					   WOP.RevisedPartDescription as ItemDescription,
 					   ISNULL(WOP.Quantity,0) as ItemQuantity,
-					   ISNULL(WOBII.GrandTotal,0) as ItemRate,
-					   (ISNULL(WOP.Quantity,0) * ISNULL(WOBII.GrandTotal,0)) as ItemAmount,
+					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemRate,
+					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemAmount,
 					   GETDATE() as ServiceDate,
-					    WOBI.InvoiceStatus 
+					    WOBI.InvoiceStatus,
+						WOBII.WOBillingInvoicingItemId,
+						'N' as Taxable
 					FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 						 INNER JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
 						 INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOBII.ItemMasterId = WOP.RevisedItemmasterid
 					WHERE 
 						WOBI.MasterCompanyId=@MasterCompanyId AND
-						(@IsSelectAllInvoice = 1 AND 
+						((@IsSelectAllInvoice = 1 AND 
 							WOBI.IsVersionIncrease=0 AND
 							(@FromDate IS NULL OR CAST(WOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
 							(@ToDate IS NULL OR CAST(WOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
@@ -108,34 +111,139 @@ SET NOCOUNT ON;
 							) )
 						  ) 
 						OR 
-						(@IsSelectAllInvoice = 0 AND WOBI.BillingInvoicingId IN (SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ',')))
+						(@IsSelectAllInvoice = 0 AND WOBI.BillingInvoicingId IN (SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ','))))
 					
 				
 				
 			END /******************* END: WORK ORDER MODULE *******************/
 			ELSE IF(@ModuleId = @soModuleId) /******************* START: SALES ORDER MODULE *******************/
 			BEGIN	
-				PRINT 'Sales Order'
-				--Select 
-				--	   SOBI.InvoiceNo,
-				--	   SO.CustomerName Customer,
-				--	   SOBI.InvoiceDate,
-				--	   DATEADD(DAY, SO.NetDays, SOBI.InvoiceDate) AS DueDate,
-				--	   SO.CreditTerms as Terms,
-				--	   '' as [Location],
-				--	   SO.Notes as Memo,
-				--	   SOP.RevisedPartNumber as Item,
-				--	   SOP.RevisedPartDescription as ItemDescription,
-				--	   ISNULL(SOP.Quantity,0) as ItemQuantity,
-				--	   ISNULL(WOBII.GrandTotal,0) as ItemRate,
-				--	   (ISNULL(SOP.Quantity,0) * ISNULL(WOBII.GrandTotal,0)) as ItemAmount,
-				--	   GETDATE() as ServiceDate
-				--	FROM dbo.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) 
-				--		 INNER JOIN  dbo.SalesOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = WOBII.SOBillingInvoicingId
-				--		 INNER JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-				--		 INNER JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND WOBII.ItemMasterId = SOP.ItemMasterId
-				--	WHERE SOBI.SOBillingInvoicingId IN( SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ','))
+				Select DISTINCT 
+					   SOBI.InvoiceNo,
+					   SO.CustomerName Customer,
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					    	CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+					   ELSE (CAST(SOBI.InvoiceDate AS DATE)) END InvoiceDate,
+					   DATEADD(DAY, ISNULL(SO.NetDays,0), (CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+					   ELSE (CAST(SOBI.InvoiceDate AS DATE)) END)) AS DueDate,
+					   SO.CreditTermName as Terms,
+					   '' as [Location],
+					   SOP.Notes as Memo,
+					   SOP.PartNumber as Item,
+					   SOP.PartDescription as ItemDescription,
+					   ISNULL(SOBII.NoofPieces,0) as ItemQuantity,
+					   (CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (CONVERT(DECIMAL(10,2),ISNULL(SOBII.GrandTotal,0)/ ISNULL(SOBII.NoofPieces,0))) ELSE  ISNULL(SOBII.GrandTotal,0) END) as ItemRate,
+					   (ISNULL(SOBII.GrandTotal,0)) as ItemAmount,
+					   GETDATE() as ServiceDate,
+					   SOBII.SOBillingInvoicingItemId,
+					   'N' as Taxable
+					FROM dbo.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) 
+						 INNER JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+						 INNER JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+						 INNER JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOBII.ItemMasterId = SOP.ItemMasterId
+						 INNER JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
+						 INNER JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+					WHERE  SOBI.MasterCompanyId=@MasterCompanyId 
+						AND
+							((@IsSelectAllInvoice = 1 AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0 AND
+							(@FromDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
+							(@ToDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
+							(IsNull(@Status,'') ='' OR SOBI.InvoiceStatus like '%' + @Status+'%') 
+							AND
+							( (@ViewType ='invoice'
+								AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+								AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsProforma,0) = 0)) )
+							 OR
+							 ( (@ViewType !='invoice'
+								AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId))
+							) )
+						  ) 
+						OR 
+						(@IsSelectAllInvoice = 0 AND SOBI.SOBillingInvoicingId IN( SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ','))))
+					--GROUP BY 
+					--SOBI.InvoiceNo,
+					--SO.CustomerName,
+					--CASE 
+					--    WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					--        CASE 
+					--            WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) 
+					--                THEN NULL 
+					--                ELSE CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE) 
+					--        END 
+					--    ELSE CAST(SOBI.InvoiceDate AS DATE) 
+					--END,
+					--DATEADD(
+					--    DAY, 
+					--    ISNULL(SO.NetDays, 0), 
+					--    CASE 
+					--        WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					--            CASE 
+					--                WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) 
+					--                    THEN NULL 
+					--                    ELSE CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE) 
+					--            END 
+					--        ELSE CAST(SOBI.InvoiceDate AS DATE) 
+					--    END
+					--),
+					--SO.CreditTermName,
+					--SOP.Notes,
+					--SOP.PartNumber,
+					--SOP.PartDescription,
+					--ISNULL(SOBII.NoofPieces, 0),
+					--CONVERT(DECIMAL(10, 2), ISNULL(SOBII.GrandTotal, 0) / ISNULL(SOBII.NoofPieces, 0)),
+					--ISNULL(SOBII.GrandTotal, 0),
+					--SOPS.StockLineId
+
 			END  /******************* END: SALES ORDER MODULE *******************/
+
+			ELSE IF(@ModuleId = @exchModuleId) /******************* START: EXCHANGE MODULE *******************/
+			BEGIN	
+				Select  
+					   ESOBI.InvoiceNo,
+					   ESO.CustomerName Customer,
+					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					    	CASE WHEN CAST(ESOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ESOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+					   ELSE (CAST(ESOBI.InvoiceDate AS DATE)) END InvoiceDate,
+					   DATEADD(DAY, ISNULL(ESO.NetDays,0), (CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(ESOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(ESOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)) END 
+					   ELSE (CAST(ESOBI.InvoiceDate AS DATE)) END)) AS DueDate,
+					   ESO.CreditTermName as Terms,
+					   '' as [Location],
+					   ESOP.Notes as Memo,
+					   ESOP.PartNumber as Item,
+					   ESOP.PartDescription as ItemDescription,
+					   1 as ItemQuantity,
+					   SUM(ISNULL(ESOBII.GrandTotal,0)) as ItemRate,
+					   SUM((ISNULL(ESOBII.GrandTotal,0))) as ItemAmount,
+					   GETDATE() as ServiceDate,
+					   'N' as Taxable
+					FROM dbo.ExchangeSalesOrderBillingInvoicing ESOBI WITH(NOLOCK) 
+						 INNER JOIN  dbo.ExchangeSalesOrderBillingInvoicingItem ESOBII WITH(NOLOCK) ON ESOBI.SOBillingInvoicingId = ESOBII.SOBillingInvoicingId
+						 INNER JOIN dbo.ExchangeSalesOrder ESO WITH(NOLOCK) ON ESOBI.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+						 INNER JOIN dbo.ExchangeSalesOrderPart ESOP WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESOP.ExchangeSalesOrderId AND ESOBII.ItemMasterId = ESOP.ItemMasterId
+					WHERE  ESOBI.MasterCompanyId=@MasterCompanyId 
+						AND
+							((@IsSelectAllInvoice = 1 AND ISNULL(ESOBII.[IsDeleted],0) = 0 AND ISNULL(ESOBI.[GrandTotal],0) > 0	 AND
+							(@FromDate IS NULL OR CAST(ESOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
+							(@ToDate IS NULL OR CAST(ESOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
+							(IsNull(@Status,'') ='' OR ESOBI.InvoiceStatus like '%' + @Status+'%') 
+							AND
+							( (@ViewType ='invoice'
+								AND ESOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+								AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(ESOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) )) )
+							 OR
+							 ( (@ViewType !='invoice'
+								AND ESOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+							) ))
+						  ) 
+						OR 
+						(@IsSelectAllInvoice = 0 AND ESOBI.SOBillingInvoicingId IN( SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ','))))
+
+						GROUP BY ESOBI.InvoiceNo, ESO.CustomerName,ESOBI.InvoiceDate,ISNULL(ESO.NetDays,0),ESO.CreditTermName,ESOP.Notes,ESOP.PartNumber,
+						ESOP.PartDescription
+
+			END  /******************* END: EXCHANGE MODULE *******************/
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

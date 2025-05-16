@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    08-05-2025    Sahdev Saliya       Created  
+    2    15-05-2025    Devendra Shekh	   Added IsPrintCorrectiveAction to select
 
 -- EXEX USP_GetWorkFlowWorkOrderQuoteList 8543, 8806
 **************************************************************/  
@@ -74,7 +75,8 @@ BEGIN
 					wq.Notes,
 					wq.CurrencyId,
 					wq.ReportCurrencyId,
-					wq.ForeignExchangeRate
+					wq.ForeignExchangeRate,
+					ISNULL(wq.IsPrintCorrectiveAction, 0) IsPrintCorrectiveAction
 				FROM [dbo].WorkOrderQuote wq WITH(NOLOCK)
 				INNER JOIN [dbo].WorkOrder wo WITH(NOLOCK) ON wq.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].Customer cust WITH(NOLOCK) ON wq.CustomerId = cust.CustomerId

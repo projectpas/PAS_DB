@@ -3798,6 +3798,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntity.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorInternationalShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

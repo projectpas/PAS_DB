@@ -3793,13 +3793,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorkFlowNos.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorContactDataByVendorId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorCreditTermsByVendorId.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_CheckVendorDefaultPaymentMethod.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntity.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorInternationalShipping.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

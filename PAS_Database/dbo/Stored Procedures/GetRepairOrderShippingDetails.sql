@@ -63,7 +63,7 @@ BEGIN
         sos.ShipToState shipToState,
         sos.ShipToZip shipToZip,
         CASE 
-            WHEN sos.IsVendorShipping = 1 THEN sos.CustomerDomensticShippingShipViaId
+            WHEN sos.IsVendorShipping = 1 THEN sos.VendorDomensticShippingShipViaId
             ELSE sos.ShipviaId 
         END AS shipviaId,
         sos.SoldToAddress1 soldToAddress1,

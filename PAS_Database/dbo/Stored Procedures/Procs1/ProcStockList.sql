@@ -35,6 +35,7 @@
 	18   08/04/2025   Amit Ghediya		Added new field 'PoNumber,RoNumber & ReceiverNumber' for list
 	19   09/04/2025   Devendra Shekh	Added new field 'QuantityAdjustment, IsDocument' for list
 	20   13/05/2025   Hemant Saliya		Remove 'PoNumber, RoNumber, IsDocument join to Improve Performance.
+	21   16/05/2025   Devendra Shekh    reading RepairOrderNumber, PurchaseOrderNumber, IsDocument from StockLine Table
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -251,13 +252,13 @@ BEGIN
 	    Stl.CustomerName 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
 	   '' AS WorkOrderStage, --Remove Workorderstage due to performance issue  
-	   '' AS 'PONumber',
-	   '' AS 'RONumber',
+	   ISNULL(stl.PurchaseOrderNumber,'') AS 'PONumber',
+	   ISNULL(stl.RepairOrderNumber,'') AS 'RONumber',
 	   --ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
 	   --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-	   'No' AS 'IsDocument'
+	   CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument'
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -526,13 +527,13 @@ BEGIN
 		stl.CustomerName 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,
 		'' as WorkOrderStage,
-		'' AS 'PONumber',
-		'' AS 'RONumber',
+		ISNULL(stl.PurchaseOrderNumber,'') AS 'PONumber',
+	    ISNULL(stl.RepairOrderNumber,'') AS 'RONumber',
 		--ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
 		--ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 		ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 		CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-		'No' AS 'IsDocument'
+		CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument'
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
@@ -805,13 +806,13 @@ BEGIN
 	   Stl.SiteId,
 	   ISNULL(stl.CustomerId,0) as CustomerId,
 	   '' AS WorkOrderStage,
-	   '' AS 'PONumber',
-		'' AS 'RONumber',
+	   ISNULL(stl.PurchaseOrderNumber,'') AS 'PONumber',
+	   ISNULL(stl.RepairOrderNumber,'') AS 'RONumber',
 	   --ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
 	   --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-	   'No' AS 'IsDocument'
+	   CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument'
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1082,13 +1083,13 @@ BEGIN
 		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,
 		'' as WorkOrderStage,
-		'' AS 'PONumber',
-		'' AS 'RONumber',
+		ISNULL(stl.PurchaseOrderNumber,'') AS 'PONumber',
+	    ISNULL(stl.RepairOrderNumber,'') AS 'RONumber',
 		--ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
 	    --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	    ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 		CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
-		'No' AS 'IsDocument'
+		CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument'
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    

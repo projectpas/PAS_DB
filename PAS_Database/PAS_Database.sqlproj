@@ -3803,6 +3803,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateSubWorkOrderMaterialsStoclkine.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateSubWorkOrderMaterials.sql" />
     <Build Include="dbo\User Defined Types\SubWorkOrderMaterialsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntity.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

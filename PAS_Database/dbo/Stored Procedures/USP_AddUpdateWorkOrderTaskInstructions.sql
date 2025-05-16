@@ -15,6 +15,7 @@
     4    03/25/2025   Vishal Suthar	 Added an option for adding child with selected set of Instructions
     5    04/07/2025   Devendra Shekh Resolved an issue related to a manually added description
     6    04/28/2025   Ekta Chandegra Manage instruction sequence for parent and child
+    7    05/12/2025   Ekta Chandegra Add parameter for USP_InsertWorkOrderTaskInstructionHistory
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateWorkOrderTaskInstructions]
@@ -279,7 +280,7 @@ BEGIN
 				EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy, @NewWorkOrderTaskInstructionId , NULL
 
 				-- Add Work Order Task Instruction History 
-				EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL
+				EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL, 0
 
 				IF (@ParentId IS NULL)
 				BEGIN
@@ -330,7 +331,7 @@ BEGIN
 			EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @Id , NULL
 
 			-- Add Work Order Task Instruction History 
-			EXEC USP_InsertWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId, NULL
+			EXEC USP_InsertWorkOrderTaskInstructionHistory @Id , @CreatedBy, @InstructionListId, NULL, 0
 
 			/* START: Add Entry in History Table */
 			SET @StatusCode = 'CreateWorkOrderTaskInstruction';
@@ -544,7 +545,7 @@ BEGIN
 				EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @NewWorkOrderTaskInstructionId_1 , NULL
 
 				-- Add Work Order Task Instruction History 
-				EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWorkOrderTaskInstructionId_1 , @CreatedBy, @InstructionListId, NULL
+				EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWorkOrderTaskInstructionId_1 , @CreatedBy, @InstructionListId, NULL, 0
 
 				IF (@ParentId IS NULL)
 				BEGIN
@@ -665,7 +666,7 @@ BEGIN
 			EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @NewWOTIID , NULL
 
 			-- Add Work Order Task Instruction History 
-			EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId, NULL
+			EXEC USP_InsertWorkOrderTaskInstructionHistory @NewWOTIID , @CreatedBy, @InstructionListId, NULL, 0
 
 			/* START: Add Entry in History Table */
 			SET @StatusCode = 'CreateWorkOrderTaskInstruction';
@@ -700,7 +701,7 @@ BEGIN
 		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @CreatedBy , @WorkOrderTaskInstructionId , NULL
 
 		-- Add Work Order Task Instruction History 
-		EXEC USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL
+		EXEC USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @CreatedBy, @InstructionListId, NULL, 0
 
 		SELECT @WorkOrderTaskInstructionId AS WorkOrderTaskInstructionId;
 	END

@@ -10,7 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    11-March-2025		Devendra Shekh			Created
     2    12-March-2025		Devendra Shekh			Changed Cursor to While Loop
-
+    3    14-May-2025		Devendra Shekh			passing Selected TaskIds to Save task if not exists
 
 declare @p5 bit
 set @p5=NULL
@@ -22,6 +22,7 @@ CREATE   PROCEDURE [dbo].[USP_SaveDefaultTemplateTaskInstruction]
     @UserName VARCHAR(256) = NULL,
     @TaskId BIGINT = NULL,
     @MasterCompanyId INT = NULL,
+	@TaskIds VARCHAR(500) = NULL,
 	@IsNewAdded BIT OUTPUT
 AS
 BEGIN
@@ -154,6 +155,53 @@ BEGIN
 			);
 
 			SET @IsNewAdded = 1;
+		END
+
+		IF(ISNULL(@TaskIds, '') <> '')
+		BEGIN
+			DECLARE @TotalRows INT, @CurrentRowId INT;
+
+			IF OBJECT_ID(N'tempdb..#TempWorkFlowTask') IS NOT NULL
+			BEGIN
+				DROP TABLE #TempWorkFlowTask
+			END
+
+			SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, value AS TaskId INTO #TempWorkFlowTask FROM STRING_SPLIT(@TaskIds, ',')
+
+			SELECT @TotalRows = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #TempWorkFlowTask;
+
+			IF(ISNULL(@TotalRows, 0) > 0)
+			BEGIN
+				WHILE(@TotalRows >= @CurrentRowId)
+				BEGIN
+					-- Storing Task To WorkFlowTask
+					SELECT @TaskId = [TaskId] FROM #TempWorkFlowTask WHERE [RowId] = @CurrentRowId;
+
+					SELECT @MaxSequence = ISNULL(MAX(WFT.SequenceNumber), 0)
+					FROM [dbo].[WorkFlowTask] WFT WITH (NOLOCK)
+					WHERE WFT.MasterCompanyId = @MasterCompanyId AND WFT.WorkFlowId = @WorkFlowId;
+
+					SELECT @WorkFlowNumber = [WorkOrderNumber] FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
+				
+					SET @SequenceNumber = CASE WHEN ISNULL(@SequenceNumber, 0) > ISNULL(@MaxSequence, 0) THEN @SequenceNumber ELSE ISNULL(@MaxSequence, 0) + 1 END;
+
+					SELECT @Descrepancy = [Descrepancy], @Resolution = [Resolution], @TaskDescription = [Description] FROM [dbo].[Task] WITH(NOLOCK) WHERE [TaskId] = @TaskId AND [MasterCompanyId] = @MasterCompanyId;
+
+					IF NOT EXISTS(SELECT 1 FROM [DBO].[WorkFlowTask] WITH(NOLOCK) WHERE [WorkFlowId] = @WorkflowId AND [TaskId] = @TaskId AND [MasterCompanyId] = @MasterCompanyId)
+					BEGIN
+						INSERT INTO [dbo].[WorkFlowTask]
+						(	[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [Resolution], [IsVersionIncrease], [MasterCompanyId],
+							[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
+						)
+						VALUES
+						(	@WorkflowId, @WorkFlowNumber, @TaskId, @TaskDescription, @SequenceNumber, @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
+							@UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
+						);
+					END
+
+					SET @CurrentRowId += 1;
+				END
+			END
 		END
 
 	END TRY   

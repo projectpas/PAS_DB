@@ -232,6 +232,8 @@
     [COGS_ExchSalesOrderGLAccId]          BIGINT          NULL,
     [COGS_ExchSalesOrderGLAccName]        VARCHAR (255)   NULL,
     [QuantityAdjustment]                  INT             NULL,
+    [IsDocument]                          BIT             NULL,
+    [PurchaseOrderNumber]                 VARCHAR (50)    NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

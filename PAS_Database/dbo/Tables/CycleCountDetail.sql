@@ -42,6 +42,7 @@
     [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_CycleCountDetail_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]              BIT             CONSTRAINT [DF_CycleCountDetail_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_CycleCountDetail_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [AdjustmentReasonId]    BIGINT          NULL,
     CONSTRAINT [PK_CycleCountDetail] PRIMARY KEY CLUSTERED ([CycleCountDetailId] ASC),
     CONSTRAINT [FK_CycleCountDetail_Condition] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_CycleCountDetail_CycleCount] FOREIGN KEY ([CycleCountId]) REFERENCES [dbo].[CycleCount] ([CycleCountId]),
@@ -50,6 +51,8 @@
     CONSTRAINT [FK_CycleCountDetail_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_CycleCountDetail_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

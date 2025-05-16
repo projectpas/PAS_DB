@@ -13,6 +13,7 @@
  ** --   --------     -------			--------------------------------            
 	1    01/08/2024   Vishal Suthar		Created
 	2    04/28/2025   Ekta Chandegra 	Fix parent-child sequence update issue
+	3    05/12/2025   Ekta Chandegra 	Add @IsFromWorkFlow
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOTaskInstructionSequenceNumber]
@@ -23,7 +24,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateWOTaskInstructionSequenceNumber]
 	@NewSequenceNumber BIGINT,
 	@UpdatedBy VARCHAR(50),
 	@InstructionListId VARCHAR(250),
-	@WorkOrderTaskId BIGINT
+	@WorkOrderTaskId BIGINT,
+	@IsFromWorkFlow BIT
 )
 AS
 BEGIN 
@@ -114,7 +116,7 @@ BEGIN
 		INNER JOIN RecursiveCTE R ON WOTI.WorkOrderTaskInstructionId = R.WorkOrderTaskInstructionId;
 
 		-- Add Work Order Task Instruction History
-		EXEC dbo.USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @UpdatedBy , @InstructionListId , @NewWorkOrderTaskInstructionId;
+		EXEC dbo.USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId , @UpdatedBy , @InstructionListId , @NewWorkOrderTaskInstructionId, @IsFromWorkFlow;
 
 		-- Add Work Order Task History
 		EXEC dbo.USP_AddWorkOrderTaskHistory @WorkOrderTaskId , @UpdatedBy , @WorkOrderTaskInstructionId , NULL;

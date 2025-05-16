@@ -102,7 +102,7 @@ BEGIN
 			SET @BillingAddressId = SCOPE_IDENTITY();	
 
 			UPDATE [DBO].[LegalEntity] 
-			SET	[ShippingAddressId] = @AddressId
+			SET	[BillingAddressId] = @AddressId
 			WHERE LegalEntityId = @LegalEntityId AND [MasterCompanyId] = @MasterCompanyId
 
 			EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@BillingAddressId,@AddressType,@UpdatedBy;

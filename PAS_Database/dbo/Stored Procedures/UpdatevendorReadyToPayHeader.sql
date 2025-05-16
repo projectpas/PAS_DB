@@ -41,7 +41,7 @@ BEGIN
 	END
 
 	--Update PrintCheckSetup
-	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNums + 1
+	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNums 
 	WHERE PrintingId = @PrintingId;
 
 	--update checknumber in VendorReadyToPayHeader table

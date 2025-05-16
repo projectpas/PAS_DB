@@ -22,6 +22,7 @@
     6    24/12/2024   BHAVESH RAVAL   For the UpdateGLAccount Details in Stockline Table 
 	7    09/01/2025   BHAVESH RAVAL   For the add new column in COGS_ExchSalesOrderGLAcc 
 	8    11/02/2025   Bhargav Saliya  Update GL Account
+	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -36,6 +37,8 @@ BEGIN
 			BEGIN
 				DECLARE @MSModuleID INT;
 				SET @MSModuleID = 2; -- FOR STOCKLINE
+				DECLARE @AttachmentModuleId INT = 0;
+				SELECT @AttachmentModuleId = [AttachmentModuleId] FROM [DBO].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'StockLine';
 
 				DECLARE @CustomerAffiliationId INT;
 				DECLARE @IsCustStock BIT;
@@ -83,7 +86,10 @@ BEGIN
 					SL.LotId = CASE WHEN ISNULL(SL.LotId,0) = 0 AND ISNULL(SL.LotNumber,'') != '' THEN (SELECT Top 1 LotId FROM dbo.LOT lot WITH(NOLOCK) WHERE lot.LotNumber =SL.LotNumber) ELSE SL.LotId END,
 					SL.IsLotAssigned = CASE WHEN ISNULL(SL.LotId,0) = 0 AND ISNULL(SL.LotNumber,'') != '' AND (SELECT Top 1 LotId FROM dbo.LOT lot WITH(NOLOCK) WHERE lot.LotNumber =SL.LotNumber) > 0 THEN 1 ELSE 0 END,
 					SL.IsCustomerStock = @IsCustStock,
-					SL.UnitCost = CASE WHEN ISNULL(SL.UnitCost,0) = 0 THEN 0 ELSE SL.UnitCost END
+					SL.UnitCost = CASE WHEN ISNULL(SL.UnitCost,0) = 0 THEN 0 ELSE SL.UnitCost END,
+					SL.RepairOrderNumber = ro.RepairOrderNumber,
+					SL.PurchaseOrderNumber = po.PurchaseOrderNumber,
+					SL.IsDocument = CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE SL.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 1 ELSE 0 END
 				FROM [dbo].[Stockline] SL WITH(NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
 					INNER JOIN [dbo].[Condition] CN WITH(NOLOCK) ON CN.ConditionId = SL.ConditionId

@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
  ** File:		 [USP_LegalEntityShippingAddress]           
  ** Author:		 Divyesh Kathiriya
- ** Description: This Stored Procedure Is Used To Create LegalEntity Shipping Address.
+ ** Description: This Stored Procedure Is Used To Create or Update LegalEntity Shipping Address.
  ** Purpose:         
  ** Date:   12-May-2025 
  **************************************************************           
@@ -10,15 +10,16 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    12-May-2025		Divyesh Kathiriya	Created
+	2	 15-May-2025		Divyesh Kathiriya	Add - Update LegalEntity Shipping Address.
     
- -- EXEC [DBO].[USP_LegalEntityShippingAddress] 45,	0, 'COMPANY NAME', 'ADDRESS LINE 1', 'ADDRESS LINE 2', 'PRIMARY STATE/PROVINCE','CITY',	'ZIP CODE', 2, 1, 0, 1, 'DANE PARK', 'DANE PARK', 1;
+ -- EXEC [DBO].[USP_LegalEntityShippingAddress] 45,	0, 'COMPANY NAME', 'ADDRESS LINE 1', 'ADDRESS LINE 2', 'PRIMARY STATE/PROVINCE','CITY',	'ZIP CODE', 2, 1, 0, 1, 'DANE PARK', 'DANE PARK', 1, NULL;
 **************************************************************/
 Create   PROCEDURE [DBO].[USP_LegalEntityShippingAddress]
 @LegalEntityId BIGINT,
 @LegalEntityShippingAddressId BIGINT = 0,
 @CompanyName VARCHAR(256),
 @Address1 VARCHAR(50),
-@Address2 VARCHAR(50) = Null,
+@Address2 VARCHAR(50) = NULL,
 @StateOrProvince VARCHAR(50),
 @City VARCHAR(50),
 @PostalCode VARCHAR(20),
@@ -26,7 +27,8 @@ Create   PROCEDURE [DBO].[USP_LegalEntityShippingAddress]
 @IsPrimary BIT,
 @CreatedBy VARCHAR(256),
 @UpdatedBy VARCHAR(256),
-@MasterCompanyId INT
+@MasterCompanyId INT,
+@ShippingAddressId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -36,9 +38,13 @@ BEGIN
 
 		-- Declare variables
 		DECLARE @AddressId BIGINT;
-		DECLARE @shippingAddressId BIGINT;
+		--DECLARE @shippingAddressId BIGINT;
 		DECLARE @AddressType INT = 2;
-		DECLARE @LegalEntityModuleId INT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'LegalEntity');
+		DECLARE @CurrentPrimaryId BIGINT;
+		DECLARE @LegalEntityModuleId INT;
+		DECLARE @IsHistory INT = 0;
+
+		SELECT @LegalEntityModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'LegalEntity';
 
 		IF(ISNULL(@LegalEntityShippingAddressId, 0) = 0)
 		BEGIN			
@@ -99,17 +105,71 @@ BEGIN
 										1, 
 										0) 
 
-			SET @shippingAddressId = SCOPE_IDENTITY();	
+			SET @LegalEntityShippingAddressId = SCOPE_IDENTITY();	
 
 			UPDATE [DBO].[LegalEntity] 
 			SET	[ShippingAddressId] = @AddressId
-			WHERE LegalEntityId = @LegalEntityId AND [MasterCompanyId] = @MasterCompanyId
+			WHERE [LegalEntityId] = @LegalEntityId AND [MasterCompanyId] = @MasterCompanyId
 
-			EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@shippingAddressId,@AddressType,@UpdatedBy;
+			EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@LegalEntityShippingAddressId,@AddressType,@UpdatedBy;
 
 		END
+		ELSE
+		BEGIN
+			-- GET CURRENT PRIMARY SHIPPING ADDRESS
+			SELECT @CurrentPrimaryId = [LegalEntityShippingAddressId] FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE LegalEntityId = @LegalEntityId AND IsPrimary = 1;
+			
+			-- IF CURRENT PRIMARY ADDRESS IS DIFFERENT FROM THE PROVIDED SHIPPINGADDRESSID
+			IF (@CurrentPrimaryId IS NOT NULL AND EXISTS (SELECT 1 FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [AddressId] = @ShippingAddressId AND [LegalEntityId] = @LegalEntityId AND [LegalEntityShippingAddressId] != @CurrentPrimaryId))
+			BEGIN
+				-- UPDATE OLD PRIMARY
+				UPDATE [DBO].[LegalEntityShippingAddress]
+				SET [IsPrimary] = 0,
+					[UpdatedDate] = GETUTCDATE(),
+					[UpdatedBy] = @UpdatedBy
+				WHERE [LegalEntityShippingAddressId] = @CurrentPrimaryId;
+				
+				EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@CurrentPrimaryId,@AddressType,@UpdatedBy;
+			END
+
+			IF NOT EXISTS (SELECT 1 FROM [DBO].[Address] WITH(NOLOCK) WHERE [AddressId] = @ShippingAddressId AND [Line1] = @Address1 AND [Line2] = @Address2 AND [City] = @City AND [StateOrProvince] = @StateOrProvince AND [CountryId] = @CountryId AND [PostalCode] = @PostalCode)
+			BEGIN
+				UPDATE [DBO].[Address]
+				SET [Line1] = @Address1,
+					[Line2] = @Address2,
+					[City] = @City,
+					[StateOrProvince] = @StateOrProvince,				
+					[PostalCode] = @PostalCode,
+					[CountryId] = @CountryId,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE()				
+				WHERE [AddressId] = @ShippingAddressId;
+
+				SET @IsHistory = 1;
+			END
+			
+			IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [AddressId] = @ShippingAddressId AND [SiteName] = @CompanyName AND [IsPrimary] = @IsPrimary)
+			BEGIN
+				UPDATE [DBO].[LegalEntityShippingAddress] 
+				SET [SiteName] = @CompanyName,
+					[IsPrimary] = @IsPrimary,									
+					[UpdatedBy] = @UpdatedBy, 
+					[UpdatedDate] = GETUTCDATE(),
+					[IsActive] = 1, 
+					[IsDeleted] = 0
+				WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId;
+
+				SET @IsHistory = 1;
+			END	
+				
+			IF (@IsHistory = 1)
+			BEGIN
+				EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@LegalEntityShippingAddressId,@AddressType,@UpdatedBy;
+			END		
+		
+		END
 	
-	COMMIT  TRANSACTION
+	COMMIT TRANSACTION
 	END TRY 
 	BEGIN CATCH
 	IF @@trancount > 0  

@@ -3805,6 +3805,21 @@
     <Build Include="dbo\Stored Procedures\USP_CreateSubWorkOrderMaterials.sql" />
     <Build Include="dbo\User Defined Types\SubWorkOrderMaterialsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntity.sql" />
+    <Build Include="dbo\Tables\RepairOrderShippingItemAudit.sql" />
+    <Build Include="dbo\Tables\RepairOrderShippingItem.sql" />
+    <Build Include="dbo\Tables\RepairOrderShippingAudit.sql" />
+    <Build Include="dbo\Tables\RepairOrderShipping.sql" />
+    <Build Include="dbo\Tables\RepairOrderPackaginSlipItems.sql" />
+    <Build Include="dbo\Tables\RepairOrderPackaginSlipHeader.sql" />
+    <Build Include="dbo\Tables\RepairOrderCustomsInfoAudit.sql" />
+    <Build Include="dbo\Tables\RepairOrderCustomsInfo.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetROShippingParentList.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetROShippingChildList.sql" />
+    <Build Include="dbo\Stored Procedures\GetROShippingLabelByRepairOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\GetROPackagingLabelPrint.sql" />
+    <Build Include="dbo\Stored Procedures\GetROPackagingLabel.sql" />
+    <Build Include="dbo\Stored Procedures\GetRepairOrderShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorInternationalShippingStatus.sql" />
   </ItemGroup>
   <ItemGroup>

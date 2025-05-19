@@ -18,6 +18,7 @@
 	3    26/07/2024  Amit Ghediya    Update to get Freight amount.
 	4    11/09/2024  Amit Ghediya    Update to get Header level Functional Curr.
 	5    20/09/2024  Amit Ghediya    Update for get part data in sequentially.
+	6    19/05/2025  Devendra Shekh	 Update to get PartLineTotal
      
 -- EXEC RPT_PrintPurchasePartDataById 2537
 ************************************************************************/
@@ -248,7 +249,8 @@ BEGIN
 		GROUP BY PO.PurchaseOrderPartRecordId,PO.PartNumber, PO.AltEquiPartNumber, PO.PartDescription, PO.Manufacturer, PO.GLAccount,PO.UnitOfMeasure, PO.NeedByDate,PO.Condition,
 			 PO.QuantityOrdered, PO.UnitCost, PO.VendorListPrice,PO.Priority,PO.DiscountAmount,PO.DiscountPercent,PO.DiscountPercentValue,PO.DiscountPerUnit,
 			 PO.ExtendedCost, PO.Memo, POMS.LastMSLevel,POMS.AllMSlevels;
-
+		
+		;WITH PartResult AS (
 		SELECT 
 			 row_num,
 			 PartNumber,
@@ -302,7 +304,13 @@ BEGIN
 			ChargeMethodId,
 			FreightMethodId,
 			NumOfRecord,
-			CurrencyCode;
+			CurrencyCode)
+			, AmtResult AS (
+				SELECT SUM(ISNULL(POA.ExtendedCost, 0) + ISNULL(POA.BillingAmount, 0) + ISNULL(POA.FreightBillingAmount, 0)) AS PartLineTotal, POA.row_num
+				FROM PartResult POA GROUP BY POA.row_num
+			)
+
+			SELECT PR.*, AR.PartLineTotal FROM PartResult PR INNER JOIN AmtResult AR ON PR.row_num = AR.row_num ;
   END TRY    
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

@@ -1384,7 +1384,7 @@ SET NOCOUNT ON;
 												PARTITION BY ParentId, WorkOrderTaskId
 												ORDER BY WorkOrderTaskInstructionId
 											) AS NewSequenceNumber
-										FROM [dbo].[WorkOrderTaskInstruction]
+										FROM [dbo].[WorkOrderTaskInstruction] WITH(NOLOCK)
 										WHERE WorkOrderTaskId = @WorkOrderTaskId
 									)
 									UPDATE WOTI

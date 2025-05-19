@@ -3824,6 +3824,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteVendorInternationalShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetContactsByVendorId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

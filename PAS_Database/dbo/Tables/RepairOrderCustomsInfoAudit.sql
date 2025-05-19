@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[RepairOrderCustomsInfoAudit] (
+    [AuditRepairOrderCustomsInfoId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [RepairOrderCustomsInfoId]      BIGINT          NOT NULL,
+    [RepairOrderShippingId]         BIGINT          NOT NULL,
+    [EntryType]                     VARCHAR (100)   NULL,
+    [EPU]                           VARCHAR (100)   NULL,
+    [CustomsValue]                  DECIMAL (20, 2) NULL,
+    [NetMass]                       DECIMAL (20, 2) NULL,
+    [EntryStatus]                   VARCHAR (100)   NULL,
+    [EntryNumber]                   VARCHAR (100)   NULL,
+    [VATValue]                      DECIMAL (20, 2) NULL,
+    [UCR]                           VARCHAR (100)   NULL,
+    [MasterUCR]                     VARCHAR (100)   NULL,
+    [MovementRefNo]                 VARCHAR (100)   NULL,
+    [CommodityCode]                 VARCHAR (100)   NULL,
+    [MasterCompanyId]               INT             NOT NULL,
+    [CreatedBy]                     VARCHAR (256)   NOT NULL,
+    [UpdatedBy]                     VARCHAR (256)   NOT NULL,
+    [CreatedDate]                   DATETIME2 (7)   NOT NULL,
+    [UpdatedDate]                   DATETIME2 (7)   NOT NULL,
+    [IsActive]                      BIT             NOT NULL,
+    [IsDeleted]                     BIT             NOT NULL,
+    [CustomCurrencyId]              INT             NULL,
+    CONSTRAINT [PK_RepairOrderCustomsInfoAudit] PRIMARY KEY CLUSTERED ([AuditRepairOrderCustomsInfoId] ASC),
+    CONSTRAINT [FK_RepairOrderCustomsInfoAudit_RepairOrderCustomsInfo] FOREIGN KEY ([RepairOrderCustomsInfoId]) REFERENCES [dbo].[RepairOrderCustomsInfo] ([RepairOrderCustomsInfoId])
+);
+

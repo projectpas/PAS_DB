@@ -18,6 +18,7 @@
 	2    02/17/2025   HEMANT SALIYA		Handel for Task Based or Teardown Based.
 	3    02/28/2025   HEMANT SALIYA		Updated for Task Sequence.
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
+	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -1278,30 +1279,80 @@ SET NOCOUNT ON;
 										[NewParentId] [BIGINT] NULL,
 									)
 									
+									;WITH ParentInstructions AS (
+										SELECT 
+											WFD.WorkflowDirectionId,
+											NULL AS ParentId,
+											1 AS IsParent,
+											WFD.[Action] AS InstructionTitle,
+											WFD.[Description] AS InstructionDetails,
+											T.IsPrintInWO,
+											ROW_NUMBER() OVER (ORDER BY WFD.WorkflowDirectionId) AS ParentSequence
+										FROM dbo.WorkflowDirection WFD WITH (NOLOCK)
+										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+										WHERE WFD.WorkflowId = @WorkflowId 
+											AND ISNULL(WFD.IsTaskDetails, 0) = 0
+											AND WFD.TaskId = @WorkFlowTaskId
+											AND ISNULL(WFD.IsParent, 0) = 1
+											AND ISNULL(WFD.IsActive, 0) = 1 
+											AND ISNULL(WFD.IsDeleted, 0) = 0
+									),
+									ChildInstructions AS (
+										SELECT 
+											WFD.WorkflowDirectionId,
+											WFD.ParentId,
+											0 AS IsParent,
+											WFD.[Action] AS InstructionTitle,
+											WFD.[Description] AS InstructionDetails,
+											T.IsPrintInWO,
+											ROW_NUMBER() OVER (
+												PARTITION BY WFD.ParentId 
+												ORDER BY WFD.WorkflowDirectionId
+											) AS ChildSequence
+										FROM dbo.WorkflowDirection WFD WITH (NOLOCK)
+										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+										WHERE WFD.WorkflowId = @WorkflowId 
+											AND ISNULL(WFD.IsTaskDetails, 0) = 0
+											AND WFD.TaskId = @WorkFlowTaskId
+											AND ISNULL(WFD.IsParent, 0) = 0
+											AND ISNULL(WFD.IsActive, 0) = 1 
+											AND ISNULL(WFD.IsDeleted, 0) = 0
+									)
+
 									INSERT INTO #tmpWorkflowDirection(WorkOrderTaskId,WorkflowDirectionId,ParentId,IsParent,InstructionTitle,SequenceNumber,InstructionDetails,PrintInWO,
 												MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsFromWorkFlow)
-									SELECT @WorkOrderTaskId AS WorkOrderTaskId, 
-										WFD.WorkflowDirectionId AS WorkflowDirectionId,
-										WFD.ParentId,
-										ISNULL(WFD.IsParent, 0) AS IsParent,
-										WFD.[Action] AS InstructionTitle, 
-										WFD.[Sequence] AS SequenceNumber, 
-										WFD.[Description] AS InstructionDetails,
-										T.IsPrintInWO AS PrintInWO,
-										CAST(@MasterCompanyId AS INT) AS MasterCompanyId,
-										@CreatedBy AS CreatedBy,
-										@CreatedBy AS UpdatedBy,
-										GETUTCDATE() AS CreatedDate,
-										GETUTCDATE() AS UpdatedDate, 
-										1 AS IsActive,	
-										0 AS IsDeleted,
-										1 AS IsFromWorkFlow									
-									FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
-										LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
-									WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId AND ISNULL(WFD.IsActive, 0) = 1 AND ISNULL(WFD.IsDeleted, 0) = 0
-									ORDER BY WFD.ParentId ,  ISNULL(ParentId, WorkflowDirectionId), SequenceNumber;
-									--ORDER BY WFD.[Sequence] ASC,  WFD.ParentId ASC,ISNULL(WFD.IsParent, 0) DESC
+									SELECT 
+										@WorkOrderTaskId,
+										p.WorkflowDirectionId,
+										NULL AS ParentId,
+										1 AS IsParent,
+										p.InstructionTitle,
+										CAST(p.ParentSequence AS VARCHAR(100)) AS SequenceNumber,
+										p.InstructionDetails,
+										p.IsPrintInWO,
+										@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 1
+									FROM ParentInstructions p
 
+									UNION ALL
+
+									SELECT 
+										@WorkOrderTaskId,
+										c.WorkflowDirectionId,
+										c.ParentId,
+										0 AS IsParent,
+										c.InstructionTitle,
+										CAST(c.ChildSequence AS VARCHAR(100)) AS SequenceNumber,
+										c.InstructionDetails,
+										c.IsPrintInWO,
+										@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 1
+									FROM ChildInstructions c
+									ORDER BY ParentId, IsParent DESC, SequenceNumber;
+
+									--FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
+									--	LEFT JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
+									--WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 0 AND WFD.TaskId = @WorkFlowTaskId AND ISNULL(WFD.IsActive, 0) = 1 AND ISNULL(WFD.IsDeleted, 0) = 0
+									--ORDER BY WFD.ParentId ,  ISNULL(ParentId, WorkflowDirectionId), SequenceNumber;
+									
 									DECLARE @TotalRecords BIGINT = 0, @CurrentRecordId BIGINT = 1, @NewOrderTaskInstId BIGINT, @ParentWorkflowDirectionId BIGINT;
 
 									SELECT @TotalRecords = COUNT([ID]) FROM #tmpWorkflowDirection;

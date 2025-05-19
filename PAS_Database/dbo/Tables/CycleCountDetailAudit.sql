@@ -43,10 +43,7 @@
     [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_CycleCountDetailAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                BIT             CONSTRAINT [DF_CycleCountDetailAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_CycleCountDetailAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [AdjustmentReasonId]      BIGINT          NULL,
     CONSTRAINT [PK_CycleCountDetailAudit] PRIMARY KEY CLUSTERED ([CycleCountDetailAuditId] ASC)
 );
-
-
-
-
 

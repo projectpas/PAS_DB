@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------
     1    02/17/2025   Ekta Chandegra	Created
     2    04/28/2025   Ekta Chandegra	Add history when change sequence
+    3    05/12/2025   Ekta Chandegra	Add history when WO created from template
 
 -- EXEC dbo.USP_InsertWorkOrderTaskInstructionHistory @WorkOrderTaskInstructionId=1142,@UpdatedBy=N'EKTA CHANDEGRA'
 **************************************************************/
@@ -23,14 +24,15 @@ CREATE    PROCEDURE [dbo].[USP_InsertWorkOrderTaskInstructionHistory]
 	@WorkOrderTaskInstructionId BIGINT,
 	@UpdatedBy VARCHAR(100),
 	@InstructionListId VARCHAR(250),
-	@NewWorkOrderTaskInstructionId BIGINT
+	@NewWorkOrderTaskInstructionId BIGINT,
+	@IsFromWorkFlow BIT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;	
 	BEGIN TRY
 		BEGIN
-			IF(@WorkOrderTaskInstructionId > 0 AND ISNULL(@InstructionListId, '') <> '')
+			IF((@WorkOrderTaskInstructionId > 0 AND ISNULL(@InstructionListId, '') <> '') OR (@WorkOrderTaskInstructionId > 0 AND @IsFromWorkFlow = 1))
 			BEGIN
 
 				;WITH RecursiveCTE AS (
@@ -127,7 +129,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
 				WHERE WOTI.WorkOrderTaskInstructionId = @WorkOrderTaskInstructionId
 			END
-			IF(@NewWorkOrderTaskInstructionId > 0 AND ISNULL(@InstructionListId, '') <> '')
+			IF((@NewWorkOrderTaskInstructionId > 0 AND ISNULL(@InstructionListId, '') <> '') OR (@NewWorkOrderTaskInstructionId > 0 AND @IsFromWorkFlow = 1))
 			BEGIN
 
 				;WITH RecursiveCTE AS (

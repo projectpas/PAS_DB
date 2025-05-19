@@ -19,6 +19,7 @@
 	4    09-APR-2025	 Devendra Shekh		Comparing @CorrectiveActionCode instead of @corrective
     5    15-APR-2025	 RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
 	6    01-MAY-2025	 HEMANT SALIYA		Updated Hangle Error on Corrective Action
+	7    09-MAY-2025	 Devendra Shekh		Added IsPrintCorrectiveAction to select
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7342,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
@@ -95,7 +96,8 @@ BEGIN
 				FinalTotal DECIMAL(18, 2),
 				FinalLaborTotal DECIMAL(18, 2),
 				RowNumber INT,
-				Memo VARCHAR(MAX)
+				Memo VARCHAR(MAX),
+				IsPrintCorrectiveAction BIT
 			);
 
 
@@ -161,6 +163,7 @@ BEGIN
 					  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
 					FOR XML PATH(''), TYPE
 				).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 				--Memo =
 				--(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
 				--	FROM
@@ -181,7 +184,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId,  
-				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
@@ -195,7 +198,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction)
 			SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -209,7 +212,7 @@ BEGIN
 					FinalTotal,
 					FinalLaborTotal,
 					RowNumber,
-					Memo
+					Memo, IsPrintCorrectiveAction
 				FROM #tmpQuoteIds; 
 
 		END
@@ -276,6 +279,7 @@ BEGIN
 					  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
 					FOR XML PATH(''), TYPE
 				).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 				--Memo =
 				--(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
 				--	FROM
@@ -297,7 +301,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, 
-				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
@@ -311,7 +315,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction)
 				SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -325,7 +329,7 @@ BEGIN
 					FinalTotal,
 					FinalLaborTotal,
 					RowNumber,
-					Memo
+					Memo, IsPrintCorrectiveAction
 				FROM #tmpQuotetblMulti; 
 
 		END

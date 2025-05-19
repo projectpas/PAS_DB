@@ -10,7 +10,7 @@
  **************************************************************           
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
-    1    23-12-2024   HEMNAT SALIYA		Created
+    1    23-12-2024   HEMNAT SALIYA			Created
 	
 	EXEC [GetNewStocklineInventoryMismatch]
 **************************************************************/
@@ -29,7 +29,7 @@ BEGIN
 			  DECLARE @MasterCompanyId VARCHAR(100);
 			  
 			  
-			  SET @MasterCompanyId = '1,11, 12, 18,19'
+			  SET @MasterCompanyId = '11, 12, 18, 19, 20'
 			  SET @DisplayType = 1
 			  
 			  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder',

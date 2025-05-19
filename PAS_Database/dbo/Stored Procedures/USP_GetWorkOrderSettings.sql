@@ -16,6 +16,7 @@
  ** --    --------			-----------				--------------------------------          
 	 1    4-29-2025			Amit Ghediya			Created
 	 2	  05-MAY-2025		Divyesh Kathiriya		Add EnforceMpnPickTicketConfirmation Flag
+	 3	  13-MAY-2025		Bhargav Saliya			Added IsDisplayFooter to select 
 
 	 EXEC [dbo].[USP_GetWorkOrderSettings] 167,225
 ****************************************************************************************/
@@ -103,7 +104,8 @@ BEGIN
 					wos.byPassCMMSettingAtReceiving,
 					wos.byPassCapesSettingAtReceiving,
 					wos.isFlatRate,
-					ISNULL(wos.EnforceMpnPickTicketConfirmation, 0) AS enforceMpnPickTicketConfirmation
+					ISNULL(wos.EnforceMpnPickTicketConfirmation, 0) AS enforceMpnPickTicketConfirmation,
+					Isnull(wos.isDisplayFooter,0) as isDisplayFooter 
 				FROM [DBO].[WorkOrderSettings] wos WITH(NOLOCK)
 				LEFT JOIN [DBO].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 				LEFT JOIN [DBO].[Condition] c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

@@ -60,247 +60,45 @@ BEGIN
 		END
 
 		-- Main query
-		IF @ATAChapterIdList IS NOT NULL AND @ATASubChapterIdList IS NOT NULL AND @ContactIdList IS NOT NULL 
-		BEGIN
-			 SELECT
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = cATA.Level1
-					+ CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END
-					+ CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE
-				cATA.CustomerId = @CustomerId
-				AND cATA.ATAChapterId IN (SELECT Id FROM @ATAChapterIds)
-				AND cATA.ATASubChapterId IN (SELECT Id FROM @ATASubChapterIds)
-				AND cont.ContactId IN (SELECT Id FROM @ContactIds)
-				AND ISNULL(cATA.IsDeleted,0) = 0
-		END
-
-		IF @ATAChapterIdList IS NOT NULL AND @ATASubChapterIdList IS NULL AND @ContactIdList IS NULL
-		BEGIN
-			SELECT
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				ATASubChapterDescription = ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				cATA.ATASubChapterId,
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					cATA.Level1 + 
-					CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END + 
-					CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE
-				cATA.CustomerId = @CustomerId
-				AND cATA.ATAChapterId IN (SELECT Id FROM @ATAChapterIds)
-				AND ISNULL(cATA.IsDeleted, 0) <> 1
-	   END
-
-	   IF @ATAChapterIdList IS NOT NULL AND @ATASubChapterIdList IS NULL AND @ContactIdList IS NOT NULL
-	   BEGIN
-			SELECT 
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = 
-					ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					cATA.Level1 
-					+ CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END
-					+ CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
+		SELECT 
+        cATA.CustomerContactATAMappingId,
+        cATA.CustomerId,
+        cATA.ATAChapterId,
+        ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
+        ISNULL(cATA.ATASubChapterId,0) AS ATASubChapterId ,
+        (ISNULL(atasub.ATASubChapterCode,'') + ' - ' + ISNULL(cATA.ATASubChapterDescription,'')) AS ATASubChapterDescription,
+        contt.FirstName,
+        cATA.CreatedBy,
+        cATA.CreatedDate,
+        cATA.UpdatedBy,
+        cATA.UpdatedDate,
+        contt.ContactId,
+        (ISNULL(cATA.Level1,'') 
+            + CASE WHEN cATA.Level2 IS NOT NULL AND cATA.Level2 <> '' THEN '-' + cATA.Level2 ELSE '' END
+            + CASE WHEN cATA.Level3 IS NOT NULL AND cATA.Level3 <> '' THEN '-' + cATA.Level3 ELSE '' END
+        ) AS ATAChapterName
 		FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
 		INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
 		LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
 		LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-		WHERE 
+		WHERE
 			cATA.CustomerId = @CustomerId
-			AND cATA.ATAChapterId IN (SELECT Id FROM @ATAChapterIds)
-			AND cont.ContactId IN (SELECT Id FROM @ContactIds)
-			AND ISNULL(cATA.IsDeleted, 0) = 0;
-
-	   END
-
-	   IF @ATAChapterIdList IS NULL AND @ATASubChapterIdList IS NOT NULL AND @ContactIdList IS NOT NULL
-	   BEGIN
-			 SELECT 
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = 
-					ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					cATA.Level1 
-					+ CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END
-					+ CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE 
-				cATA.CustomerId = @CustomerId
-				AND cATA.ATASubChapterId IN (SELECT Id FROM @ATASubChapterIds)
-				AND cont.ContactId IN (SELECT Id FROM @ContactIds)
-				AND ISNULL(cATA.IsDeleted, 0) = 0;
-	   END
-
-	   IF @ATAChapterIdList IS NULL AND @ATASubChapterIdList IS NOT NULL AND @ContactIdList IS NULL
-	   BEGIN
-			SELECT 
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = 
-					ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					cATA.Level1
-					+ CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END
-					+ CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA  WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE 
-				cATA.CustomerId = @CustomerId
-				AND cATA.ATASubChapterId IN (SELECT Id FROM @ATASubChapterIds)
-				AND ISNULL(cATA.IsDeleted, 0) = 0;
-	   END
-
-	   IF @ATAChapterIdList IS NOT NULL AND @ATASubChapterIdList IS NOT NULL AND @ContactIdList IS NULL
-	   BEGIN 
-			SELECT 
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = 
-					ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					cATA.Level1
-					+ CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END
-					+ CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE 
-				cATA.CustomerId = @CustomerId
-				AND cATA.ATAChapterId IN (SELECT Id FROM @ATAChapterIds)
-				AND cATA.ATASubChapterId IN (SELECT Id FROM @ATASubChapterIds)
-				AND ISNULL(cATA.IsDeleted, 0) = 0;
-	   END
-
-	   IF @ATAChapterIdList IS NULL AND @ATASubChapterIdList IS NULL AND @ContactIdList IS NOT NULL
-	   BEGIN
-			SELECT 
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = 
-					ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					ISNULL(cATA.Level1, '') +
-					CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END +
-					CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE 
-				cATA.CustomerId = @CustomerId
-				AND cont.ContactId IN (SELECT Id FROM @ContactIds)
-				AND ISNULL(cATA.IsDeleted, 0) = 0;
-	   END
-
-	   ELSE
-	   BEGIN
-			SELECT 
-				cATA.CustomerContactATAMappingId,
-				cATA.CustomerId,
-				cATA.ATAChapterId,
-				ISNULL(cATA.ATAChapterCode,'') AS ATAChapterCode,
-				cATA.ATASubChapterId,
-				ATASubChapterDescription = 
-					ISNULL(atasub.ATASubChapterCode, '') + ' - ' + ISNULL(cATA.ATASubChapterDescription, ''),
-				contt.FirstName,
-				cATA.CreatedBy,
-				cATA.CreatedDate,
-				cATA.UpdatedBy,
-				cATA.UpdatedDate,
-				contt.ContactId,
-				ATAChapterName = 
-					ISNULL(cATA.Level1, '') +
-					CASE WHEN ISNULL(cATA.Level2, '') <> '' THEN '-' + cATA.Level2 ELSE '' END +
-					CASE WHEN ISNULL(cATA.Level3, '') <> '' THEN '-' + cATA.Level3 ELSE '' END
-			FROM [dbo].[CustomerContactATAMapping] cATA WITH(NOLOCK)
-			INNER JOIN [dbo].[CustomerContact] cont WITH(NOLOCK) ON cATA.CustomerContactId = cont.CustomerContactId
-			LEFT JOIN [dbo].[Contact] contt WITH(NOLOCK) ON cont.ContactId = contt.ContactId
-			LEFT JOIN [dbo].[ATASubChapter] atasub WITH(NOLOCK) ON cATA.ATASubChapterId = atasub.ATASubChapterId
-			WHERE 
-				cATA.CustomerId = @CustomerId
-				AND ISNULL(cATA.IsDeleted, 0) = 0;
-	   END
+			AND cATA.IsDeleted != 1
+			-- Filter by ATAChapterId if provided
+			AND (
+				NOT EXISTS (SELECT 1 FROM @ATAChapterIds) -- no filter
+				OR cATA.ATAChapterId IN (SELECT Id FROM @ATAChapterIds)
+			)
+			-- Filter by ATASubChapterID if provided
+			AND (
+				NOT EXISTS (SELECT 1 FROM @ATASubChapterIds)
+				OR cATA.ATASubChapterId IN (SELECT Id FROM @ATASubChapterIds)
+			)
+			-- Filter by contactId if provided
+			AND (
+				NOT EXISTS (SELECT 1 FROM @ContactIds)
+				OR cont.ContactId IN (SELECT Id FROM @ContactIds)
+			)
 
 	END TRY
 	BEGIN CATCH

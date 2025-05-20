@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [RPT_PrintPurchaseOrderDataById]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to Get Print PurchaseOrder Data By PurchaseOrderId
@@ -16,8 +15,9 @@
  ** --   --------     -------			--------------------------------          
     1    02/03/2023  Amit Ghediya		Created
     2    07/23/2024  Vishal Suthar		Added DISTINCT in the result set
+	3    19/05/2025  Devendra Shekh		Added new Fields : TotalPartCost, DepositAmount
      
--- EXEC RPT_PrintPurchaseOrderDataById 5103
+-- EXEC RPT_PrintPurchaseOrderDataById 6807
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
 @PurchaseOrderId BIGINT
@@ -34,6 +34,7 @@ BEGIN
 				@IsFalse INT = 0,
 				@VendorId BIGINT,
 				@PurchaseOrderPartRecordId BIGINT,@POPart BIGINT,@NumofRecords BIGINT;
+		DECLARE @TotalPartCost DECIMAL(18,2);
 		
 		SELECT @ModuleID = ModuleId FROM Module WITH (NOLOCK) WHERE ModuleName = 'PurchaseOrder';
 		SELECT @OtherModuleID = ModuleId FROM Module WITH (NOLOCK) WHERE ModuleName = 'Others';
@@ -48,6 +49,8 @@ BEGIN
 		LEFT JOIN [DBO].[VendorWarningList] VWL WITH (NOLOCK) ON VW.VendorWarningListId = VWL.VendorWarningListId AND VWL.Name = @VendorWarningListName
 		LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] PMSD WITH (NOLOCK) ON PO.PurchaseOrderId = PMSD.ReferenceID AND PMSD.ModuleID = @OtherModuleID
 		WHERE PO.[PurchaseOrderId] = @PurchaseOrderId;
+
+		SELECT @TotalPartCost = SUM(ISNULL(ExtendedCost, 0)) FROM [DBO].[PurchaseOrderPart] WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
 		
 		SET @VendorWarningListName = 'Create Purchase Order';
 
@@ -225,7 +228,9 @@ BEGIN
 			   '' AS 'WarningMessage',
 			   ISNULL(PMSD.[LastMSLevel],'') AS 'LastMSLevel',
 			   ISNULL(PMSD.[AllMSlevels],'') AS 'AllMSlevels',
-			   @NumofRecords AS 'NumOfRecords'
+			   @NumofRecords AS 'NumOfRecords',
+			   ISNULL(@TotalPartCost, 0) AS 'TotalPartCost',
+			   CAST(0 AS DECIMAL(10,2)) AS DepositAmount
 		FROM [DBO].[PurchaseOrder] PO WITH (NOLOCK)
 		LEFT JOIN [DBO].[AllAddress] AD WITH (NOLOCK) ON PO.PurchaseOrderId = AD.ReffranceId AND Ad.IsShippingAdd = @IsTrue AND Ad.ModuleId = @ModuleID
 		LEFT JOIN [DBO].[Contact] SC WITH (NOLOCK) ON SC.ContactId = AD.ContactId

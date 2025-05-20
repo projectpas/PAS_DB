@@ -3820,6 +3820,7 @@
     <Build Include="dbo\Stored Procedures\GetROPackagingLabelPrint.sql" />
     <Build Include="dbo\Stored Procedures\GetROPackagingLabel.sql" />
     <Build Include="dbo\Stored Procedures\GetRepairOrderShippingDetails.sql" />
+    <Build Include="dbo\Tables\UserSessions.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
   </ItemGroup>
   <ItemGroup>

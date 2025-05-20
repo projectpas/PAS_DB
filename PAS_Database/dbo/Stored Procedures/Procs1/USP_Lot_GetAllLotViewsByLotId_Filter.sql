@@ -18,6 +18,8 @@
     5    19/02/2025   Ayushi Patel      converted the date into utc (invoice) , Added a case to get timeZone 
 	6    10/APR/2025  RAJESH GAMI       Implemented Reference Number Parameter as well the 
 	7    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
+	8	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
+
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -279,6 +281,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) AS RemainStocklineCost
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				,SL.LotMainStocklineId
 		        ,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,im.ManufacturerName
@@ -615,6 +618,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.Memo
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				,SL.LotMainStocklineId
 				,ISNULL(sl.Adjustment,0) Adjustment
 				,ltCal.CreatedDate
@@ -907,6 +911,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.Memo
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				,SL.LotMainStocklineId
 				,ISNULL(sl.Adjustment,0) Adjustment
 				,soqp.CreatedDate
@@ -1183,6 +1188,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.Memo
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				,SL.LotMainStocklineId
 				,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,ltCal.CreatedDate
@@ -1501,6 +1507,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.Memo
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				,SL.LotMainStocklineId
 				,ISNULL(sl.Adjustment,0) Adjustment
 				,ltCal.CreatedDate
@@ -1741,6 +1748,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,part.PartDescription
 				,part.Condition
 				,part.Manufacturer
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.PurchaseOrder po WITH(NOLOCK)
 					 INNER JOIN DBO.LOT lot WITH(NOLOCK) on po.LotId = lot.LotId
@@ -1771,6 +1779,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,part.PartDescription
 					,part.Condition
 					,part.Manufacturer
+					,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 					--,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 					FROM DBO.LOT lot WITH(NOLOCK) 
 						 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
@@ -1903,6 +1912,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.TraceableToType
 				,sl.TaggedBy
 				,sl.TaggedByType
+				,ISNULL(Sl.IsCustomerStock, 0) IsCustomerStock
 				,SL.LotMainStocklineId
 		        ,ISNULL(sl.Adjustment,0) Adjustment		
 				,im.ManufacturerName

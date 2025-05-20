@@ -3829,6 +3829,7 @@
     <Build Include="dbo\Tables\UserSessions.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerATAMappingByFilters.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingByFilters.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

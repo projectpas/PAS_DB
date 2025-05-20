@@ -3774,6 +3774,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerSalesDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorProcessListFromTransaction.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchCustomerInvoicesQBExtract.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklinePrintDataByStockLineId.sql" />
     <Build Include="dbo\Stored Procedures\GetShippingBillingAddressAudit.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerBillingAddresses.sql" />
@@ -3825,6 +3826,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorInternationalShippingDetailsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetContactsByVendorId.sql" />
+    <Build Include="dbo\Tables\UserSessions.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -10,7 +10,8 @@
  ** --   --------     -------		--------------------------------          
 	1    7 May 2025   RAJESH GAMI	CREATED
 	2   13 May 2025   RAJESH GAMI	Implemented SO and Exchange 
-	3   15 May 2025   RAJESH GAMI	Added Taxable Column 
+	3   15 May 2025   RAJESH GAMI	Added Taxable Column
+	4   19 May 2025   RAJESH GAMI	Remove remaining amount condition
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
@@ -102,11 +103,11 @@ SET NOCOUNT ON;
 							(@ToDate IS NULL OR CAST(WOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 							(IsNull(@Status,'') ='' OR WOBI.InvoiceStatus like '%' + @Status+'%') 
 							AND
-							( (@ViewType ='invoice'AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1 AND ISNULL(WOBI.RemainingAmount,0) > 0
+							( (@ViewType ='invoice'AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
 								AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 								AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(WOBI.IsPerformaInvoice,0) = 0)))
 							 OR
-							 ( (@ViewType !='invoice' AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1 AND ISNULL(WOBI.RemainingAmount,0) > 0
+							 ( (@ViewType !='invoice' AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
 							AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      )
 							) )
 						  ) 
@@ -146,7 +147,7 @@ SET NOCOUNT ON;
 						 INNER JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 					WHERE  SOBI.MasterCompanyId=@MasterCompanyId 
 						AND
-							((@IsSelectAllInvoice = 1 AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0 AND
+							((@IsSelectAllInvoice = 1 AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND
 							(@FromDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
 							(@ToDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 							(IsNull(@Status,'') ='' OR SOBI.InvoiceStatus like '%' + @Status+'%') 

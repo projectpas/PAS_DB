@@ -17,6 +17,7 @@
 	4    14/04/2025   Devendra Shekh   handling null for @RequestedId
     5    15/04/2025   RAJESH GAMI      Implement the traverler Number logic 
 	6    18/04/2025   Moin Bloch       Added For CREATING TRAVELER LABOUR HEADER
+	7    19/05/2025   Abhishek Jirawla Added new History template to mention if cretaed form lot
 
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -67,6 +68,7 @@ CREATE       PROCEDURE [dbo].[USP_CreateWorkOrder]
 @StockLineId INT=NULL,
 @IsTraveler BIT=NULL,
 @AllowInvoiceBeforeShipping BIT=NULL,
+@IsFromLot BIT=NULL,
 @tbl_WorkOrderPartNumberType WorkOrderPartNumberType READONLY
 AS
 BEGIN
@@ -81,7 +83,7 @@ BEGIN
     DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50)	
 	DECLARE @WorkOrderSettingId BIGINT,@CustomerFinancialId BIGINT=0,@ItemMasterId BIGINT=NULL,@ID BIGINT=NULL
 	DECLARE @WorkOrderCodePrefix INT,@InternalWorkOrderCodePrefix INT,@TearDownWorkOrderCodePrefix INT,@ShopServiceWorkOrderCodePrefix INT,@RMANumberCodePrefix INT
-	DECLARE @CreateWO VARCHAR(20)='CreateWorkOrder',@EmpExpCode VARCHAR(20)='TECHNICIAN',@EmployeeExpertiseId SMALLINT= NULL,@TemplateBody VARCHAR(MAX)=''
+	DECLARE @CreateWO VARCHAR(50)='CreateWorkOrder', @CreateWOFromLot VARCHAR(50)='CreateWorkOrderFromLot',@EmpExpCode VARCHAR(20)='TECHNICIAN',@EmployeeExpertiseId SMALLINT= NULL,@TemplateBody VARCHAR(MAX)=''
 	DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1,@StocklineManagementStructureModule INT,@WorkOrderMPNManagementStructureModule INT
 	DECLARE @CustomerRMAHeaderManagementStructureModule INT,@OpenRMAStatus INT,@CustomerRMAItemReturnedStatus INT
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
@@ -583,7 +585,18 @@ BEGIN
 	
 	SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
 
-	SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @CreateWO;
+	IF ISNULL(@IsFromLot, 0) = 0
+	BEGIN
+		SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @CreateWO;
+	END
+	ELSE IF ISNULL(@IsFromLot, 0) = 1 
+	BEGIN
+		SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @CreateWOFromLot;
+	END
+	ELSE 
+	BEGIN
+		SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @CreateWO;
+	END
 
 	SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', @WorkOrderNum)
 	SET @TemplateBody = REPLACE(@TemplateBody, '#MPN#', @PartNumber)

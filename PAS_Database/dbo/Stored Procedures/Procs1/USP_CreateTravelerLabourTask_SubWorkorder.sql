@@ -20,6 +20,7 @@
 	3	 01/23/2024	  Moin Bloch	  Modified (check table for WorkOrderFormTypeId)
 	4	 04/16/2025	  Devendra Shekh  Added changes for IsLaborTrackingTurnedOff
 	5	 04/21/2025	  Devendra Shekh  Added changes for labor header/details exists or not
+	6    20/05/2025	  Abhishek Jirawla DataEnteredBy space correction
      
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44
 **************************************************************/
@@ -76,7 +77,7 @@ BEGIN
 						SELECT TOP 1 @HoursorClockorScan=laborHoursMedthodId, @IsLaborTrackingTurnedOff = ISNULL(IsLaborTrackingTurnedOff, 0)  FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ManagementStructureId = @ManagementStructureId
 					END
 			    
-					SELECT @DataEnteredBy =ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@CreatedBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
+					SELECT @DataEnteredBy =ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@CreatedBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
 				
 					SELECT @EmployeeId =ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE FirstName='TBD' AND MasterCompanyId=@MasterCompanyId
                 
@@ -202,7 +203,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_AddUpdateTravelerSetupHeader' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@workorderid, '') + ''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100)) + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

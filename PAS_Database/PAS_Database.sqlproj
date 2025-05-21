@@ -3830,6 +3830,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerATAMappingByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingByFilters.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityContactStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ContactsHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

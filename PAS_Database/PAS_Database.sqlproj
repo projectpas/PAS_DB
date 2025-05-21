@@ -3832,6 +3832,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityContactStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_ContactsHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreLegalEntityContact.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

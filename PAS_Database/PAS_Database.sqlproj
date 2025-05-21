@@ -3828,6 +3828,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetContactsByVendorId.sql" />
     <Build Include="dbo\Tables\UserSessions.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContacts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityContactStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ContactsHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -28,8 +28,7 @@
     [PublishedByOthers]      VARCHAR (100)  NULL,
     [ManagementStructureIds] VARCHAR (50)   NULL,
     [URL]                    NVARCHAR (500) NULL,
+    [Fleet]                  VARCHAR (50)   NULL,
     CONSTRAINT [PK_PublicationAudit] PRIMARY KEY CLUSTERED ([PublicationAuditId] ASC)
 );
-
-
 

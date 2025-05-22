@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_SearchCustomerInvoicesQBExtract]           
  ** Author:  RAJESH GAMI
  ** Description: Search CustomerInvoices QuickBook Extract : Copied from USP_SearchCustomerInvoices for Extract the Quickbook
@@ -17,9 +16,9 @@
  ** PR   Date           Author			Change Description            
  ** --   --------       -------			--------------------------------          
     1	 19 May 2025	RAJESH GAMI	   	Created
-
+    2	 21 May 2025	RAJESH GAMI	   	Resolve the flat rate related issue
 **************************************************************/ 
-Create      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
+CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
 @PageNumber int,  
 @SortColumn varchar(50),  
@@ -470,7 +469,9 @@ BEGIN
 				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],
 				CT.CustomerTypeName [CustomerType],
-				CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS InvoiceAmt,
+				CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN 
+					CASE WHEN 	ISNULL(WOBII.UnitPrice,0)  > 0 THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END
+				ELSE ISNULL(WOBII.GrandTotal,0) END AS InvoiceAmt,
 				IM.partnumber [PN], 
 				IM.PartDescription [PNDescription],
 				WQ.VersionNo [VersionNo],

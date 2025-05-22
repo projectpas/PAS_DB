@@ -14,7 +14,7 @@
  ** --   --------     -------			--------------------------------              
     1    05/15/2025   VISHAL SUTHAR     Created
          
--- EXEC [dbo].[GetROPackagingLabel] 2601, 4756
+-- EXEC [dbo].[GetROPackagingLabel] 2614, 4769
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetROPackagingLabel]
     @RepairOrderId INT,
@@ -22,8 +22,9 @@ CREATE   PROCEDURE [dbo].[GetROPackagingLabel]
 AS
 BEGIN
     SET NOCOUNT ON;
-	DECLARE @SalesOrderModuleId BIGINT;
-	SET @SalesOrderModuleId = (SELECT ModuleId FROM dbo.[Module] WHERE ModuleName = 'SalesOrder')
+	DECLARE @RepairOrderModuleId BIGINT;
+	SET @RepairOrderModuleId = (SELECT ModuleId FROM dbo.[Module] WHERE ModuleName = 'RepairOrder')
+
     SELECT TOP 1
         ropkt.ROPickTicketId roPickTicketId,
         ISNULL(spb.PackagingSlipNo, '') AS packagingSlipNo,
@@ -72,7 +73,7 @@ BEGIN
     LEFT JOIN [dbo].[Countries] ccnty WITH(NOLOCK) ON cuad.CountryId = ccnty.countries_id
     LEFT JOIN [dbo].[VendorContact] cust_cont WITH(NOLOCK) ON roq.VendorContactId = cust_cont.VendorContactId
     LEFT JOIN [dbo].[Contact] cont WITH(NOLOCK) ON cust_cont.ContactId = cont.ContactId
-    LEFT JOIN [dbo].[AllAddress] posadd WITH(NOLOCK) ON roq.RepairOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @SalesOrderModuleId -- assuming SalesOrder module
+    LEFT JOIN [dbo].[AllAddress] posadd WITH(NOLOCK) ON roq.RepairOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @RepairOrderModuleId -- assuming RepairOrder module
     LEFT JOIN [dbo].[AllShipVia] posv WITH(NOLOCK) ON roq.RepairOrderId = posv.ReferenceId AND posv.ModuleId = 1 -- assuming SalesOrder module
     LEFT JOIN [dbo].[RepairOrderPackaginSlipItems] spi WITH(NOLOCK) ON ropkt.ROPickTicketId = spi.ROPickTicketId
     LEFT JOIN [dbo].[RepairOrderPackaginSlipHeader] spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId

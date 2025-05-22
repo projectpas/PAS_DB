@@ -79,7 +79,7 @@ BEGIN
 		INNER JOIN DBO.WorkOrderStatus status WITH(NOLOCK)  ON wop.SubWorkOrderStatusId = status.Id
 		INNER JOIN DBO.Priority pri WITH(NOLOCK)  ON wop.SubWorkOrderPriorityId = pri.PriorityId
 		LEFT JOIN DBO.StockLine sl WITH(NOLOCK)  ON wop.StockLineId = sl.StockLineId
-		WHERE wop.IsDeleted = 0
+		WHERE ISNULL(wop.IsDeleted,0) = 0
 		  AND wop.SubWorkOrderId = @SubWorkOrderId
 
 	END TRY    

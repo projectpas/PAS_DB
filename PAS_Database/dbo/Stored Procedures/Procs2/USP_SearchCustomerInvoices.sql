@@ -39,6 +39,7 @@
 	22  19-03-2025    RAJESH GAMI		Fix the duplicate record (I added the rowNum and based on that add condition)
 	23  20-03-2025    Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
 	24  07 May 2025   RAJESH GAMI		Added filters (FromDate ToDate)
+	25  22 May 2025   Devendra Shekh    Added new fields InvoiceTotalAmount, RemainingTotalAmount
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -83,6 +84,8 @@ BEGIN
 	  DECLARE @ExchSOModuleID VARCHAR(500) ='19'
 	  DECLARE @IsActive BIT = 1  
 	  DECLARE @Count INT;  
+	  DECLARE @InvoiceTotalAmount DECIMAL(18, 2);  
+	  DECLARE @RemainingTotalAmount DECIMAL(18, 2);  
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 	  DECLARE @WOInvoiceTypeId INT;
@@ -448,9 +451,10 @@ BEGIN
 	  (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 	  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%') 
       ))
-				   SELECT @Count = COUNT(InvoicingId) from #TempResult     
+				   SELECT @Count = COUNT(InvoicingId), @InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt, 0)), @RemainingTotalAmount = SUM(ISNULL(RemainingAmount, 0)) FROM #TempResult   
   
-				   SELECT *, @Count As NumberOfItems FROM #TempResult  
+				   SELECT *, @Count As NumberOfItems, @InvoiceTotalAmount AS InvoiceTotalAmount, @RemainingTotalAmount AS RemainingTotalAmount
+				   FROM #TempResult
 				   ORDER BY       
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNo')  THEN InvoiceNo END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='invoiceStatus')  THEN InvoiceStatus END ASC,  
@@ -690,9 +694,10 @@ BEGIN
 				 (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 				  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
 				  ))
-				   SELECT @Count = COUNT(InvoicingId) from #TempResults     
+				   SELECT @Count = COUNT(InvoicingId), @InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt, 0)), @RemainingTotalAmount = SUM(ISNULL(RemainingAmount, 0)) FROM #TempResults 
 
-				   SELECT *, @Count As NumberOfItems FROM #TempResults 
+				   SELECT *, @Count As NumberOfItems, @InvoiceTotalAmount AS InvoiceTotalAmount, @RemainingTotalAmount AS RemainingTotalAmount
+				   FROM #TempResults 
 				   ORDER BY       
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNo')  THEN InvoiceNo END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='invoiceStatus')  THEN InvoiceStatus END ASC,  

@@ -16,6 +16,7 @@
     1    02/03/2023  Amit Ghediya		Created
     2    07/23/2024  Vishal Suthar		Added DISTINCT in the result set
 	3    19/05/2025  Devendra Shekh		Added new Fields : TotalPartCost, DepositAmount
+	4    22/05/2025  Devendra Shekh		checking IsParent for @TotalPartCost
      
 -- EXEC RPT_PrintPurchaseOrderDataById 6807
 ************************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 		LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] PMSD WITH (NOLOCK) ON PO.PurchaseOrderId = PMSD.ReferenceID AND PMSD.ModuleID = @OtherModuleID
 		WHERE PO.[PurchaseOrderId] = @PurchaseOrderId;
 
-		SELECT @TotalPartCost = SUM(ISNULL(ExtendedCost, 0)) FROM [DBO].[PurchaseOrderPart] WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
+		SELECT @TotalPartCost = SUM(ISNULL(ExtendedCost, 0)) FROM [DBO].[PurchaseOrderPart] WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(isParent, 0) = 1;
 		
 		SET @VendorWarningListName = 'Create Purchase Order';
 

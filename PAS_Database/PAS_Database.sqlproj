@@ -3834,6 +3834,8 @@
     <Build Include="dbo\Stored Procedures\USP_ContactsHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetATAContactMapped.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetATAContactMappedAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

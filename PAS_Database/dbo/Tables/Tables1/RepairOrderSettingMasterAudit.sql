@@ -22,6 +22,8 @@
     [IsEnforcePickTicket]           BIT           NULL,
     [EnforcePickTicketConfirmation] BIT           NULL,
     [IsAutoUpdateROStatus]          BIT           NULL,
+    [IsPNSNWarning]                 BIT           NULL,
+    [IsPNSNRestriction]             BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([RepairOrderSettingAuditId] ASC)
 );
 

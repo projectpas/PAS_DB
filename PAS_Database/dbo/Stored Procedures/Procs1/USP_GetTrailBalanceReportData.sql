@@ -25,6 +25,7 @@
 	9    07/24/2024   MOIN BLOCH     ADDED IS ISDELETED FLAG
 	10   07/25/2024   MOIN BLOCH     ADDED ReportLayoutId 
 	11   10/30/2024   Devendra Shekh ADDED MasterCompanyId join for GLAccount for #TempResults insert
+	12   05/23/2025   Hemant Saliya  Handle condition for statastical GL account
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=5,@AccountingPeriodId=194,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'5!8!11,10!12'
@@ -221,7 +222,7 @@ BEGIN
 
 		SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
 		SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		SELECT @StatisticalGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE UPPER(GLAccountClassName) = 'STATISTICAL' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
+		SELECT @StatisticalGLAccountTypeId = ISNULL(GLAccountClassId, 0) FROM dbo.GLAccountClass WITH(NOLOCK) WHERE UPPER(GLAccountClassName) = 'STATISTICAL' AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1
 
 		SELECT @INITIALFROMDATE = MIN(StartDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear
 		
@@ -272,7 +273,7 @@ BEGIN
 				INNER JOIN dbo.BatchDetails BD ON CB.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.BatchHeader B WITH (NOLOCK) ON BD.JournalBatchHeaderId = B.JournalBatchHeaderId 
 				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CB.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
-				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId NOT IN (@StatisticalGLAccountTypeId)  
+				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)  
 				LEFT JOIN dbo.GLAccountClass GC WITH(NOLOCK) ON GL.GLAccountTypeId = GC.GLAccountClassId
 				LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
 				LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -374,7 +375,7 @@ BEGIN
 			INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CMB.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.BatchHeader B WITH (NOLOCK) ON BD.JournalBatchHeaderId = B.JournalBatchHeaderId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMB.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
-			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CMB.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId NOT IN (@StatisticalGLAccountTypeId)  
+			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CMB.GlAccountId = GL.GLAccountId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)
 			LEFT JOIN dbo.GLAccountClass GC WITH(NOLOCK) ON GL.GLAccountTypeId = GC.GLAccountClassId
 			LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
 			LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID

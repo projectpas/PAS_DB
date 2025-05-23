@@ -29,6 +29,7 @@
 11    04/30/2024   Devendra Shekh		Added a fix to handle devide by zero exception(for WithTotal result)
 12    05/01/2024   Devendra Shekh		report failed issue resolved
 13    02-MAY-2025  Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
+14    23-MAY-2025  Hemant Saliya		Updated for Flat rate Amount Correction
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -203,7 +204,8 @@ BEGIN
 						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.ApprovedDate,TZ.Description)), 107) END 'quoteapprovaldate',       
 						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOS.ShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOS.ShipDate, 107) END 'shipdate',       
 						--ISNULL(WOBI.GrandTotal,0) 'revenue',   
-						CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue',  
+						--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue', 
+						CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue',  
 						ISNULL(WOC.PartsCost,0) 'partscost',      
 						ISNULL(WOC.LaborCost,0) 'laborcost',      
 						ISNULL(WOC.OverHeadCost,0) 'overheadcost',      

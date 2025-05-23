@@ -15,6 +15,7 @@
 	4    11/09/2023				 Ayesha Sultana						BUG FIXES ON RECORD COUNT
 	5	 11/04/2024				 Vishal Suthar						Modified to make use of new SO Part tables
 	6	 21/05/2025				 Devendra Shekh						added Invoice Fields for WO
+	7	 22/05/2025				 Devendra Shekh						Corrected InvoiceAmount same as Billing reports
 
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[SearchShippingListData] 
@@ -93,8 +94,8 @@ BEGIN
 							WOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							WOBI.InvoiceNo AS InvoiceNumber,
-							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
-							WOBI.PostedDate AS InvoiceDate,
+							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',
+							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
@@ -114,7 +115,7 @@ BEGIN
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,wopt.ConfirmedDate,
-								WOBI.InvoiceNo,WOBI.PostedDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
+								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
 
 					UNION
 
@@ -359,8 +360,8 @@ BEGIN
 							WOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							WOBI.InvoiceNo AS InvoiceNumber,
-							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
-							WOBI.PostedDate AS InvoiceDate,
+							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
+							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
@@ -380,7 +381,7 @@ BEGIN
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId
-								,WOBI.InvoiceNo,WOBI.PostedDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
+								,WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
 
 					UNION
 
@@ -619,8 +620,8 @@ BEGIN
 							WOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							WOBI.InvoiceNo AS InvoiceNumber,
-							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
-							WOBI.PostedDate AS InvoiceDate,
+							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
+							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
@@ -642,7 +643,7 @@ BEGIN
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wopt.ConfirmedDate,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,
-								WOBI.InvoiceNo,WOBI.PostedDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
+								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
 
 					UNION
 

@@ -23,6 +23,8 @@
     [TaxCOGSRefrenceId]              INT           DEFAULT ((1)) NULL,
     [NoQuoteDays]                    INT           NULL,
     [IsAutoUpdatePOStatus]           BIT           NULL,
+    [IsPNSNWarning]                  BIT           NULL,
+    [IsPNSNRestriction]              BIT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMaster] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingId] ASC),
     CONSTRAINT [FK_PurchaseOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

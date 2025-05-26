@@ -7,7 +7,7 @@
     [ErrorProcedure]      VARCHAR (300)  NOT NULL,
     [ProcedureParameters] VARCHAR (3000) NOT NULL,
     [ErrorLine]           INT            NOT NULL,
-    [ErrorMessage]        VARCHAR (300)  NOT NULL,
+    [ErrorMessage]        NVARCHAR (MAX) NOT NULL,
     [DatabaseName]        VARCHAR (300)  NOT NULL,
     [TimeStamp]           DATETIME       CONSTRAINT [DF_Appl_ErrorLog_TimeStamp] DEFAULT (getdate()) NOT NULL,
     [ModuleName]          VARCHAR (300)  NOT NULL,

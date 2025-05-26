@@ -26,11 +26,12 @@ BEGIN
 
 		DECLARE @IsPNSNWarning BIT, @IsPNSNRestriction BIT;
 		DECLARE @WOType BIGINT, @ManufacturerId BIGINT, @AllowByPass BIT;
-		DECLARE @RecWOModuleId INT, @RecPOModuleId INT, @RecROModuleId INT;
+		DECLARE @RecWOModuleId INT, @RecPOModuleId INT, @RecROModuleId INT, @StkModuleId INT;
 
 		SELECT @RecWOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ReceivingCustomerWork';
 		SELECT @RecPOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ReceivingPurchaseOrder';
 		SELECT @RecROModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ReceivingRepairOrder';
+		SELECT @StkModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'StockLine';
 
 		SELECT @ManufacturerId = [ManufacturerId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MasterCompanyId] = @MasterCompanyId;
 
@@ -51,6 +52,10 @@ BEGIN
 		ELSE IF(@RecROModuleId = @ModuleId)
 		BEGIN
 			SELECT @IsPNSNWarning = ISNULL(IsPNSNWarning, 0), @IsPNSNRestriction = ISNULL(IsPNSNRestriction, 0) FROM [dbo].[RepairOrderSettingMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+		END
+		ELSE IF(@StkModuleId = @ModuleId)
+		BEGIN
+			SELECT @IsPNSNWarning = ISNULL(IsPNSNWarning, 0), @IsPNSNRestriction = ISNULL(IsPNSNRestriction, 0) FROM [dbo].[StocklineSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 		END
 
 		IF(@AllowByPass = 0)

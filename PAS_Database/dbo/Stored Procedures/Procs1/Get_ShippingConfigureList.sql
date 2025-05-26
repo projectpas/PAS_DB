@@ -10,7 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
     2    14-Feb-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
-		
+	3    23-May-2025		Ayushi Patel		Get carrier from carrier table 	
 	exec dbo.Get_ShippingConfigureList  @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@Shipvia=NULL,
 										@ShippingAccountNumber=NULL,@ApiKey=NULL,@SecretKey=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,
 										@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@IsAuthReq=NULL,@EmployeeId=226
@@ -110,16 +110,19 @@ BEGIN
 		 CASE WHEN CAST(SC.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SC.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 	ELSE (CAST(SC.UpdatedDate AS DATETIME)) END UpdatedDate,
 	SC.IsActive,
-	SC.IsDeleted  
+	SC.IsDeleted,
+	SC.CarrierId,C.Code 'Carrier'
     FROM DBO.ShippingConfigure SC WITH(NOLOCK)  
-    LEFT JOIN DBO.ShippingVia S WITH(NOLOCK) ON SC.ShippingViaId = S.ShippingViaId  
+    LEFT JOIN DBO.ShippingVia S WITH(NOLOCK) ON SC.ShippingViaId = S.ShippingViaId 
+	LEFT JOIN DBO.Carrier C WITH(NOLOCK) ON SC.CarrierId = C.CarrierId
     Where ((SC.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SC.IsActive=@IsActive))    
     AND SC.MasterCompanyId=@MasterCompanyId     
     ), ResultCount AS(SELECT COUNT(ShippingConfigureId) AS totalItems FROM Result)    
       
     SELECT * INTO #TempResult FROM  Result    
      WHERE (    
-     (@GlobalFilter <>'' AND ((shippingvia LIKE '%' +@GlobalFilter+'%' ) OR   
+     (@GlobalFilter <>'' AND ((shippingvia LIKE '%' +@GlobalFilter+'%' ) OR 
+	(Carrier LIKE '%' +@GlobalFilter+'%' ) OR
     (APIKey LIKE '%' +@GlobalFilter+'%') OR 
 	(IsAuthReq LIKE '%' +@GlobalFilter+'%') OR 
     (SecretKey LIKE '%' +@GlobalFilter+'%') OR    
@@ -128,7 +131,7 @@ BEGIN
     (UpdatedBy LIKE '%' +@GlobalFilter+'%')     
     ))    
     OR       
-    (@GlobalFilter='' AND (ISNULL(@Shipvia,'') ='' OR shippingvia LIKE '%' + @Shipvia+'%') AND     
+    (@GlobalFilter='' AND (ISNULL(@Shipvia,'') ='' OR shippingvia LIKE '%' + @Shipvia+'%') AND
     (ISNULL(@ShippingAccountNumber,'') ='' OR ShippingAccountNumber LIKE '%' + @ShippingAccountNumber+'%') AND    
     (ISNULL(@ApiKey,'') ='' OR APIKey LIKE '%' + @ApiKey+'%') AND
 	(ISNULL(@IsAuthReq,'') ='' OR IsAuthReq LIKE '%' + @IsAuthReq+'%') AND
@@ -149,6 +152,7 @@ BEGIN
     CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='shippingvia')  THEN shippingvia END ASC,
+	CASE WHEN (@SortOrder=1 AND @SortColumn='Carrier')  THEN Carrier END ASC,
     CASE WHEN (@SortOrder=1 AND @SortColumn='ShippingAccountNumber')  THEN ShippingAccountNumber END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='APIKey')  THEN APIKey END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='SecretKey')  THEN SecretKey END ASC,  
@@ -157,7 +161,8 @@ BEGIN
     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,    
     CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,    
     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,    
-    CASE WHEN (@SortOrder=-1 AND @SortColumn='shippingvia')  THEN shippingvia END DESC,	
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='shippingvia')  THEN shippingvia END DESC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='Carrier')  THEN Carrier END DESC,
     CASE WHEN (@SortOrder=-1 AND @SortColumn='ShippingAccountNumber')  THEN ShippingAccountNumber END DESC,    
     CASE WHEN (@SortOrder=-1 AND @SortColumn='APIKey')  THEN APIKey END DESC  ,  
     CASE WHEN (@SortOrder=-1 AND @SortColumn='SecretKey')  THEN SecretKey END DESC    

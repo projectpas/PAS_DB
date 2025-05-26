@@ -24,6 +24,8 @@
     [TaxCOGSRefrenceId]              INT           NULL,
     [NoQuoteDays]                    INT           NULL,
     [IsAutoUpdatePOStatus]           BIT           NULL,
+    [IsPNSNWarning]                  BIT           NULL,
+    [IsPNSNRestriction]              BIT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
 

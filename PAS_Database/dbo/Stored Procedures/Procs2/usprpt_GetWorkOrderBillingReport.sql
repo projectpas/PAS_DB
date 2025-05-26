@@ -22,6 +22,7 @@
 	6   20-Nov-2024		Moin Bloch			Added Is Delete and Format SP
 	7   10-APR-2025		Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
 	8   10-APR-2025		Vishal Suthar		Added WOBillingInvoicingItemId column in the select statement to display all the records
+	9   23-MAY-2025		Hemant Saliya		Updated for Flat rate Amount Correction
 
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/  
@@ -210,7 +211,7 @@ BEGIN
 			   UPPER(WO.WorkOrderNum) 'wonum',  
 			   WOBI.InvoiceNo 'invoicenum',  
 			   --ISNULL(WOBI.GrandTotal,0) 'revenue',   
-			   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue',   
+			   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN ISNULL(WOBIM.UnitPrice,0) ELSE ISNULL(WOBIM.GrandTotal,0) END ELSE ISNULL(WOBIM.GrandTotal,0) END AS 'revenue',   
 			   UPPER(WOQ.QuoteNumber) 'quotenum',  
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   

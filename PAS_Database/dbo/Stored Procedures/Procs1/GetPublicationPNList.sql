@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetPublicationPNList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Publication List    
@@ -19,6 +20,7 @@
 	2    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
 	3    13/02/2025   Sahdev Saliya    Added new field PublishedByName
 	4    12/03/2025   Sahdev Saliya    Added a case to get timeZone
+	5    22/05/2025   Sahdev Saliya    Added new field Fleet
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
@@ -33,6 +35,7 @@ CREATE   PROCEDURE [dbo].[GetPublicationPNList]
 @PublicationType varchar(50)=null,
 @PublishedBy varchar(50)=null,
 @PublishedByName varchar(50)=null,
+@Fleet varchar(50)=null,
 @VerifiedBy varchar(50)=null,
 @RevisionDate datetime=null,
 @CreatedDate datetime=null,
@@ -126,6 +129,7 @@ BEGIN
 					   pt.[Name] AS PublicationType,
 					   pemp.ModuleName AS PublishedBy,
 					   CASE WHEN p.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN p.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(p.PublishedByOthers,'') END  AS PublishedByName,
+					   p.Fleet,
 					   p.RevisionDate AS RevisionDate,					   
 					   p.NextReviewDate AS NextReviewDate,
 					   p.ExpirationDate AS ExpirationDate,					   
@@ -179,6 +183,7 @@ BEGIN
 					(PublicationType LIKE '%' +@GlobalFilter+'%') OR
 					(PublishedBy LIKE '%' +@GlobalFilter+'%') OR
 					(PublishedByName LIKE '%' +@GlobalFilter+'%') OR
+					(Fleet LIKE '%' +@GlobalFilter+'%') OR
 					([Location] LIKE '%' +@GlobalFilter+'%') OR					
 					(VerifiedBy LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
@@ -195,6 +200,7 @@ BEGIN
 					(ISNULL(@PublicationType,'') ='' OR PublicationType LIKE '%' + @PublicationType + '%') AND
 					(ISNULL(@PublishedBy,'') ='' OR PublishedBy LIKE '%' + @PublishedBy + '%') AND
 					(ISNULL(@PublishedByName,'') ='' OR @PublishedByName LIKE '%' + @PublishedByName + '%') AND
+					(ISNULL(@Fleet,'') ='' OR @Fleet LIKE '%' + @Fleet + '%') AND
 					(ISNULL(@RevisionDate,'') ='' OR CAST(RevisionDate AS Date) = CAST(@RevisionDate AS date)) AND					
 					(ISNULL(@NextReviewDate,'') ='' OR CAST(NextReviewDate AS Date) = CAST(@NextReviewDate AS date)) AND
 					(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date) = CAST(@ExpirationDate AS date)) AND
@@ -227,6 +233,8 @@ BEGIN
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublishedBy')  THEN PublishedBy END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='PublishedByName')  THEN PublishedByName END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PublishedByName')  THEN PublishedByName END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='Fleet')  THEN Fleet END ASC,
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='Fleet')  THEN Fleet END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='RevisionDate')  THEN RevisionDate END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='RevisionDate')  THEN RevisionDate END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='NextReviewDate')  THEN NextReviewDate END ASC,

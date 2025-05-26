@@ -14,6 +14,8 @@
 	2    28/08/2023				 Ayesha Sultana						ShipVia & ShipDate fetch
 	4    11/09/2023				 Ayesha Sultana						BUG FIXES ON RECORD COUNT
 	5	 11/04/2024				 Vishal Suthar						Modified to make use of new SO Part tables
+	6	 21/05/2025				 Devendra Shekh						added Invoice Fields for WO
+	7	 22/05/2025				 Devendra Shekh						Corrected InvoiceAmount same as Billing reports
 
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[SearchShippingListData] 
@@ -36,7 +38,11 @@ CREATE      PROCEDURE [dbo].[SearchShippingListData]
 	@ShipVia varchar(50) = null,
 	@ShipDate datetime = null,
 	@AWB varchar(50) = null,
-	@FilterListAs varchar(50) 
+	@FilterListAs varchar(50),
+	@InvoiceNumber varchar(256) = null,
+	@InvoiceAmount varchar(256) = null,
+	@InvoiceDate datetime2 = null,
+	@Currency varchar(50) = null
 AS
 BEGIN
 
@@ -86,7 +92,11 @@ BEGIN
 							wos.WorkOrderShippingId as ShippingId,
 							WOSI.QtyShipped AS QtyShipped,
 							WOPSI.PackagingSlipId AS PackagingSlipId,
-							0 AS VendorRMADetailId
+							0 AS VendorRMADetailId,
+							WOBI.InvoiceNo AS InvoiceNumber,
+							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',
+							WOBI.InvoiceDate AS InvoiceDate,
+							CU.Code AS Currency
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
@@ -97,11 +107,15 @@ BEGIN
 							LEFT JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = wos.ShipViaId -- and SV.IsPrimary=1
+							LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBIM.WorkOrderPartId = wop.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
+							LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WOBI.CurrencyId = CU.CurrencyId
 
 					WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
-								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,wopt.ConfirmedDate
+								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,wopt.ConfirmedDate,
+								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
 
 					UNION
 
@@ -122,7 +136,11 @@ BEGIN
 							sos.SalesOrderShippingId as ShippingId,
 							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
-							0 AS VendorRMADetailId
+							0 AS VendorRMADetailId,
+							'' AS InvoiceNumber,
+							'' AS InvoiceAmount,
+							NULL InvoiceDate,
+							'' Currency
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -159,7 +177,11 @@ BEGIN
 								sos.ExchangeSalesOrderShippingId as ShippingId,
 								SOSI.QtyShipped AS QtyShipped,
 								SOPSI.PackagingSlipId AS PackagingSlipId,
-								0 AS VendorRMADetailId
+								0 AS VendorRMADetailId,
+								'' AS InvoiceNumber,
+								'' AS InvoiceAmount,
+								NULL InvoiceDate,
+								'' Currency
 						
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
@@ -196,7 +218,11 @@ BEGIN
 							RS.RMAShippingId AS ShippingId,
 							RSI.QtyShipped AS QtyShipped,
 							RPSI.PackagingSlipId AS PackagingSlipId,
-							VD.VendorRMADetailId AS VendorRMADetailId
+							VD.VendorRMADetailId AS VendorRMADetailId,
+							'' AS InvoiceNumber,
+							'' AS InvoiceAmount,
+							NULL AS InvoiceDate,
+							'' AS Currency
 
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
@@ -220,7 +246,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency
 										
 				
 							FROM Result 
@@ -233,6 +259,9 @@ BEGIN
 										(Priority like '%' + @GlobalFilter +'%') OR
 										(Status like '%' + @GlobalFilter +'%')OR
 										(ShipVia like '%' + @GlobalFilter +'%') OR
+										(InvoiceNumber like '%' + @GlobalFilter +'%') OR
+										(InvoiceAmount like '%' + @GlobalFilter +'%') OR
+										(Currency like '%' + @GlobalFilter +'%') OR
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') 
 										))
@@ -246,13 +275,17 @@ BEGIN
 										(ISNULL(@Status,'') ='' OR [Status] like  '%'+@Status+'%') and
 										(ISNULL(@ShipVia, '') = '' OR ShipVia like '%'+ @ShipVia +'%') and
 										(ISNULL(@ShipDate, '') = '' OR cast(ShipDate as date) = cast(@ShipDate as date))  and
+										(ISNULL(@InvoiceNumber, '') = '' OR InvoiceNumber like '%'+ @InvoiceNumber +'%') and
+										(ISNULL(@InvoiceAmount, '') = '' OR InvoiceAmount like '%'+ @InvoiceAmount +'%') and
+										(ISNULL(@InvoiceDate, '') = '' OR cast(InvoiceDate as date) = cast(@InvoiceDate as date))  and
+										(ISNULL(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') 
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -272,6 +305,10 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='PartId')  THEN PartId END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='PickTicketId')  THEN PickTicketId END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='ShippingId')  THEN ShippingId END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN Currency END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -287,7 +324,11 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='ModuleName')  THEN ModuleName END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PartId')  THEN PartId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PickTicketId')  THEN PickTicketId END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='ShippingId')  THEN ShippingId END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='ShippingId')  THEN ShippingId END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY			
 			
@@ -317,7 +358,11 @@ BEGIN
 							wos.WorkOrderShippingId as ShippingId,
 							WOSI.QtyShipped AS QtyShipped,
 							WOPSI.PackagingSlipId AS PackagingSlipId,
-							0 AS VendorRMADetailId
+							0 AS VendorRMADetailId,
+							WOBI.InvoiceNo AS InvoiceNumber,
+							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
+							WOBI.InvoiceDate AS InvoiceDate,
+							CU.Code AS Currency
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
@@ -328,11 +373,15 @@ BEGIN
 							LEFT JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = wos.ShipViaId -- and sv.CustomerId=wos.customerid and SV.IsPrimary=1
+							LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBIM.WorkOrderPartId = wop.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
+							LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WOBI.CurrencyId = CU.CurrencyId
 
 					WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 AND WOS.AirwayBill IS NOT NULL
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId
+								,WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
 
 					UNION
 
@@ -353,7 +402,11 @@ BEGIN
 							sos.SalesOrderShippingId as ShippingId,
 							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
-							0 AS VendorRMADetailId
+							0 AS VendorRMADetailId,
+							'' AS InvoiceNumber,
+							'' AS InvoiceAmount,
+							NULL AS InvoiceDate,
+							'' AS Currency
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -389,7 +442,11 @@ BEGIN
 								sos.ExchangeSalesOrderShippingId as ShippingId,
 								SOSI.QtyShipped AS QtyShipped,
 								SOPSI.PackagingSlipId AS PackagingSlipId,
-								0 AS VendorRMADetailId
+								0 AS VendorRMADetailId,
+								'' AS InvoiceNumber,
+								'' AS InvoiceAmount,
+								NULL AS InvoiceDate,
+								'' AS Currency
 						
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
@@ -425,7 +482,11 @@ BEGIN
 							RS.RMAShippingId AS ShippingId,
 							RSI.QtyShipped AS QtyShipped,
 							RPSI.PackagingSlipId AS PackagingSlipId,
-							VD.VendorRMADetailId AS VendorRMADetailId
+							VD.VendorRMADetailId AS VendorRMADetailId,
+							'' AS InvoiceNumber,
+							'' AS InvoiceAmount,
+							NULL AS InvoiceDate,
+							'' AS Currency
 
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
@@ -447,7 +508,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency
 										
 				
 							FROM Result 
@@ -460,6 +521,9 @@ BEGIN
 										(Priority like '%' + @GlobalFilter +'%') OR
 										(Status like '%' + @GlobalFilter +'%')OR
 										(ShipVia like '%' + @GlobalFilter +'%') OR
+										(InvoiceNumber like '%' + @GlobalFilter +'%') OR
+										(InvoiceAmount like '%' + @GlobalFilter +'%') OR
+										(Currency like '%' + @GlobalFilter +'%') OR
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') 
 										))
@@ -473,13 +537,17 @@ BEGIN
 										(ISNULL(@Status,'') ='' OR [Status] like  '%'+@Status+'%') and
 										(ISNULL(@ShipVia, '') = '' OR ShipVia like '%'+ @ShipVia +'%') and
 										(ISNULL(@ShipDate, '') = '' OR cast(ShipDate as date) = cast(@ShipDate as date))  and
+										(ISNULL(@InvoiceNumber, '') = '' OR InvoiceNumber like '%'+ @InvoiceNumber +'%') and
+										(ISNULL(@InvoiceAmount, '') = '' OR InvoiceAmount like '%'+ @InvoiceAmount +'%') and
+										(ISNULL(@InvoiceDate, '') = '' OR cast(InvoiceDate as date) = cast(@InvoiceDate as date))  and
+										(ISNULL(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') 
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -499,6 +567,10 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='PartId')  THEN PartId END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='PickTicketId')  THEN PickTicketId END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='ShippingId')  THEN ShippingId END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN Currency END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -514,7 +586,11 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='ModuleName')  THEN ModuleName END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PartId')  THEN PartId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PickTicketId')  THEN PickTicketId END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='ShippingId')  THEN ShippingId END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='ShippingId')  THEN ShippingId END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 				
@@ -542,7 +618,11 @@ BEGIN
 							WOS.WorkOrderShippingId as ShippingId,
 							WOSI.QtyShipped AS QtyShipped,
 							WOPSI.PackagingSlipId AS PackagingSlipId,
-							0 AS VendorRMADetailId
+							0 AS VendorRMADetailId,
+							WOBI.InvoiceNo AS InvoiceNumber,
+							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
+							WOBI.InvoiceDate AS InvoiceDate,
+							CU.Code AS Currency
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
@@ -553,13 +633,17 @@ BEGIN
 							LEFT JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = wo.CustomerId and SV.IsPrimary=1
+							LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBIM.WorkOrderPartId = wop.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
+							LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WOBI.CurrencyId = CU.CurrencyId
 
 					WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 
 							and wop.ID not in(SELECT WorkOrderPartNumId FROM DBO.WorkOrderShippingItem WOBI 
 												WHERE WOBI.IsDeleted = 0) 
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
-								wopt.ConfirmedDate,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId
+								wopt.ConfirmedDate,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,
+								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
 
 					UNION
 
@@ -580,7 +664,11 @@ BEGIN
 							sos.SalesOrderShippingId as ShippingId,
 							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
-							0 AS VendorRMADetailId
+							0 AS VendorRMADetailId,
+							'' AS InvoiceNumber,
+							'' AS InvoiceAmount,
+							NULL AS InvoiceDate,
+							'' AS Currency
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -618,7 +706,11 @@ BEGIN
 								sos.ExchangeSalesOrderShippingId as ShippingId,
 								SOSI.QtyShipped AS QtyShipped,
 								SOPSI.PackagingSlipId AS PackagingSlipId,
-								0 AS VendorRMADetailId
+								0 AS VendorRMADetailId,
+								'' AS InvoiceNumber,
+								'' AS InvoiceAmount,
+								NULL AS InvoiceDate,
+								'' AS Currency
 						
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
@@ -656,8 +748,11 @@ BEGIN
 							RS.RMAShippingId AS ShippingId,
 							RSI.QtyShipped AS QtyShipped,
 							RPSI.PackagingSlipId AS PackagingSlipId,
-							VD.VendorRMADetailId AS VendorRMADetailId
-
+							VD.VendorRMADetailId AS VendorRMADetailId,
+							'' AS InvoiceNumber,
+							'' AS InvoiceAmount,
+							NULL AS InvoiceDate,
+							'' AS Currency
 
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
@@ -681,7 +776,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId										
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency										
 				
 							FROM Result 
 							where (
@@ -693,6 +788,9 @@ BEGIN
 										(Priority like '%' + @GlobalFilter +'%') OR
 										(Status like '%' + @GlobalFilter +'%')OR
 										(ShipVia like '%' + @GlobalFilter +'%') OR
+										(InvoiceNumber like '%' + @GlobalFilter +'%') OR
+										(InvoiceAmount like '%' + @GlobalFilter +'%') OR
+										(Currency like '%' + @GlobalFilter +'%') OR
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') 
 										))
@@ -706,13 +804,17 @@ BEGIN
 										(ISNULL(@Status,'') ='' OR [Status] like  '%'+@Status+'%') and
 										(ISNULL(@ShipVia, '') = '' OR ShipVia like '%'+ @ShipVia +'%') and
 										(ISNULL(@ShipDate, '') = '' OR cast(ShipDate as date) = cast(@ShipDate as date))  and
+										(ISNULL(@InvoiceNumber, '') = '' OR InvoiceNumber like '%'+ @InvoiceNumber +'%') and
+										(ISNULL(@InvoiceAmount, '') = '' OR InvoiceAmount like '%'+ @InvoiceAmount +'%') and
+										(ISNULL(@InvoiceDate, '') = '' OR cast(InvoiceDate as date) = cast(@InvoiceDate as date))  and
+										(ISNULL(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') 
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -732,6 +834,10 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='PartId')  THEN PartId END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='PickTicketId')  THEN PickTicketId END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='ShippingId')  THEN ShippingId END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN Currency END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -747,7 +853,11 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='ModuleName')  THEN ModuleName END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PartId')  THEN PartId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PickTicketId')  THEN PickTicketId END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='ShippingId')  THEN ShippingId END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='ShippingId')  THEN ShippingId END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 					

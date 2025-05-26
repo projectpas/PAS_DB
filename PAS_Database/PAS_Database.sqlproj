@@ -3832,8 +3832,13 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerAircraftMappingByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntityContactStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_ContactsHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteHistoryByExchangeSalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreLegalEntityContact.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetATAContactMapped.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetATAContactMappedAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

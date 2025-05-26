@@ -11,6 +11,7 @@
     1    11-March-2025		Devendra Shekh			Created
     2    12-March-2025		Devendra Shekh			Changed Cursor to While Loop
     3    14-May-2025		Devendra Shekh			passing Selected TaskIds to Save task if not exists
+	4    23-May-2025        Sahdev Saliya           Setting Value For @IsNewAdded to 1           
 
 declare @p5 bit
 set @p5=NULL
@@ -197,6 +198,8 @@ BEGIN
 						(	@WorkflowId, @WorkFlowNumber, @TaskId, @TaskDescription, @SequenceNumber, @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
 							@UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
 						);
+
+						SET @IsNewAdded = 1;
 					END
 
 					SET @CurrentRowId += 1;

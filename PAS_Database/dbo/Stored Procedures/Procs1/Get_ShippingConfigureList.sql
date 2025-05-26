@@ -10,7 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    ***********		Unknown				Created
     2    14-Feb-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
-	3    23-May-2025		Ayushi Patel		get carrier from carrier table 	
+	3    23-May-2025		Ayushi Patel		Get carrier from carrier table 	
 	exec dbo.Get_ShippingConfigureList  @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@Shipvia=NULL,
 										@ShippingAccountNumber=NULL,@ApiKey=NULL,@SecretKey=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,
 										@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@IsAuthReq=NULL,@EmployeeId=226

@@ -3839,6 +3839,8 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

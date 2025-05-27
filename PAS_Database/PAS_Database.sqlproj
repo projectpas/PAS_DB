@@ -3841,6 +3841,7 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPackagingLabelBySalesOrderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

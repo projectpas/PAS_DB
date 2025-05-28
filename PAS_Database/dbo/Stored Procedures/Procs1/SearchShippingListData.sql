@@ -16,6 +16,7 @@
 	5	 11/04/2024				 Vishal Suthar						Modified to make use of new SO Part tables
 	6	 21/05/2025				 Devendra Shekh						added Invoice Fields for WO
 	7	 22/05/2025				 Devendra Shekh						Corrected InvoiceAmount same as Billing reports
+	8	 28/05/2025				 Devendra Shekh						added InvoiceStatus Field
 
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[SearchShippingListData] 
@@ -42,7 +43,8 @@ CREATE      PROCEDURE [dbo].[SearchShippingListData]
 	@InvoiceNumber varchar(256) = null,
 	@InvoiceAmount varchar(256) = null,
 	@InvoiceDate datetime2 = null,
-	@Currency varchar(50) = null
+	@Currency varchar(50) = null,
+	@InvoiceStatus varchar(50) = null
 AS
 BEGIN
 
@@ -96,7 +98,8 @@ BEGIN
 							WOBI.InvoiceNo AS InvoiceNumber,
 							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',
 							WOBI.InvoiceDate AS InvoiceDate,
-							CU.Code AS Currency
+							CU.Code AS Currency,
+							WOBI.InvoiceStatus AS InvoiceStatus
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
@@ -115,7 +118,7 @@ BEGIN
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,wopt.ConfirmedDate,
-								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
+								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code,WOBI.InvoiceStatus
 
 					UNION
 
@@ -140,7 +143,8 @@ BEGIN
 							'' AS InvoiceNumber,
 							'' AS InvoiceAmount,
 							NULL InvoiceDate,
-							'' Currency
+							'' Currency,
+							'' AS InvoiceStatus
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -181,7 +185,8 @@ BEGIN
 								'' AS InvoiceNumber,
 								'' AS InvoiceAmount,
 								NULL InvoiceDate,
-								'' Currency
+								'' Currency,
+								'' AS InvoiceStatus
 						
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
@@ -222,7 +227,8 @@ BEGIN
 							'' AS InvoiceNumber,
 							'' AS InvoiceAmount,
 							NULL AS InvoiceDate,
-							'' AS Currency
+							'' AS Currency,
+							'' AS InvoiceStatus
 
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
@@ -246,7 +252,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus
 										
 				
 							FROM Result 
@@ -262,6 +268,7 @@ BEGIN
 										(InvoiceNumber like '%' + @GlobalFilter +'%') OR
 										(InvoiceAmount like '%' + @GlobalFilter +'%') OR
 										(Currency like '%' + @GlobalFilter +'%') OR
+										(InvoiceStatus like '%' + @GlobalFilter +'%') OR
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') 
 										))
@@ -279,13 +286,14 @@ BEGIN
 										(ISNULL(@InvoiceAmount, '') = '' OR InvoiceAmount like '%'+ @InvoiceAmount +'%') and
 										(ISNULL(@InvoiceDate, '') = '' OR cast(InvoiceDate as date) = cast(@InvoiceDate as date))  and
 										(ISNULL(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and
+										(ISNULL(@InvoiceStatus, '') = '' OR InvoiceStatus like '%'+ @InvoiceStatus +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') 
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -309,6 +317,7 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN Currency END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -328,7 +337,8 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY			
 			
@@ -362,7 +372,8 @@ BEGIN
 							WOBI.InvoiceNo AS InvoiceNumber,
 							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
 							WOBI.InvoiceDate AS InvoiceDate,
-							CU.Code AS Currency
+							CU.Code AS Currency,
+							WOBI.InvoiceStatus AS InvoiceStatus
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
@@ -381,7 +392,7 @@ BEGIN
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wos.ShipDate,SV.Name,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId
-								,WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
+								,WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code,WOBI.InvoiceStatus
 
 					UNION
 
@@ -406,7 +417,8 @@ BEGIN
 							'' AS InvoiceNumber,
 							'' AS InvoiceAmount,
 							NULL AS InvoiceDate,
-							'' AS Currency
+							'' AS Currency,
+							'' AS InvoiceStatus
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -446,7 +458,8 @@ BEGIN
 								'' AS InvoiceNumber,
 								'' AS InvoiceAmount,
 								NULL AS InvoiceDate,
-								'' AS Currency
+								'' AS Currency,
+								'' AS InvoiceStatus
 						
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
@@ -486,7 +499,8 @@ BEGIN
 							'' AS InvoiceNumber,
 							'' AS InvoiceAmount,
 							NULL AS InvoiceDate,
-							'' AS Currency
+							'' AS Currency,
+							'' AS InvoiceStatus
 
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
@@ -508,7 +522,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus
 										
 				
 							FROM Result 
@@ -524,6 +538,7 @@ BEGIN
 										(InvoiceNumber like '%' + @GlobalFilter +'%') OR
 										(InvoiceAmount like '%' + @GlobalFilter +'%') OR
 										(Currency like '%' + @GlobalFilter +'%') OR
+										(InvoiceStatus like '%' + @GlobalFilter +'%') OR
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') 
 										))
@@ -541,13 +556,14 @@ BEGIN
 										(ISNULL(@InvoiceAmount, '') = '' OR InvoiceAmount like '%'+ @InvoiceAmount +'%') and
 										(ISNULL(@InvoiceDate, '') = '' OR cast(InvoiceDate as date) = cast(@InvoiceDate as date))  and
 										(ISNULL(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and
+										(ISNULL(@InvoiceStatus, '') = '' OR InvoiceStatus like '%'+ @InvoiceStatus +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') 
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -571,6 +587,7 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN Currency END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -590,7 +607,8 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 				
@@ -622,7 +640,8 @@ BEGIN
 							WOBI.InvoiceNo AS InvoiceNumber,
 							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
 							WOBI.InvoiceDate AS InvoiceDate,
-							CU.Code AS Currency
+							CU.Code AS Currency,
+							WOBI.InvoiceStatus AS InvoiceStatus
 
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK)  ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
@@ -643,7 +662,7 @@ BEGIN
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
 								wopt.ConfirmedDate,wos.AirwayBill,WOP.ID,wopt.PickTicketId,wos.WorkOrderShippingId,WOSI.QtyShipped,WOPSI.PackagingSlipId,
-								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code
+								WOBI.InvoiceNo,WOBI.InvoiceDate,WOBI.CostPlusType,WOBIM.UnitPrice,WOBIM.GrandTotal,CU.Code,WOBI.InvoiceStatus
 
 					UNION
 
@@ -668,7 +687,8 @@ BEGIN
 							'' AS InvoiceNumber,
 							'' AS InvoiceAmount,
 							NULL AS InvoiceDate,
-							'' AS Currency
+							'' AS Currency,
+							'' AS InvoiceStatus
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -710,7 +730,8 @@ BEGIN
 								'' AS InvoiceNumber,
 								'' AS InvoiceAmount,
 								NULL AS InvoiceDate,
-								'' AS Currency
+								'' AS Currency,
+								'' AS InvoiceStatus
 						
 					FROM DBO.ExchangeSalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
@@ -752,7 +773,8 @@ BEGIN
 							'' AS InvoiceNumber,
 							'' AS InvoiceAmount,
 							NULL AS InvoiceDate,
-							'' AS Currency
+							'' AS Currency,
+							'' AS InvoiceStatus
 
 					FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 
 						  -- INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
@@ -776,7 +798,7 @@ BEGIN
 							FinalResult AS (
 
 							SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency										
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus										
 				
 							FROM Result 
 							where (
@@ -791,6 +813,7 @@ BEGIN
 										(InvoiceNumber like '%' + @GlobalFilter +'%') OR
 										(InvoiceAmount like '%' + @GlobalFilter +'%') OR
 										(Currency like '%' + @GlobalFilter +'%') OR
+										(InvoiceStatus like '%' + @GlobalFilter +'%') OR
 										-- (ShipDate like '%' + @GlobalFilter +'%') OR
 										(AWB  LIKE '%' +@GlobalFilter+'%') 
 										))
@@ -808,13 +831,14 @@ BEGIN
 										(ISNULL(@InvoiceAmount, '') = '' OR InvoiceAmount like '%'+ @InvoiceAmount +'%') and
 										(ISNULL(@InvoiceDate, '') = '' OR cast(InvoiceDate as date) = cast(@InvoiceDate as date))  and
 										(ISNULL(@Currency, '') = '' OR Currency like '%'+ @Currency +'%') and
+										(ISNULL(@InvoiceStatus, '') = '' OR InvoiceStatus like '%'+ @InvoiceStatus +'%') and
 										(ISNULL(@AWB, '') = '' OR AWB like '%'+ @AWB+'%') 
 										))),
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
 								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,NumberOfItems
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -838,6 +862,7 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='Currency')  THEN Currency END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END ASC,
 				
 									CASE WHEN (@SortOrder=-1 and @SortColumn='REFID')  THEN RefId END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='RefNumber')  THEN RefNumber END DESC,
@@ -857,7 +882,8 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceNumber')  THEN InvoiceNumber END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmount')  THEN InvoiceAmount END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='Currency')  THEN Currency END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceStatus')  THEN InvoiceStatus END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 					

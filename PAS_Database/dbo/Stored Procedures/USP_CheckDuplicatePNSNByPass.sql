@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    22-May-2025   Devendra Shekh		Created
+    2    28-May-2025   Devendra Shekh		Added New Param @StockLineId
 	 
 exec dbo.USP_CheckDuplicatePNSNByPass @ItemMasterId=318,@SerialNumber=N'TDGRGRDG',@ModuleId=27,@MasterCompanyId=1
 **************************************************************/
@@ -17,7 +18,8 @@ CREATE   PROCEDURE [dbo].[USP_CheckDuplicatePNSNByPass]
 @ItemMasterId BIGINT = NULL,
 @SerialNumber VARCHAR(50) = NULL,
 @ModuleId BIGINT = NULL,
-@MasterCompanyId INT = NULL
+@MasterCompanyId INT = NULL,
+@StockLineId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -35,7 +37,7 @@ BEGIN
 
 		SELECT @ManufacturerId = [ManufacturerId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MasterCompanyId] = @MasterCompanyId;
 
-		IF EXISTS(SELECT 1 FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [QuantityOnHand] > 0 AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND UPPER(TRIM([SerialNumber])) = UPPER(TRIM(@SerialNumber)) AND [MasterCompanyId] = @MasterCompanyId)
+		IF EXISTS(SELECT 1 FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [QuantityOnHand] > 0 AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND UPPER(TRIM([SerialNumber])) = UPPER(TRIM(@SerialNumber)) AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 and [IsDeleted] = 0 AND [StockLineId] != @StockLineId)
 		BEGIN
 			SET @AllowByPass = 0;			
 		END

@@ -35,7 +35,7 @@ BEGIN
 
 		SELECT @ManufacturerId = [ManufacturerId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MasterCompanyId] = @MasterCompanyId;
 
-		IF EXISTS(SELECT 1 FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [QuantityOnHand] > 0 AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND UPPER(TRIM([SerialNumber])) = UPPER(TRIM(@SerialNumber)) AND [MasterCompanyId] = @MasterCompanyId)
+		IF EXISTS(SELECT 1 FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [QuantityOnHand] > 0 AND [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId AND UPPER(TRIM([SerialNumber])) = UPPER(TRIM(@SerialNumber)) AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 and [IsDeleted] = 0)
 		BEGIN
 			SET @AllowByPass = 0;			
 		END

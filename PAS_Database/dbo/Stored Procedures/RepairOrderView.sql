@@ -14,7 +14,8 @@
  **************************************************************************************           
  ** PR    Date					Author				Change Description            
  ** --    --------			-----------				--------------------------------          
-	 1    4-07-2025			Amit Ghediya			Created
+	 1    04-07-2025			Amit Ghediya			Created
+	 2    05-28-2025			Devendra Shekh			Added IsEnforcePickTicket to select
 
 	 EXEC [dbo].[RepairOrderView] 2542
 ****************************************************************************************/
@@ -118,7 +119,8 @@ BEGIN
 				ISNULL(ROSV.ShippingTerms, '') AS ShippingTerms,
 				ISNULL(FCU.Code, '') AS FunctionalCurrency,
 				ISNULL(RCU.Code, '') AS ReportCurrency,
-				ISNULL(RO.ForeignExchangeRate, 0) AS ForeignExchangeRate
+				ISNULL(RO.ForeignExchangeRate, 0) AS ForeignExchangeRate,
+				ISNULL(RO.IsEnforcePickTicket, 0) AS IsEnforcePickTicket
 			FROM [DBO].[RepairOrder] RO WITH(NOLOCK)
 			LEFT JOIN [DBO].[AllAddress] POSADD WITH(NOLOCK) ON RO.RepairOrderId = POSADD.ReffranceId AND POSADD.IsShippingAdd = 1 AND POSADD.ModuleId = @ROModuleId
 			LEFT JOIN [DBO].[Contact] ROCON WITH(NOLOCK) ON POSADD.ContactId = ROCON.ContactId

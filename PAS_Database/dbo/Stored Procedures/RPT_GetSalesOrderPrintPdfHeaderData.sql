@@ -13,8 +13,9 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 ** 2    09/04/2024  Shrey Chandegara	Updated For ItemNo (Add outer Apply for That.)
 ** 3    16-Apr-2024	Bhargav Saliya		CreditTerms Changes
 ** 4	11/04/2024	Vishal Suthar		Modified to make use of new SO Part tables
+** 5	29-May-2025	Devendra Shekh		Modified to get EmployeeName
 
-EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
+EXEC RPT_GetSalesOrderPrintPdfHeaderData 862
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
@@ -72,6 +73,7 @@ BEGIN
 				  LEFT JOIN dbo.SalesOrderShipping sos WITH(NOLOCK) ON so.SalesOrderId = sos.SalesOrderId
 				  LEFT JOIN dbo.ShippingVia sv WITH(NOLOCK) ON sos.ShipViaId = sv.ShippingViaId
 					WHERE sos.SalesOrderId = @salesOrderId)
+			, UPPER(CONCAT(emp.FirstName, ' ', emp.LastName)) AS EmployeeName
 		FROM dbo.SalesOrder so WITH(NOLOCK)
 			LEFT JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId

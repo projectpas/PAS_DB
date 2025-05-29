@@ -10,7 +10,8 @@
  ** PR   Date          Author			Change Description              
  ** --   --------      -------			------------------------------ 
 	1    23-Dec-2024   Rajesh Gami		CREATED
-	1    24-Dec-2024   Rajesh Gami		Added VendorProformaInvoiceId into the VendorPaymentDetails
+	2    24-Dec-2024   Rajesh Gami		Added VendorProformaInvoiceId into the VendorPaymentDetails
+	3    28/05/2025    Amit Ghediya		add LegalEntityId
 
 EXEC [dbo].[USP_AddVendorPaymentDetailsForVendorProformaById] 5
 ************************************************************************/
@@ -23,15 +24,28 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+
+			DECLARE @moduleId BIGINT = 0,
+			@LEId BIGINT = 0;
+
+			SELECT @moduleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='VendorProformaInvoice'
+
+			SELECT 
+				@LEId = MSL.[LegalEntityId]
+			FROM [dbo].[NonPOInvoiceManagementStructureDetails] NONS WITH(NOLOCK)
+			INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON NONS.Level1Id = MSL.ID
+			WHERE ReferenceID = @VendorProformaInvoiceId AND ModuleID = @moduleId;
+
+
 			INSERT INTO [dbo].[VendorPaymentDetails]
 				       ([ReadyToPayId], [DueDate], [VendorId], [VendorName], [PaymentMethodId], [PaymentMethodName], [ReceivingReconciliationId], [InvoiceNum], [CurrencyId], [CurrencyName],
 						[FXRate], [OriginalAmount], [PaymentMade], [AmountDue], [DaysPastDue], [DiscountDate], [DiscountAvailable], [DiscountToken], [OriginalTotal], [RRTotal], [InvoiceTotal],
 						[DIfferenceAmount], [TotalAdjustAmount], [StatusId], [Status], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],
-						[VendorProformaInvoiceId])
+						[VendorProformaInvoiceId],[LegalEntityId])
 			     SELECT 0, GETUTCDATE(),  [VendorId], [VendorName], 0, NULL, 0, VPH.VendorProformaInvoiceNo, VPH.[CurrencyId], CU.[Code],
 						0, part.ExtendedPrice, 0, 0, 0, NULL, 0, 0, part.ExtendedPrice, 0, part.ExtendedPrice,
 						0, 0,  [StatusId], NPHS.[Description], VPH.[MasterCompanyId], VPH.[CreatedBy], VPH.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), VPH.[IsActive], VPH.[IsDeleted], part.ExtendedPrice,
-						@VendorProformaInvoiceId
+						@VendorProformaInvoiceId,@LEId
 				   FROM [dbo].[VendorProformaInvoiceHeader] VPH WITH(NOLOCK) 
 				   INNER JOIN [dbo].[VendorProformaInvoiceHeaderStatus] NPHS WITH(NOLOCK) ON NPHS.[VendorProformaInvoiceHeaderStatusId] = VPH.[StatusId]
 				   INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.[CurrencyId] = VPH.[CurrencyId]

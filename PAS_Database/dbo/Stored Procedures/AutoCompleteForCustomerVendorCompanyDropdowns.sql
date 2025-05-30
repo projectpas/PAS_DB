@@ -70,12 +70,17 @@ AS BEGIN
 		UNION
 		SELECT DISTINCT LegalEntityId AS Value, Name AS Label, @CompanyModuleId, MasterCompanyId
 		FROM dbo.LegalEntity WITH(NOLOCK)
-		WHERE MasterCompanyId=@MasterCompanyId AND LegalEntityId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+		WHERE MasterCompanyId=@MasterCompanyId AND LegalEntityId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') );
 
-        SELECT DISTINCT *
-        FROM #TempTable
-        WHERE MasterCompanyId=@MasterCompanyId
-        ORDER BY Label
+        WITH Ranked AS (
+		SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY Label ORDER BY (SELECT NULL)) AS rn
+			FROM #TempTable
+		)
+		SELECT Value, Label, ModuleId, MasterCompanyId
+		FROM Ranked
+		WHERE rn = 1
+		ORDER BY Label;
         DROP Table #TempTable
     END TRY
     BEGIN CATCH

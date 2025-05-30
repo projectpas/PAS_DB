@@ -16,6 +16,7 @@
     2    23/07/2024   Bhargav Saliya     Get UserName
 	3    11/03/2025   Sahdev Saliya      Added a case to get timeZone
 	4    12/03/2025   Sahdev Saliya      Change the Date format to Datetime
+	5    29/05/2025   Amit Ghediya       Get user has role or not.
      
 ************************************************************************/
 CREATE PROCEDURE [dbo].[ProceEmployeeList]
@@ -42,7 +43,8 @@ CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @EmployeeId bigint = NULL,
 @MasterCompanyId bigint = NULL,
 @IsSuperAdmin bit = NULL,
-@UserName  varchar(50) = NULL
+@UserName  varchar(50) = NULL,
+@IsRoleAssign  bit = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -117,7 +119,8 @@ BEGIN
                     t.UpdatedBy,					
 				    le.[Name] AS Company,
 					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype,
-					ASP.UserName
+					ASP.UserName,
+					IsRoleAssign = (SELECT CASE WHEN COUNT(EmployeeUserRoleId) > 0 THEN 1 ELSE 0 END FROM dbo.EmployeeUserRole ER WITH(NOLOCK) WHERE ER.EmployeeId = t.EmployeeId)
 			   FROM dbo.Employee t WITH (NOLOCK)
 			        INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
 					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId

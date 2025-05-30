@@ -158,24 +158,27 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand  
 			,ISNULL(sl.UnitCost, 0) AS unitCost  
 			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice  
-			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name  
-			  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName  
-			  WHEN sl.TraceableToType = 9 THEN leTraceble.Name  
-			  WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)  
-			  ELSE ''  
-			END AS TracableToName  
-			,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name  
-			  WHEN sl.OwnerType = 2 THEN vOwner.VendorName  
-			  WHEN sl.OwnerType = 9 THEN leOwner.Name  
-			  WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)  
-			  ELSE ''  
-			END AS [OwnerName]  
-			,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name  
-			  WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName  
-			  WHEN sl.ObtainFromType = 9 THEN leObtain.Name  
-			  WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)  
-			  ELSE ''  
-			END AS  ObtainFromName  
+			--,CASE WHEN sl.TraceableToType = 1 THEN sl.TraceableToName  
+			--  WHEN sl.TraceableToType = 2 THEN sl.TraceableToName
+			--  WHEN sl.TraceableToType = 9 THEN sl.TraceableToName
+			--  WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableToName as varchar)  
+			--  ELSE ''  
+			--END 
+			,sl.TraceableToName AS TracableToName 
+			,sl.OwnerName AS OwnerName 
+			,sl.ObtainFromName AS ObtainFromName
+			--,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name  
+			--  WHEN sl.OwnerType = 2 THEN vOwner.VendorName  
+			--  WHEN sl.OwnerType = 9 THEN leOwner.Name  
+			--  WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)  
+			--  ELSE ''  
+			--END AS [OwnerName]  
+			--,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name  
+			--  WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName  
+			--  WHEN sl.ObtainFromType = 9 THEN leObtain.Name  
+			--  WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)  
+			--  ELSE ''  
+			--END AS  ObtainFromName  
 			,sl.TagDate  
 			,sl.TagType  
 			,sl.CertifiedBy  

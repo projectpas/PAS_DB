@@ -295,7 +295,7 @@ BEGIN
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerId] END  
        ,CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerName] END,CASE WHEN @IsExchangeWO = 1 THEN 0 ELSE [isCustomerstockType] END   
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],  
-       CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN [UnitCost] + @MaterialsCost + @LaborCost ELSE [UnitCost] END,  
+       CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,  
        [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
 	   NULL,[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
 	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 

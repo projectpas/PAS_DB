@@ -80,7 +80,7 @@ AS BEGIN
 		SELECT Value, Label, ModuleId, MasterCompanyId
 		FROM Ranked
 		WHERE rn = 1
-		ORDER BY Label;
+		ORDER BY Label, ModuleId;
         DROP Table #TempTable
     END TRY
     BEGIN CATCH

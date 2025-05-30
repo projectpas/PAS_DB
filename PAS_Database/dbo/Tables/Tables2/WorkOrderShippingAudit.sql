@@ -73,6 +73,7 @@
     [UnitPriceCurrencyId]                INT             NULL,
     [Notes]                              VARCHAR (MAX)   NULL,
     [isIgnoreAWB]                        BIT             NULL,
+    [isBypassShipping]                   BIT             NULL,
     CONSTRAINT [PK_WorkOrderShippingAudit] PRIMARY KEY CLUSTERED ([WorkOrderShippingAuditId] ASC)
 );
 

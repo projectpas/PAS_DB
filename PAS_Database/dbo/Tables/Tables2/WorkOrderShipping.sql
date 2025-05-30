@@ -72,6 +72,7 @@
     [UnitPriceCurrencyId]                INT             NULL,
     [Notes]                              VARCHAR (MAX)   NULL,
     [isIgnoreAWB]                        BIT             NULL,
+    [isBypassShipping]                   BIT             NULL,
     CONSTRAINT [PK_WorkOrderShipping] PRIMARY KEY CLUSTERED ([WorkOrderShippingId] ASC),
     CONSTRAINT [FK_WorkOrderShipping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkOrderShipping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -87,6 +88,8 @@
     CONSTRAINT [FK_WorkOrderShipping_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderShipping_WorkOrderPartNo] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 GO

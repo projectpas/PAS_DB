@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
     1    05-Mar-2025  Bhargav Saliya		Created    
+	2    29-Mar-2025  Amit Ghediya			Added isBypass flag for shipping. 
          
 	exec dbo.GetWorkOrderShipping @workOrderShippingId=3554
 ************************************************************************/    
@@ -140,7 +141,8 @@ BEGIN
 			wci.MasterUCR,
 			wci.MovementRefNo,
 			wci.CommodityCode,
-			wci.CustomCurrencyId
+			wci.CustomCurrencyId,
+			ISNULL(wos.isBypassShipping,0) AS isBypassShipping
 		FROM [dbo].[WorkOrderShipping] wos WITH(NOLOCK)
 		JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wos.WorkOrderId = wo.WorkOrderId
 		JOIN [dbo].[Customer] cus WITH(NOLOCK) ON wos.CustomerId = cus.CustomerId

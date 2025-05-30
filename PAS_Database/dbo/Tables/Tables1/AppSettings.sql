@@ -95,14 +95,7 @@
     [MaxReceivedMessageSize]          VARCHAR (150)   NULL,
     [AccountingIntegrationAPIUrl]     VARCHAR (1000)  NULL,
     [DBS3BucketName]                  VARCHAR (100)   NULL,
+    [DBBackupDays]                    INT             NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
-
-
-
-
-
-
-
-
 

@@ -3854,6 +3854,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPackagingLabelBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSOPickTicketBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderFreightAuditByFreightId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

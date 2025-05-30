@@ -11,11 +11,12 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-	1    08/08/2023   Hemant Saliya  Created
-	2    20/12/2023   Moin Bloch     Added IsAdjustPeriod,isacpStatusName Field
-	3    08/01/2024   Moin Bloch     Added [isaccStatusName],[isacrStatusName],[isassetStatusName],[isinventoryStatusName] Field
-	4    18/01/2024   Bhargav Saliya  Added [label],[value] Field
-	5    31/01/2024   Hemnat Saliya Handle ADJ - Period case
+	1    08/08/2023   Hemant Saliya		Created
+	2    20/12/2023   Moin Bloch		Added IsAdjustPeriod,isacpStatusName Field
+	3    08/01/2024   Moin Bloch		Added [isaccStatusName],[isacrStatusName],[isassetStatusName],[isinventoryStatusName] Field
+	4    18/01/2024   Bhargav Saliya	Added [label],[value] Field
+	5    31/01/2024   Hemnat Saliya		Handle ADJ - Period case
+	6    30/05/2025   Hemnat Saliya		Handle From To Accounting Periaod Validation using Ranking function
 
 ************************************************************************
 EXEC [GetAccountingPeriodsByLegalEntity] 1
@@ -36,6 +37,7 @@ BEGIN
 							AC.[FiscalName], 
 							AC.[FiscalYear],  
 							AC.[Period],
+							RANK () OVER ( ORDER BY AC.[FiscalYear] ASC, AC.[Period] ASC) AS SequenceNo,
 							AC.[IsAdjustPeriod],
 							ISNULL(AC.[isacpStatusName],0) AS [isacpStatusName],
 							ISNULL(AC.[isaccStatusName],0) AS [isaccStatusName],

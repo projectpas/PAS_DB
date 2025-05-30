@@ -3839,6 +3839,17 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteForCustomerVendorCompanyDropdowns.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderStatus.sql" />
+    <Build Include="dbo\Tables\WorkType.sql" />
+    <Build Include="dbo\Tables\ReleaseNotesTitleDetails.sql" />
+    <Build Include="dbo\Tables\ReleaseNoteHeadersDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveReleaseNoteTitlesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveReleaseNoteHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReleaseNoteTitlesId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReleaseNoteDetailsList.sql" />
+    <Build Include="dbo\User Defined Types\ReleaseNoteTitlesType.sql" />
+    <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPackagingLabelBySalesOrderId.sql" />

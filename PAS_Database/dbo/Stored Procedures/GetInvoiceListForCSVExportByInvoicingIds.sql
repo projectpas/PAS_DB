@@ -12,6 +12,7 @@
 	2   13 May 2025   RAJESH GAMI	Implemented SO and Exchange 
 	3   15 May 2025   RAJESH GAMI	Added Taxable Column
 	4   19 May 2025   RAJESH GAMI	Remove remaining amount condition
+	5   28 May 2025   RAJESH GAMI   Corrected InvoiceAmount
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
@@ -85,8 +86,10 @@ SET NOCOUNT ON;
 					   WOP.RevisedPartNumber as Item,
 					   WOP.RevisedPartDescription as ItemDescription,
 					   ISNULL(WOP.Quantity,0) as ItemQuantity,
-					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemRate,
-					   CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemAmount,
+					   --CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemRate,
+					   --CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemAmount,
+						CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END ItemRate,
+						CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END ItemAmount,
 					   GETDATE() as ServiceDate,
 					    WOBI.InvoiceStatus,
 						WOBII.WOBillingInvoicingItemId,

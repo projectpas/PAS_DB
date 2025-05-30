@@ -22,6 +22,7 @@
     5    14/Feb/2025  RAJESH GAMI		added PublicationNo in WO Part Number
     6    28/APR/2025  Vishal Suthar		added partnumber column to update from itemmaster
 	7    30/APR/2025  Hemant Saliya		Added Revised PN, Revised Serial Number , Revised PN Desc
+	8    27/MAY/2025  Abhishek Jirawla	Added WHERE condition in Publication CMM number update last step
 
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
@@ -156,11 +157,12 @@ BEGIN
 						SELECT STRING_AGG(P.PublicationId, ',') 
 						FROM Publication P
 						WHERE 
-							WOPN.CMMIds IS NOT NULL AND 
+							ISNULL(WOPN.CMMIds, '') <> '' AND 
 							(WOPN.CMMIds = CAST(P.PublicationRecordId AS VARCHAR) OR
 							 ',' + WOPN.CMMIds + ',' LIKE '%,' + CAST(P.PublicationRecordId AS VARCHAR) + ',%')
 					)
-					FROM WorkOrderPartNumber WOPN;
+					FROM [dbo].[WorkOrderPartNumber] WOPN WITH(NOLOCK)
+					WHERE WOPN.[ID] = @WorkOrderPartNumberId;
 
 			END
 		COMMIT  TRANSACTION

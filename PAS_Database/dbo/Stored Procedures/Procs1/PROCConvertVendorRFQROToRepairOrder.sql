@@ -16,6 +16,7 @@
 	3    07/19/2024  Abhishek Jirawla   Adding Freight and Charges from VendorRFQRO
 	4    09/12/2024  AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate from VendorRFQRO
 	5    05/20/2025  Vishal Suthar		Apply settings (IsEnforcePickTicket, EnforcePickTicketConfirmation) into newly converted RO
+	6    05/27/2025  Devendra Shekh		Apply settings (IsEnforcePickTicket, EnforcePickTicketConfirmation) into newly converted RO for @Opr = 2
 
 -- EXEC [PROCConvertVendorRFQROToRepairOrder] 13,0,0,2,25,1,1  
 ************************************************************************/  
@@ -184,6 +185,12 @@ BEGIN
       
         
 				SET @RID=IDENT_CURRENT('RepairOrder');  
+
+				UPDATE RO
+				SET RO.IsEnforcePickTicket = ROM.IsEnforcePickTicket, RO.EnforcePickTicketConfirmation = ROM.EnforcePickTicketConfirmation
+				FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
+				LEFT JOIN DBO.RepairOrderSettingMaster ROM WITH(NOLOCK) ON ROM.MasterCompanyId = RO.MasterCompanyId
+				WHERE RO.RepairOrderId = @RID;
 
 				SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],  
 					@CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]  

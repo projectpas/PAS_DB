@@ -13,22 +13,23 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/02/2020   Subhash Saliya Created
-	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
-	3	 09/13/2021	  Hemant Saliya  Add Calculated Field for Labor All Labor are Completd
-    4	 07/26/2022	  Subhash Saliya Add Calculated Field for Sipping or Invoiced are Completd
-	5	 06/08/2023	  Hemant Saliya  Updated for Calucation for Materilas Qty
-	6    10/04/2023   Hemant Saliya	 Condition Group Changes
-	7	 01/31/2024   Devendra Shekh added isperforma Flage for WO
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/02/2020   Subhash Saliya	Created
+	2	 06/28/2021	  Hemant Saliya		Added Transation & Content Managment
+	3	 09/13/2021	  Hemant Saliya		Add Calculated Field for Labor All Labor are Completd
+    4	 07/26/2022	  Subhash Saliya	Add Calculated Field for Sipping or Invoiced are Completd
+	5	 06/08/2023	  Hemant Saliya		Updated for Calucation for Materilas Qty
+	6    10/04/2023   Hemant Saliya		Condition Group Changes
+	7	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
 	8	 12/11/2024   Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
-	9	 02/14/2025   BHARGAV SALIYA UTC Date Changes
-	10	 04/14/2025	  Devendra Shekh Added changes for IsLaborTrackingTurnedOff
+	9	 02/14/2025   BHARGAV SALIYA	UTC Date Changes
+	10	 04/14/2025	  Devendra Shekh	Added changes for IsLaborTrackingTurnedOff
+	11	 05/28/2025	  Amit Ghediya		WO settlment material check box not checked issue while material deleted.
 
 EXEC [GetWorkOrderSettlementDetails] 3555,3025,3019
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
+CREATE     PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
 	@WorkorderId bigint,
 	@workOrderPartNoId bigint,
 	@workflowWorkorderId BIGINT,
@@ -78,21 +79,28 @@ BEGIN
 						@QtyToTendered = SUM(ISNULL(QtyToTurnIn,0))
 				FROM dbo.WorkOrderMaterials WITH(NOLOCK) 	  
 				WHERE WorkFlowWorkOrderId = @workflowWorkorderId
+				AND ISNULL(IsDeleted,0) = 0
 
 				SELECT  @OtherMaterialsProvisionQty = SUM(ISNULL(WOM.Quantity,0))
 				FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) 	  
 					LEFT JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId	
-				WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ProvisionId != 1 AND WOMS.WOMStockLineId IS NULL
+				WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ProvisionId != 1 
+				AND ISNULL(WOMS.IsDeleted,0) = 0
+				AND WOMS.WOMStockLineId IS NULL
 
 				SELECT @qtyissue = SUM(ISNULL(WOMS.QtyIssued,0)) 
 				FROM dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) 
 					JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId	  
-				WHERE WorkFlowWorkOrderId = @workflowWorkorderId AND WOMS.ProvisionId = @ProvisionId -- REPLACE
+				WHERE WorkFlowWorkOrderId = @workflowWorkorderId 
+				AND ISNULL(WOM.IsDeleted,0) = 0
+				AND WOMS.ProvisionId = @ProvisionId -- REPLACE
 
 				SELECT @OtherProvisionQty = SUM(ISNULL(WOMS.Quantity,0)) 
 				FROM dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) 
 					JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId	  
-				WHERE WorkFlowWorkOrderId = @workflowWorkorderId AND WOMS.ProvisionId != @ProvisionId -- REPLACE
+				WHERE WorkFlowWorkOrderId = @workflowWorkorderId 
+				AND ISNULL(WOM.IsDeleted,0) = 0
+				AND WOMS.ProvisionId != @ProvisionId -- REPLACE
 
 				SELECT  @kitqtyreq =  SUM(ISNULL(Quantity,0)),
 						@kitQtyTendered =  SUM(ISNULL(QtyToTurnIn,0))

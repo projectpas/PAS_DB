@@ -3850,6 +3850,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetReleaseNoteDetailsList.sql" />
     <Build Include="dbo\User Defined Types\ReleaseNoteTitlesType.sql" />
     <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_commonDeleteReleaseNoteById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

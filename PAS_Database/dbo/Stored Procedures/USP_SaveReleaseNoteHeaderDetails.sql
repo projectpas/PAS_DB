@@ -26,6 +26,17 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 	BEGIN TRY
+		
+		Update RHD SET 
+			RHD.SprintName = T.SprintName,
+			RHD.SprinDescription = T.SprinDescription,
+			RHD.[ReleaseDate] = T.ReleaseDate,
+			RHD.[FileName] = T.[FileName],
+			RHD.[DocumentPath] = T.DocumentPath,
+			RHD.UpdatedDate = GETUTCDATE()
+		FROM [dbo].[ReleaseNoteHeadersDetails] RHD WITH(NOLOCK)
+			JOIN @tbl_ReleaseNoteHeaderDetailsType T ON RHD.ReleaseNoteHeaderId = T.ReleaseNoteHeaderId
+		Where ISNULL(T.[IsDeleted],0) = 0 AND ISNULL(T.ReleaseNoteHeaderId,0) > 0
 
 		INSERT INTO [dbo].[ReleaseNoteHeadersDetails](
 			[SprintName], [SprinDescription],[ReleaseDate],[FileName],[DocumentPath],[MasterCompanyId], [CreatedBy],
@@ -34,7 +45,7 @@ BEGIN
 		SELECT 
 			 [SprintName], [SprinDescription],[ReleaseDate],[FileName],[DocumentPath],[MasterCompanyId], [CreatedBy],
 			 [UpdatedBy], GETUTCDATE(), GETUTCDATE(),[IsActive], [IsDeleted]
-		FROM @tbl_ReleaseNoteHeaderDetailsType temp where temp.[ReleaseNoteHeaderId] = 0;  
+		FROM @tbl_ReleaseNoteHeaderDetailsType temp where ISNULL(temp.[ReleaseNoteHeaderId],0) = 0 AND ISNULL(temp.[IsDeleted],0) = 0;  
 
 
 	END TRY   

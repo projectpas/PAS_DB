@@ -60,13 +60,13 @@ BEGIN
 
 		SELECT * INTO #tmpRCWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
 		FROM [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK)
-		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId AND RMS.EntityStructureId = MSD.EntityMSID 
+		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = MSD.EntityMSID 
 		INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
 		WHERE MSD.[ModuleID] = @RecevingModuleID AND EUR.[EmployeeId] = @EmployeeId) AS Result
 
 		SELECT * INTO #tmpWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
 		FROM [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK)
-		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId AND RMS.EntityStructureId = MSD.EntityMSID 
+		INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = MSD.EntityMSID 
 		INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
 		WHERE MSD.[ModuleID] = @WOPartModuleID AND EUR.[EmployeeId] = @EmployeeId) AS Result
 

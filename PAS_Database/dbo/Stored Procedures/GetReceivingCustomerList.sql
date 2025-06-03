@@ -30,11 +30,12 @@
 	13   17/03/2025   Sahdev Saliya     Change the Date format to Datetime
 	14   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date)
 	15   16/04/2025   ABHISHEK JIRAWLA  Updated (Added Repair Management Filter)
+	16   13/05/2025   Hemant Saliya		Resolved Performance issue for Production
 
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
-CREATE   PROCEDURE [dbo].[GetReceivingCustomerList]
+CREATE     PROCEDURE [dbo].[GetReceivingCustomerList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
 	@PageNumber int,
@@ -102,6 +103,12 @@ BEGIN
 		WHERE 
 			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
+		DECLARE @BaseUtcOffsetSec INT    
+
+		-- Fetch the UTC offset in seconds
+		SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec  
+		FROM dbo.TimeZone WITH(NOLOCK)  
+		WHERE [Description] = @CurrntEmpTimeZoneDesc  
 		
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -187,9 +194,12 @@ BEGIN
 					MSD.AllMSlevels,
 					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
 					CASE WHEN RC.IsRepairManagement = 1 THEN 1 ELSE 0 END IsRepairManagement,
-					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
-					(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) AS ReceivedDate
+					DATEADD(SECOND, @BaseUtcOffsetSec, RC.CreatedDate) CreatedDate,
+					DATEADD(SECOND, @BaseUtcOffsetSec, RC.UpdatedDate) UpdatedDate,
+					DATEADD(SECOND, @BaseUtcOffsetSec, RC.CreatedDate) ReceivedDate
+					--(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
+					--(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
+					--(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) AS ReceivedDate
 				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId

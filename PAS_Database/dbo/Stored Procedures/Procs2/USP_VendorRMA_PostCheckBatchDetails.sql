@@ -28,6 +28,8 @@
 	12	 09/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
 	13	 04/11/2024	  Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 03/02/2025	  Amit Ghediya			Modify(get Distribution based on new settings from stockline level)
+	15	 06/02/2025	  Abhishek Jirawla		Fixed Name concat read script
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
 (
@@ -185,7 +187,7 @@ BEGIN
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
-			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			
 			SELECT @stklineId= StockLineId FROM [DBO].[VendorRMADetail] WITH(NOLOCK) WHERE VendorRMADetailId = @VendorRMADetailId;
 			IF(@stklineId = 0 OR @stklineId IS NULL )

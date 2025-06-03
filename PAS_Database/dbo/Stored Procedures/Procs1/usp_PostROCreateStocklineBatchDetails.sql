@@ -23,6 +23,7 @@
 	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
 	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 11/02/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline
+	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -194,7 +195,7 @@ BEGIN
 						  SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId= @MstCompanyId
 						  SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 						  SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-						  SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
+						  SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
 					  
 						  SELECT @Amount = SUM(Amount) FROM #StocklinePostType WHERE [ID] = @MinId;	
 

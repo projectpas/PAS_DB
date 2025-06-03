@@ -1,4 +1,25 @@
-﻿CREATE   PROCEDURE [dbo].[USP_CreateCustomerGeneralLedger]
+﻿/*************************************************************           
+ ** File:   [USP_CreateCustomerGeneralLedger]           
+ ** Author: Unknown
+ ** Description: This stored procedure is used insert CustomerGeneralLedger
+ ** Purpose:         
+ ** Date:  Unknown
+
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date				 Author					Change Description            
+ ** --   --------			-------				--------------------------------          
+    1    Unknown		 Unknown				Created	
+	2	 02/06/2025		 Abhishek Jirawla		Fixed Name concat read script
+     
+	 exec USP_PostManualStockLineBatchDetails 164040
+**************************************************************/
+CREATE   PROCEDURE [dbo].[USP_CreateCustomerGeneralLedger]
 (
 	@CustomerId BIGINT,
 	@ModuleId INT,
@@ -20,7 +41,7 @@ BEGIN
 
 		SELECT @CurrentManagementStructureId =ManagementStructureId 
 		FROM dbo.Employee WITH(NOLOCK)  
-		WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@CreatedBy, ' ', '')) 
+		WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@CreatedBy, ' ', '')) 
 			AND MasterCompanyId=@MasterCompanyId
 
 		SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 

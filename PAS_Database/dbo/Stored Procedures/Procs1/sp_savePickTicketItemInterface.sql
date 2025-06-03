@@ -17,6 +17,7 @@
 ** 7    29-10-2024		Vishal Suthar			Modified to add one more column SalesOrderStocklineId
 ** 8    11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
 ** 9    12/10/2024		Moin Bloch			    Modified fixed dublicate Pickticket issue
+** 10   03/06/2025		Vishal Suthar			Fixed issue with Qty Picked and Qty Remaining calculation
 
 exec sp_savePickTicketItemInterface @SOPickTicketId=0,@SOPickTicketNumber=N'PT(SO)-000742',@SalesOrderId=1570,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',@IsActive=1,@IsDeleted=0,@SalesOrderPartId=1973,@SalesOrderStocklineId=2517,@Qty=0,@QtyToShip=1,@MasterCompanyId=1,@Status=1,@PickedById=55,@ConfirmedById=0,@Memo=default,@IsConfirmed=0,@CodePrefixId=17,@CurrentNummber=742
 ********************************************************************************/
@@ -65,36 +66,47 @@ BEGIN
 	IF(@TotalRervePart > 1)
 	BEGIN
 	    DECLARE @QtyToReserve INT = 0,@TotalQtyToShip INT = 0;
-		--SELECT @QtyRemaining = (SUM(sorpp.QtyToReserve) - @QtyToShip - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		--FROM 
-		--DBO.SalesOrderPartV1 sopp WITH(NOLOCK)
-		--LEFT JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
-		--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId
-		--LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-		--WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId
-
-		SELECT @QtyToReserve = ISNULL(SUM(sorpp.QtyToReserve),0) 
-     		FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
-			LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
-			INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId
-			--LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-			WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId		
 		
-		SELECT @TotalQtyToShip = ISNULL(SUM(sopt.QtyToShip),0) 
-			FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
-			LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
-			INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId
-			LEFT JOIN dbo.SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-			WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId
+		--SELECT @QtyToReserve = ISNULL(SUM(sorpp.QtyToReserve),0) 
+  --   		FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
+		--	LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+		--	INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId
+		--	WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId		
+		
+		--SELECT @TotalQtyToShip = ISNULL(SUM(sopt.QtyToShip),0) 
+		--	FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
+		--	LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+		--	INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId
+		--	LEFT JOIN dbo.SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+		--	WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId
 
-		SET	@QtyRemaining = (@QtyToReserve - ISNULL(@QtyToShip,0) - @TotalQtyToShip) 
+		--SET	@QtyRemaining = (@QtyToReserve - ISNULL(@QtyToShip,0) - @TotalQtyToShip) 
+		DECLARE @StocklineId BIGINT;
+
+		SELECT @StocklineId = StocklineId
+		FROM dbo.SalesOrderStocklineV1 WITH (NOLOCK)
+		WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
+
+		SELECT 
+			@QtyToReserve = ISNULL(SUM(sorpp.QtyReserved), 0)
+		FROM dbo.SalesOrderStockLineV1 sorpp WITH(NOLOCK)
+		WHERE sorpp.SalesOrderPartId = @SalesOrderPartId
+		  AND sorpp.StocklineId = @StocklineId; -- Important!
+
+		SELECT 
+			@TotalQtyToShip = ISNULL(SUM(sopt.QtyToShip), 0)
+		FROM dbo.SOPickTicket sopt WITH(NOLOCK)
+		WHERE sopt.SalesOrderId = @SalesOrderId
+		  AND sopt.SalesOrderPartId = @SalesOrderPartId
+		  AND sopt.SalesOrderPartStocklineId = @SalesOrderStocklineId;
+
+		-- Final calculation
+		SET @QtyRemaining = @QtyToReserve - @TotalQtyToShip - ISNULL(@QtyToShip, 0);
 	END
 	ELSE
 	BEGIN	   
 		SELECT @QtyRemaining = (sorpp.QtyToReserve - ISNULL(@QtyToShip,0) - SUM(ISNULL(sopt.QtyToShip, 0))) 
 		FROM 
-		--SalesOrderPartV1 sopp WITH(NOLOCK)
-		--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 		dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
 		LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
 		INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId   

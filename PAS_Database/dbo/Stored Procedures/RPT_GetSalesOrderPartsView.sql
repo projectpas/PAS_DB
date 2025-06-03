@@ -16,6 +16,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    5	11/12/2024	Vishal Suthar	Fixed Qty, Unit Price and Total issue
    6	11/27/2024	Vishal Suthar	Fixed Qty Reserved issue
    7	12/04/2024	Vishal Suthar	Fixed an issue with fetching Notes from stockline
+   8	06/03/2025	Vishal Suthar	Removed truncation for PN Description Field
 
 EXEC RPT_GetSalesOrderPartsView 1472
 
@@ -56,18 +57,18 @@ BEGIN
 			sp.UpdatedBy,
 			sp.UpdatedDate,
 			UPPER(im.PartNumber) AS PartNumber,
-			--UPPER(im.PartDescription) AS PartDescription,
-			CASE
-			   WHEN im.[PartDescription] !='' 
-			   THEN 
-					CASE WHEN LEN(ISNULL(im.[PartDescription],'')) < 22
-						THEN ISNULL(im.[PartDescription],'')
-					ELSE
-						LEFT(ISNULL(im.[PartDescription],''),22) + '....'
-					END
-			   ELSE 
-					''
-			 END AS 'PartDescription',
+			UPPER(im.PartDescription) AS PartDescription,
+			--CASE
+			--   WHEN im.[PartDescription] !='' 
+			--   THEN 
+			--		CASE WHEN LEN(ISNULL(im.[PartDescription],'')) < 22
+			--			THEN ISNULL(im.[PartDescription],'')
+			--		ELSE
+			--			LEFT(ISNULL(im.[PartDescription],''),22) + '....'
+			--		END
+			--   ELSE 
+			--		''
+			-- END AS 'PartDescription',
 			CASE WHEN sl.OEM = 1 THEN 1 ELSE 0 END AS IsOEM,
 			CASE WHEN im.IsPma = 1 THEN 1 ELSE 0 END AS IsPMA,
 			CASE WHEN im.IsDER = 1 THEN 1 ELSE 0 END AS IsDER,

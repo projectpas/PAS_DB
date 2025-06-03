@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          	
 	1    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
 	2    25/09/2024	  AMIT GHEDIYA	  Added for AutoPost Batch
+	3	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 **************************************************************/
 /*************************************************************           
 EXEC [dbo].[USP_BatchTriggerBasedonDistributionROStockline] 64201,1,'10.00','ReceivingRO','deep patel',1,'STOCK',0
@@ -140,7 +141,7 @@ BEGIN
 	         select @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
 	         select @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  where ID= @JournalTypeId
 	         --select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(FirstName,' ',LastName) IN (@UpdateBy) and MasterCompanyId=@MasterCompanyId
-			 select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			 select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 	         
 			 if((@JournalTypeCode ='RRO') and @IsAccountByPass=0)
 			 BEGIN

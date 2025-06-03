@@ -14,7 +14,8 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
     1    05-Mar-2025  Bhargav Saliya		Created    
-	2    29-Mar-2025  Amit Ghediya			Added isBypass flag for shipping. 
+	2    28-May-2025  Devendra Shekh		changes to read [ShipviaId]
+	3    29-Mar-2025  Amit Ghediya			Added isBypass flag for shipping. 
          
 	exec dbo.GetWorkOrderShipping @workOrderShippingId=3554
 ************************************************************************/    
@@ -44,7 +45,8 @@ BEGIN
 			cus.Name AS CustomerName,
 			cus.CustomerCode,
 			@CustomerReference AS CustomerReference,
-			CASE WHEN wos.IsCustomerShipping = 1 THEN wos.CustomerDomensticShippingShipViaId ELSE wos.ShipviaId END AS ShipviaId,
+			--CASE WHEN wos.IsCustomerShipping = 1 THEN wos.CustomerDomensticShippingShipViaId ELSE wos.ShipviaId END AS ShipviaId,
+			wos.ShipviaId AS ShipviaId,
 			ss.Status AS ShippingStatus,
 			wos.ShipDate,
 			wos.AirwayBill,

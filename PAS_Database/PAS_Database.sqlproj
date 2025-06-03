@@ -3851,6 +3851,7 @@
     <Build Include="dbo\User Defined Types\ReleaseNoteTitlesType.sql" />
     <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_commonDeleteReleaseNoteById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOMRODashboardData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPackagingLabelBySalesOrderId.sql" />

@@ -3859,6 +3859,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderFreightAuditByFreightId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesBySOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetViewExchangeSalesOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeAnalysisList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

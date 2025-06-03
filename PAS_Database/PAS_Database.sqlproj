@@ -3860,6 +3860,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesBySOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetViewExchangeSalesOrderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeAnalysisList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderHypoAnalysisList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

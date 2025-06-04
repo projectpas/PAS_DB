@@ -3852,6 +3852,7 @@
     <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_commonDeleteReleaseNoteById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOMRODashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

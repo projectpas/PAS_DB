@@ -3852,6 +3852,29 @@
     <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_commonDeleteReleaseNoteById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOMRODashboardData.sql" />
+    <Build Include="dbo\Tables\BillingInvoicingItems.sql" />
+    <Build Include="dbo\Tables\BillingInvoicingDetails.sql" />
+    <Build Include="dbo\Tables\BillingInvoicing.sql" />
+    <Build Include="dbo\Functions\FN_ValidatePDFAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingPdfPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonTermsConditionDescriptionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonEmailTemplateDescriptionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItems.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingDepositeDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddBillingInvoicingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_PrintWorkOrderInvoiceTermCondiitonById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_ACHByManagementStructId.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderBillingMPNDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonModuleDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonBillingMPNDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonBillingInvoiceListNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonBillingInvoiceChildListNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
+    <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

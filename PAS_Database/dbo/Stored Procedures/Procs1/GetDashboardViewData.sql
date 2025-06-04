@@ -22,8 +22,9 @@
 	10   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
 	11   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
 	12   06/03/2025		Devendra Shekh 	WO DashBoard - Count Issue Resoled
+	13   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
 
--- EXEC GetDashboardViewData 
+-- EXEC GetDashboardViewData  1, '06/03/2025', 7, 58, 1
 ************************************************************************/
 
 CREATE    PROCEDURE [dbo].[GetDashboardViewData]
@@ -73,6 +74,17 @@ BEGIN
 			BEGIN    
 				DROP TABLE #tmpWorkOrderUserRole
 			END	
+
+			IF OBJECT_ID(N'tempdb..#tmpSpeedQuoteUserRole') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #tmpSpeedQuoteUserRole
+			END
+
+			SELECT * INTO #tmpSpeedQuoteUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].WorkOrderManagementStructureDetails MSD WITH (NOLOCK)
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+			WHERE MSD.[ModuleID] = @SpeedQouteModuleID AND EUR.[EmployeeId] = @EmployeeId) AS SpeedQuoteUserRole
 		
 			SELECT * INTO #tmpSalesOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
 			FROM [dbo].SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
@@ -112,16 +124,17 @@ BEGIN
 						item.PartDescription, 
 						rec_cust.WorkScope, 
 						item.ItemGroup,
-						rec_cust.Quantity, 
+						SUM(ISNULL(rec_cust.Quantity, 0)) Quantity,
 						wo.WorkOrderNum, 
 						rec_cust.CustomerName, 
 						(emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 					FROM 
 						DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
 						INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
-						INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = rec_cust.ReceivingCustomerWorkId
 						LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
 						LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 					WHERE 
@@ -129,6 +142,8 @@ BEGIN
 						AND rec_cust.IsDeleted = 0 
 						AND CONVERT(DATE, rec_cust.ReceivedDate) = CONVERT(DATE, @Date) 
 						AND rec_cust.MasterCompanyId = @MasterCompanyId
+						AND  rec_cust.IsPiecePart = 0 
+					GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
 					)
 					SELECT * FROM TempResults Order by WorkOrderId
 			END
@@ -195,9 +210,10 @@ BEGIN
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
-		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
-		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
+				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
+		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
+		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE 
 				wop.WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 										AND IsActive = 1 AND IsDeleted = 0)
@@ -313,9 +329,11 @@ BEGIN
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SQP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID =@SpeedQouteModuleID AND MSD.ReferenceID = SQ.SpeedQuoteId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SQ.ManagementStructureId = RMS.EntityStructureId
-	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				INNER JOIN #tmpSpeedQuoteUserRole TMP ON TMP.ReferenceID = SQ.SpeedQuoteId
+				
+				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID =@SpeedQouteModuleID AND MSD.ReferenceID = SQ.SpeedQuoteId
+	            --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SQ.ManagementStructureId = RMS.EntityStructureId
+	            --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE
 				SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE 
 						[Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
@@ -323,6 +341,13 @@ BEGIN
 				AND SQ.IsDeleted = 0
 				AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND SQ.MasterCompanyId = @MasterCompanyId
+
+			--	SELECT @SQProcessed = COUNT(SQ.SpeedQuoteId) FROM DBO.SpeedQuote SQ WITH (NOLOCK) 
+			--	INNER JOIN #tmpSpeedQuoteUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
+			--WHERE SQ.StatusId IN (SELECT Id FROM MasterSpeedQuoteStatus Where [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
+			--	AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @SelectedDate) AND SQ.MasterCompanyId = @MasterCompanyId
+
+
 			END
 			ELSE IF (@DashboardType = 8)
 			BEGIN

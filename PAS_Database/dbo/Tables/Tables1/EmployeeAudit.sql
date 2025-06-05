@@ -47,6 +47,7 @@
     [TextTransformId]                    BIGINT          NULL,
     [IsIncludeInCC]                      BIT             NULL,
     [IsAllowToChangeManagementStructure] BIT             CONSTRAINT [DF_EmployeeAudit_IsAllowToChangeManagementStructure] DEFAULT ((0)) NULL,
+    [SiteId]                             BIGINT          NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
 

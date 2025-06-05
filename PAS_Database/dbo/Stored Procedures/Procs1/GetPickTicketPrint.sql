@@ -44,40 +44,35 @@ BEGIN
 		SELECT @pickTicketNo = [SOPickTicketNumber], @masterCompanyId = [MasterCompanyId] FROM [dbo].[SOPickTicket] WITH (NOLOCK) WHERE [SOPickTicketId] = @SOPickTicketId;
 
 		;WITH TResrvePart AS (
-			SELECT COUNT([SalesOrderReservePartId]) AS TotalResrvePart, 
-			       sopp.[SalesOrderId]--, MIN(QtyToShip) as NewTotalQtyToShip
+			SELECT COUNT(sopp.[SalesOrderPartId]) AS TotalResrvePart, 
+			       sopp.[SalesOrderId]
 				FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK)
-				 LEFT JOIN [dbo].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOPP.SalesOrderPartId
-				INNER JOIN [dbo].[SalesOrderReserveParts] sorpp WITH(NOLOCK) ON sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StockLineId = SOS.StockLineId
-				 LEFT JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND SOPT.SalesOrderPartStocklineId = SOS.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-				WHERE SOPT.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo --AND sopt.SalesOrderPartId = @SalesOrderPartId
-				group by sopp.SalesOrderId--,QtyToShip
+				LEFT JOIN [dbo].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOPP.SalesOrderPartId
+				LEFT JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND SOPT.SalesOrderPartStocklineId = SOS.SalesOrderStocklineId
+				WHERE SOPT.SalesOrderId = @SalesOrderId AND sopp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo
+				group by sopp.SalesOrderId
 			)
-	 ,cte AS(
-			SELECT ISNULL(SUM([QtyToShip]),0) AS TotalQtyToShip, 
-			          MIN([QtyRemaining]) AS MinQty, 
-					  SOPick.[SalesOrderId],
-					  SOPick.[SalesOrderPartId]
-				FROM [dbo].[SOPickTicket] SOPick WITH(NOLOCK) 
-				--JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
-				LEFT JOIN [dbo].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
-				WHERE SOPick.SalesOrderId = @SalesOrderId 
-				AND SOPickTicketNumber = @pickTicketNo
-				--AND SOPick.SalesOrderPartId = @SalesOrderPartId
-				--GROUP BY QtyToShip, SOPick.SalesOrderId, SOPick.SalesOrderPartId
-				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
-		     )		
+	 --,cte AS(
+		--	SELECT ISNULL(SUM([QtyToShip]),0) AS TotalQtyToShip, 
+		--	          MIN([QtyRemaining]) AS MinQty, 
+		--			  SOPick.[SalesOrderId],
+		--			  SOPick.[SalesOrderPartId]
+		--		FROM [dbo].[SOPickTicket] SOPick WITH(NOLOCK) 
+		--		WHERE SOPick.SalesOrderId = @SalesOrderId 
+		--		AND SOPickTicketNumber = @pickTicketNo
+		--		GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
+		--     )		
 		SELECT sopt.[SOPickTicketId], 
 		       sopt.[CreatedDate] AS SOPickTicketDate, 
-			   sopt.[SalesOrderId], 
-			     sl.[StockLineNumber], 
+			    sopt.[SalesOrderId], 
+			    sl.[StockLineNumber], 
 			    stk.[QtyOrder] Qty, 		
-			 --cte.TotalQtyToShip as QtyToPick, 		
-			   CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN cte.[TotalQtyToShip] + 0 
-			   WHEN [MinQty] > 0 THEN cte.[TotalQtyToShip] + [MinQty] ELSE cte.[TotalQtyToShip] + sopt.[QtyRemaining] END AS [QtyToPick],
-			   imt.[partnumber] AS PartNumber, 
-			   imt.[PartDescription], 
-			  sopt.[SOPickTicketNumber],
+			   --CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN cte.[TotalQtyToShip] + 0 
+			   --WHEN [MinQty] > 0 THEN cte.[TotalQtyToShip] + [MinQty] ELSE cte.[TotalQtyToShip] + sopt.[QtyRemaining] END AS [QtyToPick],
+			    sopt.QtyToShip AS QtyToPick,
+			    imt.[partnumber] AS PartNumber, 
+			    imt.[PartDescription], 
+			    sopt.[SOPickTicketNumber],
 			    sl.[SerialNumber], 
 			    sl.[ControlNumber], 
 			    sl.[IdNumber], 
@@ -95,9 +90,10 @@ BEGIN
 			    sl.[QuantityAvailable] AS QtyAvailable, 
 			   sop.[Notes], 		
 			  sopt.[QtyToShip] AS QtyShipped,			
-			  CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN 0 WHEN [MinQty] > 0 THEN [MinQty] ELSE sopt.[QtyRemaining] END AS QtyRemaining
+			  --CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN 0 WHEN [MinQty] > 0 THEN [MinQty] ELSE sopt.[QtyRemaining] END AS QtyRemaining
+			  sopt.QtyRemaining AS QtyRemaining
 		FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
-		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
+		--INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
 		INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
 		INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -115,7 +111,6 @@ BEGIN
 		 LEFT JOIN TResrvePart WITH(NOLOCK) ON TResrvePart.SalesOrderId = sopt.SalesOrderId
 		WHERE 
 		so.SalesOrderId = @SalesOrderId
-		--sopt.SOPickTicketId = @SOPickTicketId;
 		AND sopt.SOPickTicketNumber = @pickTicketNo
 		ORDER BY sopt.SOPickTicketId ASC
 	--END

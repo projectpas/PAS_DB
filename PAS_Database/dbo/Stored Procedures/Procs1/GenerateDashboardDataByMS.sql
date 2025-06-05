@@ -24,6 +24,7 @@
 	11   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
 	12   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
 	13   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date) AND convert UTC to LOCAL where we compare the CREATEDDate
+	14   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -79,16 +80,27 @@ BEGIN
 		WHERE MSD.[ModuleID] = @SalesOrderModuleID AND EUR.[EmployeeId] = @EmployeeId) AS SalesOrderUserRole
 
 
-		IF OBJECT_ID(N'tempdb..#tmpWorkOrderUserRole') IS NOT NULL    
+		IF OBJECT_ID(N'tempdb..#tmpSpeedQuoteUserRole') IS NOT NULL    
 		BEGIN    
-			DROP TABLE #tmpWorkOrderUserRole
+			DROP TABLE #tmpSpeedQuoteUserRole
 		END
 		
-		SELECT * INTO #tmpWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		SELECT * INTO #tmpSpeedQuoteUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
 		FROM [dbo].WorkOrderManagementStructureDetails MSD WITH (NOLOCK)
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
 			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
 		WHERE MSD.[ModuleID] = @SpeedQouteModuleID AND EUR.[EmployeeId] = @EmployeeId) AS WorkOrderUserRole
+
+		IF OBJECT_ID(N'tempdb..#tmpWorkOrderUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpWorkOrderUserRole
+		END
+
+		SELECT * INTO #tmpWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		FROM [dbo].WorkOrderManagementStructureDetails MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @wopartModuleID AND EUR.[EmployeeId] = @EmployeeId) AS WorkOrderUserRole
 
 		INSERT INTO [dbo].[LogInLog]
            ([EmployeeId],[LogInTime],[LogOutTime],[IPAddress],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate])
@@ -135,8 +147,10 @@ BEGIN
 		WHERE WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 										WHERE MasterCompanyId = @MasterCompanyId 
 										AND IsActive = 1 AND IsDeleted = 0)
-		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND
-		CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE,DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) <= CONVERT(DATE, @SelectedDate) 
+		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId 
+		AND CONVERT(DATE,DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) = CONVERT(DATE, @SelectedDate)
+		--AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) >= CONVERT(DATE, @BacklogStartDt) AND 
+		--AND CONVERT(DATE,DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) <= CONVERT(DATE, @SelectedDate) 
 
 		--SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) 
 
@@ -213,7 +227,7 @@ BEGIN
 			AND WOQ.MasterCompanyId = @MasterCompanyId
 
 		SELECT @SQProcessed = COUNT(SQ.SpeedQuoteId) FROM DBO.SpeedQuote SQ WITH (NOLOCK) 
-			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
+			INNER JOIN #tmpSpeedQuoteUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
 		WHERE SQ.StatusId IN (SELECT Id FROM MasterSpeedQuoteStatus Where [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
 			AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @SelectedDate) AND SQ.MasterCompanyId = @MasterCompanyId
 

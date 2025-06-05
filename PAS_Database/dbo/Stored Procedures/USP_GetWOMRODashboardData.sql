@@ -81,7 +81,7 @@ BEGIN
 		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @EmployeeId;
 
-		-- selecting receiving customer work details
+		-- selecting receiving customer work details		:(DashboardType = 9)
 		SELECT @WOReceiptUnits = SUM(Quantity) FROM (
 				SELECT DISTINCT	
 					WO.WorkOrderId,
@@ -100,13 +100,16 @@ BEGIN
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				WHERE rec_cust.IsActive = 1 
 				AND rec_cust.IsDeleted = 0 
-				AND CONVERT(DATE, rec_cust.CreatedDate) = CONVERT(DATE, @StartDate) 
+				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(rec_cust.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(rec_cust.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						ELSE (CAST(rec_cust.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @StartDate)
+				--AND CONVERT(DATE, rec_cust.CreatedDate) = CONVERT(DATE, @StartDate)
 				AND rec_cust.MasterCompanyId = @MasterCompanyId
 				AND  rec_cust.IsPiecePart = 0 
 				GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
 		) AS ReceivingResult
 		
-		-- selecting work order quote unit and amount details
+		-- selecting work order quote unit and amount details		:(DashboardType = 11)
 		SELECT @WOQuotedUnits = COUNT(*), @WOQuotedAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,
@@ -118,12 +121,12 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
-				WHERE  CONVERT(DATE,WOQ.OpenDate) = @StartDate 
+				WHERE  CONVERT(DATE,WOQ.OpenDate) = CONVERT(DATE, @StartDate) 
 				AND WOQ.MasterCompanyId = @MasterCompanyId
 				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 		) AS WOQuoteResult
 
-		-- selecting approved work order quote unit and amount details
+		-- selecting approved work order quote unit and amount details		:(DashboardType = 12)
 		SELECT @WOApprovalUnits = COUNT(*), @WOApprovalAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,
@@ -135,11 +138,11 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
-				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = @StartDate AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
+				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = CONVERT(DATE, @StartDate) AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
 				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 		) AS ApprovedWOQuoteResult
 
-		-- selecting work order billing unit and amount details
+		-- selecting work order billing unit and amount details		:(DashboardType = 13)
 		SELECT @WOBillingUnits = COUNT(*), @WOBillingAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup--, wobii.GrandTotal
@@ -164,7 +167,7 @@ BEGIN
 				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 		) AS WorkOrderBillingResult
 
-		-- selecting work order MTD billing unit and amount details
+		-- selecting work order MTD billing unit and amount details		:(DashboardType = 10)
 		SELECT @WOMTDUnits = COUNT(*), @WOMTDAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, ISNULL(wobii.GrandTotal, 0) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 

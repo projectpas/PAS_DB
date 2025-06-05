@@ -41,6 +41,7 @@
 	24  07 May 2025   RAJESH GAMI		Added filters (FromDate ToDate)
 	25  16 May 2025   HEMANT SALIYA		Corrected WO revenue same as Billing reports
 	26  22 May 2025   Devendra Shekh    Added new fields InvoiceTotalAmount, RemainingTotalAmount
+	27  28 May 2025   RAJESH GAMI       Corrected InvoiceAmount
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -508,8 +509,8 @@ BEGIN
 				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],
 				CT.CustomerTypeName [CustomerType],
-				WOBI.GrandTotal [InvoiceAmt], 
-				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(WOBII.UnitPrice),0) ELSE ISNULL(SUM(WOBII.GrandTotal),0) END [InvoiceAmt],
+				--WOBI.GrandTotal [InvoiceAmt], 
+				CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [InvoiceAmt],
 				ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,
 				ISNULL(ISNULL(WOBI.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,				
 				IM.partnumber [PN], 

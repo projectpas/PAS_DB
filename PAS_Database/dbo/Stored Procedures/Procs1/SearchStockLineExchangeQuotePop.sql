@@ -12,6 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Unknown        Created
 	2	 19-04-2024   Moin Bloch     Allow IsCustomerStock in Vendor Exchange PN-7409
+	3    05-30-2025	  ABHISHEK JIRAWLA	Adding Traceability Changes
      
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 ************************************************************************/
@@ -60,30 +61,33 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 					--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
 					,ISNULL(sl.UnitCost, 0) AS unitCost
-					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
-							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
-							WHEN sl.TraceableToType = 9 THEN leTraceble.Name
-							WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)
-							ELSE
-								''
-							END
-						 AS TracableToName
-					,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name
-							WHEN sl.OwnerType = 2 THEN vOwner.VendorName
-							WHEN sl.OwnerType = 9 THEN leOwner.Name
-							WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)
-							ELSE
-								''
-							END
-						 AS [OwnerName]
-					,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name
-							WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName
-							WHEN sl.ObtainFromType = 9 THEN leObtain.Name
-							WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)
-							ELSE
-								''
-							END
-						 AS ObtainFromName
+					,sl.TraceableToName AS TracableToName
+					,sl.OwnerName AS OwnerName
+					,sl.ObtainFromName AS ObtainFromName
+					--,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
+					--		WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
+					--		WHEN sl.TraceableToType = 9 THEN leTraceble.Name
+					--		WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)
+					--		ELSE
+					--			''
+					--		END
+					--	 AS TracableToName
+					--,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name
+					--		WHEN sl.OwnerType = 2 THEN vOwner.VendorName
+					--		WHEN sl.OwnerType = 9 THEN leOwner.Name
+					--		WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)
+					--		ELSE
+					--			''
+					--		END
+					--	 AS [OwnerName]
+					--,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name
+					--		WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName
+					--		WHEN sl.ObtainFromType = 9 THEN leObtain.Name
+					--		WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)
+					--		ELSE
+					--			''
+					--		END
+					--	 AS ObtainFromName
 						 ,sl.TagDate
 						 ,sl.TagType
 						 ,sl.CertifiedBy

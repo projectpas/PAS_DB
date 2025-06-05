@@ -23,6 +23,7 @@
 	7	 11/29/2024	  Abhishek Jirawla  Adding a condition where the QtyOrder is taken from Stockline.
 	8    12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
 	9	 05/05/2025	  Abhishek Jirawla  Updated the unit cost to the new stockline cost(including repair order).
+	9	 05/30/2025	  Abhishek Jirawla  Updated the condition to the new stockline.
 
  EXECUTE USP_CreateSOStocklineFromRO 1780
 
@@ -58,6 +59,7 @@ BEGIN
 		DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
 		DECLARE @RPUpdatedBy VARCHAR(256) = '';
 		DECLARE @RefNumber VARCHAR(100) = '';
+		DECLARE @UpdatedConditionId BIGINT;
 
         IF OBJECT_ID(N'tempdb..#ROStockLineSamePart') IS NOT NULL
         BEGIN
@@ -145,6 +147,10 @@ BEGIN
 
 			INSERT INTO #StockLineData (StockLineID) SELECT StockLineID FROM #StockLine
 		  END
+
+		  SELECT TOP 1 @UpdatedConditionId = SD.ConditionId FROM [dbo].[StocklineDraft] SD WITH (NOLOCK)
+			LEFT JOIN [dbo].[RepairOrderPart] RP WITH (NOLOCK) ON RP.RepairOrderId = SD.RepairOrderId
+			WHERE RP.RepairOrderId = @RepairOrderId
 
 		  SELECT @Quantity = SOPS.QtyOrder, @SalesOrderId = SOP.SalesOrderId, @MasterCompanyId = SOPS.MasterCompanyId, @RPUpdatedBy = RP.UpdatedBy
 			FROM [dbo].[RepairOrderPart] RP WITH (NOLOCK)
@@ -346,7 +352,7 @@ BEGIN
 									,[UpdatedDate]
 									,[IsActive]
 									,[IsDeleted])
-								SELECT SOP.SalesOrderId, @SalesOrderPartId, SOPS.StockLineId, SOP.ItemMasterId, SOP.ConditionId,
+								SELECT SOP.SalesOrderId, @SalesOrderPartId, SOPS.StockLineId, SOP.ItemMasterId, COALESCE(@UpdatedConditionId, SOP.ConditionId),
 								SOPS.QtyOrder, SOPS.QtyOrder, 0, NULL, NULL, 0, 0, 0.00, 0.00, 0.00, 0.00, @MasterCompanyId,
 								SOP.CreatedBy, SOP.UpdatedBy, GETDATE(), GETDATE(), 1, 0
 								FROM [dbo].[SalesOrderStocklineV1] SOPS WITH (NOLOCK) 
@@ -484,7 +490,7 @@ BEGIN
 					SELECT DISTINCT
 					  @ExSalesOrderPartId,
                       @StockLineId,
-					  ROS.ConditionId,
+					  COALESCE(@UpdatedConditionId, ROS.ConditionId),
 					  @Quantity,
 					  CASE
                         WHEN SL.QuantityAvailable > @Quantity THEN @Quantity

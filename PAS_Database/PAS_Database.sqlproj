@@ -3839,6 +3839,7 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
+
     <Build Include="dbo\Stored Procedures\USP_GetVendorNameAndCodewithId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistory.sql" />
@@ -3856,6 +3857,47 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByPublicationId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorBillingAddress.sql" />
+
+    <Build Include="dbo\Stored Procedures\AutoCompleteForCustomerVendorCompanyDropdowns.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderStatus.sql" />
+    <Build Include="dbo\Tables\WorkType.sql" />
+    <Build Include="dbo\Tables\ReleaseNotesTitleDetails.sql" />
+    <Build Include="dbo\Tables\ReleaseNoteHeadersDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveReleaseNoteTitlesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveReleaseNoteHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReleaseNoteTitlesId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReleaseNoteDetailsList.sql" />
+    <Build Include="dbo\User Defined Types\ReleaseNoteTitlesType.sql" />
+    <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_commonDeleteReleaseNoteById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOMRODashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPickTicketBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEditReturnReasonById.sql" />
+    <Build Include="dbo\Tables\BillingInvoicingItems.sql" />
+    <Build Include="dbo\Tables\BillingInvoicingDetails.sql" />
+    <Build Include="dbo\Tables\BillingInvoicing.sql" />
+    <Build Include="dbo\Functions\FN_ValidatePDFAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoicingPdfPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonTermsConditionDescriptionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonEmailTemplateDescriptionById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItems.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingDepositeDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddBillingInvoicingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_PrintWorkOrderInvoiceTermCondiitonById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_ACHByManagementStructId.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderBillingMPNDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonModuleDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonBillingMPNDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonBillingInvoiceListNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonBillingInvoiceChildListNew.sql" />
+    <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
+    <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -3870,5 +3912,7 @@
     <None Include="Snapshots\PAS_SPRINT_53_Minor.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_55.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_56.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_57.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_58_1.dacpac" />
   </ItemGroup>
 </Project>

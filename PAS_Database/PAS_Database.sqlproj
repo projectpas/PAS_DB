@@ -3877,6 +3877,7 @@
     <Build Include="dbo\Stored Procedures\GetCommonBillingInvoiceChildListNew.sql" />
     <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
     <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

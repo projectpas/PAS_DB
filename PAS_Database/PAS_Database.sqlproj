@@ -3852,6 +3852,7 @@
     <Build Include="dbo\User Defined Types\ReleaseNoteHeadersDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_commonDeleteReleaseNoteById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOMRODashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPickTicketBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEditReturnReasonById.sql" />
     <Build Include="dbo\Tables\BillingInvoicingItems.sql" />
     <Build Include="dbo\Tables\BillingInvoicingDetails.sql" />
@@ -3876,7 +3877,6 @@
     <Build Include="dbo\Stored Procedures\GetCommonBillingInvoiceChildListNew.sql" />
     <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
     <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
   </ItemGroup>
   <ItemGroup>

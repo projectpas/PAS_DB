@@ -25,6 +25,7 @@
 	12   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
 	13   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date) AND convert UTC to LOCAL where we compare the CREATEDDate
 	14   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
+	15   06/05/2025		Devendra Shekh 	Snapshot DashBoard - Count Issue Resoled
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -63,9 +64,7 @@ BEGIN
 									LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 								WHERE E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee		
 				
-			SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec  
-				FROM dbo.TimeZone WITH(NOLOCK)  
-				WHERE [Description] = @CurrntEmpTimeZoneDesc
+			SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 		/* -------------- END: Get the timzone and UTC offset -------------- */
 
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
@@ -102,141 +101,259 @@ BEGIN
 			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
 		WHERE MSD.[ModuleID] = @wopartModuleID AND EUR.[EmployeeId] = @EmployeeId) AS WorkOrderUserRole
 
-		INSERT INTO [dbo].[LogInLog]
-           ([EmployeeId],[LogInTime],[LogOutTime],[IPAddress],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate])
+		IF OBJECT_ID(N'tempdb..#tmpRCWorkOrderUserRole') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpRCWorkOrderUserRole
+		END
+
+		SELECT * INTO #tmpRCWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+		FROM [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = MSD.EntityMSID 
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+		WHERE MSD.[ModuleID] = @RecevingModuleID AND EUR.[EmployeeId] = @EmployeeId) AS Result
+
+		INSERT INTO [dbo].[LogInLog]([EmployeeId],[LogInTime],[LogOutTime],[IPAddress],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate])
         SELECT EmployeeId,GETDATE(),GETDATE(),'0',MasterCompanyId,FirstName + ' ' +LASTNAME,FirstName + ' ' +LASTNAME,GETDATE(),GETDATE()  
 		FROM dbo.Employee WITH (NOLOCK) WHERE [EmployeeId]  = @EmployeeId
-     
 		
 		SET @EmployeeRoleID = STUFF((SELECT DISTINCT ',' + CAST(RoleId AS VARCHAR(100))
 							FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
 							FOR XML PATH('')), 1, 1, '')
 							
-		SELECT DISTINCT RC.ReceivingCustomerWorkId 
-		INTO #tmpReceivingCustomerWork
-		FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
-			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		WHERE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, Rc.CreatedDate) as Date) = CAST(@SelectedDate AS DATE) AND EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
-			AND RC.MasterCompanyId = @MasterCompanyId
+		-- selecting MRO Inputs Count		:(DashboardType = 1)
+		SELECT @Qty = SUM(Quantity) FROM (
+				SELECT DISTINCT	
+					WO.WorkOrderId,
+					rec_cust.PartNumber, 
+					item.PartDescription, 
+					rec_cust.WorkScope, 
+					item.ItemGroup,
+					SUM(ISNULL(rec_cust.Quantity, 0)) Quantity,
+					wo.WorkOrderNum, 
+					rec_cust.CustomerName, 
+					(emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
+				INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
+				INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = rec_cust.ReceivingCustomerWorkId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				WHERE rec_cust.IsActive = 1 
+				AND rec_cust.IsDeleted = 0 
+				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+					CASE WHEN CAST(rec_cust.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(rec_cust.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+						ELSE (CAST(rec_cust.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+				AND rec_cust.MasterCompanyId = @MasterCompanyId
+				AND  rec_cust.IsPiecePart = 0 
+				GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
+		) AS ReceivingResult
 
-		SELECT @Qty = COUNT(ReceivingCustomerWorkId) FROM #tmpReceivingCustomerWork
-		SELECT DISTINCT WOBI.GrandTotal
-		INTO #tmpWorkOrderBillingInvoicing
-		FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ',')) AND EUR.EmployeeId = @EmployeeId
-		WHERE WOBI.IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) 
-			AND WOBI.MasterCompanyId = @MasterCompanyId
+		--Selecting WO Billing MRO		:(DashboardType = 2)
+		SELECT @WOBillingAmt = SUM(GrandTotal) FROM (
+			SELECT DISTINCT
+				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
+				ISNULL(wobii.GrandTotal, 0) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+			FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
+			INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
+			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
+			LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
+			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+			INNER JOIN #tmpWorkOrderUserRole TMP ON wop.ID = TMP.ReferenceID
+			WHERE wobi.IsActive = 1 
+			AND wobi.IsDeleted = 0 
+			AND wobi.IsVersionIncrease = 0
+			AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+			AND wobi.MasterCompanyId = @MasterCompanyId
+			AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+		) AS WOBillingResult
 
-		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
-
-		SELECT @PartsSaleBillingAmt = ISNULL(SUM(SOBII.PartCost),0) + ISNULL(SUM(SOBII.SalesTax),0) + ISNULL(SUM(SOBII.OtherTax),0) + ISNULL(SUM(SOBII.MiscCharges),0)
-		FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+		--Selecting SO Billing Parts Sale		:(DashboardType = 3)
+		SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM (
+			SELECT DISTINCT
+				IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
+				ISNULL(SUM(SOBIII.PartCost),0) + ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0) + ISNULL(SUM(SOBIII.MiscCharges),0) AS 'GrandTotal',
+				cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
+			FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
 			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsProforma, 0) = 0 AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
+			INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsProforma, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SalesOrderPartId
+			INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOV.StockLineId = SOBIII.StockLineId AND SOV.SalesOrderPartId = SOBIII.SalesOrderPartId
+			INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
+			INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
+			INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
 			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
+			LEFT JOIN dbo.workorder WO WITH (NOLOCK)  ON STL.workorderid = WO.workorderid 
+			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid
+			LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
-		WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate)
-			AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
-		GROUP BY CAST(InvoiceDate AS DATE)
+			WHERE sobi.IsActive = 1
+			AND sobi.IsDeleted = 0
+			AND ISNULL(SOV.StockLineId, 0) > 0
+			AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+							CASE WHEN CAST(sobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+								ELSE (CAST(sobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+			AND sobi.MasterCompanyId = @MasterCompanyId
+			AND ISNULL(sobi.IsProforma,0) = 0
+			GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
+		) AS SOBillingResult
 
-		SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber WOP WITH (NOLOCK) 
+		--Selecting Workable Backlog MRO (Units)		:(DashboardType = 4)
+		SELECT @MROWorkable = SUM(Quantity) FROM (
+			SELECT 
+				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
+				wop.Quantity, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+			FROM DBO.WorkOrderPartNumber wop WITH (NOLOCK)
+			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
+			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
+			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
-		WHERE WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
-										WHERE MasterCompanyId = @MasterCompanyId 
-										AND IsActive = 1 AND IsDeleted = 0)
-		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId 
-		AND CONVERT(DATE,DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) = CONVERT(DATE, @SelectedDate)
-		--AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) >= CONVERT(DATE, @BacklogStartDt) AND 
-		--AND CONVERT(DATE,DATEADD(SECOND, @BaseUtcOffsetSec, WOP.CreatedDate)) <= CONVERT(DATE, @SelectedDate) 
+			WHERE 
+			wop.WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
+			AND wop.IsActive = 1
+			AND wop.IsDeleted = 0
+			AND CONVERT(DATE, wop.CreatedDate) = CONVERT(DATE, @SelectedDate)
+			AND wop.MasterCompanyId = @MasterCompanyId
+			--AND WOP.IsClosed = 0
+		) WOBacklogResult
 
-		--SELECT @PartsSaleWorkable = SUM(ISNULL(SOPC.UnitSalesPrice,0)) 
-
+		--Selecting Workable Backlog Parts Sale		:(DashboardType = 5)
 		IF OBJECT_ID(N'tempdb..#tmpNonInvoiceDashboard') IS NOT NULL    
 		BEGIN    
 			DROP TABLE #tmpNonInvoiceDashboard
 		END
 
 		CREATE TABLE #tmpNonInvoiceDashboard (
-		[PartNumber] VARCHAR(50),
-		[PartDescription] VARCHAR(MAX),
-		[Condition] VARCHAR(256),
-		[ItemGroup] VARCHAR(250),
-		[GrandTotal] DECIMAL(18,2),
-		[CustomerName] VARCHAR(256),
-		[SalesOrderNumber] VARCHAR(256),
-		[SalesPerson] VARCHAR(100),
-		[SalesOrderId] BIGINT,
-		[SalesOrderPartId] BIGINT,
-		[MasterCompanyId] int
+			[PartNumber] VARCHAR(50),
+			[PartDescription] VARCHAR(MAX),
+			[Condition] VARCHAR(256),
+			[ItemGroup] VARCHAR(250),
+			[GrandTotal] DECIMAL(18,2),
+			[CustomerName] VARCHAR(256),
+			[SalesOrderNumber] VARCHAR(256),
+			[SalesPerson] VARCHAR(100),
+			[SalesOrderId] BIGINT,
+			[SalesOrderPartId] BIGINT,
+			[MasterCompanyId] int
 		)
 
 		INSERT INTO #tmpNonInvoiceDashboard ([PartNumber],[PartDescription],[Condition],[ItemGroup],[GrandTotal],[CustomerName],[SalesOrderNumber],[SalesPerson],[SalesOrderId],[SalesOrderPartId],[MasterCompanyId])
-	
 		SELECT 
-				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				ISNULL(SUM(SOPC.NetSaleAmount),0) AS GrandTotal,
-				cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
-				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
-				INNER JOIN DBO.SalesOrderStockLineCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-				INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId AND STKV.SalesOrderStocklineId = SOPC.SalesOrderStocklineId
-				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
-				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
-				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
-				WHERE
-				STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-					INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
-					Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1) AND
-				 SO.IsActive = 1
-				AND SO.IsDeleted = 0
-				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @SelectedDate)
-				AND SO.MasterCompanyId = 1
-				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
-				ORDER BY SO.SalesOrderNumber
+			item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+			ISNULL(SUM(SOPC.NetSaleAmount),0) AS GrandTotal,
+			cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
+		FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
+		INNER JOIN DBO.SalesOrderStockLineCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+		INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+		INNER JOIN DBO.SalesOrderStocklineV1 STKV WITH (NOLOCK) ON SOP.SalesOrderPartId = STKV.SalesOrderPartId AND STKV.SalesOrderStocklineId = SOPC.SalesOrderStocklineId
+		LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
+		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
+		LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
+		LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
+		INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
+		WHERE
+		STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
+			INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
+			Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1) AND
+			SO.IsActive = 1
+		AND SO.IsDeleted = 0
+		--AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @SelectedDate)
+		AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(SO.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			       ELSE (CAST(SO.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+		AND SO.MasterCompanyId = 1
+		GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
+		ORDER BY SO.SalesOrderNumber
 
 		UPDATE TMP
 		SET TMP.GrandTotal = ISNULL(TMP.GrandTotal,0) + ISNULL(partAmount.MiscCharges,0) - ISNULL(billedData.MiscCharges,0)
 		FROM #tmpNonInvoiceDashboard TMP
 		OUTER APPLY (
 			SELECT ISNULL(SUM(sopc.MiscCharges),0) AS MiscCharges FROM DBO.SalesOrderPartCost sopc WITH (NOLOCK) 
-					
-						Where sopc.SalesOrderId = TMP.SalesOrderId AND sopc.SalesOrderPartId = TMP.SalesOrderPartId and  TMP.MasterCompanyId = 1
+						WHERE sopc.SalesOrderId = TMP.SalesOrderId AND sopc.SalesOrderPartId = TMP.SalesOrderPartId and  TMP.MasterCompanyId = 1
 			) AS partAmount
 
 		OUTER APPLY (
 			SELECT ISNULL(SUM(SOBII.MiscCharges),0) AS MiscCharges FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 						INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
-						Where SOBI.SalesOrderId = TMP.SalesOrderId AND TMP.MasterCompanyId = 1
+						WHERE SOBI.SalesOrderId = TMP.SalesOrderId AND TMP.MasterCompanyId = 1
 			) AS billedData
-
 
 		select @PartsSaleWorkable = ISNULL(SUM(GrandTotal),0) from #tmpNonInvoiceDashboard
 
-		SELECT @WOQProcessed = COUNT(WOQD.WorkOrderQuoteId) FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK) 
+		-- selecting Work Order Quote Processed (Units)		:(DashboardType = 6)
+		SELECT @WOQProcessed = COUNT(*) FROM (
+			SELECT DISTINCT
+				item.PartNumber, item.PartDescription, A.WorkScope, item.ItemGroup,
+				WOP.Quantity, cust.Name AS CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+			FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK)
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) on WOQD.WorkflowWorkOrderId = WOWF.WorkFlowWorkOrderId
 			INNER JOIN DBO.WorkOrderPartNumber WOP WITH (NOLOCK) on WOP.ID = WOWF.WorkOrderPartNoId
+			LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON WOQ.CustomerId = cust.CustomerId
+			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
+			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
-		WHERE WOQ.SentDate IS NOT NULL
+			Outer Apply(
+				SELECT 
+				STUFF((SELECT ', ' + WOPP.WorkScope
+				FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
+				ON WOQ.WorkOrderId = WOPP.WorkOrderId
+				WHERE WOPP.WorkOrderId = WOP.WorkOrderId
+				FOR XML PATH('')), 1, 1, '') WorkScope
+			) A
+			WHERE
+			WOQ.IsActive = 1
+			AND WOQ.IsDeleted = 0
+			AND WOQ.SentDate IS NOT NULL
 			AND CONVERT(DATE, WOQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
 			AND WOQ.MasterCompanyId = @MasterCompanyId
+		) AS WorkOrderQuoteResult
 
-		SELECT @SQProcessed = COUNT(SQ.SpeedQuoteId) FROM DBO.SpeedQuote SQ WITH (NOLOCK) 
+		-- selecting Speed Quote Processed		:(DashboardType = 7)
+		SELECT @SQProcessed = COUNT(*) FROM (
+			SELECT DISTINCT
+				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+				SQP.QuantityRequested AS Quantity, cust.Name AS CustomerName, SQ.SpeedQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+			FROM DBO.SpeedQuote SQ WITH (NOLOCK)
+			INNER JOIN DBO.SpeedQuotePart SQP WITH (NOLOCK) ON SQ.SpeedQuoteId = SQP.SpeedQuoteId
+			LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON SQ.CustomerId = cust.CustomerId
+			LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SQP.ConditionId = cond.ConditionId
+			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SQP.ItemMasterId = item.ItemMasterId
+			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpSpeedQuoteUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
-		WHERE SQ.StatusId IN (SELECT Id FROM MasterSpeedQuoteStatus Where [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
-			AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @SelectedDate) AND SQ.MasterCompanyId = @MasterCompanyId
+			WHERE
+			SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
+			AND SQ.IsActive = 1
+			AND SQ.IsDeleted = 0
+			AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
+			AND SQ.MasterCompanyId = @MasterCompanyId
+		) AS SpeedQuoteResult
 
-		SELECT @SOQProcessed = SUM(SOQM.NetSales) FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) 
+		-- selecting Sales Order Quote Parts Sale		:(DashboardType = 8)
+		SELECT @SOQProcessed = SUM(NetSales) FROM (
+			SELECT DISTINCT
+				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+				SOQM.NetSales AS GrandTotal,SOQPC.NetSaleAmount NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+			FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
 			INNER JOIN DBO.SOQuoteMarginSummary SOQM WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQM.SalesOrderQuoteId
 			INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.SalesOrderQuoteId
+			INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+			INNER JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+			LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON SOQ.CustomerId = cust.CustomerId
+			LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOQP.ConditionId = cond.ConditionId
+			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOQP.ItemMasterId = item.ItemMasterId
+			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SOQ.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SOQ.SalesOrderQuoteId
-		WHERE SOQA.CustomerApprovedDate IS NOT NULL
-			AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @SelectedDate) AND SOQ.MasterCompanyId = @MasterCompanyId
+			WHERE
+			SOQA.CustomerApprovedDate IS NOT NULL
+			AND SOQ.IsActive = 1
+			AND SOQ.IsDeleted = 0
+			AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
+			AND SOQ.MasterCompanyId = @MasterCompanyId
+		) AS SOQResult
 
 		SELECT ISNULL(@Qty, 0) AS 'MROInputCount', ISNULL(@WOBillingAmt, 0) AS 'MROBillingAmount', ISNULL(@PartsSaleBillingAmt, 0) AS 'PartsSaleBillingAmount', 
 		ISNULL(@MROWorkable, 0) AS 'MROWorkableBacklog', ISNULL(@PartsSaleWorkable, 0) AS 'PartsSaleWorkableBacklog', ISNULL(@WOQProcessed, 0) AS 'WOQProcessed', 

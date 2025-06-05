@@ -42,6 +42,7 @@
 	25  16 May 2025   HEMANT SALIYA		Corrected WO revenue same as Billing reports
 	26  22 May 2025   Devendra Shekh    Added new fields InvoiceTotalAmount, RemainingTotalAmount
 	27  28 May 2025   RAJESH GAMI       Corrected InvoiceAmount
+	28  28 May 2025   RAJESH GAMI       Corrected Duplicate Record in SO
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -551,7 +552,8 @@ BEGIN
 			UNION ALL
 
 			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
-					1 AS RowNum,
+				   1 AS RowNum,
+				   --ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) AS RowNum,
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   --SOBI.InvoiceDate [InvoiceDate],

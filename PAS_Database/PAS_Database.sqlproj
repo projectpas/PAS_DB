@@ -3839,6 +3839,23 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorNameAndCodewithId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorATAMappingDataByMultiFilter.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorATAMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorAddressById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationViewById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationPNMappingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationAttachmentDetailsByIDNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAttachmentDetailsByPublicationRecordId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetATAMappingDataByPublicationId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetATAMapped.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByPublicationId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByFilters.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorBillingAddress.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

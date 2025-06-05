@@ -3839,7 +3839,6 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_GetVendorNameAndCodewithId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistory.sql" />
@@ -3857,7 +3856,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByPublicationId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorBillingAddress.sql" />
-
     <Build Include="dbo\Stored Procedures\AutoCompleteForCustomerVendorCompanyDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderStatus.sql" />
     <Build Include="dbo\Tables\WorkType.sql" />
@@ -3897,7 +3895,6 @@
     <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
     <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPackagingLabelBySalesOrderId.sql" />
@@ -3907,6 +3904,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetViewExchangeSalesOrderById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeAnalysisList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderHypoAnalysisList.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPartsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

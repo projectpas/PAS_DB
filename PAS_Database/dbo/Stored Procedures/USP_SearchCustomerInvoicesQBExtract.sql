@@ -17,6 +17,7 @@
  ** --   --------       -------			--------------------------------          
     1	 19 May 2025	RAJESH GAMI	   	Created
     2	 21 May 2025	RAJESH GAMI	   	Resolve the flat rate related issue
+	3	 06 Jun 2025	RAJESH GAMI	   	Correct the rowNum issue (Due to duplicate the record)
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -61,7 +62,7 @@ BEGIN
 	  DECLARE @SOModuleID VARCHAR(500) = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) Where ModuleName = 'SalesOrder')
 	  DECLARE @ExchSOModuleID VARCHAR(500) = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) Where ModuleName = 'ExchangeSOHeader')
 	  DECLARE @IsActive BIT = 1  
-	  DECLARE @Count INT;  
+	  DECLARE @Count INT, @InvoiceTotalAmount DECIMAL(18,2);  
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 	  DECLARE @WOInvoiceTypeId INT;
@@ -417,9 +418,9 @@ BEGIN
 	  (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 	  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%') 
       ))
-				   SELECT @Count = COUNT(InvoicingId) from #TempResult     
+				   SELECT @Count = COUNT(InvoicingId),@InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt,0)) from #TempResult
   
-				   SELECT *, @Count As NumberOfItems FROM #TempResult  
+				   SELECT *, @Count As NumberOfItems ,ISNULL(@InvoiceTotalAmount,0) as InvoiceTotalAmount FROM #TempResult  
 				   ORDER BY       
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNo')  THEN InvoiceNo END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='invoiceStatus')  THEN InvoiceStatus END ASC,  
@@ -510,8 +511,8 @@ BEGIN
 			UNION ALL
 
 			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
-					--1 AS RowNum,
-					ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) as RowNum,
+					1 AS RowNum,
+					--ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) as RowNum,
 			       SOBI.InvoiceNo [InvoiceNo],
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -647,9 +648,8 @@ BEGIN
 				 (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 				  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
 				  ))
-				   SELECT @Count = COUNT(InvoicingId) from #TempResults     
-
-				   SELECT *, @Count As NumberOfItems FROM #TempResults 
+				   SELECT @Count = COUNT(InvoicingId),@InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt,0)) FROM #TempResults     
+				   SELECT *, @Count As NumberOfItems ,ISNULL(@InvoiceTotalAmount,0) as InvoiceTotalAmount FROM #TempResults  
 				   ORDER BY       
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNo')  THEN InvoiceNo END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='invoiceStatus')  THEN InvoiceStatus END ASC,  

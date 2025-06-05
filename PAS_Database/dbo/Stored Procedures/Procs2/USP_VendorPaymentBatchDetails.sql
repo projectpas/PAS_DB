@@ -23,6 +23,7 @@
 	7	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	8	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
 	9	 24/04/2025	  Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
+	10	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -292,7 +293,7 @@ BEGIN
 		
 				SELECT @JournalTypeCode = [JournalTypeCode], @JournalTypename = [JournalTypeName] FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE [ID] = @JournalTypeId;
 		
-				SELECT @CurrentManagementStructureId = [ManagementStructureId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @CurrentManagementStructureId = [ManagementStructureId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@UpdateBy, ' ', '')) AND [MasterCompanyId] = @MasterCompanyId;
 		
 				SELECT @ManagementStructureId = [ManagementStructureId] FROM [dbo].[VendorReadyToPayHeader] WITH(NOLOCK) WHERE [ReadyToPayId] = @ReadyToPayId;
 

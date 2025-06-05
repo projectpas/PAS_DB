@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    30/05/2023   Satish Gohil  Modify (Change GETDATE to GETUTCDATE)
+	2	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 **************************************************************/  
 
 /*************************************************************             
@@ -67,7 +68,7 @@ BEGIN
 		   select @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId  
 		   select @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  where ID= @JournalTypeId  
 		   --select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(FirstName,' ',LastName) IN (@UpdateBy) and MasterCompanyId=@MasterCompanyId  
-		   select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId  
+		   select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId  
 
 		   select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName from EntityStructureSetup est WITH(NOLOCK)   
 		   inner join ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID   

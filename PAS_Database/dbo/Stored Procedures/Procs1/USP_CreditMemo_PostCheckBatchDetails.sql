@@ -31,6 +31,7 @@
 	15	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	16	 04/11/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	17   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	18	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -135,7 +136,7 @@ BEGIN
 		SELECT @StatusId = Id, @StatusName = [name] FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE [Name] = 'Open'
 		SELECT @JournalTypeId = ID, @JournalTypeCode = JournalTypeCode, @JournalTypename = JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'CMDA';
 		SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId = @StatusId
-		SELECT @CurrentManagementStructureId = ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) AND MasterCompanyId = @MasterCompanyId
+		SELECT @CurrentManagementStructureId = ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@UpdateBy, ' ', '')) AND MasterCompanyId = @MasterCompanyId
 		
 		DECLARE @IsRestrict INT;
 		DECLARE @IsAccountByPass BIT;

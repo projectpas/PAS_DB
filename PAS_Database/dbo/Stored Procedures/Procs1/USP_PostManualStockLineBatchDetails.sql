@@ -24,6 +24,7 @@
 	8	 09/10/2024			 Devendra Shekh			Added new fields for [CommonBatchDetails]
 	9	 11/04/2024			 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
     10	 17/02/2025			 AMIT GHEDIYA		    Modify(get Distribution based on new settings from stockline level)
+	11	 02/06/2025			 Abhishek Jirawla		Fixed Name concat read script
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
@@ -142,7 +143,7 @@ BEGIN
 			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-			SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'Stockline'
 
 			SELECT @WorkOrderNumber=StockLineNumber, @partId=PurchaseOrderPartRecordId, @ItemMasterId=ItemMasterId, @ManagementStructureId=ManagementStructureId, @MasterCompanyId=sl.MasterCompanyId,

@@ -16,6 +16,7 @@
     1    08/11/2022  Deep Patel     Created
 	2	 02/1/2024	 AMIT GHEDIYA	added isperforma Flage for SO
     3    11/05/2024	 Vishal Suthar	Modified to make use of new SO Part tables
+	4	 02/06/2025	 Abhishek Jirawla  Fixed Name concat read script
 
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -103,7 +104,7 @@ BEGIN
 	         select @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
 	         select @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  where ID= @JournalTypeId
 	         --select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(FirstName,' ',LastName) IN (@UpdateBy) and MasterCompanyId=@MasterCompanyId
-			 select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			 select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 	         DECLARE @currentNo AS BIGINT = 0;
 			 DECLARE @CodeTypeId AS BIGINT = 74;
 			 DECLARE @JournalTypeNumber varchar(100);

@@ -25,6 +25,7 @@
 	9	 11/04/2024   Devendra Shekh    Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	10	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
 	11	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
@@ -119,7 +120,7 @@ BEGIN
 		SELECT top 1 @JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 		SELECT @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 		SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-		SELECT @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+		SELECT @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 		SELECT @ManagementStructureId = ManagementStructureId FROM DBO.VendorReadyToPayHeader WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId
 		SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'ReadyToPay'
 		SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM AccountingManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @ReadyToPayId

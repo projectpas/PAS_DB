@@ -26,6 +26,7 @@
    10    22/07/2024   Amit Ghediya		Update new BatchCode & J-Type Code as per new distribution.
    11    19/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
    12    29/11/2024   Abhishek Jirawla  Removing update of Asset Inventory Status from here. This Sp is only used to post batch details
+   13	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_Assets_PostCheckBatchDetails]
@@ -174,7 +175,7 @@ BEGIN
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
-			SELECT @CurrentManagementStructureId = ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			SELECT @CurrentManagementStructureId = ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[AssetManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @ManagementStructureId;
 			
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 

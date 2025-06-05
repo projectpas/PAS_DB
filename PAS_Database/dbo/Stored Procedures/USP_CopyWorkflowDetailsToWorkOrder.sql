@@ -19,6 +19,7 @@
 	3    02/28/2025   HEMANT SALIYA		Updated for Task Sequence.
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
+	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',

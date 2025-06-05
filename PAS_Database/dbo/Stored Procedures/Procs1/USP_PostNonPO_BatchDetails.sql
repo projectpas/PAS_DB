@@ -30,6 +30,7 @@
 	14	 04-NOV-2024		 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	15   06-JAN-2025		 Rajesh Gami			add new DistributionSetup for the DEPOSIT
 	16   07-JAN-2025		 Rajesh Gami			Modified DistributionSetup for the DEPOSIT from itemGLAccount to DistributionSetup GL and Amount logic change to SUM of extended cost instead of Item Level
+	17	 02/JUN/2025	     Abhishek Jirawla		Fixed Name concat read script
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -173,7 +174,7 @@ BEGIN
 				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-				SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
+				SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
 				SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'NonPOInvoiceHeader'
 
 				SELECT @VendorName = NPH.VendorName, @VendorId = NPH.VendorId, @ManagementStructureId = ManagementStructureId FROM dbo.NonPOInvoiceHeader NPH WITH(NOLOCK) WHERE NPH.NonPOInvoiceId =  @NonPOInvoiceId

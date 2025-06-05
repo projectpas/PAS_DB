@@ -21,6 +21,7 @@
 	5	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	6	 10/01/2025	  AMIT GHEDIYA		Added for AutoPost Batch
 	7	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	8	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
      
 **************************************************************/
 
@@ -174,7 +175,7 @@ BEGIN
 			SELECT top 1 @JournalTypeId =JournalTypeId from dbo.DistributionSetup WITH(NOLOCK)  where DistributionMasterId =@DistributionMasterId
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId from dbo.BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from dbo.JournalType WITH(NOLOCK)  where ID= @JournalTypeId
-			SELECT @CurrentManagementStructureId =ManagementStructureId from dbo.Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			SELECT @CurrentManagementStructureId =ManagementStructureId from dbo.Employee WITH(NOLOCK)  where CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			SELECT @ManagementStructureId = ManagementStructureId FROM DBO.VendorReadyToPayHeader WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId
 			SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'ReadyToPay'
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM dbo.AccountingManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @ReadyToPayId

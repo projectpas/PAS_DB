@@ -29,6 +29,7 @@
 	15	 22/01/2025	 Devendra Shekh	Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 	16	 28/01/2025	 Devendra Shekh	Modify (Reverse Entry Issue Resolved)
 	17	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	18	 02/06/2025	 Abhishek Jirawla  Fixed Name concat read script
 
 ************************************************************************/
 
@@ -126,7 +127,7 @@ BEGIN
 	    SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 	    SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 	    SELECT @WopJounralTypeid =ID FROM JournalType WITH(NOLOCK)  WHERE JournalTypeCode= 'WIP'
-		SELECT @CurrentManagementStructureId = ISNULL(ManagementStructureId,0) FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+		SELECT @CurrentManagementStructureId = ISNULL(ManagementStructureId,0) FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 		
 		DECLARE @currentNo AS BIGINT = 0;

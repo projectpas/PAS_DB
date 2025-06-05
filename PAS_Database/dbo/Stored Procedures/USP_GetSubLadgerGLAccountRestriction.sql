@@ -9,7 +9,8 @@
 **************************************************************               
 ** PR   Date         Author				Change Description                
 ** --   --------     -------			--------------------------------              
- 1   15/02/2024		Hemant Saliya		Created  
+ 1   15/02/2024		Hemant Saliya		Created 
+ 2	 02/06/2025		Abhishek Jirawla	Fixed Name concat read script 
 
 DECLARE @IsRestrict BIT 
 DECLARE @IsAccountByPass BIT 
@@ -45,7 +46,7 @@ BEGIN
 
 				SELECT @ManagementStructureId = ISNULL(ManagementStructureId,0) 
 				FROM [dbo].[Employee] WITH(NOLOCK)  
-				WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId = @MasterCompanyId
+				WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId = @MasterCompanyId
 
 				IF(ISNULL(@AccountingCalendarId, 0) = 0)
 				BEGIN

@@ -67,14 +67,13 @@ BEGIN
 			LEFT JOIN [dbo].Vendor cust WITH(NOLOCK) ON soq.VendorId = cust.VendorId
 			LEFT JOIN [dbo].Address cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId
 			LEFT JOIN [dbo].Countries ccnty WITH(NOLOCK) ON cuad.CountryId = ccnty.countries_id
-			LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON soq.VendorRMAId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = 8
+			LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON soq.VendorRMAId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = (SELECT ModuleId FROM Module WHERE ModuleName = 'SalesOrder')
 			LEFT JOIN [dbo].RMAShipping posv WITH(NOLOCK) ON soq.VendorRMAId = posv.VendorRMAId
 			LEFT JOIN [dbo].ShippingVia posvname WITH(NOLOCK) ON posv.ShipviaId = posvname.ShippingViaId
 			LEFT JOIN [dbo].Employee emp WITH(NOLOCK) ON sopkt.PickedById = emp.EmployeeId
 			LEFT JOIN [dbo].Employee empy WITH(NOLOCK) ON sopkt.ConfirmedById = empy.EmployeeId
 			WHERE sopkt.VendorRMAId = @VendorRMAId;
 	 END TRY    
-
    BEGIN CATCH      
 				IF @@trancount > 0
 					PRINT 'ROLLBACK'

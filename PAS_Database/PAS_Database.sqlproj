@@ -3913,7 +3913,10 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Labor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteLabor.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborHeaderType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

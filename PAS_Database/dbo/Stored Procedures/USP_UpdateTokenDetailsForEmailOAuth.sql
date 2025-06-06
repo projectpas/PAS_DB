@@ -38,8 +38,9 @@ BEGIN TRANSACTION
 		SET AccessToken = @AccessToken,
 		RefreshToken = @RefreshToken,
 		TokenExpiresIn = @ExpiresIn,
-		TokenCreatedAt = GETDATE(),
+		TokenCreatedAt = GETUTCDATE(),
 		UpdatedDate = GETDATE(),
+		emailtype = 3,
 		EmailTypeId = CASE WHEN @Provider = 'google' THEN 4 ELSE 5 END
 		WHERE EmployeeId = @EmployeeId
 	END

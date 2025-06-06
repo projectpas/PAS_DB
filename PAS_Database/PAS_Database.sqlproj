@@ -3895,6 +3895,16 @@
     <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
     <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesAuditDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPackagingLabelBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSOPickTicketBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderFreightAuditByFreightId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderChargesBySOId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetViewExchangeSalesOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeAnalysisList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderHypoAnalysisList.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPartsById.sql" />
     <Build Include="dbo\Functions\fn_GetRevenuePercentage.sql" />
     <Build Include="dbo\Functions\fn_GetMarginPercentage.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails.sql" />
@@ -3903,6 +3913,7 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -3915,6 +3915,7 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForEmailOAuth.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -75,7 +75,7 @@ BEGIN
 			ISNULL(chg.MarkupFixedPrice, 0) AS MiscCharges,
 			ISNULL(allShipVia.ShippingTerms, '') AS ShippingTerms
 		FROM [dbo].[ExchangeSalesOrder] soq WITH(NOLOCK)
-		LEFT JOIN  [dbo].[ExchangeSalesOrderPart] exp ON soq.ExchangeSalesOrderId = exp.ExchangeSalesOrderId
+		LEFT JOIN  [dbo].[ExchangeSalesOrderPart] exp WITH(NOLOCK) ON soq.ExchangeSalesOrderId = exp.ExchangeSalesOrderId
 		LEFT JOIN  [dbo].[ItemMaster] im WITH(NOLOCK) ON exp.ItemMasterId = im.ItemMasterId
 		LEFT JOIN  [dbo].[StockLine] sl WITH(NOLOCK) ON exp.StockLineId = sl.StockLineId
 		LEFT JOIN  [dbo].[Manufacturer] mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
@@ -87,7 +87,7 @@ BEGIN
 		LEFT JOIN  [dbo].[Contact] cont WITH(NOLOCK) ON cust_cont.ContactId = cont.ContactId
 		LEFT JOIN  [dbo].[AllAddress] posadd WITH(NOLOCK) ON soq.ExchangeSalesOrderId = posadd.ReffranceId 
 			AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @ExchangeSalesOrderModuleId 
-		LEFT JOIN  [dbo].[AllShipVia] posv ON soq.ExchangeSalesOrderId = posv.ReferenceId 
+		LEFT JOIN  [dbo].[AllShipVia] posv WITH(NOLOCK) ON soq.ExchangeSalesOrderId = posv.ReferenceId 
 			AND posv.ModuleId = @ExchangeSalesOrderModuleId
 		LEFT JOIN  [dbo].[Employee] sp WITH(NOLOCK) ON soq.SalesPersonId = sp.EmployeeId
 		LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId

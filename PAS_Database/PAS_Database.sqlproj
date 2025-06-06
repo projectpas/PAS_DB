@@ -3839,7 +3839,6 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateMPNPart.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWorkOrderMPNs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicatePNSNByPass.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_GetVendorNameAndCodewithId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorAuditHistory.sql" />
@@ -3857,7 +3856,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByPublicationId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappingDataByFilters.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorBillingAddress.sql" />
-
     <Build Include="dbo\Stored Procedures\AutoCompleteForCustomerVendorCompanyDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderStatus.sql" />
     <Build Include="dbo\Tables\WorkType.sql" />
@@ -3897,7 +3895,14 @@
     <Build Include="dbo\Stored Procedures\GetBillingInvoicingDetails.sql" />
     <Build Include="dbo\User Defined Types\BillingInvoicingItemsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetShippingEdit.sql" />
-
+    <Build Include="dbo\Functions\fn_GetRevenuePercentage.sql" />
+    <Build Include="dbo\Functions\fn_GetMarginPercentage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ChangeWOQStatusAfterApproval.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

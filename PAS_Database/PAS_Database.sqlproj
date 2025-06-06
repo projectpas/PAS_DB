@@ -3913,6 +3913,7 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForEmailOAuth.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>

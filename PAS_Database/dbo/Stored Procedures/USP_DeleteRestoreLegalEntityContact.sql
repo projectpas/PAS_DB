@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    21-May-2025		Divyesh Kathiriya	Created
+	2	 21-May-2025		Divyesh Kathiriya	Add Restore Functionality
     
  -- EXEC [USP_DeleteRestoreLegalEntityContact] @ContactId=13118, @UpdatedBy=N'DANE PERK', @IsDeleted=1
 **************************************************************/
@@ -30,23 +31,20 @@ BEGIN
 
 		SELECT @LegalEntityModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'LegalEntity';
 		SELECT @LegalEntityId = [LegalEntityId] FROM [DBO].[LegalEntityContact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
-		SELECT @LegalEntityContactId = [LegalEntityContactId] FROM [DBO].[LegalEntityContact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
+		SELECT @LegalEntityContactId = [LegalEntityContactId] FROM [DBO].[LegalEntityContact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;		
 		
-		IF(ISNULL(@IsDeleted, 0) = 1)
-		BEGIN
 			IF EXISTS (SELECT 1 FROM [DBO].[Contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId)
 			BEGIN
 				UPDATE [DBO].[Contact] 
-				SET	[IsDeleted] = @IsDeleted, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+				SET	[IsDeleted] = ISNULL(@IsDeleted, 0), [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 				WHERE [ContactId] = @Contactid
 		
 				UPDATE [DBO].[LegalEntityContact] 
-				SET	[IsDeleted] = @IsDeleted, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+				SET	[IsDeleted] = ISNULL(@IsDeleted, 0), [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 				WHERE [ContactId] = @Contactid	
 
 				EXEC [DBO].[USP_ContactsHistory] @LegalEntityId, @LegalEntityModuleId, @LegalEntityContactId, @UpdatedBy;
-			END
-		END		
+			END	
 		
 		SELECT @Contactid AS Contactid;
 

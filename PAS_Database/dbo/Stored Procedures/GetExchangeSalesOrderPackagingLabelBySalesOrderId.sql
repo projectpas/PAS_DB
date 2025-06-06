@@ -13,7 +13,7 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    11/13/2024   Ekta Chandegra     Created
+    1     05/27/2025   Ekta Chandegra     Created
      
 -- EXEC GetExchangeSalesOrderPackagingLabelBySalesOrderId @ExchangeId=157 , @SalesOrderPartId=147
 ************************************************************************/
@@ -175,5 +175,20 @@ BEGIN
 		END
 	END TRY
 	BEGIN CATCH
+	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()    
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+            , @AdhocComments     VARCHAR(150)    = 'GetExchangeSalesOrderPackagingLabelBySalesOrderId'     
+			, @ProcedureParameters VARCHAR(3000) = '@ExchangeId = ''' + CAST(ISNULL(@ExchangeId, '') AS VARCHAR(100))+'''+,
+													@SalesOrderPartId = ''' + CAST(ISNULL(@SalesOrderPartId, '') AS VARCHAR(100))
+            , @ApplicationName VARCHAR(100) = 'PAS'    
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+            exec spLogException     
+                    @DatabaseName           = @DatabaseName    
+                    , @AdhocComments          = @AdhocComments    
+                    , @ProcedureParameters = @ProcedureParameters    
+                    , @ApplicationName        =  @ApplicationName    
+                    , @ErrorLogID             = @ErrorLogID OUTPUT ;    
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
+            RETURN(1);
 	END CATCH
 END

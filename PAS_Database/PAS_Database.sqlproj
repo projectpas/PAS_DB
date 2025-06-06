@@ -3905,6 +3905,15 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeAnalysisList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderHypoAnalysisList.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderPartsById.sql" />
+    <Build Include="dbo\Functions\fn_GetRevenuePercentage.sql" />
+    <Build Include="dbo\Functions\fn_GetMarginPercentage.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteMaterial.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ChangeWOQStatusAfterApproval.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

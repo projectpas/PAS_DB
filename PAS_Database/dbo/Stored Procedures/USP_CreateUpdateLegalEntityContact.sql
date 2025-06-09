@@ -9,7 +9,8 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    22-May-2025		Divyesh Kathiriya	Created	
+    1    22-May-2025		Divyesh Kathiriya	Created
+	2	 23-May-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity Contact.  	
     
  -- EXEC [USP_CreateUpdateLegalEntityContact] @ContactId=0,@Prefix=N'Mr.',@FirstName=N'First Name',@LastName=N'Last Name ',@MiddleName=N'Middle Name',@Suffix=N'III',
  @ContactTitle=N'Title',@WorkPhone=N'123-456',@WorkPhoneExtn=N'079',@MobilePhone=N'89455621',@AlternatePhone=N'123456879',@Fax=N'456-1456',@Email=N'email@email.com',
@@ -110,6 +111,49 @@ BEGIN
 		EXEC [DBO].[USP_ContactsHistory] @LegalEntityId, @LegalEntityModuleId, @LegalEntityContactId, @UpdatedBy;
 
 		SELECT @Contactid AS Contactid, @IsDefaultContact AS IsDefaultContact;		
+	END
+	ELSE
+	BEGIN
+		--UPDATE [DBO].[CONTACT]
+		UPDATE [DBO].[Contact]
+        SET [Prefix] = @Prefix, [FirstName] = @FirstName, [LastName] = @LastName,
+            [MiddleName] = @MiddleName, [Suffix] = @Suffix, [ContactTitle] = @ContactTitle,
+            [WorkPhone] = @WorkPhone, [WorkPhoneExtn] = @WorkPhoneExtn,
+            [MobilePhone] = @MobilePhone, [AlternatePhone] = @AlternatePhone,
+            [Fax] = @Fax, [Email] = @Email, [WebsiteURL] = @WebsiteURL, [Notes] = @Notes,
+            [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE(),
+            [IsActive] = @IsActive, [Tag] = @Tag, [ContactTagId] = @ContactTagId, [Attention] = @Attention
+        WHERE [ContactId] = @ContactId;
+
+		--ONLY RESET DEFAULT IF THE DEFAULT IS CURRENTLY ASSIGNED TO A DIFFERENT CONTACTID
+		IF(ISNULL(@IsDefaultContact, 0) = 1)
+		BEGIN
+			SELECT @LegalEntityContactId = [LegalEntityContactId] FROM [DBO].[LegalEntityContact] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsDefaultContact] = 1;
+			
+			IF (@LegalEntityContactId IS NOT NULL AND EXISTS (SELECT 1 FROM [DBO].[LegalEntityContact] WITH(NOLOCK)	WHERE [LegalEntityContactId] = @LegalEntityContactId AND [ContactId] != @ContactId))
+			BEGIN
+				UPDATE [DBO].[LegalEntityContact]
+				SET    [IsDefaultContact] = 0,
+					   [UpdatedDate] = GETUTCDATE(),					   
+					   [UpdatedBy] = @UpdatedBy
+				WHERE [LegalEntityId] = @LegalEntityId AND [IsDefaultContact] = 1;
+
+				EXEC [DBO].[USP_ContactsHistory] @LegalEntityId, @LegalEntityModuleId, @LegalEntityContactId, @UpdatedBy;
+			END
+		END
+
+		--UPDATE [DBO].[LegalEntityContact]
+		UPDATE [DBO].[LegalEntityContact]
+        SET [IsDefaultContact] = @IsDefaultContact,            
+            [UpdatedBy] = @UpdatedBy,
+            [UpdatedDate] = GETUTCDATE()            
+        WHERE [LegalEntityId] = @LegalEntityId AND [ContactId] = @ContactId;
+
+        SELECT @LegalEntityContactId = [LegalEntityContactId] FROM [DBO].[LegalEntityContact] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [ContactId] = @ContactId;
+
+		EXEC [DBO].[USP_ContactsHistory] @LegalEntityId, @LegalEntityModuleId, @LegalEntityContactId, @UpdatedBy;
+
+		SELECT @Contactid AS Contactid, @IsDefaultContact AS IsDefaultContact;	
 	END
 	
 	COMMIT TRANSACTION

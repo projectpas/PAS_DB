@@ -3929,8 +3929,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMAShippingLabelByVendorRMAId.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateShipViaDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Freight.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Charges.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteFreight.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteCharges.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteFreightType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteChargesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

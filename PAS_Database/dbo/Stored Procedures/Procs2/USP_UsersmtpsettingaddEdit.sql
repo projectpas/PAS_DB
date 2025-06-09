@@ -27,7 +27,8 @@ CREATE    Procedure [dbo].[USP_UsersmtpsettingaddEdit]
 @emailtype int=0,
 @verifyemail bit=0,
 @Email VARCHAR(200) = NULL,
-@IsIncludeInCC BIT = 0
+@IsIncludeInCC BIT = 0,
+@emailTypeId int = 0
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -41,7 +42,7 @@ if(@smtpsettingId>0)
 		SELECT EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate FROM DBO.Usersmtpsetting WITH (NOLOCK) WHERE smtpsettingId=@smtpsettingId
 
 		UPDATE DBO.Usersmtpsetting SET EmployeeId=@EmployeeId,smtpserver=@smtpserver,emailpassword=@emailpassword,portno=@portno, 
-		emailtype=@emailtype ,verifyemail=CASE WHEN @emailtype=1 THEN @verifyemail ELSE verifyemail END ,UpdatedDate=getdate() WHERE smtpsettingId=@smtpsettingId
+		emailtype=@emailtype ,verifyemail=CASE WHEN @emailtype=1 THEN @verifyemail ELSE verifyemail END, EmailTypeId = @emailTypeId, UpdatedDate=getdate() WHERE smtpsettingId=@smtpsettingId
 
 		UPDATE DBO.Employee
 		SET Email = @Email,IsIncludeInCC = @IsIncludeInCC
@@ -49,9 +50,9 @@ if(@smtpsettingId>0)
 	END
 else
 	begin
-		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail)
+		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,EmailTypeId)
 		VALUES (@EmployeeId,@smtpserver,@emailpassword,@portno,@emailtype,
-		CASE WHEN @emailtype=1 THEN @verifyemail ELSE 1 END)
+		CASE WHEN @emailtype=1 THEN @verifyemail ELSE 1 END, @emailTypeId)
 		SET @smtpsettingId=@@IDENTITY
 
 		UPDATE DBO.Employee

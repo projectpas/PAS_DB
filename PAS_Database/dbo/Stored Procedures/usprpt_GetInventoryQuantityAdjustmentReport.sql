@@ -13,6 +13,7 @@
  ** --   --------         -------          --------------------------------            
     1    09-05-2025     Moin Bloch        created
 	2    14-05-2025     Amit Ghediya      added Adjusted By filed.
+	3    09-06-2025     Amit Ghediya      decimal format.
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetInventoryQuantityAdjustmentReport]     
@@ -369,12 +370,12 @@ BEGIN
 					FC.[ctrlnum],
 					FC.[ponum],
 					FC.[ronum],
-			        FC.[unitcost],
+			        FORMAT(FC.[unitcost], 'N2') unitcost,
 					FC.[uom],
-					FC.[priviousqtyonhand],
-					FC.[updatedqtyonhand], 					
-					CASE WHEN FC.[qtyadjusted] < 0 THEN '(' + CAST(ABS(FC.[qtyadjusted]) AS VARCHAR) + ')' ELSE CAST(FC.[qtyadjusted] AS VARCHAR) END [qtyadjusted],
-					CASE WHEN FC.[adjustmentamount] < 0 THEN '(' + CAST(ABS(FC.[adjustmentamount]) AS VARCHAR(100)) + ')' ELSE CAST(FC.[adjustmentamount] AS VARCHAR(100)) END [adjustmentamount],
+					FORMAT(FC.[priviousqtyonhand] , 'N2') priviousqtyonhand,
+					FORMAT(FC.[updatedqtyonhand] , 'N2') updatedqtyonhand, 					
+					CASE WHEN FC.[qtyadjusted] < 0 THEN '(' + CAST(FORMAT(ABS(FC.[qtyadjusted]), 'N2') AS VARCHAR) + ')' ELSE CAST(FORMAT(FC.[qtyadjusted], 'N2') AS VARCHAR) END [qtyadjusted],
+					CASE WHEN FC.[adjustmentamount] < 0 THEN '(' + CAST(FORMAT(ABS(FC.[adjustmentamount]), 'N2') AS VARCHAR(100)) + ')' ELSE CAST(FORMAT(FC.[adjustmentamount], 'N2') AS VARCHAR(100)) END [adjustmentamount],
 					FC.[reasoncode],
 					FC.[adjdate],
 					FC.[adjby],

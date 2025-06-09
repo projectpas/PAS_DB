@@ -1,5 +1,4 @@
-﻿
-/*****************************************************************************           
+﻿/*****************************************************************************           
  ** File: [USP_GetCommonBillingInvoicingItemData]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to GET Common Billing Invoicing Data
@@ -12,15 +11,16 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/05/2025   Moin Bloch		Created
-     
+    2    05/06/2025   RAJESH GAMI		SO implemented
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7929,1,3193,2
 ********************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemData]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemData]
 @SubReferenceId BIGINT = NULL,
 @qtyShipped INT = NULL,
 @billingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
-@Opr INT = NULL
+@Opr INT = NULL,
+@StocklineId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -35,7 +35,7 @@ BEGIN
 	
 	IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 	BEGIN
-		IF(@Opr = 1)   		
+IF(@Opr = 1)   		
 		BEGIN
 			DECLARE @FinalCondCert INT
 			SELECT @FinalCondCert = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Final Cond/Cert'
@@ -103,7 +103,55 @@ BEGIN
 			  FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) 
 			 WHERE [WOPartNoId] = @SubReferenceId AND ISNULL([QuoteMethod],0) = 1
 		END
-	END
+	END /*********END: WORK ORDER ********/ 
+	ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
+	BEGIN
+		 SELECT TOP 1
+                Freight = CASE 
+                            WHEN so.FreightBilingMethodId = 3 THEN ISNULL(so.TotalFreight, 0)
+                            ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight 
+                                         WHERE SalesOrderId = so.SalesOrderId 
+                                         AND ItemMasterId = sop.ItemMasterId 
+                                         AND IsActive = 1 AND IsDeleted = 0), 0)
+                          END,
+                MiscCharges = CASE 
+                                WHEN so.ChargesBilingMethodId = 3 THEN ISNULL(so.TotalCharges, 0)
+                                ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges 
+                                             WHERE SalesOrderId = so.SalesOrderId 
+                                             AND ItemMasterId = sop.ItemMasterId 
+                                             AND IsActive = 1 AND IsDeleted = 0), 0)
+                              END,
+                ItemNo = 0,
+                SubReferenceId = ISNULL(stock.SalesOrderPartId, sop.SalesOrderPartId),
+                ItemMasterId = sop.ItemMasterId,
+                ConditionId = sop.ConditionId,
+                SerialNumber = sl.SerialNumber,
+                PNumber = im.PartNumber,
+                PNDescription = im.PartDescription,
+                Notes = ISNULL(stock.Notes, sop.Notes),
+                UOM = im.PurchaseUnitOfMeasure,
+                Cond = c.Description,
+                QtyShipped = @QtyShipped,
+                QTYOnBACKOrder = ISNULL(sop.QtyRequested, 0) - @QtyShipped,
+                UnitPrice = ISNULL(BII.UnitPrice, 0),
+                Amount = ISNULL(BII.PartCost, 0),
+                StockLineId = stock.StockLineId,
+				ime.ExportECCN,
+				ime.HSCode
+            FROM DBO.SalesOrder so WITH (NOLOCK)
+            INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON sop.SalesOrderPartId = BII.[SubReferenceId]
+			INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId]
+            INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
+			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+            LEFT JOIN DBO.SalesOrderStockLineV1 stock WITH (NOLOCK) ON sop.SalesOrderPartId = stock.SalesOrderPartId
+            LEFT JOIN DBO.SalesOrderPartCost sopc WITH (NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
+            LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON stock.SalesOrderStocklineId = sosc.SalesOrderStocklineId
+            LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
+            LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON stock.StockLineId = sl.StockLineId
+            WHERE sop.SalesOrderPartId = @SubReferenceId
+              AND (@StocklineId IS NULL OR stock.StockLineId = @StocklineId)
+	END /*********END: WORK ORDER ********/
 	
 
 	END TRY    

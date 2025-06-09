@@ -3917,6 +3917,11 @@
     <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteLabor.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborHeaderType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMANumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityContact.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForEmailOAuth.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

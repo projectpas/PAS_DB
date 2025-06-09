@@ -37,10 +37,11 @@
 	21   03/31/2025   RAJESH GAMI		Resolve the issue for SUBWO (Reserve QTY mismatch)
 	22   01/Apr/2025  RAJESH GAMI		Resolve the issue : WO and SUbWO Auto reserve issue due to wrong goto statement 
 	23   04/14/2025   HEMANT SALIYA	    Added Work Order Work Flow Id for UpdateWOMaterialsCost
+	24   06/09/2025   HEMANT SALIYA	    Updated For Handle WOM reservarion issue fixed.
 
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -64,6 +65,8 @@ BEGIN
 		DECLARE @ActualRemainingMaterialQuantity INT = 0;
 		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
 		SELECT @ReplaceProvisionId = PRO.ProvisionId FROM DBO.Provision PRO WITH (NOLOCK) WHERE PRO.StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
+
+		PRINT 'START'
 
 		DECLARE @IsDebugMode AS BIT;
 
@@ -157,7 +160,7 @@ BEGIN
 			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
 			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 
 			AND STK.ConditionId != @AsRemoveConditionId ORDER BY StocklineId DESC; 
-		
+
 			SELECT @StkLoopID = MAX(ID) FROM #tmpStockline;
 
 			--Start Stockline Loop to Reserve Qty
@@ -357,7 +360,7 @@ BEGIN
 									-- Start Updating Work Order Materials
 									IF (@Qty > 0)
 									BEGIN
-									PRINT 'Start Code'
+									PRINT 'Start Code 1.001'
 										UPDATE WOM
 										SET WOM.QuantityReserved = ISNULL(WOM.QuantityReserved, 0),
 											WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0),
@@ -367,36 +370,37 @@ BEGIN
 										FROM DBO.WorkOrderMaterials WOM
 										WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
 
-										IF (@IsAutoIssue = 0)
-										BEGIN
-											UPDATE WOM
-											SET WOM.QuantityReserved = @QuantityReserved + @Qty,
-											WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + @Qty,
-											WOM.ReservedById = @Requisitioner,
-											WOM.ReservedDate = GETUTCDATE(),
-											WOM.updatedDate = GETUTCDATE(),
-											WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
-											WOM.PONum = @PONumber,
-											WOM.PartStatusId = 1, -- Reserve
-											WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
-											WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
-											FROM DBO.WorkOrderMaterials WOM
-											WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
-										END
-										ELSE IF (@IsAutoIssue = 1)
-										BEGIN
-											UPDATE WOM
-											SET WOM.QuantityIssued = @QuantityIssued + @Qty,
-											WOM.TotalIssued = ISNULL(WOM.TotalIssued, 0) + @Qty,
-											WOM.IssuedById = @Requisitioner,
-											WOM.IssuedDate = GETUTCDATE(),
-											WOM.PONum = @PONumber,
-											WOM.PartStatusId = 2, -- Issued
-											WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
-											WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
-											FROM DBO.WorkOrderMaterials WOM
-											WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
-										END
+										--Commented By Hemant to Handle Production Issue # 09-06-2025
+										--IF (@IsAutoIssue = 0)
+										--BEGIN
+										--	UPDATE WOM
+										--	SET WOM.QuantityReserved = @QuantityReserved + @Qty,
+										--	WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + @Qty,
+										--	WOM.ReservedById = @Requisitioner,
+										--	WOM.ReservedDate = GETUTCDATE(),
+										--	WOM.updatedDate = GETUTCDATE(),
+										--	WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
+										--	WOM.PONum = @PONumber,
+										--	WOM.PartStatusId = 1, -- Reserve
+										--	WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
+										--	WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+										--	FROM DBO.WorkOrderMaterials WOM
+										--	WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+										--END
+										--ELSE IF (@IsAutoIssue = 1)
+										--BEGIN
+										--	UPDATE WOM
+										--	SET WOM.QuantityIssued = @QuantityIssued + @Qty,
+										--	WOM.TotalIssued = ISNULL(WOM.TotalIssued, 0) + @Qty,
+										--	WOM.IssuedById = @Requisitioner,
+										--	WOM.IssuedDate = GETUTCDATE(),
+										--	WOM.PONum = @PONumber,
+										--	WOM.PartStatusId = 2, -- Issued
+										--	WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
+										--	WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+										--	FROM DBO.WorkOrderMaterials WOM
+										--	WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+										--END
 									END
 
 									SET @qtyFulfilled = 0;
@@ -481,6 +485,21 @@ BEGIN
 													FROM DBO.WorkOrderMaterialStockLine WOMS
 													WHERE WOMS.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId AND WOMS.StockLineId = @StkStocklineId;
 
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 MOved Code from Connected line
+													UPDATE WOM
+													SET WOM.QuantityReserved = @QuantityReserved + @Qty,
+													WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + @Qty,
+													WOM.ReservedById = @Requisitioner,
+													WOM.ReservedDate = GETUTCDATE(),
+													WOM.updatedDate = GETUTCDATE(),
+													WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
+													WOM.PONum = @PONumber,
+													WOM.PartStatusId = 1, -- Reserve
+													WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
+													WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+													FROM DBO.WorkOrderMaterials WOM
+													WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+
 													SET @POReferenceQty = @POReferenceQty - @Qty;
 												END
 												ELSE
@@ -502,6 +521,21 @@ BEGIN
 														@ReplaceProvisionId, NULL, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
 
 														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 MOved Code from Connected line
+														UPDATE WOM
+														SET WOM.QuantityReserved = @QuantityReserved + ISNULL(@WOMSQtyReserved, 0),
+														WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + ISNULL(@WOMSQtyReserved, 0),
+														WOM.ReservedById = @Requisitioner,
+														WOM.ReservedDate = GETUTCDATE(),
+														WOM.updatedDate = GETUTCDATE(),
+														WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
+														WOM.PONum = @PONumber,
+														WOM.PartStatusId = 1, -- Reserve
+														WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @WOMSQtyReserved),
+														WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) < 0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) END
+														FROM DBO.WorkOrderMaterials WOM
+														WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
 
 														SET @POReferenceQty = @POReferenceQty - @Qty;
 													END
@@ -669,19 +703,20 @@ BEGIN
 										FROM DBO.WorkOrderMaterialsKit WOMK
 										WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
 
-										UPDATE WOMK
-										SET WOMK.QuantityReserved = @QuantityReserved + @Qty,
-										WOMK.TotalReserved = TotalReserved + @Qty,
-										WOMK.ReservedById = @Requisitioner,
-										WOMK.ReservedDate = GETUTCDATE(),
-										WOMK.IssuedById = @Requisitioner,
-										WOMK.IssuedDate = GETUTCDATE(),
-										WOMK.PONum = @PONumber,
-										WOMK.PartStatusId = 1, -- Reserve
-										WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @Qty),
-										WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
-										FROM DBO.WorkOrderMaterialsKit WOMK
-										WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+										--Commented By Hemant to Handle Production Issue # 09-06-2025
+										--UPDATE WOMK
+										--SET WOMK.QuantityReserved = @QuantityReserved + @Qty,
+										--WOMK.TotalReserved = TotalReserved + @Qty,
+										--WOMK.ReservedById = @Requisitioner,
+										--WOMK.ReservedDate = GETUTCDATE(),
+										--WOMK.IssuedById = @Requisitioner,
+										--WOMK.IssuedDate = GETUTCDATE(),
+										--WOMK.PONum = @PONumber,
+										--WOMK.PartStatusId = 1, -- Reserve
+										--WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @Qty),
+										--WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+										--FROM DBO.WorkOrderMaterialsKit WOMK
+										--WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
 									END
 
 									SET @qtyFulfilled = 0;
@@ -740,6 +775,21 @@ BEGIN
 													FROM DBO.WorkOrderMaterialStockLineKit WOMS
 													WHERE WOMS.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId AND WOMS.StockLineId = @StkStocklineId;
 
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+													UPDATE WOMK
+													SET WOMK.QuantityReserved = @QuantityReserved + @Qty,
+													WOMK.TotalReserved = TotalReserved + @Qty,
+													WOMK.ReservedById = @Requisitioner,
+													WOMK.ReservedDate = GETUTCDATE(),
+													WOMK.IssuedById = @Requisitioner,
+													WOMK.IssuedDate = GETUTCDATE(),
+													WOMK.PONum = @PONumber,
+													WOMK.PartStatusId = 1, -- Reserve
+													WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @Qty),
+													WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+													FROM DBO.WorkOrderMaterialsKit WOMK
+													WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+
 													SET @POReferenceQty = @POReferenceQty - @Qty;
 												END
 												ELSE
@@ -760,6 +810,21 @@ BEGIN
 														@ReplaceProvisionId, NULL, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
 
 														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+														UPDATE WOMK
+														SET WOMK.QuantityReserved = @QuantityReserved + @WOMSQtyReserved,
+														WOMK.TotalReserved = TotalReserved + @WOMSQtyReserved,
+														WOMK.ReservedById = @Requisitioner,
+														WOMK.ReservedDate = GETUTCDATE(),
+														WOMK.IssuedById = @Requisitioner,
+														WOMK.IssuedDate = GETUTCDATE(),
+														WOMK.PONum = @PONumber,
+														WOMK.PartStatusId = 1, -- Reserve
+														WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @WOMSQtyReserved),
+														WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) END
+														FROM DBO.WorkOrderMaterialsKit WOMK
+														WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
 
 														SET @POReferenceQty = @POReferenceQty - @Qty;
 													END
@@ -965,18 +1030,19 @@ BEGIN
 										FROM DBO.SubWorkOrderMaterials SWOM
 										WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
 
-										UPDATE SWOM
-										SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
-										SWOM.TotalReserved = TotalReserved + @Qty,
-										SWOM.ReservedById = @Requisitioner,
-										SWOM.ReservedDate = GETUTCDATE(),
-										--SWOM.IssuedById = @Requisitioner,
-										--SWOM.IssuedDate = GETUTCDATE(),
-										SWOM.PONum = @PONumber,
-										SWOM.PartStatusId = 1, -- Reserve
-										SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
-										FROM DBO.SubWorkOrderMaterials SWOM
-										WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
+										--Commented By Hemant to Handle Production Issue # 09-06-2025
+										--UPDATE SWOM
+										--SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+										--SWOM.TotalReserved = TotalReserved + @Qty,
+										--SWOM.ReservedById = @Requisitioner,
+										--SWOM.ReservedDate = GETUTCDATE(),
+										----SWOM.IssuedById = @Requisitioner,
+										----SWOM.IssuedDate = GETUTCDATE(),
+										--SWOM.PONum = @PONumber,
+										--SWOM.PartStatusId = 1, -- Reserve
+										--SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+										--FROM DBO.SubWorkOrderMaterials SWOM
+										--WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
 									END
 
 									SET @qtyFulfilled = 0;
@@ -1035,6 +1101,18 @@ BEGIN
 													FROM DBO.SubWorkOrderMaterialStockLine SWOMS
 													WHERE SWOMS.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO AND SWOMS.StockLineId = @StkStocklineId;
 
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+													UPDATE SWOM
+													SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+													SWOM.TotalReserved = TotalReserved + @Qty,
+													SWOM.ReservedById = @Requisitioner,
+													SWOM.ReservedDate = GETUTCDATE(),
+													SWOM.PONum = @PONumber,
+													SWOM.PartStatusId = 1, -- Reserve
+													SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+													FROM DBO.SubWorkOrderMaterials SWOM
+													WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO
+
 													SET @POReferenceQty = @POReferenceQty - @Qty;
 												END
 												ELSE
@@ -1055,6 +1133,18 @@ BEGIN
 														@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
 
 														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+														UPDATE SWOM
+														SET SWOM.QuantityReserved = @QuantityReserved + @WOMSQtyReserved,
+														SWOM.TotalReserved = TotalReserved + @WOMSQtyReserved,
+														SWOM.ReservedById = @Requisitioner,
+														SWOM.ReservedDate = GETUTCDATE(),
+														SWOM.PONum = @PONumber,
+														SWOM.PartStatusId = 1, -- Reserve
+														SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @WOMSQtyReserved)
+														FROM DBO.SubWorkOrderMaterials SWOM
+														WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO
 
 														SET @POReferenceQty = @POReferenceQty - @Qty;
 													END
@@ -1206,18 +1296,17 @@ BEGIN
 										FROM DBO.SubWorkOrderMaterialsKit SWOM
 										WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
 
-										UPDATE SWOM
-										SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
-										SWOM.TotalReserved = TotalReserved + @Qty,
-										SWOM.ReservedById = @Requisitioner,
-										SWOM.ReservedDate = GETUTCDATE(),
-										SWOM.IssuedById = @Requisitioner,
-										SWOM.IssuedDate = GETUTCDATE(),
-										SWOM.PONum = @PONumber,
-										SWOM.PartStatusId = 1, -- Reserve
-										SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
-										FROM DBO.SubWorkOrderMaterialsKit SWOM
-										WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+										--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+										--UPDATE SWOM
+										--SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+										--SWOM.TotalReserved = TotalReserved + @Qty,
+										--SWOM.ReservedById = @Requisitioner,
+										--SWOM.ReservedDate = GETUTCDATE(),										
+										--SWOM.PONum = @PONumber,
+										--SWOM.PartStatusId = 1, -- Reserve
+										--SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+										--FROM DBO.SubWorkOrderMaterialsKit SWOM
+										--WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
 									END
 
 									SET @qtyFulfilled = 0;
@@ -1276,6 +1365,18 @@ BEGIN
 													FROM DBO.SubWorkOrderMaterialStockLineKit SWOMS
 													WHERE SWOMS.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO AND SWOMS.StockLineId = @StkStocklineId;
 
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+													UPDATE SWOM
+													SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+													SWOM.TotalReserved = TotalReserved + @Qty,
+													SWOM.ReservedById = @Requisitioner,
+													SWOM.ReservedDate = GETUTCDATE(),										
+													SWOM.PONum = @PONumber,
+													SWOM.PartStatusId = 1, -- Reserve
+													SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+													FROM DBO.SubWorkOrderMaterialsKit SWOM
+													WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+
 													SET @POReferenceQty = @POReferenceQty - @Qty;
 												END
 												ELSE
@@ -1295,6 +1396,18 @@ BEGIN
 														@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
 
 														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+														UPDATE SWOM
+														SET SWOM.QuantityReserved = @QuantityReserved + @WOMSQtyReserved,
+														SWOM.TotalReserved = TotalReserved + @WOMSQtyReserved,
+														SWOM.ReservedById = @Requisitioner,
+														SWOM.ReservedDate = GETUTCDATE(),										
+														SWOM.PONum = @PONumber,
+														SWOM.PartStatusId = 1, -- Reserve
+														SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @WOMSQtyReserved)
+														FROM DBO.SubWorkOrderMaterialsKit SWOM
+														WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
 
 														SET @POReferenceQty = @POReferenceQty - @Qty;
 													END

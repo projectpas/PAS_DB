@@ -40,7 +40,7 @@
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
-CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -374,8 +374,8 @@ BEGIN
 											WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + @Qty,
 											WOM.ReservedById = @Requisitioner,
 											WOM.ReservedDate = GETUTCDATE(),
-											WOM.IssuedById = @Requisitioner,
-											WOM.IssuedDate = GETUTCDATE(),
+											WOM.updatedDate = GETUTCDATE(),
+											WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
 											WOM.PONum = @PONumber,
 											WOM.PartStatusId = 1, -- Reserve
 											WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
@@ -970,8 +970,8 @@ BEGIN
 										SWOM.TotalReserved = TotalReserved + @Qty,
 										SWOM.ReservedById = @Requisitioner,
 										SWOM.ReservedDate = GETUTCDATE(),
-										SWOM.IssuedById = @Requisitioner,
-										SWOM.IssuedDate = GETUTCDATE(),
+										--SWOM.IssuedById = @Requisitioner,
+										--SWOM.IssuedDate = GETUTCDATE(),
 										SWOM.PONum = @PONumber,
 										SWOM.PartStatusId = 1, -- Reserve
 										SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)

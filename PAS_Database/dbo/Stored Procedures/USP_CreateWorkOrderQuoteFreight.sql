@@ -78,13 +78,48 @@ BEGIN
 
 			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Freight] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteTaskType;
 
-			DELETE FROM [dbo].[WorkOrderQuoteFreight] WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;		
+			--DELETE FROM [dbo].[WorkOrderQuoteFreight] WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;		
+
+			UPDATE WOQF
+			SET
+				WOQF.ShipViaId = TMPF.ShipViaId,
+				WOQF.Weight = TMPF.Weight,
+				WOQF.Memo = TMPF.Memo,
+				WOQF.Amount = TMPF.Amount,
+				WOQF.MasterCompanyId = TMPF.MasterCompanyId,
+				WOQF.UpdatedBy = TMPF.UpdatedBy,
+				WOQF.UpdatedDate = TMPF.UpdatedDate,
+				WOQF.IsActive = TMPF.IsActive,
+				WOQF.IsDeleted = TMPF.IsDeleted,
+				WOQF.MarkupPercentageId = TMPF.MarkupPercentageId,
+				WOQF.MarkupFixedPrice = TMPF.MarkupFixedPrice,
+				WOQF.TaskId = TMPF.TaskId,
+				WOQF.HeaderMarkupId = TMPF.HeaderMarkupId,
+				WOQF.BillingRate = TMPF.BillingRate,
+				WOQF.BillingAmount = TMPF.BillingAmount,
+				WOQF.Length = TMPF.Length,
+				WOQF.Width = TMPF.Width,
+				WOQF.Height = TMPF.Height,
+				WOQF.UOMId = TMPF.UOMId,
+				WOQF.DimensionUOMId = TMPF.DimensionUOMId,
+				WOQF.CurrencyId = TMPF.CurrencyId,
+				WOQF.BillingMethodId = TMPF.BillingMethodId,
+				WOQF.TaskName = TMPF.TaskName,
+				WOQF.Shipvia = TMPF.Shipvia,
+				WOQF.UomName = TMPF.UomName,
+				WOQF.DimensionUomName = TMPF.DimensionUomName,
+				WOQF.Currency = TMPF.Currency,
+				WOQF.BillingName = TMPF.BillingName,
+				WOQF.MarkUp = TMPF.MarkUp
+			FROM [dbo].[WorkOrderQuoteFreight] WOQF WITH(NOLOCK)
+			JOIN #tmpWorkOrderQuoteFreight TMPF ON WOQF.WorkOrderQuoteFreightId = TMPF.WorkOrderQuoteFreightId
+			WHERE TMPF.WorkOrderQuoteFreightId > 0;
 
 			INSERT INTO [dbo].[WorkOrderQuoteFreight]
 			SELECT	[WorkOrderQuoteDetailsId], [ShipViaId], [Weight], [Memo], [Amount], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 					[MarkupPercentageId], [MarkupFixedPrice], [TaskId], [HeaderMarkupId], [BillingRate], [BillingAmount], [Length], [Width], [Height], [UOMId], [DimensionUOMId], [CurrencyId], [BillingMethodId], [TaskName],
 					[Shipvia], [UomName], [DimensionUomName], [Currency], [BillingName], [MarkUp]
-			FROM #tmpWorkOrderQuoteFreight WHERE ISNULL(IsDeleted, 0) = 0
+			FROM #tmpWorkOrderQuoteFreight WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteFreightId, 0) = 0
 
 			UPDATE TMP
 			SET	TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END, TMP.IsDeleted = 0

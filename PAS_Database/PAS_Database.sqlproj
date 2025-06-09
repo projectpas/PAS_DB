@@ -3935,6 +3935,9 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteFreightType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteChargesType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxAudit.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -3913,6 +3913,18 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteTaskType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteMaterialType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderQuoteDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateCommonBillingInvoicingStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionForInternalWONew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Labor.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteLabor.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteLaborHeaderType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMANumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityContact.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForEmailOAuth.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMAShippingLabelByVendorRMAId.sql" />
   </ItemGroup>
   <ItemGroup>

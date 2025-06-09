@@ -3916,6 +3916,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMANumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityContact.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForEmailOAuth.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

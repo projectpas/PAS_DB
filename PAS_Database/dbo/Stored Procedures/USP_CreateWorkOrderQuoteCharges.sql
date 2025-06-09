@@ -78,13 +78,44 @@ BEGIN
 
 			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Charges] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteTaskType;
 
-			DELETE FROM [dbo].[WorkOrderQuoteCharges] WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;		
+			--DELETE FROM [dbo].[WorkOrderQuoteCharges] WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;		
+			UPDATE WOQC
+			SET
+				WOQC.ChargesTypeId = TMPC.ChargesTypeId,
+				WOQC.VendorId = TMPC.VendorId,
+				WOQC.Quantity = TMPC.Quantity,
+				WOQC.MarkupPercentageId = TMPC.MarkupPercentageId,
+				WOQC.Description = TMPC.Description,
+				WOQC.UnitCost = TMPC.UnitCost,
+				WOQC.ExtendedCost = TMPC.ExtendedCost,
+				WOQC.MasterCompanyId = TMPC.MasterCompanyId,
+				WOQC.UpdatedBy = TMPC.UpdatedBy,
+				WOQC.UpdatedDate = TMPC.UpdatedDate,
+				WOQC.IsActive = TMPC.IsActive,
+				WOQC.IsDeleted = TMPC.IsDeleted,
+				WOQC.TaskId = TMPC.TaskId,
+				WOQC.MarkupFixedPrice = TMPC.MarkupFixedPrice,
+				WOQC.BillingAmount = TMPC.BillingAmount,
+				WOQC.BillingRate = TMPC.BillingRate,
+				WOQC.HeaderMarkupId = TMPC.HeaderMarkupId,
+				WOQC.RefNum = TMPC.RefNum,
+				WOQC.BillingMethodId = TMPC.BillingMethodId,
+				WOQC.TaskName = TMPC.TaskName,
+				WOQC.ChargeType = TMPC.ChargeType,
+				WOQC.GlAccountName = TMPC.GlAccountName,
+				WOQC.VendorName = TMPC.VendorName,
+				WOQC.BillingName = TMPC.BillingName,
+				WOQC.MarkUp = TMPC.MarkUp,
+				WOQC.UOMId = TMPC.UOMId
+			FROM [dbo].[WorkOrderQuoteCharges] WOQC WITH(NOLOCK)
+			JOIN #tmpWorkOrderQuoteCharges TMPC ON WOQC.WorkOrderQuoteChargesId = TMPC.WorkOrderQuoteChargesId
+			WHERE TMPC.WorkOrderQuoteChargesId > 0;
 
 			INSERT INTO [dbo].[WorkOrderQuoteCharges]
 			SELECT	@WorkOrderQuoteDetailsId AS WorkOrderQuoteDetailsId, [ChargesTypeId], [VendorId], [Quantity], [MarkupPercentageId], [Description], [UnitCost], [ExtendedCost],
 					[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate],
 					[HeaderMarkupId], [RefNum], [BillingMethodId], [TaskName], [ChargeType], [GlAccountName], [VendorName], [BillingName], [MarkUp], [UOMId] 
-			FROM #tmpWorkOrderQuoteCharges WHERE ISNULL(IsDeleted, 0) = 0
+			FROM #tmpWorkOrderQuoteCharges WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteChargesId, 0) = 0
 
 			UPDATE TMP
 			SET	TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END, TMP.IsDeleted = 0

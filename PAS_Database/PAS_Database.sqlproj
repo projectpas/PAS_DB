@@ -3926,6 +3926,9 @@
     <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMAShippingLabelByVendorRMAId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateShipViaDetails.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

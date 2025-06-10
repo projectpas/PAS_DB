@@ -3939,6 +3939,7 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingLockBox.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPackagingLabelByVendorRMAId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WorkOrderReleaseFromListData_ByWOId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

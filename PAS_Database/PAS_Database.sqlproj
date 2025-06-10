@@ -3940,6 +3940,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingLockBox.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPackagingLabelByVendorRMAId.sql" />
     <Build Include="dbo\Stored Procedures\USP_WorkOrderReleaseFromListData_ByWOId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

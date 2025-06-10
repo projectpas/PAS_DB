@@ -97,8 +97,12 @@
     [DBS3BucketName]                  VARCHAR (100)   NULL,
     [DBBackupDays]                    INT             NULL,
     [UserSessionRemovalAfterHours]    INT             NULL,
+    [GoogleOAuthClientId]             VARCHAR (500)   NULL,
+    [GoogleOAuthClientSecret]         VARCHAR (200)   NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
+
+
 
 
 

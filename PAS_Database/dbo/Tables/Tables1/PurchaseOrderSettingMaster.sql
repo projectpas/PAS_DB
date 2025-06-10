@@ -25,9 +25,12 @@
     [IsAutoUpdatePOStatus]           BIT           NULL,
     [IsPNSNWarning]                  BIT           NULL,
     [IsPNSNRestriction]              BIT           NULL,
+    [DefaultConditionId]             INT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMaster] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingId] ASC),
     CONSTRAINT [FK_PurchaseOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

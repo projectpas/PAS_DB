@@ -26,6 +26,7 @@
     [IsAutoUpdatePOStatus]           BIT           NULL,
     [IsPNSNWarning]                  BIT           NULL,
     [IsPNSNRestriction]              BIT           NULL,
+    [DefaultConditionId]             INT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
 

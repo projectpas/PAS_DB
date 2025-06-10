@@ -10,7 +10,8 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    27-May-2025		Divyesh Kathiriya	Created
-    
+    2	 28-May-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity Banking LockBox.
+
  -- EXEC [USP_LegalEntityBankingLockBox] 
 **************************************************************/
 Create   PROCEDURE [DBO].[USP_LegalEntityBankingLockBox]
@@ -40,7 +41,7 @@ BEGIN
 	BEGIN TRANSACTION
 	
 	-- Declare variables
-	DECLARE @AddressId BIGINT;
+	DECLARE @AddressId BIGINT;	
 	DECLARE @Deposit INT = 1;
 	DECLARE @Disbursement INT = 2;
 	DECLARE @Both INT = 3;
@@ -136,7 +137,108 @@ BEGIN
 				Select @LegalEntityBankingLockBoxId AS legalEntityBankingLockBoxId, @AddressId AS addressId, ISNULL(@IsPrimay, 0) AS isPrimay
 		END
 /***************End Save LegalEntity BankingLockBox Details***************/
-	
+/***************Start Update LegalEntity BankingLockBox Details***************/
+		ELSE
+		BEGIN
+			SELECT @AddressId = [AddressId] FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityBankingLockBoxId] = @LegalEntityBankingLockBoxId;
+						
+			UPDATE [DBO].[Address]
+			SET Line1 = @Address1,
+				Line2 = @Address2,
+				City = @City,
+				StateOrProvince = @StateOrProvince,
+				PostalCode = @PostalCode,
+				CountryId = @CountryId,
+				PoBox =@PoBox,
+				UpdatedBy = @UpdatedBy,
+				UpdatedDate = GETUTCDATE()
+			WHERE AddressId = @AddressId;
+			
+			--IF NEW DEFAULT, RESET OLD DEFAULT TO NO-DEFAULT
+			IF (ISNULL(@IsPrimay, 0) = 1)
+			BEGIN
+				-- RESET EXISTING DEPOSIT/DISBURSEMENT/BOTH IF CONFLICTING				
+				IF(@AccountTypeId = @Deposit OR @AccountTypeId = @Both)
+				BEGIN
+					
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId)
+					BEGIN
+						UPDATE [DBO].[LegalEntityBankingLockBox]
+						SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+						WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId;
+					END
+
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Both)
+					BEGIN
+						IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Disbursement)
+						BEGIN
+							UPDATE [DBO].[LegalEntityBankingLockBox]
+							SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+							WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Both;
+						END
+					END					
+				END
+
+				IF(@AccountTypeId = @Disbursement OR @AccountTypeId = @Both)
+				BEGIN
+
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId)
+					BEGIN
+						UPDATE [DBO].[LegalEntityBankingLockBox]
+						SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+						WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId;
+					END
+
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Both)
+					BEGIN
+						IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Deposit)
+						BEGIN
+							UPDATE [DBO].[LegalEntityBankingLockBox]
+							SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+							WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Both;
+						END
+					END
+				END
+
+				IF(@AccountTypeId = @Both)
+				BEGIN
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId)
+					BEGIN
+						UPDATE [DBO].[LegalEntityBankingLockBox]
+						SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+						WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId;
+					END
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Disbursement)
+					BEGIN
+						UPDATE [DBO].[LegalEntityBankingLockBox]
+						SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+						WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Disbursement;
+					END
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Deposit)
+					BEGIN
+						UPDATE [DBO].[LegalEntityBankingLockBox]
+						SET [IsPrimay] = 0, [UpdatedDate] = GETUTCDATE(), [UpdatedBy] = @UpdatedBy
+						WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityBankingLockBoxId] != @LegalEntityBankingLockBoxId AND [IsPrimay] = 1 AND [AccountTypeId] = @Deposit;
+					END
+				END
+			END
+
+			UPDATE [DBO].[LegalEntityBankingLockBox]
+			SET LegalEntityId = @LegalEntityId,
+				UpdatedBy = @UpdatedBy,			
+				UpdatedDate = GETUTCDATE(),				
+				PayeeName = @PayeeName,
+				GLAccountId = @GLAccountId,
+				BankName = @BankName,
+				BankAccountNumber = @BankAccountNumber,
+				IsPrimay = @IsPrimay,				
+				AccountTypeId = @AccountTypeId				
+			WHERE LegalEntityBankingLockBoxId = @LegalEntityBankingLockBoxId;
+			
+			Select @LegalEntityBankingLockBoxId AS legalEntityBankingLockBoxId, @AddressId AS addressId, ISNULL(@IsPrimay, 0) AS isPrimay
+
+		END
+/***************End Update LegalEntity BankingLockBox Details***************/
 	COMMIT TRANSACTION
 	END TRY 
 	BEGIN CATCH

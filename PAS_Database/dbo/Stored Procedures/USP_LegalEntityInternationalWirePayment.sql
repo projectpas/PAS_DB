@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    30-May-2025		Divyesh Kathiriya	Created
+	2	 02-June-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity International Wire Payment
     
  -- EXEC [USP_LegalEntityInternationalWirePayment] 
 **************************************************************/
@@ -90,7 +91,56 @@ BEGIN
 			   ISNULL(@IsPrimay, 0) AS isPrimay;
 	END
 /***************End Save LegalEntity International Wire Payment Details***************/
-	
+/***************Start Update LegalEntity International Wire Payment Details***************/
+	ELSE
+	BEGIN	
+		SELECT @InternationalWirePaymentId = [InternationalWirePaymentId] FROM [DBO].[LegalEntityInternationalWireBanking] WITH(NOLOCK) WHERE [LegalEntityInternationalWireBankingId] = @LegalEntityInternationalWireBankingId;
+
+       --Update INTERNATIONAL WIRE PAYMENT
+        UPDATE [DBO].[InternationalWirePayment]
+        SET 
+			[SwiftCode] = @SwiftCode,
+			[ABA] = @ABA,
+			[BeneficiaryBank] = @BeneficiaryBank,
+			[BankName] = @BankName,
+			[IntermediaryBank] = @IntermediaryBank,
+			[BeneficiaryBankAccount] = @BeneficiaryBankAccount,
+			[BankLocation1] = @BankLocation1,
+			[BankLocation2] = @BankLocation2,
+			[GLAccountId] = @GLAccountId,
+			[UpdatedBy] = @UpdatedBy,
+			[UpdatedDate] = GETUTCDATE()
+        WHERE [InternationalWirePaymentId] = @InternationalWirePaymentId;
+
+		--IF NEW DEFAULT, RESET OLD DEFAULT TO NO-DEFAULT
+		IF (ISNULL(@IsPrimay, 0) = 1)
+        BEGIN
+			IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityInternationalWireBanking] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityInternationalWireBankingId] != @LegalEntityInternationalWireBankingId AND [IsPrimay] = 1)
+			BEGIN
+				UPDATE [DBO].[LegalEntityInternationalWireBanking]
+				SET [IsPrimay] = 0,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE()
+				WHERE [LegalEntityId] = @LegalEntityId
+				  AND [LegalEntityInternationalWireBankingId] != @LegalEntityInternationalWireBankingId
+				  AND [IsPrimay] = 1;
+			END
+        END
+
+		--UPDATE LEGALENTITY INTERNATIONAL WIRE BANKING
+		UPDATE [DBO].[LegalEntityInternationalWireBanking]
+        SET 
+            [IsPrimay] = @IsPrimay,
+            [UpdatedBy] = @UpdatedBy,
+            [UpdatedDate] = GETUTCDATE()
+        WHERE [LegalEntityInternationalWireBankingId] = @LegalEntityInternationalWireBankingId;
+				
+		SELECT @InternationalWirePaymentId AS InternationalWirePaymentId,
+			   @LegalEntityInternationalWireBankingId AS LegalEntityInternationalWireBankingId,
+			   ISNULL(@IsPrimay, 0) AS isPrimay;
+		
+/***************End Update LegalEntity International Wire Payment Details***************/
+	END
 	COMMIT TRANSACTION
 	END TRY 
 	BEGIN CATCH

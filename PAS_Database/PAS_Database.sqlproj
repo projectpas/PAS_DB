@@ -3938,6 +3938,7 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
 
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPackagingLabelByVendorRMAId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

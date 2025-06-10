@@ -13,7 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    28/04/2025   Moin Bloch    Created
-	2    30 Apr 2025   RAJESH GAMI  Implemented Sales Order Module 
+	2    30 Apr 2025   RAJESH GAMI  Implemented Sales Order Module and Fix invoice Date issue
    EXEC [dbo].[GetBillingInvoicingDetails] 8781,8523,2,15,0,0
    EXEC [dbo].[GetBillingInvoicingDetails] 802,972,2,10,292,0
 **************************************************************/ 
@@ -338,7 +338,10 @@ BEGIN
 						[co].[Name] AS [ShipToCustomer],
 						[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
-						[so].[ManagementStructureId]
+						[so].[ManagementStructureId],
+						GETUTCDATE() AS [InvoiceDate],
+						null AS [PrintDate],
+						null AS ShipDate
 				  	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				  	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				  	INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -390,7 +393,10 @@ BEGIN
 						[sos].[ShipToName] AS [ShipToCustomer],
 						[sos].[ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
-						[so].[ManagementStructureId]
+						[so].[ManagementStructureId],
+						GETUTCDATE() AS [InvoiceDate],
+						null AS [PrintDate],
+						null AS ShipDate
 				 	FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
 				 	INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
 				 	INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
@@ -438,7 +444,9 @@ BEGIN
 						[co].[Name] AS [ShipToCustomer],
 						[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
 						ISNULL([cr].[Code], '') AS [Currency],
-						[so].[ManagementStructureId]
+						[so].[ManagementStructureId],
+						GETUTCDATE() AS [InvoiceDate],
+						null AS [PrintDate]
 				 	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				 	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				 	INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -454,7 +462,7 @@ BEGIN
 				 	LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0
 				 	LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON sobi.CurrencyId = [cr].[CurrencyId]
-				 	WHERE sop.SalesOrderPartId = @SubReferenceId;
+				 	WHERE so.SalesOrderId = @ReferenceId;
 				 END
 			END			
 					

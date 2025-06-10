@@ -3925,6 +3925,26 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForEmailOAuth.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeBillingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMAShippingLabelByVendorRMAId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateShipViaDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Freight.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteDetails_Charges.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteFreight.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateWorkOrderQuoteCharges.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteFreightType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderQuoteChargesType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxAudit.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingLockBox.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPackagingLabelByVendorRMAId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WorkOrderReleaseFromListData_ByWOId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalWirePayment.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCurrencyIdForVendorCreditMemo.sql" />
+
     <Build Include="dbo\Stored Procedures\usp_CustVendorUpdatebyId.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -1,21 +1,20 @@
 ﻿/*************************************************************           
- ** File:   [USP_CreateWorkOrderQuoteLabor]           
+ ** File:   [USP_CreateWorkOrderQuoteCharges]           
  ** Author:   Devendra Shekh
- ** Description: This stored procedure is used to Create work Order Quote Labor
- ** Date:   27-May-2025        
+ ** Description: This stored procedure is used to Create work Order Quote Charges
+ ** Date:   09-June-2025        
  ** RETURN VALUE:           
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
-    1    27-May-2025   Devendra Shekh		Created
+    1    09-June-2025   Devendra Shekh		Created
 	 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteLabor]
+CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteCharges]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
-@tbl_WorkOrderQuoteLaborHeaderType [WorkOrderQuoteLaborHeaderType] READONLY,
-@tbl_WorkOrderQuoteLaborType [WorkOrderQuoteLaborType] READONLY,
+@tbl_WorkOrderQuoteChargesType [WorkOrderQuoteChargesType] READONLY,
 @tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
 AS
 BEGIN
@@ -26,9 +25,13 @@ BEGIN
 
 		DECLARE @WorkflowWorkOrderId BIGINT, @woPartNoId BIGINT, @ItemMasterId BIGINT, @WorkOrderQuoteDetailsId BIGINT, @InitialRowId INT = 1, @WorkOrderQuoteId BIGINT, @UpdatedBy VARCHAR(256), @workorderId BIGINT;
 		DECLARE @WorkOrderQuoteLaborHeaderId BIGINT, @MasterCompanyId INT, @IsVersionIncrease BIT;
+		DECLARE @AsPerGLAllocation VARCHAR(100) = 'As Per GL Allocation';
 
 		IF OBJECT_ID('tempdb..#tmpWorkOrderQuoteDetails') IS NOT NULL
 			DROP TABLE #tmpWorkOrderQuoteDetails;
+
+		IF OBJECT_ID('tempdb..#tmpWorkOrderQuoteCharges') IS NOT NULL
+			DROP TABLE #tmpWorkOrderQuoteCharges;
 
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteDetailsId], [WorkOrderQuoteId], [ItemMasterId], [BuildMethodId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 				[WorkflowWorkOrderId], [WOPartNoId], [MaterialCost], [MaterialBilling], [MaterialRevenuePercentage], [MaterialMargin], [LaborHours], [LaborCost], [LaborBilling], [LaborRevenuePercentage],
@@ -41,7 +44,23 @@ BEGIN
 		INTO #tmpWorkOrderQuoteDetails
 		FROM @tbl_WorkOrderQuoteDetailsType;
 
+		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteChargesId], [WorkOrderQuoteDetailsId], [ChargesTypeId], [VendorId], [Quantity], [MarkupPercentageId], [Description], [UnitCost], [ExtendedCost],
+				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate],
+				[HeaderMarkupId], [RefNum], [BillingMethodId], [TaskName], [ChargeType], [GlAccountName], [VendorName], [BillingName], [MarkUp], [UOMId] 
+		INTO #tmpWorkOrderQuoteCharges
+		FROM @tbl_WorkOrderQuoteChargesType;
+
 		UPDATE #tmpWorkOrderQuoteDetails SET [UpdatedDate] = GETUTCDATE();
+
+		UPDATE TMPC
+		SET	TMPC.[CreatedDate] = CASE WHEN ISNULL(TMPC.[WorkOrderQuoteChargesId], 0) > 0 THEN TMPC.[CreatedDate] ELSE GETUTCDATE() END,
+			TMPC.[UpdatedDate] = GETUTCDATE(),
+			TMPC.[IsActive] = 1,
+			TMPC.[IsDeleted] = CASE WHEN ISNULL(TMPC.[WorkOrderQuoteChargesId], 0) > 0 THEN TMPC.[IsDeleted] ELSE 0 END,
+			TMPC.[MarkupPercentageId] = CASE WHEN ISNULL(TMPC.[MarkupPercentageId], 0) = 0 THEN NULL ELSE TMPC.[MarkupPercentageId] END,
+			TMPC.[VendorId] = CASE WHEN ISNULL(TMPC.[VendorId], 0) = 0 THEN NULL ELSE TMPC.[VendorId] END,
+			TMPC.[GlAccountName] = @AsPerGLAllocation
+		FROM #tmpWorkOrderQuoteCharges TMPC
 
 		SELECT	@WorkflowWorkOrderId = [WorkflowWorkOrderId], @WorkOrderQuoteDetailsId = [WorkOrderQuoteDetailsId], @WorkOrderQuoteId = [WorkOrderQuoteId], @UpdatedBy = [UpdatedBy], @MasterCompanyId = [MasterCompanyId],
 				@IsVersionIncrease = ISNULL([IsVersionIncrease], 0)
@@ -57,83 +76,46 @@ BEGIN
 
 			TRUNCATE TABLE #tmpWorkOrderQuoteDetails;
 
-			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Labor] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteLaborType;
+			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Charges] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteTaskType;
 
-			--DELETE FROM [dbo].[WorkOrderQuoteLabor] WHERE WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
-			--DELETE FROM [dbo].[WorkOrderQuoteLaborHeader] WHERE WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
-
-			UPDATE WQLH
+			--DELETE FROM [dbo].[WorkOrderQuoteCharges] WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId;		
+			UPDATE WOQC
 			SET
-				WQLH.DataEnteredBy = CASE WHEN ISNULL(TMPLH.[DataEnteredBy], 0) = 0 THEN NULL ELSE TMPLH.[DataEnteredBy] END,
-				WQLH.MasterCompanyId = TMPLH.MasterCompanyId,
-				WQLH.UpdatedBy = TMPLH.UpdatedBy,
-				WQLH.UpdatedDate = GETUTCDATE(),
-				WQLH.IsActive = TMPLH.IsActive,
-				WQLH.IsDeleted = TMPLH.IsDeleted,
-				WQLH.MarkupFixedPrice = TMPLH.MarkupFixedPrice,
-				WQLH.HeaderMarkupId = TMPLH.HeaderMarkupId
-			FROM [dbo].[WorkOrderQuoteLaborHeader] WQLH WITH(NOLOCK)
-			JOIN @tbl_WorkOrderQuoteLaborHeaderType TMPLH ON WQLH.WorkOrderQuoteLaborHeaderId = TMPLH.WorkOrderQuoteLaborHeaderId
-			WHERE TMPLH.WorkOrderQuoteLaborHeaderId > 0;
+				WOQC.ChargesTypeId = TMPC.ChargesTypeId,
+				WOQC.VendorId = TMPC.VendorId,
+				WOQC.Quantity = TMPC.Quantity,
+				WOQC.MarkupPercentageId = TMPC.MarkupPercentageId,
+				WOQC.Description = TMPC.Description,
+				WOQC.UnitCost = TMPC.UnitCost,
+				WOQC.ExtendedCost = TMPC.ExtendedCost,
+				WOQC.MasterCompanyId = TMPC.MasterCompanyId,
+				WOQC.UpdatedBy = TMPC.UpdatedBy,
+				WOQC.UpdatedDate = TMPC.UpdatedDate,
+				WOQC.IsActive = TMPC.IsActive,
+				WOQC.IsDeleted = TMPC.IsDeleted,
+				WOQC.TaskId = TMPC.TaskId,
+				WOQC.MarkupFixedPrice = TMPC.MarkupFixedPrice,
+				WOQC.BillingAmount = TMPC.BillingAmount,
+				WOQC.BillingRate = TMPC.BillingRate,
+				WOQC.HeaderMarkupId = TMPC.HeaderMarkupId,
+				WOQC.RefNum = TMPC.RefNum,
+				WOQC.BillingMethodId = TMPC.BillingMethodId,
+				WOQC.TaskName = TMPC.TaskName,
+				WOQC.ChargeType = TMPC.ChargeType,
+				WOQC.GlAccountName = TMPC.GlAccountName,
+				WOQC.VendorName = TMPC.VendorName,
+				WOQC.BillingName = TMPC.BillingName,
+				WOQC.MarkUp = TMPC.MarkUp,
+				WOQC.UOMId = TMPC.UOMId
+			FROM [dbo].[WorkOrderQuoteCharges] WOQC WITH(NOLOCK)
+			JOIN #tmpWorkOrderQuoteCharges TMPC ON WOQC.WorkOrderQuoteChargesId = TMPC.WorkOrderQuoteChargesId
+			WHERE TMPC.WorkOrderQuoteChargesId > 0;
 
-			UPDATE WQL
-			SET
-				WQL.ExpertiseId = TMPL.ExpertiseId,
-				WQL.Hours = TMPL.Hours,
-				WQL.BillableId = TMPL.BillableId,
-				WQL.UpdatedBy = TMPL.UpdatedBy,
-				WQL.UpdatedDate =  GETUTCDATE(),
-				WQL.IsActive = TMPL.IsActive,
-				WQL.IsDeleted = TMPL.IsDeleted,
-				WQL.TaskId = TMPL.TaskId,
-				WQL.DirectLaborOHCost = TMPL.DirectLaborOHCost,
-				WQL.MarkupPercentageId = CASE WHEN ISNULL(TMPL.[MarkupPercentageId], 0) = 0 THEN NULL ELSE TMPL.[MarkupPercentageId] END,
-				WQL.BurdenRateAmount = TMPL.BurdenRateAmount,
-				WQL.TotalCostPerHour = TMPL.TotalCostPerHour,
-				WQL.TotalCost = TMPL.TotalCost,
-				WQL.BillingRate = TMPL.BillingRate,
-				WQL.BillingAmount = TMPL.BillingAmount,
-				WQL.BurdaenRatePercentageId = CASE WHEN ISNULL(TMPL.[BurdaenRatePercentageId], 0) = 0 THEN NULL ELSE TMPL.[BurdaenRatePercentageId] END,
-				WQL.BillingMethodId = TMPL.BillingMethodId,
-				WQL.MasterCompanyId = TMPL.MasterCompanyId,
-				WQL.TaskName = TMPL.TaskName,
-				WQL.Expertise = TMPL.Expertise,
-				WQL.Billabletype = TMPL.Billabletype,
-				WQL.BurdaenRatePercentage = TMPL.BurdaenRatePercentage,
-				WQL.BillingName = TMPL.BillingName,
-				WQL.MarkUp = TMPL.MarkUp,
-				WQL.EmployeeId = TMPL.EmployeeId
-			FROM [dbo].[WorkOrderQuoteLabor] WQL WITH(NOLOCK)
-			JOIN @tbl_WorkOrderQuoteLaborType TMPL ON WQL.WorkOrderQuoteLaborId = TMPL.WorkOrderQuoteLaborId
-			WHERE TMPL.WorkOrderQuoteLaborId > 0;
-
-			UPDATE WQL
-			SET	WQL.IsDeleted = 1
-			FROM [dbo].[WorkOrderQuoteLabor] WQL WITH(NOLOCK)
-			JOIN @tbl_WorkOrderQuoteLaborHeaderType WOH ON WQL.WorkOrderQuoteLaborHeaderId = WOH.WorkOrderQuoteLaborHeaderId
-			WHERE WQL.WorkOrderQuoteLaborId NOT IN (SELECT TMP.WorkOrderQuoteLaborId FROM @tbl_WorkOrderQuoteLaborType TMP WHERE WOH.WorkOrderQuoteLaborHeaderId = TMP.WorkOrderQuoteLaborHeaderId)
-			
-			INSERT INTO [dbo].[WorkOrderQuoteLaborHeader] ([WorkOrderQuoteDetailsId], [DataEnteredBy], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MarkupFixedPrice], [HeaderMarkupId])
-			SELECT	[WorkOrderQuoteDetailsId], CASE WHEN ISNULL([DataEnteredBy], 0) = 0 THEN NULL ELSE [DataEnteredBy] END, [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [MarkupFixedPrice], [HeaderMarkupId]
-			FROM @tbl_WorkOrderQuoteLaborHeaderType WHERE ISNULL(WorkOrderQuoteLaborHeaderId, 0) = 0;
-
-			SET @WorkOrderQuoteLaborHeaderId = SCOPE_IDENTITY();
-
-			IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0)
-			BEGIN
-				
-				IF(ISNULL(@WorkOrderQuoteLaborHeaderId, 0) = 0)
-				BEGIN
-					SET @WorkOrderQuoteLaborHeaderId = (SELECT TOP 1 WorkOrderQuoteLaborHeaderId FROM @tbl_WorkOrderQuoteLaborHeaderType WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId)
-				END
-
-				INSERT INTO [dbo].[WorkOrderQuoteLabor] ([WorkOrderQuoteLaborHeaderId], [ExpertiseId], [Hours], [BillableId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [DirectLaborOHCost],
-							[MarkupPercentageId], [BurdenRateAmount], [TotalCostPerHour], [TotalCost], [BillingRate], [BillingAmount], [BurdaenRatePercentageId], [BillingMethodId], [MasterCompanyId], [TaskName], [Expertise], [Billabletype],
-							[BurdaenRatePercentage], [BillingName], [MarkUp], [EmployeeId])
-				SELECT	@WorkOrderQuoteLaborHeaderId, [ExpertiseId], [Hours], [BillableId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [TaskId], [DirectLaborOHCost], CASE WHEN ISNULL([MarkupPercentageId], 0) = 0 THEN NULL ELSE [MarkupPercentageId] END, [BurdenRateAmount],
-						[TotalCostPerHour], [TotalCost], [BillingRate], [BillingAmount], CASE WHEN ISNULL([BurdaenRatePercentageId], 0) = 0 THEN NULL ELSE [BurdaenRatePercentageId] END, [BillingMethodId], [MasterCompanyId], [TaskName], [Expertise], [Billabletype], [BurdaenRatePercentage],  [BillingName], [MarkUp], [EmployeeId]
-				FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteLaborId, 0) = 0;
-			END			
+			INSERT INTO [dbo].[WorkOrderQuoteCharges]
+			SELECT	@WorkOrderQuoteDetailsId AS WorkOrderQuoteDetailsId, [ChargesTypeId], [VendorId], [Quantity], [MarkupPercentageId], [Description], [UnitCost], [ExtendedCost],
+					[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate],
+					[HeaderMarkupId], [RefNum], [BillingMethodId], [TaskName], [ChargeType], [GlAccountName], [VendorName], [BillingName], [MarkUp], [UOMId] 
+			FROM #tmpWorkOrderQuoteCharges WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteChargesId, 0) = 0
 
 			UPDATE TMP
 			SET	TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END, TMP.IsDeleted = 0
@@ -215,14 +197,12 @@ BEGIN
 				UPDATE WQT
 				SET 
 					WQT.UpdatedDate = GETUTCDATE(),
-					WQT.OverHeadCost = T.OverHeadCost,
-					WQT.LaborCost = T.LaborCost,
-					WQT.LaborBilling = T.LaborBilling,
-					WQT.LaborRevenue = T.LaborBilling,
-					WQT.LaborRevenuePercentage = dbo.fn_GetRevenuePercentage(T.LaborCost, T.LaborBilling),
-					WQT.LaborMargin = T.LaborBilling - T.LaborCost,
-					WQT.LaborMarginPer = dbo.fn_GetMarginPercentage((T.LaborBilling - T.LaborCost), T.LaborBilling),
-					WQT.OverHeadCostRevenuePercentage = dbo.fn_GetRevenuePercentage(T.OverHeadCost, T.LaborBilling),
+					WQT.ChargesBilling = T.ChargesBilling,
+					WQT.ChargesCost = T.ChargesCost,
+					WQT.ChargesMargin = T.ChargesBilling - T.ChargesCost,
+					WQT.ChargesRevenue = T.ChargesBilling,
+					WQT.ChargesRevenuePercentage = dbo.fn_GetRevenuePercentage(T.ChargesCost, T.ChargesBilling),
+					WQT.ChargesMarginPer = dbo.fn_GetMarginPercentage((T.ChargesBilling - T.ChargesCost), T.ChargesBilling),
 					WQT.UpdatedBy = @UpdatedBy
 				FROM [dbo].[WorkOrderQuoteTask] WQT WITH(NOLOCK)
 				JOIN @tbl_WorkOrderQuoteTaskType T ON WQT.WorkOrderQuoteTaskId = T.WorkOrderQuoteTaskId
@@ -230,26 +210,24 @@ BEGIN
 				
 				-- Inserting New Quote Task
 				INSERT INTO [dbo].[WorkOrderQuoteTask] ([WOPartNoId], [TaskId], [LaborHours], [LaborCost], [LaborBilling], [LaborRevnuePercentage], [MaterialCost], [MaterialBilling], [MaterialRevnuePercentage], [ChargesCost],
-						[ChargesBilling], [ChargesRevenue], [ChargesRevnuePercentage], [ChargesMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [FreightMargin], [ExclusionsCost], [ExclusionsBilling], 
-						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ChargesMarginPer], [ExclusionsMarginPer],
-						[FreightMarginPer], [OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [ChargesRevenuePercentage], [ExclusionsRevenuePercentage], [FreightRevenuePercentage],
-						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer]
-						,[LaborMargin]
-						,[LaborRevenue]
-						,[LaborRevenuePercentage]
-						,[LaborMarginPer]
-						,[OverHeadCostRevenuePercentage]
+						[ChargesBilling], [ChargesRevnuePercentage], [FreightMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [ExclusionsCost], [ExclusionsBilling],
+						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [FreightMarginPer], [ExclusionsMarginPer],
+						[OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [FreightRevenuePercentage] , [ExclusionsRevenuePercentage],
+						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer], [LaborMargin], [LaborRevenue], [LaborRevenuePercentage], [LaborMarginPer], [OverHeadCostRevenuePercentage]
+						,[ChargesMargin]
+						,[ChargesRevenue]
+						,[ChargesRevenuePercentage]
+						,[ChargesMarginPer]
 				)
 				SELECT	@woPartNoId, [TaskId], [LaborHours], [LaborCost], [LaborBilling], [LaborRevnuePercentage], [MaterialCost], [MaterialBilling], [MaterialRevnuePercentage], [ChargesCost],
-						[ChargesBilling], [ChargesRevenue], [ChargesRevnuePercentage], [ChargesMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [FreightMargin], [ExclusionsCost], [ExclusionsBilling],
-						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(),  GETUTCDATE(), 1, 0, [ChargesMarginPer], [ExclusionsMarginPer],
-						[FreightMarginPer], [OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [ChargesRevenuePercentage], [ExclusionsRevenuePercentage], [FreightRevenuePercentage],
-						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer]
-						,[LaborBilling] - [LaborCost]
-						,[LaborBilling]
-						,dbo.fn_GetRevenuePercentage([LaborCost], [LaborBilling])
-						,dbo.fn_GetMarginPercentage(([LaborBilling] - [LaborCost]), [LaborBilling])
-						,dbo.fn_GetRevenuePercentage([OverHeadCost], [LaborBilling])
+						[ChargesBilling], [ChargesRevnuePercentage], [FreightMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [ExclusionsCost], [ExclusionsBilling],
+						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(),  GETUTCDATE(), 1, 0, [FreightMarginPer], [ExclusionsMarginPer],
+						[OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [FreightRevenuePercentage], [ExclusionsRevenuePercentage],
+						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer], [LaborMargin], [LaborRevenue], [LaborRevenuePercentage], [LaborMarginPer], [OverHeadCostRevenuePercentage]
+						,[ChargesBilling] - [ChargesCost]
+						,[ChargesBilling]
+						,dbo.fn_GetRevenuePercentage([ChargesCost], [ChargesBilling])
+						,dbo.fn_GetMarginPercentage(([ChargesBilling] - [ChargesCost]), [ChargesBilling])
 				FROM @tbl_WorkOrderQuoteTaskType
 				WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteTaskId, 0) = 0
 			END
@@ -259,7 +237,7 @@ BEGIN
 
 			TRUNCATE TABLE #tmpWorkOrderQuoteDetails;
 			
-			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Labor] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteLaborType;
+			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Charges] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteTaskType;
 
 			UPDATE TMP
 			SET	TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END,
@@ -292,21 +270,11 @@ BEGIN
 
 			SET @WorkOrderQuoteDetailsId = SCOPE_IDENTITY();
 
-			INSERT INTO [dbo].[WorkOrderQuoteLaborHeader] ([WorkOrderQuoteDetailsId], [DataEnteredBy], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MarkupFixedPrice], [HeaderMarkupId])
-			SELECT	@WorkOrderQuoteDetailsId, CASE WHEN ISNULL([DataEnteredBy], 0) = 0 THEN NULL ELSE [DataEnteredBy] END, [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [MarkupFixedPrice], [HeaderMarkupId]
-			FROM @tbl_WorkOrderQuoteLaborHeaderType;
-
-			SET @WorkOrderQuoteLaborHeaderId = SCOPE_IDENTITY();
-
-			IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0)
-			BEGIN
-				INSERT INTO [dbo].[WorkOrderQuoteLabor] ([WorkOrderQuoteLaborHeaderId], [ExpertiseId], [Hours], [BillableId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [DirectLaborOHCost],
-							[MarkupPercentageId], [BurdenRateAmount], [TotalCostPerHour], [TotalCost], [BillingRate], [BillingAmount], [BurdaenRatePercentageId], [BillingMethodId], [MasterCompanyId], [TaskName], [Expertise], [Billabletype],
-							[BurdaenRatePercentage], [BillingName], [MarkUp], [EmployeeId])
-				SELECT	@WorkOrderQuoteLaborHeaderId, [ExpertiseId], [Hours], [BillableId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [TaskId], [DirectLaborOHCost], CASE WHEN ISNULL([MarkupPercentageId], 0) = 0 THEN NULL ELSE [MarkupPercentageId] END, [BurdenRateAmount],
-						[TotalCostPerHour], [TotalCost], [BillingRate], [BillingAmount], CASE WHEN ISNULL([BurdaenRatePercentageId], 0) = 0 THEN NULL ELSE [BurdaenRatePercentageId] END, [BillingMethodId], [MasterCompanyId], [TaskName], [Expertise], [Billabletype], [BurdaenRatePercentage],  [BillingName], [MarkUp], [EmployeeId]
-				FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0;
-			END
+			INSERT INTO [dbo].[WorkOrderQuoteCharges]
+			SELECT	@WorkOrderQuoteDetailsId AS WorkOrderQuoteDetailsId, [ChargesTypeId], [VendorId], [Quantity], [MarkupPercentageId], [Description], [UnitCost], [ExtendedCost],
+					[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate],
+					[HeaderMarkupId], [RefNum], [BillingMethodId], [TaskName], [ChargeType], [GlAccountName], [VendorName], [BillingName], [MarkUp], [UOMId] 
+			FROM #tmpWorkOrderQuoteCharges WHERE ISNULL(IsDeleted, 0) = 0
 
 			IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteTaskType)
 			BEGIN
@@ -314,41 +282,37 @@ BEGIN
 				UPDATE WQT
 				SET 
 					WQT.UpdatedDate = GETUTCDATE(),
-					WQT.OverHeadCost = T.OverHeadCost,
-					WQT.LaborCost = T.LaborCost,
-					WQT.LaborBilling = T.LaborBilling,
-					WQT.LaborRevenue = T.LaborBilling,
-					WQT.LaborRevenuePercentage = dbo.fn_GetRevenuePercentage(T.LaborCost, T.LaborBilling),
-					WQT.LaborMargin = T.LaborBilling - T.LaborCost,
-					WQT.LaborMarginPer = dbo.fn_GetMarginPercentage((T.LaborBilling - T.LaborCost), T.LaborBilling),
-					WQT.OverHeadCostRevenuePercentage = dbo.fn_GetRevenuePercentage(T.OverHeadCost, T.LaborBilling),
+					WQT.ChargesBilling = T.ChargesBilling,
+					WQT.ChargesCost = T.ChargesCost,
+					WQT.ChargesMargin = T.ChargesBilling - T.ChargesCost,
+					WQT.ChargesRevenue = T.ChargesBilling,
+					WQT.ChargesRevenuePercentage = dbo.fn_GetRevenuePercentage(T.ChargesCost, T.ChargesBilling),
+					WQT.ChargesMarginPer = dbo.fn_GetMarginPercentage((T.ChargesBilling - T.ChargesCost), T.ChargesBilling),
 					WQT.UpdatedBy = @UpdatedBy
 				FROM [dbo].[WorkOrderQuoteTask] WQT WITH(NOLOCK)
 				JOIN @tbl_WorkOrderQuoteTaskType T ON WQT.WorkOrderQuoteTaskId = T.WorkOrderQuoteTaskId
 				WHERE ISNULL(T.IsDeleted, 0) = 0 AND ISNULL(T.WorkOrderQuoteTaskId, 0) > 0;
-
+				
 				-- Inserting New Quote Task
 				INSERT INTO [dbo].[WorkOrderQuoteTask] ([WOPartNoId], [TaskId], [LaborHours], [LaborCost], [LaborBilling], [LaborRevnuePercentage], [MaterialCost], [MaterialBilling], [MaterialRevnuePercentage], [ChargesCost],
-						[ChargesBilling], [ChargesRevenue], [ChargesRevnuePercentage], [ChargesMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [FreightMargin], [ExclusionsCost], [ExclusionsBilling], 
-						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ChargesMarginPer], [ExclusionsMarginPer],
-						[FreightMarginPer], [OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [ChargesRevenuePercentage], [ExclusionsRevenuePercentage], [FreightRevenuePercentage],
-						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer]
-						,[LaborMargin]
-						,[LaborRevenue]
-						,[LaborRevenuePercentage]
-						,[LaborMarginPer]
-						,[OverHeadCostRevenuePercentage]
+						[ChargesBilling], [ChargesRevnuePercentage], [FreightMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [ExclusionsCost], [ExclusionsBilling],
+						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [FreightMarginPer], [ExclusionsMarginPer],
+						[OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [FreightRevenuePercentage], [ExclusionsRevenuePercentage],
+						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer], [LaborMargin], [LaborRevenue], [LaborRevenuePercentage], [LaborMarginPer], [OverHeadCostRevenuePercentage]
+						,[ChargesMargin]
+						,[ChargesRevenue]
+						,[ChargesRevenuePercentage]
+						,[ChargesMarginPer]
 				)
 				SELECT	@woPartNoId, [TaskId], [LaborHours], [LaborCost], [LaborBilling], [LaborRevnuePercentage], [MaterialCost], [MaterialBilling], [MaterialRevnuePercentage], [ChargesCost],
-						[ChargesBilling], [ChargesRevenue], [ChargesRevnuePercentage], [ChargesMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [FreightMargin], [ExclusionsCost], [ExclusionsBilling],
-						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(),  GETUTCDATE(), 1, 0, [ChargesMarginPer], [ExclusionsMarginPer],
-						[FreightMarginPer], [OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [ChargesRevenuePercentage], [ExclusionsRevenuePercentage], [FreightRevenuePercentage],
-						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer]
-						,[LaborBilling] - [LaborCost]
-						,[LaborBilling]
-						,dbo.fn_GetRevenuePercentage([LaborCost], [LaborBilling])
-						,dbo.fn_GetMarginPercentage(([LaborBilling] - [LaborCost]), [LaborBilling])
-						,dbo.fn_GetRevenuePercentage([OverHeadCost], [LaborBilling])
+						[ChargesBilling], [ChargesRevnuePercentage], [FreightMargin], [FreightCost], [FreightBilling], [FreightRevenue], [FreightRevnuePercentage], [ExclusionsCost], [ExclusionsBilling],
+						[ExclusionsRevenue], [ExclusionsRevnuePercentage], [ExclusionsMargin], [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(),  GETUTCDATE(), 1, 0, [FreightMarginPer], [ExclusionsMarginPer],
+						[OverHeadCost], [AdjustmentHours], [AdjustedHours], [WorkOrderLaborHeaderId], [FreightRevenuePercentage], [ExclusionsRevenuePercentage],
+						[MaterialMargin], [MaterialRevenue], [MaterialRevenuePercentage], [MaterialMarginPer], [LaborMargin], [LaborRevenue], [LaborRevenuePercentage], [LaborMarginPer], [OverHeadCostRevenuePercentage]
+						,[ChargesBilling] - [ChargesCost]
+						,[ChargesBilling]
+						,dbo.fn_GetRevenuePercentage([ChargesCost], [ChargesBilling])
+						,dbo.fn_GetMarginPercentage(([ChargesBilling] - [ChargesCost]), [ChargesBilling])
 				FROM @tbl_WorkOrderQuoteTaskType
 				WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteTaskId, 0) = 0
 			END
@@ -362,27 +326,25 @@ BEGIN
 
 		EXEC [dbo].[UpdateWorkOrderQuoteVersionNo] @WorkOrderQuoteId, @IsVersionIncrease;
 
-		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderQuoteLabor] WOL WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderQuoteLaborHeader] WOQLH WITH(NOLOCK) ON WOL.WorkOrderQuoteLaborHeaderId = WOQLH.WorkOrderQuoteLaborHeaderId WHERE WOQLH.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
+		IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderQuoteCharges] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
 		BEGIN
-			DECLARE @TotalRows INT, @CurrentRowId INT, @TMPWorkOrderQuoteLaborId BIGINT, @TableName VARCHAR(50) = 'workorderquotelabor';
+			DECLARE @TotalRows INT, @CurrentRowId INT, @TMPWorkOrderQuoteChargesId BIGINT, @TableName VARCHAR(50) = 'workorderquotecharges';
 
-			IF OBJECT_ID('tempdb..#tmpWOQLabor') IS NOT NULL
-				DROP TABLE #tmpWOQLabor;
+			IF OBJECT_ID('tempdb..#tmpWOQCharges') IS NOT NULL
+				DROP TABLE #tmpWOQCharges;
 
-			SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteLaborId] INTO #tmpWOQLabor
-			FROM [dbo].[WorkOrderQuoteLabor] WOL WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderQuoteLaborHeader] WOQLH WITH(NOLOCK) ON WOL.WorkOrderQuoteLaborHeaderId = WOQLH.WorkOrderQuoteLaborHeaderId
-			WHERE WOQLH.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId
+			SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteChargesId] INTO #tmpWOQCharges
+			FROM [dbo].[WorkOrderQuoteCharges] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId
 
-			SELECT @TotalRows = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpWOQLabor;
+			SELECT @TotalRows = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpWOQCharges;
 
 			IF(ISNULL(@TotalRows, 0) > 0)
 			BEGIN
 				WHILE(@TotalRows >= @CurrentRowId)
 				BEGIN
-					SELECT @TMPWorkOrderQuoteLaborId = [WorkOrderQuoteLaborId] FROM #tmpWOQLabor WHERE [RowId] = @CurrentRowId;
+					SELECT @TMPWorkOrderQuoteChargesId = [WorkOrderQuoteChargesId] FROM #tmpWOQCharges WHERE [RowId] = @CurrentRowId;
 
-					EXEC [dbo].[UpdateWorkOrderQuoteTable] @TableName, @TMPWorkOrderQuoteLaborId;
+					EXEC [dbo].[UpdateWorkOrderQuoteTable] @TableName, @TMPWorkOrderQuoteChargesId;
 
 					SET @CurrentRowId += 1;
 				END
@@ -390,8 +352,7 @@ BEGIN
 		END
 
 		SELECT * FROM [DBO].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId;
-		SELECT * FROM [DBO].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId;
-		SELECT * FROM [dbo].[WorkOrderQuoteLabor] WOL WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderQuoteLaborHeader] WOQLH WITH(NOLOCK) ON WOL.WorkOrderQuoteLaborHeaderId = WOQLH.WorkOrderQuoteLaborHeaderId WHERE WOQLH.[WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId
+		SELECT * FROM [DBO].[WorkOrderQuoteCharges] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId;
 		SELECT * FROM [DBO].[WorkOrderQuoteTask] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId;
 
 	COMMIT TRANSACTION  
@@ -401,7 +362,7 @@ BEGIN
 		ROLLBACK TRAN;  
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-        , @AdhocComments     VARCHAR(150)    = 'USP_CreateWorkOrderQuoteLabor' 
+        , @AdhocComments     VARCHAR(150)    = 'USP_CreateWorkOrderQuoteCharges' 
 		, @ProcedureParameters VARCHAR(3000) = ''
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

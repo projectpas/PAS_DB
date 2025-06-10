@@ -3937,7 +3937,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxAudit.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingLockBox.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPackagingLabelByVendorRMAId.sql" />
   </ItemGroup>
   <ItemGroup>

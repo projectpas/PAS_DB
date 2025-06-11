@@ -3954,6 +3954,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingACH.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeBillingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityBillingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateLegalEntityBillingAddress.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

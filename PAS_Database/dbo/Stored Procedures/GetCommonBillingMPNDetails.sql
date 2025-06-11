@@ -12,7 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/05/2025   Moin Bloch    Created
     2    12/05/2025   RAJESH GAMI    Added SO Part Details Code
-	
+	3    11/06/2025   RAJESH GAMI    Fix the getting wrong invoicingId (SO)
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8800,0,'',15
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 846,0,'1011,1012,1013',10,0
@@ -352,7 +352,7 @@ BEGIN
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 			WHERE SOP.SalesOrderId = @ReferenceId  
 			  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
-			  AND ISNULL(SOP.IsDeleted,0) = 0 
+			  AND ISNULL(SOP.IsDeleted,0) = 0 AND ( (@IsProformaInvoice = 1 AND ISNULL(SOP.QtyReserved, 0) >= 0) OR (@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0))
 			ORDER BY SOP.SalesOrderPartId	
 			
 			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 
@@ -361,7 +361,6 @@ BEGIN
 			FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE SO.[SalesOrderId] = @ReferenceId;
 		    
 			SELECT @TotalRecords = COUNT(*), @MinId = MIN([PKID]) FROM #TempCommonPartNumberDetailsForBilling    
-
 		
 
 			WHILE @MinId <= @TotalRecords
@@ -394,26 +393,29 @@ BEGIN
 					[OtherTax]  DECIMAL(18,2) NULL				
 				)		
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
-				
 				SELECT TOP 1 @BillingInvoicingId = BI.BillingInvoicingId, @BillingInvoicingItemId = BII.BillingInvoicingItemId  FROM #TempCommonPartNumberDetailsForBilling cpd   
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId AND ISNULL(Bi.IsVersionIncrease,0) = 0
-							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId AND BII.ConditionId = CPD.ConditionId
+							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId AND BII.ConditionId = CPD.ConditionId AND cpd.StockLineId = BII.StocklineId
+							
 							WHERE cpd.ReferenceId = @ReferenceId  AND ISNULL(Bi.IsVersionIncrease,0) = 0 AND [PKID] = @MinId;	
 				
 				IF(@SoChargesBillingMethodId != 0 AND @SoChargesBillingMethodId != @FlatBillingMethodId)
 				BEGIN
-					SET @SOChargesAmount = (SELECT SUM(ISNULL(BillingAmount,0)) FROM Dbo.SalesOrderCharges WHERE SalesOrderPartId = @ID AND ISNULL(IsDeleted,0) = 0)
+					SET @SOChargesAmount = ISNULL((SELECT SUM(ISNULL(BillingAmount,0)) FROM Dbo.SalesOrderCharges WHERE SalesOrderPartId = @ID AND ISNULL(IsDeleted,0) = 0),0.0)
 				END
 				IF(@SoFreightBillingMethodId != 0 AND @SoFreightBillingMethodId != @FlatBillingMethodId)
 				BEGIN
-					SET @SOFreightAmount = (SELECT SUM(ISNULL(BillingAmount,0)) FROM Dbo.SalesOrderFreight WHERE SalesOrderPartId = @ID AND ISNULL(IsDeleted,0) = 0)
+					SET @SOFreightAmount = ISNULL((SELECT SUM(ISNULL(BillingAmount,0)) FROM Dbo.SalesOrderFreight WHERE SalesOrderPartId = @ID AND ISNULL(IsDeleted,0) = 0),0.0)
 				END
 				SET @UnitCost = (SELECT SUM(ISNULL(NetSaleAmountPerUnit,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
 				
 				--SET @PartsCost = (SELECT SUM(ISNULL(NetSaleAmount,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
-				SET @PartsCost = ISNULL(@UnitCost,0.0) * ISNULL((Select QtyReserved From dbo.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderPartId = @ID),0.0)
+				--SET @PartsCost = ISNULL(@UnitCost,0.0) * ISNULL((Select QtyReserved From dbo.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderPartId = @ID),0.0)
+				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
+				print @IsProformaInvoice
+				SET @PartsCost = ISNULL(@UnitCost,0.0) * @stkReservedQty
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
-				
+					print @TotalCost
 				IF(@IsProformaInvoice = 1)
 				BEGIN
 					SET @SalesTax = 0;

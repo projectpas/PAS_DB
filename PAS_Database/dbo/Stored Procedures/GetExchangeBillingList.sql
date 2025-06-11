@@ -23,7 +23,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 	BEGIN TRY
-	
+
+		DECLARE @ExchangeStatusId INT;
+		SELECT @ExchangeStatusId = ExchangeStatusId  FROM [dbo].[ExchangeStatus] WHERE Name = 'Cancelled';
+
 		-- 1. Exchange Sales Order
 		SELECT TOP 1 *
 		FROM [dbo].[ExchangeSalesOrder] WITH(NOLOCK)
@@ -65,7 +68,7 @@ BEGIN
 		LEFT JOIN [dbo].[ExchangeSalesOrderShipping] essp WITH(NOLOCK) ON sqe.ExchangeSalesOrderId = essp.ExchangeSalesOrderId
 		LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] esbii WITH(NOLOCK) ON sqe.ExchangeSalesOrderScheduleBillingId = esbii.ExchangeSalesOrderScheduleBillingId AND ISNULL(esbii.IsDeleted,0) = 0
 		LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] esbi WITH(NOLOCK) ON esbii.SOBillingInvoicingId = esbi.SOBillingInvoicingId
-		WHERE sqe.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sqe.StatusId != 5
+		WHERE sqe.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sqe.StatusId != @ExchangeStatusId
 		ORDER BY sqe.ExchangeSalesOrderScheduleBillingId;
 
 		-- 3. Charges

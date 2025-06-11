@@ -3944,8 +3944,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalWirePayment.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCurrencyIdForVendorCreditMemo.sql" />
-
     <Build Include="dbo\Stored Procedures\usp_CustVendorUpdatebyId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

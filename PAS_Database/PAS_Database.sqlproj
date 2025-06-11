@@ -3942,6 +3942,7 @@
     <Build Include="dbo\Stored Procedures\USP_WorkOrderReleaseFromListData_ByWOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckIfVendorRMAPartShipped.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

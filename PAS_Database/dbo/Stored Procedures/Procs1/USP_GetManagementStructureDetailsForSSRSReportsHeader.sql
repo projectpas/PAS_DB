@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [USP_GetManagementStructureDetailsForReportsHeader]
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Reserve Or Release Stockline for Sub WO
@@ -17,11 +16,13 @@
     1    08/12/2021   Hemant Saliya		Created
     2    08/29/2024   Devendra Shekh	added new field TimeZoneDateTime
 	3	 10/29/2024	  Bhargav Saliya    Added Merge Address
+	4	 06/11/2025	  Vishal Suthar     Modified parameter data type to varchar from bigint
+
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
 (    
-	@managementStructureId  BIGINT  = NULL
+	@managementStructureId  VARCHAR(MAX) = NULL
 )    
 AS    
 BEGIN    
@@ -69,7 +70,7 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
 					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
 					LEFT JOIN dbo.TimeZone TZ WITH(NOLOCK) ON TZ.TimeZoneId = le.TimeZoneId 
-				WHERE est.EntityStructureId = @managementStructureId;
+				WHERE est.EntityStructureId IN (SELECT Item FROM DBO.SPLITSTRING(@managementStructureId, ','));
 			END
 		COMMIT  TRANSACTION
 		END TRY    

@@ -59,23 +59,80 @@ BEGIN
 
 			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails_Labor] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteLaborType;
 
-			DELETE FROM [dbo].[WorkOrderQuoteLabor] WHERE WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
-			DELETE FROM [dbo].[WorkOrderQuoteLaborHeader] WHERE WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
+			--DELETE FROM [dbo].[WorkOrderQuoteLabor] WHERE WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
+			--DELETE FROM [dbo].[WorkOrderQuoteLaborHeader] WHERE WorkOrderQuoteLaborHeaderId IN (SELECT WorkOrderQuoteLaborHeaderId FROM [dbo].[WorkOrderQuoteLaborHeader] WITH(NOLOCK) WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId)
+
+			UPDATE WQLH
+			SET
+				WQLH.DataEnteredBy = CASE WHEN ISNULL(TMPLH.[DataEnteredBy], 0) = 0 THEN NULL ELSE TMPLH.[DataEnteredBy] END,
+				WQLH.MasterCompanyId = TMPLH.MasterCompanyId,
+				WQLH.UpdatedBy = TMPLH.UpdatedBy,
+				WQLH.UpdatedDate = GETUTCDATE(),
+				WQLH.IsActive = TMPLH.IsActive,
+				WQLH.IsDeleted = TMPLH.IsDeleted,
+				WQLH.MarkupFixedPrice = TMPLH.MarkupFixedPrice,
+				WQLH.HeaderMarkupId = TMPLH.HeaderMarkupId
+			FROM [dbo].[WorkOrderQuoteLaborHeader] WQLH WITH(NOLOCK)
+			JOIN @tbl_WorkOrderQuoteLaborHeaderType TMPLH ON WQLH.WorkOrderQuoteLaborHeaderId = TMPLH.WorkOrderQuoteLaborHeaderId
+			WHERE TMPLH.WorkOrderQuoteLaborHeaderId > 0;
+
+			UPDATE WQL
+			SET
+				WQL.ExpertiseId = TMPL.ExpertiseId,
+				WQL.Hours = TMPL.Hours,
+				WQL.BillableId = TMPL.BillableId,
+				WQL.UpdatedBy = TMPL.UpdatedBy,
+				WQL.UpdatedDate =  GETUTCDATE(),
+				WQL.IsActive = TMPL.IsActive,
+				WQL.IsDeleted = TMPL.IsDeleted,
+				WQL.TaskId = TMPL.TaskId,
+				WQL.DirectLaborOHCost = TMPL.DirectLaborOHCost,
+				WQL.MarkupPercentageId = CASE WHEN ISNULL(TMPL.[MarkupPercentageId], 0) = 0 THEN NULL ELSE TMPL.[MarkupPercentageId] END,
+				WQL.BurdenRateAmount = TMPL.BurdenRateAmount,
+				WQL.TotalCostPerHour = TMPL.TotalCostPerHour,
+				WQL.TotalCost = TMPL.TotalCost,
+				WQL.BillingRate = TMPL.BillingRate,
+				WQL.BillingAmount = TMPL.BillingAmount,
+				WQL.BurdaenRatePercentageId = CASE WHEN ISNULL(TMPL.[BurdaenRatePercentageId], 0) = 0 THEN NULL ELSE TMPL.[BurdaenRatePercentageId] END,
+				WQL.BillingMethodId = TMPL.BillingMethodId,
+				WQL.MasterCompanyId = TMPL.MasterCompanyId,
+				WQL.TaskName = TMPL.TaskName,
+				WQL.Expertise = TMPL.Expertise,
+				WQL.Billabletype = TMPL.Billabletype,
+				WQL.BurdaenRatePercentage = TMPL.BurdaenRatePercentage,
+				WQL.BillingName = TMPL.BillingName,
+				WQL.MarkUp = TMPL.MarkUp,
+				WQL.EmployeeId = TMPL.EmployeeId
+			FROM [dbo].[WorkOrderQuoteLabor] WQL WITH(NOLOCK)
+			JOIN @tbl_WorkOrderQuoteLaborType TMPL ON WQL.WorkOrderQuoteLaborId = TMPL.WorkOrderQuoteLaborId
+			WHERE TMPL.WorkOrderQuoteLaborId > 0;
+
+			UPDATE WQL
+			SET	WQL.IsDeleted = 1
+			FROM [dbo].[WorkOrderQuoteLabor] WQL WITH(NOLOCK)
+			JOIN @tbl_WorkOrderQuoteLaborHeaderType WOH ON WQL.WorkOrderQuoteLaborHeaderId = WOH.WorkOrderQuoteLaborHeaderId
+			WHERE WQL.WorkOrderQuoteLaborId NOT IN (SELECT TMP.WorkOrderQuoteLaborId FROM @tbl_WorkOrderQuoteLaborType TMP WHERE WOH.WorkOrderQuoteLaborHeaderId = TMP.WorkOrderQuoteLaborHeaderId)
 			
 			INSERT INTO [dbo].[WorkOrderQuoteLaborHeader] ([WorkOrderQuoteDetailsId], [DataEnteredBy], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MarkupFixedPrice], [HeaderMarkupId])
 			SELECT	[WorkOrderQuoteDetailsId], CASE WHEN ISNULL([DataEnteredBy], 0) = 0 THEN NULL ELSE [DataEnteredBy] END, [MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [MarkupFixedPrice], [HeaderMarkupId]
-			FROM @tbl_WorkOrderQuoteLaborHeaderType;
+			FROM @tbl_WorkOrderQuoteLaborHeaderType WHERE ISNULL(WorkOrderQuoteLaborHeaderId, 0) = 0;
 
 			SET @WorkOrderQuoteLaborHeaderId = SCOPE_IDENTITY();
 
 			IF EXISTS(SELECT 1 FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0)
 			BEGIN
+				
+				IF(ISNULL(@WorkOrderQuoteLaborHeaderId, 0) = 0)
+				BEGIN
+					SET @WorkOrderQuoteLaborHeaderId = (SELECT TOP 1 WorkOrderQuoteLaborHeaderId FROM @tbl_WorkOrderQuoteLaborHeaderType WHERE WorkOrderQuoteDetailsId = @WorkOrderQuoteDetailsId)
+				END
+
 				INSERT INTO [dbo].[WorkOrderQuoteLabor] ([WorkOrderQuoteLaborHeaderId], [ExpertiseId], [Hours], [BillableId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [TaskId], [DirectLaborOHCost],
 							[MarkupPercentageId], [BurdenRateAmount], [TotalCostPerHour], [TotalCost], [BillingRate], [BillingAmount], [BurdaenRatePercentageId], [BillingMethodId], [MasterCompanyId], [TaskName], [Expertise], [Billabletype],
 							[BurdaenRatePercentage], [BillingName], [MarkUp], [EmployeeId])
 				SELECT	@WorkOrderQuoteLaborHeaderId, [ExpertiseId], [Hours], [BillableId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [TaskId], [DirectLaborOHCost], CASE WHEN ISNULL([MarkupPercentageId], 0) = 0 THEN NULL ELSE [MarkupPercentageId] END, [BurdenRateAmount],
 						[TotalCostPerHour], [TotalCost], [BillingRate], [BillingAmount], CASE WHEN ISNULL([BurdaenRatePercentageId], 0) = 0 THEN NULL ELSE [BurdaenRatePercentageId] END, [BillingMethodId], [MasterCompanyId], [TaskName], [Expertise], [Billabletype], [BurdaenRatePercentage],  [BillingName], [MarkUp], [EmployeeId]
-				FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0;
+				FROM @tbl_WorkOrderQuoteLaborType WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteLaborId, 0) = 0;
 			END			
 
 			UPDATE TMP

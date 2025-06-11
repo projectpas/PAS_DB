@@ -81,11 +81,49 @@ BEGIN
 
 			INSERT INTO #tmpWorkOrderQuoteDetails EXEC [DBO].[USP_GetWOQuoteDetails] @tbl_WorkOrderQuoteDetailsType, @tbl_WorkOrderQuoteTaskType
 			
-			DELETE FROM [dbo].[WorkOrderQuoteMaterial] WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId;
+			--DELETE FROM [dbo].[WorkOrderQuoteMaterial] WHERE [WorkOrderQuoteDetailsId] = @WorkOrderQuoteDetailsId;		
 
 			UPDATE TMPM
 			SET TMPM.MarkupPercentageId = CASE WHEN ISNULL(TMPM.MarkupPercentageId, 0) = 0 THEN NULL ELSE TMPM.MarkupPercentageId END
 			FROM  #tmpWorkOrderQuoteMaterial TMPM
+
+			UPDATE WOQM
+			SET
+				WOQM.ItemMasterId = TMPM.ItemMasterId,
+				WOQM.ConditionCodeId = TMPM.ConditionCodeId,
+				WOQM.ItemClassificationId = TMPM.ItemClassificationId,
+				WOQM.Quantity = TMPM.Quantity,
+				WOQM.UnitOfMeasureId = TMPM.UnitOfMeasureId,
+				WOQM.UnitCost = TMPM.UnitCost,
+				WOQM.ExtendedCost = TMPM.ExtendedCost,
+				WOQM.Memo = TMPM.Memo,
+				WOQM.IsDefered = TMPM.IsDefered,
+				WOQM.MasterCompanyId = TMPM.MasterCompanyId,
+				WOQM.UpdatedBy = TMPM.UpdatedBy,
+				WOQM.UpdatedDate = GETUTCDATE(),
+				WOQM.IsActive = TMPM.IsActive,
+				WOQM.IsDeleted = TMPM.IsDeleted,
+				WOQM.MarkupPercentageId = TMPM.MarkupPercentageId,
+				WOQM.TaskId = TMPM.TaskId,
+				WOQM.MarkupFixedPrice = TMPM.MarkupFixedPrice,
+				WOQM.BillingAmount = TMPM.BillingAmount,
+				WOQM.BillingRate = TMPM.BillingRate,
+				WOQM.HeaderMarkupId = TMPM.HeaderMarkupId,
+				WOQM.ProvisionId = TMPM.ProvisionId,
+				WOQM.MaterialMandatoriesId = TMPM.MaterialMandatoriesId,
+				WOQM.BillingMethodId = TMPM.BillingMethodId,
+				WOQM.TaskName = TMPM.TaskName,
+				WOQM.PartNumber = TMPM.PartNumber,
+				WOQM.PartDescription = TMPM.PartDescription,
+				WOQM.Provision = TMPM.Provision,
+				WOQM.UomName = TMPM.UomName,
+				WOQM.Conditiontype = TMPM.Conditiontype,
+				WOQM.Stocktype = TMPM.Stocktype,
+				WOQM.BillingName = TMPM.BillingName,
+				WOQM.MarkUp = TMPM.MarkUp
+			FROM [dbo].[WorkOrderQuoteMaterial] WOQM WITH(NOLOCK)
+			JOIN #tmpWorkOrderQuoteMaterial TMPM ON WOQM.WorkOrderQuoteMaterialId = TMPM.WorkOrderQuoteMaterialId
+			WHERE TMPM.WorkOrderQuoteMaterialId > 0;
 
 			INSERT INTO [dbo].[WorkOrderQuoteMaterial]([WorkOrderQuoteDetailsId], [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],
 					[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MarkupPercentageId], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate], [HeaderMarkupId],
@@ -93,7 +131,7 @@ BEGIN
 			SELECT	@WorkOrderQuoteDetailsId, [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],
 					[MasterCompanyId], [CreatedBy], [UpdatedBy], GETUTCDATE(), GETUTCDATE(), 1, 0, [MarkupPercentageId], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate], [HeaderMarkupId],
 					[ProvisionId], [MaterialMandatoriesId], [BillingMethodId], [TaskName], [PartNumber], [PartDescription], [Provision], [UomName], [Conditiontype], [Stocktype], [BillingName], [MarkUp]
-			FROM #tmpWorkOrderQuoteMaterial WHERE ISNULL(IsDeleted, 0) = 0
+			FROM #tmpWorkOrderQuoteMaterial WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteMaterialId, 0) = 0
 			
 			UPDATE TMP
 			SET	TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END, TMP.IsDeleted = 0

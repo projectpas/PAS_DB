@@ -15,9 +15,10 @@
 	4    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	5    12/03/2025     Sahdev Saliya       Change the Date format to Datetime
 	6    31/03/2025     AMIT GHEDIYA        Added IsTrackScoreCard flag & TrackScoreCard param for scorecard display in list.
+	7	 09-06-2025     Bhargav Saliya      Added @IsVendorAlsoCustomer Condition
 
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[ProcVendorList]
+CREATE       PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -43,7 +44,8 @@ CREATE      PROCEDURE [dbo].[ProcVendorList]
 @LastSyncDate datetime=null,
 @MasterCompanyId bigint=NULL,
 @EmployeeId bigint,
-@IsUpdated BIT = NULL
+@IsUpdated BIT = NULL,
+@IsVendorAlsoCustomer BIT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -135,7 +137,7 @@ BEGIN
 						     FOR XML PATH('')), 1, 1, '') ClassificationName) A
 			                
 		 	  WHERE ((V.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR V.IsActive = @IsActive))
-			         AND V.MasterCompanyId=@MasterCompanyId	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))	
+			         AND V.MasterCompanyId=@MasterCompanyId	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))	 AND (@IsVendorAlsoCustomer IS NULL OR V.IsVendorAlsoCustomer = @IsVendorAlsoCustomer)
 			), ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorCode LIKE '%' +@GlobalFilter+'%') OR

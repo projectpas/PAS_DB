@@ -15,6 +15,7 @@
 	3    09/05/2025	  Abhishek Jirawla Add Repair Management
 	4    13/05/2025	  Abhishek Jirawla Isue with create work order with stockline
 	5    04/06/2025	  Devendra Shekh   added stockLineUnitCost to PartNumbers
+	6    10/06/2025	  Devendra Shekh   added @AllowPrintReleaseForm
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -705,6 +706,7 @@ BEGIN
 			DECLARE @Notes NVARCHAR(MAX),@CustomerType VARCHAR(200),@Reason VARCHAR(500)
 			DECLARE @Days INT=0,@NetDays INT=0,@ForeignExchangeRate  DECIMAL(18,2) = 0
 			DECLARE @WOReceivingCustomerWorkId BIGINT=NULL
+			DECLARE @AllowPrintReleaseForm BIT = 0;
 			
 			IF OBJECT_ID(N'tempdb..#TempWOPartShippingDetails') IS NOT NULL
 			BEGIN
@@ -1090,6 +1092,11 @@ BEGIN
 				BEGIN
 					SELECT TOP 1 @WorkFlowWorkOrderId = [WorkFlowWorkOrderId],@WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 				END	
+
+				IF EXISTS(SELECT 1 FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK) WHERE [WorkorderId] = @WorkOrderId AND [IsDeleted] = 0 AND [IsActive] = 1)
+				BEGIN
+					SET @AllowPrintReleaseForm = 1;
+				END
 				
 				SELECT  @MasterCompanyId [MasterCompanyId],
 				        @WOReceivingCustomerWorkId [ReceivingCustomerWorkId],
@@ -1150,7 +1157,8 @@ BEGIN
 						@Reason [Reason],
 						@Days [Days],
 						@NetDays [NetDays],
-						@ForeignExchangeRate [ForeignExchangeRate]
+						@ForeignExchangeRate [ForeignExchangeRate],
+						@AllowPrintReleaseForm [AllowPrintReleaseForm]
 
 				SELECT * FROM #TempWOPartShippingDetails
 

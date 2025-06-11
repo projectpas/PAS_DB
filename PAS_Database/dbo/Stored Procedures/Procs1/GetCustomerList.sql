@@ -20,6 +20,7 @@
     4    10/18/2024   Devendra Shekh Add fields related to quickBooks
 	5    15/01/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	7	 10-06-2025     Bhargav Saliya      Added @IsCustomerAlsoVendor Condition
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -51,7 +52,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@LastSyncDate datetime=null,
 	@MasterCompanyId bigint = NULL,
 	@EmployeeId bigint,
-	@IsUpdated BIT = NULL
+	@IsUpdated BIT = NULL,
+	@IsCustomerAlsoVendor BIT = NULL
 
 AS
 BEGIN
@@ -149,6 +151,7 @@ BEGIN
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
 					AND C.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IsCustomerAlsoVendor IS NULL OR C.IsCustomerAlsoVendor = @IsCustomerAlsoVendor)
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (

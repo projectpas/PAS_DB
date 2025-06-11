@@ -11,7 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    19/05/2025   Moin Bloch    Created
-    2    06/06/2025   Rajesh Gami    Created     
+    2    06/06/2025   Rajesh Gami   Created    
+	3    10/06/2025   Moin Bloch    Added CustomerId
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -213,7 +214,9 @@ BEGIN
 				  ,BI.[SyncToken]
 				  ,ISNULL(BI.[IsCreatedFromQuote],0) [IsCreatedFromQuote]
 				  ,ISNULL(BI.[IsQuickBookGeneratedInvoice],0) [IsQuickBookGeneratedInvoice]
+				  ,WO.[CustomerId]
 			  FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK) 
+			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BI.[ReferenceId] = WO.[WorkOrderId]
 			  WHERE BI.[BillingInvoicingId] = @BillingInvoicingId;
 
 			SELECT BII.[BillingInvoicingItemId]
@@ -335,7 +338,9 @@ BEGIN
 				  ,BI.[SyncToken]
 				  ,ISNULL(BI.[IsCreatedFromQuote],0) [IsCreatedFromQuote]
 				  ,ISNULL(BI.[IsQuickBookGeneratedInvoice],0) [IsQuickBookGeneratedInvoice]
+				  ,SO.[CustomerId]
 			  FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK) 
+			  INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BI.[ReferenceId] = SO.[SalesOrderId]
 			  WHERE BI.[BillingInvoicingId] = @BillingInvoicingId;
 
 			SELECT BII.[BillingInvoicingItemId]

@@ -11,7 +11,7 @@
  ** PR   Date         Author				Change Description              
  ** --   --------     -------				-------------------------------            
     1    05/06/2025   Moin Bloch		Created
-
+	2    10/06/2025   Rajesh Gami		Implemented SO
 EXEC  [dbo].[USP_UpdateCommonBillingInvoicingStatus] 4349
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[USP_UpdateCommonBillingInvoicingStatus]    
@@ -29,6 +29,11 @@ BEGIN
  BEGIN TRY  
  BEGIN TRANSACTION  
  BEGIN
+ 		DECLARE @InvoicedStatusId INT = 0
+		DECLARE @InvoicedStatus VARCHAR(50)=''
+		SELECT @InvoicedStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Invoiced'
+		SELECT @InvoicedStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @InvoiceStatusId
+
 		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -36,8 +41,7 @@ BEGIN
 		
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 		BEGIN		
-			DECLARE @InvoicedStatusId INT = 0
-			DECLARE @InvoicedStatus VARCHAR(50)=''
+	
 			DECLARE @WorkOrderTypeId BIGINT = 0
 			DECLARE @WorkOrderNum VARCHAR(50)='',@CustomerName VARCHAR(50)=''			 
 			DECLARE @DistributionMasterId  INT = 0,@DistributionSetupId INT = 0
@@ -48,14 +52,9 @@ BEGIN
 			DECLARE @Customer INT,@Internal INT
 			DECLARE @DistributionCode VARCHAR(50)=''		
 			DECLARE @IsRestrict BIT;
-			DECLARE @IsAccountByPass BIT;
-						
-			SELECT @InvoicedStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Invoiced'
-			
-			SELECT @InvoicedStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @InvoiceStatusId
+			DECLARE @IsAccountByPass BIT;					
 
 			SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
-			
 			SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';				
 
 			IF(ISNULL(@IsPerformaInvoice,0) = 0)
@@ -138,7 +137,17 @@ BEGIN
 
 			
 		END /*********END: WORK ORDER ********/
-		
+		ELSE IF(@ModuleId = @SOModuleId)/*********START: SALES ORDER ********/
+		BEGIN
+			UPDATE [dbo].[BillingInvoicing] 
+					   SET [UpdatedDate] = GETUTCDATE(),
+						   [PostedDate] = GETUTCDATE(),
+						   [InvoiceStatusId] = @InvoiceStatusId,
+						   [InvoiceStatus] = @InvoicedStatus,
+						   [UpdatedBy] = @UpdatedBy,
+						   IsInvoicePosted = 1,IsUpdated =1
+					 WHERE [BillingInvoicingId] = @BillingInvoicingId
+		END/*********END: SALES ORDER ********/
  END   
  COMMIT  TRANSACTION  
  END TRY           

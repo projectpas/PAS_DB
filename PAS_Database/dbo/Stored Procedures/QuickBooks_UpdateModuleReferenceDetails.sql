@@ -17,7 +17,7 @@
 	4    07-Feb-2025   Abhishek Jirawla	Modified (added Change for Purchase Order)
 	5    11-Feb-2025   Abhishek Jirawla	Modified (added Change for Item Master)
 	6    12-Feb-2025   Devendra Shekh	Modified (added Change for CreditMemo)
-     
+	7    12-Feb-2025   Rajesh Gami   	Modified as per new SO Billing structure (So)
  EXECUTE [QuickBooks_UpdateModuleReferenceDetails] 1, 10, '150'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_UpdateModuleReferenceDetails]
@@ -81,7 +81,8 @@ BEGIN
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @SOModuleId = @ReferenceModuleId) 
 		BEGIN
-			UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsUpdated = 1 WHERE SOBillingInvoicingId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;		
+			--UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsUpdated = 1 WHERE SOBillingInvoicingId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;		
+			UPDATE [dbo].BillingInvoicing SET IsUpdated = 1 WHERE BillingInvoicingId = @ReferenceId AND MasterCompanyId = @MasterCompanyId;
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @ExchModuleId = @ReferenceModuleId) 

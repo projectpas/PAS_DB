@@ -3936,6 +3936,7 @@
     <Build Include="dbo\User Defined Types\WorkOrderQuoteChargesType.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerSOInvoiceNewCommon.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

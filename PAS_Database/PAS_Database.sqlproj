@@ -3947,6 +3947,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCurrencyIdForVendorCreditMemo.sql" />
     <Build Include="dbo\Stored Procedures\usp_CustVendorUpdatebyId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHAuditById.sql" />
 
   </ItemGroup>
   <ItemGroup>

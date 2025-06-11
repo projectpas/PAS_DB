@@ -12,7 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------     
 	1    27/05/2025   Moin Bloch		Created
-	2    02/06/2025   Rajesh Gami		Implemented SO
+	2    02/06/2025   Rajesh Gami		Implemented SO & Use IsInvoicePosted instead of IsBilling in SO
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 8810,8582,1,15
 
@@ -611,7 +611,7 @@ BEGIN
 				0 AS IsProformaInvoice,
 				0 AS DepositAmount,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-				ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+				ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
 
 				sop.ECCN AS ECCN,
 				sop.HSCODE AS HSCODE,
@@ -641,7 +641,7 @@ BEGIN
 				GROUP BY sosi.SalesOrderShippingId, sosi.SalesOrderShippingItemId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 				sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 				sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
-				SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling],
+				SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
 				sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder)
 
 				INSERT INTO #InvoiceMainDetails (IndexColumn,
@@ -768,7 +768,7 @@ BEGIN
 						0 AS IsProformaInvoice,
 						0 AS DepositAmount,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-						ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+						ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
 
 						stk.ECCN AS ECCN,
 						stk.HSCODE AS HSCODE,
@@ -843,7 +843,7 @@ BEGIN
 							0 AS IsProformaInvoice,
 							0 AS DepositAmount,
 							(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-							ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+							ISNULL(sobi.IsInvoicePosted, 0) as [IsBilling],
 							stk.ECCN AS ECCN,
 							stk.HSCODE AS HSCODE,
 							stk.[Weight] AS [Weight], 
@@ -941,7 +941,7 @@ BEGIN
 								0 AS IsProformaInvoice,
 								0 AS DepositAmount,
 								(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-								ISNULL(sobi.[IsBilling], 0) AS [IsBilling],
+								ISNULL(sobi.[IsInvoicePosted], 0) AS [IsBilling],
 								stk.ECCN, 
 								stk.HSCODE, 
 								stk.[Weight], 
@@ -1136,7 +1136,7 @@ BEGIN
 						0 AS IsProformaInvoice,
 						0 AS DepositAmount,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-						ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+						ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
 
 						stk.ECCN AS ECCN,
 						stk.HSCODE AS HSCODE,
@@ -1309,7 +1309,7 @@ BEGIN
 						1 AS IsProformaInvoice,
 						ISNULL(sobi.DepositAmount,0) AS DepositAmount,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-						ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+						ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
 						'' AS ECCN,
 						'' AS HSCODE,
 						0 AS [Weight], 

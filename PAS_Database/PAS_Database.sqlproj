@@ -3937,6 +3937,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEntityBankingLockBoxAudit.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingPdfData_SO.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonBillingInvoicingItems_SO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerSOInvoiceNewCommon.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingLockBox.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorRMAPackagingLabelByVendorRMAId.sql" />
     <Build Include="dbo\Stored Procedures\USP_WorkOrderReleaseFromListData_ByWOId.sql" />
@@ -3946,6 +3947,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetCurrencyIdForVendorCreditMemo.sql" />
     <Build Include="dbo\Stored Procedures\usp_CustVendorUpdatebyId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckIfVendorRMAPartShipped.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHAuditById.sql" />
+
     <Build Include="dbo\Stored Procedures\GetExchangeBillingList.sql" />
   </ItemGroup>
   <ItemGroup>

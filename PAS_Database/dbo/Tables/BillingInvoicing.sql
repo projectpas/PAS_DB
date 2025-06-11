@@ -45,7 +45,9 @@
     [SyncToken]                   VARCHAR (200)   NULL,
     [IsCreatedFromQuote]          BIT             CONSTRAINT [DF_BillingInvoicing_IsCreatedFromQuote] DEFAULT ((0)) NULL,
     [IsQuickBookGeneratedInvoice] BIT             NULL,
-    [IsBilling]                   BIT             CONSTRAINT [DF_BillingInvoicing_IsBilling] DEFAULT ((0)) NULL,
+    [OldBillingInvoicingId]       BIGINT          NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
 

@@ -14,7 +14,7 @@
  ** --   --------     -------			--------------------------------          
     1    15/02/2024   AMIT GHEDIYA		 Created
 	2    04/03/2024   AMIT GHEDIYA		 Update only for Proforma records.
-     
+ 	3    11/Jun/2025  RAJESH GAMI		 Modified : As new Common Billing Invoicing Table SalesOrderBillingInvoicing to BillingInvoicing
 ************************************************************************/
 
 CREATE     PROCEDURE [dbo].[SP_SaveSOPorformaInvoicingIsBill]
@@ -26,6 +26,8 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN 
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		IF(@sobillingInvoicingId > 0)
 		BEGIN
 
@@ -54,64 +56,64 @@ BEGIN
 
 		------------- Update Remaining Deposit -------------------------------------
 			
-			SELECT @SalesOrderId = [SalesOrderId], @TotalSalesOrderCostPlus = [GrandTotal], @SOisProforma = [IsProforma]
-			FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+			SELECT @SalesOrderId = [ReferenceId], @TotalSalesOrderCostPlus = [GrandTotal], @SOisProforma = IsPerformaInvoice
+			FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @sobillingInvoicingId;
 
 			IF(@SOisProforma != 1)
 			BEGIN
 				--Get deposit from invoiced.
-				SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+				SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) 
+				WHERE [ReferenceId] = @SalesOrderId AND IsPerformaInvoice = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
 				SET @UsedDepositAmt = CASE WHEN ISNULL(@TotalSalesOrderCostPlus ,0) > ISNULL(@DepositAmt,0) THEN (ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0)) ELSE ISNULL(@TotalSalesOrderCostPlus ,0) END
 
-				SELECT TOP 1 @SOProFormaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+				SELECT TOP 1 @SOProFormaBillingInvoicingId = BillingInvoicingId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) 
+				WHERE [ReferenceId] = @SalesOrderId AND IsPerformaInvoice = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
 				--Update Remaining balace
 				IF(@DepositAmt > 0)
 				BEGIN 
-					SELECT @DepositAmt = SUM(ISNULL([DepositAmount], 0)), @OldUsedDepositAmount = SUM(ISNULL(UsedDeposit, 0)) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-					WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+					SELECT @DepositAmt = SUM(ISNULL([DepositAmount], 0)), @OldUsedDepositAmount = SUM(ISNULL(UsedDeposit, 0)) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) 
+					WHERE ReferenceId = @SalesOrderId AND IsPerformaInvoice = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
-					SELECT @RemainingAmount = ISNULL(RemainingAmount,0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					SELECT @RemainingAmount = ISNULL(RemainingAmount,0) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @sobillingInvoicingId;
 					
 					IF(@RemainingAmount >= @UsedDepositAmt)
 					BEGIN 
 						IF((@DepositAmt - @OldUsedDepositAmount) > @RemainingAmount)
 						BEGIN
-							UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+							UPDATE [dbo].[BillingInvoicing] SET RemainingAmount = 0  WHERE [BillingInvoicingId] = @sobillingInvoicingId;
 						END
 						ELSE
 						BEGIN
-							UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = ABS(ISNULL(RemainingAmount ,0) - ABS((@DepositAmt - @OldUsedDepositAmount)))  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+							UPDATE [dbo].[BillingInvoicing] SET RemainingAmount = ABS(ISNULL(RemainingAmount ,0) - ABS((@DepositAmt - @OldUsedDepositAmount)))  WHERE [BillingInvoicingId] = @sobillingInvoicingId;
 						END
 					END
 					ELSE
 					BEGIN 
-						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+						UPDATE [dbo].[BillingInvoicing] SET RemainingAmount = 0  WHERE [BillingInvoicingId] = @sobillingInvoicingId;
 					END
 				END
 				
 				--Update current billing add deposit amount in ProformaDeposit field
-				UPDATE [dbo].[SalesOrderBillingInvoicing] SET ProformaDeposit = @UsedDepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId; 
+				UPDATE [dbo].[BillingInvoicing] SET ProformaDeposit = @UsedDepositAmt  WHERE [BillingInvoicingId] = @sobillingInvoicingId; 
 
-				--SELECT @proamount = ISNULL(RemainingAmount,0), @Depositamountpro = ISNULL(ProformaDeposit,0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId; 
+				--SELECT @proamount = ISNULL(RemainingAmount,0), @Depositamountpro = ISNULL(ProformaDeposit,0) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @sobillingInvoicingId; 
 				--IF(@proamount >= @Depositamountpro)
 				--BEGIN
-				--	SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-				--	WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+				--	SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) 
+				--	WHERE [SalesOrderId] = @SalesOrderId AND IsPerformaInvoice = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 				--	IF(@DepositAmt > 0)
 				--	BEGIN
-				--		UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+				--		UPDATE [dbo].[BillingInvoicing] SET RemainingAmount = 0  WHERE [BillingInvoicingId] = @sobillingInvoicingId;
 				--	END
 				--END
 
 				IF(ISNULL(@SOProFormaBillingInvoicingId, 0) > 0)
 				BEGIN 
-					UPDATE [dbo].[SalesOrderBillingInvoicing]
+					UPDATE [dbo].[BillingInvoicing]
 					SET [UsedDeposit] = ISNULL(UsedDeposit, 0) + @UsedDepositAmt
-					WHERE [SOBillingInvoicingId] = @SOProFormaBillingInvoicingId
+					WHERE [BillingInvoicingId] = @SOProFormaBillingInvoicingId
 				END
 			END
 
@@ -127,7 +129,7 @@ BEGIN
 			CREATE TABLE #SalesOrderBillingInvoiceList(
 				ID BIGINT NOT NULL IDENTITY (1, 1),
 				SalesOrderPartId [BIGINT]  NULL,
-				SOBillingInvoicingId [BIGINT]  NULL
+				BillingInvoicingId [BIGINT]  NULL
 			);
 
 			--Create Temp Table 
@@ -138,43 +140,43 @@ BEGIN
 
 			CREATE TABLE #PSalesOrderBillingInvoiceList(
 				ID BIGINT NOT NULL IDENTITY (1, 1),
-				SOBillingInvoicingId [BIGINT]  NULL
+				BillingInvoicingId [BIGINT]  NULL
 			);
 
-			SELECT TOP 1 @SalesOrderPartNoId = SalesOrderPartId FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
-			SELECT TOP 1 @SOProfomaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartNoId AND ISNULL(IsProforma, 0) = 1 AND ISNULL(IsVersionIncrease, 0) = 0;
+			SELECT TOP 1 @SalesOrderPartNoId = SubReferenceId FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingId] = @sobillingInvoicingId;
+			SELECT TOP 1 @SOProfomaBillingInvoicingId = BillingInvoicingId FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE SubReferenceId = @SalesOrderPartNoId AND ISNULL(IsPerformaInvoice, 0) = 1 AND ISNULL(IsVersionIncrease, 0) = 0 AND ModuleId = @SOModuleId;
 
-			SELECT @sobillngId = SOBillingInvoicingId , @soPartID = SalesOrderPartId , @isProforma = IsProforma FROM DBO.SalesOrderBillingInvoicingItem WITH(NOLOCK) WHERE SOBillingInvoicingId = @sobillingInvoicingId;
+			SELECT @sobillngId = BillingInvoicingId , @soPartID = SubReferenceId , @isProforma = IsPerformaInvoice FROM DBO.BillingInvoicingItems WITH(NOLOCK) WHERE BillingInvoicingId = @sobillingInvoicingId;
 			IF(ISNULL(@sobillngId,0) > 0 AND @isProforma = 0)
 			BEGIN
 				IF(ISNULL(@soPartID,0) > 0)
 				BEGIN 
-					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderPartId,SOBillingInvoicingId)
-					(SELECT SalesOrderPartId,SOBillingInvoicingId 
-					FROM SalesOrderBillingInvoicingItem WHERE SOBillingInvoicingId = @sobillingInvoicingId)--SalesOrderPartId = @soPartID AND IsProforma = 1)
+					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderPartId,BillingInvoicingId)
+					(SELECT SubReferenceId,BillingInvoicingId 
+					FROM BillingInvoicingItems WHERE BillingInvoicingId = @sobillingInvoicingId)--SalesOrderPartId = @soPartID AND IsPerformaInvoice = 1)
 
 					SELECT @COUNT = MAX(ID) FROM #SalesOrderBillingInvoiceList 
 
 					WHILE(@COUNT > 0)
 					BEGIN 
-						SELECT @SalesOrderPartId = SalesOrderPartId, @SOBillingInvoicingIds = SOBillingInvoicingId, @SalesOrderPartId = SalesOrderPartId 
+						SELECT @SalesOrderPartId = SalesOrderPartId, @SOBillingInvoicingIds = BillingInvoicingId, @SalesOrderPartId = SalesOrderPartId 
 						FROM #SalesOrderBillingInvoiceList WITH(NOLOCK) WHERE ID = @COUNT;
 						
 						--Update isbiiling after standdard invoiced post
-						UPDATE DBO.SalesOrderBillingInvoicingItem SET IsBilling = 1 WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1;
+						--UPDATE DBO.BillingInvoicingItems SET IsBilling = 1 WHERE SubReferenceId = @SalesOrderPartId AND IsPerformaInvoice = 1 AND ModuleId = @SOModuleId;
 
-						--SELECT @BillSOBillingInvoicingId = SOBillingInvoicingId FROM DBO.SalesOrderBillingInvoicingItem  WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1; 
-						INSERT INTO #PSalesOrderBillingInvoiceList(SOBillingInvoicingId)
-						(SELECT SOBillingInvoicingId FROM DBO.SalesOrderBillingInvoicingItem  WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1)
+						--SELECT @BillSOBillingInvoicingId = BillingInvoicingId FROM DBO.BillingInvoicingItems  WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId AND IsPerformaInvoice = 1; 
+						INSERT INTO #PSalesOrderBillingInvoiceList(BillingInvoicingId)
+						(SELECT BillingInvoicingId FROM DBO.BillingInvoicingItems  WITH(NOLOCK) WHERE SubReferenceId = @SalesOrderPartId AND IsPerformaInvoice = 1  AND ModuleId = @SOModuleId)
 						
 						SELECT @PCOUNT = MAX(ID) FROM #PSalesOrderBillingInvoiceList
 
 						WHILE(@PCOUNT > 0)
 						BEGIN
-							SELECT @PSOBillingInvoicingIds = SOBillingInvoicingId
+							SELECT @PSOBillingInvoicingIds = BillingInvoicingId
 							FROM #PSalesOrderBillingInvoiceList WITH(NOLOCK) WHERE ID = @PCOUNT;
 
-							UPDATE DBO.SalesOrderBillingInvoicing SET IsBilling = 1 WHERE SOBillingInvoicingId = @PSOBillingInvoicingIds AND IsProforma = 1;
+							UPDATE DBO.BillingInvoicing SET IsInvoicePosted = 1, PostedDate = GETUTCDATE() WHERE BillingInvoicingId = @PSOBillingInvoicingIds AND IsPerformaInvoice = 1;
 
 							SET @PCOUNT = @PCOUNT - 1
 						END
@@ -185,30 +187,30 @@ BEGIN
 				END
 			END
 
-			IF(ISNULL(@SOProfomaBillingInvoicingId, 0) > 0 AND @isProforma = 0)
-			BEGIN
-				UPDATE SOBN
-				SET SOBN.IsBilling = 1
-				FROM [dbo].[SalesOrderBillingInvoicing] SOBN WITH(NOLOCK)
-				WHERE SOBN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBN.IsProforma = 1
+			--IF(ISNULL(@SOProfomaBillingInvoicingId, 0) > 0 AND @isProforma = 0)
+			--BEGIN
+			--	UPDATE SOBN
+			--	SET SOBN.IsBilling = 1
+			--	FROM [dbo].[BillingInvoicing] SOBN WITH(NOLOCK)
+			--	WHERE SOBN.[BillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBN.IsPerformaInvoice = 1
 
-				UPDATE SOBIN
-				SET SOBIN.IsBilling = 1
-				FROM [dbo].[SalesOrderBillingInvoicingItem] SOBIN WITH(NOLOCK)
-				WHERE SOBIN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBIN.IsProforma = 1
-			END
+			--	UPDATE SOBIN
+			--	SET SOBIN.IsBilling = 1
+			--	FROM [dbo].[BillingInvoicingItems] SOBIN WITH(NOLOCK)
+			--	WHERE SOBIN.[BillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBIN.IsPerformaInvoice = 1  AND ModuleId = @SOModuleId
+			--END
 
 			--handle if all deposit used then all proforma need to bill
-			--SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-			--WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+			--SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[BillingInvoicing] WITH(NOLOCK) 
+			--WHERE [SalesOrderId] = @SalesOrderId AND IsPerformaInvoice = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
 			--IF(@DepositAmt = @OldUsedDepositAmount AND @isProforma = 0)
 			--BEGIN
-			--	UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0);
+			--	UPDATE [dbo].[BillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsPerformaInvoice = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0);
 
-			--	UPDATE [dbo].[SalesOrderBillingInvoicingItem] SET IsBilling = 1 
-			--		WHERE SOBillingInvoicingId IN(SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] 
-			--	WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0))
+			--	UPDATE [dbo].[BillingInvoicingItems] SET IsBilling = 1 
+			--		WHERE BillingInvoicingId IN(SELECT BillingInvoicingId FROM [dbo].[BillingInvoicing] 
+			--	WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsPerformaInvoice = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0))
 			--END
 		END
 	END	

@@ -53,7 +53,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@MasterCompanyId bigint = NULL,
 	@EmployeeId bigint,
 	@IsUpdated BIT = NULL,
-	@IsCustomerAlsoVendor BIT = NULL
+	@IsCustomerAlsoVendor BIT = NULL,
+	@IsCustVendor  varchar(20)=null
 
 AS
 BEGIN
@@ -140,7 +141,8 @@ BEGIN
 					C.IsTrackScoreCard,
 					C.QuickBooksReferenceId,
 					CASE WHEN ISNULL(C.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
-					C.LastSyncDate
+					C.LastSyncDate,
+					CASE WHEN ISNULL(C.IsCustomerAlsoVendor,0) = 1 THEN 'YES' ELSE 'NO' END AS 'IsCustVendor'
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
@@ -167,6 +169,7 @@ BEGIN
 					(QuickBooksReferenceId LIKE '%' +@GlobalFilter+'%') OR
 					(isSynced LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(IsCustVendor LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')
 					))
 					OR
@@ -185,6 +188,7 @@ BEGIN
 					(ISNULL(@QuickBooksReferenceId,'') ='' OR QuickBooksReferenceId LIKE '%' + @QuickBooksReferenceId+'%') AND
 					(ISNULL(@isSynced,'') ='' OR isSynced LIKE '%' + @isSynced+'%') AND
 					(ISNULL(@LastSyncDate,'') ='' OR CAST(LastSyncDate as Date)=CAST(@LastSyncDate as date)) AND
+					(ISNULL(@IsCustVendor,'') ='' OR IsCustVendor LIKE '%' + @IsCustVendor+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
@@ -210,6 +214,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ISSYNCED')  THEN isSynced END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMAIL')  THEN Email END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='City')  THEN City END DESC,
@@ -227,7 +232,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE')  THEN CustomerCode END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSYNCED')  THEN isSynced END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END DESC
 
 			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY

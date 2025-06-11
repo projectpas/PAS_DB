@@ -10,7 +10,8 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    03-June-2025		Divyesh Kathiriya	Created
-    
+    2	 04-June-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity ACH Payment
+
  -- EXEC [USP_LegalEntityBankingACH] 
 **************************************************************/
 Create   PROCEDURE [DBO].[USP_LegalEntityBankingACH]
@@ -72,7 +73,43 @@ BEGIN
 		SELECT @ACHId AS ACHId,	ISNULL(@IsPrimay, 0) AS isPrimay;
 	END
 /***************End Save LegalEntity ACH Payment Details***************/
-	
+/***************Start Update LegalEntity ACH Payment Details***************/
+	ELSE
+	BEGIN		
+		--IF NEW DEFAULT, RESET OLD DEFAULT TO NO-DEFAULT
+		IF (ISNULL(@IsPrimay, 0) = 1)
+        BEGIN
+			IF EXISTS (SELECT 1 FROM [DBO].[ACH] WITH(NOLOCK) WHERE [ACHId] != @ACHId AND [LegalEntityId] = @LegalEntityId AND [IsPrimay] = 1)
+			BEGIN
+				UPDATE [DBO].[ACH]
+				SET [IsPrimay] = 0,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE()
+				WHERE [ACHId] != @ACHId 
+				AND [LegalEntityId] = @LegalEntityId				  
+				AND [IsPrimay] = 1;
+			END
+        END
+
+		--UPDATE LEGALENTITY ACH PAYMENT
+        UPDATE [DBO].[ACH]
+		SET	[ABA] = @ABA,
+			[AccountNumber] = @AccountNumber,
+			[BankName] = @BankName,
+			[BeneficiaryBankName] = @BeneficiaryBankName,
+			[IntermediateBankName] = @IntermediateBankName,
+			[SwiftCode] = @SwiftCode,            
+			[LegalEntityId] = @LegalEntityId,
+			[UpdatedBy] = @UpdatedBy,
+			[UpdatedDate] = GETUTCDATE(),
+			[GLAccountId] = @GLAccountId,
+			[IsPrimay] = @IsPrimay 			
+        WHERE [ACHId] = @ACHId;
+		
+		SELECT @ACHId AS ACHId,	ISNULL(@IsPrimay, 0) AS isPrimay;
+		
+/***************End Update LegalEntity ACH Payment Details***************/
+	END
 	COMMIT TRANSACTION
 	END TRY 
 	BEGIN CATCH

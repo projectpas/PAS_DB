@@ -3952,8 +3952,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetWOMStocklineListForIssue.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWOMStocklineListForIssue.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingACH.sql" />
-
     <Build Include="dbo\Stored Procedures\GetExchangeBillingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityBillingList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

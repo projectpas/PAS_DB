@@ -147,7 +147,7 @@ BEGIN
 					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
 					GETUTCDATE() AS [InvoiceDate],
 					GETUTCDATE() AS [PrintDate],
-					'' AS [ShipDate],
+					NULL AS [ShipDate],
 					[wo].[EmployeeId],
 					ISNULL([emp].[FirstName] + ' ' + [emp].[LastName], '') AS [EmployeeName],
 					ISNULL([wos].[Code] + '-' + [wos].[Stage], '') AS [gateStatus],

@@ -3949,7 +3949,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckIfVendorRMAPartShipped.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityACHAuditById.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingACH.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

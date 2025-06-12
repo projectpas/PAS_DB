@@ -27,6 +27,7 @@
     [IsPNSNWarning]                  BIT           NULL,
     [IsPNSNRestriction]              BIT           NULL,
     [DefaultConditionId]             INT           NULL,
+    [IsEnforceAWBTrack]              BIT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
 

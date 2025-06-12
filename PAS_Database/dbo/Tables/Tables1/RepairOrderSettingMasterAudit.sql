@@ -24,6 +24,7 @@
     [IsAutoUpdateROStatus]          BIT           NULL,
     [IsPNSNWarning]                 BIT           NULL,
     [IsPNSNRestriction]             BIT           NULL,
+    [IsEnforceAWBTrack]             BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([RepairOrderSettingAuditId] ASC)
 );
 

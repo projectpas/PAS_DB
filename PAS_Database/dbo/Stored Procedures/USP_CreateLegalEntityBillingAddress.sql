@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
  ** File:		 [USP_CreateLegalEntityBillingAddress]           
  ** Author:		 Divyesh Kathiriya
- ** Description: This Stored Procedure Is Used To Create LegalEntity Billing Address.
+ ** Description: This Stored Procedure Is Used To Create And Update LegalEntity Billing Address.
  ** Purpose:         
  ** Date:   06-June-2025 
  **************************************************************           
@@ -9,7 +9,8 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    06-June-2025		Divyesh Kathiriya	Created	
+    1    06-June-2025		Divyesh Kathiriya	Created
+	2	 11-June-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity Billing Address.
     
  -- EXEC [USP_CreateLegalEntityBillingAddress] 
 **************************************************************/
@@ -157,8 +158,74 @@ BEGIN
 				INSERT INTO #tmpmsg(msg) VALUES ('Site name already exist with these details.!');					
 			END
 		END
-
 /***************End Save LegalEntity Billing Address Details***************/
+/***************Start Update LegalEntity Billing Address Details***************/
+		ELSE
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityBillingAddress] WITH(NOLOCK) WHERE [SiteName] = @SiteName AND [LegalEntityBillingAddressId] != @LegalEntityBillingAddressId AND [LegalEntityId] = @LegalEntityId)
+			BEGIN
+				IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBillingAddress] WITH(NOLOCK) WHERE [LegalEntityBillingAddressId] = @LegalEntityBillingAddressId)
+				BEGIN
+					SELECT @AddressId = [AddressId] FROM [DBO].[LegalEntityBillingAddress] WITH(NOLOCK) WHERE [LegalEntityBillingAddressId] = @LegalEntityBillingAddressId;
+
+					IF EXISTS (SELECT 1 FROM [DBO].[Address] WITH(NOLOCK) WHERE [AddressId] = @AddressId)
+					BEGIN
+						UPDATE [DBO].[Address]
+						SET 
+							[Line1] = @Address1,
+							[Line2] = @Address2,							
+							[City] = @City,
+							[StateOrProvince] = @StateOrProvince,
+							[PostalCode] = @PostalCode,
+							[CountryId] = @CountryId,							
+							[UpdatedBy] = @UpdatedBy,
+							[UpdatedDate] = GETUTCDATE()
+						WHERE [AddressId] = @AddressId;
+					END
+
+					--IF NEW PRIMARY, RESET OLD PRIMARY TO NO-PRIMARY
+					IF (ISNULL(@IsPrimary, 0) = 1)
+					BEGIN
+						IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityBillingAddress] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND @IsPrimary = 1 AND [LegalEntityBillingAddressId] != @LegalEntityBillingAddressId)
+						BEGIN
+							
+							SELECT @BillingAddressId = [LegalEntityBillingAddressId] FROM [DBO].[LegalEntityBillingAddress] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimary] = 1;
+
+							UPDATE [DBO].[LegalEntityBillingAddress]
+							SET [IsPrimary] = 0,
+								[UpdatedBy] = @UpdatedBy,
+								[UpdatedDate] = GETUTCDATE()
+							WHERE [LegalEntityId] = @LegalEntityId
+								AND [LegalEntityBillingAddressId] != @LegalEntityBillingAddressId
+								AND [IsPrimary] = 1;
+
+							EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@BillingAddressId,@BillingAddressType,@UpdatedBy;
+						END
+					END
+
+					UPDATE [DBO].[LegalEntityBillingAddress]
+					SET
+						[SiteName] = @SiteName,
+						[Attention] = @Attention,
+						[IsPrimary] = @IsPrimary,						
+						[UpdatedBy] = @UpdatedBy,
+						[UpdatedDate] = GETUTCDATE()						
+					WHERE [LegalEntityBillingAddressId] = @LegalEntityBillingAddressId;
+
+					EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@LegalEntityBillingAddressId,@BillingAddressType,@UpdatedBy;					
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #tmpmsg(msg) VALUES ('Save BillDetails Failed');					
+				END
+			END
+			ELSE
+			BEGIN
+				INSERT INTO #tmpmsg(msg) VALUES ('Site name already exist with these details.!');					
+			END
+		END
+
+/***************End Update LegalEntity Billing Address Details***************/
 
 		IF EXISTS (SELECT 1 FROM #tmpmsg)
 		BEGIN

@@ -352,7 +352,9 @@ BEGIN
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 			WHERE SOP.SalesOrderId = @ReferenceId  
 			  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
-			  AND ISNULL(SOP.IsDeleted,0) = 0 AND ( (@IsProformaInvoice = 1 AND ISNULL(SOP.QtyReserved, 0) >= 0) OR (@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0))
+			  AND ISNULL(SOP.IsDeleted,0) = 0 AND  (( (@IsProformaInvoice = 1 AND ISNULL(SOP.QtyReserved, 0) >= 0) OR (@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0)) 
+			  OR ((SELECT ISNULL(sopi.QtyShipped,0) FROM dbo.SalesOrderShippingItem sopi WITH(NOLOCK) WHERE  sopi.SalesOrderPartId = SOP.SalesOrderPartId)) > 0
+			  )
 			ORDER BY SOP.SalesOrderPartId	
 			
 			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 

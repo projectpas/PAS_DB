@@ -23,9 +23,12 @@
     [IsAutoUpdateROStatus]          BIT           NULL,
     [IsPNSNWarning]                 BIT           NULL,
     [IsPNSNRestriction]             BIT           NULL,
+    [IsEnforceAWBTrack]             BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMaster] PRIMARY KEY CLUSTERED ([RepairOrderSettingId] ASC),
     CONSTRAINT [FK_RepairOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

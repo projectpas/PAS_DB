@@ -3957,6 +3957,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateUsedDepositForProforma_byIdNew.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntityBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicePDFDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityBillingAddressStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

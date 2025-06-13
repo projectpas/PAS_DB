@@ -3961,7 +3961,6 @@
     <Build Include="dbo\Stored Procedures\GetExchangeQuotePartViewBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeQuotePartViewBySalesOrderId.sql" />
-    <Build Include="dbo\Stored Procedures\GetExchangeQuotePartViewBySalesOrderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

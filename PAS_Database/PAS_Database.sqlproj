@@ -3958,6 +3958,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntityBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicePDFDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBillingAddressStatus.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeQuotePartViewBySalesOrderId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -15,7 +15,7 @@
     [IsTotalCheck]            BIT             NULL,
     [TotalBillingCost]        DECIMAL (18, 2) NULL,
     [TotalBillingCostPercent] BIGINT          NULL,
-    [TotalBillingCostPlus]    DECIMAL (18)    NULL,
+    [TotalBillingCostPlus]    DECIMAL (18, 2) NULL,
     [IsMaterialCheck]         BIT             NULL,
     [MaterialCost]            DECIMAL (18, 2) NULL,
     [MaterialCostPercent]     BIGINT          NULL,
@@ -53,4 +53,6 @@
     CONSTRAINT [PK_BillingInvoicingItems] PRIMARY KEY CLUSTERED ([BillingInvoicingItemId] ASC),
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
+
+
 

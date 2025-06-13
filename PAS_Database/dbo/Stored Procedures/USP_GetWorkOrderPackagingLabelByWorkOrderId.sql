@@ -15,17 +15,22 @@
  ** PR    Date					Author				Change Description            
  ** --    --------			-----------				--------------------------------          
 	 1    4-30-2025			Amit Ghediya			Created
+	 2    6-12-2025         MOIN BLOCH              Updated BillingInvoice Old To New Table
 
-	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8762,8499
+	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8936,8731
 ****************************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
-	@WorkOrderId BIGINT,
-	@WorkOrderPartNoId BIGINT = NULL
+@WorkOrderId BIGINT,
+@WorkOrderPartNoId BIGINT = NULL
 AS
 BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
   BEGIN TRY
+				DECLARE @WOModuleId INT
+
+				SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
 				SELECT TOP 1
 					wopkt.PickTicketId AS WOPickTicketId,
 					ISNULL(spb.PackagingSlipNo, '') AS PackagingSlipNo,
@@ -104,7 +109,11 @@ BEGIN
 				LEFT JOIN [DBO].[WorkOrderPackaginSlipHeader] spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
 				LEFT JOIN [DBO].[WorkOrderShippingItem] sosi WITH(NOLOCK) ON wopkt.PickTicketId = sosi.WOPickTicketId
 				LEFT JOIN [DBO].[WorkOrderShipping] sos WITH(NOLOCK) ON sosi.WorkOrderShippingId = sos.WorkOrderShippingId
-				LEFT JOIN [DBO].[WorkOrderBillingInvoicing] sobi WITH(NOLOCK) ON sos.WorkOrderShippingId = sobi.WorkOrderShippingId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0
+				-- COMMENT OLD TABLE
+				--LEFT JOIN [DBO].[WorkOrderBillingInvoicing] sobi WITH(NOLOCK) ON sos.WorkOrderShippingId = sobi.WorkOrderShippingId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0
+				-- ADDED NEW TABLES 
+				LEFT JOIN [DBO].[BillingInvoicingItems] sobii WITH(NOLOCK) ON sobii.[ReferenceId] = wo.[WorkOrderId] AND sobii.[SubReferenceId] = @workOrderPartNoId AND sobii.[ModuleId] = @WOModuleId AND ISNULL(sobii.[IsVersionIncrease],0) = 0 AND ISNULL(sobii.[IsPerformaInvoice],0) = 0
+				LEFT JOIN [DBO].[BillingInvoicing] sobi WITH(NOLOCK) ON sobii.[BillingInvoicingId] = sobi.[BillingInvoicingId]							
 				LEFT JOIN [DBO].[Employee] saemp WITH(NOLOCK) ON wo.SalesPersonId = saemp.EmployeeId
 				LEFT JOIN [DBO].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 				LEFT JOIN [DBO].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId

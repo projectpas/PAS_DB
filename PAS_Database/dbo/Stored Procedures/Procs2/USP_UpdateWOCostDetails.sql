@@ -19,6 +19,7 @@
     1    02/22/2021   Hemant Saliya		Created
     2    03/29/2023   Vishal Suthar		Modified to handle WO Material KIT changes
 	3    01/31/2024	  Devendra Shekh	added isperforma Flage for WOInvoice
+    4    06/12/2025   Moin Bloch	Changed Old Billing Table To New one
      
  EXECUTE USP_UpdateWOTotalCostDetails 281,195, 10576
 
@@ -48,6 +49,7 @@ SET NOCOUNT ON
 				DECLARE @Revenue DECIMAL(18,2);
 				DECLARE @KitCost DECIMAL(18,2);
 				declare @WorkOrderQuoteId bigint
+				DECLARE @WOModuleId INT
 
 				IF OBJECT_ID(N'tempdb..#WOCostDetails') IS NOT NULL
 				BEGIN
@@ -129,6 +131,8 @@ SET NOCOUNT ON
 					 WorkOrderQuoteLaborHeaderId BIGINT NULL,					
 					 MarkupFixedPrice VARCHAR(20) NULL					 
 				)
+				
+				SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 				SELECT @WOWorkScopeId = WOP.WorkOrderScopeId, @WOPartNoId = WOP.ID FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOP.ID = WOWF.WorkOrderPartNoId
 				WHERE WOWF.WorkFlowWorkOrderId = @WorkOrderWorkflowId
@@ -261,22 +265,42 @@ SET NOCOUNT ON
 				FROM #WOCostDetails
 				
 				--CASE WHEN INVOICE IS GENERATED THEN TAKE IT FROM INVOICE
-				IF((SELECT COUNT(1) FROM dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) WHERE WOB.WorkOrderId = @WorkOrderId AND WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0) > 0)
+				--IF((SELECT COUNT(1) FROM dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) WHERE WOB.WorkOrderId = @WorkOrderId AND WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0) > 0)
+				--BEGIN
+				--	UPDATE #WOCostDetails
+				--	SET Revenue = ISNULL(WOB.GrandTotal,0),
+				--		ActRevenue = ISNULL(WOB.GrandTotal,0),
+				--		ActMargin = ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0),
+				--		ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0)),
+				--		PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.MaterialCost,0), ISNULL(WOB.GrandTotal,0)),
+				--		LaborRevePer = dbo.udfCalcPercentage(ISNULL(TotalLaborCost,0), ISNULL(WOB.GrandTotal,0)),
+				--		OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.BurdenRateAmount,0), ISNULL(WOB.GrandTotal,0)),
+				--		Margin =  ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0),
+				--		MarginPer = dbo.udfCalcPercentage(ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0)),
+				--		DirectCostPer = dbo.udfCalcPercentage(ISNULL(DirectCost,0), ISNULL(WOB.GrandTotal,0))
+				--	FROM #WOCostDetails WOCD 
+				--		JOIN dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) ON WOCD.WorkOrderId = WOB.WorkOrderId
+				--	WHERE WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
+				--END
+
+				-- CASE WHEN INVOICE IS GENERATED THEN TAKE IT FROM INVOICE
+				IF((SELECT COUNT(1) FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+				WHERE WOB.[ReferenceId] = @WorkOrderId AND WOB.ModuleId = @WOModuleId AND ISNULL(WOB.[IsVersionIncrease],0) = 0 AND ISNULL(WOB.[IsPerformaInvoice], 0) = 0) > 0)
 				BEGIN
 					UPDATE #WOCostDetails
-					SET Revenue = ISNULL(WOB.GrandTotal,0),
-						ActRevenue = ISNULL(WOB.GrandTotal,0),
-						ActMargin = ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0),
-						ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0)),
-						PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.MaterialCost,0), ISNULL(WOB.GrandTotal,0)),
-						LaborRevePer = dbo.udfCalcPercentage(ISNULL(TotalLaborCost,0), ISNULL(WOB.GrandTotal,0)),
-						OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.BurdenRateAmount,0), ISNULL(WOB.GrandTotal,0)),
-						Margin =  ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0),
-						MarginPer = dbo.udfCalcPercentage(ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0)),
-						DirectCostPer = dbo.udfCalcPercentage(ISNULL(DirectCost,0), ISNULL(WOB.GrandTotal,0))
+					SET Revenue = ISNULL(WOB.[GrandTotal],0),
+						ActRevenue = ISNULL(WOB.[GrandTotal],0),
+						ActMargin = ISNULL(WOB.[GrandTotal],0) - ISNULL(WOCD.[DirectCost],0),
+						ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.[DirectCost],0), ISNULL(WOB.[GrandTotal],0)),
+						PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.[MaterialCost],0), ISNULL(WOB.[GrandTotal],0)),
+						LaborRevePer = dbo.udfCalcPercentage(ISNULL([TotalLaborCost],0), ISNULL(WOB.[GrandTotal],0)),
+						OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.[BurdenRateAmount],0), ISNULL(WOB.[GrandTotal],0)),
+						Margin = ISNULL(WOB.[GrandTotal],0) - ISNULL(WOCD.[DirectCost],0),
+						MarginPer = dbo.udfCalcPercentage(ISNULL(WOB.[GrandTotal],0) - ISNULL(WOCD.[DirectCost],0), ISNULL(WOB.[GrandTotal],0)),
+						DirectCostPer = dbo.udfCalcPercentage(ISNULL([DirectCost],0), ISNULL(WOB.[GrandTotal],0))
 					FROM #WOCostDetails WOCD 
-						JOIN dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) ON WOCD.WorkOrderId = WOB.WorkOrderId
-					WHERE WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
+						JOIN [dbo].[BillingInvoicing] WOB WITH(NOLOCK) ON WOCD.[WorkOrderId] = WOB.[ReferenceId] AND WOB.[ModuleId] = @WOModuleId
+					WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 AND ISNULL(WOB.[IsPerformaInvoice], 0) = 0
 				END
 
 				IF((SELECT COUNT(1) FROM dbo.WorkOrderCostDetails WOC WITH(NOLOCK) 

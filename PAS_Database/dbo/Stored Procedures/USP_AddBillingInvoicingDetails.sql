@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:  [USP_AddBillingInvoicingDetails]
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to store Billing Details
@@ -11,8 +12,10 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
-    1    07/05/2025   Moin Bloch     Created  
+    1    07/05/2025   MOIN BLOCH     Created  
     2    21/05/2025   RAJESH GAMI    Make it common for all module
+	3    12/06/2025   MOIN BLOCH     Added MPN Cost Details
+
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -355,10 +358,18 @@ BEGIN
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
 							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,PartCost
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
-			END
-			
+			END						
+
 			IF(@ModuleId = @WOModuleId)
 			BEGIN
+				-- USED TO RECALCULATE WO TOTAL COST   
+				DECLARE @WorkFlowWorkOrderId BIGINT = 0
+				SELECT TOP 1 @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @SubReferenceId
+
+				EXEC [dbo].[USP_UpdateWOTotalCostDetails] @ReferenceId,@WorkFlowWorkOrderId,@UpdatedBy,@MasterCompanyId
+
+				EXEC [dbo].[USP_UpdateWOCostDetails] @ReferenceId,@WorkFlowWorkOrderId,@UpdatedBy,@MasterCompanyId
+
 				SELECT @PartNumber = IM.[PartNumber] FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId WHERE WP.[ID] = @SubReferenceId;					   
 				SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = 'Invoicing';								   
 				SET @TemplateBody = REPLACE(@TemplateBody, '##WoMPN##', @PartNumber);
@@ -370,6 +381,7 @@ BEGIN
 				DECLARE @SOBilledStatusId int = (select TOP 1 SOPartStatusId from SOPartStatus WHERE Description = 'Billed')
 				EXEC [dbo].[SP_SaveSOPartStatusByPartId] @SalesOrderPartId  = @SubReferenceId, @StatusId = @SOBilledStatusId
 			END
+
 			SET @MinId = @MinId + 1;
 		END  /****** END : MAIN WHILE LOOP *******/
 

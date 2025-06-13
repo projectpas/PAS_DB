@@ -28,11 +28,11 @@ BEGIN
 
 			IF @ModuleId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'PurchaseOrder') 
 			BEGIN
-				SET @CurrencyId = (SELECT FunctionalCurrencyId FROM [dbo].PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @ReferenceId);
+				(SELECT @CurrencyId = FunctionalCurrencyId FROM [dbo].PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @ReferenceId);
 			END
 			ELSE IF @ModuleId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'RepairOrder') 
 			BEGIN
-				SET @CurrencyId = (SELECT FunctionalCurrencyId FROM [dbo].RepairOrderPart WITH(NOLOCK) WHERE RepairOrderId = @ReferenceId);
+				(SELECT @CurrencyId = FunctionalCurrencyId FROM [dbo].RepairOrderPart WITH(NOLOCK) WHERE RepairOrderId = @ReferenceId);
 			END
 
 			SELECT @CurrencyId AS CurrencyId;

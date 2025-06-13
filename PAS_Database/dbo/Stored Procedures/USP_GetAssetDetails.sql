@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+﻿/***************************************************************   
  ** File:  [USP_GetAssetDetails]             
  ** Author: Ayushi Patel 
  ** Description: Get Asset Details
@@ -20,9 +20,9 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
         DECLARE @IsIntangible BIT;
-		DECLARE @AssetInTangibleModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'AssetInTangible');
-		DECLARE @AssetTangibleModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'AssetTangible');
-		     
+        DECLARE @AssetInTangibleModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'AssetInTangible');
+        DECLARE @AssetTangibleModuleId INT = (SELECT TOP 1 ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'AssetTangible');
+        
         SELECT @IsIntangible = IsIntangible
         FROM Asset
         WHERE AssetRecordId = @AssetRecordId;
@@ -30,10 +30,10 @@ BEGIN
         IF @IsIntangible = 1
         BEGIN
             SELECT 
-                @IsIntangible AS IsIntangible,
+                1 AS IsIntangible,
                 a.AssetId,
                 a.AssetRecordId,
-                ISNULL((SELECT TOP 1 AssetId FROM Asset WHERE AssetRecordId = a.AlternateAssetRecordId), '') AS AlternateAssetName,
+                alt.AssetId AS AlternateAssetName,
                 a.AlternateAssetRecordId,
                 a.AssetAcquisitionTypeId,
                 a.AssetIntangibleTypeId,
@@ -41,50 +41,56 @@ BEGIN
                 a.CreatedDate,
                 a.Description,
                 a.EntryDate,
-                ISNULL(a.IsActive,0) AS IsActive,
-                ISNULL(a.IsDeleted,0) AS IsDeleted,
-                ISNULL(a.IsTangible,0) AS IsTangible,
-                ISNULL(a.IsIntangible,0) AS IsIntangible,
-                a.ManagementStructureId AS ManagementStructureId,
+                ISNULL(a.IsActive, 0) AS IsActive,
+                ISNULL(a.IsDeleted, 0) AS IsDeleted,
+                ISNULL(a.IsTangible, 0) AS IsTangible,
+                ISNULL(a.IsIntangible, 0) AS IsIntangible,
+                a.ManagementStructureId,
                 a.MasterCompanyId,
                 a.MasterPartId,
                 a.Name,
-                ISNULL(a.IsDepreciable,0) AS IsDepreciable,
-                ISNULL(a.IsNonDepreciable,0) AS IsNonDepreciable,
-                ISNULL(a.IsAmortizable,0) AS IsAmortizable,
-                ISNULL(a.IsNonAmortizable,0) AS IsNonAmortizable,
-                a.UpdatedBy, 
+                ISNULL(a.IsDepreciable, 0) AS IsDepreciable,
+                ISNULL(a.IsNonDepreciable, 0) AS IsNonDepreciable,
+                ISNULL(a.IsAmortizable, 0) AS IsAmortizable,
+                ISNULL(a.IsNonAmortizable, 0) AS IsNonAmortizable,
+                a.UpdatedBy,
                 a.UpdatedDate,
                 a.ControlNumber,
                 ISNULL(msd.EntityMSID, 0) AS EntityStructureId,
                 ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
                 ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
                 a.UnitOfMeasureId,
-                ISNULL((SELECT TOP 1 ShortName FROM DBO.UnitOfMeasure WITH (NOLOCK) WHERE UnitOfMeasureId = a.UnitOfMeasureId), '') AS UnitOfMeasureName,
+                ISNULL(uom.ShortName, '') AS UnitOfMeasureName,
                 a.ManufacturerPN,
-                ISNULL((SELECT TOP 1 AssetIntangibleName FROM DBO.AssetIntangibleType WITH (NOLOCK) WHERE AssetIntangibleTypeId = aia.AssetIntangibleTypeId), '') AS AssetAttributeType,
-                ISNULL((SELECT TOP 1 AssetDepreciationMethodName FROM DBO.AssetDepreciationMethod WITH (NOLOCK) WHERE AssetDepreciationMethodId = aia.AssetDepreciationMethodId), '') AS DepreciationMethod,
+                ISNULL(aiat.AssetIntangibleName, '') AS AssetAttributeType,
+                ISNULL(adm.AssetDepreciationMethodName, '') AS DepreciationMethod,
                 aia.IntangibleLifeYears AS AssetLife,
                 CASE 
-                    WHEN aia.AssetAmortizationIntervalId = CAST(1 AS INT) THEN 'Monthly'
+                    WHEN aia.AssetAmortizationIntervalId = 1 THEN 'Monthly'
                     ELSE 'Yearly'
                 END AS DeprFrequency,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aia.IntangibleGLAccountId), '') AS GLAccount,
+                ISNULL(gl1.AccountCode + '-' + gl1.AccountName, '') AS GLAccount,
                 aia.IntangibleGLAccountId AS GLAccountId,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aia.AmortExpenseGLAccountId), '') AS DeprExpenseGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aia.AccAmortDeprGLAccountId), '') AS ADDeprGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aia.IntangibleGLAccountId), '') AS SaleGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aia.IntangibleWriteDownGLAccountId), '') AS WriteDownGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aia.IntangibleWriteOffGLAccountId), '') AS WriteOffGL,
+                ISNULL(gl2.AccountCode + '-' + gl2.AccountName, '') AS DeprExpenseGL,
+                ISNULL(gl3.AccountCode + '-' + gl3.AccountName, '') AS ADDeprGL,
+                ISNULL(gl4.AccountCode + '-' + gl4.AccountName, '') AS SaleGL,
+                ISNULL(gl5.AccountCode + '-' + gl5.AccountName, '') AS WriteDownGL,
+                ISNULL(gl6.AccountCode + '-' + gl6.AccountName, '') AS WriteOffGL,
                 a.AssetAttributeTypeId
-            FROM 
-                DBO.Asset a WITH (NOLOCK)
-            LEFT JOIN 
-                DBO.AssetIntangibleAttributeType aia WITH (NOLOCK) ON a.AssetIntangibleTypeId = aia.AssetIntangibleTypeId
-            LEFT JOIN 
-                DBO.AssetManagementStructureDetails msd WITH (NOLOCK) ON a.AssetRecordId = msd.ReferenceID AND msd.ModuleID = @AssetInTangibleModuleId -- AssetInTangible
-            WHERE 
-                a.AssetRecordId = @AssetRecordId;
+            FROM DBO.Asset a WITH (NOLOCK)
+            LEFT JOIN DBO.Asset alt WITH (NOLOCK) ON a.AlternateAssetRecordId = alt.AssetRecordId
+            LEFT JOIN DBO.AssetIntangibleAttributeType aia WITH (NOLOCK) ON a.AssetIntangibleTypeId = aia.AssetIntangibleTypeId
+            LEFT JOIN DBO.AssetIntangibleType aiat WITH (NOLOCK) ON a.AssetIntangibleTypeId = aiat.AssetIntangibleTypeId
+            LEFT JOIN DBO.AssetDepreciationMethod adm WITH (NOLOCK) ON aia.AssetDepreciationMethodId = adm.AssetDepreciationMethodId
+            LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId
+            LEFT JOIN DBO.GLAccount gl1 WITH (NOLOCK) ON aia.IntangibleGLAccountId = gl1.GLAccountId
+            LEFT JOIN DBO.GLAccount gl2 WITH (NOLOCK) ON aia.AmortExpenseGLAccountId = gl2.GLAccountId
+            LEFT JOIN DBO.GLAccount gl3 WITH (NOLOCK) ON aia.AccAmortDeprGLAccountId = gl3.GLAccountId
+            LEFT JOIN DBO.GLAccount gl4 WITH (NOLOCK) ON aia.IntangibleGLAccountId = gl4.GLAccountId
+            LEFT JOIN DBO.GLAccount gl5 WITH (NOLOCK) ON aia.IntangibleWriteDownGLAccountId = gl5.GLAccountId
+            LEFT JOIN DBO.GLAccount gl6 WITH (NOLOCK) ON aia.IntangibleWriteOffGLAccountId = gl6.GLAccountId
+            LEFT JOIN DBO.AssetManagementStructureDetails msd WITH (NOLOCK) ON a.AssetRecordId = msd.ReferenceID AND msd.ModuleID = @AssetInTangibleModuleId
+            WHERE a.AssetRecordId = @AssetRecordId;
         END
         ELSE
         BEGIN
@@ -92,7 +98,7 @@ BEGIN
                 0 AS IsIntangible,
                 a.AssetId,
                 a.AssetRecordId,
-                ISNULL((SELECT TOP 1 AssetId FROM Asset WHERE AssetRecordId = a.AlternateAssetRecordId), '') AS AlternateAssetName,
+                alt.AssetId AS AlternateAssetName,
                 a.AlternateAssetRecordId,
                 a.AssetAcquisitionTypeId,
                 ac.Name AS AssetAquisitionType,
@@ -100,20 +106,20 @@ BEGIN
                 a.AssetMaintenanceContractFile,
                 a.AssetMaintenanceContractFileExt,
                 a.AssetMaintenanceIsContract,
-                ISNULL((SELECT TOP 1 AssetId FROM Asset WHERE AssetRecordId = a.AssetParentRecordId), '') AS assetParentName,
+                parent.AssetId AS assetParentName,
                 a.AssetParentRecordId,
                 aat.AssetAttributeTypeName AS AssetType,
                 a.TangibleClassId,
                 a.AssetLocationId,
-                ISNULL((SELECT TOP 1 Name FROM Location WHERE LocationId = a.AssetLocationId), '') AS AssetLocationName,
+                loc.Name AS AssetLocationName,
                 a.SiteId,
-                ISNULL((SELECT TOP 1 Name FROM Site WHERE SiteId = a.SiteId), '') AS SiteName,
+                st.Name AS SiteName,
                 a.WarehouseId,
-                ISNULL((SELECT TOP 1 Name FROM Warehouse WHERE WarehouseId = a.WarehouseId), '') AS WarehouseName,
+                wh.Name AS WarehouseName,
                 a.ShelfId,
-                ISNULL((SELECT TOP 1 Name FROM Shelf WHERE ShelfId = a.ShelfId), '') AS ShelfName,
+                sh.Name AS ShelfName,
                 a.BinId,
-                ISNULL((SELECT TOP 1 Name FROM Bin WHERE BinId = a.BinId), '') AS BinName,
+                bn.Name AS BinName,
                 a.CreatedBy,
                 a.CreatedDate,
                 cur.Code AS Currency,
@@ -121,12 +127,12 @@ BEGIN
                 a.Description,
                 a.EntryDate,
                 a.ExpirationDate,
-                ISNULL(a.IsActive,0) AS IsActive,
-                ISNULL(a.IsDeleted,0) AS IsDeleted,
-                ISNULL(a.IsTangible,0) AS IsTangible,
-                ISNULL(a.IsIntangible,0) AS IsIntangible,
-                ISNULL(a.IsSerialized,0) AS IsSerialized,
-                a.ManagementStructureId AS ManagementStructureId,
+                ISNULL(a.IsActive, 0) AS IsActive,
+                ISNULL(a.IsDeleted, 0) AS IsDeleted,
+                ISNULL(a.IsTangible, 0) AS IsTangible,
+                ISNULL(a.IsIntangible, 0) AS IsIntangible,
+                ISNULL(a.IsSerialized, 0) AS IsSerialized,
+                a.ManagementStructureId,
                 a.ManufacturedDate,
                 a.ManufacturerId,
                 mg.Name AS Manufacturer,
@@ -137,12 +143,12 @@ BEGIN
                 a.Name,
                 a.UnexpiredTime,
                 a.UnitCost,
-                ISNULL(a.IsDepreciable,0) AS IsDepreciable,
-                ISNULL(a.IsNonDepreciable,0) AS IsNonDepreciable,
-                ISNULL(a.IsAmortizable,0) AS IsAmortizable,
-                ISNULL(a.IsNonAmortizable,0) AS IsNonAmortizable,
+                ISNULL(a.IsDepreciable, 0) AS IsDepreciable,
+                ISNULL(a.IsNonDepreciable, 0) AS IsNonDepreciable,
+                ISNULL(a.IsAmortizable, 0) AS IsAmortizable,
+                ISNULL(a.IsNonAmortizable, 0) AS IsNonAmortizable,
                 a.UnitOfMeasureId,
-                ISNULL((SELECT TOP 1 ShortName FROM UnitOfMeasure WHERE UnitOfMeasureId = a.UnitOfMeasureId), '') AS UnitOfMeasureName,
+                uom.ShortName AS UnitOfMeasureName,
                 a.UpdatedBy,
                 a.UpdatedDate,
                 a.ControlNumber,
@@ -152,53 +158,60 @@ BEGIN
                 ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
                 a.ManufacturerPN,
                 aat.AssetAttributeTypeName AS AssetAttributeType,
-                ISNULL((SELECT TOP 1 AssetDepreciationMethodName FROM DBO.AssetDepreciationMethod WITH (NOLOCK) WHERE AssetDepreciationMethodId = aat.DepreciationMethod), '') AS DepreciationMethod,
+                adm.AssetDepreciationMethodName AS DepreciationMethod,
                 per.PercentValue AS ResidualPer,
-                aat.AssetLife AS AssetLife,
-                ISNULL((SELECT TOP 1 Name FROM DBO.AssetDepreciationFrequency WITH (NOLOCK) WHERE AssetDepreciationFrequencyId = aat.DepreciationFrequencyId), '') AS DeprFrequency,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.AcquiredGLAccountId), '') AS GLAccount,
+                aat.AssetLife,
+                df.Name AS DeprFrequency,
+                ISNULL(gl1.AccountCode + '-' + gl1.AccountName, '') AS GLAccount,
                 aat.AcquiredGLAccountId AS GLAccountId,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.AcquiredGLAccountId), '') AS AcquiredGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.DeprExpenseGLAccountId), '') AS DeprExpenseGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.AdDepsGLAccountId), '') AS ADDeprGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.AssetSale), '') AS SaleGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.AssetWriteDown), '') AS WriteDownGL,
-                ISNULL((SELECT TOP 1 AccountCode + '-' + AccountName FROM DBO.GLAccount WITH (NOLOCK) WHERE GLAccountId = aat.AssetWriteOff), '') AS WriteOffGL,
+                ISNULL(gl2.AccountCode + '-' + gl2.AccountName, '') AS AcquiredGL,
+                ISNULL(gl3.AccountCode + '-' + gl3.AccountName, '') AS DeprExpenseGL,
+                ISNULL(gl4.AccountCode + '-' + gl4.AccountName, '') AS ADDeprGL,
+                ISNULL(gl5.AccountCode + '-' + gl5.AccountName, '') AS SaleGL,
+                ISNULL(gl6.AccountCode + '-' + gl6.AccountName, '') AS WriteDownGL,
+                ISNULL(gl7.AccountCode + '-' + gl7.AccountName, '') AS WriteOffGL,
                 a.AssetAttributeTypeId
-            FROM 
-                DBO.Asset a WITH (NOLOCK)
-            LEFT JOIN 
-                DBO.AssetAcquisitionType ac WITH (NOLOCK) ON a.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
-            LEFT JOIN 
-                DBO.AssetAttributeType aat WITH (NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
-            LEFT JOIN 
-                DBO.Manufacturer mg WITH (NOLOCK) ON a.ManufacturerId = mg.ManufacturerId
-            LEFT JOIN 
-                DBO.Currency cur WITH (NOLOCK) ON a.CurrencyId = cur.CurrencyId
-            LEFT JOIN 
-                DBO.TangibleClass astp WITH (NOLOCK) ON a.TangibleClassId = astp.TangibleClassId
-            LEFT JOIN 
-                DBO.[Percent] per WITH (NOLOCK) ON aat.ResidualPercentage = per.PercentId
-            LEFT JOIN 
-                DBO.AssetManagementStructureDetails msd WITH (NOLOCK) ON a.AssetRecordId = msd.ReferenceID AND msd.ModuleID = @AssetTangibleModuleId -- AssetTangible
-            WHERE 
-                a.AssetRecordId = @AssetRecordId;
+            FROM DBO.Asset a WITH (NOLOCK)
+            LEFT JOIN DBO.Asset alt WITH (NOLOCK) ON a.AlternateAssetRecordId = alt.AssetRecordId
+            LEFT JOIN DBO.Asset parent WITH (NOLOCK) ON a.AssetParentRecordId = parent.AssetRecordId
+            LEFT JOIN DBO.AssetAcquisitionType ac WITH (NOLOCK) ON a.AssetAcquisitionTypeId = ac.AssetAcquisitionTypeId
+            LEFT JOIN DBO.AssetAttributeType aat WITH (NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+            LEFT JOIN DBO.Manufacturer mg WITH (NOLOCK) ON a.ManufacturerId = mg.ManufacturerId
+            LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON a.CurrencyId = cur.CurrencyId
+            LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON a.UnitOfMeasureId = uom.UnitOfMeasureId
+            LEFT JOIN DBO.Location loc WITH (NOLOCK) ON a.AssetLocationId = loc.LocationId
+            LEFT JOIN DBO.Site st WITH (NOLOCK) ON a.SiteId = st.SiteId
+            LEFT JOIN DBO.Warehouse wh WITH (NOLOCK) ON a.WarehouseId = wh.WarehouseId
+            LEFT JOIN DBO.Shelf sh WITH (NOLOCK) ON a.ShelfId = sh.ShelfId
+            LEFT JOIN DBO.Bin bn WITH (NOLOCK) ON a.BinId = bn.BinId
+            LEFT JOIN DBO.AssetDepreciationMethod adm WITH (NOLOCK) ON aat.DepreciationMethod = adm.AssetDepreciationMethodId
+            LEFT JOIN DBO.[Percent] per WITH (NOLOCK) ON aat.ResidualPercentage = per.PercentId
+            LEFT JOIN DBO.AssetDepreciationFrequency df WITH (NOLOCK) ON aat.DepreciationFrequencyId = df.AssetDepreciationFrequencyId
+            LEFT JOIN DBO.GLAccount gl1 WITH (NOLOCK) ON aat.AcquiredGLAccountId = gl1.GLAccountId
+            LEFT JOIN DBO.GLAccount gl2 WITH (NOLOCK) ON aat.AcquiredGLAccountId = gl2.GLAccountId
+            LEFT JOIN DBO.GLAccount gl3 WITH (NOLOCK) ON aat.DeprExpenseGLAccountId = gl3.GLAccountId
+            LEFT JOIN DBO.GLAccount gl4 WITH (NOLOCK) ON aat.AdDepsGLAccountId = gl4.GLAccountId
+            LEFT JOIN DBO.GLAccount gl5 WITH (NOLOCK) ON aat.AssetSale = gl5.GLAccountId
+            LEFT JOIN DBO.GLAccount gl6 WITH (NOLOCK) ON aat.AssetWriteDown = gl6.GLAccountId
+            LEFT JOIN DBO.GLAccount gl7 WITH (NOLOCK) ON aat.AssetWriteOff = gl7.GLAccountId
+            LEFT JOIN DBO.AssetManagementStructureDetails msd WITH (NOLOCK) ON a.AssetRecordId = msd.ReferenceID AND msd.ModuleID = @AssetTangibleModuleId
+            WHERE a.AssetRecordId = @AssetRecordId;
         END
     END TRY
-    BEGIN CATCH      
-        DECLARE @ErrorLogID INT
-            ,@DatabaseName VARCHAR(100) = db_name()
-            ,@AdhocComments VARCHAR(150) = 'USP_GetAssetDetails'
-            ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = '', '
-            ,@ApplicationName VARCHAR(100) = 'PAS'
-        
-        EXEC spLogException @DatabaseName = @DatabaseName
-            ,@AdhocComments = @AdhocComments
-            ,@ProcedureParameters = @ProcedureParameters
-            ,@ApplicationName = @ApplicationName
-            ,@ErrorLogID = @ErrorLogID OUTPUT;
+    BEGIN CATCH
+        DECLARE @ErrorLogID INT,
+                @DatabaseName VARCHAR(100) = DB_NAME(),
+                @AdhocComments VARCHAR(150) = 'USP_GetAssetDetails',
+                @ProcedureParameters VARCHAR(3000) = '@AssetRecordId = ' + CAST(@AssetRecordId AS VARCHAR),
+                @ApplicationName VARCHAR(100) = 'PAS';
 
-        RAISERROR ('Unexpected Error Occurred in the database. Please let the support team know of the error number : %d',16,1,@ErrorLogID)
-        RETURN (1);           
+        EXEC spLogException @DatabaseName = @DatabaseName,
+                            @AdhocComments = @AdhocComments,
+                            @ProcedureParameters = @ProcedureParameters,
+                            @ApplicationName = @ApplicationName,
+                            @ErrorLogID = @ErrorLogID OUTPUT;
+
+        RAISERROR ('Unexpected Error Occurred in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID);
+        RETURN (1);
     END CATCH
 END

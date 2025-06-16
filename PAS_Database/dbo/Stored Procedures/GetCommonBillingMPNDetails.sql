@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -413,9 +414,11 @@ BEGIN
 				
 				--SET @PartsCost = (SELECT SUM(ISNULL(NetSaleAmount,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
 				--SET @PartsCost = ISNULL(@UnitCost,0.0) * ISNULL((Select QtyReserved From dbo.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderPartId = @ID),0.0)
+				DECLARE @stkShipped decimal(10,2) = ISNULL((Select ISNULL(QtyShipped,0) From dbo.SalesOrderShippingItem WITH(NOLOCK) Where SalesOrderPartId =  @ID),0.0)
 				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
+				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
 				print @IsProformaInvoice
-				SET @PartsCost = ISNULL(@UnitCost,0.0) * @stkReservedQty
+				SET @PartsCost = ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					print @TotalCost
 				IF(@IsProformaInvoice = 1)

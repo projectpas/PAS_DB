@@ -3961,8 +3961,12 @@
     <Build Include="dbo\Stored Procedures\GetExchangeQuotePartViewBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeQuotePartViewBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityBillingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAssetDataforInventory.sql" />
     <Build Include="dbo\Stored Procedures\InsertSubWorkOrderPartNumber.sql" />
     <Build Include="dbo\User Defined Types\SubWorkOrderPartNumberType.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeCommonDetailsList.sql" />
   </ItemGroup>
   <ItemGroup>

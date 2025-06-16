@@ -38,6 +38,7 @@
     [OtherTaxPercent]         BIGINT          NULL,
     [OtherTax]                DECIMAL (18, 2) NULL,
     [GrandTotal]              DECIMAL (18, 2) NULL,
+    [RemainingAmount]         DECIMAL (18, 2) NULL,
     [PDFPath]                 NVARCHAR (MAX)  NULL,
     [VersionNo]               VARCHAR (20)    NULL,
     [IsVersionIncrease]       BIT             CONSTRAINT [DF_BillingInvoicingItems_IsVersionIncrease] DEFAULT ((0)) NULL,
@@ -50,9 +51,12 @@
     [IsActive]                BIT             CONSTRAINT [DF_BillingInvoicingItems_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_BillingInvoicingItems_IsDeleted] DEFAULT ((0)) NOT NULL,
     [ShippingId]              BIGINT          NULL,
+    [WorkFlowWorkOrderId]     BIGINT          NULL,
     CONSTRAINT [PK_BillingInvoicingItems] PRIMARY KEY CLUSTERED ([BillingInvoicingItemId] ASC),
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
+
+
 
 
 

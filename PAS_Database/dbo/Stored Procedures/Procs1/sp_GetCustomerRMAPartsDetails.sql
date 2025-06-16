@@ -24,6 +24,7 @@
 	12   12/04-05/2024   AMIT GHEDIYA	   Create RMA/CM from SO : UnitPrice & Amount wrong issue.
 	13   01/02/2025   Abhishek Jirawla	Updating the part cost
 	14   14/04/2025   Devendra Shekh	removed duplicate AltPartNumber field for WOInv Select
+	15	 06-June-2025 AMIT GHEDIYA		Get WO/SO Billing data from new table.
 
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -114,15 +115,18 @@ BEGIN
 			SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
 			SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'EXCHANGE';
 
+			 DECLARE @workOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder');
+			 DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
+
 			IF(@Ispopup =1)
 			BEGIN
 				IF(@InvoiceTypeId = @SOInvoiceTypeId)
 				BEGIN
-					SELECT SOBI.SOBillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId as BillingInvoicingItemId,
+					SELECT SOBI.BillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.BillingInvoicingItemId as BillingInvoicingItemId,
 						SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber as ReferenceNo,
 						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 						SO.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
-						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.NoofPieces as Qty, 
+						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.QtyBilled as Qty, 
 						--SOBII.UnitPrice As [PartsUnitCost],
 						--CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END As [PartsUnitCost],
 						ISNULL(SOBII.PartCost, 0) As [PartsUnitCost],
@@ -130,13 +134,13 @@ BEGIN
 						0 AS [LaborRevenue], 
 						(SOBII.MiscCharges * -1) AS [MiscRevenue], 
 						(SOBII.Freight * -1) AS [FreightRevenue],
-						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSParts], 
+						(ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSParts], 
 						0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
-						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], 
+						(ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], 
 						ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
-						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
-						(ISNULL(SOBII.NoofPieces, 1) * CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END) as Amount,
-						IsWorkOrder=0,SOBI.SalesOrderId AS [ReferenceId],
+						CASE WHEN ISNULL(SOBII.QtyBilled,0) > 0 THEN (SOBII.GrandTotal / SOBII.QtyBilled) ELSE SOBII.GrandTotal END AS UnitPrice,
+						(ISNULL(SOBII.QtyBilled, 1) * CASE WHEN ISNULL(SOBII.QtyBilled,0) > 0 THEN (SOBII.GrandTotal / SOBII.QtyBilled) ELSE SOBII.GrandTotal END) as Amount,
+						IsWorkOrder=0,SOBI.ReferenceId AS [ReferenceId],
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
 						SOBII.SubTotal,
 						(SOBII.SalesTax * -1) As SalesTax, 
@@ -154,7 +158,7 @@ BEGIN
 						SOBI.[IsActive],
 						SOBI.[IsDeleted],
 						ST.isSerialized,
-						SOBII.NoofPieces as InvoiceQty,
+						SOBII.QtyBilled as InvoiceQty,
 						IM.ManufacturerName,
 						AltPartNumber=(  
 						 Select top 1  
@@ -169,21 +173,21 @@ BEGIN
 							 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 							 FOR XML PATH('')), 1, 1, '') PartNumber  
 						) A  
-						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
+						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.BillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
 						GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 						) 
 						,@SOInvoiceTypeId AS InvoiceTypeId
-					FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
-						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
-						LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+					FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)
+						LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
+						LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.ReferenceId AND SOPN.SalesOrderPartId = SOBII.SubReferenceId
 						LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId
 						LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
-						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=STK.StockLineId AND ST.IsParent = 1
 						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
-					WHERE SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0		
+					WHERE SOBI.BillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0		
 				END
 				ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 				BEGIN
@@ -275,13 +279,13 @@ BEGIN
 				END
 				ELSE 
 				BEGIN	
-					SELECT WOBI.BillingInvoicingId as InvoiceId, WOBI.InvoiceNo [InvoiceNo], WOBII.WOBillingInvoicingItemId as BillingInvoicingItemId,
+					SELECT WOBI.BillingInvoicingId as InvoiceId, WOBI.InvoiceNo [InvoiceNo], WOBII.BillingInvoicingItemId as BillingInvoicingItemId,
 						WOBI.InvoiceStatus [InvoiceStatus], WOBI.InvoiceDate [InvoiceDate], WO.WorkOrderNum as ReferenceNo,				
 						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 						WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
-						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,WOBII.NoofPieces as Qty,WOBII.GrandTotal as UnitPrice,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount,
+						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,WOBII.QtyBilled as Qty,WOBII.GrandTotal as UnitPrice,(WOBII.QtyBilled * WOBII.GrandTotal)  as Amount,
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
-						IsWorkOrder=1,WOBI.WorkOrderId AS [ReferenceId], 
+						IsWorkOrder=1,WOBI.ReferenceId AS [ReferenceId], 
 						--WOBII.MaterialCost As [PartsUnitCost],
 						CASE WHEN 
 							ISNULL(WOBII.MaterialCost,0) > 0 THEN (WOBII.MaterialCost)
@@ -311,7 +315,7 @@ BEGIN
 						WOBI.[IsActive],
 						WOBI.[IsDeleted],
 						ST.isSerialized,
-						WOBII.NoofPieces as InvoiceQty,
+						WOBII.QtyBilled as InvoiceQty,
 						IM.ManufacturerName,
 						AltPartNumber=(  
 						 SELECT TOP 1  
@@ -326,15 +330,15 @@ BEGIN
 							 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 							 FOR XML PATH('')), 1, 1, '') PartNumber  
 						) A  
-						WHERE WOBIIA.MasterCompanyId=WOBII.MasterCompanyId and WOBIIA.ItemMasterId =WOBII.ItemMasterId  and WOBIIA.BillingInvoicingId =WOBII.BillingInvoicingId AND ISNULL(WOBII.IsDeleted,0)=0
+						WHERE WOBIIA.MasterCompanyId=WOBII.MasterCompanyId and WOBIIA.ItemMasterId = WOBII.ItemMasterId  and WOBIIA.BillingInvoicingId = WOBII.BillingInvoicingId AND ISNULL(WOBII.IsDeleted,0)=0
 						GROUP BY WOBIIA.ItemMasterId, A.PartNumber  
 						) 
 						,@WOInvoiceTypeId AS InvoiceTypeId
-					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
-						LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
-						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
-						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOMPN.WOPartNoId
-						LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+					FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK)
+						LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId
+						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOMPN.WOPartNoId
+						LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
 						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON WO.MasterCompanyId = RMAC.MasterCompanyId
@@ -348,11 +352,11 @@ BEGIN
 				SELECT @isWorkOrder =isWorkOrder,@InvoiceId= InvoiceId FROM [dbo].[CustomerRMAHeader]  WITH (NOLOCK) WHERE  RMAHeaderId =@RMAHeaderId
 				IF(@isWorkOrder =1)
 				BEGIN
-					SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) WHERE  BillingInvoicingId =@InvoiceId
+					SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) WHERE  WOBI.BillingInvoicingId = @InvoiceId AND ISNULL(WOBI.IsPerformaInvoice,0) = 0 AND WOBI.ModuleId = @workOrderModuleId;
 				END
 				ELSE
 				BEGIN
-					SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId AND ISNULL(SOBI.IsProforma,0) = 0
+					SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) WHERE  SOBI.BillingInvoicingId = @InvoiceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @salesOrderModuleId;
 				END
 					SELECT CRM.[RMADeatilsId]
 					   ,CRM.[RMAHeaderId],CRM.[ItemMasterId] ,CRM.[PartNumber] ,CRM.[PartDescription] ,CRM.[CustPartNumber] ,CRM.[SerialNumber]

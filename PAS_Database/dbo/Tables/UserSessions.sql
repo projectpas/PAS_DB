@@ -3,6 +3,9 @@
     [UserId]         UNIQUEIDENTIFIER NULL,
     [JwtToken]       NVARCHAR (MAX)   NULL,
     [LastLoginTime]  DATETIME         NULL,
+    [ClientType]     VARCHAR (100)    NULL,
     CONSTRAINT [PK_UserSessions] PRIMARY KEY CLUSTERED ([UserSessionsId] ASC)
 );
+
+
 

@@ -3968,6 +3968,7 @@
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderBillingInvoicingItemData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeCommonDetailsList.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderPartStocklineDetailsBySOId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

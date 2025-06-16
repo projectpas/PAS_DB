@@ -9,11 +9,12 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    21-04-2025		Hemnat Saliya			Created  		
+    2    16-06-2025		Devendra Shekh			Modified Calculation for MarginPercentage	
 		
-	exec dbo.USP_GetSummarisedQuotationAnalysisData 8688
+	exec dbo.USP_GetSummarisedQuotationAnalysisData 8941
 **************************************************************/
 
-CREATE   PROCEDURE USP_GetSummarisedQuotationAnalysisData
+CREATE   PROCEDURE [dbo].[USP_GetSummarisedQuotationAnalysisData]
     @WorkOrderId INT
 AS
 BEGIN
@@ -21,6 +22,8 @@ BEGIN
 	SET NOCOUNT ON; 
 	
 	BEGIN TRY  
+		
+		;WITH AnalysisResult AS(
 		SELECT DISTINCT
 			wop.ID,
 			im.PartNumber,
@@ -64,17 +67,17 @@ BEGIN
 						(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)) - 
 						(ISNULL(wqd.MaterialCost, 0) + ISNULL(wqd.LaborCost, 0) + ISNULL(wqd.ChargesCost, 0))
 				END,
-			MarginPercentage =
-				CASE 
-					WHEN wqd.QuoteMethod = 1 AND ISNULL(wqd.CommonFlatRate, 0) > 0
-						THEN CAST((ISNULL(wqd.MaterialCost, 0) + ISNULL(wqd.LaborCost, 0) + ISNULL(wqd.ChargesCost, 0))/ISNULL(wqd.CommonFlatRate, 1) AS FLOAT) * 100.0 
-					WHEN (ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)) > 0
-						THEN CAST(
-								(ISNULL(wqd.MaterialCost, 0) + ISNULL(wqd.LaborCost, 0) + ISNULL(wqd.ChargesCost, 0))/
-								(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0))
-							 AS FLOAT) * 100.0 
-					ELSE 0
-				END,
+			--MarginPercentage =
+			--	CASE 
+			--		WHEN wqd.QuoteMethod = 1 AND ISNULL(wqd.CommonFlatRate, 0) > 0
+			--			THEN CAST((ISNULL(wqd.MaterialCost, 0) + ISNULL(wqd.LaborCost, 0) + ISNULL(wqd.ChargesCost, 0))/ISNULL(wqd.CommonFlatRate, 1) AS FLOAT) * 100.0 
+			--		WHEN (ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)) > 0
+			--			THEN CAST(
+			--					(ISNULL(wqd.MaterialCost, 0) + ISNULL(wqd.LaborCost, 0) + ISNULL(wqd.ChargesCost, 0))/
+			--					(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0))
+			--				 AS FLOAT) * 100.0 
+			--		ELSE 0
+			--	END,
 			c.Name AS CustomerName,
 			wo.WorkOrderNum,
 			s.Stage,
@@ -90,7 +93,10 @@ BEGIN
 			INNER JOIN [dbo].WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 			INNER JOIN [dbo].WorkScope ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId
 		WHERE wo.WorkOrderId = @WorkOrderId
-		ORDER BY wop.ID
+		--ORDER BY wop.ID
+		)
+		SELECT *, CASE WHEN ISNULL(Margin, 0) <> 0 AND ISNULL(Revenue, 0) <> 0 THEN CAST((Margin/Revenue) AS FLOAT) * 100.00 ELSE 0 END AS MarginPercentage
+		FROM AnalysisResult ORDER BY ID;
 	END TRY      
 	  BEGIN CATCH        
 	   IF @@trancount > 0  

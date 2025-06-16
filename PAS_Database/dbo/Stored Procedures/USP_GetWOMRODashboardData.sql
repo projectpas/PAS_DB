@@ -10,6 +10,7 @@
  ** PR   Date				Author					Change Description            
  ** --   --------			-------					----------------------------   
     1    02-June-2025		Devendra Shekh			CREATED   
+	2    16-June-2025		Devendra Shekh 			Amount Issue Resolved for MTD Billing
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -170,7 +171,10 @@ BEGIN
 		-- selecting work order MTD billing unit and amount details		:(DashboardType = 10)
 		SELECT @WOMTDUnits = COUNT(*), @WOMTDAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
-					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, ISNULL(wobii.GrandTotal, 0) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+					wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, 
+					--ISNULL(wobii.GrandTotal, 0) AS GrandTotal, 
+					CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS 'GrandTotal',   
+					wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
 				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
@@ -181,7 +185,10 @@ BEGIN
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
-				AND CONVERT(DATE,wobi.CreatedDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate 
+				--AND CONVERT(DATE,wobi.InvoiceDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate 
+				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+			       ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 		) AS WorkOrderMTDBillingResult

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingInvoiceListNew]           
  ** Author:	  Moin Bloch
  ** Description: This SP is Used to get list of Invoices for Part    
@@ -13,7 +14,7 @@
  ** --   --------     -------			--------------------------------     
 	1    27/05/2025   Moin Bloch		Created
 	2    02/06/2025   Rajesh Gami		Implemented SO & Use IsInvoicePosted instead of IsBilling in SO
-	3    16/06/2025   Moin Bloch		Added WOShippingNum,AWB
+	3    16/06/2025   Rajesh Gami		Resolved issue regarding get the billing invoice
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 8810,8582,1,15
 
@@ -329,7 +330,7 @@ BEGIN
 							CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
 							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 							wos.WOShippingNum, 
-						    wos.AirwayBill As 'AWB',							
+						    wos.AirwayBill As 'AWB',	
 							(SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 							wo.WorkOrderNum as ReferenceNumber, 
 							wop.RevisedPartNumber as 'PartNumber',
@@ -376,7 +377,7 @@ BEGIN
 						 LEFT JOIN [dbo].[InvoiceType] INV WITH(NOLOCK) ON INV.InvoiceTypeId = wobi.InvoiceTypeId
 						WHERE wop.WorkOrderId = @ReferenceId AND wop.ID = @SubReferenceId 						
 						  AND (ISNULL(wop.IsFinishGood, 0) = 1 OR wobi.BillingInvoicingId IS NOT NULL)
-						GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, wos.WOShippingNum, wos.AirwayBill,
+						GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo,  wos.WOShippingNum, wos.AirwayBill,
 							wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 							sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,
 							cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
@@ -584,7 +585,7 @@ BEGIN
 					AND sof.IsActive = 1 
 					AND sof.IsDeleted = 0)  AS TotalFreight,
 
-				(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+				(SELECT MAX(ISNULL(SO.TotalFreight,0)) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 					WHERE [SO].[SalesOrderId] = @ReferenceId AND so.FreightBilingMethodId = @FlateBilingMethodId)
 				 AS  TotalFlatFreight,
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
@@ -594,14 +595,14 @@ BEGIN
 					AND socg.IsActive = 1 
 					AND socg.IsDeleted = 0) 
 				AS TotalCharges,
-				(SELECT ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+				(SELECT TOP 1 ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 				WHERE [SO].[SalesOrderId] = @ReferenceId AND so.ChargesBilingMethodId = @FlateBilingMethodId)
 				AS TotalFlatCharges,
-				(SELECT a.InvoiceStatus FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+				(SELECT TOP 1 a.InvoiceStatus FROM dbo.BillingInvoicing a WITH (NOLOCK) 
 					INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
 					Where a.ReferenceId = @ReferenceId AND sobii.BillingInvoicingId = a.BillingInvoicingId AND b.ItemMasterId = sop.ItemMasterId 
 					AND stk.StockLineId = b.StockLineId AND ShippingId = sosi.SalesOrderShippingId
-					AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) AS InvoiceStatus,
+					AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0 ORDER BY a.InvoiceDate DESC) AS InvoiceStatus,
 				--sobi.InvoiceStatus,
 				sos.SmentNum AS 'SmentNo',
 				sobii.VersionNo,
@@ -674,7 +675,7 @@ BEGIN
 						--ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.BillingInvoicingId DESC) AS IndexColumn,
 						0 AS IndexColumn,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.ShippingId 
-						else (SELECT SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
+						else (SELECT TOP 1 SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
 						WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						INNER JOIN DBO.SOPickTicket SO_PICK WITH (NOLOCK) on SO_PICK.SOPickTicketId = SOSI.SOPickTicketId
 						WHERE SOS.SalesOrderId = @ReferenceId AND SO_PICK.SOPickTicketId = SOPPick.SOPickTicketId) end) AS SalesOrderShippingId,  
@@ -686,7 +687,7 @@ BEGIN
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 
 							(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.ShippingId) 
 						else 
-							(SELECT SOS.SOShippingNum 
+							(SELECT top 1 SOS.SOShippingNum 
 							FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 							INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 							INNER JOIN DBO.SOPickTicket SOPICK WITH (NOLOCK) on SOPICK.SOPickTicketId = SOSI.SOPickTicketId
@@ -733,14 +734,14 @@ BEGIN
 						), 0) 
 						)) AS TotalUnitCost,
 			
-						(SELECT ISNULL((BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
+						(SELECT TOP 1 ISNULL((BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 						 WHERE sof.SalesOrderId = @ReferenceId 					
 							AND sof.ItemMasterId = sop.ItemMasterId 
 							AND sof.ConditionId = @ConditionId 
 							AND sof.IsActive = 1 
 							AND sof.IsDeleted = 0)  AS TotalFreight,
 
-						(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+						(SELECT TOP 1 ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 							WHERE [SO].[SalesOrderId] = @ReferenceId AND so.FreightBilingMethodId = @FlateBilingMethodId)
 						 AS  TotalFlatFreight,
 
@@ -1507,7 +1508,14 @@ BEGIN
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				PRINT 'ROLLBACK'			
+				PRINT 'ROLLBACK'	
+				SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

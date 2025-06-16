@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:  [USP_AddBillingInvoicingDetails]
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to store Billing Details
@@ -15,6 +14,7 @@
     1    07/05/2025   MOIN BLOCH     Created  
     2    21/05/2025   RAJESH GAMI    Make it common for all module
 	3    12/06/2025   MOIN BLOCH     Added MPN Cost Details
+	4    13/06/2025   MOIN BLOCH     Added CustomerId,WorkFlowWorkOrderId
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -86,7 +86,7 @@ BEGIN
 	DECLARE @BilledInvoiceStatusId INT = 0,@WorkOrderMPNModuleID INT 
 	DECLARE @BilledInvoiceStatus VARCHAR(50), @InvoiceCodeTypeId INT,@ProformaInvoiceCodeTypeId INT,@VerCode INT
 	DECLARE @CurrentNo INT = 0, @TemplateBody VARCHAR(MAX)='',@PartNumber VARCHAR(50)='', @BillingInvoicingIdNew BIGINT = 0
-	DECLARE @RemainingAmount DECIMAL(18,2) = 0
+	DECLARE @RemainingAmount DECIMAL(18,2) = 0,@CustomerId BIGINT
 	
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -104,11 +104,13 @@ BEGIN
 		SELECT @InvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='WOInvoice';
 		SELECT @ProformaInvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='WOProformaInvoice';
 		SELECT @WorkOrderMPNModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrderMPN';
+		SELECT @CustomerId = [CustomerId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId
 	END
 	ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 	BEGIN
 		SELECT @InvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='SOInvoice';
 		SELECT @ProformaInvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='SOProformaInvoice';
+		SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId
 	END
 	ELSE IF(@ModuleId = @EXModuleId) /*********START: Exchange  ********/
 	BEGIN
@@ -240,7 +242,6 @@ BEGIN
 		SET @GrandTotal = 0;
 		SET @RemainingAmount = 0;
 		
-
 		SELECT @SubTotal = ISNULL(SUM([SubTotal]),0),
 		       @SalesTax = ISNULL(SUM([SalesTax]),0), 
 			   @OtherTax = ISNULL(SUM([OtherTax]),0), 
@@ -249,13 +250,13 @@ BEGIN
 		  FROM @tbl_BillingInvoicingItemsType;
 
 		INSERT INTO [dbo].[BillingInvoicing]
-				   ([ModuleId],[ReferenceId],[InvoiceTypeId],[InvoiceNo],[InvoiceDate],[InvoiceTime],[PrintDate],[EmployeeId]
+				   ([ModuleId],[ReferenceId],[CustomerId],[InvoiceTypeId],[InvoiceNo],[InvoiceDate],[InvoiceTime],[PrintDate],[EmployeeId]
 				   ,[CurrencyId],[RevisionTypeId],[InvoiceStatusId],[InvoiceStatus],[InvoiceFilePath],[RevType],[VersionNo],[CostPlusType]
 				   ,[IsPerformaInvoice],[IsVersionIncrease],[PostedDate],[SubTotal],[OtherTax],[SalesTax],[DepositAmount],[GrandTotal]
 				   ,[Notes],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
 				   ,[IsActive],[IsDeleted],[IsReversedJE],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate],[SyncToken]
 				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount])		 
-			 VALUES (@ModuleId, @ReferenceId, @InvoiceTypeId, @InvoiceNo, @InvoiceDate, @InvoiceTime, @PrintDate, @EmployeeId,
+			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @InvoiceDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
 					 @IsPerformaInvoice, @IsVersionIncrease, @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
 					 @Notes, @ManagementStructureId, @MasterCompanyId, @CreatedBy, @CreatedBy, @CreatedDate, @CreatedDate,
@@ -292,12 +293,17 @@ BEGIN
 
 		WHILE @MinId <= @TotalRecord /****** START : MAIN WHILE LOOP *******/
 		BEGIN  
-			DECLARE @BillingInvoicingItemId BIGINT = 0,@SubReferenceId BIGINT = 0
+			DECLARE @BillingInvoicingItemId BIGINT = 0,@SubReferenceId BIGINT = 0,@WorkFlowWorkOrderId BIGINT = NULL
 
 			 SELECT @BillingInvoicingId = ISNULL([BillingInvoicingId],0),
 			        @BillingInvoicingItemId = ISNULL([BillingInvoicingItemId],0),
 					@SubReferenceId = [SubReferenceId]
 			  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId 
+
+			IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
+			BEGIN
+				SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId]=@SubReferenceId;				
+			END
 			
 			IF(@BillingInvoicingId = 0)
 			BEGIN
@@ -305,14 +311,14 @@ BEGIN
 						   ,[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus]
 						   ,[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus]
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
-						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],PartCost)
+						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId])
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
-							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,PartCost
+							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			END
 			ELSE
@@ -347,28 +353,28 @@ BEGIN
 						   ,[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus]
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus]
 						   ,[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
-						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],PartCost)
+						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId])
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],
 							[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],	
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 							[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
-							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,PartCost
+							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			END						
 
 			IF(@ModuleId = @WOModuleId)
 			BEGIN
 				-- USED TO RECALCULATE WO TOTAL COST   
-				DECLARE @WorkFlowWorkOrderId BIGINT = 0
-				SELECT TOP 1 @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @SubReferenceId
+				DECLARE @WFWorkOrderId BIGINT = 0  
+				SELECT TOP 1 @WFWorkOrderId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @SubReferenceId
 
-				EXEC [dbo].[USP_UpdateWOTotalCostDetails] @ReferenceId,@WorkFlowWorkOrderId,@UpdatedBy,@MasterCompanyId
+				EXEC [dbo].[USP_UpdateWOTotalCostDetails] @ReferenceId,@WFWorkOrderId,@UpdatedBy,@MasterCompanyId
 
-				EXEC [dbo].[USP_UpdateWOCostDetails] @ReferenceId,@WorkFlowWorkOrderId,@UpdatedBy,@MasterCompanyId
+				EXEC [dbo].[USP_UpdateWOCostDetails] @ReferenceId,@WFWorkOrderId,@UpdatedBy,@MasterCompanyId
 
 				SELECT @PartNumber = IM.[PartNumber] FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId WHERE WP.[ID] = @SubReferenceId;					   
 				SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = 'Invoicing';								   

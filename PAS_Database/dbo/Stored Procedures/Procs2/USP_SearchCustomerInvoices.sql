@@ -520,8 +520,8 @@ BEGIN
 				CT.CustomerTypeName [CustomerType],
 				WOBII.GrandTotal [InvoiceAmt], 
 				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [InvoiceAmt],
-				ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,
-				ISNULL(ISNULL(WOBI.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,				
+				ISNULL(WOBII.RemainingAmount, 0)  RemainingAmount,
+				ISNULL(ISNULL(WOBII.GrandTotal,0) - ISNULL(WOBII.RemainingAmount,0),0) AmountPaid,				
 				IM.partnumber [PN], 
 				IM.PartDescription [PNDescription],
 				WQ.VersionNo [VersionNo],
@@ -574,8 +574,8 @@ BEGIN
 				   C.Name [CustomerName],
 				   CT.CustomerTypeName [CustomerType],
 				   SUM(ISNULL(SOBII.GrandTotal,0)) [InvoiceAmt], 
-				   ISNULL(SOBI.RemainingAmount, 0) RemainingAmount,
-				   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,						
+				   ISNULL(SOBII.RemainingAmount, 0) RemainingAmount,
+				   ISNULL(ISNULL(SOBII.GrandTotal,0) - ISNULL(SOBII.RemainingAmount,0),0) AmountPaid,						
 				   IM.partnumber [PN], 
 				   IM.PartDescription [PNDescription],
 				   SQ.VersionNumber [VersionNo],
@@ -614,10 +614,10 @@ BEGIN
 			 AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				GROUP BY SOBI.BillingInvoicingId,SOBI.InvoiceNo,
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
-					C.Name ,CT.CustomerTypeName , SOBI.RemainingAmount,
+					C.Name ,CT.CustomerTypeName , SOBII.RemainingAmount,
 					SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
 					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
-					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId 
+					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId ,SOBII.GrandTotal
 
 			UNION ALL
 
@@ -633,8 +633,9 @@ BEGIN
 					   C.Name [CustomerName],
 					   CT.CustomerTypeName [CustomerType],
 					   SOBI.GrandTotal [InvoiceAmt],
-					   ISNULL(SOBI.GrandTotal,0) RemainingAmount,
-					   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,		
+					   ISNULL(SOBII.GrandTotal,0) RemainingAmount,
+					   0 as AmountPaid,
+					   --ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,		
 					   IM.partnumber [PN], 
 					   IM.PartDescription [PNDescription],
 					   SO.VersionNumber [VersionNo],

@@ -47,7 +47,8 @@ BEGIN
 				@UpdatedById BIGINT,
 				@StockLineId BIGINT,
 				@SubWorkOrderId BIGINT,
-				@CreatedBy NVARCHAR(100);
+				@CreatedBy NVARCHAR(100),
+				@TechStationId BIGINT;
 
 
 		-- Code Types Of CodePrefix	
@@ -60,7 +61,7 @@ BEGIN
 		
 		CREATE TABLE #tmpSubWorkOrderParts
 		(
-			[ID] [bigint] NULL,
+			[ID] [bigint] IDENTITY,
 			[SubWOPartNoId] [bigint] NULL,
 			[WorkOrderId] [bigint] NULL,
 			[SubWorkOrderId] [bigint] NULL,
@@ -112,9 +113,9 @@ BEGIN
 										   [CMMIds],[WorkflowId],[SubWorkOrderStageId],[SubWorkOrderStatusId],[SubWorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[TechnicianId],[ConditionId],[RevisedItemmasterid],
 										   [TATDaysCurrent],[IsTraveler],[IsManualForm],[WorkOrderMaterialsId],[UpdatedById],[IsClosed],[PDFPath],[isLocked],[IsFinishGood],[RevisedConditionId],[IsTransferredToParentWO],[RevisedSerialNumber],
 										   [PublicationNo],[TravelerNumber],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-									SELECT [SubWOPartNoId],[WorkOrderId],[SubWorkOrderId],[ItemMasterId],[SubWorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],[StockLineId],
-										   [CMMIds],[WorkflowId],[SubWorkOrderStageId],[SubWorkOrderStatusId],[SubWorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[TechnicianId],[ConditionId],[RevisedItemmasterid],
-										   [TATDaysCurrent],[IsTraveler],[IsManualForm],[WorkOrderMaterialsId],[UpdatedById],[IsClosed],[PDFPath],[isLocked],[IsFinishGood],[RevisedConditionId],[IsTransferredToParentWO],[RevisedSerialNumber],
+									SELECT [SubWOPartNoId],[WorkOrderId],[SubWorkOrderId],[ItemMasterId],[SubWorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],CASE WHEN [StockLineId] = 0 THEN NULL ELSE [StockLineId] END,
+										   [CMMIds],CASE WHEN [WorkflowId] = 0 THEN NULL ELSE [WorkflowId] END,[SubWorkOrderStageId],[SubWorkOrderStatusId],[SubWorkOrderPriorityId],[IsPMA],[IsDER],CASE WHEN [TechStationId] = 0 THEN NULL ELSE [TechStationId] END,[TATDaysStandard],CASE WHEN [TechnicianId] = 0 THEN NULL ELSE [TechnicianId] END,[ConditionId],[RevisedItemmasterid],
+										   [TATDaysCurrent],[IsTraveler],[IsManualForm],[WorkOrderMaterialsId],[UpdatedById],[IsClosed],[PDFPath],[isLocked],[IsFinishGood],CASE WHEN [RevisedConditionId] = 0 THEN NULL ELSE [RevisedConditionId] END,[IsTransferredToParentWO],[RevisedSerialNumber],
 										   [PublicationNo],[TravelerNumber],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted] 
 		FROM @SubWorkOrderParts;
 
@@ -132,9 +133,9 @@ BEGIN
 					@SubWOPartNoId = [SubWOPartNoId],
 					@Quantity = [Quantity],
 					@UpdatedById = [UpdatedById],
-					@CreatedBy = [CreatedBy]
+					@CreatedBy = [CreatedBy],
+					@TechStationId = [TechStationId]
 			 FROM #tmpSubWorkOrderParts WHERE [ID] = @MasterLoopID;
-
 
 			 IF OBJECT_ID(N'tempdb..#tmpGetTravelerName') IS NOT NULL
 			 BEGIN
@@ -188,12 +189,12 @@ BEGIN
 						 	  	   WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 						 	  END
 						 	  -- Generate Traverler Number
-						 	  SET @traverlerNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+						 	  SET @TraverIdString = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 						 END
 						 ELSE
 						 BEGIN
 						 	-- Generate Traverler Number
-						 	SET @traverlerNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+						 	SET @TraverIdString = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
 						 END
 					END
 
@@ -224,7 +225,9 @@ BEGIN
 						sub.IsTransferredToParentWO = tmp.IsTransferredToParentWO,
 						sub.RevisedSerialNumber = tmp.RevisedSerialNumber,
 						sub.PublicationNo = tmp.PublicationNo,
-						sub.TravelerNumber = tmp.TravelerNumber
+						sub.TravelerNumber = @TraverIdString,
+						sub.CMMIds = tmp.CMMIds,
+						sub.SubWorkOrderScopeId = tmp.SubWorkOrderScopeId
 					FROM [dbo].[SubWorkOrderPartNumber] sub
 					JOIN #tmpSubWorkOrderParts tmp ON tmp.ID = @MasterLoopID
 					WHERE tmp.ID = @MasterLoopID;
@@ -283,15 +286,15 @@ BEGIN
 				 	  	   	   WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 				 	  	   END
 				 	  	   -- Generate Traverler Number
-				 	  	   SET @traverlerNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+				 	  	   SET @TraverIdString = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 				 	  END
 				 	  ELSE
 				 	  BEGIN
 				 	  	  -- Generate Traverler Number
-				 	  	  SET @traverlerNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
+				 	  	  SET @TraverIdString = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, '',''))
 				 	  END
 				 END
-				 
+
 				INSERT INTO [dbo].[SubWorkOrderPartNumber] (
 					WorkOrderId,SubWorkOrderId,ItemMasterId, SubWorkOrderScopeId,EstimatedShipDate,CustomerRequestDate,PromisedDate,EstimatedCompletionDate,
 					NTE,Quantity,StockLineId,CMMIds,WorkflowId,SubWorkOrderStageId,SubWorkOrderStatusId,SubWorkOrderPriorityId,IsPMA,IsDER,TechStationId,
@@ -303,9 +306,9 @@ BEGIN
 					NTE,Quantity,StockLineId,CMMIds,WorkflowId,SubWorkOrderStageId,SubWorkOrderStatusId,SubWorkOrderPriorityId,IsPMA,IsDER,TechStationId,
 					TATDaysStandard,TechnicianId,ConditionId,TATDaysCurrent,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate, UpdatedDate,IsActive, IsDeleted,IsClosed,
 					PDFPath,islocked,IsFinishGood,RevisedConditionId,NULL,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO,0,
-					RevisedSerialNumber,PublicationNo,TravelerNumber
+					RevisedSerialNumber,PublicationNo,@TraverIdString
 				FROM #tmpSubWorkOrderParts WHERE [ID] = @MasterLoopID
-
+				
 				--Call ReserveReleaseSubWorkOrderStockline 
 				EXEC USP_Reserve_ReleaseSubWorkOrderStockline @WorkOrderId,@SubWorkOrderId,@WorkOrderMaterialsId,@StockLineId,@SubWOPartNoId,@Quantity,1,@UpdatedById,0
 			END

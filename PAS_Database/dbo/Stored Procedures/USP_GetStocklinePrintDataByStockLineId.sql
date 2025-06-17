@@ -1,5 +1,4 @@
-﻿
-CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
+﻿CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
 	@StocklineId BIGINT,
 	@WorkOrderMaterialsId BIGINT,
 	@PickTicketId BIGINT,
@@ -42,7 +41,7 @@ BEGIN
 			stl.ReceivedDate,
 			stl.Memo AS Notes,
 			stl.GlAccountName AS Class,
-			stl.SerialNumber AS Barcode,
+			ISNULL(stl.SerialNumber, '') AS Barcode,
 			stl.UpdatedDate,
 			stl.IsSerialized,
 			stl.TraceableToName,

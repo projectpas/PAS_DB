@@ -98,7 +98,6 @@ BEGIN
 				[UsedDeposit] [DECIMAL](18,2) NULL,
 				[IsAllowIncreaseVersionForBillItem] [BIT] NULL,
 				[IsQuickBookGeneratedInvoice] [BIT] NULL,
-
 				[IndexColumn] BIGINT NULL,
 				[SalesOrderShippingId] BIGINT NULL,
 				[SalesOrderShippingItemId] BIGINT NULL,
@@ -369,7 +368,6 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 						 LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 						 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
-						--LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) ON imv.ItemMasterId = wobi.ItemMasterId
 						 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
 						 LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
 						 LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wosc.ConditionId

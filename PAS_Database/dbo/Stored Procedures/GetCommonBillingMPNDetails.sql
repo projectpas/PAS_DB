@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -14,6 +15,7 @@
     2    12/05/2025   RAJESH GAMI    Added SO Part Details Code
 	3    11/06/2025   RAJESH GAMI    Fix the getting wrong invoicingId (SO)
 	4    17/06/2025   RAJESH GAMI    Fix the Shipping Related issue
+	5    17/06/2025   Moin Bloch     Add QuoteMethod
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8800,0,'',15
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 846,0,'1011,1012,1013',10,0
@@ -87,6 +89,7 @@ BEGIN
 				[GrandTotal] DECIMAL(18,2) NULL,
 				[SOStockLineId] BIGINT NULL,
 				[StockLineNumber] VARCHAR(200) NULL,
+				[QuoteMethod] BIT NULL,
 			)
 
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
@@ -333,7 +336,8 @@ BEGIN
 						   [OtherTaxPercent] = @OtherTaxPercent,
 						   [OtherTax] = @OtherTax,
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
-						   [GrandTotal] = @GrandTotal
+						   [GrandTotal] = @GrandTotal,
+						   [QuoteMethod] = @QuoteMethod
 					 WHERE [PKID] = @MinId;
 
 				END

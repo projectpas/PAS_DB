@@ -19,6 +19,7 @@
     2	 21 May 2025	RAJESH GAMI	   	Resolve the flat rate related issue
 	3	 06 Jun 2025	RAJESH GAMI	   	Correct the rowNum issue (Due to duplicate the record)
 	4	 13 Jun 2025	RAJESH GAMI	   	Replcae the new billing invoicing table with old one (WO, SO)
+    5    17 Jun 2025    Moin Bloch       Added CustomerId
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -478,6 +479,7 @@ BEGIN
 				ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],
+				C.CustomerId,
 				CT.CustomerTypeName [CustomerType],
 				ISNULL(WOBII.GrandTotal,0) AS InvoiceAmt,
 				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN 
@@ -530,6 +532,7 @@ BEGIN
 				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.SalesOrderNumber [OrderNumber],
 				   C.Name [CustomerName],
+				   C.CustomerId,
 				   CT.CustomerTypeName [CustomerType],
 					SUM(ISNULL(SOBII.GrandTotal,0)) AS InvoiceAmt,
 				   IM.partnumber [PN], 
@@ -570,7 +573,7 @@ BEGIN
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
 					C.Name ,CT.CustomerTypeName ,IM.partnumber , IM.PartDescription ,
 					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
-					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId ,SOBII.RemainingAmount
+					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId ,SOBII.RemainingAmount,C.CustomerId
 
 			UNION ALL
 
@@ -583,6 +586,7 @@ BEGIN
 					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.ExchangeSalesOrderNumber [OrderNumber],
 					   C.Name [CustomerName],
+					   C.CustomerId,
 					   CT.CustomerTypeName [CustomerType],
 					   (ISNULL(SOBII.GrandTotal,0)) as [InvoiceAmt],
 					   IM.partnumber [PN], 

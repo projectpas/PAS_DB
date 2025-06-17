@@ -44,7 +44,7 @@ BEGIN
 	DECLARE @DefaultPriorityName VARCHAR(50) = 'ROUTINE';
 	DECLARE @DefaultStatusId INT = 1;
 	DECLARE @DefaultStatusName VARCHAR(50) = 'OPEN';
-
+	DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
 	--Set SoPart null for all part for salesordor otherwise for perticular part only.
 	IF(ISNULL(@SoPartId,0) = 0)
 	BEGIN
@@ -168,12 +168,16 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		LEFT JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SOPickTicketId = sosi.SOPickTicketId
 		WHERE sos.SalesOrderId = @SalesOrderId AND sopt.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
-		(SELECT SUM(sobi.NoofPieces) FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) qtyInvoiced,
-		(SELECT TOP 1 sob.InvoiceDate FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) invoiceDate,
-		(SELECT TOP 1 sob.InvoiceNo FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) invoiceNumber,
+		
+		(SELECT SUM(sobi.QtyBilled) FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) qtyInvoiced,
+		
+		(SELECT TOP 1 sob.InvoiceDate FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceDate,
+		
+		(SELECT TOP 1 sob.InvoiceNo FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceNumber,
+		
 		(SELECT TOP 1 sos.SOShippingNum FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) shipReference,
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.ECCN ELSE part.ECCN END ECCN,
@@ -208,7 +212,7 @@ BEGIN
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
     WHERE part.SalesOrderId = @SalesOrderId 
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
-    AND part.IsDeleted = 0
+    AND ISNULL(part.IsDeleted,0) = 0
     AND ISNULL(rop.isAsset, 0) = 0
 	ORDER BY part.SalesOrderPartId;
 

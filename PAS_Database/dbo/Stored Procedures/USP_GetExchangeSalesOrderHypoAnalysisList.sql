@@ -14,8 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    06/03/2025  EKTA CHANDEGRA    Created
+    2    06/16/2025  EKTA CHANDEGRA    Retrieve billing amount as OtherCharges and ExtendedCost as OtherCost
 	     
- EXEC USP_GetExchangeSalesOrderHypoAnalysisList @ExchangeSalesOrderId = 150
+ EXEC USP_GetExchangeSalesOrderHypoAnalysisList @ExchangeSalesOrderId = 176
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetExchangeSalesOrderHypoAnalysisList]
     @ExchangeSalesOrderId BIGINT
@@ -43,7 +44,7 @@ BEGIN
 
 		-- Initial Charges and Other Charges
 		SELECT TOP 1
-			@Charges = ISNULL(MarkupFixedPrice, 0),
+			@Charges = ISNULL(BillingAmount, 0),
 			@OtherCharges = ISNULL(ExtendedCost, 0)
 		FROM [dbo].[ExchangeSalesOrderCharges] WITH(NOLOCK)
 		WHERE ExchangeSalesOrderId = @ExchangeSalesOrderId
@@ -54,8 +55,8 @@ BEGIN
 		IF @OtherCharges = 0
 		BEGIN
 			SELECT TOP 1
-				@OtherCharges = ISNULL(MarkupFixedPrice, 0),
-				@Charges = ISNULL(MarkupFixedPrice, 0)
+				@OtherCharges = ISNULL(ExtendedCost, 0),
+				@Charges = ISNULL(BillingAmount, 0)
 			FROM [dbo].[ExchangeSalesOrderCharges] WITH(NOLOCK)
 			WHERE ExchangeSalesOrderId = @ExchangeSalesOrderId
 			  AND ISNULL(IsActive,0) = 1;

@@ -307,7 +307,7 @@ BEGIN
 
 					SELECT @GLStocklineId = [StockLineId] 
 					FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) 
-					WHERE [BillingInvoicingId] = @InvoiceId;
+					WHERE [BillingInvoicingId] = @InvoiceId AND SubReferenceId = @ReferencePartId;
 
 					SELECT @StocklineNumber = SL.[StockLineNumber],
 						   @InventoryToBillGLAccId = SL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)

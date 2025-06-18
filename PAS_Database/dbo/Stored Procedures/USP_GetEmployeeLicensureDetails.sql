@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [USP_GetCurrencyIdForVendorCreditMemo]           
+ ** File:   [USP_GetEmployeeLicensureDetails]           
  ** Author:   Sahdev Saliya
- ** Description: This stored procedure is used to Get CurrencyId For VendorCreditMemo List
+ ** Description: This stored procedure is used to Get Employee LicensureDetails List
  ** Purpose:         
- ** Date:   10-06-2025       
+ ** Date:   17-06-2025       
           
  ** RETURN VALUE:           
   
@@ -12,31 +12,41 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    10-06-2025    Sahdev Saliya       Created  
+    1    17-06-2025    Sahdev Saliya       Created  
 
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[USP_GetCurrencyIdForVendorCreditMemo]
-    @ModuleId BIGINT,
-    @ReferenceId BIGINT
+CREATE   PROCEDURE [dbo].[USP_GetEmployeeLicensureDetails]
+    @EmployeeId  BIGINT       
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON;
 		BEGIN TRY
 
-			DECLARE @CurrencyId BIGINT = 0;
 
-			IF @ModuleId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'PurchaseOrder') 
-			BEGIN
-				(SELECT TOP 1 @CurrencyId = FunctionalCurrencyId FROM [dbo].PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @ReferenceId);
-			END
-			ELSE IF @ModuleId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'RepairOrder') 
-			BEGIN
-				(SELECT TOP 1 @CurrencyId = FunctionalCurrencyId FROM [dbo].RepairOrderPart WITH(NOLOCK) WHERE RepairOrderId = @ReferenceId);
-			END
-
-			SELECT @CurrencyId AS CurrencyId;
-		END TRY
+			SELECT 
+			        EC.EmployeeCertificationId,
+					EC.EmployeeId,
+					EC.CertificationNumber,
+					EC.EmployeeCertificationTypeId,
+					EC.CertifyingInstitution,
+					EC.CertificationDate,
+					EC.IsCertificationInForce,
+					EC.ExpirationDate,
+					EC.IsExpirationDate,
+					EC.Memo,
+					'' AS CertType,
+				    '' AS Inforce,
+					EC.MasterCompanyId,
+					EC.CreatedBy,
+					EC.CreatedDate,
+					EC.UpdatedBy,
+					EC.UpdatedDate,
+					EC.IsActive,
+					EC.IsDeleted
+			FROM [DBO].EmployeeCertification EC WITH(NOLOCK)
+			WHERE EC.EmployeeId = @EmployeeId;
+	    END TRY
 
    BEGIN CATCH      
 				IF @@trancount > 0
@@ -44,9 +54,8 @@ BEGIN
 					DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-				  , @AdhocComments     VARCHAR(150)    = 'USP_GetCurrencyIdForVendorCreditMemo' 
-				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ModuleId, '') + ''',
-				    @Parameter2 = ' + ISNULL(@ReferenceId ,'')
+				  , @AdhocComments     VARCHAR(150)    = 'USP_GetEmployeeLicensureDetails' 
+				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@EmployeeId, '') 
 
 				  , @ApplicationName VARCHAR(100) = 'PAS'
 	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

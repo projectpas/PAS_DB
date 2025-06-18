@@ -13,6 +13,7 @@
 	3   15 May 2025   RAJESH GAMI	Added Taxable Column
 	4   19 May 2025   RAJESH GAMI	Remove remaining amount condition
 	5   28 May 2025   RAJESH GAMI   Corrected InvoiceAmount
+	6	13 Jun 2025	  RAJESH GAMI	Change the new billing invoicing table with old one (WO, SO)
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
@@ -88,18 +89,20 @@ SET NOCOUNT ON;
 					   ISNULL(WOP.Quantity,0) as ItemQuantity,
 					   --CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemRate,
 					   --CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(WOBII.UnitPrice,0) ELSE ISNULL(WOBII.GrandTotal,0) END AS ItemAmount,
-						CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END ItemRate,
-						CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END ItemAmount,
+						--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END ItemRate,
+						--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END ItemAmount,
+					   ISNULL(WOBII.GrandTotal,0)ItemRate,
+					   ISNULL(WOBII.GrandTotal,0)ItemAmount,
 					   GETDATE() as ServiceDate,
 					    WOBI.InvoiceStatus,
-						WOBII.WOBillingInvoicingItemId,
+						WOBII.BillingInvoicingItemId,
 						'N' as Taxable
-					FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
-						 INNER JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
-						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+					FROM dbo.BillingInvoicing WOBI WITH(NOLOCK) 
+						 INNER JOIN  dbo.BillingInvoicingItems WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 						 INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOBII.ItemMasterId = WOP.RevisedItemmasterid
 					WHERE 
-						WOBI.MasterCompanyId=@MasterCompanyId AND
+						WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.ModuleId = @woModuleId AND
 						((@IsSelectAllInvoice = 1 AND 
 							WOBI.IsVersionIncrease=0 AND
 							(@FromDate IS NULL OR CAST(WOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
@@ -136,35 +139,35 @@ SET NOCOUNT ON;
 					   SOP.Notes as Memo,
 					   SOP.PartNumber as Item,
 					   SOP.PartDescription as ItemDescription,
-					   ISNULL(SOBII.NoofPieces,0) as ItemQuantity,
-					   (CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (CONVERT(DECIMAL(10,2),ISNULL(SOBII.GrandTotal,0)/ ISNULL(SOBII.NoofPieces,0))) ELSE  ISNULL(SOBII.GrandTotal,0) END) as ItemRate,
+					   ISNULL(SOBII.QtyBilled,0) as ItemQuantity,
+					   (CASE WHEN ISNULL(SOBII.QtyBilled,0) > 0 THEN (CONVERT(DECIMAL(10,2),ISNULL(SOBII.GrandTotal,0)/ ISNULL(SOBII.QtyBilled,0))) ELSE  ISNULL(SOBII.GrandTotal,0) END) as ItemRate,
 					   (ISNULL(SOBII.GrandTotal,0)) as ItemAmount,
 					   GETDATE() as ServiceDate,
-					   SOBII.SOBillingInvoicingItemId,
+					   SOBII.BillingInvoicingItemId,
 					   'N' as Taxable
-					FROM dbo.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) 
-						 INNER JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
-						 INNER JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+					FROM dbo.BillingInvoicing SOBI WITH(NOLOCK) 
+						 INNER JOIN  dbo.BillingInvoicingItems SOBII WITH(NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId
+						 INNER JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
 						 INNER JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOBII.ItemMasterId = SOP.ItemMasterId
 						 INNER JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
 						 INNER JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
-					WHERE  SOBI.MasterCompanyId=@MasterCompanyId 
+					WHERE  SOBI.MasterCompanyId=@MasterCompanyId AND SOBI.ModuleId = @soModuleId
 						AND
-							((@IsSelectAllInvoice = 1 AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND
-							(@FromDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
+							((@IsSelectAllInvoice = 1 AND SOBI.IsVersionIncrease=0 --AND ISNULL(SOBI.[IsBilling], 0) != 1 
+							AND	(@FromDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
 							(@ToDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 							(IsNull(@Status,'') ='' OR SOBI.InvoiceStatus like '%' + @Status+'%') 
 							AND
 							( (@ViewType ='invoice'
-								AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
-								AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsProforma,0) = 0)) )
+								AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+								AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsPerformaInvoice,0) = 0)) )
 							 OR
 							 ( (@ViewType !='invoice'
-								AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId))
+								AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId))
 							) )
 						  ) 
 						OR 
-						(@IsSelectAllInvoice = 0 AND SOBI.SOBillingInvoicingId IN( SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ','))))
+						(@IsSelectAllInvoice = 0 AND SOBI.BillingInvoicingId IN( SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@InvoicingIds, ','))))
 					--GROUP BY 
 					--SOBI.InvoiceNo,
 					--SO.CustomerName,

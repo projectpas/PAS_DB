@@ -10,8 +10,9 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    22-April-2025		Devendra Shekh		Created
+	2    13-June-2025		Moin Bloch		    Removed old to new table
 		
-EXEC [dbo].[USP_GetWorkOrderBillingInvoiceItem_ByWFWOId] 8720, 8418
+EXEC [dbo].[USP_GetWorkOrderBillingInvoiceItem_ByWFWOId] 8936, 8686
 ********************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderBillingInvoiceItem_ByWFWOId]
 @WorkOrderId BIGINT = NULL,
@@ -22,42 +23,56 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-		SELECT	TOP 1 BII.[WOBillingInvoicingItemId]
-				,BII.[BillingInvoicingId]
-				,BII.[NoofPieces]
-				,BII.[WorkOrderPartId]
-				,BII.[ItemMasterId]
-				,BII.[MasterCompanyId]
-				,BII.[CreatedBy]
-				,BII.[UpdatedBy]
-				,BII.[CreatedDate]
-				,BII.[UpdatedDate]
-				,BII.[IsActive]
-				,BII.[IsDeleted]
-				,ISNULL(BII.[UnitPrice],0) [UnitPrice]
-				,ISNULL(BII.[MaterialCost],0) [MaterialCost]
-				,ISNULL(BII.[LaborCost],0) [LaborCost]
-				,ISNULL(BII.[MiscCharges],0) [MiscCharges]
-				,ISNULL(BII.[Freight],0) [Freight]
-				,ISNULL(BII.[SubTotal],0) [SubTotal]
-				,BII.[TaxRate]
-				,ISNULL(BII.[SalesTax],0) [SalesTax]
-				,BII.[OtherTaxRate]
-				,ISNULL(BII.[OtherTax],0)  [OtherTax]
-				,ISNULL(BII.[GrandTotal],0) [GrandTotal]
-				,BII.[PDFPath]
-				,BII.[VersionNo]
-				,ISNULL(BII.[IsVersionIncrease],0) [IsVersionIncrease]
-				,BII.[ConditionId]
-				,ISNULL(BII.[IsPerformaInvoice],0) [IsPerformaInvoice]
-				,ISNULL(BII.[IsInvoicePosted],0) [IsInvoicePosted]
-		FROM [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] BII WITH(NOLOCK) ON BI.[BillingInvoicingId] = BII.[BillingInvoicingId] AND ISNULL(BII.IsVersionIncrease, 0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0
-		INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON BII.WorkOrderPartId = WF.WorkOrderPartNoId	
-		WHERE	BI.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-				 AND ISNULL(BI.IsVersionIncrease, 0) = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0
-		ORDER BY BII.CreatedDate DESC
-	 
+		-- COMMENT DUE TO OLD TABLE
+
+		--SELECT	TOP 1 BII.[WOBillingInvoicingItemId]
+		--		,BII.[BillingInvoicingId]
+		--		,BII.[NoofPieces]
+		--		,BII.[WorkOrderPartId]
+		--		,BII.[ItemMasterId]
+		--		,BII.[MasterCompanyId]
+		--		,BII.[CreatedBy]
+		--		,BII.[UpdatedBy]
+		--		,BII.[CreatedDate]
+		--		,BII.[UpdatedDate]
+		--		,BII.[IsActive]
+		--		,BII.[IsDeleted]
+		--		,ISNULL(BII.[UnitPrice],0) [UnitPrice]
+		--		,ISNULL(BII.[MaterialCost],0) [MaterialCost]
+		--		,ISNULL(BII.[LaborCost],0) [LaborCost]
+		--		,ISNULL(BII.[MiscCharges],0) [MiscCharges]
+		--		,ISNULL(BII.[Freight],0) [Freight]
+		--		,ISNULL(BII.[SubTotal],0) [SubTotal]
+		--		,BII.[TaxRate]
+		--		,ISNULL(BII.[SalesTax],0) [SalesTax]
+		--		,BII.[OtherTaxRate]
+		--		,ISNULL(BII.[OtherTax],0)  [OtherTax]
+		--		,ISNULL(BII.[GrandTotal],0) [GrandTotal]
+		--		,BII.[PDFPath]
+		--		,BII.[VersionNo]
+		--		,ISNULL(BII.[IsVersionIncrease],0) [IsVersionIncrease]
+		--		,BII.[ConditionId]
+		--		,ISNULL(BII.[IsPerformaInvoice],0) [IsPerformaInvoice]
+		--		,ISNULL(BII.[IsInvoicePosted],0) [IsInvoicePosted]
+		--FROM [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK)
+		--INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] BII WITH(NOLOCK) ON BI.[BillingInvoicingId] = BII.[BillingInvoicingId] AND ISNULL(BII.IsVersionIncrease, 0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0
+		--INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON BII.WorkOrderPartId = WF.WorkOrderPartNoId	
+		--WHERE	BI.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+		--		 AND ISNULL(BI.IsVersionIncrease, 0) = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0
+		--ORDER BY BII.CreatedDate DESC
+
+		-- New Table
+		DECLARE @WOModuleId INT = 0
+
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		SELECT	TOP 1 
+				BII.[BillingInvoicingId]				
+		FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)
+		INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON BI.[BillingInvoicingId] = BII.[BillingInvoicingId] AND BII.[ModuleId] = @WOModuleId AND ISNULL(BII.[IsVersionIncrease], 0) = 0 AND ISNULL(BII.[IsPerformaInvoice], 0) = 0
+		INNER JOIN [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON BII.[SubReferenceId] = WF.[WorkOrderPartNoId]	
+		WHERE BI.[ReferenceId] = @WorkOrderId AND WF.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND ISNULL(BI.[IsVersionIncrease], 0) = 0 AND ISNULL(BI.[IsPerformaInvoice], 0) = 0
+		
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

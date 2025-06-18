@@ -10,9 +10,10 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-29		  Ayushi Patel				Created
-	EXEC USP_CreateOrUpdateVendorBillingAddress 7796,4787,121354,CAROLINA,1,'41410 ARNULFO RUN','S','','73396','VIRGINIA',1,'Jim Roberts','AYUSHI P',FALSE,TRUE,'TYREEK AUER',NULL,'',FALSE
+	1    2025-06-16		  Ayushi Patel				Set IsPrimary false when we add new billing address which is set to be primary
+	EXEC USP_CreateOrUpdateVendorBillingAddress 0,4791,0,CAROLINA,1,'41410 ARNULFO RUN','S','','73396','VIRGINIA',1,'AYUSHI P','AYUSHI P',FALSE,TRUE,'TYREEK AUER',NULL,'',FALSE
 *************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendorBillingAddress]
+CREATE PROCEDURE [dbo].[USP_CreateOrUpdateVendorBillingAddress]
     @VendorBillingAddressId BIGINT = 0,
     @VendorId BIGINT,
     @AddressId BIGINT = 0,
@@ -116,9 +117,23 @@ BEGIN
         END
         ELSE
         BEGIN
+		
             IF NOT EXISTS (SELECT 1 FROM DBO.VendorBillingAddress WITH(NOLOCK) WHERE VendorId = @VendorId)
                 SET @IsPrimary = 1;
 
+				IF @IsPrimary = 1
+				BEGIN
+				PRINT (@ContactTagId);
+					UPDATE VB
+					SET IsPrimary = 0,
+						ContactTagId = @ContactTagId,
+						Attention = @Attention,
+						UpdatedBy = @CreatedBy,
+						UpdatedDate = @Now
+					FROM DBO.VendorBillingAddress VB
+					WHERE VB.VendorId = @VendorId AND VB.IsPrimary = 1 ;
+                
+            END 
             INSERT INTO DBO.VendorBillingAddress (
                 VendorId, AddressId, IsPrimary, SiteName, ContactTagId, Attention, MasterCompanyId,
                 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted

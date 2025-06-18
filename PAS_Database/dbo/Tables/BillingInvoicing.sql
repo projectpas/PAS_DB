@@ -2,6 +2,7 @@
     [BillingInvoicingId]          BIGINT          IDENTITY (1, 1) NOT NULL,
     [ModuleId]                    INT             NOT NULL,
     [ReferenceId]                 BIGINT          NOT NULL,
+    [CustomerId]                  BIGINT          NULL,
     [InvoiceTypeId]               INT             NOT NULL,
     [InvoiceNo]                   VARCHAR (256)   NOT NULL,
     [InvoiceDate]                 DATETIME2 (7)   NULL,
@@ -48,6 +49,8 @@
     [OldBillingInvoicingId]       BIGINT          NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
 
 
 

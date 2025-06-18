@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [USP_GetCurrencyIdForVendorCreditMemo]           
+ ** File:   [USP_GetEmployeeCommonDetailsList]           
  ** Author:   Sahdev Saliya
- ** Description: This stored procedure is used to Get CurrencyId For VendorCreditMemo List
+ ** Description: This stored procedure is used to Get EmployeeCommonDetails List
  ** Purpose:         
- ** Date:   10-06-2025       
+ ** Date:   16-06-2025       
           
  ** RETURN VALUE:           
   
@@ -12,42 +12,40 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    10-06-2025    Sahdev Saliya       Created  
+    1    16-06-2025    Sahdev Saliya       Created  
 
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[USP_GetCurrencyIdForVendorCreditMemo]
-    @ModuleId BIGINT,
-    @ReferenceId BIGINT
+CREATE   PROCEDURE [dbo].[USP_GetEmployeeCommonDetailsList]
+    @ManagementStructureId BIGINT
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON;
-		BEGIN TRY
+	     BEGIN TRY
 
-			DECLARE @CurrencyId BIGINT = 0;
+			SELECT
+                emp.EmployeeId,
+				emp.FirstName,
+				emp.LastName,
+				emp.MiddleName,
+				emp.EmployeeCode,
+				emp.WorkPhone,
+				emp.Email,
+				emp.MasterCompanyId
+			FROM [DBO].employee emp WITH(NOLOCK)
+			LEFT JOIN [dbo].EmployeeManagementStructure ems WITH(NOLOCK) ON emp.EmployeeId = ems.EmployeeId
+			WHERE ISNULL(emp.IsDeleted, 0) = 0 AND ISNULL(emp.IsActive, 0) = 1 AND (emp.ManagementStructureId = @ManagementStructureId OR ems.EmployeeManagementId = @ManagementStructureId);
+		END TRY    
 
-			IF @ModuleId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'PurchaseOrder') 
-			BEGIN
-				(SELECT TOP 1 @CurrencyId = FunctionalCurrencyId FROM [dbo].PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @ReferenceId);
-			END
-			ELSE IF @ModuleId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'RepairOrder') 
-			BEGIN
-				(SELECT TOP 1 @CurrencyId = FunctionalCurrencyId FROM [dbo].RepairOrderPart WITH(NOLOCK) WHERE RepairOrderId = @ReferenceId);
-			END
-
-			SELECT @CurrencyId AS CurrencyId;
-		END TRY
-
-   BEGIN CATCH      
+    BEGIN CATCH      
 				IF @@trancount > 0
 					PRINT 'ROLLBACK'
 					DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-				  , @AdhocComments     VARCHAR(150)    = 'USP_GetCurrencyIdForVendorCreditMemo' 
-				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ModuleId, '') + ''',
-				    @Parameter2 = ' + ISNULL(@ReferenceId ,'')
-
+				  , @AdhocComments     VARCHAR(150)    = 'USP_GetEmployeeCommonDetailsList' 
+				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ManagementStructureId, '')
+			 
 				  , @ApplicationName VARCHAR(100) = 'PAS'
 	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

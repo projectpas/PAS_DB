@@ -18,7 +18,7 @@
 	1	01/31/2024		AMIT GHEDIYA		Added IsPerforma for Billing
 	2	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
 	3   11/26/2024		Amit Ghediya		Get ECCN,HSCODE,Weight,LWH for billing.
-     
+ 	4	16 Jun 2025	    RAJESH GAMI			Change the new billing invoicing table with old one (SO)    
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
@@ -33,6 +33,7 @@ BEGIN
  BEGIN TRY  
  BEGIN TRANSACTION  
  BEGIN  
+ 	 DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
 	  SELECT DISTINCT sopt.SOPickTicketId, sos.SalesOrderShippingId, CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 			 CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.SOShippingNum ELSE NULL END AS SOShippingNum,  
 			 sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
@@ -40,7 +41,7 @@ BEGIN
 			 sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
 			 sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
 			 CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  
-			 SOBI.SalesOrderShippingId AS  SOShippingId,
+			 SOBI.ShippingId AS  SOShippingId,
 			 sosi.FedexPdfPath,
 			 Stk.ECCN AS ECCN,
 			 Stk.HSCODE AS HSCODE,
@@ -63,11 +64,11 @@ BEGIN
 	  LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId   
 		 AND SPI.SalesOrderPartId = sop.SalesOrderPartId  
 	  LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  
-	  LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.SalesOrderShippingId AND ISNULL(SOBI.IsProforma,0) = 0
+	  LEFT JOIN DBO.BillingInvoicingItems SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.ShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId
 	  WHERE sopt.SalesOrderId = @SalesOrderId  
 	  AND sop.ItemMasterId = @SalesOrderPartId  
 	  AND sop.ConditionId = @ConditionId  
-	  AND sopt.IsConfirmed = 1  
+	  AND ISNULL(sopt.IsConfirmed,0) = 1  
  END  
  COMMIT  TRANSACTION  
   

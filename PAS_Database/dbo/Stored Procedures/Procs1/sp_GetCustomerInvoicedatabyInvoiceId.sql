@@ -9,14 +9,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------          
-    1    04/18/2022   Subhash Saliya	Created
-	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
-	3	 04/19/2024	  Devendra Shekh	added data for Exchange SO
-	4	 04/19/2024	  Devendra Shekh	modified for invoiceTypeId changes
-	5    11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
-	6	 21-Mar-2025  Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
+ ** PR   Date			 Author				Change Description            
+ ** --   --------		 -------			--------------------------------          
+    1    04/18/2022		Subhash Saliya		Created
+	2	 02/1/2024		AMIT GHEDIYA		added isperforma Flage for SO
+	3	 04/19/2024		Devendra Shekh		added data for Exchange SO
+	4	 04/19/2024		Devendra Shekh		modified for invoiceTypeId changes
+	5    11/04/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	6	 21-Mar-2025	Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
+	7	 06-June-2025	AMIT GHEDIYA		Get WO/SO Billing data from new table.
 
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 124,0,3,226    
 **************************************************************/ 
@@ -43,6 +44,9 @@ BEGIN
 			SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDER';
 			SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER';
 			SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'EXCHANGE';
+
+			DECLARE @workOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder');
+			DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
 			
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
@@ -68,7 +72,7 @@ BEGIN
 			IF(@InvoiceTypeId = @SOInvoiceTypeId)
 			BEGIN
 
-				SELECT SOBI.SOBillingInvoicingId as InvoiceId,SOBI.InvoiceNo [InvoiceNo],
+				SELECT SOBI.BillingInvoicingId as InvoiceId,SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],
 				--SOBI.InvoiceDate [InvoiceDate],
 				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -78,7 +82,7 @@ BEGIN
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
 				IsWorkOrder=0,
-				SOBI.SalesOrderId AS [ReferenceId]
+				SOBI.ReferenceId AS [ReferenceId]
 				,(CON.FirstName +' '+ CON.LastName +' - '+ CON.WorkPhone) as ContactInfo
 			    ,SO.CustomerContactId as  CustomerContactId
 			   ,RMAC.RMAReasonId
@@ -93,15 +97,15 @@ BEGIN
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
 			   ,@SOInvoiceTypeId AS 'InvoiceTypeId'
-			FROM [dbo].SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN [dbo].SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
-				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
-				LEFT JOIN [dbo].SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+			FROM [dbo].BillingInvoicing SOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.ReferenceId
+				LEFT JOIN [dbo].SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
+				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN [dbo].CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=SO.CustomerContactId
 				LEFT JOIN [dbo].Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
 				LEFT JOIN [dbo].RMACreditMemoSettings RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
-			    Where SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0	
+			    Where SOBI.BillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0	AND SOBI.ModuleId = @salesOrderModuleId
 
 			END
 			ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
@@ -156,7 +160,7 @@ BEGIN
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt],
 				IsWorkOrder=1,
-				WOBI.WorkOrderId AS [ReferenceId]
+				WOBI.ReferenceId AS [ReferenceId]
 			   ,WOBI.ManagementStructureId as ManagementStructureId
 			   ,(CON.FirstName +' '+ CON.LastName +' - '+ CON.WorkPhone) as ContactInfo
 			   ,WO.CustomerContactId as  CustomerContactId
@@ -171,14 +175,14 @@ BEGIN
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
 			   ,@WOInvoiceTypeId AS 'InvoiceTypeId'
-				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
-				LEFT JOIN [dbo].WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+				FROM dbo.BillingInvoicing WOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].WorkOrder WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
+				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN [dbo].CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=WO.CustomerContactId
 				LEFT JOIN [dbo].Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
 				LEFT JOIN [dbo].RMACreditMemoSettings RMAC WITH (NOLOCK) ON wo.MasterCompanyId = RMAC.MasterCompanyId
-			    Where WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0
+			    Where WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0 AND WOBI.ModuleId = @workOrderModuleId
 			
 			END
 			END

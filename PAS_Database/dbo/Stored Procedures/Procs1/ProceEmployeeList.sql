@@ -17,6 +17,7 @@
 	3    11/03/2025   Sahdev Saliya      Added a case to get timeZone
 	4    12/03/2025   Sahdev Saliya      Change the Date format to Datetime
 	5    29/05/2025   Amit Ghediya       Get user has role or not.
+	6	 17/06/2025   Bhargav Saliya     select the  Employee Roles
      
 ************************************************************************/
 CREATE PROCEDURE [dbo].[ProceEmployeeList]
@@ -44,7 +45,8 @@ CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @MasterCompanyId bigint = NULL,
 @IsSuperAdmin bit = NULL,
 @UserName  varchar(50) = NULL,
-@IsRoleAssign  bit = NULL
+@IsRoleAssign  bit = NULL,
+@EmpRoles varchar(200) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -101,8 +103,17 @@ BEGIN
 		
 		--BEGIN TRANSACTION
 		--BEGIN
+		;WITH EmpRoleAgg AS (
+			SELECT 
+				ER.EmployeeId,
+				STRING_AGG(UR.Name, ', ') AS EmpRoles
+			FROM dbo.EmployeeUserRole ER WITH (NOLOCK)
+				INNER JOIN dbo.UserRole UR WITH (NOLOCK) ON ER.RoleId = UR.Id
+			WHERE ER.IsDeleted = 0 AND ER.IsActive = 1
+			GROUP BY ER.EmployeeId
+		),
 
-		;WITH Result AS(									
+		Result AS(									
 		   	 SELECT DISTINCT t.EmployeeId, 
 					t.EmployeeCode,
 					t.FirstName,
@@ -120,7 +131,8 @@ BEGIN
 				    le.[Name] AS Company,
 					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype,
 					ASP.UserName,
-					IsRoleAssign = (SELECT CASE WHEN COUNT(EmployeeUserRoleId) > 0 THEN 1 ELSE 0 END FROM dbo.EmployeeUserRole ER WITH(NOLOCK) WHERE ER.EmployeeId = t.EmployeeId)
+					IsRoleAssign = (SELECT CASE WHEN COUNT(EmployeeUserRoleId) > 0 THEN 1 ELSE 0 END FROM dbo.EmployeeUserRole ER WITH(NOLOCK) WHERE ER.EmployeeId = t.EmployeeId),
+					ERA.EmpRoles 
 			   FROM dbo.Employee t WITH (NOLOCK)
 			        INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
 					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
@@ -129,6 +141,7 @@ BEGIN
 			        LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
 					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId	
 					LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON T.EmployeeId = ASP.EmployeeId
+					LEFT JOIN EmpRoleAgg ERA WITH (NOLOCK) ON ERA.EmployeeId = t.EmployeeId
 
 		 	  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
 			        AND t.MasterCompanyId=@MasterCompanyId	
@@ -168,7 +181,8 @@ BEGIN
 					(Paytype LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR 
-					(UserName LIKE '%' +@GlobalFilter+'%')))	
+					(UserName LIKE '%' +@GlobalFilter+'%') or
+					(EmpRoles LIKE '%' +@GlobalFilter+'%')))	
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@EmployeeCode,'') ='' OR EmployeeCode LIKE '%' + @EmployeeCode+'%') AND
 					(ISNULL(@FirstName,'') ='' OR FirstName LIKE '%' + @FirstName + '%') AND
@@ -183,7 +197,8 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
-					(ISNULL(@UserName,'') ='' OR UserName LIKE '%' + @UserName + '%'))
+					(ISNULL(@UserName,'') ='' OR UserName LIKE '%' + @UserName + '%')) AND
+					(ISNULL(@EmpRoles,'') ='' OR EmpRoles LIKE '%' + @EmpRoles + '%')
 				   )
 
 			SELECT @Count = COUNT(EmployeeId) FROM #TempResult			
@@ -216,7 +231,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UserName')  THEN UserName END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UserName')  THEN UserName END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UserName')  THEN UserName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='EmpRoles')  THEN EmpRoles END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='EmpRoles')  THEN EmpRoles END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 
@@ -256,6 +273,7 @@ BEGIN
 			  + '@Parameter20 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
 			  + '@Parameter21 = ''' + CAST(ISNULL(@EmployeeId , '') AS varchar(100))
 			  + '@Parameter22 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
+			  + '@Parameter23 = ''' + CAST(ISNULL(@EmpRoles, '') AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

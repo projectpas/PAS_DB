@@ -20,7 +20,7 @@
     4    10/18/2024   Devendra Shekh Add fields related to quickBooks
 	5    15/01/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	7	 10-06-2025     Bhargav Saliya      Added @IsCustomerAlsoVendor Condition
+	7	 17-06-2025     Bhargav Saliya      Select Is Customer also a vendor flag and vendor Name
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -54,7 +54,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@EmployeeId bigint,
 	@IsUpdated BIT = NULL,
 	@IsCustomerAlsoVendor BIT = NULL,
-	@IsCustVendor  varchar(20)=null
+	@IsCustVendor  varchar(20)=null,
+	@VendorName varchar(100)=null
 
 AS
 BEGIN
@@ -142,7 +143,8 @@ BEGIN
 					C.QuickBooksReferenceId,
 					CASE WHEN ISNULL(C.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
 					C.LastSyncDate,
-					CASE WHEN ISNULL(C.IsCustomerAlsoVendor,0) = 1 THEN 'YES' ELSE 'NO' END AS 'IsCustVendor'
+					CASE WHEN ISNULL(C.IsCustomerAlsoVendor,0) = 1 THEN 'YES' ELSE 'NO' END AS 'IsCustVendor',
+					V.VendorName
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
@@ -151,6 +153,7 @@ BEGIN
 					LEFT JOIN  dbo.Address a  WITH (NOLOCK) ON C.AddressId=a.AddressId
 					LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=C.CustomerId AND CC.IsDefaultContact=1
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
+					LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.RelatedCustomerId = C.CustomerId
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
 					AND C.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
 					AND (@IsCustomerAlsoVendor IS NULL OR C.IsCustomerAlsoVendor = @IsCustomerAlsoVendor)
@@ -170,7 +173,8 @@ BEGIN
 					(isSynced LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(IsCustVendor LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%')
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(VendorName LIKE '%' +@GlobalFilter+'%')
 					))
 					OR
 					(@GlobalFilter='' AND (ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
@@ -189,6 +193,7 @@ BEGIN
 					(ISNULL(@isSynced,'') ='' OR isSynced LIKE '%' + @isSynced+'%') AND
 					(ISNULL(@LastSyncDate,'') ='' OR CAST(LastSyncDate as Date)=CAST(@LastSyncDate as date)) AND
 					(ISNULL(@IsCustVendor,'') ='' OR IsCustVendor LIKE '%' + @IsCustVendor+'%') AND
+					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
@@ -215,6 +220,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ISSYNCED')  THEN isSynced END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORNAME')  THEN VendorName END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMAIL')  THEN Email END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='City')  THEN City END DESC,
@@ -233,7 +239,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSYNCED')  THEN isSynced END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')  THEN VendorName END DESC
 
 			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY
@@ -266,6 +273,7 @@ BEGIN
 			  + '@Parameter20 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
 			  + '@Parameter21 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
 			  + '@Parameter22 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))
+			  + '@Parameter23 = ''' + CAST(ISNULL(@VendorName, '') AS varchar(100))
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName

@@ -12,13 +12,15 @@
  **************************************************************               
  ** PR   Date         Author				Change	Description                
  ** --   --------     -------   --------------------------------              
-    2    13/11/2024    SHREY CHANDEGARA      UPDATED	for @SalesOrderModuleId
+    2    13/11/2024    SHREY CHANDEGARA      UPDATED for @SalesOrderModuleId
+	3    17/06/2025    Amit Ghediya			 UPDATED for add @PackagingSlipId
          
 -- EXEC [dbo].[GetPackagingLabel] 1300, 1507
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[GetPackagingLabel]
-    @SalesOrderId INT,
-    @SalesOrderPartId INT
+    @SalesOrderId BIGINT,
+    @SalesOrderPartId BIGINT,
+	@PackagingSlipId BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -80,7 +82,7 @@ BEGIN
     LEFT JOIN [dbo].[AllShipVia] posv WITH(NOLOCK) ON soq.SalesOrderId = posv.ReferenceId 
         AND posv.ModuleId = 1 -- assuming SalesOrder module
     LEFT JOIN [dbo].[SalesOrderPackaginSlipItems] spi WITH(NOLOCK) ON sopkt.SOPickTicketId = spi.SOPickTicketId
-    LEFT JOIN [dbo].[SalesOrderPackaginSlipHeader] spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId
+    LEFT JOIN [dbo].[SalesOrderPackaginSlipHeader] spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId 
     LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH(NOLOCK) ON sopkt.SOPickTicketId = sosi.SOPickTicketId
     LEFT JOIN [dbo].[SalesOrderShipping] sos WITH(NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId
     LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK) ON sos.SalesOrderId = sobi.SalesOrderId
@@ -89,5 +91,5 @@ BEGIN
     LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN [dbo].[ShippingVia] sh WITH(NOLOCK) ON sos.ShipviaId = sh.ShippingViaId
-    WHERE sopkt.SalesOrderId = @SalesOrderId AND sopkt.SalesOrderPartId = @SalesOrderPartId;
+    WHERE sopkt.SalesOrderId = @SalesOrderId AND spb.PackagingSlipId = @PackagingSlipId --AND sopkt.SalesOrderPartId = @SalesOrderPartId;
 END;

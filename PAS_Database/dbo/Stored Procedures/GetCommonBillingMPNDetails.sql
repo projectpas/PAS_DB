@@ -14,8 +14,9 @@
     1    01/05/2025   Moin Bloch    Created
     2    12/05/2025   RAJESH GAMI    Added SO Part Details Code
 	3    11/06/2025   RAJESH GAMI    Fix the getting wrong invoicingId (SO)
-	4    17/06/2025   RAJESH GAMI    Fix the Shipping Related issue
+	4    17/06/2025   RAJESH GAMI    Fix the Shipping Related issue AND Proforma amount related issue
 	5    17/06/2025   Moin Bloch     Add QuoteMethod
+
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8800,0,'',15
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 846,0,'1011,1012,1013',10,0
@@ -39,7 +40,7 @@ BEGIN
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
-		DECLARE @SoFreightBillingMethodId INT = 0, @SoChargesBillingMethodId INT = 0, @SoTotalCharges DECIMAL(10,2) = 0, @SoTotalFreight DECIMAL(10,2) = 0
+		DECLARE @SoFreightBillingMethodId INT = 0, @SoChargesBillingMethodId INT = 0, @SoTotalCharges DECIMAL(10,2) = 0, @SoTotalFreight DECIMAL(10,2) = 0,@itemProformaGrandTotal DECIMAL(10,2) = 0
 		DECLARE @TotalRecords INT = 0,@MinId INT = 1,@WorkOrderMPNMSModuleEnum INT=12   			 
 		DECLARE @ID BIGINT = 0, @CustomerId BIGINT = 0,@MasterCompanyId INT = 0;			
 		DECLARE @Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@PartDescription NVARCHAR(MAX)='',@SerialNumber VARCHAR(100)=''
@@ -50,6 +51,10 @@ BEGIN
 		IF(@SubReferenceIds = '')
 		BEGIN
 			SET @SubReferenceIds = NULL;
+		END
+		IF(@IsProformaInvoice = NULL)
+		BEGIN
+			SET @IsProformaInvoice = 0;
 		END
 
 		IF OBJECT_ID(N'tempdb..#TempCommonPartNumberDetailsForBilling') IS NOT NULL
@@ -400,11 +405,11 @@ BEGIN
 					[OtherTax]  DECIMAL(18,2) NULL				
 				)		
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
-				SELECT TOP 1 @BillingInvoicingId = BI.BillingInvoicingId, @BillingInvoicingItemId = BII.BillingInvoicingItemId  FROM #TempCommonPartNumberDetailsForBilling cpd   
+				SELECT TOP 1 @BillingInvoicingId = BI.BillingInvoicingId, @BillingInvoicingItemId = BII.BillingInvoicingItemId,@itemProformaGrandTotal = ISNULL(BII.GrandTotal,0)  FROM #TempCommonPartNumberDetailsForBilling cpd   
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId AND ISNULL(Bi.IsVersionIncrease,0) = 0
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId AND BII.ConditionId = CPD.ConditionId AND cpd.StockLineId = BII.StocklineId
 							
-							WHERE cpd.ReferenceId = @ReferenceId  AND ISNULL(Bi.IsVersionIncrease,0) = 0 AND [PKID] = @MinId;	
+							WHERE cpd.ReferenceId = @ReferenceId  AND ISNULL(Bi.IsVersionIncrease,0) = 0 AND [PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0);	
 				
 				IF(@SoChargesBillingMethodId != 0 AND @SoChargesBillingMethodId != @FlatBillingMethodId)
 				BEGIN
@@ -423,7 +428,7 @@ BEGIN
 				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
 				
-				SET @PartsCost = ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved
+				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
 				IF(@IsProformaInvoice = 1)

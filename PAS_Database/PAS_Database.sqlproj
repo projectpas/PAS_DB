@@ -3972,6 +3972,8 @@
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntityShippingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeLicensureDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShippingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveNewPartToWorkOrderQuote.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

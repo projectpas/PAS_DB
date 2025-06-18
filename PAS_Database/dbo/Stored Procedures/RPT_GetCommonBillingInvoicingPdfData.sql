@@ -13,7 +13,7 @@
     1    16/05/2025   Moin Bloch		Created
     2    21/05/2025   RAJESH GAMI       Implemented SO
 	
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 20089,15,2
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 38,15,2
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData]
 @BillingInvoicingId BIGINT = NULL,
@@ -136,7 +136,7 @@ BEGIN
 				INNER JOIN [dbo].[Address] CUSTADDRESS WITH(NOLOCK) ON CUST.[AddressId] = CUSTADDRESS.[AddressId]
 				 LEFT JOIN [dbo].[CustomerContact] CUSTCONT WITH(NOLOCK) ON WO.[CustomerContactId] = CUSTCONT.[CustomerContactId]
 				 LEFT JOIN [dbo].[Contact] CONTACT WITH(NOLOCK) ON CUSTCONT.[ContactId] = CONTACT.[ContactId]
-				INNER JOIN [dbo].[Customer] BILLTOCUSTOMER WITH(NOLOCK) ON BID.[SoldToCustomerId] = BILLTOCUSTOMER.[CustomerId]		
+				 LEFT JOIN [dbo].[Customer] BILLTOCUSTOMER WITH(NOLOCK) ON BID.[SoldToCustomerId] = BILLTOCUSTOMER.[CustomerId]		
 				INNER JOIN [dbo].[CustomerBillingAddress] BILLTOSITE WITH(NOLOCK) ON BID.[SoldToSiteId] = BILLTOSITE.[CustomerBillingAddressId]
 				INNER JOIN [dbo].[Address] BILLTOADDRESS WITH(NOLOCK) ON BILLTOSITE.[AddressId] = BILLTOADDRESS.[AddressId]
 				 LEFT JOIN [dbo].[Countries] BILLTOCOUNTRY WITH(NOLOCK) ON BILLTOADDRESS.[CountryId] = BILLTOCOUNTRY.[countries_id]
@@ -149,7 +149,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
 				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]				
 				 LEFT JOIN #TempCustomerRef CUSTREF ON BI.ReferenceId = CUSTREF.ReferenceId
-				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
+				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 
 		END  /*********END: WORK ORDER ********/		
 	END TRY    
 	BEGIN CATCH      

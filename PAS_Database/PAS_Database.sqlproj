@@ -3973,6 +3973,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeLicensureDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCapesListByAssetId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryAdjustmentDataByAssetInventoryId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMappedByAssetId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

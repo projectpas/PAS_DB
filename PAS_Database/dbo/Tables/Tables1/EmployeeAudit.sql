@@ -48,6 +48,8 @@
     [IsIncludeInCC]                      BIT             NULL,
     [IsAllowToChangeManagementStructure] BIT             CONSTRAINT [DF_EmployeeAudit_IsAllowToChangeManagementStructure] DEFAULT ((0)) NULL,
     [SiteId]                             BIGINT          NULL,
+    [TwoFactorAuthentication]            BIT             DEFAULT ((0)) NOT NULL,
+    [TwoFactorAuthenticationType]        INT             NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
 

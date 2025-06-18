@@ -10,10 +10,11 @@
  **************************************************************           
  ** PR   Date          Author		Change Description            
  ** --   --------	   -------		--------------------------------          
-    1    24/03/2025    Moin Bloch    Created
-    2    14/04/2025    RAJESH GAMI   Implement the traverler Number logic    
-	3    18/04/2025    Moin Bloch    Added For CREATING TRAVELER LABOUR HEADER
-	4    30/04/2025    Rajesh Gami   Fix the RevisedItemMasterId, Desc and PartNumber related issue.
+    1    24/03/2025    Moin Bloch		Created
+    2    14/04/2025    RAJESH GAMI		Implement the traverler Number logic    
+	3    18/04/2025    Moin Bloch		Added For CREATING TRAVELER LABOUR HEADER
+	4    30/04/2025    Rajesh Gami		Fix the RevisedItemMasterId, Desc and PartNumber related issue.
+	5    18/06/2025    Devendra Shekh   Added Changes to Add New MPN to Quote
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -81,7 +82,8 @@ BEGIN
 	  DECLARE @NewPartNumber VARCHAR(200)=NULL,@TemplateBody NVARCHAR(MAX)='',@NewCMMName VARCHAR(MAX)='',@NewWorkPriorityId BIGINT = NULL
 	  DECLARE @NewWorkPriorityName VARCHAR(100),@NewWorkScopeName VARCHAR(500),@NewWorkScopeId BIGINT = NULL
 	  DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
-	  DECLARE @TravelerName AS varchar(100) = 0 , @ItemMasterId BIGINT =0;        
+	  DECLARE @TravelerName AS varchar(100) = 0 , @ItemMasterId BIGINT =0;    
+	  DECLARE @IsNewPartAddedToQuote BIT = 0;
 	SET @CreatedDate = GETUTCDATE();
     SET @UpdatedDate = GETUTCDATE();
 
@@ -175,6 +177,18 @@ BEGIN
 		[SerialNumber] [VARCHAR](100) NULL,
 		[MasterPartId] [BIGINT] NULL,
 		[Isadd] [BIT] NULL
+	)
+
+	IF OBJECT_ID(N'tempdb..#tmpNewAddedWorkOrderPartNumber') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmpNewAddedWorkOrderPartNumber
+	END
+
+	CREATE TABLE #tmpNewAddedWorkOrderPartNumber
+	(
+		[PKID] [BIGINT] NOT NULL IDENTITY, 
+		[ID] [BIGINT] NULL,
+		[WorkOrderId] [BIGINT] NULL,
 	)
 			   	 
     -- Set CSRId and SalesPersonId to NULL if 0
@@ -518,6 +532,8 @@ BEGIN
 
 			SET @ID = SCOPE_IDENTITY();	
 
+			INSERT INTO #tmpNewAddedWorkOrderPartNumber ([ID], [WorkOrderId]) VALUES(@WOId, @WorkOrderId);
+
 			UPDATE #tmprCreateWorkOrderPartNumber SET [ID] = @ID WHERE [PKID] = @MinId
 		END
 		
@@ -562,6 +578,16 @@ BEGIN
 
 	-- CREATING TRAVELER LABOUR TASK
 	EXEC [dbo].[CreateTravelerLabourTask] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	-- Adding New Added MPN To WorkOrder Quote
+	IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId)
+	BEGIN
+		IF EXISTS(SELECT 1 FROM #tmpNewAddedWorkOrderPartNumber)
+		BEGIN
+			SET @IsNewPartAddedToQuote = 1;
+			EXEC [dbo].[USP_SaveNewPartToWorkOrderQuote] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+		END
+	END
 	   	  
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -700,9 +726,9 @@ BEGIN
 
 		EXEC [dbo].[USP_History] @WorkOrderModuleID,@WorkOrderId,0,@WorkOrderPartId,@OldWorkScopeName,@NewWorkScopeName,@TemplateBody,@UpdateWOScope,@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate
 
-	END
+	END	
 
-	SELECT @WorkOrderId AS [WorkOrderId]
+	SELECT @WorkOrderId AS [WorkOrderId], @IsNewPartAddedToQuote AS [IsNewPartAddedToQuote]
 
 	END
 	COMMIT  TRANSACTION

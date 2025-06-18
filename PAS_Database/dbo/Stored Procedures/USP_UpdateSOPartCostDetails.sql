@@ -45,6 +45,11 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+				
+				DECLARE @SendStatusId INT = 0;
+
+				SELECT @SendStatusId = Id FROM DBO.MasterSalesOrderStatus WITH(NOLOCK) WHERE [Name] = 'Sent';
+
 				IF OBJECT_ID(N'tempdb..#SOPartCostDetails') IS NOT NULL
 				BEGIN
 					DROP TABLE #SOPartCostDetails
@@ -254,9 +259,7 @@ SET NOCOUNT ON
 				END
 
 				IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
-				BEGIN
-					DECLARE @SendStatusId INT = 0;
-					select @SendStatusId = Id from MasterSalesOrderStatus WHERE Name = 'Sent';
+				BEGIN				
 
 					IF(@IsFromRRO = 1)
 					BEGIN

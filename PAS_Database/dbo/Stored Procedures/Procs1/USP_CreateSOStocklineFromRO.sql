@@ -664,7 +664,7 @@ BEGIN
 
 							-- Increase Qty Requested if the stockline is added in the existing part with same condition
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyRequested = (@NewQtyRequested)
+							SET QtyRequested = (QtyRequested + @NewQtyRequested)
 							WHERE [SalesOrderId] = @SalesOrderId AND ItemMasterId = @NewItemMasterId AND ConditionId = @NewConditionId;
 
 							-- UPDATE NEWLY CREATED [SalesOrderPartId] IN FREIGHT & CHARGES
@@ -734,14 +734,14 @@ BEGIN
 							--SELECT @UnitCost = [UnitCost] FROM [dbo].[SalesOrderStockLine] WITH(NOLOCK) WHERE SOStockLineId = @SalesOrderStockLineId
 
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyOrder = QtyOrder,-- - @StlQuantity,
+							SET QtyOrder = @StlQuantity,
 							ConditionId = @NewConditionId,
 							--UnitCostExtended = ISNULL(UnitCost, 0) * ISNULL(Qty - @StlQuantity, 0),
 							UpdatedDate = GETDATE()
 							WHERE [SalesOrderPartId] = @ExSalesOrderPartId;
 
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyOrder = QtyOrder, --@StlQuantity,
+							SET QtyOrder = @StlQuantity,
 							--UnitCost = @UnitCost,
 							--UnitCostExtended = ISNULL(@UnitCost, 0) * ISNULL(@StlQuantity, 0),
 							UpdatedDate = GETDATE()

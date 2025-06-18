@@ -24,6 +24,7 @@
 	8    12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
 	9	 05/05/2025	  Abhishek Jirawla  Updated the unit cost to the new stockline cost(including repair order).
 	9	 05/30/2025	  Abhishek Jirawla  Updated the condition to the new stockline.
+	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp USP_UpdateSOPartCostDetails for SalesOrderPartV1 table.
 
  EXECUTE USP_CreateSOStocklineFromRO 1780
 
@@ -160,14 +161,14 @@ BEGIN
 			AND RP.RepairOrderPartRecordId = @RepairOrderPartId  AND RP.ItemTypeId=1
 
 		  SET @QtyFulfilled = @Quantity;
-
+		  
 		  IF((SELECT COUNT(1) FROM [dbo].[RepairOrderPart] RP WITH(NOLOCK) WHERE RP.RepairOrderPartRecordId = @RepairOrderPartId AND RP.ItemTypeId=1 AND ISNULL(RP.SalesOrderId, 0) > 0) > 0)
 		  BEGIN
 		  SELECT @LoopID = MAX(ID) FROM #StockLineData
 		  WHILE (@LoopID > 0)
           BEGIN
             SELECT @StocklineId = StocklineId FROM #StockLineData WHERE ID = @LoopID;
-
+			
             IF (@QtyFulfilled > 0)
             BEGIN
               IF ((SELECT COUNT(1) FROM [dbo].[RepairOrderPart] RP WITH (NOLOCK) JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId WHERE RP.ItemTypeId=1 AND ISNULL(RP.RevisedPartId, 0) > 0 AND SL.StockLineId = @StocklineId) > 0 )
@@ -430,8 +431,7 @@ BEGIN
 					     [ConditionId] = @NewCndId,
 						 [ItemMasterId] = @NewItmId
 				   WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
-                END
-
+                END				
               END
               ELSE
               BEGIN
@@ -584,7 +584,8 @@ BEGIN
 						@MasterCompanyId,
 						0,
 						0,
-						0
+						0,
+						1
 
 						INSERT INTO #SalesOrderPartDetails (SalesOrderPartId) SELECT @SalesOrderPartId
 
@@ -663,7 +664,7 @@ BEGIN
 
 							-- Increase Qty Requested if the stockline is added in the existing part with same condition
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyRequested = (QtyRequested + @NewQtyRequested)
+							SET QtyRequested = (@NewQtyRequested)
 							WHERE [SalesOrderId] = @SalesOrderId AND ItemMasterId = @NewItemMasterId AND ConditionId = @NewConditionId;
 
 							-- UPDATE NEWLY CREATED [SalesOrderPartId] IN FREIGHT & CHARGES
@@ -733,14 +734,14 @@ BEGIN
 							--SELECT @UnitCost = [UnitCost] FROM [dbo].[SalesOrderStockLine] WITH(NOLOCK) WHERE SOStockLineId = @SalesOrderStockLineId
 
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyOrder = QtyOrder - @StlQuantity,
+							SET QtyOrder = QtyOrder,-- - @StlQuantity,
 							ConditionId = @NewConditionId,
 							--UnitCostExtended = ISNULL(UnitCost, 0) * ISNULL(Qty - @StlQuantity, 0),
 							UpdatedDate = GETDATE()
 							WHERE [SalesOrderPartId] = @ExSalesOrderPartId;
 
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyOrder = @StlQuantity,
+							SET QtyOrder = QtyOrder, --@StlQuantity,
 							--UnitCost = @UnitCost,
 							--UnitCostExtended = ISNULL(@UnitCost, 0) * ISNULL(@StlQuantity, 0),
 							UpdatedDate = GETDATE()

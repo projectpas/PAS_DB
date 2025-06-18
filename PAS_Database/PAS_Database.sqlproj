@@ -3970,6 +3970,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeCommonDetailsList.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderPartStocklineDetailsBySOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntityShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeLicensureDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

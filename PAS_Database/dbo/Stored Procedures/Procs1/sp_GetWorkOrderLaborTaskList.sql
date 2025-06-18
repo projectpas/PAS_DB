@@ -19,6 +19,7 @@
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    01/03/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
 	4    21/01/2025   Moin Bloch     Added [WorkOrderFormTypeId]
+	5    18/06/2025   Devendra Shekh Hours Calculation Issue Resolved after new Changes for Labor Rename
 	
  EXECUTE [sp_GetWorkOrderLaborTaskList] 3814
 **************************************************************/
@@ -32,6 +33,7 @@ BEGIN
 	
 				DECLARE @WorkOrderId BIGINT = 0
 				DECLARE @WorkOrderFormTypeId BIT = 0
+				DECLARE @LaborClockInOutTypeId INT = 2;
 				SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkOrderLaborHeaderId] = @WorkOrderLaborHeaderId
 
 				SELECT @WorkOrderFormTypeId = [WorkOrderFormTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
@@ -63,7 +65,8 @@ BEGIN
                        wol.TotalCost,
 					   wol.IsBegin,
 					   CASE WHEN (SELECT COUNT(WorkOrderLaborTrackingId) FROM DBO.WorkOrderLaborTracking wolt WITH(NOLOCK) WHERE wolt.WorkOrderLaborId= wol.WorkOrderLaborId) >0 THEN wol.IsBegin ELSE NULL END AS IsBeginTemp,
-					   CASE WHEN wop.IsTraveler = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.WorkOrderLaborId,0)) ELSE wol.[Hours] END AS [Hours],
+					   --CASE WHEN wop.IsTraeler = 1 THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.WorkOrderLaborId,0)) ELSE wol.[Hours] END AS [Hours],
+					   CASE WHEN ISNULL(woh.HoursorClockorScan, 0) = @LaborClockInOutTypeId THEN (SELECT dbo.FN_GetCurrentLaborHours(wol.WorkOrderLaborId,0)) ELSE wol.[Hours] END AS [Hours],
 					   emp.FirstName + ' '+ emp.LastName AS EmployeeName,
 					   --task.[Description] AS Task,
 					   CASE WHEN @WorkOrderFormTypeId = 1 THEN WOT.[TaskName] ELSE task.[Description] END AS Task,

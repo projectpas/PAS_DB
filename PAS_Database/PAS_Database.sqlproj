@@ -3971,16 +3971,13 @@
     <Build Include="dbo\Stored Procedures\GetSalesOrderPartStocklineDetailsBySOId.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateLegalEntityShippingAddress.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeLicensureDetails.sql" />
-<<<<<<< PN-12996
+    <Build Include="dbo\Stored Procedures\USP_GetCapesListByAssetId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryAdjustmentDataByAssetInventoryId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMappedByAssetId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeUserRoleList.sql" />
-=======
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShippingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveNewPartToWorkOrderQuote.sql" />
-
-    <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />
->>>>>>> DEV
-  </ItemGroup>
-  <ItemGroup>
+    <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />  
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>

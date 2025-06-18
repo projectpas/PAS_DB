@@ -3974,8 +3974,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetCapesListByAssetId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryAdjustmentDataByAssetInventoryId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMappedByAssetId.sql" />
-  </ItemGroup>
-  <ItemGroup>
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeUserRoleList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShippingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveNewPartToWorkOrderQuote.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />  
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
-﻿/*************************************************************           
+﻿ /*************************************************************           
  ** File:		 [USP_CreateLegalEntityShippingAddress]           
  ** Author:		 Divyesh Kathiriya
- ** Description: This Stored Procedure Is Used To Create LegalEntity Shipping Address.
+ ** Description: This Stored Procedure Is Used To Create Or Update LegalEntity Shipping Address.
  ** Purpose:         
  ** Date:   13-June-2025 
  **************************************************************           
@@ -9,10 +9,11 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    13-June-2025		Divyesh Kathiriya	Created	
+    1    13-June-2025		Divyesh Kathiriya	Created
+	2	 18-June-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity Shipping Address.
     
  -- EXEC [USP_CreateLegalEntityShippingAddress] @LegalEntityShippingAddressId=0,@LegalEntityId=41,@SiteName=N'Site Name',@Attention=N'Attention',@Address1=N'Address 1',@Address2=N'Address 2',@StateOrProvince=N'State',
-												@City=N'City',@PostalCode=N'Zip Code',@CountryId=3,@MasterCompanyId=1,@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@IsPrimary=1,@TagName=N'ACCOUNTS PAYABLES'
+												@City=N'City',@PostalCode=N'Zip Code',@CountryId=3,@MasterCompanyId=1,@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@IsPrimary=1,@TagName=N'ACCOUNTS PAYABLES,@ContactTagId=9'
 **************************************************************/
 Create   PROCEDURE [DBO].[USP_CreateLegalEntityShippingAddress]
 @LegalEntityShippingAddressId BIGINT,
@@ -29,7 +30,8 @@ Create   PROCEDURE [DBO].[USP_CreateLegalEntityShippingAddress]
 @CreatedBy VARCHAR(256),
 @UpdatedBy VARCHAR(256),
 @IsPrimary BIT,
-@TagName VARCHAR(250) = NULL
+@TagName VARCHAR(250) = NULL,
+@ContactTagId BIGINT= NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -38,8 +40,8 @@ BEGIN
 	BEGIN TRANSACTION
 
 		-- Declare variables
-		DECLARE @AddressId BIGINT;		
-		DECLARE @ShippingAddressId BIGINT;		
+		DECLARE @AddressId BIGINT;													
+		DECLARE @ShippingAddressId BIGINT;													
 		DECLARE @ShippingAddressType INT = 2;
 		DECLARE @LegalEntityModuleId INT;
 			
@@ -101,10 +103,10 @@ BEGIN
 				-- Insert LegalEntity Shipping Address Details
 				INSERT INTO [DBO].[LegalEntityShippingAddress] (
 					[LegalEntityId], [AddressId], [SiteName], [IsPrimary],
-					[MasterCompanyId],[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Attention], [TagName])
+					[MasterCompanyId],[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [Attention], [TagName], [ContactTagId])
 					VALUES (
 					@LegalEntityId, @AddressId, @SiteName, @IsPrimary,
-					@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @Attention, @TagName)
+					@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @Attention, @TagName, @ContactTagId)
 
 				SET @LegalEntityShippingAddressId = SCOPE_IDENTITY();
 
@@ -116,8 +118,76 @@ BEGIN
 				INSERT INTO #tmpmsg(msg) VALUES ('Site name already exist with these details.!');					
 			END
 		END
-
 /***************End Save LegalEntity Shipping Address Details***************/
+/***************Start Update LegalEntity Shipping Address Details***************/
+		ELSE
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [SiteName] = @SiteName AND [LegalEntityId] = @LegalEntityId AND [LegalEntityShippingAddressId] != @LegalEntityShippingAddressId)
+			BEGIN
+				IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId)
+				BEGIN
+					SELECT @AddressId = [AddressId] FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId;
+
+					IF EXISTS (SELECT 1 FROM [DBO].[Address] WITH(NOLOCK) WHERE [AddressId] = @AddressId)
+					BEGIN
+						UPDATE [DBO].[Address]
+						SET 
+							[Line1] = @Address1,
+							[Line2] = @Address2,							
+							[City] = @City,
+							[StateOrProvince] = @StateOrProvince,
+							[PostalCode] = @PostalCode,
+							[CountryId] = @CountryId,							
+							[UpdatedBy] = @UpdatedBy,
+							[UpdatedDate] = GETUTCDATE()							
+						WHERE [AddressId] = @AddressId;
+					END
+
+					--IF NEW PRIMARY, RESET OLD PRIMARY TO NO-PRIMARY
+					IF (ISNULL(@IsPrimary, 0) = 1)
+					BEGIN
+						IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND @IsPrimary = 1 AND [LegalEntityShippingAddressId] != @LegalEntityShippingAddressId)
+						BEGIN
+							
+							SELECT @ShippingAddressId = [LegalEntityShippingAddressId] FROM [DBO].[LegalEntityShippingAddress] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimary] = 1;
+
+							UPDATE [DBO].[LegalEntityShippingAddress]
+							SET [IsPrimary] = 0,
+								[UpdatedBy] = @UpdatedBy,
+								[UpdatedDate] = GETUTCDATE()
+							WHERE [LegalEntityId] = @LegalEntityId
+								AND [LegalEntityShippingAddressId] != @LegalEntityShippingAddressId
+								AND [IsPrimary] = 1;
+
+							EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@ShippingAddressId,@ShippingAddressType,@UpdatedBy;
+						END
+					END
+
+					UPDATE [DBO].[LegalEntityShippingAddress]
+					SET
+						[SiteName] = @SiteName,						
+						[IsPrimary] = @IsPrimary,						
+						[UpdatedBy] = @UpdatedBy,
+						[UpdatedDate] = GETUTCDATE(),
+						[Attention] = @Attention,
+						[TagName] = @TagName,
+						[ContactTagId] = @ContactTagId
+					WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId;
+
+					EXEC [DBO].[USP_ShippingBillingAddressHistory] @LegalEntityId,@LegalEntityModuleId,@LegalEntityShippingAddressId,@ShippingAddressType,@UpdatedBy;
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #tmpmsg(msg) VALUES ('Entity Shipping Update failed');					
+				END
+			END
+			ELSE
+			BEGIN
+				INSERT INTO #tmpmsg(msg) VALUES ('Site name already exist with these details.!');					
+			END
+
+		END
+/***************End Update LegalEntity Shipping Address Details***************/
 
 		IF EXISTS (SELECT 1 FROM #tmpmsg)
 		BEGIN

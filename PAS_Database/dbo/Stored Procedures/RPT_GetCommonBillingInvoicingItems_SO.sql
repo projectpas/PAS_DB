@@ -11,8 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/JUN/2025   RAJESH GAMI   CREATED
-     
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 14,10
+	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed     
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 42,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -36,14 +36,14 @@ BEGIN
 			END
 			SELECT 
 			 
-					Freight = CASE 
+					Freight = CASE WHEN BI.IsPerformaInvoice = 1 THEN 0
 								WHEN so.FreightBilingMethodId = 3 THEN ISNULL(so.TotalFreight, 0)
 								ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight 
 											 WHERE SalesOrderId = so.SalesOrderId 
 											 AND ItemMasterId = sop.ItemMasterId 
 											 AND IsActive = 1 AND IsDeleted = 0), 0)
 							  END,
-					MiscCharges = CASE 
+					MiscCharges = CASE WHEN BI.IsPerformaInvoice = 1 THEN 0
 									WHEN so.ChargesBilingMethodId = 3 THEN ISNULL(so.TotalCharges, 0)
 									ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges 
 												 WHERE SalesOrderId = so.SalesOrderId 
@@ -70,7 +70,7 @@ BEGIN
 					sl.StockLineNumber,
 					sl.ControlNumber,
 					sl.IdNumber,
-					ShipViaDetails = CASE 
+					ShipViaDetails = CASE WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
@@ -85,7 +85,7 @@ BEGIN
 											), 'NA')
 										ELSE 'NA'
 									END,
-					MiscChargesDetails = CASE 
+					MiscChargesDetails = CASE  WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(

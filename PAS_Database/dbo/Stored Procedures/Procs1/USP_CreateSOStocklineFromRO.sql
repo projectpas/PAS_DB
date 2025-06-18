@@ -734,7 +734,7 @@ BEGIN
 							--SELECT @UnitCost = [UnitCost] FROM [dbo].[SalesOrderStockLine] WITH(NOLOCK) WHERE SOStockLineId = @SalesOrderStockLineId
 
 							UPDATE [dbo].[SalesOrderPartV1]
-							SET QtyOrder = @StlQuantity,
+							SET QtyOrder = QtyOrder - @StlQuantity,
 							ConditionId = @NewConditionId,
 							--UnitCostExtended = ISNULL(UnitCost, 0) * ISNULL(Qty - @StlQuantity, 0),
 							UpdatedDate = GETDATE()

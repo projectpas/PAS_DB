@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetRMADetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get RMA Part Details
@@ -19,6 +17,7 @@
 	2    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
 	3    03/27/2024   Hemant Saliya   Updated for -Ve CM Cost
     4    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables 
+	5    19/06/2025   AMIT GHEDIYA    Get WO/SO Billing data from new table.
 
 -- EXEC GetRMADetailsById 36
 ************************************************************************/
@@ -48,7 +47,7 @@ BEGIN
 			  ,[StocklineNumber]
 			  ,CRD.[ControlNumber]
 			  ,[ControlId]
-			  ,[ReferenceId]
+			  ,CRD.[ReferenceId]
 			  ,[ReferenceNo]
 			  ,[RMAReasonId]
 			  ,[RMAReason]
@@ -63,7 +62,7 @@ BEGIN
 			  ,CRD.[IsDeleted]
 			  ,IM.ManufacturerName
 			  ,CRD.BillingInvoicingItemId,
-			  SOBII.NoofPieces as Qty, SOBII.UnitPrice As [PartsUnitCost],
+			  SOBII.QtyBilled as Qty, SOBII.UnitPrice As [PartsUnitCost],
 			 (SOBII.PartCost * -1) As [PartsRevenue], 
 			  0 AS [LaborRevenue], 
 			  (SOBII.MiscCharges * -1) AS [MiscRevenue], 
@@ -73,17 +72,17 @@ BEGIN
 			  (SOBII.OtherTax * -1) As OtherTax, 
 			  (SOBII.GrandTotal * -1) AS GrandTotal, 
 			  (SOBII.GrandTotal * -1) AS [InvoiceAmt],
-			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
-			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
-			  CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
-			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
+			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
+			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
+			  CASE WHEN ISNULL(SOBII.QtyBilled,0) > 0 THEN (SOBII.GrandTotal / SOBII.QtyBilled) ELSE SOBII.GrandTotal END AS UnitPrice,
+			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CRD.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
-				LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.InvoiceId AND SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
-				LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId --AND ISNULL(SOBII.isp,0) = 0
+				LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = CRD.InvoiceId AND SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0
+				LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.ReferenceId AND SOPN.SalesOrderPartId = SOBII.SubReferenceId
 				LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
-				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
 				LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 		  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;
@@ -102,12 +101,12 @@ BEGIN
 			  ,[StocklineNumber]
 			  ,[ControlNumber]
 			  ,[ControlId]
-			  ,[ReferenceId]
+			  ,CRD.[ReferenceId]
 			  ,[ReferenceNo]			  		  
 			  ,[Amount]
-			  ,WOBII.NoofPieces as Qty
+			  ,WOBII.QtyBilled as Qty
 			  ,WOBII.GrandTotal as UnitPrice
-			  ,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount
+			  ,(WOBII.QtyBilled * WOBII.GrandTotal)  as Amount
 			  ,WOBII.MaterialCost As [PartsUnitCost]
 			  ,(WOBII.MaterialCost * -1) As [PartsRevenue]
 			  ,(WOBII.LaborCost * -1) AS  [LaborRevenue] 
@@ -138,9 +137,9 @@ BEGIN
 			  ,CRD.BillingInvoicingItemId
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 			  LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
-			  LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.WOBillingInvoicingItemId = CRD.BillingInvoicingItemId
-			  LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.ID = WOBII.WorkOrderPartId
-			  LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOPN.WorkOrderId AND WOBII.WorkOrderPartId = WOMPN.WOPartNoId
+			  LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId
+			  LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.ID = WOBII.SubReferenceId
+			  LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOPN.WorkOrderId AND WOBII.SubReferenceId = WOMPN.WOPartNoId
 		  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;
 
 	END

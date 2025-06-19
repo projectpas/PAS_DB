@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    13-06-2025    Sahdev Saliya       Created  
+	2    18-06-2025    Abhishek Jirawla    Added retrieve of TwoFactorAuthentication details
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetEmployeeData]
@@ -37,7 +38,9 @@ BEGIN
                   emp.TextTransformId,
                   emp.IsIncludeInCC,
                   emp.IsAllowToChangeManagementStructure,
-                  emp.SiteId
+                  emp.SiteId,
+                  emp.TwoFactorAuthentication,
+                  emp.TwoFactorAuthenticationType
 			FROM [DBO].employee emp WITH(NOLOCK)
 			WHERE emp.EmployeeId = @EmployeeId
 		END TRY    

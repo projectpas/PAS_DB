@@ -3977,8 +3977,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeUserRoleList.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShippingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveNewPartToWorkOrderQuote.sql" />
-    <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />  
+    <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreLegalEntityShippingAddress.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

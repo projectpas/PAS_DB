@@ -23,9 +23,9 @@
 	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
      
- exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=803
+ exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=894
 **************************************************************/
-CREATE    PROC [dbo].[GetReserveStockPartsListBySOId]
+CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
 	@SalesOrderId  BIGINT,
 	@ItemMasterId BIGINT = NULL
 AS
@@ -194,7 +194,7 @@ BEGIN
 		PartDescription,
 		ManufacturerName, 
 		Quantity,
-		ReservedById,
+		0 ReservedById,
 		IssuedById,
 		PartStatusId,
 		IsAltPart,

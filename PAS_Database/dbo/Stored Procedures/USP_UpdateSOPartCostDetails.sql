@@ -23,6 +23,7 @@
 	7    01/08/2025   AMIT GHEDIYA  Added one parameter to identify if it's been called from shipping or not
 	8    21-01-2025   Shrey Chandegara   Add charge In totalRevenue
 	9    22-01-2025   Abhishek Jirawla Commented the section for "Remove/Modify Pick Ticket on Un-Reserve" after discussion with Vishalbhai as it was creating problem after SO shipping 
+	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp for add paramm @IsFromRRO
      
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
@@ -34,7 +35,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
 	@MasterCompanyId INT = NULL,
 	@IsUnreservedAction BIT = 0,
 	@IsFromShipping BIT = 0,
-	@isReserveOrUnreserve BIT = NULL
+	@isReserveOrUnreserve BIT = NULL,
+	@IsFromRRO BIT = 0
 )
 AS
 BEGIN
@@ -43,6 +45,11 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+				
+				DECLARE @SendStatusId INT = 0;
+
+				SELECT @SendStatusId = Id FROM DBO.MasterSalesOrderStatus WITH(NOLOCK) WHERE [Name] = 'Sent';
+
 				IF OBJECT_ID(N'tempdb..#SOPartCostDetails') IS NOT NULL
 				BEGIN
 					DROP TABLE #SOPartCostDetails
@@ -252,11 +259,22 @@ SET NOCOUNT ON
 				END
 
 				IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
-				BEGIN
-					UPDATE DBO.SalesOrderPartV1 
-					SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId),
-					QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
-					WHERE SalesOrderPartId = @SalesOrderPartId;
+				BEGIN				
+
+					IF(@IsFromRRO = 1)
+					BEGIN
+						UPDATE DBO.SalesOrderPartV1 
+						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId),
+						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StatusId = @SendStatusId)
+						WHERE SalesOrderPartId = @SalesOrderPartId;
+					END
+					ELSE
+					BEGIN
+						UPDATE DBO.SalesOrderPartV1 
+						SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId ),
+						QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId )
+						WHERE SalesOrderPartId = @SalesOrderPartId;
+					END
 				END
 
 				IF OBJECT_ID(N'tempdb..#SOPartCostDetails') IS NOT NULL

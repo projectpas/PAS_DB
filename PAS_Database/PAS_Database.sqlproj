@@ -3981,6 +3981,7 @@
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteRestoreLegalEntityShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

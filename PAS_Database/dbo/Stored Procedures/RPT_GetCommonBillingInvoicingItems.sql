@@ -1,5 +1,4 @@
-﻿
-/*****************************************************************************************           
+﻿/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -12,8 +11,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/06/2025   Moin Bloch    Created
+	2    18/06/2025   Moin Bloch    Fix For Condition in pdf
      
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 20086,15
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 41,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
@@ -82,16 +82,12 @@ BEGIN
 			  ,BII.[MasterCompanyId]			  
 			  ,WOP.[RevisedPartNumber] [PNumber]			
 			  ,WOP.[RevisedPartDescription]  [PNDescription]
-			  ,WOP.[RevisedSerialNumber]  [SerialNumber]    						 
-			  ,CASE WHEN BII.[ConditionId] IS NOT NULL THEN 
-					(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+			  ,WOP.[RevisedSerialNumber]  [SerialNumber]
+			  ,CASE WHEN WOP.[RevisedConditionId] IS NOT NULL THEN  CASE WHEN COND.[Memo] <> '' THEN COND.[Memo] ELSE COND.[Code] END
+			        WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+				ELSE (SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
 					   WHERE c.[ConditionId] = BII.[ConditionId] AND c.[MasterCompanyId] = BII.[MasterCompanyId])
-					WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
-					ELSE 
-						CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Memo]
-							ELSE '' 
-						END
-					END [Cond]								
+				END [Cond]				  			  							
 			  ,WO.[Notes]
 			  ,UOM.[ShortName] [PurchaseUnitOfMeasure]
 		   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 

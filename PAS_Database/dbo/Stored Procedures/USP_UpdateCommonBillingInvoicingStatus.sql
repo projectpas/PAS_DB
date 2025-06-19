@@ -12,6 +12,8 @@
  ** --   --------     -------				-------------------------------            
     1    05/06/2025   Moin Bloch		Created
 	2    10/06/2025   Rajesh Gami		Implemented SO
+	3    18/06/2025   Moin Bloch		Update Status in Proforma
+
 EXEC  [dbo].[USP_UpdateCommonBillingInvoicingStatus] 4349
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[USP_UpdateCommonBillingInvoicingStatus]    
@@ -193,8 +195,10 @@ BEGIN
 				 ELSE
 				 BEGIN
 					UPDATE [dbo].[BillingInvoicing] 
-					   SET [UpdatedDate] = GETUTCDATE(),						   
-						   [UpdatedBy] = @UpdatedBy
+					   SET [UpdatedDate] = GETUTCDATE(),						   						   
+						   [InvoiceStatusId] = @InvoiceStatusId,
+						   [InvoiceStatus] = @InvoicedStatus,
+					       [UpdatedBy] = @UpdatedBy				
 					 WHERE [BillingInvoicingId] = @BillingInvoicingId
 				 END
 			END

@@ -13,6 +13,7 @@
  ** --   --------		-------			--------------------------------          
     1    05-Mar-2025   Abhishek Jirawla	Created
 	2	 27-Mar-2025   Abhishek Jirawla Adding proper DB standards
+	3	 19-Jun-2025   Moin Bloch       Replaced Old To New Table For Billing Invoicing
      
  EXECUTE [QuickBooks_UpdateModuleCountDetails] 1, 10
 **************************************************************/ 
@@ -452,54 +453,107 @@ BEGIN
 			FROM dbo.AccountingIntegrationSettings ACI
 
 			-- WorkOrderBillingInvoicing Data
+			-- OLD Table
+			--LEFT JOIN (
+			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
+			--	FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
+			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsPerformaInvoice, 0) = 0
+			--	GROUP BY MasterCompanyId
+			--) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+			-- New Table
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS WorkOrderBillingInvoicingCount
-				FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsPerformaInvoice, 0) = 0
+				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS WorkOrderBillingInvoicingData ON WorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
 			-- Pending WorkOrderBillingInvoicing Data
+			-- OLD Table
+			--LEFT JOIN (
+			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
+			--	FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
+			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0
+			--	GROUP BY MasterCompanyId
+			--) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+			-- New Table
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS WorkOrderBillingInvoicingCount
-				FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0
+				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS PendingWorkOrderBillingInvoicingData ON PendingWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
 
 			-- All WorkOrderBillingInvoicing Data
+			-- OLD Table
+			--LEFT JOIN (
+			--	SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
+			--	FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
+			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsPerformaInvoice, 0) = 0
+			--	GROUP BY MasterCompanyId
+			--) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+			-- New Table
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS WorkOrderBillingInvoicingCount
-				FROM dbo.WorkOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsPerformaInvoice, 0) = 0
+				FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
+				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllWorkOrderBillingInvoicingData ON AllWorkOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
-
+			
 			-- SalesOrderBillingInvoicing Data
+			-- OLD Table
+			--LEFT JOIN (
+			--	SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
+			--	FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
+			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsProforma, 0) = 0
+			--	GROUP BY MasterCompanyId
+			--) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+			-- New Table
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS SalesOrderBillingInvoicingCount
-				FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsProforma, 0) = 0
+				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+				WHERE [IsVersionIncrease] = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0 AND ISNULL(IsPerformaInvoice, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS SalesOrderBillingInvoicingData ON SalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
-
+			
 			-- Pending SalesOrderBillingInvoicing Data
+			--OLD Table
+			--LEFT JOIN (
+			--	SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
+			--	FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
+			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsProforma, 0) = 0
+			--	GROUP BY MasterCompanyId
+			--) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+			-- New Table
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS SalesOrderBillingInvoicingCount
-				FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL(IsProforma, 0) = 0
+				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND ISNULL([IsPerformaInvoice], 0) = 0
 				GROUP BY MasterCompanyId
 			) AS PendingSalesOrderBillingInvoicingData ON PendingSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
-
+			
 			-- All SalesOrderBillingInvoicing Data
+			-- OLD Table
+			--LEFT JOIN (
+			--	SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS SalesOrderBillingInvoicingCount
+			--	FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
+			--	WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsProforma, 0) = 0
+			--	GROUP BY MasterCompanyId
+			--) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
+
+			-- New Table
 			LEFT JOIN (
-				SELECT MasterCompanyId, COUNT(SOBillingInvoicingId) AS SalesOrderBillingInvoicingCount
-				FROM dbo.SalesOrderBillingInvoicing  WITH(NOLOCK)
-				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsProforma, 0) = 0
+				SELECT MasterCompanyId, COUNT(BillingInvoicingId) AS SalesOrderBillingInvoicingCount
+				FROM [dbo].[BillingInvoicing]  WITH(NOLOCK)
+				WHERE [IsVersionIncrease] = 0 AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL([IsPerformaInvoice], 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllSalesOrderBillingInvoicingData ON AllSalesOrderBillingInvoicingData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @InvModuleId
-
-
+			
 			-- ExchangeSalesOrderBillingInvoicing Data
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ExchangeSalesOrderBillingInvoicingCount

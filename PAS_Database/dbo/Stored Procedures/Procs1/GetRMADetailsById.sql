@@ -17,7 +17,7 @@
 	2    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
 	3    03/27/2024   Hemant Saliya   Updated for -Ve CM Cost
     4    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables 
-	5    19/06/2025   AMIT GHEDIYA    Get WO/SO Billing data from new table.
+	5    19/06/2025   AMIT GHEDIYA    Get WO/SO Billing data from new table.  
 
 -- EXEC GetRMADetailsById 36
 ************************************************************************/
@@ -78,7 +78,7 @@ BEGIN
 			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId --AND ISNULL(SOBII.isp,0) = 0
+				LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId
 				LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = CRD.InvoiceId AND SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0
 				LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.ReferenceId AND SOPN.SalesOrderPartId = SOBII.SubReferenceId
 				LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId

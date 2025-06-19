@@ -3981,6 +3981,7 @@
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteRestoreLegalEntityShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceId.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
   </ItemGroup>
   <ItemGroup>

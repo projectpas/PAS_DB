@@ -3973,7 +3973,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmployeeLicensureDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShippingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveNewPartToWorkOrderQuote.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_CreateEmployeeManagementStructure.sql" />
+    <Build Include="dbo\User Defined Types\EmployeeManagementStructureTVP.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

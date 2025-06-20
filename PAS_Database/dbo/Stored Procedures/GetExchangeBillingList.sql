@@ -16,7 +16,7 @@
     1    06/09/2025   Ekta Chandegra     Created
 	2    06/20/2025   Ekta Chandegra     Get correct billing amount when flat rates are added
 
-     
+
  EXEC GetExchangeBillingList @ExchangeSalesOrderId=188
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetExchangeBillingList]
@@ -62,7 +62,7 @@ BEGIN
 		LEFT JOIN [dbo].[ExchangeBillingType] ebt WITH(NOLOCK) ON sqe.BillingTypeId = ebt.ExchangeBillingTypeId
 		LEFT JOIN [dbo].[ExchangeSalesOrderShipping] essp WITH(NOLOCK) ON sqe.ExchangeSalesOrderId = essp.ExchangeSalesOrderId
 		LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] esbii WITH(NOLOCK) ON sqe.ExchangeSalesOrderScheduleBillingId = esbii.ExchangeSalesOrderScheduleBillingId AND ISNULL(esbii.IsDeleted,0) = 0
-		LEFT JOIN ExchangeSalesOrderBillingInvoicing esbi WITH(NOLOCK) ON esbii.SOBillingInvoicingId = esbi.SOBillingInvoicingId
+		LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] esbi WITH(NOLOCK) ON esbii.SOBillingInvoicingId = esbi.SOBillingInvoicingId
 		WHERE sqe.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sqe.StatusId != @ExchangeStatusId
 		ORDER BY sqe.ExchangeSalesOrderScheduleBillingId;
 

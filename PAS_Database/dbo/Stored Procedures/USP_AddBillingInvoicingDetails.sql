@@ -81,7 +81,7 @@ BEGIN
  BEGIN TRY  
  BEGIN TRANSACTION  
  BEGIN    
-	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT, @TotalRecord INT = 0,@MinId BIGINT = 1
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT, @TotalRecord INT = 0,@MinId BIGINT = 1, @CommonBillingInvoicingId BIGINT = NULL;
 	DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50),@VerCodePrefix NVARCHAR(50)
 	DECLARE @BilledInvoiceStatusId INT = 0,@WorkOrderMPNModuleID INT 
 	DECLARE @BilledInvoiceStatus VARCHAR(50), @InvoiceCodeTypeId INT,@ProformaInvoiceCodeTypeId INT,@VerCode INT
@@ -111,6 +111,16 @@ BEGIN
 		SELECT @InvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='SOInvoice';
 		SELECT @ProformaInvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='SOProformaInvoice';
 		SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId
+
+		SELECT @CommonBillingInvoicingId = BillingInvoicingId
+					FROM @tbl_BillingInvoicingItemsType
+					WHERE BillingInvoicingId <> 0 GROUP BY BillingInvoicingId HAVING COUNT(*) = (SELECT COUNT(*) FROM @tbl_BillingInvoicingItemsType WHERE BillingInvoicingId <> 0) AND COUNT(DISTINCT BillingInvoicingId) = 1;
+		
+		IF(@CommonBillingInvoicingId > 0)
+		BEGIN
+			SET @InvoiceNo = (SELECT TOP 1 InvoiceNo FROM dbo.BillingInvoicing WITH(NOLOCK) Where BillingInvoicingId = @CommonBillingInvoicingId)
+		END	
+
 	END
 	ELSE IF(@ModuleId = @EXModuleId) /*********START: Exchange  ********/
 	BEGIN
@@ -129,28 +139,31 @@ BEGIN
 	SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		-- Check for current number and increment
-		IF COALESCE(@CodePrefix, '') <> ''
+		IF(@CommonBillingInvoicingId IS NULL)
 		BEGIN
-			SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
-			IF @CurrentNo > 0
+			IF COALESCE(@CodePrefix, '') <> ''
 			BEGIN
-				SET @CurrentNo = @CurrentNo + 1;
-				UPDATE [dbo].[CodePrefixes] 
-				SET [CurrentNummber] = @CurrentNo
-				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
+				IF @CurrentNo > 0
+				BEGIN
+					SET @CurrentNo = @CurrentNo + 1;
+					UPDATE [dbo].[CodePrefixes] 
+					SET [CurrentNummber] = @CurrentNo
+					WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+				END
+				ELSE
+				BEGIN
+					SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+					UPDATE [dbo].[CodePrefixes]
+					SET [CurrentNummber] = @CurrentNo 
+					WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+				END			
+				SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 			END
 			ELSE
-			BEGIN
-				SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
-				UPDATE [dbo].[CodePrefixes]
-				SET [CurrentNummber] = @CurrentNo 
-				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
-			END			
-			SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
-		END
-		ELSE
-		BEGIN			
-			SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, '',''))
+			BEGIN			
+				SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, '',''))
+			END
 		END
 
         DECLARE @VersionNum INT= 0;

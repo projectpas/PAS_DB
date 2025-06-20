@@ -101,14 +101,27 @@ BEGIN
 			SELECT @WorkOrderMPNMSModuleEnum = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN'
 
 			SELECT @CustomerId = WO.[CustomerId],@MasterCompanyId = WO.[MasterCompanyId] FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.[WorkOrderId] = @ReferenceId;
-				
-			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-				                                           SELECT [WorkOrderId],[ID],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[CurrentSerialNumber]
-			FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) 
-			WHERE [WorkOrderId] = @ReferenceId  AND ISNULL(IsFinishGood,0) = 1
-			  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
-			  AND [IsDeleted] = 0 
-			ORDER BY [ID]	
+			
+			IF(@IsProformaInvoice = 0)
+			BEGIN
+				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+															   SELECT [WorkOrderId],[ID],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[CurrentSerialNumber]
+				FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) 
+				WHERE [WorkOrderId] = @ReferenceId AND ISNULL([IsFinishGood],0) = 1
+				  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
+				  AND [IsDeleted] = 0 
+				ORDER BY [ID]	
+			END
+			ELSE
+			BEGIN
+				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+															   SELECT [WorkOrderId],[ID],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[CurrentSerialNumber]
+				FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) 
+				WHERE [WorkOrderId] = @ReferenceId 
+				  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
+				  AND [IsDeleted] = 0 
+				ORDER BY [ID]	
+			END
 		
 		    SELECT @TotalRecords = COUNT(*), @MinId = MIN([PKID]) FROM #TempCommonPartNumberDetailsForBilling    
 			
@@ -157,7 +170,7 @@ BEGIN
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 						INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wop.[StockLineId] = sl.[StockLineId]
 						INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.[ItemMasterId] = im.[ItemMasterId]	
-						 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND boi.[ModuleId] = @WOModuleId  
+						 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						WHERE wop.[WorkOrderId] = @ReferenceId AND wop.[ID] = @ID
 									   
 					-- Calculate parts cost (Materials)
@@ -261,7 +274,7 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId]
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WQD.[ItemMasterId]
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID]  = WQD.[WOPartNoId] 
-					LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND boi.[ModuleId] = @WOModuleId  
+					LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 					WHERE WQD.[WorkflowWorkOrderId] = @WorkFlowWorkOrderId AND WQD.[WOPartNoId] = @ID AND WQD.[IsVersionIncrease] = 0
 
 				IF(@QuoteMethod = 1)

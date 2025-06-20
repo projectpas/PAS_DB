@@ -3986,6 +3986,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceId.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePublicationStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />

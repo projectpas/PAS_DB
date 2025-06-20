@@ -17,6 +17,7 @@
 5    07/09/2023   Moin Bloch    Modify (Added Update Journal Status Open when update Header info)
 6    01/23/2024   AMIT GHEDIYA  Added Accounting Batch
 7    03/03/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
+8    19/06/2025	  AMIT GHEDIYA	Updated for add isEnforce flag in header data.
 
 -- exec CreateUpdateManualJournalHeader 92,1      
 **************************************************************/   
@@ -68,10 +69,12 @@ BEGIN
 			DECLARE @OpenStatusId INT;			
 			DECLARE @ActionId INT;
 			DECLARE @isrec INT = 3;
+			DECLARE @IsEnforce INT = 0;
 
 			SELECT @StatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Approved';
 			SELECT @PostStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Posted';
 			SELECT @OpenStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Pending';
+			SELECT @IsEnforce = [IsEnforceApproval] FROM [dbo].ManualJournalSettingMaster WHERE [MasterCompanyId] = @MasterCompanyId;
 
 			IF (@ManualJournalHeaderId IS NULL OR @ManualJournalHeaderId=0)  
 			BEGIN  
@@ -117,7 +120,8 @@ BEGIN
 				           ,[JournalDescription]  
 				           ,[ManualJournalTypeId] 
 				           ,[ManualJournalBalanceTypeId]  
-				           ,[EntryDate]  
+				           ,[EntryDate] 
+						   ,[IsEnforce]
 				           ,[EffectiveDate]  
 				           ,[AccountingPeriodId]  
 				           ,[ManualJournalStatusId]  
@@ -147,6 +151,7 @@ BEGIN
 				           ,@ManualJournalTypeId  
 				           ,@ManualJournalBalanceTypeId  
 				           ,GETUTCDATE()  
+						   ,@IsEnforce
 				           ,@EffectiveDate  
 				           ,@AccountingPeriodId  
 				           ,@ManualJournalStatusId  

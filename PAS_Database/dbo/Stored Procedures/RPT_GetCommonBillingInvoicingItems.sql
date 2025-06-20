@@ -12,8 +12,9 @@
  ** --   --------     -------		--------------------------------          
     1    02/06/2025   Moin Bloch    Created
 	2    18/06/2025   Moin Bloch    Fix For Condition in pdf
+	3    18/06/2025   Moin Bloch    Added WorkFlowWorkOrderId
      
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 41,15
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 60,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
@@ -90,6 +91,8 @@ BEGIN
 				END [Cond]				  			  							
 			  ,WO.[Notes]
 			  ,UOM.[ShortName] [PurchaseUnitOfMeasure]
+			  ,BII.WorkFlowWorkOrderId
+			  ,ISNULL(WOC.[WorkOrderChargesId],0) [IsCharges]
 		   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 		  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 		  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
@@ -98,6 +101,7 @@ BEGIN
 		   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 		   LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.[RevisedItemmasterid] = ITM.[ItemMasterId]
 		   LEFT JOIN [dbo].[UnitOfMeasure] UOM WITH(NOLOCK) ON [ITM].[PurchaseUnitOfMeasureId] = UOM.[UnitOfMeasureId]
+		   LEFT JOIN [dbo].[WorkOrderCharges] WOC WITH(NOLOCK) ON BII.[WorkFlowWorkOrderId] = WOC.[WorkFlowWorkOrderId] AND woc.[IsDeleted]=0  
 		  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId
 		  		  
 	END 

@@ -12,6 +12,7 @@
  ** PR   Date			Author					Change Description            
  ** --   --------		-------					--------------------------------          
     1   26-Nov-2024		Devendra Shekh			Created
+	3   19-Jun-2025		Moin Bloch			    Modified (Using New Billing Table)
      
  EXECUTE [QuickBooks_GetSyncPendingCashReceiptList] 1
 **************************************************************/ 
@@ -76,18 +77,31 @@ BEGIN
 				LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = CPD.CustomerId
 				LEFT JOIN [dbo].[InvoicePayments] INV WITH(NOLOCK) ON INV.CustomerPaymentDetailsId = CPD.CustomerPaymentDetailsId
 			WHERE ISNULL(CPD.QuickBooksReferenceId, 0) = 0 AND ISNULL(CPD.IsUpdated, 0) = 1 
+			
+			-- OLD Table
+			--UPDATE CRD
+			--SET	CRD.InvoiceQuickBooksReferenceId = WOBI.QuickBooksReferenceId, [PaymentType] = @InvPaymentType
+			--FROM #CashReceiptDetails CRD 
+			--LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @WOInvoiceType
+			--WHERE CRD.InvoiceType = @WOInvoiceType;
 
+			--UPDATE CRD
+			--SET	CRD.InvoiceQuickBooksReferenceId = SOBI.QuickBooksReferenceId, [PaymentType] = @InvPaymentType
+			--FROM #CashReceiptDetails CRD 
+			--LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @SOInvoiceType
+			--WHERE CRD.InvoiceType = @SOInvoiceType;
 
+			-- New Table
 			UPDATE CRD
 			SET	CRD.InvoiceQuickBooksReferenceId = WOBI.QuickBooksReferenceId, [PaymentType] = @InvPaymentType
 			FROM #CashReceiptDetails CRD 
-			LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @WOInvoiceType
+			LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @WOInvoiceType
 			WHERE CRD.InvoiceType = @WOInvoiceType;
 
 			UPDATE CRD
 			SET	CRD.InvoiceQuickBooksReferenceId = SOBI.QuickBooksReferenceId, [PaymentType] = @InvPaymentType
 			FROM #CashReceiptDetails CRD 
-			LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @SOInvoiceType
+			LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.BillingInvoicingId = CRD.BillingInvoicingId AND CRD.InvoiceType = @SOInvoiceType
 			WHERE CRD.InvoiceType = @SOInvoiceType;
 
 			UPDATE CRD

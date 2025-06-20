@@ -11,7 +11,7 @@ BEGIN
 	BEGIN
 		---------  Repair Order --------------------------------------------------------------
 		UPDATE ROS SET
-		ROS.StatusId = (SELECT ROStatusId FROM dbo.ROStatus WITH (NOLOCK) Where IsActive = 1 and IsDeleted = 0  and Memo = 'Fulfilling' ),
+		--ROS.StatusId = (SELECT ROStatusId FROM dbo.ROStatus WITH (NOLOCK) Where IsActive = 1 and IsDeleted = 0  and Memo = 'Fulfilling' ),
 		ROS.ApproverId = ISNULL((select TOP 1 PA.ApprovedById from dbo.RepairOrderApproval PA WITH (NOLOCK) INNER JOIN
 							dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
 							WHERE RepairOrderId = @RepairOrderId ORDER BY ApprovedDate DESC),0),

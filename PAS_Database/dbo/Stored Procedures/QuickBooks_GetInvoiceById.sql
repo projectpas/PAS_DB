@@ -13,6 +13,7 @@
  ** --   --------		-------					--------------------------------          
     1   18-Nov-2024		Devendra Shekh			Created
 	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
+	3   19-Jun-2025		Moin Bloch			    Modified (Using New Billing Table)
      
  exec dbo.QuickBooks_GetInvoiceById @QuickBooksReferenceId=N'185',@MasterCompanyId=1
 **************************************************************/ 
@@ -47,13 +48,23 @@ BEGIN
 			[ReferenceModuleId] BIGINT NULL,
 		)
 
+		--OLD Table
+		--INSERT INTO #InvoiceResults([BillingInvoicingId], [QuickBooksReferenceId], [SyncToken], [ModuleId], [ReferenceModuleId])
+		--SELECT WOBI.BillingInvoicingId, WOBI.QuickBooksReferenceId, WOBI.SyncToken, @InvModuleId, @WOModuleId
+		--FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) WHERE WOBI.QuickBooksReferenceId = @QuickBooksReferenceId AND WOBI.MasterCompanyId = @MasterCompanyId;
+
+		--INSERT INTO #InvoiceResults([BillingInvoicingId], [QuickBooksReferenceId], [SyncToken], [ModuleId], [ReferenceModuleId])
+		--SELECT SOBI.SOBillingInvoicingId, SOBI.QuickBooksReferenceId, SOBI.SyncToken, @InvModuleId, @SOModuleId
+		--FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) WHERE SOBI.QuickBooksReferenceId = @QuickBooksReferenceId AND SOBI.MasterCompanyId = @MasterCompanyId;
+
+		-- NEW Table
 		INSERT INTO #InvoiceResults([BillingInvoicingId], [QuickBooksReferenceId], [SyncToken], [ModuleId], [ReferenceModuleId])
 		SELECT WOBI.BillingInvoicingId, WOBI.QuickBooksReferenceId, WOBI.SyncToken, @InvModuleId, @WOModuleId
-		FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) WHERE WOBI.QuickBooksReferenceId = @QuickBooksReferenceId AND WOBI.MasterCompanyId = @MasterCompanyId;
+		FROM [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) WHERE WOBI.QuickBooksReferenceId = @QuickBooksReferenceId AND WOBI.MasterCompanyId = @MasterCompanyId;
 
 		INSERT INTO #InvoiceResults([BillingInvoicingId], [QuickBooksReferenceId], [SyncToken], [ModuleId], [ReferenceModuleId])
-		SELECT SOBI.SOBillingInvoicingId, SOBI.QuickBooksReferenceId, SOBI.SyncToken, @InvModuleId, @SOModuleId
-		FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) WHERE SOBI.QuickBooksReferenceId = @QuickBooksReferenceId AND SOBI.MasterCompanyId = @MasterCompanyId;
+		SELECT SOBI.BillingInvoicingId, SOBI.QuickBooksReferenceId, SOBI.SyncToken, @InvModuleId, @SOModuleId
+		FROM [dbo].[BillingInvoicing] SOBI WITH(NOLOCK) WHERE SOBI.QuickBooksReferenceId = @QuickBooksReferenceId AND SOBI.MasterCompanyId = @MasterCompanyId;
 
 		INSERT INTO #InvoiceResults([BillingInvoicingId], [QuickBooksReferenceId], [SyncToken], [ModuleId], [ReferenceModuleId])
 		SELECT ESOBI.SOBillingInvoicingId, ESOBI.QuickBooksReferenceId, ESOBI.SyncToken, @InvModuleId, @ExchModuleId

@@ -15,7 +15,8 @@
  **************************************************************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
-    1    06/02/2020   Subhash Saliya Created  
+    1    06/02/2020    Subhash Saliya Created  
+    2    06/17/2025   Hemant  Saliya Check For Is deleted Condition  
        
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/  
@@ -32,32 +33,32 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN    
-    SELECT  mt.Quantity,  
-            mt.UomName,  
-      mt.PartNumber as partnumber,  
-      mt.ConditionType AS Condition,  
-      mt.PartDescription as PartDescription,  
-      (mt.BillingAmount / isnull(mt.Quantity,0)) as UnitCost,  
-	 (mt.Quantity * (mt.BillingAmount / isnull(mt.Quantity,0))) as extCost  
+    SELECT  
+        mt.Quantity,  
+        mt.UomName,  
+        mt.PartNumber as partnumber,  
+        mt.ConditionType AS Condition,  
+        mt.PartDescription as PartDescription,  
+        (mt.BillingAmount / isnull(mt.Quantity,0)) as UnitCost,  
+	    (mt.Quantity * (mt.BillingAmount / isnull(mt.Quantity,0))) as extCost  
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
-     INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
-     LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId  
-    WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  
+        INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
+        LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId  
+    WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 
 	UNION ALL
-		   SELECT  wom.Quantity,  
-            '-' as UomName,  
-      wom.KitNumber as partnumber,  
-      '-' AS Condition,  
-      KIM.KitDescription as PartDescription,  
-      (wom.BillingAmount / isnull(wom.Quantity,0)) as UnitCost,  
-	 (wom.Quantity * (wom.BillingAmount / isnull(wom.Quantity,0))) as extCost  
-
-	   FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
-	   INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
-	   LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-	    WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId and wom.IsDeleted=0 and wom.IsActive=1   END  
+	SELECT  wom.Quantity,  
+        '-' as UomName,  
+        wom.KitNumber as partnumber,  
+        '-' AS Condition,  
+        KIM.KitDescription as PartDescription,  
+        (wom.BillingAmount / isnull(wom.Quantity,0)) as UnitCost,  
+	    (wom.Quantity * (wom.BillingAmount / isnull(wom.Quantity,0))) as extCost  
+	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
+	       INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
+	       LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
+	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1   END  
   COMMIT  TRANSACTION  
   
   END TRY      

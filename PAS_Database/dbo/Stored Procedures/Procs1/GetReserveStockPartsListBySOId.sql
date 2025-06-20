@@ -23,7 +23,7 @@
 	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
      
- exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=894
+ exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=898
 **************************************************************/
 CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
 	@SalesOrderId  BIGINT,
@@ -160,12 +160,12 @@ BEGIN
 		ManufacturerName, 
 		Quantity,
 		ReservedById,
-		IssuedById,
+		0 IssuedById,
 		PartStatusId,
 		IsAltPart,
 		IsEquPart,
-		AltPartMasterPartId,
-		EquPartMasterPartId,
+		ISNULL(AltPartMasterPartId, 0) AltPartMasterPartId,
+		ISNULL(EquPartMasterPartId, 0) EquPartMasterPartId,
 		QtyToReserve,
 		CASE WHEN (QuantityOnOrder IS NOT NULL AND ISNULL(QuantityOnOrder, 0) > 0 AND ISNULL(QuantityOnOrder, 0) < QtyToBeReserved) THEN (ISNULL(QuantityOnOrder, 0) - ISNULL(Stk.QtyReserved, 0)) ELSE QtyToBeReserved END QtyToBeReserved,
 		PartQuantityOnOrder,

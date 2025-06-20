@@ -20,8 +20,7 @@
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetROPickTicketChildList]
 	@RepairOrderId BIGINT,
-	@ItemMasterId BIGINT,
-	@ConditionId BIGINT,
+	@RepairOrderPartId BIGINT,
 	@EmployeeId BIGINT
 AS
 BEGIN
@@ -57,7 +56,7 @@ BEGIN
 		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = rop.StockLineId
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = ropt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = ropt.ConfirmedById
-		WHERE ropt.RepairOrderId = @RepairOrderId AND rop.ItemMasterId = @ItemMasterId and rop.ConditionId = @ConditionId;
+		WHERE ropt.RepairOrderId = @RepairOrderId AND rop.RepairOrderPartRecordId = @RepairOrderPartId;
 	END
 	COMMIT  TRANSACTION
 
@@ -70,8 +69,7 @@ BEGIN
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
         , @AdhocComments     VARCHAR(150)    = 'sp_GetROPickTicketChildList' 
         , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@RepairOrderId, '') + ''',
-													@Parameter2 = ' + ISNULL(@ItemMasterId,'') + ',
-													@Parameter3 = ' + ISNULL(@ConditionId,'') + ''
+													@Parameter2 = ' + ISNULL(@RepairOrderPartId,'') + ''
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         exec spLogException 

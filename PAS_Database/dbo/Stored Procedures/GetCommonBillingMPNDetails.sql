@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -15,7 +16,7 @@
 	3    11/06/2025   RAJESH GAMI    Fix the getting wrong invoicingId (SO)
 	4    17/06/2025   RAJESH GAMI    Fix the Shipping Related issue AND Proforma amount related issue
 	5    17/06/2025   Moin Bloch     Add QuoteMethod
-
+	6    19/06/2025   RAJESH GAMI    Change the logic that freight and charges add only on first stockline (Partition by SOPartId) in SO
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8800,0,'',15
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 846,0,'1011,1012,1013',10,0
@@ -56,10 +57,15 @@ BEGIN
 			SET @IsProformaInvoice = 0;
 		END
 
+		IF OBJECT_ID(N'tempdb..#TempWithRowNum') IS NOT NULL
+		BEGIN
+			DROP TABLE #TempWithRowNum
+		END
+
 		IF OBJECT_ID(N'tempdb..#TempCommonPartNumberDetailsForBilling') IS NOT NULL
-			BEGIN
-				DROP TABLE #TempCommonPartNumberDetailsForBilling
-			END
+		BEGIN
+			DROP TABLE #TempCommonPartNumberDetailsForBilling
+		END
 
 			CREATE TABLE #TempCommonPartNumberDetailsForBilling
 			(		
@@ -439,7 +445,8 @@ BEGIN
 															Where SOS.SalesOrderPartId =  @ID AND  SOS.IsActive = 1 AND ISNULL(SOS.IsDeleted,0) = 0 AND  SOPIC.SalesOrderPartStocklineId = @SOStocklineId),0.0)
 				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
-				
+				PRINT @totalQtyShippedReserved
+				PRINT '@totalQtyShippedReserved'
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
@@ -466,7 +473,6 @@ BEGIN
 					SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
 					SET @OtherTaxAmount = (@OtherTax / 100.00) * @TotalCost
 				END
-
 				SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
 
 				UPDATE #TempCommonPartNumberDetailsForBilling 
@@ -477,12 +483,12 @@ BEGIN
 						   [BillingInvoicingItemId] = @BillingInvoicingItemId,
 						   [MiscCharges] = @SOChargesAmount,
 						   [FreightCost] = @SOFreightAmount,
-						   [TotalCost] = @TotalCost,
+						   [TotalCost] = ISNULL(@TotalCost,0),
 						   [SalesTaxPercent] = @SalesTaxPercent,
-						   [SalesTax] = @SalesTax,
+						   [SalesTax] = ISNULL(@SalesTax,0),
 						   [SalesTaxAmount] = ISNULL(@SalesTaxAmount,0),
 						   [OtherTaxPercent] = @OtherTaxPercent,
-						   [OtherTax] = @OtherTax,
+						   [OtherTax] = ISNULL(@OtherTax,0),
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
 						   [GrandTotal] = @GrandTotal
 					 WHERE [PKID] = @MinId;
@@ -492,7 +498,18 @@ BEGIN
 
 
 		/********** Final Get Query From the Temp Table *************/
-		    SELECT *  FROM #TempCommonPartNumberDetailsForBilling
+		SELECT  ROW_NUMBER() OVER (PARTITION BY SubReferenceId ORDER BY PKID) AS RowNum,* INTO #TempWithRowNum FROM #TempCommonPartNumberDetailsForBilling;
+		IF(@ModuleId = @SOModuleId AND @IsProformaInvoice = 0)
+		BEGIN
+			UPDATE #TempWithRowNum SET MiscCharges = 0, FreightCost = 0, 
+									   TotalCost = CASE WHEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) >= 0 THEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) ELSE 0 END  WHERE PKID > 1
+
+			Update #TempWithRowNum SET SalesTaxAmount = CASE WHEN SalesTax > 0 THEN (SalesTax / 100.00) * TotalCost ELSE 0 END, OtherTaxAmount = CASE WHEN OtherTax > 0 THEN (OtherTax / 100.00) * TotalCost ELSE 0 END WHERE PKID > 1
+
+			UPDATE #TempWithRowNum SET GrandTotal = TotalCost + SalesTaxAmount + OtherTaxAmount  WHERE PKID > 1
+		END
+		SELECT * FROM #TempWithRowNum
+	  --SELECT *  FROM #TempCommonPartNumberDetailsForBilling
 	
     END TRY    
 	BEGIN CATCH

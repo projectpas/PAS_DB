@@ -71,7 +71,8 @@ BEGIN
 					UPPER(sl.StockLineNumber)StockLineNumber,
 					UPPER(sl.ControlNumber)ControlNumber,
 					UPPER(sl.IdNumber)IdNumber,
-					ShipViaDetails = CASE WHEN BI.IsPerformaInvoice = 1 THEN '-'
+					ShipViaDetails = CASE 
+					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
@@ -86,7 +87,8 @@ BEGIN
 											), 'NA')
 										ELSE 'NA'
 									END,
-					MiscChargesDetails = CASE  WHEN BI.IsPerformaInvoice = 1 THEN '-'
+					MiscChargesDetails = CASE  
+					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
@@ -101,7 +103,8 @@ BEGIN
 											), 'NA')
 										ELSE 'NA'
 									END,
-									BI.[BillingInvoicingId]
+									BI.[BillingInvoicingId],
+									ROW_NUMBER() OVER (PARTITION BY BII.SubreferenceId,BII.ItemMasterId ORDER BY BI.BillingInvoicingId) as RowData
 				INTO #tmprRptInvoicingItem
 				FROM DBO.SalesOrder so WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -115,7 +118,7 @@ BEGIN
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId
 				WHERE BI.BillingInvoicingId = @BillingInvoicingId	 
-					
+				UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
 				SELECT 
 						Freight,
 						MiscCharges,

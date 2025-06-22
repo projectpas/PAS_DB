@@ -11,8 +11,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/JUN/2025   RAJESH GAMI   CREATED
-	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed     
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 42,10
+	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed 
+	3    22/JUN/2025   RAJESH GAMI   Charges Type Issue Fixed 
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 60,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -36,14 +37,14 @@ BEGIN
 			END
 			SELECT 
 			 
-					Freight = CASE WHEN BI.IsPerformaInvoice = 1 THEN 0
+					Freight = CASE
 								WHEN so.FreightBilingMethodId = 3 THEN ISNULL(so.TotalFreight, 0)
 								ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight 
 											 WHERE SalesOrderId = so.SalesOrderId 
 											 AND ItemMasterId = sop.ItemMasterId 
 											 AND IsActive = 1 AND IsDeleted = 0), 0)
 							  END,
-					MiscCharges = CASE WHEN BI.IsPerformaInvoice = 1 THEN 0
+					MiscCharges = CASE
 									WHEN so.ChargesBilingMethodId = 3 THEN ISNULL(so.TotalCharges, 0)
 									ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges 
 												 WHERE SalesOrderId = so.SalesOrderId 
@@ -54,27 +55,27 @@ BEGIN
 					SubReferenceId = ISNULL(stock.SalesOrderPartId, sop.SalesOrderPartId),
 					ItemMasterId = sop.ItemMasterId,
 					ConditionId = sop.ConditionId,
-					SerialNumber = sl.SerialNumber,
-					PNumber = im.PartNumber,
-					PNDescription = im.PartDescription,
+					SerialNumber = UPPER(sl.SerialNumber),
+					PNumber = UPPER(im.PartNumber),
+					PNDescription = UPPER(im.PartDescription),
 					Notes = ISNULL(stock.Notes, sop.Notes),
-					UOM = im.PurchaseUnitOfMeasure,
-					Cond = c.Description,
+					UOM = UPPER(im.PurchaseUnitOfMeasure),
+					Cond = UPPER(c.Description),
 					QtyShipped = ISNULL(BII.QtyBilled,0),
 					QTYOnBACKOrder = ISNULL(sop.QtyRequested, 0) - ISNULL(BII.QtyBilled,0),
 					UnitPrice = ISNULL(BII.UnitPrice, 0),
 					Amount = ISNULL(BII.PartCost, 0),
 					StockLineId = sl.StockLineId,
-					ime.ExportECCN,
-					ime.HSCode,
-					sl.StockLineNumber,
-					sl.ControlNumber,
-					sl.IdNumber,
+					UPPER(ime.ExportECCN)ExportECCN,
+					UPPER(ime.HSCode)HSCode,
+					UPPER(sl.StockLineNumber)StockLineNumber,
+					UPPER(sl.ControlNumber)ControlNumber,
+					UPPER(sl.IdNumber)IdNumber,
 					ShipViaDetails = CASE WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), '')), ', '
+													UPPER(CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), ''))), ', '
 												) 
 												FROM DBO.SalesOrderFreight f WITH(NOLOCK)
 												WHERE f.SalesOrderId = so.SalesOrderId 
@@ -89,9 +90,9 @@ BEGIN
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													ct.[Name] + ':  ' + FORMAT(ISNULL(c.BillingAmount, 0), ''), ',  '
+													UPPER(ct.[ChargeType]) + ':  ' + FORMAT(ISNULL(c.BillingAmount, 0), ''), ',  '
 												)
-												FROM dbo.SalesOrderCharges c WITH(NOLOCK) INNER JOIN dbo.ChargesTypes ct  WITH(NOLOCK) ON c.ChargesTypeId = ct.Id
+												FROM dbo.SalesOrderCharges c WITH(NOLOCK) INNER JOIN dbo.Charge ct  WITH(NOLOCK) ON c.ChargesTypeId = ct.ChargeId
 												WHERE c.SalesOrderId = so.SalesOrderId 
 												  AND c.ItemMasterId = sop.ItemMasterId 
 												  AND c.ConditionId = sop.ConditionId 

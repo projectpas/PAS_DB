@@ -12,7 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/JUN/2025   RAJESH GAMI   CREATED
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed   
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 43,10,245
+--  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 72,10,245
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -87,12 +87,12 @@ BEGIN
 					FORMAT(BI.[PrintDate], 'MM/dd/yyyy h:mm tt') [DatePrinted],
 					ISNULL(CAST(SHIPPINGINFO.[Weight] AS NVARCHAR), '0') [Weight],
 					SO.CreditTermName AS [CreditTerms],
-					ISNULL(cur.[Code], '') [Currency],
+					UPPER(ISNULL(cur.[Code], '')) [Currency],
 					FORMAT(SO.[OpenDate], 'MM/dd/yyyy') [OrderDate],
 					FORMAT(SHIPPINGINFO.[ShipDate], 'MM/dd/yyyy') [ShipDate],
 					ISNULL(SHIPINFOVIA.[Name], '')  AS [ShipVia],
 					BID.[ShipAccountInfo] [ShipAccNumber],
-					SHIPPINGINFO.[WOShippingNum] [ShippingOrderNumber],
+					SHIPPINGINFO.[SOShippingNum] [ShippingOrderNumber],
 					ISNULL(SHIPPINGINFO.[AirwayBill], '') [Awb],
 					BI.[InvoiceStatus],
 					BI.[ManagementStructureId],
@@ -118,9 +118,68 @@ BEGIN
 					SignEmpTitle = ISNULL(jt.Description,''),
 					SignEmpDate = bi.CreatedDate,
 					ShippingTerms = posv.ShippingTerms,
-					CASE WHEN BI.IsPerformaInvoice = 1 THEN (SELECT SUM(ISNULL(BII.PartCost,0)) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) ELSE  ISNULL(BI.[SubTotal],0) END [SubTotal],
+					CASE 
+							WHEN BI.IsPerformaInvoice = 1 THEN 
+								(SELECT SUM(ISNULL(BII.PartCost, 0)) FROM dbo.BillingInvoicingItems BII WITH (NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId)
+								+
+								(SELECT SUM(ISNULL(FreightCostPlus, 0))
+									FROM (
+										SELECT 
+											ItemMasterId,
+											MAX(ISNULL(FreightCostPlus, 0)) AS FreightCostPlus
+										FROM dbo.BillingInvoicingItems WITH (NOLOCK)
+										WHERE ISNULL(IsActive, 0) = 1
+										  AND ISNULL(IsDeleted, 0) = 0
+										  AND ISNULL(IsVersionIncrease, 0) = 0
+										  AND BillingInvoicingId = BI.BillingInvoicingId
+										  AND ModuleId = @SOModuleId
+										  AND ReferenceId = BI.ReferenceId
+										GROUP BY ItemMasterId
+									) AS DistinctFreight 
+								)
+								+
+								(SELECT SUM(ISNULL(Charges, 0))
+									FROM (
+										SELECT 
+											ItemMasterId,
+											MAX(ISNULL(MiscChargesCostPlus, 0)) AS Charges
+										FROM dbo.BillingInvoicingItems WITH (NOLOCK)
+										WHERE ISNULL(IsActive, 0) = 1
+										  AND ISNULL(IsDeleted, 0) = 0
+										  AND ISNULL(IsVersionIncrease, 0) = 0
+										  AND BillingInvoicingId = BI.BillingInvoicingId
+										  AND ModuleId = @SOModuleId
+										  AND ReferenceId = BI.ReferenceId
+										GROUP BY ItemMasterId
+									) AS DistinctCharges 
+								)
+							ELSE ISNULL(BI.[SubTotal], 0)
+						END AS [SubTotal],
 					ISNULL(BI.[DepositAmount],0) [DepositAmount],
-					CASE WHEN BI.IsPerformaInvoice = 1 THEN (SELECT SUM(ISNULL(BII.PartCost,0)) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) + ISNULL(BI.[SalesTax], 0)  + ISNULL(BI.[OtherTax], 0)  ELSE  ISNULL(BI.[GrandTotal],0) END [GrandTotal],
+					CASE WHEN BI.IsPerformaInvoice = 1 THEN 
+													(SELECT SUM(ISNULL(BII.PartCost,0)) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) + ISNULL(BI.[SalesTax], 0)  + ISNULL(BI.[OtherTax], 0) 
+													+
+								(SELECT SUM(ISNULL(FreightCostPlus, 0))
+									FROM (SELECT ItemMasterId,MAX(ISNULL(FreightCostPlus, 0)) AS FreightCostPlus FROM dbo.BillingInvoicingItems WITH (NOLOCK)
+										WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsVersionIncrease, 0) = 0  AND BillingInvoicingId = BI.BillingInvoicingId
+										  AND ModuleId = @SOModuleId AND ReferenceId = BI.ReferenceId GROUP BY ItemMasterId
+									) AS DistinctFreight 
+								)
+								+
+								(SELECT SUM(ISNULL(Charges, 0))
+									FROM (
+										SELECT ItemMasterId,MAX(ISNULL(MiscChargesCostPlus, 0)) AS Charges
+										FROM dbo.BillingInvoicingItems WITH (NOLOCK)
+										WHERE ISNULL(IsActive, 0) = 1
+										  AND ISNULL(IsDeleted, 0) = 0
+										  AND ISNULL(IsVersionIncrease, 0) = 0
+										  AND BillingInvoicingId = BI.BillingInvoicingId
+										  AND ModuleId = @SOModuleId
+										  AND ReferenceId = BI.ReferenceId
+										GROUP BY ItemMasterId
+									) AS DistinctCharges 
+								)
+								ELSE  ISNULL(BI.[GrandTotal],0) END [GrandTotal],
 					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
   				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),
@@ -141,7 +200,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Employee] SP WITH(NOLOCK) ON SO.[SalesPersonId] = SP.[EmployeeId]
 				 LEFT JOIN [dbo].[Countries] CONT WITH(NOLOCK) ON CUSTADDRESS.[CountryId] = CONT.[countries_id]
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON SO.[FunctionalCurrencyId] = CUR.[CurrencyId]
-				 LEFT JOIN [dbo].[WorkOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[WorkOrderShippingId]
+				LEFT JOIN [dbo].[SalesOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[SalesOrderShippingId]
 				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
 				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 				LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId

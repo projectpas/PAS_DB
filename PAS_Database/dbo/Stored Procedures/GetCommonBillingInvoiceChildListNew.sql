@@ -1516,8 +1516,8 @@ BEGIN
 							SizeHeight,
 							IsVersionIncrease,
 							1
-						FROM FinalCTE
-						ORDER BY partnumber, IsProformaInvoice DESC, InvoiceNo DESC, VersionNo DESC;
+						FROM FinalCTE ORDER BY partnumber, IsProformaInvoice DESC ,VersionNo DESC;
+						--ORDER BY partnumber, IsProformaInvoice DESC, InvoiceNo DESC, VersionNo DESC;
 
 						DELETE FROM #InvoiceMainDetails WHERE ISNULL(IsLastInserted,0) = 0
 					

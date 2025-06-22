@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -450,19 +449,23 @@ BEGIN
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
-				IF(@IsProformaInvoice = 1)
-				BEGIN
-					SET @SalesTax = 0;
-					SET @OtherTax = 0;
-				END
-				ELSE
-				BEGIN	
-					INSERT INTO #tblSalesTaxAndOtherTaxDetails
+				--IF(@IsProformaInvoice = 1)
+				--BEGIN
+				--	SET @SalesTax = 0;
+				--	SET @OtherTax = 0;
+				--END
+				--ELSE
+				--BEGIN	
+				--	INSERT INTO #tblSalesTaxAndOtherTaxDetails
+				--	EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_New] @SalesOrderId = @ReferenceId, @SalesOrderPartId = @ID, @CustomerId = @CustomerId
+				--	SET @SalesTax = (SELECT [SalesTax] FROM #tblSalesTaxAndOtherTaxDetails);
+				--	SET @OtherTax = (SELECT [OtherTax] FROM #tblSalesTaxAndOtherTaxDetails);
+				--END
+
+				INSERT INTO #tblSalesTaxAndOtherTaxDetails
 					EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_New] @SalesOrderId = @ReferenceId, @SalesOrderPartId = @ID, @CustomerId = @CustomerId
 					SET @SalesTax = (SELECT [SalesTax] FROM #tblSalesTaxAndOtherTaxDetails);
 					SET @OtherTax = (SELECT [OtherTax] FROM #tblSalesTaxAndOtherTaxDetails);
-				END
-		
 				IF(@SalesTax > 0)
 				BEGIN
 					SELECT @SalesTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @SalesTax;					
@@ -478,7 +481,7 @@ BEGIN
 				UPDATE #TempCommonPartNumberDetailsForBilling 
 					   SET 
 						   [UnitPrice] = @UnitCost,
-						   PartCost = @PartsCost,
+						   PartCost = CASE WHEN @IsProformaInvoice = 1 THEN @UnitCostExt ELSE @PartsCost END,
 						   [BillingInvoicingId] = @BillingInvoicingId,
 						   [BillingInvoicingItemId] = @BillingInvoicingItemId,
 						   [MiscCharges] = @SOChargesAmount,

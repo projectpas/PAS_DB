@@ -12,7 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/JUN/2025   RAJESH GAMI   CREATED
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed   
---  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 72,10,245
+--  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 75,10,245
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
 @BillingInvoicingId BIGINT = NULL,

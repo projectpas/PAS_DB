@@ -19,8 +19,6 @@
  **	3	25-04-2022   Devendra Shekh			showing approved amt only after customer approved
  **	4	13-08-2022   Devendra Shekh			increased length for temptable fields
  ** 5   18/04/2025   Ayushi  Patel          Added the condition for pn , pndescription , serialnum 
- ** 6   20-06-2025	 Devendra Shekh			Billing Table Changes
-
 exec usprpt_GetWorkOrderBacklogReportSSRSData 
 @mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
@@ -67,9 +65,6 @@ BEGIN
 
 	DECLARE @ApprovedStatusId INT = 0;
 	SELECT @ApprovedStatusId = ApprovalProcessId FROM [dbo].[ApprovalProcess] WITH(NOLOCK) WHERE UPPER([Name]) = 'APPROVED';
-
-	DECLARE @SubModuleId BIGINT = 0;
-	SELECT @SubModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
 
 	SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
 	SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
@@ -152,12 +147,12 @@ BEGIN
 	0 'ApprovedAmount',  
     ISNULL(SL.purchaseorderUnitCost, 0) 'UnitCost',    
     RCW.StocklineId,    
-    CASE WHEN ISNULL(WOBI.BillingInvoicingItemId, 0) = 0 THEN CAST(ISNULL(WOC.PartsCost, 0) AS VARCHAR(20)) ELSE CAST(ISNULL(WOBI.MaterialCost, 0) AS VARCHAR(20)) END'PartsCost',     
+    CASE WHEN ISNULL(WOBI.WOBillingInvoicingItemId, 0) = 0 THEN CAST(ISNULL(WOC.PartsCost, 0) AS VARCHAR(20)) ELSE CAST(ISNULL(WOBI.MaterialCost, 0) AS VARCHAR(20)) END'PartsCost',     
     ISNULL(WOC.LaborCost, 0) 'LaborCost',    
     ISNULL(WOC.OverheadCost, 0) 'OverheadCost',    
-    CASE WHEN ISNULL(WOBI.BillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.ChargesCost, 0) + ISNULL(WOC.FreightCost, 0) ELSE ISNULL(WOBI.MiscCharges, 0) + ISNULL(WOBI.Freight, 0) END 'MiscCharge',    
-    CASE WHEN ISNULL(WOBI.BillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.Othercost, 0) ELSE ISNULL(WOBI.MiscCharges, 0) END 'Othercost',    
-    ((CASE WHEN ISNULL(WOBI.BillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.PartsCost, 0) ELSE ISNULL(WOBI.MaterialCost, 0) END) + ISNULL(WOC.LaborCost, 0) + ISNULL(WOC.OverheadCost, 0) + (CASE WHEN ISNULL(WOBI.BillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.Othercost, 0) ELSE ISNULL(WOBI.MiscCharges, 0) END)) 'Total',    
+    CASE WHEN ISNULL(WOBI.WOBillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.ChargesCost, 0) + ISNULL(WOC.FreightCost, 0) ELSE ISNULL(WOBI.MiscCharges, 0) + ISNULL(WOBI.Freight, 0) END 'MiscCharge',    
+    CASE WHEN ISNULL(WOBI.WOBillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.Othercost, 0) ELSE ISNULL(WOBI.MiscCharges, 0) END 'Othercost',    
+    ((CASE WHEN ISNULL(WOBI.WOBillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.PartsCost, 0) ELSE ISNULL(WOBI.MaterialCost, 0) END) + ISNULL(WOC.LaborCost, 0) + ISNULL(WOC.OverheadCost, 0) + (CASE WHEN ISNULL(WOBI.WOBillingInvoicingItemId, 0) = 0 THEN ISNULL(WOC.Othercost, 0) ELSE ISNULL(WOBI.MiscCharges, 0) END)) 'Total',    
     ISNULL(DATEDIFF(DAY, RCW.ReceivedDate, GETDATE()), 0) AS 'WODaysCount',    
     ISNULL(UPPER(E.FirstName + ' ' + E.LastName), '') 'Techname',    
 	UPPER(ISNULL(P.[Description], '')) AS 'Priority',
@@ -198,7 +193,7 @@ BEGIN
 	LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 	LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
 	LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
-	LEFT JOIN [dbo].BillingInvoicingItems WOBI WITH(NOLOCK) ON WOPN.ID = WOBI.SubReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.SubModuleId = @SubModuleId
+	LEFT JOIN [dbo].WorkOrderBillingInvoicingItem WOBI WITH(NOLOCK) ON WOPN.ID = WOBI.WorkOrderPartId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0
 
    WHERE CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)    
     AND (ISNULL(@id5,'') ='' OR WOT.Id = ISNULL(@id5,WOT.Id)) AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 1) = 1 AND ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  

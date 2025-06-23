@@ -14,10 +14,9 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    19-Mar-2024	Rajesh Gami			Created  
-	2    13-sept-2024	Shrey Chandegara	Modified due to add sum total revenue.
-	3    18/04/2025		Ayushi				Added the condition for pn , pndescription 
-	4    23-June-2025	Devendra Shekh		Billing Table Changes
+    1    19-Mar-2024  Rajesh Gami   Created  
+	2    13-sept-2024  Shrey Chandegara Modified due to add sum total revenue.
+	3    18/04/2025   Ayushi            Added the condition for pn , pndescription 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
 @PageNumber int = 1,
@@ -56,13 +55,9 @@ BEGIN
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
-		DECLARE @ModuleID INT = 12; -- MS Module ID
-		SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
-
-		DECLARE @WOModuleId BIGINT = 0, @SubModuleId BIGINT = 0;
-		SELECT @WOModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
-		SELECT @SubModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
-
+       print 'Start'
+      DECLARE @ModuleID INT = 12; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
 		then convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) else @fromdate end,
@@ -149,10 +144,10 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			WBI.BillingInvoicingId
        FROM 
-			DBO.BillingInvoicingItems AS WOBIT WITH (NOLOCK)  
-			INNER JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0 AND WBI.ModuleId = @WOModuleId 
-			INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) on WBI.ReferenceId = WO.WorkOrderId
-			INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOBIT.SubReferenceId = WOPN.ID  
+			DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  
+			INNER JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+			INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) on WBI.WorkOrderId = WO.WorkOrderId
+			INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOBIT.WorkOrderPartId = WOPN.ID  
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
@@ -162,7 +157,7 @@ BEGIN
 			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 		  
 		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND
-				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)    AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId) AND WOBIT.SubModuleId = @SubModuleId
+				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)    AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)  
 					AND CAST(WBI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
 					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))

@@ -3978,6 +3978,10 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShippingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveNewPartToWorkOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEmployeeManagementStructure.sql" />
+    <Build Include="dbo\User Defined Types\EmployeeManagementStructureTVP.sql" />
+  </ItemGroup>
+  <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteRestoreLegalEntityShippingAddress.sql" />
@@ -3986,6 +3990,12 @@
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceId.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePublicationStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeletePublicationById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderShippingFedexPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderShippingAirwayBillNo.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetWorkFlowWorkOrderChargesList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestorePublicationById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLegalEntityShipVia.sql" />
   </ItemGroup>
   <ItemGroup>

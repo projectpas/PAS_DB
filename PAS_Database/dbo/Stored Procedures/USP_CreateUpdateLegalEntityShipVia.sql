@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    19-June-2025		Divyesh Kathiriya	Created	
+	2	 20-June-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity ShippingVia Detail.
     
  -- EXEC [USP_CreateUpdateLegalEntityShipVia] 
 **************************************************************/
@@ -88,9 +89,45 @@ BEGIN
 				INSERT INTO #tmpmsg(msg) VALUES ('A Ship Via entry with this Legal Entity, Ship Via and Shipping Account Number already exists.');					
 			END
 		END
-
 /***************End Save LegalEntity Ship Via Details***************/				
-		
+/***************Start Update LegalEntity Ship Via Details.***************/
+		ELSE
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] LS WITH(NOLOCK) WHERE LS.[ShipViaId] = @ShipViaId AND LS.[ShippingAccountInfo] = @ShippingAccountInfo AND LS.[MasterCompanyId] = @MasterCompanyId AND LS.[LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND LS.[LegalEntityShippingId] <> @LegalEntityShippingId)
+			BEGIN
+				--IF NEW PRIMARY, RESET OLD PRIMARY TO NO-PRIMARY
+				IF (ISNULL(@IsPrimary, 0) = 1)
+				BEGIN
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] WITH(NOLOCK) WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND @IsPrimary = 1 AND [LegalEntityShippingId] != @LegalEntityShippingId)
+					BEGIN							
+					
+						UPDATE [DBO].[LegalEntityShipping]
+						SET [IsPrimary] = 0,
+							[UpdatedBy] = @UpdatedBy,
+							[UpdatedDate] = GETUTCDATE()
+						WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId
+							AND [IsPrimary] = 1
+							AND [LegalEntityShippingId] != @LegalEntityShippingId;					
+					END
+				END
+
+				UPDATE [DBO].[LegalEntityShipping]
+				SET	[ShipVia] = @ShipVia,
+					[ShippingAccountinfo] = @ShippingAccountinfo,
+					[Memo] = @Memo,
+					[IsPrimary] = @IsPrimary,
+					[ShipViaId] = @ShipViaId,
+					[ShippingTermsId] = @ShippingTermsId,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE()
+				WHERE [LegalEntityShippingId] = @LegalEntityShippingId;
+			END			
+			ELSE
+			BEGIN
+				INSERT INTO #tmpmsg(msg) VALUES ('A Ship Via entry with this Legal Entity, Ship Via and Shipping Account Number already exists.');					
+			END
+		END
+/***************End Update LegalEntity Ship Via Details***************/		
 		IF EXISTS (SELECT 1 FROM #tmpmsg)
 		BEGIN
 			SELECT msg FROM #tmpmsg;			          

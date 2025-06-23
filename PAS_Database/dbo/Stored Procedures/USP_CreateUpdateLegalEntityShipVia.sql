@@ -31,50 +31,74 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-	BEGIN TRANSACTION			
+	BEGIN TRANSACTION
+
+		-- Error Msg
+		IF OBJECT_ID(N'tempdb..#tmpmsg') IS NOT NULL        
+		BEGIN        
+			DROP TABLE #tmpmsg    
+		END   
+
+		CREATE TABLE #tmpmsg
+		(        
+			msg VARCHAR(256) NULL 
+		)
 
 /***************Start Save LegalEntity Ship Via Details.***************/
 		IF(ISNULL(@LegalEntityShippingId, 0) = 0)
 		BEGIN
-
-			--If New Default, Reset Old Default To No-Default.
-			IF (ISNULL(@IsPrimary, 0) = 1)
+			IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] LS WITH(NOLOCK) WHERE LS.[ShipViaId] = @ShipViaId AND LS.[ShippingAccountInfo] = @ShippingAccountInfo AND LS.[MasterCompanyId] = @MasterCompanyId AND LS.[LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND LS.[LegalEntityShippingId] <> @LegalEntityShippingId)
 			BEGIN
-				IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] WITH(NOLOCK) WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND [IsPrimary] = 1)
-				BEGIN				
 
-					UPDATE [DBO].[LegalEntityShipping]
-					SET [IsPrimary] = 0,
-						[UpdatedDate] = GETUTCDATE(),
-						[UpdatedBy] = @UpdatedBy
-					WHERE [IsPrimary] = 1 AND [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId;
+				--If New Default, Reset Old Default To No-Default.
+				IF (ISNULL(@IsPrimary, 0) = 1)
+				BEGIN
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] WITH(NOLOCK) WHERE [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND [IsPrimary] = 1)
+					BEGIN				
+
+						UPDATE [DBO].[LegalEntityShipping]
+						SET [IsPrimary] = 0,
+							[UpdatedDate] = GETUTCDATE(),
+							[UpdatedBy] = @UpdatedBy
+						WHERE [IsPrimary] = 1 AND [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId;
 					
+					END
 				END
+				ELSE
+				BEGIN
+					-- If No Other Primary Exists, Mark As Primary
+					IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimary] = 1 AND [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND [IsPrimary] = 1)
+					BEGIN
+						SET @IsPrimary = 1;
+					END
+				END				
+
+				-- Insert LegalEntity Ship Via Details
+				INSERT INTO [DBO].[LegalEntityShipping] (
+					[LegalEntityId], [LegalEntityShippingAddressId], [ShipVia], [ShippingAccountInfo], [Memo], 
+					[MasterCompanyId],[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsPrimary], [ShipViaId], [ShippingTermsId])	
+					VALUES (
+					@LegalEntityId, @LegalEntityShippingAddressId, @ShipVia, @ShippingAccountInfo, @Memo, 
+					@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsPrimary, @ShipViaId, @ShippingTermsId)
+
+				SET @LegalEntityShippingId = SCOPE_IDENTITY();
 			END
 			ELSE
 			BEGIN
-				-- If No Other Primary Exists, Mark As Primary
-				IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityShipping] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimary] = 1 AND [LegalEntityShippingAddressId] = @LegalEntityShippingAddressId AND [IsPrimary] = 1)
-				BEGIN
-					SET @IsPrimary = 1;
-				END
-			END				
-
-			-- Insert LegalEntity Ship Via Details
-			INSERT INTO [DBO].[LegalEntityShipping] (
-				[LegalEntityId], [LegalEntityShippingAddressId], [ShipVia], [ShippingAccountInfo], [Memo], 
-				[MasterCompanyId],[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [IsPrimary], [ShipViaId], [ShippingTermsId])	
-				VALUES (
-				@LegalEntityId, @LegalEntityShippingAddressId, @ShipVia, @ShippingAccountInfo, @Memo, 
-				@MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsPrimary, @ShipViaId, @ShippingTermsId)
-
-			SET @LegalEntityShippingId = SCOPE_IDENTITY();				
+				INSERT INTO #tmpmsg(msg) VALUES ('A Ship Via entry with this Legal Entity, Ship Via and Shipping Account Number already exists.');					
+			END
 		END
 
-/***************End Save LegalEntity Ship Via Details***************/
-				
-		SELECT @LegalEntityShippingId AS LegalEntityShippingId;
-				
+/***************End Save LegalEntity Ship Via Details***************/				
+		
+		IF EXISTS (SELECT 1 FROM #tmpmsg)
+		BEGIN
+			SELECT msg FROM #tmpmsg;			          
+		END
+		ELSE
+		BEGIN			
+			SELECT @LegalEntityShippingId AS LegalEntityShippingId;
+		END				
 	
 	COMMIT  TRANSACTION
 	END TRY 

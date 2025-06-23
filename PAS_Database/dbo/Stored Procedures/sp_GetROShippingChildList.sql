@@ -21,8 +21,7 @@
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetROShippingChildList]  
 	@RepairOrderId  bigint,  
-	@RepairOrderPartId bigint,  
-	@ConditionId bigint  
+	@RepairOrderPartId bigint
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -69,8 +68,7 @@ BEGIN
 	  LEFT JOIN DBO.RepairOrderPackaginSlipItems SPI WITH (NOLOCK) ON ropt.ROPickTicketId = SPI.ROPickTicketId  AND SPI.RepairOrderPartId = rop.RepairOrderPartRecordId
 	  LEFT JOIN DBO.RepairOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  
 	  WHERE ropt.RepairOrderId = @RepairOrderId  
-	  AND rop.ItemMasterId = @RepairOrderPartId  
-	  AND rop.ConditionId = @ConditionId  
+	  AND rop.RepairOrderPartRecordId = @RepairOrderPartId  
 	  AND ropt.IsConfirmed = 1  
  END  
  COMMIT  TRANSACTION  

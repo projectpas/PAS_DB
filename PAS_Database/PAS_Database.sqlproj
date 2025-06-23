@@ -3991,6 +3991,8 @@
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePublicationStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeletePublicationById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderShippingFedexPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRepairOrderShippingAirwayBillNo.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkFlowWorkOrderChargesList.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationById.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetDomesticShipViaList.sql" />

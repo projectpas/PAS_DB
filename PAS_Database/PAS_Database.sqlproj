@@ -3980,6 +3980,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEmployeeManagementStructure.sql" />
     <Build Include="dbo\User Defined Types\EmployeeManagementStructureTVP.sql" />
+    <Build Include="dbo\Stored Procedures\CopyExistingSOBillingInvoicingDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -3984,6 +3984,8 @@
     <Build Include="dbo\User Defined Types\PublicationItemMasterMappingType.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeletePublicationItemMasterMappingById.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationItemMasterMappingById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEmployeeUserRole.sql" />
+    <Build Include="dbo\User Defined Types\EmployeeUserRoleType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

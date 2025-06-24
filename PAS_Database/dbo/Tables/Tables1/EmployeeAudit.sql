@@ -50,6 +50,7 @@
     [SiteId]                             BIGINT          NULL,
     [TwoFactorAuthentication]            BIT             DEFAULT ((0)) NOT NULL,
     [TwoFactorAuthenticationType]        INT             NULL,
+    [TwoFactorAuthenticatorKey]          NVARCHAR (100)  NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
 

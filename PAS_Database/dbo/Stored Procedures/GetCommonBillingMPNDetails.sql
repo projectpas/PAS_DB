@@ -16,8 +16,10 @@
 	4    17/06/2025   RAJESH GAMI    Fix the Shipping Related issue AND Proforma amount related issue
 	5    17/06/2025   Moin Bloch     Add QuoteMethod
 	6    19/06/2025   RAJESH GAMI    Change the logic that freight and charges add only on first stockline (Partition by SOPartId) in SO
+	7    23/06/2025   Moin Bloch     checked IsFinishGood IN WO
+	8    23/06/2025   Moin Bloch     Added WorkOrderShippingId IN WO
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
---  EXEC [dbo].[GetCommonBillingMPNDetails] 8800,0,'',15
+--  EXEC [dbo].[GetCommonBillingMPNDetails] 8980,8806,'',15,0,0
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 846,0,'1011,1012,1013',10,0
 DROP PROCEDURE GetCommonBillingMPNDetails
 ************************************************************************/
@@ -45,7 +47,7 @@ BEGIN
 		DECLARE @Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@PartDescription NVARCHAR(MAX)='',@SerialNumber VARCHAR(100)=''
 		DECLARE @WorkFlowWorkOrderId BIGINT = 0, @BillingInvoicingId BIGINT = 0, @BillingInvoicingItemId BIGINT = 0, @LabourCost DECIMAL(18,2) = 0,@UnitCostExt DECIMAL(18,2) = 0, @UnitCost DECIMAL(18,2) = 0,@PartsCost DECIMAL(18,2) = 0, @MicCharges DECIMAL(18,2) = 0, @FreightCost DECIMAL(18,2) = 0;
 		DECLARE @TotalCost DECIMAL(18,2) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,2) = 0, @OtherTaxAmount DECIMAL(18,2) = 0, @GrandTotal DECIMAL(18,2) = 0;
-
+		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 
 
 		IF(@SubReferenceIds = '')
 		BEGIN
@@ -74,6 +76,7 @@ BEGIN
 				[WorkOrderWorkflowId] BIGINT NULL, 
 				[BillingInvoicingId] BIGINT NULL, 
 				[BillingInvoicingItemId] BIGINT NULL, 
+				[WorkOrderShippingId]  BIGINT NULL, 
 				[ItemMasterId] BIGINT NULL,	
 				[StockLineId] BIGINT NULL,
 				[ConditionId] BIGINT NULL,
@@ -105,14 +108,17 @@ BEGIN
 		BEGIN
 			SELECT @WorkOrderMPNMSModuleEnum = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN'
 
-			SELECT @CustomerId = WO.[CustomerId],@MasterCompanyId = WO.[MasterCompanyId] FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.[WorkOrderId] = @ReferenceId;
+			SELECT @CustomerId = WO.[CustomerId],@WorkOrderTypeId = [WorkOrderTypeId], @MasterCompanyId = WO.[MasterCompanyId] FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.[WorkOrderId] = @ReferenceId;
 			
+			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId]=@WorkOrderTypeId AND [MasterCompanyId]=@MasterCompanyId
+
 			IF(@IsProformaInvoice = 0)
 			BEGIN
 				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
 															   SELECT [WorkOrderId],[ID],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[CurrentSerialNumber]
 				FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) 
-				WHERE [WorkOrderId] = @ReferenceId AND ISNULL([IsFinishGood],0) = 1
+				WHERE [WorkOrderId] = @ReferenceId 
+				  AND (@AllowInvoiceBeforeShipping = 1 AND ISNULL([IsFinishGood], 0) = 1 OR @AllowInvoiceBeforeShipping = 0)
 				  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 				  AND [IsDeleted] = 0 
 				ORDER BY [ID]	
@@ -135,6 +141,7 @@ BEGIN
 				SET @WorkFlowWorkOrderId = 0;
 				SET @BillingInvoicingId = 0;
 				SET @BillingInvoicingItemId = 0;
+				SET @WorkOrderShippingId = 0;
 				SET @LabourCost = 0;
 				SET @PartsCost = 0;
 				SET @MicCharges = 0;
@@ -171,11 +178,13 @@ BEGIN
 						   @PartDescription = CASE WHEN wop.[RevisedPartDescription] IS NOT NULL AND wop.[RevisedPartDescription] <> '' THEN wop.[RevisedPartDescription] ELSE im.[PartDescription] END,
 						   @SerialNumber = CASE WHEN wop.[RevisedSerialNumber] IS NOT NULL AND wop.[RevisedSerialNumber] <> '' THEN wop.[RevisedSerialNumber] ELSE sl.[SerialNumber] END,
 						   @BillingInvoicingId = boi.[BillingInvoicingId],
-						   @BillingInvoicingItemId = boi.[BillingInvoicingItemId]
+						   @BillingInvoicingItemId = boi.[BillingInvoicingItemId],
+						   @WorkOrderShippingId = wos.[WorkOrderShippingId]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 						INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wop.[StockLineId] = sl.[StockLineId]
 						INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.[ItemMasterId] = im.[ItemMasterId]	
 						 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
+						 LEFT JOIN [dbo].[WorkOrderShippingItem] wos WITH(NOLOCK) ON wop.[ID] = wos.[WorkOrderPartNumId] AND wos.[IsDeleted] = 0 
 						WHERE wop.[WorkOrderId] = @ReferenceId AND wop.[ID] = @ID
 									   
 					-- Calculate parts cost (Materials)
@@ -248,7 +257,8 @@ BEGIN
 						   [OtherTaxPercent] = @OtherTaxPercent,
 						   [OtherTax] = @OtherTax,
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
-						   [GrandTotal] = @GrandTotal
+						   [GrandTotal] = @GrandTotal,
+						   [WorkOrderShippingId] = @WorkOrderShippingId
 					 WHERE [PKID] = @MinId;
 
 				END
@@ -267,7 +277,8 @@ BEGIN
 					 @PartDescription = IM.[PartDescription],
 					 @SerialNumber = wop.[RevisedSerialNumber],
 					 @BillingInvoicingId = boi.[BillingInvoicingId],
-					 @BillingInvoicingItemId = boi.[BillingInvoicingItemId],					  
+					 @BillingInvoicingItemId = boi.[BillingInvoicingItemId],		
+					 @WorkOrderShippingId = wos.[WorkOrderShippingId],
 					 @MaterialFlatBillingAmount = CASE WHEN ISNULL(wqd.[MaterialBuildMethod],0) = 3 THEN ISNULL(wqd.[MaterialFlatBillingAmount],0) ELSE ISNULL(wqd.[MaterialRevenue],0) END,
 					 @LaborFlatBillingAmount = CASE WHEN ISNULL(wqd.[LaborBuildMethod],0) = 3 THEN ISNULL(wqd.[LaborFlatBillingAmount],0) ELSE ISNULL(wqd.[LaborRevenue],0) END,
 					 @ChargesFlatBillingAmount = CASE WHEN ISNULL(wqd.[ChargesBuildMethod],0) = 3 THEN ISNULL(wqd.[ChargesFlatBillingAmount],0) ELSE ISNULL(wqd.[ChargesRevenue],0) END,
@@ -280,6 +291,7 @@ BEGIN
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WQD.[ItemMasterId]
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID]  = WQD.[WOPartNoId] 
 					LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
+					LEFT JOIN [dbo].[WorkOrderShippingItem] wos WITH(NOLOCK) ON wop.[ID] = wos.[WorkOrderPartNumId] AND wos.[IsDeleted] = 0 
 					WHERE WQD.[WorkflowWorkOrderId] = @WorkFlowWorkOrderId AND WQD.[WOPartNoId] = @ID AND WQD.[IsVersionIncrease] = 0
 
 				IF(@QuoteMethod = 1)
@@ -359,7 +371,8 @@ BEGIN
 						   [OtherTax] = @OtherTax,
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
 						   [GrandTotal] = @GrandTotal,
-						   [QuoteMethod] = @QuoteMethod
+						   [QuoteMethod] = @QuoteMethod,
+						   [WorkOrderShippingId] = @WorkOrderShippingId
 					 WHERE [PKID] = @MinId;
 
 				END

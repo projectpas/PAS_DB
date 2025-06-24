@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    28/04/2025   Moin Bloch    Created
 	2    30 Apr 2025   RAJESH GAMI  Implemented Sales Order Module and Fix invoice Date issue
+	3    23 JUN 2025   RAJESH GAMI  FIXED CustomerDomensticShippingShipViaId related issue in SO
    EXEC [dbo].[GetBillingInvoicingDetails] 8781,8523,2,15,0,0
    EXEC [dbo].[GetBillingInvoicingDetails] 802,972,2,10,292,0
 **************************************************************/ 
@@ -294,6 +295,7 @@ BEGIN
 		END /*********END: WORK ORDER ********/
 		ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN
+			SET @ShippingId = (SELECT TOP 1 SalesOrderShippingId FROM dbo.SalesOrderShipping sos WITH(NOLOCK) WHERE sos.SalesOrderId = @ReferenceId AND IsActive = 1 AND ISNULL(IsDeleted,0) = 0 ORDER BY SalesOrderShippingId DESC)
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
 			IF EXISTS (SELECT 1 FROM [dbo].[SalesOrder] so WITH(NOLOCK)
 			               INNER JOIN [dbo].[CustomerDomensticShipping] cust_ship WITH(NOLOCK) ON so.[CustomerId] = cust_ship.[CustomerId]
@@ -308,7 +310,7 @@ BEGIN
 			END
 			IF(@BillingInvoicingId > 0)
 			BEGIN
-				  SELECT sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
+				  SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 				  		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				  		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, sobi.CurrencyId,
 				  		so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
@@ -378,7 +380,7 @@ BEGIN
 			BEGIN
 				 IF (@ShippingId != 0)
 				 BEGIN
-				 	SELECT sop.SalesOrderId, sop.SalesOrderPartId, sos.SalesOrderShippingId, sos.ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
+				 	SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, sos.SalesOrderShippingId, sos.ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 				 		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				 		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId as CurrencyId,
 				 		so.TypeId, sotype.[Name] as RevType, sosi.QtyShipped as NoofPieces,
@@ -435,7 +437,7 @@ BEGIN
 				 END
 				 ELSE
 				 BEGIN
-				 	SELECT sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
+				 	SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 				 		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				 		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, sobi.CurrencyId,
 				 		so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces, 

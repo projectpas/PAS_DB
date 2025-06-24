@@ -12,8 +12,9 @@
  ** --   --------     -------		--------------------------------          
     1    16/05/2025   Moin Bloch		Created
     2    21/05/2025   RAJESH GAMI       Implemented SO
+	3    23/05/2025   Moin Bloch        Added UPEERCASE And NoOfItems
 	
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 38,15,2
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 68,15,2
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData]
 @BillingInvoicingId BIGINT = NULL,
@@ -25,7 +26,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@NoOfItems INT=0
 	
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -42,12 +43,17 @@ BEGIN
 	   		
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 		BEGIN	
+			
 			SELECT TOP 1 WOP.CustomerReference, T.ReferenceId
 			INTO #TempCustomerRef
 			FROM [dbo].[BillingInvoicing] T WITH(NOLOCK)
 			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON T.BillingInvoicingId = BII.BillingInvoicingId
 			INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.SubReferenceId = WOP.ID
 			WHERE T.[BillingInvoicingId] = @BillingInvoicingId;
+
+			SELECT @NoOfItems = COUNT(ISNULL(BII.[BillingInvoicingItemId],0))			 
+			 FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 		 
+			WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
 
 				SELECT TOP 1 
 					1 AS [ItemNo],
@@ -57,7 +63,7 @@ BEGIN
 					CUST.[Name]  [ClientName],
 					CUST.[Email] [CustEmail],
 					ISNULL(CONT.[countries_name], '') [CustCountry],
-					ISNULL(SP.[FirstName] + ' ' + SP.[LastName], '') [SalesPerson],
+					UPPER(ISNULL(SP.[FirstName] + ' ' + SP.[LastName], '')) [SalesPerson],
 					-- CLIENT ADDRESS START
 					CUSTADDRESS.[Line1]  [ClientAddressLine1],
 					CUSTADDRESS.[Line2]  [ClientAddressLine2],
@@ -91,25 +97,25 @@ BEGIN
 					BI.[InvoiceNo] [InvoiceNumber],
 					CASE WHEN BI.[InvoiceDate] IS NOT NULL THEN FORMAT(BI.[InvoiceDate], 'MM/dd/yyyy h:mm tt') ELSE '' END [DateAndTime],
 					ISNULL(CAST(SHIPPINGINFO.[NoOfContainer] AS NVARCHAR), '0') [NoOfContainers],
-					ISNULL(CONTACT.[FirstName] + ' ' + CONTACT.[LastName], '') [BuyersName],
+					UPPER(ISNULL(CONTACT.[FirstName] + ' ' + CONTACT.[LastName], '')) [BuyersName],
 					BI.[CreatedBy] [PreparedBy],
 					FORMAT(BI.[PrintDate], 'MM/dd/yyyy h:mm tt') [DatePrinted],
 					ISNULL(CAST(SHIPPINGINFO.[Weight] AS NVARCHAR), '0') [Weight],
-					WO.[CreditTerms],
+					UPPER(WO.[CreditTerms]) [CreditTerms],
 					ISNULL(cur.[Code], '') [Currency],
 					FORMAT(WO.[OpenDate], 'MM/dd/yyyy') [OrderDate],
 					FORMAT(SHIPPINGINFO.[ShipDate], 'MM/dd/yyyy') [ShipDate],
 					--(CASE WHEN ISNULL(BI.IsCustomerShipping,0) = 1 THEN ISNULL(SHIPVIACust.[Name], '') ELSE  ISNULL(SHIPINFOVIA.[Name], '') END) AS [ShipVia],
-					ISNULL(SHIPINFOVIA.[Name], '')  AS [ShipVia],
-					BID.[ShipAccountInfo] [ShipAccNumber],
-					SHIPPINGINFO.[WOShippingNum] [ShippingOrderNumber],
-					ISNULL(SHIPPINGINFO.[AirwayBill], '') [Awb],
+					UPPER(ISNULL(SHIPINFOVIA.[Name], ''))  AS [ShipVia],
+					UPPER(BID.[ShipAccountInfo]) [ShipAccNumber],
+					UPPER(SHIPPINGINFO.[WOShippingNum]) [ShippingOrderNumber],
+					UPPER(ISNULL(SHIPPINGINFO.[AirwayBill], '')) [Awb],
 					BI.[InvoiceStatus],
 					BI.[ManagementStructureId],
 					BI.[InvoiceNo] [Barcode],
 					WO.[UpdatedDate],
-					SHIPPINGINFO.[Shipment],
-					CUST.[CustomerCode],
+					UPPER(SHIPPINGINFO.[Shipment]) [Shipment],
+					UPPER(CUST.[CustomerCode]) [CustomerCode],
 					ISNULL(CUSTREF.[CustomerReference], '') [CustomerReference],
 					CUST.[CustomerPhone] [CustToPhone],
 					CASE WHEN BI.[PostedDate] IS NOT NULL THEN FORMAT(DATEADD(DAY, ISNULL(WO.[NetDays],0), BI.[InvoiceDate]), 'MM/dd/yyyy') ELSE '' END [DueDate],					
@@ -128,7 +134,8 @@ BEGIN
 					ISNULL(BI.[SubTotal],0) [SubTotal],
 					ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal],0) [GrandTotal],
-					ISNULL(BI.[RemainingAmount],0) [RemainingAmount]	 				
+					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					ISNULL(CAST(@NoOfItems AS NVARCHAR), '0') [NoOfItems]					 
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BI.[ReferenceId] = WO.[WorkOrderId]

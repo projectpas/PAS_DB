@@ -3980,6 +3980,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetEmpoyeeManagementStructureList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEmployeeManagementStructure.sql" />
     <Build Include="dbo\User Defined Types\EmployeeManagementStructureTVP.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PublicationItemMasterMapping_InsertBatch.sql" />
+    <Build Include="dbo\User Defined Types\PublicationItemMasterMappingType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeletePublicationItemMasterMappingById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestorePublicationItemMasterMappingById.sql" />
     <Build Include="dbo\Stored Procedures\CopyExistingSOBillingInvoicingDetails.sql" />
   </ItemGroup>
   <ItemGroup>

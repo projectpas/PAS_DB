@@ -51,7 +51,7 @@ BEGIN
 					--							 AND ItemMasterId = sop.ItemMasterId 
 					--							 AND IsActive = 1 AND IsDeleted = 0), 0)
 					--			  END,
-					Freigh =bii.FreightCostPlus,
+					Freight =bii.FreightCostPlus,
 					MiscCharges = bii.MiscChargesCostPlus,
 					ROW_NUMBER() OVER (PARTITION BY BII.BillingInvoicingItemId ORDER BY BI.BillingInvoicingId) as RowNo,
 					SubReferenceId = ISNULL(stock.SalesOrderPartId, sop.SalesOrderPartId),

@@ -15,7 +15,10 @@
     2    21/05/2025   RAJESH GAMI    Make it common for all module
 	3    12/06/2025   MOIN BLOCH     Added MPN Cost Details
 	4    13/06/2025   MOIN BLOCH     Added CustomerId,WorkFlowWorkOrderId
-
+    5    23/06/2025   Moin Bloch     Added Version Increase 
+	6    23/06/2025   RAJESH GAMI    Added SubModuleId for SO billing invoicing in the Item table.
+	7    23/06/2025   Moin Bloch     Added WorkOrderShippingId
+	
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -47,6 +50,7 @@ CREATE    PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @DepositAmount DECIMAL(18,2) = 0,
 @GrandTotal DECIMAL(18,2) = NULL,
 @Notes NVARCHAR(MAX) = NULL,
+@WorkOrderShippingId  BIGINT = NULL,
 @ManagementStructureId BIGINT = NULL,
 @MasterCompanyId INT = NULL,
 @CreatedBy VARCHAR(256) = NULL,
@@ -81,9 +85,9 @@ BEGIN
  BEGIN TRY  
  BEGIN TRANSACTION  
  BEGIN    
-	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT, @TotalRecord INT = 0,@MinId BIGINT = 1
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT, @TotalRecord INT = 0,@MinId BIGINT = 1, @CommonBillingInvoicingId BIGINT = NULL;
 	DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50),@VerCodePrefix NVARCHAR(50)
-	DECLARE @BilledInvoiceStatusId INT = 0,@WorkOrderMPNModuleID INT 
+	DECLARE @BilledInvoiceStatusId INT = 0,@WorkOrderMPNModuleID INT ,@SOPartModuleId INT 
 	DECLARE @BilledInvoiceStatus VARCHAR(50), @InvoiceCodeTypeId INT,@ProformaInvoiceCodeTypeId INT,@VerCode INT
 	DECLARE @CurrentNo INT = 0, @TemplateBody VARCHAR(MAX)='',@PartNumber VARCHAR(50)='', @BillingInvoicingIdNew BIGINT = 0
 	DECLARE @RemainingAmount DECIMAL(18,2) = 0,@CustomerId BIGINT
@@ -98,24 +102,36 @@ BEGIN
 	SELECT @BilledInvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Billed';		
 	SELECT @BilledInvoiceStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @BilledInvoiceStatusId;	
 	SELECT @VerCode  = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Version';	
-
+		
 	IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 	BEGIN
 		SELECT @InvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='WOInvoice';
 		SELECT @ProformaInvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='WOProformaInvoice';
 		SELECT @WorkOrderMPNModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrderMPN';
-		SELECT @CustomerId = [CustomerId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId
+		SELECT @CustomerId = [CustomerId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId		
 	END
 	ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 	BEGIN
 		SELECT @InvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='SOInvoice';
 		SELECT @ProformaInvoiceCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='SOProformaInvoice';
-		SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId
+		SELECT @SOPartModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='SalesOrderPart';
+		SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId		
 	END
 	ELSE IF(@ModuleId = @EXModuleId) /*********START: Exchange  ********/
 	BEGIN
 		PRINT '---------------Exchange----------------'
 	END
+
+	SELECT @CommonBillingInvoicingId = [BillingInvoicingId]
+	FROM @tbl_BillingInvoicingItemsType
+	WHERE [BillingInvoicingId] <> 0 
+	GROUP BY [BillingInvoicingId] HAVING COUNT(*) = (SELECT COUNT(*) FROM @tbl_BillingInvoicingItemsType 
+	WHERE [BillingInvoicingId] <> 0) AND COUNT(DISTINCT [BillingInvoicingId]) = 1;
+		
+	IF(@CommonBillingInvoicingId > 0)
+	BEGIN
+		SET @InvoiceNo = (SELECT TOP 1 InvoiceNo FROM dbo.BillingInvoicing WITH(NOLOCK) Where BillingInvoicingId = @CommonBillingInvoicingId)
+	END	
 
 	IF (@IsPerformaInvoice = 0)
 	BEGIN
@@ -129,28 +145,31 @@ BEGIN
 	SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		-- Check for current number and increment
-		IF COALESCE(@CodePrefix, '') <> ''
+		IF(@CommonBillingInvoicingId IS NULL)
 		BEGIN
-			SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
-			IF @CurrentNo > 0
+			IF COALESCE(@CodePrefix, '') <> ''
 			BEGIN
-				SET @CurrentNo = @CurrentNo + 1;
-				UPDATE [dbo].[CodePrefixes] 
-				SET [CurrentNummber] = @CurrentNo
-				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
+				IF @CurrentNo > 0
+				BEGIN
+					SET @CurrentNo = @CurrentNo + 1;
+					UPDATE [dbo].[CodePrefixes] 
+					SET [CurrentNummber] = @CurrentNo
+					WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+				END
+				ELSE
+				BEGIN
+					SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+					UPDATE [dbo].[CodePrefixes]
+					SET [CurrentNummber] = @CurrentNo 
+					WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+				END			
+				SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 			END
 			ELSE
-			BEGIN
-				SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
-				UPDATE [dbo].[CodePrefixes]
-				SET [CurrentNummber] = @CurrentNo 
-				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
-			END			
-			SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
-		END
-		ELSE
-		BEGIN			
-			SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, '',''))
+			BEGIN			
+				SET @InvoiceNo = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](@CurrentNo, '',''))
+			END
 		END
 
         DECLARE @VersionNum INT= 0;
@@ -255,13 +274,13 @@ BEGIN
 				   ,[IsPerformaInvoice],[IsVersionIncrease],[PostedDate],[SubTotal],[OtherTax],[SalesTax],[DepositAmount],[GrandTotal]
 				   ,[Notes],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
 				   ,[IsActive],[IsDeleted],[IsReversedJE],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate],[SyncToken]
-				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount])		 
+				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId])		 
 			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @InvoiceDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
 					 @IsPerformaInvoice, @IsVersionIncrease, @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
 					 @Notes, @ManagementStructureId, @MasterCompanyId, @CreatedBy, @CreatedBy, @CreatedDate, @CreatedDate,
 					 @IsActive, @IsDeleted, @IsReversedJE, @QuickBooksReferenceId, @IsUpdated, @LastSyncDate, @SyncToken,
-					 @IsCreatedFromQuote, @IsQuickBookGeneratedInvoice,@RemainingAmount);
+					 @IsCreatedFromQuote, @IsQuickBookGeneratedInvoice,@RemainingAmount,@WorkOrderShippingId);
 				 
 		SET @BillingInvoicingIdNew = SCOPE_IDENTITY();	  
 
@@ -289,6 +308,8 @@ BEGIN
 					[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,PartCost
 			   FROM @tbl_BillingInvoicingItemsType
 
+		Update #tmprAddBillingInvoicingDetailsTemp set SubModuleId = @SOPartModuleId WHERE ModuleId = @SOModuleId;
+		
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprAddBillingInvoicingDetailsTemp    
 
 		WHILE @MinId <= @TotalRecord /****** START : MAIN WHILE LOOP *******/
@@ -364,6 +385,9 @@ BEGIN
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
 							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
+			   
+			   UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 
+
 			END						
 
 			IF(@ModuleId = @WOModuleId)

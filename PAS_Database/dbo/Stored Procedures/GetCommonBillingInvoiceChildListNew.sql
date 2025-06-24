@@ -15,6 +15,7 @@
 	2    02/06/2025   Rajesh Gami		Implemented SO & Use IsInvoicePosted instead of IsBilling in SO
 	3    16/06/2025   Rajesh Gami		Resolved issue regarding get the billing invoice
 	4    17/06/2025   Rajesh Gami		Resolved issue regarding getting the Biling Amount
+	5    23/06/2025   Rajesh Gami		Fixed Proforma billing amount realted issue
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 8810,8582,1,15
 
@@ -1055,7 +1056,7 @@ BEGIN
 							tmpcash.SalesOrderStocklineId = #InvoiceMainDetails.SalesOrderStocklineId
 							AND tmpcash.BillingInvoicingId IS NULL 
 							AND #InvoiceMainDetails.SalesOrderShippingId IS NULL
-					
+							
 							UPDATE #InvoiceMainDetails
 							SET TotalFreight = tmp.TotalFreight
 							FROM (SELECT SalesOrderPartId, SUM(ISNULL(BillingAmount, 0)) AS TotalFreight
@@ -1190,7 +1191,7 @@ BEGIN
 												WHERE b.BillingInvoicingItemId = tmpSOBI.BillingInvoicingItemId
 												AND ISNULL(b.IsPerformaInvoice,0) = 0   AND b.ModuleId = @SOModuleId 
 									) tmpcash WHERE tmpcash.StockLineId = #InvoiceMainDetails.StockLineId
-
+						
 						UPDATE  #InvoiceMainDetails SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 						FROM( SELECT 
 								CASE WHEN ISNULL(tmpSOBI.BillingInvoicingId, 0) = 0 THEN 
@@ -1314,7 +1315,7 @@ BEGIN
 						0 AS ItemNo,  
 						sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description AS 'Condition',   
 						CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-						ISNULL(sobi.GrandTotal, 0) as 'TotalSales',  
+						ISNULL(sobii.GrandTotal, 0) as 'TotalSales',  
 						(SELECT a.InvoiceStatus FROM DBO.BillingInvoicing a WITH (NOLOCK) 
 							INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
 							Where a.ReferenceId = @ReferenceId 

@@ -37,20 +37,22 @@ BEGIN
 			END
 			SELECT 
 			 
-					Freight = CASE
-								WHEN so.FreightBilingMethodId = 3 THEN ISNULL(so.TotalFreight, 0)
-								ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight 
-											 WHERE SalesOrderId = so.SalesOrderId 
-											 AND ItemMasterId = sop.ItemMasterId 
-											 AND IsActive = 1 AND IsDeleted = 0), 0)
-							  END,
-					MiscCharges = CASE
-									WHEN so.ChargesBilingMethodId = 3 THEN ISNULL(so.TotalCharges, 0)
-									ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges 
-												 WHERE SalesOrderId = so.SalesOrderId 
-												 AND ItemMasterId = sop.ItemMasterId 
-												 AND IsActive = 1 AND IsDeleted = 0), 0)
-								  END,
+					--Freight = CASE
+					--			WHEN so.FreightBilingMethodId = 3 THEN ISNULL(so.TotalFreight, 0)
+					--			ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderFreight 
+					--						 WHERE SalesOrderId = so.SalesOrderId 
+					--						 AND ItemMasterId = sop.ItemMasterId 
+					--						 AND IsActive = 1 AND IsDeleted = 0), 0)
+					--		  END,
+					--MiscCharges = CASE
+					--				WHEN so.ChargesBilingMethodId = 3 THEN ISNULL(so.TotalCharges, 0)
+					--				ELSE ISNULL((SELECT SUM(BillingAmount) FROM SalesOrderCharges 
+					--							 WHERE SalesOrderId = so.SalesOrderId 
+					--							 AND ItemMasterId = sop.ItemMasterId 
+					--							 AND IsActive = 1 AND IsDeleted = 0), 0)
+					--			  END,
+					Freigh =bii.FreightCostPlus,
+					MiscCharges = bii.MiscChargesCostPlus,
 					ROW_NUMBER() OVER (PARTITION BY BII.BillingInvoicingItemId ORDER BY BI.BillingInvoicingId) as RowNo,
 					SubReferenceId = ISNULL(stock.SalesOrderPartId, sop.SalesOrderPartId),
 					ItemMasterId = sop.ItemMasterId,

@@ -3986,6 +3986,7 @@
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationItemMasterMappingById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEmployeeUserRole.sql" />
     <Build Include="dbo\User Defined Types\EmployeeUserRoleType.sql" />
+    <Build Include="dbo\Stored Procedures\CopyExistingSOBillingInvoicingDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

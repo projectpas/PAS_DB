@@ -34,9 +34,9 @@ BEGIN
 		SET @ModuleId = 15; --Work Order
 		SET @SubModuleId = 43; --Work Order
 
-		Select * from BillingInvoicing WHERE MasterCompanyId = 2
-		Select * from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
-		Select * from dbo.BillingInvoicingDetails
+		--Select * from BillingInvoicing WHERE MasterCompanyId = 2
+		--Select * from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
+		--Select * from dbo.BillingInvoicingDetails
 
 		--Insert Into Billing Invoice 
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
@@ -45,7 +45,7 @@ BEGIN
 			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice)
 
 		SELECT WOBI.BillingInvoicingId,@ModuleId,WorkOrderId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
-			RevType,WOBI.VersionNo,CostPlusType,ProForma,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,WOBI.IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount
+			RevType,WOBI.VersionNo,CostPlusType,IsPerformaInvoice,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,WOBI.IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount
 			,Notes,WorkOrderShippingId,ManagementStructureId,WOBI.MasterCompanyId,WOBI.CreatedBy,WOBI.UpdatedBy,WOBI.CreatedDate,WOBI.UpdatedDate,WOBI.IsActive,WOBI.IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate
 			,SyncToken,isCreatedFromQuote,IsQuickBookGeneratedInvoice
 		FROM dbo.WorkOrderBillingInvoicing WOBI 
@@ -63,54 +63,106 @@ BEGIN
 		LEFT JOIN dbo.WorkOrderBillingInvoicingItem WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId
 		WHERE BI.MasterCompanyId = @MasterCompanyId
 
-		--Insert Into Billing Invoice Item
-		INSERT INTO dbo.BillingInvoicingItems(OldWOBillingInvoicingItemId,OldBillingInvoicingId,BillingInvoicingId,ModuleId,ReferenceId,SubModuleId,SubReferenceId,ItemMasterId,StocklineId,ConditionId,CostPlusType,
-		UnitPrice,QtyBilled,PartCost,IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
-		LaborCostPercent,LaborCostPlus,IsFreightCheck,Freight,FreightCostPercent,FreightCostPlus,IsMiscChargesCheck,MiscCharges,MiscChargesCostPercent,MiscChargesCostPlus,
-		SubTotal,SalesTaxPercent,SalesTax,OtherTaxPercent,OtherTax,GrandTotal, RemainingAmount , PDFPath,VersionNo,IsVersionIncrease,IsPerformaInvoice,MasterCompanyId,CreatedBy,UpdatedBy,
-		CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId)
+		IF(@MasterCompanyId != 20)
+		BEGIN
 
-		SELECT WOBII.WOBillingInvoicingItemId,WOBII.BillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,WOBII.WorkOrderPartId,
-			CASE WHEN WOP.RevisedPartId > 0 THEN WOP.RevisedPartId ELSE WOP.ItemMasterId END AS ItemMasterId,
-			WOP.StocklineId,
-			CASE WHEN WOP.RevisedConditionId > 0 THEN WOP.RevisedConditionId ELSE WOP.ConditionId END AS ConditionId,
-			BI.CostPlusType,
-			UnitPrice,WOBII.NoofPieces, (UnitPrice * WOBII.NoofPieces) AS PartCost, 
-			WOBI.TotalWorkOrder AS IsTotalCheck,  
-			CASE WHEN WOBI.TotalWorkOrder = 1 THEN WOBI.TotalWorkOrderCost ELSE 0 END AS TotalBillingCost,
-			NULL TotalBillingCostPercent,
-			CASE WHEN WOBI.TotalWorkOrder = 1 THEN WOBI.TotalWorkOrderCostPlus ELSE 0 END AS TotalBillingCostPlus,
-			CASE WHEN ISNULL(WOBII.MaterialCost, 0) > 0 THEN 1 ELSE 0 END AS IsMaterialCheck,			
-			WOBII.MaterialCost,NULL AS MaterialCostPercent,WOBII.MaterialCost,
-			CASE WHEN ISNULL(WOBII.LaborCost, 0) > 0 THEN 1 ELSE 0 END AS IsLaborCheck,
-			LaborCost,NULL AS LaborCostPercent,LaborCost,
-			CASE WHEN ISNULL(WOBII.Freight, 0) > 0 THEN 1 ELSE 0 END AS IsFreightCheck,
-			WOBII.Freight,NULL AS FreightCostPercent,WOBII.Freight,
-			CASE WHEN ISNULL(WOBII.MiscCharges, 0) > 0 THEN 1 ELSE 0 END AS IsMiscChargesCheck,
-			WOBII.MiscCharges, NULL AS MiscChargesCostPercent,WOBII.MiscCharges,
-			CASE WHEN ISNULL(WOBII.SubTotal, 0) > 0 THEN WOBII.SubTotal ELSE WOBII.UnitPrice END AS SubTotal,		
-			NULL,WOBII.SalesTax,NULL,WOBII.OtherTax,
-			CASE WHEN ISNULL(WOBII.GrandTotal, 0) > 0 THEN WOBII.GrandTotal ELSE WOBII.UnitPrice END AS GrandTotal, 
-			WOBI.RemainingAmount As RemainingAmount,
-			WOBII.PDFPath,WOBII.VersionNo,WOBII.IsVersionIncrease,WOBII.IsPerformaInvoice,WOBII.MasterCompanyId,WOBII.CreatedBy,WOBII.UpdatedBy,
-			WOBII.CreatedDate,WOBII.UpdatedDate,WOBII.IsActive,WOBII.IsDeleted,BI.WorkOrderShippingId, WOWF.WorkFlowWorkOrderId
-		FROM dbo.WorkOrderBillingInvoicingItem WOBII 
-			JOIN dbo.WorkOrderBillingInvoicing WOBI ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
-			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId
-			JOIN dbo.WorkOrderPartNumber WOP ON WOP.ID = WOBII.WorkOrderPartId
-			JOIN dbo.WorkOrderWorkFlow WOWF ON WOP.ID = WOWF.WorkOrderPartNoId
-		WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20
+			--Insert Into Billing Invoice Item
+			INSERT INTO dbo.BillingInvoicingItems(OldWOBillingInvoicingItemId,OldBillingInvoicingId,BillingInvoicingId,ModuleId,ReferenceId,SubModuleId,SubReferenceId,ItemMasterId,StocklineId,ConditionId,CostPlusType,
+			UnitPrice,QtyBilled,PartCost,IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
+			LaborCostPercent,LaborCostPlus,IsFreightCheck,Freight,FreightCostPercent,FreightCostPlus,IsMiscChargesCheck,MiscCharges,MiscChargesCostPercent,MiscChargesCostPlus,
+			SubTotal,SalesTaxPercent,SalesTax,OtherTaxPercent,OtherTax,GrandTotal, RemainingAmount , PDFPath,VersionNo,IsVersionIncrease,IsPerformaInvoice,MasterCompanyId,CreatedBy,UpdatedBy,
+			CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId)
 
-		INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
-			CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
-		SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
-			WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
-		FROM dbo.BillingInvoicingItems BII
-			JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId
-			JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
-			JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+			SELECT WOBII.WOBillingInvoicingItemId,WOBII.BillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,WOBII.WorkOrderPartId,
+				CASE WHEN WOP.RevisedPartId > 0 THEN WOP.RevisedPartId ELSE WOP.ItemMasterId END AS ItemMasterId,
+				WOP.StocklineId,
+				CASE WHEN WOP.RevisedConditionId > 0 THEN WOP.RevisedConditionId ELSE WOP.ConditionId END AS ConditionId,
+				BI.CostPlusType,
+				UnitPrice,WOBII.NoofPieces, (UnitPrice * WOBII.NoofPieces) AS PartCost, 
+				WOBI.TotalWorkOrder AS IsTotalCheck,  
+				CASE WHEN WOBI.TotalWorkOrder = 1 THEN WOBI.TotalWorkOrderCost ELSE 0 END AS TotalBillingCost,
+				NULL TotalBillingCostPercent,
+				CASE WHEN WOBI.TotalWorkOrder = 1 THEN WOBI.TotalWorkOrderCostPlus ELSE 0 END AS TotalBillingCostPlus,
+				CASE WHEN ISNULL(WOBII.MaterialCost, 0) > 0 THEN 1 ELSE 0 END AS IsMaterialCheck,			
+				WOBII.MaterialCost,NULL AS MaterialCostPercent,WOBII.MaterialCost,
+				CASE WHEN ISNULL(WOBII.LaborCost, 0) > 0 THEN 1 ELSE 0 END AS IsLaborCheck,
+				LaborCost,NULL AS LaborCostPercent,LaborCost,
+				CASE WHEN ISNULL(WOBII.Freight, 0) > 0 THEN 1 ELSE 0 END AS IsFreightCheck,
+				WOBII.Freight,NULL AS FreightCostPercent,WOBII.Freight,
+				CASE WHEN ISNULL(WOBII.MiscCharges, 0) > 0 THEN 1 ELSE 0 END AS IsMiscChargesCheck,
+				WOBII.MiscCharges, NULL AS MiscChargesCostPercent,WOBII.MiscCharges,
+				CASE WHEN ISNULL(WOBII.SubTotal, 0) > 0 THEN WOBII.SubTotal ELSE WOBII.UnitPrice END AS SubTotal,		
+				NULL,WOBII.SalesTax,NULL,WOBII.OtherTax,
+				CASE WHEN ISNULL(WOBII.GrandTotal, 0) > 0 THEN WOBII.GrandTotal ELSE WOBII.UnitPrice END AS GrandTotal, 
+				WOBI.RemainingAmount As RemainingAmount,
+				WOBII.PDFPath,WOBII.VersionNo,WOBII.IsVersionIncrease,WOBII.IsPerformaInvoice,WOBII.MasterCompanyId,WOBII.CreatedBy,WOBII.UpdatedBy,
+				WOBII.CreatedDate,WOBII.UpdatedDate,WOBII.IsActive,WOBII.IsDeleted,BI.WorkOrderShippingId, WOWF.WorkFlowWorkOrderId
+			FROM dbo.WorkOrderBillingInvoicingItem WOBII 
+				JOIN dbo.WorkOrderBillingInvoicing WOBI ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+				JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP ON WOP.ID = WOBII.WorkOrderPartId
+				JOIN dbo.WorkOrderWorkFlow WOWF ON WOP.ID = WOWF.WorkOrderPartNoId
+			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20
+
+			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
+				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
+			SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
+				WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
+			FROM dbo.BillingInvoicingItems BII
+				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId
+				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
+				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
 		
-		
+		END
+		ELSE
+		BEGIN
+			--Insert Into Billing Invoice Item
+			INSERT INTO dbo.BillingInvoicingItems(OldWOBillingInvoicingItemId,OldBillingInvoicingId,BillingInvoicingId,ModuleId,ReferenceId,SubModuleId,SubReferenceId,ItemMasterId,StocklineId,ConditionId,CostPlusType,
+			UnitPrice,QtyBilled,PartCost,IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
+			LaborCostPercent,LaborCostPlus,IsFreightCheck,Freight,FreightCostPercent,FreightCostPlus,IsMiscChargesCheck,MiscCharges,MiscChargesCostPercent,MiscChargesCostPlus,
+			SubTotal,SalesTaxPercent,SalesTax,OtherTaxPercent,OtherTax,GrandTotal, RemainingAmount , PDFPath,VersionNo,IsVersionIncrease,IsPerformaInvoice,MasterCompanyId,CreatedBy,UpdatedBy,
+			CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId)
+
+			SELECT WOBII.WOBillingInvoicingItemId,WOBII.BillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,WOBII.WorkOrderPartId,
+				CASE WHEN WOP.RevisedPartId > 0 THEN WOP.RevisedPartId ELSE WOP.ItemMasterId END AS ItemMasterId,
+				WOP.StocklineId,
+				CASE WHEN WOP.RevisedConditionId > 0 THEN WOP.RevisedConditionId ELSE WOP.ConditionId END AS ConditionId,
+				BI.CostPlusType,
+				UnitPrice,WOBII.NoofPieces, (UnitPrice * WOBII.NoofPieces) AS PartCost, 
+				WOBI.TotalWorkOrder AS IsTotalCheck,  
+				CASE WHEN ISNULL(WOBII.SubTotal, 0) > 0 THEN WOBII.SubTotal ELSE UnitPrice END AS TotalBillingCost,
+				NULL TotalBillingCostPercent,
+				CASE WHEN ISNULL(WOBII.SubTotal, 0) > 0 THEN WOBII.SubTotal ELSE UnitPrice END AS TotalBillingCostPlus,
+				CASE WHEN ISNULL(WOBII.MaterialCost, 0) > 0 THEN 1 ELSE 0 END AS IsMaterialCheck,			
+				WOBII.MaterialCost,NULL AS MaterialCostPercent,WOBII.MaterialCost,
+				CASE WHEN ISNULL(WOBII.LaborCost, 0) > 0 THEN 1 ELSE 0 END AS IsLaborCheck,
+				LaborCost,NULL AS LaborCostPercent,LaborCost,
+				CASE WHEN ISNULL(WOBII.Freight, 0) > 0 THEN 1 ELSE 0 END AS IsFreightCheck,
+				WOBII.Freight,NULL AS FreightCostPercent,WOBII.Freight,
+				CASE WHEN ISNULL(WOBII.MiscCharges, 0) > 0 THEN 1 ELSE 0 END AS IsMiscChargesCheck,
+				WOBII.MiscCharges, NULL AS MiscChargesCostPercent,WOBII.MiscCharges,
+				CASE WHEN ISNULL(WOBII.SubTotal, 0) > 0 THEN WOBII.SubTotal ELSE WOBII.UnitPrice END AS SubTotal,		
+				NULL,WOBII.SalesTax,NULL,WOBII.OtherTax,
+				CASE WHEN ISNULL(WOBII.GrandTotal, 0) > 0 THEN WOBII.GrandTotal ELSE WOBII.UnitPrice END AS GrandTotal, 
+				WOBI.RemainingAmount As RemainingAmount,
+				WOBII.PDFPath,WOBII.VersionNo,WOBII.IsVersionIncrease,WOBII.IsPerformaInvoice,WOBII.MasterCompanyId,WOBII.CreatedBy,WOBII.UpdatedBy,
+				WOBII.CreatedDate,WOBII.UpdatedDate,WOBII.IsActive,WOBII.IsDeleted,BI.WorkOrderShippingId, WOWF.WorkFlowWorkOrderId
+			FROM dbo.WorkOrderBillingInvoicingItem WOBII 
+				JOIN dbo.WorkOrderBillingInvoicing WOBI ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+				JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP ON WOP.ID = WOBII.WorkOrderPartId
+				JOIN dbo.WorkOrderWorkFlow WOWF ON WOP.ID = WOWF.WorkOrderPartNoId
+			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId = 20
+
+			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
+				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
+			SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
+				WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
+			FROM dbo.BillingInvoicingItems BII
+				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId
+				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
+				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+		END
 
 	END TRY    
 	BEGIN CATCH      

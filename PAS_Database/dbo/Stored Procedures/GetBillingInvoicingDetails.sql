@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetBillingInvoicingDetails]           
  ** Author:   Moin Bloch
  ** Description: Get Billing Invoicing Details
@@ -25,7 +24,8 @@ CREATE     PROCEDURE [dbo].[GetBillingInvoicingDetails]
 @EmployeeId BIGINT=NULL,
 @ModuleId INT=NULL,
 @ShippingId BIGINT = NULL,
-@BillingInvoicingId BIGINT =NULL
+@BillingInvoicingId BIGINT =NULL,
+@IsProformaInvoice BIT = NULL
 AS
 BEGIN	
 	SET NOCOUNT ON;
@@ -142,6 +142,82 @@ BEGIN
 				IF(@AllowInvoiceBeforeShipping = 1)
 				BEGIN
 					SELECT TOP 1
+					[wo].[WorkOrderId],
+					[wop].[ID] AS [WorkOrderPartNoId],
+					[cust].[ContractReference],
+					[cust].[CustomerCode],
+					CASE WHEN [cust].[CustomerAffiliationId] = 1 THEN 1 ELSE 0 END AS [CustomerType],
+					GETUTCDATE() AS [InvoiceDate],
+					GETUTCDATE() AS [PrintDate],
+					NULL AS [ShipDate],
+					[wo].[EmployeeId],
+					ISNULL([emp].[FirstName] + ' ' + [emp].[LastName], '') AS [EmployeeName],
+					ISNULL([wos].[Code] + '-' + [wos].[Stage], '') AS [gateStatus],
+					[wo].[WorkOrderTypeId],
+					CASE 
+						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
+						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal'
+						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Tear Down'
+						ELSE 'Shop Services'
+					END AS [WorkOrderType],
+					[wop].[WorkScope],
+					[wop].[WorkOrderScopeId],
+					[wop].[Quantity],
+					[wopsettlement].[ConditionId],
+					[wo].[OpenDate],
+					[wo].[SalesPersonId],
+					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
+					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
+					ISNULL([cust_shipVia].[ShipViaId], 0) AS [CustomerDomensticShippingShipViaId],
+					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
+					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
+					[ct].[Name] AS [CreditTerm],
+					ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
+					ISNULL([fcu].[Code], '') AS [Currency],
+					[wo].[CustomerId] AS [SoldToCustomerId],
+					[cust].[Name] AS [SoldToCustomer],
+					[cust_bill].[CustomerBillingAddressId] AS [SoldToSiteId],
+					[wo].[CustomerId] AS [ShipToCustomerId],
+					[cust].[Name] AS [ShipToCustomer],
+					[cust_ship].[CustomerDomensticShippingId] AS [ShipToSiteId],
+					[wop].[ManagementStructureId],
+					@CostPlusType AS [CostPlusType],
+					1 AS [TotalWorkOrder],
+					[cust_shipVia].[ShipViaId],
+					'' AS [Tracking],
+					ISNULL([csr].[FirstName] + ' ' + [csr].[LastName], '') AS [CSR],
+					[wop].[CustomerReference],
+					[cust].[Name] AS [CustomerName],
+					[wo].[CustomerId],
+					[cust].[Email],
+					[cust].[CustomerPhone],
+					'' AS [wayBillRef],
+					@ItemCount AS [NoofPieces],
+					0 AS [IsCustomerShipping],
+					@Result [BillShipInfoExist]
+				FROM [dbo].[WorkOrder] [wo] WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wo].[WorkOrderId] = [wop].[WorkOrderId]
+				 LEFT JOIN [dbo].[WOPickTicket] [wopick] WITH(NOLOCK) ON [wop].[ID] = [wopick].[OrderPartId]
+				INNER JOIN [dbo].[Customer] [cust] WITH(NOLOCK) ON [wo].[CustomerId] = [cust].[CustomerId]
+				INNER JOIN [dbo].[WorkOrderStage] [wos] WITH(NOLOCK) ON [wop].[WorkOrderStageId] = [wos].[WorkOrderStageId]
+				 LEFT JOIN [dbo].[CustomerFinancial] [cf] WITH(NOLOCK) ON [cust].[CustomerId] = [cf].[CustomerId]
+				 LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON [cf].[CurrencyId] = [cr].[CurrencyId]
+				 LEFT JOIN [dbo].[CustomerDomensticShipping] [cust_ship] WITH(NOLOCK) ON [wo].[CustomerId] = [cust_ship].[CustomerId]
+				 LEFT JOIN [dbo].[CustomerBillingAddress] [cust_bill] WITH(NOLOCK) ON [wo].[CustomerId] = [cust_bill].[CustomerId]
+				 LEFT JOIN [dbo].[WorkOrderSettlementDetails] [wopsettlement] WITH(NOLOCK) ON [wop].[WorkOrderId] = [wopsettlement].[WorkOrderId] AND [wop].[ID] = [wopsettlement].[workOrderPartNoId] AND [wopsettlement].[WorkOrderSettlementId] = 9
+				INNER JOIN [dbo].[Address] [ship_addr] WITH(NOLOCK) ON [cust_ship].[AddressId] = [ship_addr].[AddressId]
+				 LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [wo].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
+				 LEFT JOIN [dbo].[Employee] [emp] WITH(NOLOCK) ON [wo].[EmployeeId] = [emp].[EmployeeId]
+				 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
+				INNER JOIN [dbo].[CreditTerms] [ct]  WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
+				 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
+				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
+				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
+			END
+			ELSE IF(@AllowInvoiceBeforeShipping = 0 AND @IsProformaInvoice = 1)
+			BEGIN
+				SELECT TOP 1
 					[wo].[WorkOrderId],
 					[wop].[ID] AS [WorkOrderPartNoId],
 					[cust].[ContractReference],

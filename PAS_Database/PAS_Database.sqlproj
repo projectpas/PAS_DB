@@ -3989,6 +3989,7 @@
     <Build Include="dbo\Stored Procedures\CopyExistingSOBillingInvoicingDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderPrintDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_SavePublicationSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationSettingData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -18,6 +18,7 @@
 	6    19/06/2025   RAJESH GAMI    Change the logic that freight and charges add only on first stockline (Partition by SOPartId) in SO
 	7    23/06/2025   Moin Bloch     checked IsFinishGood IN WO
 	8    23/06/2025   Moin Bloch     Added WorkOrderShippingId IN WO
+	9    25/06/2025   RAJESH GAMI    Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8980,8806,'',15,0,0
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 903,0,'1098,1099',10,0,0
@@ -47,7 +48,7 @@ BEGIN
 		DECLARE @Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@PartDescription NVARCHAR(MAX)='',@SerialNumber VARCHAR(100)=''
 		DECLARE @WorkFlowWorkOrderId BIGINT = 0, @BillingInvoicingId BIGINT = 0, @BillingInvoicingItemId BIGINT = 0, @LabourCost DECIMAL(18,2) = 0,@UnitCostExt DECIMAL(18,2) = 0, @UnitCost DECIMAL(18,2) = 0,@PartsCost DECIMAL(18,2) = 0, @MicCharges DECIMAL(18,2) = 0, @FreightCost DECIMAL(18,2) = 0;
 		DECLARE @TotalCost DECIMAL(18,2) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,2) = 0, @OtherTaxAmount DECIMAL(18,2) = 0, @GrandTotal DECIMAL(18,2) = 0;
-		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 
+		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 , @InvoiceStatusName varchar(50)='';
 
 		IF(@SubReferenceIds = '')
 		BEGIN
@@ -103,6 +104,7 @@ BEGIN
 				[StockLineNumber] VARCHAR(200) NULL,
 				[QuoteMethod] BIT NULL,
 				[ShippingId]  BIGINT NULL, 
+				InvoiceStatusName VARCHAR(50)
 			)
 
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
@@ -442,7 +444,7 @@ BEGIN
 					[OtherTax]  DECIMAL(18,2) NULL				
 				)		
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
-				SELECT TOP 1 @BillingInvoicingId = BI.BillingInvoicingId, @BillingInvoicingItemId = BII.BillingInvoicingItemId,@itemProformaGrandTotal = ISNULL(BII.GrandTotal,0)  FROM #TempCommonPartNumberDetailsForBilling cpd   
+				SELECT TOP 1 @BillingInvoicingId = BI.BillingInvoicingId, @BillingInvoicingItemId = BII.BillingInvoicingItemId,@itemProformaGrandTotal = ISNULL(BII.GrandTotal,0),@InvoiceStatusName = ISNULL(BI.InvoiceStatus,'')  FROM #TempCommonPartNumberDetailsForBilling cpd   
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId AND ISNULL(Bi.IsVersionIncrease,0) = 0
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId AND BII.ConditionId = CPD.ConditionId AND cpd.StockLineId = BII.StocklineId
 							
@@ -513,7 +515,8 @@ BEGIN
 						   [OtherTaxPercent] = @OtherTaxPercent,
 						   [OtherTax] = ISNULL(@OtherTax,0),
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
-						   [GrandTotal] = @GrandTotal
+						   [GrandTotal] = @GrandTotal,
+						   InvoiceStatusName = @InvoiceStatusName
 					 WHERE [PKID] = @MinId;
 					 SET @MinId = @MinId + 1;
 			END /****** END OF WHILE LOOP ********/
@@ -530,6 +533,7 @@ BEGIN
 			Update #TempWithRowNum SET SalesTaxAmount = CASE WHEN SalesTax > 0 THEN (SalesTax / 100.00) * TotalCost ELSE 0 END, OtherTaxAmount = CASE WHEN OtherTax > 0 THEN (OtherTax / 100.00) * TotalCost ELSE 0 END WHERE RowNum > 1
 
 			UPDATE #TempWithRowNum SET GrandTotal = TotalCost + SalesTaxAmount + OtherTaxAmount  WHERE RowNum > 1
+			DELETE FROM #TempWithRowNum WHERE InvoiceStatusName = 'INVOICED'
 		END
 		SELECT * FROM #TempWithRowNum
 	  --SELECT *  FROM #TempCommonPartNumberDetailsForBilling

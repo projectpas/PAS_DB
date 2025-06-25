@@ -31,6 +31,7 @@
 	15   06-JAN-2025		 Rajesh Gami			add new DistributionSetup for the DEPOSIT
 	16   07-JAN-2025		 Rajesh Gami			Modified DistributionSetup for the DEPOSIT from itemGLAccount to DistributionSetup GL and Amount logic change to SUM of extended cost instead of Item Level
 	17	 02/JUN/2025	     Abhishek Jirawla		Fixed Name concat read script
+	18	 25/JUN/2025	     Devendra Shekh			Modified DistributionSetup for the DEPOSIT from DistributionSetup to itemGLAccount
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -99,7 +100,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'NONPO';
-		DECLARE @isItemLevelCalculation BIT = 0;
+		DECLARE @isItemLevelCalculation BIT = 1;
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @ReferenceNum = NPONumber, @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'') FROM [dbo].[NonPOInvoiceHeader] NPO WITH(NOLOCK)
@@ -171,7 +172,7 @@ BEGIN
 			BEGIN		
 				
 				SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 				SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
@@ -192,7 +193,7 @@ BEGIN
 				INNER JOIN dbo.NonPOInvoiceHeader npd WITH(NOLOCK) on npd.AccountingCalendarId = acc.AccountingCalendarId
 				WHERE NonPOInvoiceId = @NonPOInvoiceId
 
-				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
+				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId AND MasterCompanyId = @MasterCompanyId
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 				BEGIN 
@@ -260,7 +261,7 @@ BEGIN
 				END
 				ELSE
 				BEGIN 
-					SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
+					SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId AND MasterCompanyId = @MasterCompanyId
 					   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
 							 FROM [dbo].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc   
           
@@ -292,8 +293,9 @@ BEGIN
 				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
 				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-DEPOSIT') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
+				 AND MasterCompanyId = @MasterCompanyId;
 
-				 --SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
+				 SELECT @GlAccountId = GlAccountId, @GlAccountNumber = AccountCode, @GlAccountName = AccountName FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @PartGlAccId AND MasterCompanyId = @MasterCompanyId;
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -328,6 +330,7 @@ BEGIN
 						@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE')
 						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
+						AND MasterCompanyId = @MasterCompanyId;
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

@@ -3992,6 +3992,7 @@
     <Build Include="dbo\Stored Procedures\USP_SavePublicationSettingData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationSettingData.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingViaStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -15,8 +15,9 @@
 	5    01/12/2023     Moin Bloch          Added Lot Number 
 	6    10/05/2023     Moin Bloch          Added IsUpdated
 	7    07-Apr-2025	Divyesh Kathiriya	Update EntryDate, TransactionDate based on Employee time zone
+	8    06/24/2025	    Ekta Chandegra	    Optimized UDF usage (ConvertUTCtoLocal)
 
-	EXEC GetExchangeSOAccountingDetailsViewById 137,226
+	EXEC GetExchangeSOAccountingDetailsViewById 187,223
 ************************************************************************/   
 
 CREATE   PROCEDURE  [dbo].[GetExchangeSOAccountingDetailsViewById]  
@@ -24,10 +25,8 @@ CREATE   PROCEDURE  [dbo].[GetExchangeSOAccountingDetailsViewById]
 @EmployeeId BIGINT
 AS
 BEGIN
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
-   BEGIN       
    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
 	SELECT 
@@ -60,12 +59,8 @@ BEGIN
 			,UPPER(CBD.[GlAccountName])  AS [GlAccountName]
 			--,CBD.[TransactionDate]  
 			--,CBD.[EntryDate]
-			,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-				CASE WHEN CAST(CBD.[TransactionDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CBD.[TransactionDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			 ELSE (CAST(CBD.[TransactionDate] AS DATETIME)) END TransactionDate
-			,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-				CASE WHEN CAST(CBD.[EntryDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			 ELSE (CAST(CBD.[EntryDate] AS DATETIME)) END EntryDate
+			,(CAST(DBO.ConvertUTCtoLocal(CBD.[TransactionDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) TransactionDate
+			,(CAST(DBO.ConvertUTCtoLocal(CBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) EntryDate
 			,CBD.[JournalTypeId]  
             ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(EBD.ExchangeSalesOrderNumber)) as JournalTypeName  
             ,CBD.[IsDebit]  
@@ -135,16 +130,13 @@ BEGIN
 		 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId  
      WHERE EBD.ExchangeSalesOrderId = @ReferenceId  
 	 ORDER BY  CBD.CommonJournalBatchDetailId DESC
-  END    
   END TRY    
  BEGIN CATCH          
-  IF @@trancount > 0    
-   PRINT 'ROLLBACK'    
-   ROLLBACK TRAN;    
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'GetExchangeSOAccountingDetailsViewById'     
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReferenceId, '') + ''    
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReferenceId AS VARCHAR), '') + '''    
+												     @Parameter2 = '''+ ISNULL(CAST(@EmployeeId AS VARCHAR), '')
             , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
             exec spLogException     

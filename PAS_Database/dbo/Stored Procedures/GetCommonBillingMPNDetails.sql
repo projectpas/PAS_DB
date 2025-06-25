@@ -20,7 +20,7 @@
 	8    23/06/2025   Moin Bloch     Added WorkOrderShippingId IN WO
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8810,8582,'',15,1
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 8980,8806,'',15,0,0
---  EXEC [dbo].[GetCommonBillingMPNDetails] 846,0,'1011,1012,1013',10,0
+--  EXEC [dbo].[GetCommonBillingMPNDetails] 903,0,'1098,1099',10,0,0
 DROP PROCEDURE GetCommonBillingMPNDetails
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
@@ -102,6 +102,7 @@ BEGIN
 				[SOStockLineId] BIGINT NULL,
 				[StockLineNumber] VARCHAR(200) NULL,
 				[QuoteMethod] BIT NULL,
+				[ShippingId]  BIGINT NULL, 
 			)
 
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
@@ -384,13 +385,19 @@ BEGIN
 		ELSE IF(@ModuleId = @SOModuleId) /****************** START: SALES ORDER ********************/
 		BEGIN
 			
-			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber) 
-				                                           SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId],SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,STK.QtyOrder,Sl.StockLineNumber
+			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
+				                                           SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId],SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,STK.QtyOrder,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
 				 INNER JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
-				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
+				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId				
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+				  OUTER APPLY (
+					SELECT TOP 1 s.SalesOrderShippingId
+					FROM [dbo].[SalesOrderShippingItem] s
+					WHERE s.SalesOrderPartId = SOP.SalesOrderPartId
+					ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
+				) SHIPPINGINFO
 			WHERE SOP.SalesOrderId = @ReferenceId  
 			  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 			  AND ISNULL(SOP.IsDeleted,0) = 0 AND  (( (@IsProformaInvoice = 1 AND ISNULL(SOP.QtyReserved, 0) >= 0) OR (@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0)) 

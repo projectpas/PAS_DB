@@ -10,6 +10,7 @@
     [UpdatedDate]     DATETIME      CONSTRAINT [MasterBankFeesType_DC_UDate] DEFAULT (getdate()) NULL,
     [IsActive]        BIT           CONSTRAINT [MasterBankFeesType_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [MasterBankFeesType_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [Code]            VARCHAR (50)  NULL,
     CONSTRAINT [PK_MasterBankFeesType] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
 

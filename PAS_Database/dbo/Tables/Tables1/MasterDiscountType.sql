@@ -10,6 +10,7 @@
     [UpdatedDate]     DATETIME      CONSTRAINT [MasterDiscountType_DC_UDate] DEFAULT (getdate()) NULL,
     [IsActive]        BIT           CONSTRAINT [MasterDiscountType_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [MasterDiscountType_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [Code]            VARCHAR (50)  NULL,
     CONSTRAINT [PK_MasterDiscountType] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
 

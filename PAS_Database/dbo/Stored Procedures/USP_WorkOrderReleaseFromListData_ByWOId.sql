@@ -12,8 +12,9 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    10-June-2025		Devendra Shekh		Created
+    2    25-June-2025		Devendra Shekh		Remarks Breaks Issue Resolved
 
- EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8911,2
+ EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8992,2
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[USP_WorkOrderReleaseFromListData_ByWOId]
@@ -109,7 +110,9 @@ BEGIN
 			,CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status]
 			,wro.[FormTypeId]
 			,ISNULL(wro.[Reference], '') AS [Reference]
-			,CASE WHEN ISNULL(wro.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(CAST(wro.Remarks AS XML).value('.', 'NVARCHAR(MAX)'))) END AS [Remarks]
+			,CASE WHEN ISNULL(wro.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(
+																	TRY_CAST(REPLACE(wro.Remarks, '&nbsp;', ' ') AS XML).value('.', 'NVARCHAR(MAX)')
+																)) END AS [Remarks]
 		FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 				LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  

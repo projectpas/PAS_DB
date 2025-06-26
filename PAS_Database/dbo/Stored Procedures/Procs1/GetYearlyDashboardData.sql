@@ -12,16 +12,17 @@
  **********************           
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------				----------------------------       
-    1    22 Nov 2023   HEMANT SALIYA				Use dbo.ConvertUTCtoLocal before comparing dates      
-	2	 31 JAN 2024   Devendra Shekh				added isperforma Flage for WO 
-	3	 01 FEB 2024   AMIT GHEDIYA					added isperforma Flage for SO
-	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETUTCDATE
-	5	 30 Oct 2024   HEMANT SALIYA				Verify the count 
-	6	 18 Mar 2025   RAJESH GAMI					Optimise the timezone related JOIN and code due to timeout
-	7	 06 MAY 2025   HEMANT SALIYA				Handle Flat rate case for Multiple MPN WO
+    1    22 Nov 2023	HEMANT SALIYA				Use dbo.ConvertUTCtoLocal before comparing dates      
+	2	 31 JAN 2024	Devendra Shekh				added isperforma Flage for WO 
+	3	 01 FEB 2024	AMIT GHEDIYA				added isperforma Flage for SO
+	4    27 Sept 2024	Abhishek Jirawla			Added @StartDate parameter to SP instead of GETUTCDATE
+	5	 30 Oct 2024	HEMANT SALIYA				Verify the count 
+	6	 18 Mar 2025	RAJESH GAMI					Optimise the timezone related JOIN and code due to timeout
+	7	 06 MAY 2025	HEMANT SALIYA				Handle Flat rate case for Multiple MPN WO
+	8	 26-June-2025	Devendra Shekh				Billing Table Changes
 **********************/
 /*************************************************************
-EXEC [dbo].[GetYearlyDashboardData] 20, 2, 180, '05/06/2025'
+EXEC [dbo].[GetYearlyDashboardData] 1, 2, 2, '2025-06-24 00:00:00'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -42,6 +43,8 @@ BEGIN
 			DECLARE @wopartModuleID AS INT =12
 			DECLARE @SalesOrderModuleID AS INT =17
 			
+			DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
+			DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
 
 			IF @StartDate IS NULL
 			BEGIN
@@ -73,6 +76,29 @@ BEGIN
 				FROM dbo.TimeZone WITH(NOLOCK)  
 				WHERE [Description] = @CurrntEmpTimeZoneDesc
 			/* -------------- END: Get the timzone and UTC offset -------------- */
+
+			IF OBJECT_ID(N'tempdb..#tmpRCWorkOrderUserRole') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #tmpRCWorkOrderUserRole
+			END
+
+			SELECT * INTO #tmpRCWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = MSD.EntityMSID 
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+			WHERE MSD.[ModuleID] = @RecevingModuleID AND EUR.[EmployeeId] = @EmployeeId) AS Result
+
+			IF OBJECT_ID(N'tempdb..#tmpWorkOrderUserRole') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #tmpWorkOrderUserRole
+			END	
+
+			SELECT * INTO #tmpWorkOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK)
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RMS.EntityStructureId = MSD.EntityMSID 
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+			WHERE MSD.[ModuleID] = @WOPartModuleID AND EUR.[EmployeeId] = @EmployeeId) AS Result
+
 			IF OBJECT_ID(N'tempdb..#tmpMonthlyData') IS NOT NULL
 			BEGIN
 				DROP TABLE #tmpMonthlyData
@@ -97,9 +123,10 @@ BEGIN
 
 					;WITH cte(Total, Mnth) AS (
 						SELECT SUM(Quantity), @Month FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
-							INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
-							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
-							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = RC.ReceivingCustomerWorkId
+							--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
+							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
+							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						WHERE 
 							MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, ReceivedDate) as Date)) = @Month 
 							AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, ReceivedDate) as Date)) = @Year
@@ -116,17 +143,20 @@ BEGIN
 					DECLARE @Amt DECIMAL(18, 2) = 0;
 
 					;WITH cte(Total, Mnth) AS (
-						SELECT CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END , @Month Total
-						FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-							LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
-							INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-							INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						--SELECT CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END , @Month Total
+						SELECT ISNULL(SUM(wobii.GrandTotal), 0) AS GrandTotal, @Month Total
+						FROM DBO.BillingInvoicing WOBI WITH (NOLOCK) 
+							LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsVersionIncrease, 0) = 0 AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.SubModuleId = @SubModuleId
+							INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.SubReferenceId
+							INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
+							--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
+							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 
 							AND MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec,InvoiceDate) as Date)) = @Month AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Year
 							AND WOBI.MasterCompanyId = @MasterCompanyId
 							AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
+							AND WOBI.ModuleId = @WOModuleId
 						GROUP BY WOBI.CostPlusType
 					)
 

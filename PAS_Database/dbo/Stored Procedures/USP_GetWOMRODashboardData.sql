@@ -11,6 +11,7 @@
  ** --   --------			-------					----------------------------   
     1    02-June-2025		Devendra Shekh			CREATED   
 	2    16-June-2025		Devendra Shekh 			Amount Issue Resolved for MTD Billing
+	3    24-June-2025		Devendra Shekh			Billing Table Changes
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -48,6 +49,9 @@ BEGIN
 		DECLARE @RefundedCreditMemoStatus INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'REFUNDED');
 		DECLARE @RefundRequestedCreditMemoStatus INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'REFUND REQUESTED');
 		DECLARE @WOInvoiceTypeId INT = (SELECT [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='WorkOrder');
+
+		DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
+		DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
 
 		IF OBJECT_ID(N'tempdb..#tmpRCWorkOrderUserRole') IS NOT NULL    
 		BEGIN    
@@ -147,12 +151,13 @@ BEGIN
 		SELECT @WOBillingUnits = COUNT(*), @WOBillingAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup--, wobii.GrandTotal
-					, CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [GrandTotal]
+					, ISNULL(wobii.GrandTotal, 0) AS GrandTotal
+					--, CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [GrandTotal]
 					, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
-				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
@@ -166,19 +171,20 @@ BEGIN
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				AND wobi.ModuleId = @WOModuleId
 		) AS WorkOrderBillingResult
 
 		-- selecting work order MTD billing unit and amount details		:(DashboardType = 10)
 		SELECT @WOMTDUnits = COUNT(*), @WOMTDAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, 
-					--ISNULL(wobii.GrandTotal, 0) AS GrandTotal, 
-					CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS 'GrandTotal',   
+					ISNULL(wobii.GrandTotal, 0) AS GrandTotal, 
+					--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS 'GrandTotal',   
 					wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
-				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
@@ -191,6 +197,7 @@ BEGIN
 			       ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				AND wobi.ModuleId = @WOModuleId
 		) AS WorkOrderMTDBillingResult
 
 		SELECT  @WOReceiptUnits AS WoReceiptUnits,

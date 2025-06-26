@@ -79,7 +79,7 @@ BEGIN
         DECLARE @MSDetailsId BIGINT = NULL;
         DECLARE @PublicationHeaderId INT = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'PublicationHeader');
 
-        IF (@PublicationRecordId = 0)
+        IF (ISNULL(@PublicationRecordId,0) = 0)
         BEGIN
             INSERT INTO dbo.Publication (
                 PublicationId, Description, MasterCompanyId, EntryDate, RevisionDate,

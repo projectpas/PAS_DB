@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogCustomerServiceReport]               
  ** Author:   Rajesh Gami      
  ** Description: Get Data for WorkOrderBacklog Customer Service Report    
@@ -13,11 +12,12 @@
  **************************************************************               
   ** Change History               
  **************************************************************               
- ** S NO   Date         Author   Change Description                
- ** --   --------     -------  --------------------------------     
- 1 17-08-2023   Rajesh CREATED  
- 2 25-Aug-2023  Bhargav Saliya   Convert Dates UTC To LegalEntity Time Zone
- 3 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum 
+ ** S NO   Date         Author				Change Description                
+ ** --   --------     -------			--------------------------------     
+ 1	17-08-2023			Rajesh				CREATED  
+ 2	25-Aug-2023			Bhargav Saliya		Convert Dates UTC To LegalEntity Time Zone
+ 3	18/04/2025			Ayushi				Added the condition for pn , pndescription , serialnum 
+ 4	26-Jun-2025			Devendra Shekh		Added WOPartdId (ID) to Group by
           
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
@@ -199,7 +199,7 @@ BEGIN
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
   
-     GROUP BY WO.WorkOrderId  
+     GROUP BY WO.WorkOrderId, WOPN.ID
      )  
       
     

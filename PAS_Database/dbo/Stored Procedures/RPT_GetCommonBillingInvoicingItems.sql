@@ -97,7 +97,9 @@ BEGIN
 			        WHEN ISNULL(BII.[IsPerformaInvoice],0) = 1 THEN 0 
 				    ELSE ISNULL(BII.[MiscChargesCostPlus],0)
 			   END [IsCharges]			
+			  ,ISNULL(BI.[IsCreatedFromQuote],0) [IsCreatedFromQuote]
 		   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
+		  INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId] AND BI.ModuleId = @WOModuleId
 		  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId] AND BII.ModuleId = @WOModuleId
 		  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID] AND BII.ModuleId = @WOModuleId
 		  INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOP.[ID] = WOF.[WorkOrderPartNoId]

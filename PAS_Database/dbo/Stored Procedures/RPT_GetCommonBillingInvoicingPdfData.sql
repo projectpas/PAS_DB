@@ -102,7 +102,7 @@ BEGIN
 					FORMAT(BI.[PrintDate], 'MM/dd/yyyy h:mm tt') [DatePrinted],
 					ISNULL(CAST(SHIPPINGINFO.[Weight] AS NVARCHAR), '0') [Weight],
 					UPPER(WO.[CreditTerms]) [CreditTerms],
-					ISNULL(cur.[Code], '') [Currency],
+					ISNULL(UPPER(cur.[Code]), '') [Currency],
 					FORMAT(WO.[OpenDate], 'MM/dd/yyyy') [OrderDate],
 					FORMAT(SHIPPINGINFO.[ShipDate], 'MM/dd/yyyy') [ShipDate],
 					--(CASE WHEN ISNULL(BI.IsCustomerShipping,0) = 1 THEN ISNULL(SHIPVIACust.[Name], '') ELSE  ISNULL(SHIPINFOVIA.[Name], '') END) AS [ShipVia],

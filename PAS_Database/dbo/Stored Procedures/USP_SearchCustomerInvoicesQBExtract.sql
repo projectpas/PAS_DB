@@ -20,6 +20,7 @@
 	3	 06 Jun 2025	RAJESH GAMI	   	Correct the rowNum issue (Due to duplicate the record)
 	4	 13 Jun 2025	RAJESH GAMI	   	Replcae the new billing invoicing table with old one (WO, SO)
     5    17 Jun 2025    Moin Bloch       Added CustomerId
+	6    26 Jun 2025   RAJESH GAMI       Resovled duplicate WO Invoice while Invoice VIEW filter selection due to WorkFlowWorkORderId
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -179,14 +180,14 @@ BEGIN
 						, C.CustomerId, CRM.RMAHeaderId, WOBI.IsPerformaInvoice, WOPN.ManagementStructureId,WOBI.RemainingAmount
 			),				
 			WorkFlowData AS(  
-				SELECT PC.BillingInvoicingId,WOFN.WorkFlowWorkOrderId, PC.ReferenceId
+				SELECT PC.BillingInvoicingId,MAX(WOFN.WorkFlowWorkOrderId)WorkFlowWorkOrderId, PC.ReferenceId
 				FROM dbo.BillingInvoicing PC WITH (NOLOCK) 
 				INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK)  ON PC.BillingInvoicingId = BII.BillingInvoicingId 
 				LEFT JOIN dbo.WorkOrderWorkFlow WOFN WITH (NOLOCK) ON  BII.SubReferenceId = WOFN.WorkOrderPartNoId --WOFN.WorkFlowWorkOrderId = PC.WorkFlowWorkOrderId 
 				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease = 0 
 				--AND ISNULL(PC.[IsInvoicePosted], 0) != 1 
 				AND PC.ModuleId = @workOrderModuleId
-				GROUP BY PC.ReferenceId,PC.BillingInvoicingId,WOFN.WorkFlowWorkOrderId
+				GROUP BY PC.ReferenceId,PC.BillingInvoicingId--,WOFN.WorkFlowWorkOrderId
 				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
 				M.CustomerName,M.CustomerType,M.InvoiceAmt, M.PN [PN],M.PNDescription [PNDescription],

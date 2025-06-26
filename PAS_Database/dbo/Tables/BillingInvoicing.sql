@@ -47,8 +47,11 @@
     [IsCreatedFromQuote]          BIT             CONSTRAINT [DF_BillingInvoicing_IsCreatedFromQuote] DEFAULT ((0)) NULL,
     [IsQuickBookGeneratedInvoice] BIT             NULL,
     [OldBillingInvoicingId]       BIGINT          NULL,
+    [CreditMemoUsed]              DECIMAL (18, 2) DEFAULT ((0)) NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
 
 
 

@@ -3994,6 +3994,9 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityShipVia.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingViaStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_Publication_CreateOrUpdate.sql" />
+    <Build Include="dbo\Stored Procedures\GetPartUploadToILS.sql" />
+    <Build Include="dbo\Stored Procedures\GetIntegrationPortalDataById.sql" />
+    <Build Include="dbo\Stored Procedures\GetAllLegalEntityData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

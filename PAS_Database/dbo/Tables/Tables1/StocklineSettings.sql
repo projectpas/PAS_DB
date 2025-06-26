@@ -12,6 +12,16 @@
     [IsDeleted]         BIT           CONSTRAINT [DF_StocklineSettings_IsDelete] DEFAULT ((0)) NOT NULL,
     [IsPNSNWarning]     BIT           NULL,
     [IsPNSNRestriction] BIT           NULL,
+    [SiteId]            BIGINT        NULL,
+    [Site]              VARCHAR (100) NULL,
+    [WarehouseId]       BIGINT        NULL,
+    [Warehouse]         VARCHAR (100) NULL,
+    [LocationId]        BIGINT        NULL,
+    [Location]          VARCHAR (100) NULL,
+    [ShelfId]           BIGINT        NULL,
+    [Shelf]             VARCHAR (100) NULL,
+    [BinId]             BIGINT        NULL,
+    [Bin]               VARCHAR (100) NULL,
     CONSTRAINT [PK_StocklineSettings] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [FK_StocklineSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

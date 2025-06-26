@@ -23,6 +23,7 @@ Exec [ReverseWorkOrder]
 ** 12   01/15/2025  Hemant Saliya		 Reverse Billing Entry
 ** 13   02/05/2025  Hemant Saliya        Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005
 ** 14	04/24/2025	Devendra Shekh		 Modify (Added [IsManualText] check for DistributionSetup)
+** 15   06/25/2025  Moin Bloch		     Change Old To new Table
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -59,9 +60,13 @@ AS
 	DECLARE @BillingWorkOrderSettlementId BIGINT = 11; --Fixed for Parts Invoiced
 	DECLARE @WorkOrderNum VARCHAR(200);
 	DECLARE @IsPaymentReceived BIT = NULL;
+	DECLARE @WOModuleId INT=0	
+	DECLARE @InvoiceStatusId BIGINT=0
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
+		    SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+			SELECT @InvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(nolock) WHERE [Status] = 'Reviewed'
 			SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')    
 			SELECT @ReferencePartId = WorkFlowWorkOrderId, @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
@@ -83,20 +88,38 @@ AS
 					JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
 				WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId --AND (ISNULL(AirwayBill, '') != '') OR ISNULL(isIgnoreAWB, 0) = 1
 
-				SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END,
-					@BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
-				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-					JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-				WHERE WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-					ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+				--OLD TABLE
+				--SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END,
+				--	@BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
+				--FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+				--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+				--WHERE WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+				--	ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
 
-				SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END,
-					   @BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
-				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-					JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-				WHERE WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-					ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+				-- NEW TABLE
+				SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.[BillingInvoicingId]) > 0 THEN 1 ELSE 0 END,
+					   @BillingInvoicingId = MAX(WOBI.[BillingInvoicingId])
+				FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+					JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+				WHERE WOBII.[SubReferenceId] = @WorkOrderPartNoId AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBI.[IsVersionIncrease], 0) = 0 AND WOBI.[IsDeleted] = 0 AND
+					ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
 
+				--OLD Table
+				--SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END,
+				--	   @BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
+				--FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+				--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+				--WHERE WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+				--	ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+
+				-- NEW TABLE 
+				SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.[RemainingAmount]),0) - ISNULL(SUM(WOBI.[GrandTotal]), 0)) = 0 THEN 0 ELSE 1 END,
+					   @BillingInvoicingId = MAX(WOBI.[BillingInvoicingId])
+				FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+					JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+				WHERE WOBII.[SubReferenceId] = @WorkOrderPartNoId AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBI.[IsVersionIncrease], 0) = 0 AND WOBI.[IsDeleted] = 0 AND
+					ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
+					
 				IF(ISNULL(@IsPaymentReceived, 0) = 0)
 				BEGIN
 					IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
@@ -124,33 +147,45 @@ AS
 					END
 
 					IF(ISNULL(@IsInvoiceGenerated,0) > 0)
-					BEGIN	
+					BEGIN							
+						
 						PRINT 'Update Work Order Billing Status to Re-Generate Invoice'
 						/* Update Work Order Billing Status to Re-Generate Invoice */
 
 						/* Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005 */
 
-						UPDATE WorkOrderBillingInvoicing SET 
-							InvoiceStatus = 'Reviewed', 
-							InvoiceFilePath = '', 
-							WorkOrderShippingId = Null,
-							UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
-							--TotalWorkOrderCost = 0,
-							--TotalWorkOrderCostPlus = 0,
-							--MaterialCost = 0,
-							--MaterialCostPlus = 0,
-							--LaborOverHeadCost = 0,
-							--LaborOverHeadCostPlus = 0,
-							--MiscChargesCost = 0,
-							--MiscChargesCostPlus = 0,
-							--FreightCost = 0,
-							--FreightCostPlus = 0,
-							--RemainingAmount = 0,
-							--SalesTax = 0,
-							--OtherTax = 0,
-							--SubTotal = 0,
-							--GrandTotal = 0
-						WHERE BillingInvoicingId = @BillingInvoicingId
+						--OLD TABLE
+						--UPDATE WorkOrderBillingInvoicing SET 
+						--	InvoiceStatus = 'Reviewed', 
+						--	InvoiceFilePath = '', 
+						--	WorkOrderShippingId = Null,
+						--	UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+						--	--TotalWorkOrderCost = 0,
+						--	--TotalWorkOrderCostPlus = 0,
+						--	--MaterialCost = 0,
+						--	--MaterialCostPlus = 0,
+						--	--LaborOverHeadCost = 0,
+						--	--LaborOverHeadCostPlus = 0,
+						--	--MiscChargesCost = 0,
+						--	--MiscChargesCostPlus = 0,
+						--	--FreightCost = 0,
+						--	--FreightCostPlus = 0,
+						--	--RemainingAmount = 0,
+						--	--SalesTax = 0,
+						--	--OtherTax = 0,
+						--	--SubTotal = 0,
+						--	--GrandTotal = 0
+						--WHERE BillingInvoicingId = @BillingInvoicingId
+
+						-- NEW TABLE 
+						UPDATE [dbo].[BillingInvoicing] SET 
+							[InvoiceStatus] = 'Reviewed', 
+							[InvoiceStatusId] = @InvoiceStatusId,
+							[InvoiceFilePath] = '', 
+							[WorkOrderShippingId] = NULL,
+							[UpdatedBy] = @UpdatedBy, 
+							[UpdatedDate] = GETUTCDATE()							
+						WHERE [BillingInvoicingId] = @BillingInvoicingId
 
 						--UPDATE WorkOrderBillingInvoicingItem SET 
 						--	UnitPrice = 0, 
@@ -203,10 +238,19 @@ AS
 					SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOINVOICINGTAB')   
 					DECLARE @IsInvoiceEntry BIT;
 
-					SELECT @InvoiceId = MAX(WOBI.BillingInvoicingId) FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-						JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-					WHERE WOBII.WorkOrderPartId = @workOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-						ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0 AND ISNULL(WOBI.IsReversedJE, 0) = 0
+					--OLD TABLE
+					--SELECT @InvoiceId = MAX(WOBI.BillingInvoicingId) FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+					--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+					--WHERE WOBII.WorkOrderPartId = @workOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+					--	ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0 AND ISNULL(WOBI.IsReversedJE, 0) = 0
+
+					--NEW TABLE
+					SELECT @InvoiceId = MAX(WOBI.[BillingInvoicingId]) 
+					  FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+					  JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+					WHERE WOBII.[SubReferenceId] = @workOrderPartNoId AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBI.[IsVersionIncrease], 0) = 0 AND WOBI.[IsDeleted] = 0 AND
+						ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0 AND ISNULL(WOBI.[IsReversedJE], 0) = 0
+						AND  WOBI.[ModuleId] = @WOModuleId
 
 					SELECT @IsInvoiceEntry = CASE WHEN COUNT(WorkOrderBatchId) > 0 THEN 1 ELSE 0 END FROM  dbo.WorkOrderBatchDetails WITH(NOLOCK) WHERE InvoiceId = @BillingInvoicingId
 					IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
@@ -215,8 +259,12 @@ AS
 						BEGIN  
 							EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
 							@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
-					
-							UPDATE dbo.WorkOrderBillingInvoicing SET IsReversedJE = 1 WHERE BillingInvoicingId = @InvoiceId
+					        
+							--OLD TABLE
+							--UPDATE dbo.WorkOrderBillingInvoicing SET IsReversedJE = 1 WHERE BillingInvoicingId = @InvoiceId
+
+							--NEW TABLE
+							UPDATE [dbo].[BillingInvoicing] SET [IsReversedJE] = 1 WHERE [BillingInvoicingId] = @InvoiceId
 						END
 					END
 				
@@ -227,8 +275,11 @@ AS
 						BEGIN  
 							EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
 							@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
-					
-							UPDATE dbo.WorkOrderBillingInvoicing SET IsReversedJE = 1 WHERE BillingInvoicingId = @InvoiceId
+					        --OLD TABLE
+							--UPDATE dbo.WorkOrderBillingInvoicing SET IsReversedJE = 1 WHERE BillingInvoicingId = @InvoiceId
+							
+							--NEW TABLE
+							  UPDATE [dbo].[BillingInvoicing] SET [IsReversedJE] = 1 WHERE [BillingInvoicingId] = @InvoiceId
 						END
 					END
 					PRINT 'END ReOpen FinishGood Execution'
@@ -243,8 +294,8 @@ AS
 			ROLLBACK TRANSACTION;
 				DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_ReOpen_FinishGood_WorkOrder' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@workOrderPartNoId, '') + ''
+              , @AdhocComments     VARCHAR(150)    = 'USP_ReOpen_FinishGood_WorkOrder'               
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@workOrderPartNoId, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

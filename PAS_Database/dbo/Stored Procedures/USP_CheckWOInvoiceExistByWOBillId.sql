@@ -9,13 +9,14 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    17-March-2025		Shrey Chandegara	Created
+	2    25-APR-2025		Moin Bloch          Changed OLD TO NEW Table
 
 	declare @p4 bit
 	set @p4=NULL
 	exec USP_CheckWOInvoiceExistByWOBillId @BillingInvoicingId=3213,@WOPartIds=N'8116',@IsProformaInvoice=0,@Result=@p4 output
 	select @p4
 **************************************************************/
-CREATE   PROCEDURE [USP_CheckWOInvoiceExistByWOBillId]
+CREATE   PROCEDURE [dbo].[USP_CheckWOInvoiceExistByWOBillId]
     @BillingInvoicingId BIGINT,
     @WOPartIds NVARCHAR(MAX),  
     @IsProformaInvoice BIT,
@@ -44,11 +45,21 @@ BEGIN
 				INSERT INTO #WOPartTable (WorkOrderPartId)
 				SELECT value FROM STRING_SPLIT(@WOPartIds, ',');
 
+				-- OLD Code
+					--SELECT DISTINCT 
+					--	wob.BillingInvoicingId,
+					--	wobii.WorkOrderPartId
+					--INTO #DistinctData FROM  dbo.[WorkOrderBillingInvoicing] wob WITH(NOLOCK)
+					--INNER JOIN dbo.[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK)
+					--	ON wob.BillingInvoicingId = wobii.BillingInvoicingId
+					--	AND (wobii.IsPerformaInvoice = @IsProformaInvoice OR wobii.IsPerformaInvoice IS NULL)
+					--WHERE wob.BillingInvoicingId = @BillingInvoicingId AND (wob.IsPerformaInvoice = @IsProformaInvoice OR wob.IsPerformaInvoice IS NULL)
+
 					SELECT DISTINCT 
 						wob.BillingInvoicingId,
-						wobii.WorkOrderPartId
-					INTO #DistinctData FROM  dbo.[WorkOrderBillingInvoicing] wob WITH(NOLOCK)
-					INNER JOIN dbo.[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK)
+						wobii.SubReferenceId
+					INTO #DistinctData FROM  dbo.[BillingInvoicing] wob WITH(NOLOCK)
+					INNER JOIN dbo.[BillingInvoicingItems] wobii WITH(NOLOCK)
 						ON wob.BillingInvoicingId = wobii.BillingInvoicingId
 						AND (wobii.IsPerformaInvoice = @IsProformaInvoice OR wobii.IsPerformaInvoice IS NULL)
 					WHERE wob.BillingInvoicingId = @BillingInvoicingId AND (wob.IsPerformaInvoice = @IsProformaInvoice OR wob.IsPerformaInvoice IS NULL)
@@ -63,7 +74,7 @@ BEGIN
 
 				SELECT @Count = COUNT(*)
 				FROM #DistinctData d
-				INNER JOIN #WOPartTable wpt ON d.WorkOrderPartId = wpt.WorkOrderPartId
+				INNER JOIN #WOPartTable wpt ON d.SubReferenceId = wpt.WorkOrderPartId
 
 				IF @Count = @TotalCount
 					SET @Result = 0

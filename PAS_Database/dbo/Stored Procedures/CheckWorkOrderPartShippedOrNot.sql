@@ -12,7 +12,8 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------  	
 	1    29/12/2023   Moin Bloch		Created
-	2    29/2/2024    Devendra Shekh	added new param @WOBillingInvoicingId
+	2    29/02/2024   Devendra Shekh	added new param @WOBillingInvoicingId
+    3    25/06/2025   Moin Bloch		Changed New Billing Table 
 
 EXEC DBO.CheckWorkOrderPartShippedOrNot 24,28
 **************************************************************/ 
@@ -78,9 +79,15 @@ BEGIN
 			END
 			IF(ISNULL(@WOBillingInvoicingId, 0) > 0 AND @WorkOrderPartId = 0)
 			BEGIN
+				--OLD Table
+				--SELECT [BillingInvoicingId],
+				--	   [InvoiceNo] AS [AirwayBill]
+				--FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @WOBillingInvoicingId;
+
+				-- NEW TABLE
 				SELECT [BillingInvoicingId],
 					   [InvoiceNo] AS [AirwayBill]
-				FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @WOBillingInvoicingId;
+				FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @WOBillingInvoicingId;
 			END
 	END TRY    
 		BEGIN CATCH      

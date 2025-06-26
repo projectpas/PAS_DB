@@ -18,11 +18,13 @@
     5    23/06/2025   Moin Bloch     Added Version Increase 
 	6    23/06/2025   RAJESH GAMI    Added SubModuleId for SO billing invoicing in the Item table.
 	7    23/06/2025   Moin Bloch     Added WorkOrderShippingId
-	
+	8    24/06/2025   RAJESH GAMI    Fixed while IsProformaInvoice = true part status changed to BILLED.  
+	9    25/06/2025   Moin Bloch     Fixed Version Increase 
+
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
-CREATE    PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
+CREATE PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
 -------------------------------------------BillingInvoicing-------------------------------------------
 @BillingInvoicingId BIGINT = NULL,  
 @ModuleId INT = NULL,
@@ -122,16 +124,57 @@ BEGIN
 		PRINT '---------------Exchange----------------'
 	END
 
-	SELECT @CommonBillingInvoicingId = [BillingInvoicingId]
-	FROM @tbl_BillingInvoicingItemsType
-	WHERE [BillingInvoicingId] <> 0 
-	GROUP BY [BillingInvoicingId] HAVING COUNT(*) = (SELECT COUNT(*) FROM @tbl_BillingInvoicingItemsType 
-	WHERE [BillingInvoicingId] <> 0) AND COUNT(DISTINCT [BillingInvoicingId]) = 1;
-		
-	IF(@CommonBillingInvoicingId > 0)
+	DECLARE @SubReferenceIds VARCHAR(MAX) = '';
+	DECLARE @TotalRecordI INT = 0,@MinIdI BIGINT = 1,@isCreateNewInvoice BIT=0
+
+	SELECT @SubReferenceIds = STRING_AGG([SubReferenceId], ',') FROM @tbl_BillingInvoicingItemsType WHERE [BillingInvoicingId] > 0
+	
+	IF OBJECT_ID(N'tempdb..#tmprAddBillingInvoicingDetailsTempForInvoiceNo') IS NOT NULL
 	BEGIN
-		SET @InvoiceNo = (SELECT TOP 1 InvoiceNo FROM dbo.BillingInvoicing WITH(NOLOCK) Where BillingInvoicingId = @CommonBillingInvoicingId)
-	END	
+		DROP TABLE #tmprAddBillingInvoicingDetailsTempForInvoiceNo
+	END
+
+	CREATE TABLE #tmprAddBillingInvoicingDetailsTempForInvoiceNo
+	(
+		[PKID] [BIGINT] NOT NULL IDENTITY,			
+		[BillingInvoicingId] [BIGINT] NULL,
+		[ModuleId] [INT] NULL,
+		[ReferenceId] [BIGINT] NULL,
+		[SubModuleId] [INT] NULL,
+		[SubReferenceId] [BIGINT] NULL,
+		[IsPerformaInvoice] [BIT] NULL		
+	)
+	INSERT INTO #tmprAddBillingInvoicingDetailsTempForInvoiceNo([BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[IsPerformaInvoice])
+	SELECT [BillingInvoicingId],@ModuleId,[ReferenceId],[SubModuleId],[SubReferenceId],[IsPerformaInvoice] FROM @tbl_BillingInvoicingItemsType
+	
+	SELECT @TotalRecordI = COUNT(*), @MinIdI = MIN([PKID]) FROM #tmprAddBillingInvoicingDetailsTempForInvoiceNo    
+
+	WHILE @MinIdI <= @TotalRecordI 
+	BEGIN		
+		DECLARE @BillingInvoicingIdI BIGINT = 0,@IsPerformaInvoiceI BIT = 0,@isNewInvoice BIT = 0
+		 SELECT @BillingInvoicingIdI = ISNULL([BillingInvoicingId],0),
+			    @IsPerformaInvoiceI = ISNULL([IsPerformaInvoice],0)
+		  FROM #tmprAddBillingInvoicingDetailsTempForInvoiceNo WHERE [PKID] = @MinIdI 
+
+		EXEC [dbo].[USP_CheckWOInvoiceExistByWOBillId] @BillingInvoicingIdI,@SubReferenceIds,@IsPerformaInvoiceI,@Result = @isNewInvoice OUTPUT
+
+		IF(ISNULL(@isNewInvoice,0) = 0)
+		BEGIN
+			SET @InvoiceNo = (SELECT [InvoiceNo] FROM dbo.BillingInvoicing WHERE [BillingInvoicingId] = @BillingInvoicingIdI)
+			SET @VersionNo = NULL
+		END
+		ELSE
+		BEGIN
+			SET @InvoiceNo = '';
+			SET @isCreateNewInvoice = 1
+		END
+		IF(@isCreateNewInvoice = 1)
+        BEGIN
+			SET @InvoiceNo = '';
+			SET @isNewInvoice = 1
+		END
+		SET @MinIdI = @MinIdI + 1;
+	END
 
 	IF (@IsPerformaInvoice = 0)
 	BEGIN
@@ -145,7 +188,7 @@ BEGIN
 	SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		-- Check for current number and increment
-		IF(@CommonBillingInvoicingId IS NULL)
+		IF(@InvoiceNo = '' OR @InvoiceNo IS NULL)
 		BEGIN
 			IF COALESCE(@CodePrefix, '') <> ''
 			BEGIN
@@ -252,7 +295,8 @@ BEGIN
 			[CreatedDate] [DATETIME2](7) NULL,
 			[UpdatedDate] [DATETIME2](7) NULL,
 			[IsActive] [BIT] NULL,
-			[IsDeleted] [BIT] NULL
+			[IsDeleted] [BIT] NULL,
+			[ShippingId] [bigint] NULL
 		)
 
 		SET @SubTotal = 0;
@@ -297,7 +341,7 @@ BEGIN
 					[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 					[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 					[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],
-					[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],PartCost)
+					[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],PartCost,ShippingId)
 			SELECT  [BillingInvoicingItemId],[BillingInvoicingId],@ModuleId,[ReferenceId],[SubModuleId],
 					[SubReferenceId],[ItemMasterId],[StocklineId],[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],
 					[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
@@ -305,7 +349,7 @@ BEGIN
 					[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 					[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 					[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],
-					[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,PartCost
+					[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,PartCost,ShippingId
 			   FROM @tbl_BillingInvoicingItemsType
 
 		Update #tmprAddBillingInvoicingDetailsTemp set SubModuleId = @SOPartModuleId WHERE ModuleId = @SOModuleId;
@@ -333,13 +377,13 @@ BEGIN
 						   ,[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus]
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
 						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId])
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],ShippingId)
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,ShippingId
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			END
 			ELSE
@@ -347,6 +391,11 @@ BEGIN
 				DECLARE @VersionNums INT= 0;
 				SELECT @VersionNo = [VersionNo] FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingItemId] = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId; 
 				
+				IF(@isNewInvoice = 1)
+				BEGIN
+					SET @VersionNo = NULL
+				END
+							
 				IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
 				BEGIN
 					IF (LEN(@VersionNo) > 6)
@@ -363,6 +412,10 @@ BEGIN
 					END
 					SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
 				END
+				ELSE
+				BEGIN			
+					SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
+				END
 				
 			    UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
 
@@ -375,7 +428,7 @@ BEGIN
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus]
 						   ,[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
 						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId])
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],ShippingId)
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],
@@ -383,7 +436,7 @@ BEGIN
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 							[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,ShippingId
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			   
 			   UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 
@@ -406,7 +459,7 @@ BEGIN
 				SET @TemplateBody = REPLACE(@TemplateBody, '##InvoiceNo##', @InvoiceNo);
 				EXEC [dbo].[USP_History] @WOModuleId,@ReferenceId,@WorkOrderMPNModuleID,@SubReferenceId,'False','True',@TemplateBody,'Invoicing',@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate
 			END
-			IF(@ModuleId = @SOModuleId)
+			IF(@ModuleId = @SOModuleId AND @IsPerformaInvoice = 1)
 			BEGIN
 				DECLARE @SOBilledStatusId int = (select TOP 1 SOPartStatusId from SOPartStatus WHERE Description = 'Billed')
 				EXEC [dbo].[SP_SaveSOPartStatusByPartId] @SalesOrderPartId  = @SubReferenceId, @StatusId = @SOBilledStatusId

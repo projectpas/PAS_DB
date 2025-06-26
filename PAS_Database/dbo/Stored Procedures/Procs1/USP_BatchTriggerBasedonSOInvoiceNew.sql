@@ -37,6 +37,7 @@
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
+exec [dbo].[USP_BatchTriggerBasedonSOInvoiceNew] 7,913,0,0,3400,0,0,0,'SO',1,'RAJESH GAMI',1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
 	@DistributionMasterId BIGINT = NULL,
@@ -335,10 +336,11 @@ BEGIN
 					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
 					  WHERE SL.[StockLineId] = @StocklineId;
 
-					SELECT @GLStocklineId = soi.[StockLineId] 
+					SELECT top 1 @GLStocklineId = soi.[StockLineId] 
 					FROM [dbo].[BillingInvoicingItems] soi WITH(NOLOCK) 
-					WHERE soi.[BillingInvoicingId] = @InvoiceId AND soi.ModuleId = @soModuleId AND soi.SubReferenceId = @ReferencePartId;
-
+					WHERE soi.[BillingInvoicingId] = @InvoiceId AND soi.ModuleId = @soModuleId
+					PRINT @GLStocklineId
+					PRINT '---@GLStocklineId---'
 					SELECT @StocklineNumber = SL.[StockLineNumber],
 						   @InventoryToBillGLAccId = SL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
 						   @InventoryGLAccId = SL.GLAccountId, -- For PARTS INVENTORY Distribution (Shipping)
@@ -346,18 +348,24 @@ BEGIN
 						   @RevenueSoGLAccId = SL.RevenueSoGLAccId -- For Revenue EXc SO Distribution (Billing)
 					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
 					  WHERE SL.[StockLineId] = @GLStocklineId;
-
+					  			PRINT @RevenueSoGLAccId
+					PRINT '---@@RevenueSoGLAccId---'
 					SET @COGSDifference = (@PartUnitSalesPrice - @InoiceGrandTotal);
 					 
 					SET @RevenuWO = @InvoiceTotalCost - (@FreightCost + @MiscChargesCost + @SalesTax);
 
 					SET @AccountsReceivablesAmount = (@SalesTotal + @FreightCost + @MiscChargesCost + @SalesTax + @OtherTax);
 					-----Revenue - SO------
+					PRINT '	-----Revenue - SO------'
+					PRINT @SalesTotal
 					IF(@SalesTotal > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUESALESORDER') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
-
+							PRINT @GlAccountId 			
+							PRINT 'Before Set @GlAccountId'
+							PRINT @RevenueSoGLAccId
+							PRINT '@RevenueSoGLAccId'
 						--GET GL Accounting Data from GLAccout based on stockline
 						SELECT @GlAccountId = [GLAccountId],
 							   @GlAccountNumber = [AccountCode],
@@ -365,7 +373,8 @@ BEGIN
 						FROM [dbo].[GLAccount] WITH(NOLOCK)
 						WHERE [GLAccountId] = @RevenueSoGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
-						
+							PRINT @GlAccountId 			
+							PRINT 'After Set @GlAccountId'
 						IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND CustomerTypeId=@CustomerTypeId)
 						BEGIN
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
@@ -424,7 +433,8 @@ BEGIN
 
 							SET @IsBatchGenerated = 1;
 						END
-
+							PRINT @GlAccountId 			
+							PRINT 'After Set @GlAccountId: Before Table'
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 						[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
 							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @InvoiceDate, GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)

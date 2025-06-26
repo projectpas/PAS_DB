@@ -26,6 +26,7 @@
 	13	 14/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	14	 04/11/2024  Devendra Shekh Added ReferenceModule For [CommonBatchDetails]
 	15	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	16	 25/06/2025	 Devendra Shekh	Modify (using Code for [MasterDiscountType] and [MasterBankFeesType] instead name for compare)
 
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
@@ -105,6 +106,11 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CASH RECEIPT';
+		DECLARE @EarlyPayEarnedCode VARCHAR(50) = 'EPE';
+		DECLARE @EarlyPayNotEarnedCode VARCHAR(50) = 'EPNE';
+		DECLARE @OtherDiscountsCode VARCHAR(50) = 'ODS';
+		DECLARE @WireACHFeesCode VARCHAR(50) = 'WAF';
+		DECLARE @FXFeesCode VARCHAR(50) = 'FX';
 		
 		SELECT @MasterCompanyId = CP.MasterCompanyId, 
 		       @UpdatedBy = CP.CreatedBy,
@@ -466,35 +472,35 @@ BEGIN
 					INNER JOIN [dbo].[MasterDiscountType] MDT WITH(NOLOCK) ON IVP.[DiscType] = MDT.[Id]
 					WHERE [ReceiptId] = @ReceiptId 
 					  AND [CustomerId] = @CustomerId  
-					  AND UPPER(MDT.[Name]) = UPPER('Early Pay (Earned)') AND IVP.[IsDeleted] = 0;
+					  AND UPPER(MDT.[Code]) = @EarlyPayEarnedCode AND IVP.[IsDeleted] = 0;
 					  					  
 					SELECT @NotEarlyDiscAmount = ISNULL(SUM(IVP.DiscAmount),0) 
 					FROM [dbo].[InvoicePayments] IVP WITH(NOLOCK)
 					INNER JOIN [dbo].[MasterDiscountType] MDT WITH(NOLOCK) ON IVP.DiscType = MDT.Id
 					WHERE [ReceiptId] = @ReceiptId 
 					  AND [CustomerId] = @CustomerId  
-					  AND UPPER(MDT.[Name]) = UPPER('Early Pay (Not Earned)') AND IVP.IsDeleted = 0;
+					  AND UPPER(MDT.[Code]) = @EarlyPayNotEarnedCode AND IVP.IsDeleted = 0;
 
 					SELECT @OtherDiscAmount = ISNULL(SUM(IVP.DiscAmount),0) 
 					FROM [dbo].[InvoicePayments] IVP WITH(NOLOCK)
 					INNER JOIN [dbo].[MasterDiscountType] MDT WITH(NOLOCK) ON IVP.DiscType = MDT.Id
 					WHERE [ReceiptId] = @ReceiptId 
 					  AND [CustomerId] = @CustomerId  
-					  AND UPPER(MDT.[Name]) = UPPER('Other Discounts') AND IVP.IsDeleted = 0;
+					  AND UPPER(MDT.[Code]) = @OtherDiscountsCode AND IVP.IsDeleted = 0;
 					  
 					SELECT @WireBankFeesAmount=ISNULL(SUM(IVP.BankFeeAmount),0) 
 					  FROM [dbo].[InvoicePayments] IVP WITH(NOLOCK)
 					INNER JOIN [dbo].[MasterBankFeesType] MFT WITH(NOLOCK) ON IVP.BankFeeType = MFT.Id
 					WHERE [ReceiptId] = @ReceiptId 
 					  AND [CustomerId] = @CustomerId  
-					  AND UPPER(MFT.[Name]) = UPPER('Wire/ACH Fees') AND IVP.IsDeleted = 0;
+					  AND UPPER(MFT.[Code]) = @WireACHFeesCode AND IVP.IsDeleted = 0;
 						 
 					SELECT @FXFeesAmount = ISNULL(SUM(IVP.BankFeeAmount),0) 
 					FROM [dbo].[InvoicePayments] IVP WITH(NOLOCK)
 					INNER JOIN [dbo].[MasterBankFeesType] MFT WITH(NOLOCK) ON IVP.BankFeeType = MFT.Id
 					WHERE [ReceiptId] = @ReceiptId 
 					  AND [CustomerId] = @CustomerId  
-					  AND UPPER(MFT.[Name]) = UPPER('FX Fees') AND IVP.IsDeleted = 0;
+					  AND UPPER(MFT.[Code]) = @FXFeesCode AND IVP.IsDeleted = 0;
 
 					SELECT @OtherAdjustmentAmount=ISNULL(SUM(IVP.OtherAdjustAmt),0) 
 					  FROM [dbo].[InvoicePayments] IVP WITH(NOLOCK)

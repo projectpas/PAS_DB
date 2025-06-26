@@ -21,11 +21,12 @@
 	8	 28 June 2024   Vishal Suthar		Added login entry in LogInLog table for employee when they login into the system
 	9    16 OCT 2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	10	 30 Oct 2024    HEMANT SALIYA		Verify the count 
-	11   01/28/2025		Bhargav Saliya 	Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
-	12   01/29/2025		Bhargav Saliya 	SELECT ID'S Using MouleName
-	13   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date) AND convert UTC to LOCAL where we compare the CREATEDDate
-	14   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
-	15   06/05/2025		Devendra Shekh 	Snapshot DashBoard - Count Issue Resoled
+	11   01/28/2025		Bhargav Saliya 		Resolved DashBoard INVOICE AND NON-INVOICE records issues [PN-11084]
+	12   01/29/2025		Bhargav Saliya 		SELECT ID'S Using MouleName
+	13   18/03/2025		RAJESH GAMI			Fix the ReceivedDate issue (make a created date as a Received Date) AND convert UTC to LOCAL where we compare the CREATEDDate
+	14   06/04/2025		Hemant Saliya 		Snapshot DashBoard - Todays received Count Issue Resoled
+	15   06/05/2025		Devendra Shekh 		Snapshot DashBoard - Count Issue Resoled
+	16	 06/24/2025		Devendra Shekh		Billing Table Changes
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -55,6 +56,10 @@ BEGIN
 		DECLARE @SalesOrderQouteModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrderQuote');
 		DECLARE @SpeedQouteModuleID AS INT =(SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SpeedQuote');
 		DECLARE @EmployeeRoleID AS VARCHAR(MAX);
+
+		DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
+		DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
+
 		/* --------------START: Get the timzone and UTC offset -------------- */
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
 			SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
@@ -152,10 +157,10 @@ BEGIN
 			SELECT DISTINCT
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
 				ISNULL(wobii.GrandTotal, 0) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-			FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
-			INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
-			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
-			LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+			FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
+			INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
+			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
+			LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpWorkOrderUserRole TMP ON wop.ID = TMP.ReferenceID
@@ -167,6 +172,7 @@ BEGIN
 								ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
 			AND wobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+			AND wobi.ModuleId = @WOModuleId
 		) AS WOBillingResult
 
 		--Selecting SO Billing Parts Sale		:(DashboardType = 3)

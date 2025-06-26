@@ -11,6 +11,7 @@
     [UpdatedDate]               DATETIME      NULL,
     [IsActive]                  BIT           NOT NULL,
     [IsDeleted]                 BIT           NOT NULL,
+    [Code]                      VARCHAR (50)  NULL,
     CONSTRAINT [PK_MasterBankFeesTypeAudit] PRIMARY KEY CLUSTERED ([MasterBankFeesTypeAuditId] ASC)
 );
 

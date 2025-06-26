@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [USP_CreateEmployeeManagementStructure]           
+ ** File:   [USP_CreateEmployeeUserRole]           
  ** Author:   Sahdev Saliya
- ** Description: This stored procedure is used to Create EmployeeManagementStructure List
+ ** Description: This stored procedure is used to Create EmployeeUserRole List
  ** Purpose:         
- ** Date:   20-06-2025       
+ ** Date:   24-06-2025       
           
  ** RETURN VALUE:           
   
@@ -12,43 +12,59 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    20-06-2025    Sahdev Saliya       Created  
+    1    24-06-2025    Sahdev Saliya       Created  
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_CreateEmployeeManagementStructure]
-    @EmployeeId BIGINT,
-    @tbl_EmployeeManagementStructure [dbo].[EmployeeManagementStructureTVP] READONLY
+CREATE   PROCEDURE [dbo].[USP_CreateEmployeeUserRole]
+   @EmployeeId BIGINT,                           
+   @tbl_EmployeeUserRole [dbo].[EmployeeUserRoleType] READONLY  
 AS
 BEGIN
     SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        IF EXISTS (SELECT 1 FROM @tbl_EmployeeManagementStructure)
-        BEGIN
-            DECLARE @EmpId BIGINT = (SELECT TOP 1 EmployeeId FROM @tbl_EmployeeManagementStructure);
+		DECLARE @CurrentRowId INT = 1;
+		DECLARE @EmpId BIGINT = 0;
 
-            DELETE FROM [dbo].EmployeeManagementStructure WHERE EmployeeId = @EmpId;
-        END
-        ELSE
-        BEGIN
-            DELETE FROM [dbo].EmployeeManagementStructure WHERE EmployeeId = @EmployeeId;
-        END
+		IF OBJECT_ID('tempdb..#Results') IS NOT NULL
+			DROP TABLE #Results
 
-        INSERT INTO [dbo].EmployeeManagementStructure (EmployeeId, ManagementStructureId, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted)
-        SELECT EmployeeId, ManagementStructureId, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted FROM @tbl_EmployeeManagementStructure;
+		SELECT ROW_NUMBER() over (order by (select null)) RowId,* into #Results from @tbl_EmployeeUserRole;
+
+		IF EXISTS(SELECT 1 FROM #Results)
+		BEGIN
+			SET @EmpId = (SELECT [EmployeeId] FROM #Results WITH(NOLOCK) WHERE RowId = @CurrentRowId)
+		END
+		ELSE 
+		BEGIN
+			SET @EmpId = @EmployeeId
+		END
+
+		IF EXISTS(SELECT 1 FROM [dbo].EmployeeUserRole WITH(NOLOCK) WHERE EmployeeId = @EmpId AND ISNULL(IsActive, 0) = 1)
+		BEGIN
+			DELETE FROM [dbo].EmployeeUserRole WHERE EmployeeId = @EmpId AND ISNULL(IsActive, 0) = 1;
+		END
+
+        INSERT INTO [dbo].EmployeeUserRole
+        (EmployeeId, RoleId, IsActive, IsDeleted, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate)
+        SELECT EmployeeId, RoleId, IsActive, IsDeleted, CreatedBy, UpdatedBy, UpdatedDate, CreatedDate    
+        FROM @tbl_EmployeeUserRole;
+
+		SELECT * FROM [dbo].EmployeeUserRole
 
         COMMIT TRANSACTION;
     END TRY
    BEGIN CATCH      
 				IF @@trancount > 0
 					PRINT 'ROLLBACK'
-					 ROLLBACK TRAN;  
+					ROLLBACK TRAN;  
 					DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-				  , @AdhocComments     VARCHAR(150)    = 'USP_CreateEmployeeManagementStructure' 
+				  , @AdhocComments     VARCHAR(150)    = 'USP_CreateEmployeeUserRole' 
 				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@EmployeeId, '') 
 
 				  , @ApplicationName VARCHAR(100) = 'PAS'

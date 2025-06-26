@@ -3984,6 +3984,15 @@
     <Build Include="dbo\User Defined Types\PublicationItemMasterMappingType.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeletePublicationItemMasterMappingById.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestorePublicationItemMasterMappingById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEmployeeUserRole.sql" />
+    <Build Include="dbo\User Defined Types\EmployeeUserRoleType.sql" />
+    <Build Include="dbo\Stored Procedures\CopyExistingSOBillingInvoicingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderPrintDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityShipViaAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SavePublicationSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPublicationSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityShipVia.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingViaStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

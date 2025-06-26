@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetDashboardViewData]
  ** Author: unknown
  ** Description: This stored procedure is used to Get Dashboard View Data
@@ -26,6 +25,7 @@
 	13   06/04/2025		Hemant Saliya 	Snapshot DashBoard - Todays received Count Issue Resoled
 	14   06/05/2025		Devendra Shekh 	Snapshot DashBoard - Count Issue Resoled
 	15   16/06/2025		Devendra Shekh 	Amount Issue Resolved for MTD Billing
+	16   24/06/2025		Devendra Shekh	Billing Table Changes
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -62,6 +62,9 @@ BEGIN
 			SET @WOQApproveStatus = (SELECT WorkOrderQuoteStatusId FROM [dbo].[WorkOrderQuoteStatus] WHERE Description = 'Approved')
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+
+			DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
+			DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
 
 			IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
 			BEGIN    
@@ -158,10 +161,10 @@ BEGIN
 				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
 				ISNULL(wobii.GrandTotal, 0) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
-				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON wop.ID = TMP.ReferenceID
@@ -176,6 +179,7 @@ BEGIN
 								ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @Date)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				AND wobi.ModuleId = @WOModuleId
 			END
 			ELSE IF (@DashboardType = 3)
 			BEGIN
@@ -411,13 +415,13 @@ BEGIN
 			BEGIN
 				SELECT DISTINCT
 				wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
-				--wobii.GrandTotal,
-				CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS 'GrandTotal',
+				ISNULL(wobii.GrandTotal, 0) AS GrandTotal,
+				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS 'GrandTotal',
 				wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
-				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
@@ -433,6 +437,7 @@ BEGIN
 			       ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) AND @Date 
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				AND wobi.ModuleId = @WOModuleId
 			END
 			ELSE IF (@DashboardType = 11)
 			BEGIN
@@ -475,12 +480,13 @@ BEGIN
 			BEGIN
 				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup--, wobii.GrandTotal
-				, CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [GrandTotal]
+				, ISNULL(wobii.GrandTotal, 0) AS GrandTotal
+				--, CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [GrandTotal]
 				, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
-				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.SubReferenceId = wop.ID
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
@@ -497,6 +503,7 @@ BEGIN
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				AND wobi.ModuleId = @WOModuleId
 			END
 		END
 	END TRY    

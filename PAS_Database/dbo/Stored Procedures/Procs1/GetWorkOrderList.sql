@@ -25,6 +25,7 @@
 	9    11/20/2024   Sahdev Saliya         SubWorkOrder Issue Resolved And Multipal WO Issue Resolved
 	10   12/31/2024   Devendra Shekh        added new Fields :- mpnQuoteStatus, approvedAmount
 	11   02/04/2025   Bhargav Saliya        UTC Date Changes
+	12   25/06/2025   Vishal Suthar			Performance Improvement
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -146,41 +147,97 @@ BEGIN
 		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 	WHERE E.EmployeeId = @EmployeeId; 
 
-	IF OBJECT_ID('tempdb..#SubWOResult') IS NOT NULL
-		DROP TABLE #SubWOResult
+	--IF OBJECT_ID('tempdb..#SubWOResult') IS NOT NULL
+	--	DROP TABLE #SubWOResult
 
-	CREATE TABLE #SubWOResult
-	(
-		[Id] BIGINT IDENTITY(1,1),
-		[WorkOrderId] BIGINT NULL,
-		[IsSubWorkOrder] varchar(50) NULL,
-		[WorkOrderPartNumberId] BIGINT NULL
-	)
+	--CREATE TABLE #SubWOResult
+	--(
+	--	[Id] BIGINT IDENTITY(1,1),
+	--	[WorkOrderId] BIGINT NULL,
+	--	[IsSubWorkOrder] varchar(50) NULL,
+	--	[WorkOrderPartNumberId] BIGINT NULL
+	--)
 
-	INSERT INTO #SubWOResult([WorkOrderId], [IsSubWorkOrder], [WorkOrderPartNumberId])
-	SELECT WO.WorkOrderId, 'Yes', SWO.WorkOrderPartNumberId FROM
-	[dbo].[SubWorkOrder] SWO WITH(NOLOCK)
-	JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId
-	WHERE ISNULL(SWO.IsDeleted,0) = 0
-	GROUP BY WO.WorkOrderId,SWO.WorkOrderPartNumberId
+	--INSERT INTO #SubWOResult([WorkOrderId], [IsSubWorkOrder], [WorkOrderPartNumberId])
+	--SELECT WO.WorkOrderId, 'Yes', SWO.WorkOrderPartNumberId FROM
+	--[dbo].[SubWorkOrder] SWO WITH(NOLOCK)
+	--JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId
+	--WHERE ISNULL(SWO.IsDeleted,0) = 0
+	--GROUP BY WO.WorkOrderId,SWO.WorkOrderPartNumberId
 
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
-      ;WITH LatestShipping AS (
-		SELECT	WorkOrderId,
-				FORMAT(MAX(ShipDate), 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
-				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
-				GROUP BY WorkOrderId
-	   )
-	   ,Result AS(  
+		CREATE TABLE #TempResult (
+			WorkOrderNum NVARCHAR(100),
+			WorkOrderId NVARCHAR(100),
+			CustomerId NVARCHAR(100),
+			PartNos NVARCHAR(100),
+			PartNoType NVARCHAR(100),
+			PNDescription NVARCHAR(500),
+			PNDescriptionType NVARCHAR(500),
+			ManufacturerName NVARCHAR(200),
+			ManufacturerNameType NVARCHAR(200),
+			WorkScope NVARCHAR(200),
+			WorkScopeType NVARCHAR(200),
+			Priority NVARCHAR(50),
+			PriorityType NVARCHAR(50),
+			CustomerName NVARCHAR(200),
+			CustomerType NVARCHAR(100),
+			Stage NVARCHAR(100),
+			StageType NVARCHAR(100),
+			WorkOrderStatus NVARCHAR(100),
+			WorkOrderStatusType NVARCHAR(100),
+			OpenDate DATE,
+			CustomerRequestDate DATE,
+			CustomerRequestDateType DATE,
+			PromisedDate DATE,
+			PromisedDateType DATE,
+			EstimatedShipDate DATE,
+			EstimatedShipDateType DATE,
+			EstimatedCompletionDateType NVARCHAR(50),
+			EstimatedCompletionDate DATE,
+			CreatedDate DATETIME,
+			UpdatedDate DATETIME,
+			CreatedBy NVARCHAR(100),
+			UpdatedBy NVARCHAR(100),
+			IsActive BIT,
+			IsDeleted BIT,
+			WorkOrderStatusId INT,
+			WorkOrderType NVARCHAR(100),
+			TechName NVARCHAR(100),
+			TechStation NVARCHAR(100),
+			SerialNumber NVARCHAR(100),
+			CustomerReference NVARCHAR(100),
+			CustomerReferenceType NVARCHAR(100),
+			IsSubWorkOrder NVARCHAR(10),
+			MPNQuoteStatus NVARCHAR(100),
+			ApprovedAmount NVARCHAR(100)
+		);
+
+		-- 2. Create the index for faster filtering/sorting
+		CREATE NONCLUSTERED INDEX IX_TempResult_WorkOrderId ON #TempResult (WorkOrderId);
+
+      ;WITH 
+	 --   LatestShipping AS (
+		--SELECT	WorkOrderId,
+		--		FORMAT(MAX(ShipDate), 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
+		--		FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
+		--		GROUP BY WorkOrderId
+	 --  )
+	 --  ,
+	   Result AS(  
        SELECT   
 			UPPER(WO.WorkOrderNum) AS WorkOrderNum,
 			UPPER(WO.WorkOrderId) AS WorkOrderId,
 			UPPER(WO.CustomerId) AS CustomerId,
-			CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNos,
-			CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNoType,
-			CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescription,
-			CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescriptionType,
+			--CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNos,
+			UPPER(ISNULL(NULLIF(WPN.RevisedPartNumber, ''), WPN.PartNumber)) AS PartNos,
+			--CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNoType,
+			UPPER(ISNULL(NULLIF(WPN.RevisedPartNumber, ''), WPN.PartNumber)) AS PartNoType,
+			--CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescription,
+			UPPER(ISNULL(NULLIF(WPN.RevisedPartDescription, ''), WPN.PartDescription)) AS PNDescription,
+			--CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescriptionType,
+			UPPER(ISNULL(NULLIF(WPN.RevisedPartDescription, ''), WPN.PartDescription)) AS PNDescriptionType,
 			UPPER(WPN.ManufacturerName) AS ManufacturerName,  
 			UPPER(WPN.ManufacturerName) AS ManufacturerNameType,  
 			UPPER(WPN.WorkScope) AS WorkScope,
@@ -221,11 +278,25 @@ BEGIN
 			,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder,
 			UPPER(wqs.Description) AS MPNQuoteStatus,
 			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-					ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) 'ApprovedAmount' 
-       FROM dbo.WorkOrder WO WITH(NOLOCK)  
+			ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) 'ApprovedAmount' 
+			FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
-			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
-			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
+			--LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			OUTER APPLY (
+				SELECT TOP 1 FORMAT(ShipDate, 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
+				FROM dbo.WorkOrderShipping WITH (NOLOCK)
+				WHERE WorkOrderId = WO.WorkOrderId
+				ORDER BY ShipDate DESC
+			) AS LWS
+			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
+			OUTER APPLY (
+				SELECT TOP 1 'Yes' AS IsSubWorkOrder
+				FROM dbo.SubWorkOrder SWO WITH(NOLOCK)
+				WHERE 
+					SWO.WorkOrderId = WO.WorkOrderId
+					AND SWO.WorkOrderPartNumberId = WPN.ID
+					AND ISNULL(SWO.IsDeleted, 0) = 0
+			) AS SWO
 			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
@@ -240,7 +311,7 @@ BEGIN
 			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 AND ISNULL(IsVersionIncrease, 0) = 0 
 			LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.workorderquoteid = WOQD.workorderquoteid
 			LEFT JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
-       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))  
+		WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))  
         ),
 		QuoteResult AS (
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
@@ -250,32 +321,42 @@ BEGIN
 			FROM Result
 		),
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
-        SELECT * INTO #TempResult from  QuoteResult
+        --SELECT * INTO #TempResult from  QuoteResult
+		INSERT INTO #TempResult
+		SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType],
+			   [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName],
+			   [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate],
+			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
+			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
+			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],
+			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount]
+		FROM QuoteResult
         WHERE (  
-        (@GlobalFilter <>'' AND (  
-        (WorkOrderNum like '%' +@GlobalFilter+'%') OR  
-        (WorkOrderType like '%' +@GlobalFilter+'%') OR  
-        (PartNos like '%' +@GlobalFilter+'%') OR  
-        (PNDescription like '%' +@GlobalFilter+'%') OR
-		(ManufacturerName like '%' +@GlobalFilter+'%') OR  
-        (WorkScope like '%' +@GlobalFilter+'%') OR  
-        (Priority like '%' +@GlobalFilter+'%') OR    
-        (CustomerName like '%' +@GlobalFilter+'%' ) OR   
-        (CustomerType like '%' +@GlobalFilter+'%') OR  
-        (Stage like '%' +@GlobalFilter+'%') OR  
-        (TechName like '%' +@GlobalFilter+'%') OR  
-        (TechStation like '%' +@GlobalFilter+'%') OR  
-        (WorkOrderStatus like '%'+@GlobalFilter+'%') OR  
-        (WorkOrderStatusType like '%'+@GlobalFilter+'%') OR  
-        (CreatedBy like '%' +@GlobalFilter+'%') OR  
-        (UpdatedBy like '%' +@GlobalFilter+'%') OR  
-        (SerialNumber like '%' +@GlobalFilter+'%') OR  
-        (CustomerReference like '%' +@GlobalFilter+'%') OR
-        (MPNQuoteStatus like '%' +@GlobalFilter+'%') OR
-        (ApprovedAmount like '%' +@GlobalFilter+'%') OR
-		(IsSubWorkOrder like '%' + @GlobalFilter +'%')
-
-        ))  
+        (@GlobalFilter <>'' AND 
+			(  
+			(WorkOrderNum like '%' +@GlobalFilter+'%') OR  
+			(WorkOrderType like '%' +@GlobalFilter+'%') OR  
+			(PartNos like '%' +@GlobalFilter+'%') OR  
+			(PNDescription like '%' +@GlobalFilter+'%') OR
+			(ManufacturerName like '%' +@GlobalFilter+'%') OR  
+			(WorkScope like '%' +@GlobalFilter+'%') OR  
+			(Priority like '%' +@GlobalFilter+'%') OR    
+			(CustomerName like '%' +@GlobalFilter+'%' ) OR   
+			(CustomerType like '%' +@GlobalFilter+'%') OR  
+			(Stage like '%' +@GlobalFilter+'%') OR  
+			(TechName like '%' +@GlobalFilter+'%') OR  
+			(TechStation like '%' +@GlobalFilter+'%') OR  
+			(WorkOrderStatus like '%'+@GlobalFilter+'%') OR  
+			(WorkOrderStatusType like '%'+@GlobalFilter+'%') OR  
+			(CreatedBy like '%' +@GlobalFilter+'%') OR  
+			(UpdatedBy like '%' +@GlobalFilter+'%') OR  
+			(SerialNumber like '%' +@GlobalFilter+'%') OR  
+			(CustomerReference like '%' +@GlobalFilter+'%') OR
+			(MPNQuoteStatus like '%' +@GlobalFilter+'%') OR
+			(ApprovedAmount like '%' +@GlobalFilter+'%') OR
+			(IsSubWorkOrder like '%' + @GlobalFilter +'%')
+			)
+		)  
         OR     
         (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
         (IsNull(@PartNumber,'') ='' OR PartNos like '%' + @PartNumber+'%') AND  
@@ -424,7 +505,15 @@ BEGIN
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
-			LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
+			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
+			OUTER APPLY (
+				SELECT TOP 1 'Yes' AS IsSubWorkOrder
+				FROM dbo.SubWorkOrder SWO WITH(NOLOCK)
+				WHERE 
+					SWO.WorkOrderId = WO.WorkOrderId
+					--AND SWO.WorkOrderPartNumberId = WPN.ID
+					AND ISNULL(SWO.IsDeleted, 0) = 0
+			) AS SWO
 			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 			))
 			, WorkOrderPartCount AS (

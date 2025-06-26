@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------              
     1    06-Mar-2025  Bhargav Saliya		Created    
     2    27-Mar-2025  Bhargav Saliya		Modified    
+	3    25-APR-2025  Moin Bloch   		    Fixed For WO Part Status    
          
 	exec dbo.UpdateWorkOrderStage @WorkOrderId=8412,@WorkOrderStatusId=1,@WorkOrderPartId=8062,@WorkOrderStageId=23,@WorkFlowWorkOrderId=8033,@CreatedBy='BHARGAV S'
 ************************************************************************/   
@@ -40,12 +41,12 @@ BEGIN
 
     BEGIN TRY
         -- Update WorkOrder Status
-        UPDATE WorkOrder SET WorkOrderStatusId = @WorkOrderStatusId WHERE WorkOrderId = @WorkOrderId;
+        UPDATE [dbo].[WorkOrder] SET WorkOrderStatusId = @WorkOrderStatusId WHERE WorkOrderId = @WorkOrderId;
 
         -- Fetch Old WorkOrderStage
         SELECT @OldStageCode = Code, @OldStageName = Stage
         FROM [dbo].[WorkOrderStage] WITH(NOLOCK)
-        WHERE WorkOrderStageId = (SELECT WorkOrderStageId FROM [dbo].[WorkOrderPartNumber] WHERE ID = @WorkOrderPartId);
+        WHERE WorkOrderStageId = (SELECT WorkOrderStageId FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID = @WorkOrderPartId);
 
         -- Fetch New WorkOrderStage
         SELECT @NewStageCode = Code, @NewStageName = Stage
@@ -57,13 +58,13 @@ BEGIN
 
 		 -- Update WorkOrderPartNumber Status and Stage
 		--WorkOrderStatusId = @WorkOrderStatusId,
-		UPDATE [dbo].[WorkOrderPartNumber] SET WorkOrderStageId = @WorkOrderStageId,WorkOrderStage = @NewStageCodeName WHERE ID = @WorkOrderPartId;
+		UPDATE [dbo].[WorkOrderPartNumber] SET WorkOrderStageId = @WorkOrderStageId,[WorkOrderStatusId]= @WorkOrderStatusId, WorkOrderStage = @NewStageCodeName WHERE ID = @WorkOrderPartId;
 
 		--UpdateWorkOrderColumns
-		EXEC UpdateWorkOrderColumnsWithId @WorkOrderId;
+		EXEC dbo.UpdateWorkOrderColumnsWithId @WorkOrderId;
 
 		--AddUpdateWorkOrderTurnArroundTime
-		EXEC USP_AddEdit_WorkOrderTurnArroundTime @WorkOrderPartId,@WorkOrderStageId,@CreatedBy;
+		EXEC dbo.USP_AddEdit_WorkOrderTurnArroundTime @WorkOrderPartId,@WorkOrderStageId,@CreatedBy;
 
         -- Determine ItemMasterId
         IF @WorkOrderPartId IS NOT NULL AND @WorkOrderPartId > 0
@@ -97,7 +98,7 @@ BEGIN
         SET @ReplaceContent = REPLACE(@ReplaceContent, '##OldValue##', @OldStageCode + '-' + @OldStageName);
         SET @ReplaceContent = REPLACE(@ReplaceContent, '##NewValue##', @NewStageCode + '-' + @NewStageName);
     		
-		EXEC USP_History @ModuleId,@WorkOrderId,@WorkOrderPartId,@WorkOrderPartId,@OldStageCodeName,@NewStageCodeName,@ReplaceContent,'StageChange',@MasterCompanyId,@CreatedBy,NULL,@CreatedBy,NULL;
+		EXEC dbo.USP_History @ModuleId,@WorkOrderId,@WorkOrderPartId,@WorkOrderPartId,@OldStageCodeName,@NewStageCodeName,@ReplaceContent,'StageChange',@MasterCompanyId,@CreatedBy,NULL,@CreatedBy,NULL;
 
     END TRY
     BEGIN CATCH

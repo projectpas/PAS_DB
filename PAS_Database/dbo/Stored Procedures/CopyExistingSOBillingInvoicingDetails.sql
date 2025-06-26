@@ -43,14 +43,14 @@ BEGIN
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
 			,InvoiceStatusId,InvoiceStatus,InvoiceFilePath,RevType,VersionNo,CostPlusType,IsPerformaInvoice,IsVersionIncrease,PostedDate,SubTotal,OtherTax,SalesTax,DepositAmount,GrandTotal
 			,IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount,Notes,WorkOrderShippingId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive
-			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice)
+			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice,CreditMemoUsed)
 
 		SELECT SOBI.SOBillingInvoicingId,@ModuleId,SOBI.SalesOrderId,SOBI.CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,NULL AS InvoiceTime,PrintDate,SOBI.EmployeeId,SOBI.CurrencyId,NULL AS RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
 			RevType,SOBI.VersionNo,NULL AS CostPlusType,IsProforma,SOBI.IsVersionIncrease,PostedDate,SOBI.SubTotal,SOBI.OtherTax,SOBI.SalesTax,SOBI.DepositAmount,SOBI.GrandTotal,			
 			CASE WHEN SOBI.InvoiceStatus = 'Invoiced' THEN 1 ELSE 0 END AS IsInvoicePosted,
 			UsedDeposit,ProformaDeposit,RemainingAmount
 			,NULL AS Notes,NULL AS WorkOrderShippingId,ManagementStructureId,SOBI.MasterCompanyId,SOBI.CreatedBy,SOBI.UpdatedBy,SOBI.CreatedDate,SOBI.UpdatedDate,SOBI.IsActive,SOBI.IsDeleted,0,QuickBooksReferenceId,IsUpdated,LastSyncDate
-			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice
+			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice, SOBI.CreditMemoUsed
 		FROM dbo.SalesOrderBillingInvoicing SOBI 
 		JOIN SalesOrder SO ON SOBI.SalesOrderId = SO.SalesOrderId
 		WHERE SOBI.MasterCompanyId = @MasterCompanyId
@@ -61,19 +61,20 @@ BEGIN
 		--SELECT top 200 * from dbo.SalesOrderBillingInvoicingItem where MasterCompanyId = 1 and IsVersionIncrease = 0 Order by 1 desc
 
 		--Update InvoiceStatusId based on status and Path from item
-		UPDATE dbo.BillingInvoicing SET InvoiceStatusId = INS.InvoiceStatusId 
+		UPDATE dbo.BillingInvoicing SET InvoiceStatusId = INS.InvoiceStatusId , InvoiceFilePath = SOBI.PDFPath
 		FROM dbo.BillingInvoicing BI 
 		LEFT JOIN dbo.InvoiceStatus INS ON UPPER(BI.InvoiceStatus) = UPPER(INS.Status)	
-		WHERE BI.MasterCompanyId = @MasterCompanyId
+		LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBI ON BI.OldBillingInvoicingId = SOBI.SOBillingInvoicingId
+		WHERE BI.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
 
 		--Insert Into Billing Invoice Item
 		INSERT INTO dbo.BillingInvoicingItems(OldWOBillingInvoicingItemId,OldBillingInvoicingId,BillingInvoicingId,ModuleId,ReferenceId,SubModuleId,SubReferenceId,ItemMasterId,StocklineId,ConditionId,CostPlusType,
 		UnitPrice,QtyBilled,PartCost,IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
 		LaborCostPercent,LaborCostPlus,IsFreightCheck,Freight,FreightCostPercent,FreightCostPlus,IsMiscChargesCheck,MiscCharges,MiscChargesCostPercent,MiscChargesCostPlus,
 		SubTotal,SalesTaxPercent,SalesTax,OtherTaxPercent,OtherTax,GrandTotal, RemainingAmount , PDFPath,VersionNo,IsVersionIncrease,IsPerformaInvoice,MasterCompanyId,CreatedBy,UpdatedBy,
-		CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId)
+		CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId, ShipDate)
 
-		SELECT SOBII.SOBillingInvoicingItemId,SOBII.SOBillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,SOBII.SalesOrderPartId,
+		SELECT DISTINCT SOBII.SOBillingInvoicingItemId,SOBII.SOBillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,SOBII.SalesOrderPartId,
 			SOP.ItemMasterId,
 			SOBII.StocklineId,
 			SOP.ConditionId,
@@ -98,24 +99,26 @@ BEGIN
 			CASE WHEN ISNULL(SOBII.GrandTotal, 0) > 0 THEN SOBII.GrandTotal ELSE SOBII.PartCost END AS GrandTotal, 
 			SOBI.RemainingAmount As RemainingAmount,
 			SOBII.PDFPath,SOBII.VersionNo,SOBII.IsVersionIncrease,SOBII.IsProforma,SOBII.MasterCompanyId,SOBII.CreatedBy,SOBII.UpdatedBy,
-			SOBII.CreatedDate,SOBII.UpdatedDate,SOBII.IsActive,SOBII.IsDeleted,BI.WorkOrderShippingId, NULL AS WorkFlowWorkOrderId
+			SOBII.CreatedDate,SOBII.UpdatedDate,SOBII.IsActive,SOBII.IsDeleted,SOBII.SalesOrderShippingId, NULL AS WorkFlowWorkOrderId,
+			SOBI.ShipDate
 		FROM dbo.SalesOrderBillingInvoicingItem SOBII 
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId
+			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = @ModuleId
 			JOIN dbo.SalesOrderPartV1 SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 			JOIN dbo.SalesOrderStocklineV1 SOST ON SOP.SalesOrderPartId = SOST.SalesOrderPartId
 			JOIN dbo.SalesOrderStockLineCost SOC ON SOST.SalesOrderStocklineId = SOC.SalesOrderStocklineId
-		WHERE SOBII.MasterCompanyId = @MasterCompanyId 
+		WHERE SOBII.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
 
 
 		INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
 			CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
-		SELECT BII.BillingInvoicingId , SOBI.SoldToCustomerId, SOBI.SoldToSiteId,NULL,SOBI.ShipToCustomerId,SOBI.ShipToSiteId,SOBI.ShipToAttention,
+		SELECT DISTINCT BII.BillingInvoicingId , SOBI.BillToCustomerId, SOBI.BillToSiteId,NULL,SOBI.ShipToCustomerId,SOBI.ShipToSiteId,SOBI.ShipToAttention,
 			NULL AS CustomerDomensticShippingShipViaId,NULL AS WayBillRef,NULL AS ShippingAccountInfo
 		FROM dbo.BillingInvoicingItems BII
-			JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId
+			JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON BI.OldBillingInvoicingId = SOBI.SOBillingInvoicingId 
 			JOIN dbo.SalesOrderBillingInvoicingItem SOBII ON  SOBII.SoBillingInvoicingId = SOBI.SOBillingInvoicingId
+		WHERE BII.MasterCompanyId = @MasterCompanyId AND BII.ModuleId = @ModuleId
 		
 
 

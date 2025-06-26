@@ -54,7 +54,10 @@
     [WorkFlowWorkOrderId]         BIGINT          NULL,
     [OldBillingInvoicingId]       BIGINT          NULL,
     [OldWOBillingInvoicingItemId] BIGINT          NULL,
+    [ShipDate]                    DATETIME2 (7)   NULL,
     CONSTRAINT [PK_BillingInvoicingItems] PRIMARY KEY CLUSTERED ([BillingInvoicingItemId] ASC),
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
+
+
 

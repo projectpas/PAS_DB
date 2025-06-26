@@ -17,8 +17,9 @@
 	2    05/03/2024   Moin Bloch		Updated changed join ItemMaster To [Stockline]
 	3    09/23/2024   Vishal Suthar		Modified for Old tables with new tables
 	4    03/19/2025   RAJESH GAMI		Modified for SaleTax and OtherTax Multyply by part count and fix the other issue
+	5    06/26/2025   HEMANT SALIYA		Reslved Duplicate billing issue DCA
           
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 944
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 1125
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
 	@SalesOrderQuoteId bigint
@@ -105,18 +106,18 @@ BEGIN
 				   SOQ.[SalesOrderQuoteId],
 				   SOQP.[SalesOrderQuotePartId]
 			FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK) 
-			INNER JOIN [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
-			 LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQS WITH(NOLOCK) ON SOQS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId]
-			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQS.[StockLineId] = STK.[StockLineId]
-			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
-			 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
-			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
-   		     WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId;
+				INNER JOIN [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
+				LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQS WITH(NOLOCK) ON SOQS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId]
+				LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQS.[StockLineId] = STK.[StockLineId]
+				LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
+				LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId AND AAD.MasterCompanyId = SOQ.MasterCompanyId and AAD.IsDeleted = 0
+				LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
+			WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId AND SOQ.IsDeleted = 0 AND SOQP.IsDeleted = 0;
 	
 	SELECT @FreightMethodId = SO.[FreightBilingMethodId],
 	       @ChargesMethodId = SO.[ChargesBilingMethodId] 
 	  FROM [dbo].[SalesOrderQuote] SO WITH(NOLOCK) 
-      WHERE SO.[SalesOrderQuoteId] = @SalesOrderQuoteId;
+      WHERE SO.[SalesOrderQuoteId] = @SalesOrderQuoteId AND SO.IsDeleted = 0;
 	
 	SELECT @TotalFreight = CASE WHEN SOQ.FreightBilingMethodId = @FreightBilingMethodId 
 	                            THEN ISNULL(SOQ.TotalFreight,0)
@@ -125,7 +126,7 @@ BEGIN
 								END			
 	FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK) 
 	LEFT JOIN [dbo].[SalesOrderQuoteFreight] SOQF WITH(NOLOCK) ON SOQ.SalesOrderQuoteId = SOQF.SalesOrderQuoteId AND SOQF.IsActive = 1 AND SOQF.IsDeleted = 0  
-   	WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId
+   	WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId AND SOQ.IsDeleted = 0
 	GROUP BY SOQ.[FreightBilingMethodId],SOQ.[TotalFreight]
 
 	SELECT @TotalCharges = CASE WHEN SOQ.ChargesBilingMethodId = @ChargesBilingMethodId
@@ -151,7 +152,7 @@ BEGIN
 			SET @TaxableCharge = @TotalChargePartWise;
 			SET @ChargeFlag = 1;
 	END
-												
+
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprShipDetails    
 	
 	WHILE @MinId <= @TotalRecord
@@ -190,14 +191,6 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		--SELECT @Total = (ISNULL(SOQP.UnitSalesPricePerUnit, 0) * ISNULL(SOQP.QtyQuoted,0))
-		--	FROM [dbo].[SalesOrderQuotePart] SOQP WITH(NOLOCK)
-		--	WHERE [SOQP].[SalesOrderQuoteId] = @SalesOrderQuoteId 
-		--	  AND [SOQP].[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
-	
-		--SELECT @Total = ISNULL(SOQC.SubTotal, 0)
-		--	FROM [dbo].[SalesOrderQuoteCost] SOQC WITH(NOLOCK)
-		--	WHERE [SOQC].[SalesOrderQuoteId] = @SalesOrderQuoteId;
 		SELECT @Total = ISNULL(SOQC.TotalRevenue, 0)
 			FROM [dbo].[SalesOrderQuotePartCost] SOQC WITH(NOLOCK)
 			WHERE [SOQC].[SalesOrderQuoteId] = @SalesOrderQuoteId AND [SOQC].[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
@@ -262,8 +255,6 @@ BEGIN
 									WHERE [ID] = @MinId
 		END	
 		
-		--UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax, [OtherTax] = @OtherTax  WHERE [ID] = @MinId
-		
 		IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
 		BEGIN
 			IF NOT EXISTS(SELECT 1 FROM #tmprShipDetails2 WHERE [OriginSiteId] = @OriginSiteId AND [ShipToSiteId] = @ShipToSiteId and [CustomerId]=@CustomerId)
@@ -301,13 +292,6 @@ BEGIN
 		SET @MinId2 = @MinId2 + 1
 	END
 					
-	--SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TotalFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TotalCharges,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
-	--       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TotalFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TotalCharges,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
-	--  FROM #tmprShipDetails
-
-	 --SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
-	 --       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
-	 -- FROM #tmprShipDetails
 	 SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
 	  SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	          ISNULL(@TotalCharges,0) AS TotalCharges,	

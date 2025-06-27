@@ -99,8 +99,12 @@
     [UserSessionRemovalAfterHours]    INT             NULL,
     [GoogleOAuthClientId]             VARCHAR (500)   NULL,
     [GoogleOAuthClientSecret]         VARCHAR (200)   NULL,
+    [MicrosoftOAuthClientId]          VARCHAR (500)   NULL,
+    [MicrosoftOAuthClientSecret]      VARCHAR (200)   NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
+
+
 
 
 

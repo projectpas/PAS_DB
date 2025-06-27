@@ -50,7 +50,7 @@ BEGIN
 				--STK.ConditionId
 			FROM [dbo].[Stockline] STK WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
-			INNER JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType
+			LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType
 			INNER JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
 			INNER JOIN [dbo].[StocklineSettings] STKS WITH(NOLOCK) ON  STKs.SiteId = STK.SiteId 
 				  AND STK.WarehouseId = STKS.WarehouseId 

@@ -3997,6 +3997,7 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityGetInternatioanlShippingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesQuotePartsByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesOrderPartsByCustomer.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPartPublications.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -3998,6 +3998,10 @@
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesQuotePartsByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_ApprovalRejectSalesOrderPartsByCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPartPublications.sql" />
+    <Build Include="dbo\Stored Procedures\GetPartUploadToILS.sql" />
+    <Build Include="dbo\Stored Procedures\GetIntegrationPortalDataById.sql" />
+    <Build Include="dbo\Stored Procedures\GetAllLegalEntityData.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

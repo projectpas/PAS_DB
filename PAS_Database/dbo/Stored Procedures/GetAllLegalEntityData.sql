@@ -15,16 +15,22 @@
  ** --   --------     -------		   -------------------------------          
     1    26/06/2025   Amit Ghediya     Created
     
- EXEC GetAllLegalEntityData 
+ EXEC GetAllLegalEntityData 0
 
 **************************************************************/ 
     
-CREATE   PROCEDURE [dbo].[GetAllLegalEntityData]       
+CREATE   PROCEDURE [dbo].[GetAllLegalEntityData]   
+	@LegalEntityId BIGINT = 0
 AS    
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	SET NOCOUNT ON  
 	BEGIN TRY
+			
+			IF(@LegalEntityId = 0)
+			BEGIN
+				 SET @LegalEntityId = NULL;
+			END
 
 			SELECT 
 				MasterCompanyId,
@@ -36,6 +42,7 @@ BEGIN
 				Name,
 				CompanyCode
 			FROM [dbo].[LegalEntity] WITH(NOLOCK)
+			WHERE @LegalEntityId IS NULL OR LegalEntityId = @LegalEntityId
 			ORDER BY MasterCompanyId DESC
 	END TRY    
 	BEGIN CATCH      

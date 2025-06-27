@@ -10,7 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    17-March-2025		Shrey Chandegara	Created
 	2    25-APR-2025		Moin Bloch          Changed OLD TO NEW Table
-
+	3    26-JUN-2025		Rajesh Gami         Add distinct while STRING_SPLIT
 	declare @p4 bit
 	set @p4=NULL
 	exec USP_CheckWOInvoiceExistByWOBillId @BillingInvoicingId=3213,@WOPartIds=N'8116',@IsProformaInvoice=0,@Result=@p4 output
@@ -42,8 +42,7 @@ BEGIN
 				DECLARE @TotalCount INT = 0;
 
 				CREATE TABLE #WOPartTable (WorkOrderPartId BIGINT);
-				INSERT INTO #WOPartTable (WorkOrderPartId)
-				SELECT value FROM STRING_SPLIT(@WOPartIds, ',');
+				INSERT INTO #WOPartTable (WorkOrderPartId)SELECT DISTINCT CAST(value AS BIGINT) FROM STRING_SPLIT(@WOPartIds, ',');
 
 				-- OLD Code
 					--SELECT DISTINCT 

@@ -61,7 +61,7 @@ BEGIN
 		FROM dbo.BillingInvoicing BI 
 		LEFT JOIN dbo.InvoiceStatus INS ON UPPER(BI.InvoiceStatus) = UPPER(INS.Status)	
 		LEFT JOIN dbo.WorkOrderBillingInvoicingItem WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId
-		WHERE BI.MasterCompanyId = @MasterCompanyId
+		WHERE BI.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
 
 		IF(@MasterCompanyId != 20)
 		BEGIN
@@ -99,19 +99,20 @@ BEGIN
 				WOBII.CreatedDate,WOBII.UpdatedDate,WOBII.IsActive,WOBII.IsDeleted,BI.WorkOrderShippingId, WOWF.WorkFlowWorkOrderId
 			FROM dbo.WorkOrderBillingInvoicingItem WOBII 
 				JOIN dbo.WorkOrderBillingInvoicing WOBI ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
-				JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId AND ModuleId = @ModuleId
 				JOIN dbo.WorkOrderPartNumber WOP ON WOP.ID = WOBII.WorkOrderPartId
 				JOIN dbo.WorkOrderWorkFlow WOWF ON WOP.ID = WOWF.WorkOrderPartNoId
-			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20
+			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20 
 
 			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
 				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
 			SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
 				WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
 			FROM dbo.BillingInvoicingItems BII
-				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId
+				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
-				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+			WHERE BII.ModuleId = @ModuleId AND BII.MasterCompanyId = @MasterCompanyId
 		
 		END
 		ELSE
@@ -152,16 +153,17 @@ BEGIN
 				JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId
 				JOIN dbo.WorkOrderPartNumber WOP ON WOP.ID = WOBII.WorkOrderPartId
 				JOIN dbo.WorkOrderWorkFlow WOWF ON WOP.ID = WOWF.WorkOrderPartNoId
-			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId = 20
+			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId = 20 AND ModuleId = @ModuleId
 
 			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
 				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
 			SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
 				WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
 			FROM dbo.BillingInvoicingItems BII
-				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId
+				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
 				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+			WHERE BII.MasterCompanyId = @MasterCompanyId AND BII.ModuleId = @ModuleId AND WOBII.MasterCompanyId = 20
 		END
 
 	END TRY    

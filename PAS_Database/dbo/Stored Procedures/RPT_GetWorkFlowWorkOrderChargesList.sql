@@ -16,6 +16,7 @@
  ** --   --------     -------		  --------------------------------   
 	1    19/06/2025   Moin Bloch	  Created
 	2    24/06/2025   Moin Bloch	  Added [IsMiscChargesCheck] Flag
+	3    27/06/2025   Moin Bloch	  Change Logic For quote
 	
 	EXEC [dbo].[RPT_GetWorkFlowWorkOrderChargesList] 8982,8764,1    
 ****************************************************************************************/
@@ -72,14 +73,19 @@ BEGIN
 				WOP.[RevisedPartNumber] [PNNumber],									
 				CASE WHEN @WorkOrderFormTypeId = 1 THEN UPPER(ISNULL(WOT.[TaskName],''))  ELSE UPPER(ISNULL(ts.[Description],'')) END [TaskName],
 				UPPER(ct.[ChargeType]) [ChargeType],
-				CASE WHEN BII.[IsMiscChargesCheck] = 1 AND ISNULL(BII.[MiscChargesCostPercent],0) > 0
-				     THEN ISNULL(woc.[UnitCost],0) + (ISNULL(woc.[UnitCost],0) * PER.[PercentValue] / 100.0) 
+				--CASE WHEN BII.[IsMiscChargesCheck] = 1 AND ISNULL(BII.[MiscChargesCostPercent],0) > 0
+				--     THEN ISNULL(woc.[UnitCost],0) + (ISNULL(woc.[UnitCost],0) * PER.[PercentValue] / 100.0) 
+				--	 WHEN BII.[IsMiscChargesCheck] = 1 AND ISNULL(BII.[MiscChargesCostPercent],0) = 0
+				--	 THEN ISNULL(woc.[UnitCost],0)
+				--	 ELSE ISNULL(woc.[UnitCost],0) END [UnitCost],
+				CASE WHEN BII.[IsMiscChargesCheck] = 1 
+				     THEN ISNULL(woc.[BillingAmount],0) / ISNULL(woc.[Quantity],0)
 					 WHEN BII.[IsMiscChargesCheck] = 1 AND ISNULL(BII.[MiscChargesCostPercent],0) = 0
-					 THEN ISNULL(woc.[UnitCost],0)
-					 ELSE ISNULL(woc.[UnitCost],0) END [UnitCost],
+					 THEN ISNULL(woc.[BillingAmount],0) / ISNULL(woc.[Quantity],0)
+					 ELSE ISNULL(woc.[BillingAmount],0) / ISNULL(woc.[Quantity],0) END [UnitCost],
 				ISNULL(woc.[Quantity],0) [Quantity],
 				CASE WHEN BII.[IsMiscChargesCheck] = 1 AND ISNULL(BII.[MiscChargesCostPercent],0) > 0
-				     THEN ISNULL(woc.[Quantity],0) * (ISNULL(woc.[UnitCost],0) + (ISNULL(woc.[UnitCost],0) * PER.[PercentValue] / 100.0)) 
+				     THEN ISNULL(woc.[BillingAmount],0) 
 					 WHEN BII.[IsMiscChargesCheck] = 1 AND ISNULL(BII.[MiscChargesCostPercent],0) = 0
 					 THEN ISNULL(woc.[BillingAmount],0) 
 					 ELSE ISNULL(woc.[BillingAmount],0) END [ExtendedCost]

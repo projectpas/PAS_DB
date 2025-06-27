@@ -17,7 +17,7 @@
 	4	 22-01-2025  Ayushi Patel		converted the date into utc (created , updated) , Added a case to get timeZone
 	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
 	6	 25-04-2025  Bhargav Saliya		Customer Name Get from the SO table instead of the Customer table
-
+	7    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
 	@PageNumber INT,
@@ -52,7 +52,8 @@ CREATE    PROCEDURE [dbo].[SearchSOViewData]
 	@EstimatedShipDateType VARCHAR(50) = NULL,
 	@EmployeeId BIGINT,
 	@ManufacturerType VARCHAR(50) = NULL,
-	@ContractReference VARCHAR(50) = NULL
+	@ContractReference VARCHAR(50) = NULL,
+	@NumberOfItemCount varchar(50)=null
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -118,7 +119,7 @@ BEGIN
       B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson, SO.AccountTypeName CustomerTypeName, SO.ShippedDate, A.SoAmount,
 	  (Cast(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
 	  (Cast(DBO.ConvertUTCtoLocal(SO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
-	  SO.StatusId, SO.CreatedBy, SO.UpdatedBy    
+	  SO.StatusId, SO.CreatedBy, SO.UpdatedBy,ISNULL(PartCount.ItemNo,0) AS NumberOfItemCount    
       FROM dbo.SalesOrder SO WITH (NOLOCK) Inner Join MasterSalesOrderStatus MST on SO.StatusId = MST.Id    
       INNER JOIN DBO.Customer C WITH (NOLOCK) on SO.CustomerId = C.CustomerId    
       LEFT JOIN DBO.Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId   
@@ -133,7 +134,9 @@ BEGIN
       OUTER APPLY (    
        SELECT SUM(S.UnitCost) AS 'Cost', SUM(S.NetSaleAmount) AS 'NetSales' FROM DBO.SalesOrderPartCost S WITH (NOLOCK)    
        WHERE S.SalesOrderId = SO.SalesOrderId    
-      ) B WHERE (SO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SO.StatusId = @StatusID) AND SO.MasterCompanyId = @MasterCompanyId),    
+      ) B
+	  OUTER APPLY (SELECT COUNT(SP.SalesOrderPartId) AS 'ItemNo' FROM DBO.SalesOrderPartV1 SP WITH(NOLOCK) WHERE SP.SalesOrderId = so.SalesOrderId GROUP BY SP.SalesOrderId) PartCount
+	  WHERE (SO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SO.StatusId = @StatusID) AND SO.MasterCompanyId = @MasterCompanyId),    
       DatesCTE AS(    
        SELECT SO.SalesOrderId,     
        A.RequestedDate,    
@@ -235,7 +238,7 @@ BEGIN
          PR.PriorityDescription as 'Priority', PR.PriorityType, M.SalesPerson, PT.PartNumber, PT.PartNumberType, PD.PartDescription,    
          PD.PartDescriptionType,M.CustomerTypeName as 'CustomerType',IsNULL(M.SoAmount,0) as 'SoAmount',    
          D.RequestedDate, D.RequestedDateType, D.PromisedDate, D.EstimatedShipDate, D.EstimatedShipDateType,ShippedDate,MF.Manufacturer,MF.ManufacturerType,    
-         M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy    
+         M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy,m.NumberOfItemCount
       FROM Main M     
       LEFT JOIN PartCTE PT ON M.SalesOrderId = PT.SalesOrderId    
       LEFT JOIN PartDescCTE PD ON PD.SalesOrderId = M.SalesOrderId    
@@ -261,7 +264,8 @@ BEGIN
         (OpenDate LIKE '%' +@GlobalFilter+'%') OR    
         (M.ShippedDate LIKE '%' +@GlobalFilter+'%') OR    
         (D.RequestedDateType LIKE '%' +@GlobalFilter+'%') OR    
-        (D.EstimatedShipDateType LIKE '%' +@GlobalFilter+'%')    
+        (D.EstimatedShipDateType LIKE '%' +@GlobalFilter+'%')  OR
+		(M.NumberOfItemCount LIKE '%' +@GlobalFilter+'%')
         ))    
         OR       
         (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR M.SalesQuoteNumber LIKE '%'+@SOQNumber+'%') AND     
@@ -286,14 +290,15 @@ BEGIN
         (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND    
         (ISNULL(@ShippedDate,'') ='' OR CAST(M.ShippedDate AS DATE) = CAST(@ShippedDate AS DATE)) AND    
         (ISNULL(@RequestedDateType,'') ='' OR D.RequestedDateType LIKE '%'+@RequestedDateType+'%') AND    
-        (ISNULL(@EstimatedShipDateType,'') ='' OR D.EstimatedShipDateType LIKE '%'+@EstimatedShipDateType+'%') )    
+        (ISNULL(@EstimatedShipDateType,'') ='' OR D.EstimatedShipDateType LIKE '%'+@EstimatedShipDateType+'%') and
+		(ISNULL(@NumberOfItemCount,'') ='' OR M.NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))    
         )    
       ), CTE_Count AS (SELECT COUNT(SalesOrderId) AS NumberOfItems FROM Result)    
       SELECT SalesOrderId, UPPER(SalesOrderNumber) 'SalesOrderNumber',UPPER(ContractReference) 'ContractReference', UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber', UPPER(VersionNumber) 'VersionNumber', QuoteDate, OpenDate, CustomerId, UPPER(CustomerName) 'CustomerName', UPPER(CustomerReference) 'CustomerReference',    
       UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType', QuoteAmount, Cost, RequestedDate, RequestedDateType, EstimatedShipDate, EstimatedShipDateType, PromisedDate,    
       ShippedDate,UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType', UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId    
       ,UPPER(PartNumber) 'PartNumber', UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',    
-      CreatedDate, UpdatedDate, NumberOfItems, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy' FROM Result,CTE_Count    
+      CreatedDate, UpdatedDate, NumberOfItems, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy',NumberOfItemCount FROM Result,CTE_Count    
       ORDER BY      
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERID')  THEN SalesOrderId END DESC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,    
@@ -319,6 +324,7 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
 	  CASE WHEN (@SortOrder=1 and @SortColumn='REQUESTEDDATETYPE')  THEN RequestedDateType END ASC,  
 	  CASE WHEN (@SortOrder=1 and @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END ASC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END ASC,
 
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,    
@@ -342,7 +348,8 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='REQUESTEDDATETYPE')  THEN RequestedDateType END DESC,
-	  CASE WHEN (@SortOrder=-1 and @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END DESC 
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END DESC, 
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END DESC 
 
       OFFSET @RecordFrom ROWS     
       FETCH NEXT @PageSize ROWS ONLY    

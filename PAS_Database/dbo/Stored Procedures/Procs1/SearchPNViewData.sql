@@ -16,6 +16,7 @@
 	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 	4	 12-Mar-2025  Vishal Suthar		 Modified default sort column to SalesOrderQuoteId
 	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
+	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount and set Group By
 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
@@ -46,7 +47,8 @@ CREATE PROCEDURE [dbo].[SearchPNViewData]
  @IsDeleted bit= null,  
  @MasterCompanyId int = null,  
  @EmployeeId bigint,
- @ManufacturerType varchar(50) = null
+ @ManufacturerType varchar(50) = null,
+ @NumberOfItemCount varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -114,7 +116,7 @@ BEGIN
     SOQ.AccountTypeName AS 'CustomerType',SO.SalesOrderNumber,
 	(CAST(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
 	(CAST(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
-	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber'  
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',ISNULL(count(SP.SalesOrderQuotePartId),0) AS NumberOfItemCount
     FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)  
     LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0  
     LEFT JOIN DBO.SalesOrderQuotePartCost SPC WITH (NOLOCK) ON SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
@@ -125,10 +127,17 @@ BEGIN
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId  
     INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId  
     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-    WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),  
+	--OUTER APPLY (SELECT COUNT(SP.SalesOrderQuoteId) AS 'ItemNo' FROM DBO.SalesOrderQuotePartV1 SP WITH(NOLOCK) WHERE SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId GROUP BY SP.SalesOrderQuoteId) PartCount
+    WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId
+	GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate,SOQ.CustomerId,SOQ.CustomerName, SOQ.StatusName, SPC.NetSaleAmount,  
+	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
+    IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  
+    SOQ.AccountTypeName,SO.SalesOrderNumber, SOQ.CreatedDate, SOQ.UpdatedDate,
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version)
+	,  
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  
-	 CreatedDate,UpdatedDate, CreatedBy,UpdatedBy from Result  
+	 CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,NumberOfItemCount from Result  
     WHERE (  
      (@GlobalFilter <>'' AND ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
        (CustomerName LIKE '%' +@GlobalFilter+'%') OR  
@@ -140,9 +149,10 @@ BEGIN
        (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
        (CustomerReference LIKE '%' +@GlobalFilter+'%') OR  
        (@VersionNumber LIKE '%'+@GlobalFilter+'%') OR  
-       (CustomerType LIKE '%' +@GlobalFilter+'%') OR   
+       (CustomerType LIKE '%' +@GlobalFilter+'%') OR
        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR  
-       (UpdatedBy LIKE '%' +@GlobalFilter+'%')   
+       (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+	   (NumberOfItemCount LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@SOQNumber,'') ='' OR SalesOrderQuoteNumber LIKE  '%'+ @SOQNumber+'%') AND   
@@ -162,11 +172,12 @@ BEGIN
        (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND  
        (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
        (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
-       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)))  
+       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
+	   (ISNULL(@NumberOfItemCount,'') ='' OR NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))  
        ))
      SELECT SalesOrderQuoteId,UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber',QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',QuoteAmount,IsNewVersionCreated,StatusId  
      ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerType) 'ManufacturerType',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  
-     CreatedDate,UpdatedDate, UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy', 
+     CreatedDate,UpdatedDate, UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy', NumberOfItemCount,
 	 (SELECT COUNT(*) FROM FinalResult) AS NumberOfItems FROM FinalResult
     ORDER BY
      CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERQUOTEID')  THEN SalesOrderQuoteId END ASC,  
@@ -187,6 +198,7 @@ BEGIN
      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
+     CASE WHEN (@SortOrder=1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END ASC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERQUOTEID')  THEN SalesOrderQuoteId END Desc,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,  
@@ -204,7 +216,8 @@ BEGIN
      CASE WHEN (@SortOrder=-1 and @SortColumn='SALESPERSON')  THEN SalesPerson END Desc,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-     CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC  
+     CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,  
+     CASE WHEN (@SortOrder=-1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END DESC  
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
        

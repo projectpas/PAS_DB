@@ -17,7 +17,7 @@
 	6	 21/05/2025				 Devendra Shekh						added Invoice Fields for WO
 	7	 22/05/2025				 Devendra Shekh						Corrected InvoiceAmount same as Billing reports
 	8	 28/05/2025				 Devendra Shekh						added InvoiceStatus Field
-
+	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO 
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
@@ -53,9 +53,9 @@ BEGIN
 			BEGIN
 				
 				DECLARE @RecordFrom int;
-				DECLARE @POModuleId int =5;
-				DECLARE @ROModuleId int =25;
-				
+				DECLARE @workOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder')
+				DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
+				DECLARE @exchModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'ExchangeSalesOrder')
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				-- SET @SortOrder=-1;
 				
@@ -74,7 +74,7 @@ BEGIN
 				IF (@FilterListAs = 'all')
 
 				BEGIN
-				
+				PRINT '@FilterListAs = all'
 					;With Result AS(
 							   
 					SELECT  wop.WorkOrderId as RefId,
@@ -96,7 +96,8 @@ BEGIN
 							WOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							WOBI.InvoiceNo AS InvoiceNumber,
-							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',
+							CAST(ISNULL(WOBIM.GrandTotal,0)AS VARCHAR) AS 'InvoiceAmount',
+							--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',
 							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency,
 							WOBI.InvoiceStatus AS InvoiceStatus
@@ -110,9 +111,9 @@ BEGIN
 							LEFT JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = wos.ShipViaId -- and SV.IsPrimary=1
-							LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBIM.WorkOrderPartId = wop.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
-							LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
-							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WOBI.CurrencyId = CU.CurrencyId
+							LEFT JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBIM.SubReferenceId = wop.ID AND ISNULL(WOBIM.IsVersionIncrease,0) = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.ModuleId = @workOrderModuleId
+							LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @workOrderModuleId      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WO.FunctionalCurrencyId = CU.CurrencyId
 
 					WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 
 
@@ -140,11 +141,11 @@ BEGIN
 							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
-							'' AS InvoiceNumber,
-							'' AS InvoiceAmount,
-							NULL InvoiceDate,
-							'' Currency,
-							'' AS InvoiceStatus
+							BI.InvoiceNo AS InvoiceNumber,
+							CAST(ISNULL(BII.GrandTotal,0)AS VARCHAR) AS 'InvoiceAmount',
+							BI.InvoiceDate AS InvoiceDate,
+							CU.Code Currency,
+							BI.InvoiceStatus  AS InvoiceStatus
 
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -155,12 +156,15 @@ BEGIN
 						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
 						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId -- and SV.IsPrimary=1
+						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
+						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
+						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.CurrencyId = CU.CurrencyId
 
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,SV.Name,
 								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,SOPSI.PackagingSlipId
-								,sopt.ConfirmedDate
+								,sopt.ConfirmedDate,BI.InvoiceNo,BII.GrandTotal	,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION
 
@@ -348,7 +352,7 @@ BEGIN
 				ELSE IF(@FilterListAs = 'shipped')
 
 				BEGIN
-				
+					PRINT '@FilterListAs = shipped'
 					;With Result AS(
 							   
 					SELECT  wop.WorkOrderId as RefId,
@@ -370,7 +374,8 @@ BEGIN
 							WOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							WOBI.InvoiceNo AS InvoiceNumber,
-							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
+							CAST(ISNULL(WOBIM.GrandTotal,0)AS VARCHAR) AS 'InvoiceAmount',
+							--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
 							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency,
 							WOBI.InvoiceStatus AS InvoiceStatus
@@ -384,10 +389,9 @@ BEGIN
 							LEFT JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = wos.ShipViaId -- and sv.CustomerId=wos.customerid and SV.IsPrimary=1
-							LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBIM.WorkOrderPartId = wop.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
-							LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
-							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WOBI.CurrencyId = CU.CurrencyId
-
+							LEFT JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBIM.SubReferenceId = wop.ID AND ISNULL(WOBIM.IsVersionIncrease,0) = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.ModuleId = @workOrderModuleId
+							LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @workOrderModuleId      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WO.FunctionalCurrencyId = CU.CurrencyId
 					WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 AND WOS.AirwayBill IS NOT NULL
 
 					GROUP BY wop.WorkOrderId,wo.WorkOrderNum,imt.partnumber,imt.PartDescription,wo.CustomerName,wo.customerId,P.Description,WOS.AirwayBill,
@@ -414,12 +418,11 @@ BEGIN
 							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
-							'' AS InvoiceNumber,
-							'' AS InvoiceAmount,
-							NULL AS InvoiceDate,
-							'' AS Currency,
-							'' AS InvoiceStatus
-
+							BI.InvoiceNo AS InvoiceNumber,
+							CAST(ISNULL(BII.GrandTotal,0)AS VARCHAR) AS 'InvoiceAmount',
+							BI.InvoiceDate AS InvoiceDate,
+							CU.Code Currency,
+							BI.InvoiceStatus  AS InvoiceStatus
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
@@ -429,11 +432,14 @@ BEGIN
 							LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
 							LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = sos.ShipViaId -- and SV.CustomerId=sos.CustomerId -- and sv.IsPrimary=1
-
+							LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
+							LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.CurrencyId = CU.CurrencyId
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1	AND SOS.AirwayBill IS NOT NULL			
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,SV.Name,
 								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,SOPSI.PackagingSlipId
+								,BI.InvoiceNo,BII.GrandTotal,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION
 
@@ -616,7 +622,7 @@ BEGIN
 				
 				-------- Get READYTOSHIP List----------
 				ELSE BEGIN
-
+				PRINT '@FilterListAs NULL'
 					;With Result AS(
 							   
 					SELECT  WOP.WorkOrderId as RefId,
@@ -638,7 +644,8 @@ BEGIN
 							WOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							WOBI.InvoiceNo AS InvoiceNumber,
-							CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
+							CAST(ISNULL(WOBIM.GrandTotal,0)AS VARCHAR) AS 'InvoiceAmount',
+							--CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN CASE WHEN ISNULL(WOBIM.UnitPrice,0)  > 0 THEN CAST(ISNULL(WOBIM.UnitPrice,0) AS VARCHAR) ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END ELSE CAST(ISNULL(WOBIM.GrandTotal,0) AS VARCHAR) END AS 'InvoiceAmount',   
 							WOBI.InvoiceDate AS InvoiceDate,
 							CU.Code AS Currency,
 							WOBI.InvoiceStatus AS InvoiceStatus
@@ -652,9 +659,9 @@ BEGIN
 							LEFT JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = wo.CustomerId and SV.IsPrimary=1
-							LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIM WITH (NOLOCK) ON WOBIM.WorkOrderPartId = wop.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
-							LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0      
-							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WOBI.CurrencyId = CU.CurrencyId
+							LEFT JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBIM.SubReferenceId = wop.ID AND ISNULL(WOBIM.IsVersionIncrease,0) = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.ModuleId = @workOrderModuleId
+							LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @workOrderModuleId      
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON WO.FunctionalCurrencyId = CU.CurrencyId
 
 					WHERE wopt.IsDeleted = 0 and wopt.MasterCompanyId= @MasterCompanyId and wo.IsDeleted = 0  and wopt.IsConfirmed=1 
 							and wop.ID not in(SELECT WorkOrderPartNumId FROM DBO.WorkOrderShippingItem WOBI 
@@ -684,12 +691,11 @@ BEGIN
 							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
-							'' AS InvoiceNumber,
-							'' AS InvoiceAmount,
-							NULL AS InvoiceDate,
-							'' AS Currency,
-							'' AS InvoiceStatus
-
+							BI.InvoiceNo AS InvoiceNumber,
+							CAST(ISNULL(BII.GrandTotal,0)AS VARCHAR) AS 'InvoiceAmount',
+							BI.InvoiceDate AS InvoiceDate,
+							CU.Code Currency,
+							BI.InvoiceStatus  AS InvoiceStatus
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
@@ -700,12 +706,17 @@ BEGIN
 						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and SV.IsPrimary=1
 
+						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
+						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
+						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.CurrencyId = CU.CurrencyId
+
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
 							and sop.SalesOrderPartId not in(SELECT SalesOrderPartId FROM DBO.SalesOrderShippingItem SOSI 
 											WHERE SOSI.IsDeleted = 0)
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,
 								sopt.ConfirmedDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,SOPSI.PackagingSlipId
+								,BI.InvoiceNo,BII.GrandTotal,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION
 
@@ -896,6 +907,13 @@ BEGIN
 	BEGIN CATCH      
 		IF @@trancount > 0
 			ROLLBACK TRAN;
+			 SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
         ,@AdhocComments VARCHAR(150) = 'SearchShippingListData' 

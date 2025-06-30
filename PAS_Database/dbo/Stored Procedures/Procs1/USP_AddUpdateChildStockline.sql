@@ -12,22 +12,23 @@
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author			Change Description
- ** --   --------     -------			-----------------------
-    1    07/12/2023   Vishal Suthar		Created
-    2    07/21/2023   Vishal Suthar		Modified to handle adjustment increase-decrease qty
-	3    6 Nov 2023   Rajesh Gami       SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
-	4    5 Jan 2024   Hemant Saliya     Added Rec Customer Delete Hinstory
-	5    8 Jan 2024   Hemant Saliya     Added Create Sub WO Hinstory
-	6    23 jan 2024  Shrey Chandegara  Add ActionId 7 for when create tendorstockline created then can't insert into childstockline.
-	7    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
-	8    03/09/2024  Rajesh Gami	    Add ActionId 6 for the REMOVE FROM OH
-	9    10/09/2024  Rajesh Gami	    Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
-	10   13/09/2024 Rajesh Gami			Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
-	11   27/09/2024 Rajesh Gami			Add logic for ActionId = 16 /**** CLOSED SUB WORKORDER*****/
-	12   07/11/2024  Moin Bloch         Add logic for ActionId = 22,23 Cycle Count Adjustment
-	13   27/11/2024  Moin Bloch         Add logic for Delete Available Child Qty
-	14   16/01/2025  ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
+ ** PR   Date			Author				Change Description
+ ** --   --------		-------				-----------------------
+    1    07/12/2023		Vishal Suthar		Created
+    2    07/21/2023		Vishal Suthar		Modified to handle adjustment increase-decrease qty
+	3    6 Nov 2023		Rajesh Gami			SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
+	4    5 Jan 2024		Hemant Saliya		Added Rec Customer Delete Hinstory
+	5    8 Jan 2024		Hemant Saliya		Added Create Sub WO Hinstory
+	6    23 jan 2024	Shrey Chandegara	Add ActionId 7 for when create tendorstockline created then can't insert into childstockline.
+	7    12/08/2024		Moin Bloch			Convert @StocklineId To varchar for Errolog
+	8    03/09/2024		Rajesh Gami			Add ActionId 6 for the REMOVE FROM OH
+	9    10/09/2024		Rajesh Gami			Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
+	10   13/09/2024		Rajesh Gami			Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
+	11   27/09/2024		Rajesh Gami			Add logic for ActionId = 16 /**** CLOSED SUB WORKORDER*****/
+	12   07/11/2024		Moin Bloch			Add logic for ActionId = 22,23 Cycle Count Adjustment
+	13   27/11/2024		Moin Bloch			Add logic for Delete Available Child Qty
+	14   16/01/2025		ABHISHEK JIRAWLA	If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
+	15   30/06/2025		Vishal Suthar		Added ActionId 24 for Receiving RO
 
 	EXEC USP_AddUpdateChildStockline 180043,23,6,'CycleCount','CC-000026','','','ADMIN User'
 **************************************************************/
@@ -772,6 +773,16 @@ BEGIN
 						BEGIN
 							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0,QuantityReserved = 0,QuantityIssued = 0,Quantity=0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
+							SET @QtyOnAction = @QtyOnAction - 1;
+						END
+					END
+					ELSE IF (@ActionId = 24) -- Received-RO
+					BEGIN
+						IF (@PrevReservedQty > 0 AND @PrevAvailableQty = 0 AND @PrevIssuedQty = 0 AND @PrevOHQty > 0)
+						BEGIN
+							Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 1, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							WHERE ChildStockLineId = @StocklineToUpdate;
+
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
 					END

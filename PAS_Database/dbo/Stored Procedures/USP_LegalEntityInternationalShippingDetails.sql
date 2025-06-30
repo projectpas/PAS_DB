@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
  ** File:		 [USP_LegalEntityInternationalShippingDetails]           
  ** Author:		 Divyesh Kathiriya
- ** Description: This Stored Procedure Is Used To Create LegalEntity International Shipping Details.
+ ** Description: This Stored Procedure Is Used To Create or Update LegalEntity International Shipping Details.
  ** Purpose:         
  ** Date:   27-June-2025
  **************************************************************           
@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    27-June-2025		Divyesh Kathiriya	Created	
+	2	 30-June-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity International Shipping Details.
     
  -- EXEC [USP_LegalEntityInternationalShippingDetails] @LegalEntityShippingAddressId=0,@LegalEntityId=41,@SiteName=N'Site Name',@Attention=N'Attention',@Address1=N'Address 1',@Address2=N'Address 2',@StateOrProvince=N'State',
 												@City=N'City',@PostalCode=N'Zip Code',@CountryId=3,@MasterCompanyId=1,@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@IsPrimary=1,@TagName=N'ACCOUNTS PAYABLES'
@@ -69,8 +70,44 @@ BEGIN
 
 		END
 /***************End Save LegalEntity Shipping Address Details***************/
+/***************Start Update LegalEntity Shipping Address Details.***************/
+		ELSE
+		BEGIN
+			IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityInternationalShipping] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [LegalEntityInternationalShippingId] = @LegalEntityInternationalShippingId)
+			BEGIN
+
+			--IF NEW PRIMARY, RESET OLD PRIMARY TO NO-PRIMARY
+				IF (ISNULL(@IsPrimary, 0) = 1)
+				BEGIN
+					IF EXISTS (SELECT 1 FROM [DBO].[LegalEntityInternationalShipping] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND @IsPrimary = 1 AND [LegalEntityInternationalShippingId] != @LegalEntityInternationalShippingId)
+					BEGIN	
+						UPDATE [DBO].[LegalEntityInternationalShipping]
+						SET [IsPrimary] = 0,
+							[UpdatedBy] = @UpdatedBy,
+							[UpdatedDate] = GETUTCDATE()
+						WHERE [LegalEntityId] = @LegalEntityId
+						AND @IsPrimary = 1
+						AND [LegalEntityInternationalShippingId] != @LegalEntityInternationalShippingId;
+					END
+				END
+
+				UPDATE [DBO].[LegalEntityInternationalShipping]
+				SET
+					[ExportLicense] = @ExportLicense,						
+					[StartDate] = @StartDate,						
+					[Amount] = @Amount,
+					[IsPrimary] = @IsPrimary,
+					[Description] = @Description,
+					[ExpirationDate] = @ExpirationDate,
+					[ShipToCountryId] = @ShipToCountryId,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE()					
+				WHERE [LegalEntityInternationalShippingId] = @LegalEntityInternationalShippingId;
+			END
+		END
+/***************End Update LegalEntity Shipping Address Details***************/
 				
-			SELECT @LegalEntityInternationalShippingId AS LegalEntityInternationalShippingId;	
+		SELECT @LegalEntityInternationalShippingId AS LegalEntityInternationalShippingId;	
 	
 	COMMIT  TRANSACTION
 	END TRY 

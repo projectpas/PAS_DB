@@ -20,7 +20,7 @@
 	7    23/06/2025   Moin Bloch     Added WorkOrderShippingId
 	8    24/06/2025   RAJESH GAMI    Fixed while IsProformaInvoice = true part status changed to BILLED.  
 	9    25/06/2025   Moin Bloch     Fixed Version Increase 
-
+	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -432,7 +432,14 @@ BEGIN
 				
 			    UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
 
-				UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId; 
+				IF(@ModuleId = @SOModuleId)
+				BEGIN
+					UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+				END
+				ELSE IF(@ModuleId = @WOModuleId)
+				BEGIN
+					UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId; 
+				END
 
 				INSERT INTO [dbo].[BillingInvoicingItems]([BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId]
 						   ,[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus]

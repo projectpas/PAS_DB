@@ -20,6 +20,7 @@
 	5	 28-NOV-2024  Vishal Suthar			Handled divide by zero exception
 	6	 02-DEC-2024  Vishal Suthar			Fixed issues with amount in most of the charts
 	7    09-JAN-2025  Divyesh Kathiriya		Fix Duplicate Value Due To ManagementStructure JOIN
+	8	 30-Jun-2025  Devendra Shekh		Modified(SO Billing Table Changes)
 
 EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '11/29/2024', 10
 ************************************************************************/
@@ -40,6 +41,7 @@ BEGIN
 				DECLARE @MasterLoopID INT, @Month INT, @Day INT, @Year INT, @EmployeeRoleID NVARCHAR(MAX);
 				DECLARE @SOQMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'SalesOrderQuote');
 				DECLARE @SOMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'SalesOrder');
+				DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
 
 				-- Fetch the employee role IDs in a single query
 				SELECT @EmployeeRoleID = STUFF((
@@ -559,8 +561,8 @@ BEGIN
 					)
 
 					DECLARE @ShippedStatusId INT, @PostedStatusId VARCHAR(100)
-					SELECT @ShippedStatusId = SOPartStatusId FROM SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Shipped'
-					SELECT @PostedStatusId = InvoiceStatus FROM SalesOrderBillingInvoicing WITH (NOLOCK) WHERE InvoiceStatus = 'Invoiced'
+					SELECT @ShippedStatusId = SOPartStatusId FROM dbo.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Shipped'
+					SELECT @PostedStatusId = InvoiceStatus FROM dbo.BillingInvoicing WITH (NOLOCK) WHERE InvoiceStatus = 'Invoiced'
 
 					;WITH tmpTop10SalesOrderPartSold as (
 						SELECT
@@ -576,15 +578,15 @@ BEGIN
 							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 							LEFT OUTER JOIN dbo.SalesOrderShipping SOS WITH (NOLOCK) ON SO.SalesOrderId = SOS.SalesOrderId
 							LEFT OUTER JOIN dbo.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
-							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
-							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
+							LEFT OUTER JOIN dbo.BillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId AND SOBI.ModuleId = @salesOrderModuleId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0
+							LEFT OUTER JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SubReferenceId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0
 						WHERE  ((YEAR(SO.ShippedDate) = @CurrentYear 
 						AND MONTH(SO.ShippedDate) = @CurrentMonth
 						AND CAST(SO.ShippedDate AS DATE) <= CAST(@StartDate AS DATE)
 						AND SOP.StatusId = @ShippedStatusId AND SOS.AirwayBill IS NOT NULL) OR (YEAR(SOBI.InvoiceDate) = @CurrentYear 
 						AND MONTH(SOBI.InvoiceDate) = @CurrentMonth
 						AND CAST(SOBI.InvoiceDate AS DATE) <= CAST(@StartDate AS DATE)
-						AND SOBillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
+						AND BillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 						GROUP BY
 							IM.partnumber, 

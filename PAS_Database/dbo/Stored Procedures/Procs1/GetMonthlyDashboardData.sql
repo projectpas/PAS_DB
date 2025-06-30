@@ -23,6 +23,7 @@
 	9	 18 Mar 2025	RAJESH GAMI					Optimise the timezone related JOIN and code due to timeout
 	10	 06 MAY 2025	HEMANT SALIYA				Handle Flat rate case for Multiple MPN WO
 	11	 26-June-2025	Devendra Shekh				Billing Table Changes
+	12	 30-June-2025	Devendra Shekh				SO Billing Table Changes
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '12-03-2025 00:00:00'
@@ -51,6 +52,7 @@ BEGIN
 
 			DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
 			DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
+			DECLARE @SOModuleId INT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder');
 
 			/* --------------START: Get the timzone and UTC offset -------------- */
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
@@ -123,6 +125,17 @@ BEGIN
 			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
 			WHERE MSD.[ModuleID] = @WOPartModuleID AND EUR.[EmployeeId] = @EmployeeId) AS Result
 
+			IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #tmpSalesOrderUserRole
+			END
+		
+			SELECT * INTO #tmpSalesOrderUserRole FROM (SELECT DISTINCT MSD.[ReferenceID],RMS.[EntityStructureId] 
+			FROM [dbo].SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.[EntityMsId] = RMS.[EntityStructureId]
+				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.[RoleId] = RMS.[RoleId]
+			WHERE MSD.[ModuleID] = @SalesOrderModuleID AND EUR.[EmployeeId] = @EmployeeId) AS SalesOrderUserRole
+
 			IF OBJECT_ID(N'tempdb..#tmpMonthlyData') IS NOT NULL
 			BEGIN
 				DROP TABLE #tmpMonthlyData
@@ -187,18 +200,24 @@ BEGIN
 				BEGIN
 					DECLARE @SOAmt DECIMAL(18, 2) = 0;
 					
-					SELECT @SOAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					;WITH InvoiceResult AS (
+						SELECT SUM(GrandTotal) as GrandTotal
+						--SELECT @SOAmt = SUM(GrandTotal) 
+						FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
+						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId
+						INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
+						--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					WHERE 
 						CAST(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)  = CAST(@SelectedDate AS DATE)
-						AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
-					GROUP BY CAST(InvoiceDate AS DATE)
+						AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND SOBI.ModuleId = @SOModuleId
+					--GROUP BY CAST(InvoiceDate AS DATE)
+					)
 
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
-					SELECT CAST(@SelectedDate AS DATE) AS DateProcess, ISNULL(@SOAmt, 0)
+					--SELECT CAST(@SelectedDate AS DATE) AS DateProcess, ISNULL(@SOAmt, 0)
+					SELECT CAST(@SelectedDate AS DATE) AS DateProcess,  ISNULL(GrandTotal, 0) FROM InvoiceResult
 				END
 				
 				SET @MasterLoopID = @MasterLoopID + 1;

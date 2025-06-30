@@ -16,6 +16,7 @@
 	4	19/2/2024		Devendra Shekh	REMOVED isperforma Flage for WO
 	5	27/2/2024		AMIT GHEDIYA	REMOVED isperforma Flage for SO
 	6	05/4/2024		Devendra Shekh	duplicate LegalEntity issue resolved
+	7	30/06/2025		Devendra Shekh	Modified (Billing Table Changes for WO)
 
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerWiseLegalEntityData] 3398,'2024-03-26','2024-04-05'
@@ -30,6 +31,9 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 	DECLARE @SOMSModuleID INT = 17,@WOMSModuleID INT = 12,@SOAddessModuleID INT=10;
+	DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
+	DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
+
 	;WITH CTE AS(
 		select le.LegalEntityId,so.ManagementStructureId,so.CustomerId,LE.[Name],sobi.BillToSiteId AS 'BillToSiteId',aas.UserType AS 'UserType'
 			from SalesOrder so
@@ -43,15 +47,16 @@ BEGIN
 			
 			UNION
 			
-			select le.LegalEntityId,wop.ManagementStructureId,WO.CustomerId,LE.[Name],wobi.SoldToSiteId AS 'BillToSiteId',1 AS 'UserType' from dbo.[WorkOrder] WO
+			select le.LegalEntityId,wop.ManagementStructureId,WO.CustomerId,LE.[Name],invd.SoldToSiteId AS 'BillToSiteId',1 AS 'UserType' from dbo.[WorkOrder] WO
 			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-			   INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID and wobi.IsVersionIncrease=0
+			   INNER JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wop.ID = wobii.SubReferenceId AND wobii.SubModuleId = @SubModuleId AND wobii.ModuleId = @WOModuleId
+			   INNER JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.SubReferenceId = wop.ID and wobi.IsVersionIncrease=0 AND wobi.ModuleId = @WOModuleId
+			   INNER JOIN dbo.BillingInvoicingDetails invd WITH (NOLOCK) ON wobi.BillingInvoicingId = invd.BillingInvoicingId
 			   INNER JOIN WorkOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.EntityMSID = wop.ManagementStructureId AND soms.ModuleID=@WOMSModuleID
 			   INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 			   INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 			   where wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0 AND CAST(wobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)
-			   group by wop.ManagementStructureId,WO.CustomerId,LE.[Name],le.LegalEntityId,wobi.SoldToSiteId
+			   group by wop.ManagementStructureId,WO.CustomerId,LE.[Name],le.LegalEntityId,invd.SoldToSiteId
 	)
 	--Select LegalEntityId AS ManagementStructureId,[Name] AS LegalEntityName,BillToSiteId,UserType from CTE
 	--where CTE.CustomerId = @CustomerId

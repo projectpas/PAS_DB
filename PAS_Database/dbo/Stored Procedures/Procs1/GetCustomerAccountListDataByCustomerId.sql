@@ -29,6 +29,7 @@
 	16   19/03/2024        Devendra Shekh  amount mismatch issue resolved
 	17	 06/21/2024		   Hemant Saliya  added Un Applied Cash Details
 	18   11/04/2024		   Vishal Suthar	Modified to make use of new SO Part tables
+	19   30/06/2025		   Devendra Shekh	Modified (Billing Table Changes for WO)
 exec dbo.GetCustomerAccountListDataByCustomerId @customerId=3389,@StartDate='2024-04-12 09:12:23',@EndDate='2024-06-21 09:12:23',@OpenTransactionsOnly=1,
 @IncludeCredits=1,@SiteId=4527,@LegalEntityId=1
 
@@ -55,7 +56,8 @@ BEGIN
 		DECLARE @CMPostedStatusId INT
         SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 
-		
+		DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
+		DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
 		
 		IF(@OpenTransactionsOnly = 1)
 		BEGIN 
@@ -72,9 +74,9 @@ BEGIN
 						 SELECT nwo.WorkOrderId as Id, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  
 												FROM [dbo].WorkOrder nwo WITH (NOLOCK)  
 													INNER JOIN [dbo].WorkOrderPartNumber nwop WITH(NOLOCK) on nwop.WorkOrderId = nwo.WorkOrderId
-													INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.ID = nwobii.WorkOrderPartId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1
-													INNER JOIN [dbo].[WorkOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1
-													AND nwobii.WorkOrderPartId = nwop.ID GROUP BY nwo.WorkOrderId
+													INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.ID = nwobii.SubReferenceId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1 AND nwobii.SubModuleId = @SubModuleId AND nwobii.ModuleId = @WOModuleId
+													INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1 AND nwobi.ModuleId = @WOModuleId
+													AND nwobii.SubReferenceId = nwop.ID GROUP BY nwo.WorkOrderId
 			),  CTEData AS(
 			SELECT ct.CustomerId,
 			       CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
@@ -119,21 +121,23 @@ BEGIN
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(wo.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays,
 				CAST(wobi.PostedDate AS DATE) AS PostedDate,
 				ISNULL(wobi.IsPerformaInvoice, 0) AS IsProformaInvoice
-			FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
-				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
+			FROM [dbo].[BillingInvoicing] wobi WITH(NOLOCK)
+				INNER JOIN [dbo].[BillingInvoicingDetails] invd WITH(NOLOCK) ON invd.BillingInvoicingId = wobi.BillingInvoicingId
+				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.ReferenceId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 				INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
 				INNER JOIN [dbo].[WorkOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
-				LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
+				LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.ReferenceId
 			WHERE wobi.InvoiceStatus = 'Invoiced'  
-			    AND wobi.IsVersionIncrease = 0 AND ISNULL(wobi.IsInvoicePosted, 0) = 0
+			    AND wobi.IsVersionIncrease = 0 --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
 				AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
-				AND wobi.SoldToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
+				AND invd.SoldToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
 				AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) AND wobi.RemainingAmount > 0) 
 				OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
+				AND wobi.ModuleId = @WOModuleId
 			GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,wo.NetDays,wobi.PostedDate,ctm.Code,wobi.IsPerformaInvoice,DSA.OriginalDepositAmt,DSA.UsedDepositAmt
 			
 			), CTECalculation AS(
@@ -174,22 +178,29 @@ BEGIN
 					   MAX(C.CreatedBy) AS CreatedBy,
                        MAX(C.UpdatedBy) AS UpdatedBy,
 						0 AS CM
-			   FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
-				   INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WOBI.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
-				   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId	= WOBI.WorkOrderId --AND WO.CustomerId = C.CustomerId
+			   FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+				   INNER JOIN [dbo].[BillingInvoicingDetails] invd WITH(NOLOCK) ON invd.BillingInvoicingId = wobi.BillingInvoicingId
+				   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId	= WOBI.ReferenceId --AND WO.CustomerId = C.CustomerId
 				   INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
 				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 		 		   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
-				   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOF.WorkOrderPartNoId
-				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
-				   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
+				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.ReferenceId
+				   OUTER APPLY (
+						SELECT le.LegalEntityId FROM [dbo].BillingInvoicingItems WOBII WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WOBII.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+						INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOF.WorkOrderPartNoId
+						INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
+						INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+						WHERE WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+						GROUP BY le.LegalEntityId
+					) AS LEResult
 			  WHERE wobi.InvoiceStatus = 'Invoiced'  
 					AND c.CustomerId = @CustomerId 
-					AND wobi.SoldToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId 
+					AND invd.SoldToSiteId = @SiteId AND LEResult.LegalEntityId = @LegalEntityId 
 					AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)	
 					AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) AND wobi.RemainingAmount > 0) 
 					OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
+					AND wobi.ModuleId = @WOModuleId
 			  GROUP BY C.CustomerId,wobi.IsPerformaInvoice
 		
 			  UNION ALL
@@ -333,9 +344,9 @@ BEGIN
 						 SELECT nwo.WorkOrderId as Id, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  
 												FROM [dbo].WorkOrder nwo WITH (NOLOCK)  
 													INNER JOIN [dbo].WorkOrderPartNumber nwop WITH(NOLOCK) on nwop.WorkOrderId = nwo.WorkOrderId
-													INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.ID = nwobii.WorkOrderPartId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1
-													INNER JOIN [dbo].[WorkOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1
-													AND nwobii.WorkOrderPartId = nwop.ID GROUP BY nwo.WorkOrderId
+													INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.ID = nwobii.SubReferenceId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1 AND nwobii.SubModuleId = @SubModuleId AND nwobii.ModuleId = @WOModuleId
+													INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1 AND nwobi.ModuleId = @WOModuleId
+													AND nwobii.SubReferenceId = nwop.ID GROUP BY nwo.WorkOrderId
 			), CTEData AS(
 				SELECT ct.CustomerId,
 						CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
@@ -377,19 +388,21 @@ BEGIN
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(wo.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays,
 					ISNULL(wobi.IsPerformaInvoice, 0) AS IsProformaInvoice
-				FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
-					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
+				FROM [dbo].[BillingInvoicing] wobi WITH(NOLOCK)
+					INNER JOIN [dbo].[BillingInvoicingDetails] invd WITH(NOLOCK) ON invd.BillingInvoicingId = wobi.BillingInvoicingId
+					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.ReferenceId
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 					INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
 					INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 					INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 					LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
-					LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
-				WHERE wobi.InvoiceStatus = 'Invoiced' AND wobi.IsVersionIncrease=0 AND ISNULL(wobi.IsInvoicePosted, 0) = 0
-					AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
+					LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.ReferenceId
+				WHERE wobi.InvoiceStatus = 'Invoiced' AND wobi.IsVersionIncrease=0 --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
+					AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND invd.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
 					AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
 					OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
+					AND wobi.ModuleId = @WOModuleId
 				GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,wo.NetDays,wobi.PostedDate,ctm.Code,wobi.IsPerformaInvoice,DSA.OriginalDepositAmt,DSA.UsedDepositAmt
 			
 			), CTECalculation AS(
@@ -428,18 +441,25 @@ BEGIN
 					   MAX(C.CreatedBy) AS CreatedBy,
                        MAX(C.UpdatedBy) AS UpdatedBy,
 						0 AS CM
-			   FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
-				   INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WOBI.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
-				   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId	= WOBI.WorkOrderId --AND WO.CustomerId = C.CustomerId
+			   FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+				   INNER JOIN [dbo].[BillingInvoicingDetails] invd WITH(NOLOCK) ON invd.BillingInvoicingId = wobi.BillingInvoicingId
+				   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId	= WOBI.ReferenceId --AND WO.CustomerId = C.CustomerId
 				   INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
 				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 		 		   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
-				   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOF.WorkOrderPartNoId
-				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
-				   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
-			  WHERE wobi.InvoiceStatus = 'Invoiced' AND c.CustomerId=@CustomerId AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
+				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.ReferenceId
+				   OUTER APPLY (
+						SELECT le.LegalEntityId FROM [dbo].BillingInvoicingItems WOBII WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WOBII.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+						INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOF.WorkOrderPartNoId
+						INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
+						INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+						WHERE WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+						GROUP BY le.LegalEntityId
+					) AS LEResult
+			  WHERE wobi.InvoiceStatus = 'Invoiced' AND c.CustomerId=@CustomerId AND invd.SoldToSiteId=@SiteId AND LEResult.LegalEntityId = @LegalEntityId 
 					AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)	
+					AND WOBI.ModuleId = @WOModuleId
 			  GROUP BY C.CustomerId,wobi.IsPerformaInvoice
 		
 			UNION ALL

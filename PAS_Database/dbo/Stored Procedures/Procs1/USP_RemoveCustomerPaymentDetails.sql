@@ -2,8 +2,9 @@
 -- Author:		<Subhash Saliya>
 -- Create date: <21/04/2023>
 -- Description:	<Delete Case Reciept data>
+-- 1   27/06/2025   Moin Bloch	Format SP
 -- =============================================
-Create   PROCEDURE [dbo].[USP_RemoveCustomerPaymentDetails]
+CREATE   PROCEDURE [dbo].[USP_RemoveCustomerPaymentDetails]
     @CustomerPaymentDetailsId varchar(200) = null,
 	@PaymentId varchar(200) = null,
 	@CheckPaymentId varchar(200) = null,
@@ -18,20 +19,20 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		DECLARE @paymentAmt DECIMAL(20, 2)
-		DECLARE @remPaymentAmt DECIMAL(20, 2)
+		DECLARE @paymentAmt DECIMAL(20, 2) = 0
+		DECLARE @remPaymentAmt DECIMAL(20, 2) = 0
 
-		update CustomerPaymentDetails set IsDeleted=1 where ReceiptId= @ReceiptId and  CustomerPaymentDetailsId  not IN (SELECT value FROM String_split(ISNULL(@CustomerPaymentDetailsId,0), ','))
+		UPDATE [dbo].[CustomerPaymentDetails] SET [IsDeleted]=1 WHERE [ReceiptId]= @ReceiptId AND [CustomerPaymentDetailsId] NOT IN (SELECT value FROM STRING_SPLIT(ISNULL(@CustomerPaymentDetailsId,0), ','))
 
-		update InvoicePayments set IsDeleted=1 where  ReceiptId= @ReceiptId and PaymentId  not IN (SELECT value FROM String_split(ISNULL(@PaymentId,0), ','))
+		UPDATE [dbo].[InvoicePayments] SET [IsDeleted]=1 WHERE  [ReceiptId]= @ReceiptId AND [PaymentId] NOT IN (SELECT value FROM STRING_SPLIT(ISNULL(@PaymentId,0), ','))
 		
-		update InvoiceCheckPayment set IsDeleted=1 where  ReceiptId= @ReceiptId and CheckPaymentId  not IN (SELECT value FROM String_split(ISNULL(@CheckPaymentId,0), ','))
+		UPDATE [dbo].[InvoiceCheckPayment] SET [IsDeleted]=1 WHERE  [ReceiptId]= @ReceiptId AND [CheckPaymentId] NOT IN (SELECT value FROM STRING_SPLIT(ISNULL(@CheckPaymentId,0), ','))
 
-		update InvoiceWireTransferPayment set IsDeleted=1 where  ReceiptId= @ReceiptId and WireTransferId  not IN (SELECT value FROM String_split(ISNULL(@WireTransferId,0), ','))
+		UPDATE [dbo].[InvoiceWireTransferPayment] SET [IsDeleted]=1 WHERE  [ReceiptId]= @ReceiptId AND [WireTransferId] NOT IN (SELECT value FROM STRING_SPLIT(ISNULL(@WireTransferId,0), ','))
 
-		update InvoiceCreditDebitCardPayment set IsDeleted=1 where  ReceiptId= @ReceiptId and CreditDebitPaymentId  not IN (SELECT value FROM String_split(ISNULL(@CreditDebitPaymentId,0), ','))
+		UPDATE [dbo].[InvoiceCreditDebitCardPayment] SET [IsDeleted]=1 WHERE  [ReceiptId]= @ReceiptId AND [CreditDebitPaymentId] NOT IN (SELECT value FROM STRING_SPLIT(ISNULL(@CreditDebitPaymentId,0), ','))
 		
-		SELECT ReceiptNo as 'value' FROM DBO.CustomerPayments WITH(NOLOCK) Where ReceiptId = @ReceiptId
+		SELECT ReceiptNo AS 'value' FROM [dbo].[CustomerPayments] WITH(NOLOCK) WHERE [ReceiptId] = @ReceiptId
 	END
 	COMMIT  TRANSACTION
 
@@ -42,8 +43,8 @@ BEGIN
 			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'UpdatePaymentPrice' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceiptId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'USP_RemoveCustomerPaymentDetails'            
+			, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReceiptId AS VARCHAR(10)), '') + ''      
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

@@ -103,6 +103,7 @@ BEGIN
         BEGIN
             UPDATE dbo.Publication
             SET
+				PublicationId = @PublicationId,
                 Description = @Description,
                 EntryDate = @EntryDate,
                 RevisionDate = @RevisionDate,

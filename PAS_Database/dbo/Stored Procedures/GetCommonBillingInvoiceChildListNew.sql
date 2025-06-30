@@ -17,6 +17,7 @@
 	4    17/06/2025   Rajesh Gami		Resolved issue regarding getting the Biling Amount
 	5    23/06/2025   Rajesh Gami		Fixed Proforma billing amount realted issue
 	6    25/06/2025   Rajesh Gami		Fixed Getting Child List Issue For the SO.
+	6    30/06/2025   Rajesh Gami		Added isSerialized return parameter
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 8810,8582,1,15
 
@@ -127,7 +128,8 @@ BEGIN
 				[SizeLength] DECIMAL(18,2) NULL,
 				[SizeWidth] DECIMAL(18,2) NULL,
 				[SizeHeight] DECIMAL(18,2) NULL,
-				IsLastInserted BIT DEFAULT 0
+				IsLastInserted BIT DEFAULT 0,
+				IsSerialized BIT DEFAULT 0,
 			)
 		
 			IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
@@ -532,7 +534,7 @@ BEGIN
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
-					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight) AS
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized) AS
 					(
 					SELECT DISTINCT 
 					0 AS IndexColumn,
@@ -621,8 +623,8 @@ BEGIN
 					sop.[Weight] AS [Weight], 
 					sop.SizeLength AS BillSizeLength,
 					sop.SizeWidth AS BillSizeWidth,
-					sop.SizeHeight AS BillSizeHeight
-
+					sop.SizeHeight AS BillSizeHeight,
+					ISNULL(imt.isSerialized,0)  AS IsSerialized
 					FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
 					INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) on sop.SalesOrderId = sos.SalesOrderId --AND sop.SalesOrderPartId = sosi.SalesOrderPartId  
 					INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -645,7 +647,7 @@ BEGIN
 					sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
 					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
-					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder)
+					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized)
 
 					INSERT INTO #InvoiceMainDetails (IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
@@ -671,7 +673,7 @@ BEGIN
 							SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 							StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 							TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-							ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+							ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized)
 							(
 							SELECT DISTINCT 
 							--ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.BillingInvoicingId DESC) AS IndexColumn,
@@ -778,7 +780,7 @@ BEGIN
 							stk.SizeLength AS BillSizeLength,
 							stk.SizeWidth AS BillSizeWidth,
 							stk.SizeHeight AS BillSizeHeight
-
+							,ISNULL(imt.isSerialized,0) AS isSerialized
 							FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND sop.SalesOrderId = @ReferenceId
@@ -852,7 +854,7 @@ BEGIN
 								stk.SizeLength AS BillSizeLength,
 								stk.SizeWidth AS BillSizeWidth,
 								stk.SizeHeight AS BillSizeHeight
-
+								,ISNULL(imt.isSerialized,0) AS isSerialized
 							FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 								INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
 								INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -1013,7 +1015,7 @@ BEGIN
 						SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId , BillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 						StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 						SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-						ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+						ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,IsSerialized)
 						SELECT DISTINCT 
 							0 AS IndexColumn,
 							0 AS SalesOrderShippingId,   
@@ -1055,7 +1057,7 @@ BEGIN
 							stk.SizeLength AS BillSizeLength,
 							stk.SizeWidth AS BillSizeWidth,
 							stk.SizeHeight AS BillSizeHeight
-
+								,ISNULL(imt.isSerialized,0) AS isSerialized
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
@@ -1190,7 +1192,7 @@ BEGIN
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges)
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges,IsSerialized)
 				(
 					
 						SELECT DISTINCT 
@@ -1253,6 +1255,7 @@ BEGIN
 						(SELECT ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 						WHERE [SO].[SalesOrderId] = @ReferenceId AND so.ChargesBilingMethodId = @FlateBilingMethodId)
 						AS TotalFlatCharges
+							,ISNULL(imt.isSerialized,0) AS isSerialized
 						FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
@@ -1315,7 +1318,8 @@ BEGIN
 						   [Weight],
 						   SizeLength,
 						   SizeWidth,
-						   SizeHeight
+						   SizeHeight,
+						   IsSerialized
 					FROM #InvoiceMainDetails )
 
 					INSERT INTO #InvoiceMainDetails (
@@ -1365,7 +1369,7 @@ BEGIN
 							SizeWidth,
 							SizeHeight,
 							IsAllowIncreaseVersion,
-							IsLastInserted
+							IsLastInserted,IsSerialized
 						)
 						SELECT 
 							IndexColumn,
@@ -1414,7 +1418,7 @@ BEGIN
 							SizeWidth,
 							SizeHeight,
 							IsVersionIncrease,
-							1
+							1,IsSerialized
 						FROM FinalCTE ORDER BY partnumber, IsProformaInvoice DESC ,VersionNo DESC;
 						--ORDER BY partnumber, IsProformaInvoice DESC, InvoiceNo DESC, VersionNo DESC;
 

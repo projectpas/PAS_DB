@@ -26,6 +26,7 @@
 	14   06/05/2025		Devendra Shekh 	Snapshot DashBoard - Count Issue Resoled
 	15   16/06/2025		Devendra Shekh 	Amount Issue Resolved for MTD Billing
 	16   24/06/2025		Devendra Shekh	Billing Table Changes
+	17	 30/06/2025		Devendra Shekh	Modified(SO Billing Table Changes)
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -65,6 +66,7 @@ BEGIN
 
 			DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
 			DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
+			DECLARE @SOModuleId INT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder');
 
 			IF OBJECT_ID(N'tempdb..#tmpSalesOrderUserRole') IS NOT NULL    
 			BEGIN    
@@ -188,11 +190,11 @@ BEGIN
 					IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
 					ISNULL(SUM(SOBIII.PartCost),0) + ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0) + ISNULL(SUM(SOBIII.MiscCharges),0) AS 'GrandTotal',
 					cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
-					FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-					INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsProforma, 0) = 0
+					FROM DBO.BillingInvoicing SOBI WITH (NOLOCK)
+					INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0
 					INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
-					INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBIII WITH (NOLOCK) ON SOBIII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsProforma, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SalesOrderPartId
-					INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOV.StockLineId = SOBIII.StockLineId AND SOV.SalesOrderPartId = SOBIII.SalesOrderPartId
+					INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId
+					INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOV.StockLineId = SOBIII.StockLineId AND SOV.SalesOrderPartId = SOBIII.SubReferenceId
 					INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 					INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
 					INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
@@ -209,7 +211,8 @@ BEGIN
 							CASE WHEN CAST(sobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 								ELSE (CAST(sobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @Date)
 					AND sobi.MasterCompanyId = @MasterCompanyId
-					AND ISNULL(sobi.IsProforma,0) = 0
+					AND ISNULL(sobi.IsPerformaInvoice,0) = 0
+					AND SOBI.ModuleId = @SOModuleId
 					GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
 				), ResultCount AS(Select COUNT(PartNumber) AS totalItems FROM Result) 
 
@@ -274,9 +277,9 @@ BEGIN
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 				WHERE
-				STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-					INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
-					Where SOBI.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = 1)
+				STKV.StockLineId NOT IN (SELECT SOBII.StockLineId FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
+					INNER JOIN DBO.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId AND SOBII.IsVersionIncrease = 0
+					Where SOBI.ReferenceId = SOP.SalesOrderId AND SO.MasterCompanyId = @MasterCompanyId AND SOBI.ModuleId = @SOModuleId)
 				AND SO.IsActive = 1
 				AND SO.IsDeleted = 0
 				--AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @Date)
@@ -292,13 +295,13 @@ BEGIN
 				FROM #tmpNonInvoiceDashboard TMP
 				OUTER APPLY (
 					SELECT ISNULL(SUM(sopc.MiscCharges),0) AS MiscCharges FROM DBO.SalesOrderPartCost sopc WITH (NOLOCK) 
-								WHERE sopc.SalesOrderId = TMP.SalesOrderId AND sopc.SalesOrderPartId = TMP.SalesOrderPartId and  TMP.MasterCompanyId = 1
+								WHERE sopc.SalesOrderId = TMP.SalesOrderId AND sopc.SalesOrderPartId = TMP.SalesOrderPartId and  TMP.MasterCompanyId = @MasterCompanyId
 					) AS partAmount
 
 				OUTER APPLY (
-					SELECT ISNULL(SUM(SOBII.MiscCharges),0) AS MiscCharges FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-								INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND SOBII.IsVersionIncrease = 0
-								WHERE SOBI.SalesOrderId = TMP.SalesOrderId AND TMP.MasterCompanyId = 1
+					SELECT ISNULL(SUM(SOBII.MiscCharges),0) AS MiscCharges FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
+								INNER JOIN DBO.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId AND SOBII.IsVersionIncrease = 0
+								WHERE SOBI.ReferenceId = TMP.SalesOrderId AND TMP.MasterCompanyId = @MasterCompanyId AND SOBI.ModuleId = @SOModuleId
 					) AS billedData
 
 				SELECT * FROM #tmpNonInvoiceDashboard

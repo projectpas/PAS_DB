@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SOQSODashboardData]
  ** Author: Deep Patel
  ** Description: This stored procedure is used to Get SOQSO Dashboard Details
@@ -15,6 +14,7 @@
 	2	01-JAN-2024		AMIT GHEDIYA	 added isperforma Flage for SO
 	3   16-OCT-2024		Abhishek Jirawla Implemented the new tables for SalesOrderQuotePart related tables (Needs to be revisited)
 	4   11-DEC-2024		RAJESH GAMI      Modified to multyply the Est Revenue and Est Cost for every operation (SO & SOQ) :  Add the separate CTE and using it in JOIN (DeduplicatedRoles)
+	6   30-Jun-2025     Devendra Shekh	 Modified(SO Billing Table Changes)
 ************************************************************************/
 CREATE PROCEDURE [dbo].[SOQSODashboardData]
 	-- Add the parameters for the stored procedure here
@@ -93,6 +93,7 @@ BEGIN
 				END
 				DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID
 				DECLARE @MSSOModuleID INT = 17; -- Sales Order Management Structure Module ID
+				DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
 			-- Insert statements for procedure here
 			IF(@Opr = 1)
 			BEGIN
@@ -886,7 +887,7 @@ BEGIN
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderPartId = SP.SalesOrderPartId
 				INNER JOIN DeduplicatedRoles DR ON DR.ReferenceID = SO.SalesOrderId
 				Where (SO.IsDeleted=0) AND SO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) 
-				AND SP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem WHERE ISNULL(IsProforma,0) = 0)
+				AND SP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 				GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
 				B.Charges),

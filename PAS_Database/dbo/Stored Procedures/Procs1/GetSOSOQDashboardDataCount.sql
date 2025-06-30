@@ -15,6 +15,7 @@
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	4	 12 NOV 2024  HEMANT SALIYA		Verify the count and removed un used code 
 	5    11-DEC-2024  RAJESH GAMI       Modified to multyply the Est Revenue and Est Cost for every operation (SO & SOQ) :  Add the separate CTE and using it in JOIN (DeduplicatedRoles)
+	6	 30-Jun-2025  Devendra Shekh	Modified(SO Billing Table Changes)
 
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetSOSOQDashboardDataCount]
@@ -75,6 +76,8 @@ BEGIN
 		DECLARE @SOInvoicedAmount AS DECIMAL(20, 2);
 		DECLARE @SOQMSModuleID INT = 18;
 		DECLARE @SOMSModuleID INT = 17;
+		DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
+
 		IF OBJECT_ID(N'tempdb..#tmpSOQUserRole') IS NOT NULL    
 		BEGIN    
 			DROP TABLE #tmpSOQUserRole
@@ -241,7 +244,7 @@ BEGIN
 			   INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
 	WHERE ISNULL(RO.IsDeleted, 0) = 0
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
-				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From dbo.SalesOrderBillingInvoicingItem WITH (NOLOCK) WHERE ISNULL(IsProforma,0) = 0)
+				AND ROP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 
 
 	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0))  FROM 
@@ -252,7 +255,7 @@ BEGIN
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
 	WHERE ISNULL(RO.IsDeleted, 0) = 0 and ISNULL(ROP.IsDeleted, 0) = 0
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
-				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From dbo.SalesOrderBillingInvoicingItem WITH (NOLOCK) WHERE ISNULL(IsProforma,0) = 0)
+				AND ROP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 
 		SELECT ISNULL(@SOQReceivedCount, 0) AS 'SOQReceivedCount', ISNULL(@SOQApprovedInternalCount, 0) AS 'SOQApprovedInternalCount', ISNULL(@SOQApprovedCustomerCount, 0) AS 'SOQApprovedCustomerCount', 
 		ISNULL(@SOApprovedInternalCount, 0) AS 'SOApprovedInternalCount', ISNULL(@SOApprovedCustomerCount, 0) AS 'SOApprovedCustomerCount', ISNULL(@SOFullfillingStatusCount, 0) AS 'SOFullfillingStatusCount',

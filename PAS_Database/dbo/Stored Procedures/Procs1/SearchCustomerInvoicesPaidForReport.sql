@@ -13,7 +13,9 @@
     1					unknown			Created
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	3	07/03/2024		Moin Bloch  	added Document Type
-	4   13/03/2024      Moin Bloch       Modify(makes Exchange Invoice to Invoice)
+	4   13/03/2024      Moin Bloch      Modify(makes Exchange Invoice to Invoice)
+	5   30/06/20245     Moin Bloch      Modify(Old To New Table)
+
 ************************************************************************/
 -- EXEC SearchCustomerInvoicesPaidForReport 10156
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
@@ -23,6 +25,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+			
+			DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+	
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+			SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
 			
 			 IF OBJECT_ID(N'tempdb..#Paymenttemp') IS NOT NULL    
 			 BEGIN    
@@ -100,8 +108,8 @@ BEGIN
 					CASE WHEN (CT.[NetDays] - DATEDIFF(DAY, CASt([IP].[InvoiceDate] as date), GETDATE())) < 0 THEN [IP].[RemainingAmount] ELSE 0.00 END AS 'AmountPastDue',						
 					[IP].[PaymentAmount], 					
 					[IP].[NewRemainingBal] AS 'NewRemainingBal',					
-					CASE WHEN [InvoiceType] = 1 AND SOBI.[IsProforma] = 1 THEN 'INVOICE' 
-					     WHEN [InvoiceType] = 1 AND ISNULL(SOBI.[IsProforma],0) = 0  THEN 'INVOICE' 
+					CASE WHEN [InvoiceType] = 1 AND SOBI.[IsPerformaInvoice] = 1 THEN 'INVOICE' 
+					     WHEN [InvoiceType] = 1 AND ISNULL(SOBI.[IsPerformaInvoice],0) = 0  THEN 'INVOICE' 
 						 WHEN [InvoiceType] = 2 AND WOBI.[IsPerformaInvoice] = 1 THEN 'INVOICE'
 						 WHEN [InvoiceType] = 2 AND ISNULL(WOBI.IsPerformaInvoice,0) = 0  THEN 'INVOICE' 
 						 WHEN [InvoiceType] = 3 THEN 'CREDIT MEMO' 
@@ -115,13 +123,15 @@ BEGIN
 		LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON [IP].CustomerId = CU.CustomerId
 		LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId
 		LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId	
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId --AND ISNULL(SOBI.IsProforma,0) = 0
-		LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId
+		--LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId --AND ISNULL(SOBI.IsProforma,0) = 0
+		--LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId
+		LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = [IP].SOBillingInvoicingId AND SOBI.ModuleId = @SOModuleId --AND ISNULL(SOBI.IsProforma,0) = 0
+		LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId AND WOBI.ModuleId = @WOModuleId
 		WHERE [IP].ReceiptId = @receiptId AND [IP].IsDeleted=0
 		GROUP BY [IP].[PaymentId],CU.[CustomerId],CU.[Name],CU.[CustomerCode],[IP].[DocNum],[IP].[InvoiceDate],[IP].[WOSONum],[IP].[RemainingAmount],		
 				 [IP].[CurrencyCode],[IP].[OriginalAmount],[IP].[RemainingAmount],[IP].[PaymentAmount], 
 				 [IP].NewRemainingBal,SOBI.RemainingAmount,WOBI.RemainingAmount,[IP].[InvoiceType],[CT].[NetDays],[PT].Amount,PT.[AmountRemaining],     
-				 [SOBI].[IsProforma],[WOBI].[IsPerformaInvoice]
+				 [SOBI].[IsPerformaInvoice],[WOBI].[IsPerformaInvoice]
 
 		UNION ALL
 

@@ -4002,6 +4002,8 @@
     <Build Include="dbo\Stored Procedures\GetIntegrationPortalDataById.sql" />
     <Build Include="dbo\Stored Procedures\GetAllLegalEntityData.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalShippingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingPayments.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicing.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

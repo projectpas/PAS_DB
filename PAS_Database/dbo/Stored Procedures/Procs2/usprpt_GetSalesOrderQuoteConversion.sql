@@ -18,7 +18,7 @@
    3   10-OCT-2024      Abhishek Jirawla   Implemented the new tables for SalesOrderQuotePart related tables
    4   02-DEC-2024      Vishal Suthar	   Fixed the join after adding the missing column
    5   21-01-2025       Shrey Chandegara   Changes for sorevenue and soqrevenue (charge ,salestax and othertax not come in sorevenue)
-
+   6   01/july/2025		RAJESH GAMI		   Change the table as per new Billing Structure for SO  
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -53,6 +53,7 @@ BEGIN
 		@csr varchar(40) = NULL
   
   BEGIN TRY  
+      DECLARE @SOModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
       DECLARE @ModuleID INT = 18; -- MS Module ID
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
@@ -225,10 +226,11 @@ BEGIN
 			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPC.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId,SOBII.SalesTax,SOBII.OtherTax FROM  DBO.SalesOrderBillingInvoicing SOBI
-			LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
-			WHERE ISNULL(SOBI.IsProforma,0) = 0
-			GROUP BY SalesOrderPartId,InvoiceNo,SOBII.SalesTax,SOBII.OtherTax) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN (SELECT InvoiceNo,SOBII.SubReferenceId,SOBII.SalesTax,SOBII.OtherTax 
+			FROM  DBO.BillingInvoicing SOBI WITH (NOLOCK)
+			LEFT JOIN DBO.BillingInvoicingItems SOBII ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
+			WHERE ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @SOModuleId
+			GROUP BY SubReferenceId,InvoiceNo,SOBII.SalesTax,SOBII.OtherTax) SOBilling ON SOBilling.SubReferenceId = SOP.SalesOrderPartId
 			LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM dbo.SalesOrderCharges A2 WITH (NOLOCK) WHERE A2.[IsActive] = 1 
 		    GROUP BY SalesOrderPartId) SOCharges ON SOCharges.SalesOrderPartId = SOP.SalesOrderPartId
 		 ) A

@@ -27,6 +27,7 @@
 	15   16/06/2025		Devendra Shekh 	Amount Issue Resolved for MTD Billing
 	16   24/06/2025		Devendra Shekh	Billing Table Changes
 	17	 30/06/2025		Devendra Shekh	Modified(SO Billing Table Changes)
+	18	 07/01/2025		Devendra Shekh  Parts Count Issue resolved for WOQ
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -309,8 +310,8 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 6)
 			BEGIN
-				SELECT DISTINCT
-				item.PartNumber, item.PartDescription, A.WorkScope, item.ItemGroup,
+				SELECT DISTINCT WOP.ID,
+				item.PartNumber, item.PartDescription, WOP.WorkScope, item.ItemGroup,
 				WOP.Quantity, cust.Name AS CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK)
 				INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
@@ -323,14 +324,14 @@ BEGIN
 				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
 		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
 		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
-				Outer Apply(
-					SELECT 
-					STUFF((SELECT ', ' + WOPP.WorkScope
-					FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
-					ON WOQ.WorkOrderId = WOPP.WorkOrderId
-					WHERE WOPP.WorkOrderId = WOP.WorkOrderId
-					FOR XML PATH('')), 1, 1, '') WorkScope
-				) A
+				--Outer Apply(
+				--	SELECT 
+				--	STUFF((SELECT ', ' + WOPP.WorkScope
+				--	FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
+				--	ON WOQ.WorkOrderId = WOPP.WorkOrderId
+				--	WHERE WOPP.WorkOrderId = WOP.WorkOrderId
+				--	FOR XML PATH('')), 1, 1, '') WorkScope
+				--) A
 				WHERE
 				WOQ.IsActive = 1
 				AND WOQ.IsDeleted = 0
@@ -444,7 +445,7 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 11)
 			BEGIN
-				SELECT DISTINCT
+				SELECT DISTINCT wop.ID,
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
 				 CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 1 THEN ISNULL(SUM(WOQD.CommonFlatRate),0) ELSE ISNULL(SUM(WOQD.LaborFlatBillingAmount),0) + ISNULL(SUM(WOQD.MaterialFlatBillingAmount),0) + ISNULL(SUM(WOQD.ChargesFlatBillingAmount),0) + ISNULL(SUM(FreightFlatBillingAmount),0) END AS GrandTotal
 				, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
@@ -459,11 +460,11 @@ BEGIN
 		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE  CONVERT(DATE,WOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND WOQ.MasterCompanyId = @MasterCompanyId
-				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
+				GROUP BY wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 			END
 			ELSE IF (@DashboardType = 12)
 			BEGIN
-				SELECT DISTINCT
+				SELECT DISTINCT wop.ID,
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
 				 CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 1 THEN ISNULL(SUM(WOQD.CommonFlatRate),0) ELSE ISNULL(SUM(WOQD.LaborFlatBillingAmount),0) + ISNULL(SUM(WOQD.MaterialFlatBillingAmount),0) + ISNULL(SUM(WOQD.ChargesFlatBillingAmount),0) + ISNULL(SUM(FreightFlatBillingAmount),0) END AS GrandTotal
 				, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
@@ -477,7 +478,7 @@ BEGIN
 		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId
 		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = CONVERT(DATE, @Date) AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
-				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
+				GROUP BY wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 			END
 			ELSE IF (@DashboardType = 13)
 			BEGIN

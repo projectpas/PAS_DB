@@ -12,6 +12,7 @@
     1    02-June-2025		Devendra Shekh			CREATED   
 	2    16-June-2025		Devendra Shekh 			Amount Issue Resolved for MTD Billing
 	3    24-June-2025		Devendra Shekh			Billing Table Changes
+	4	 07-July-2025		Devendra Shekh			Parts Count Issue resolved for WOQ
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -116,7 +117,7 @@ BEGIN
 		
 		-- selecting work order quote unit and amount details		:(DashboardType = 11)
 		SELECT @WOQuotedUnits = COUNT(*), @WOQuotedAmount = SUM(GrandTotal) FROM (
-				SELECT DISTINCT
+				SELECT DISTINCT wop.ID,
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,
 					SUM(CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 1 THEN ISNULL((WOQD.CommonFlatRate),0)
 												 ELSE ISNULL((WOQD.LaborFlatBillingAmount),0) + ISNULL((WOQD.MaterialFlatBillingAmount),0) + ISNULL((WOQD.ChargesFlatBillingAmount),0) + ISNULL((FreightFlatBillingAmount),0) END) AS GrandTotal
@@ -128,12 +129,12 @@ BEGIN
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
 				WHERE  CONVERT(DATE,WOQ.OpenDate) = CONVERT(DATE, @StartDate) 
 				AND WOQ.MasterCompanyId = @MasterCompanyId
-				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
+				GROUP BY wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 		) AS WOQuoteResult
 
 		-- selecting approved work order quote unit and amount details		:(DashboardType = 12)
 		SELECT @WOApprovalUnits = COUNT(*), @WOApprovalAmount = SUM(GrandTotal) FROM (
-				SELECT DISTINCT
+				SELECT DISTINCT WOP.ID,
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson,
 					SUM(CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 1 THEN ISNULL((WOQD.CommonFlatRate),0)
 												 ELSE ISNULL((WOQD.LaborFlatBillingAmount),0) + ISNULL((WOQD.MaterialFlatBillingAmount),0) + ISNULL((WOQD.ChargesFlatBillingAmount),0) + ISNULL((FreightFlatBillingAmount),0) END) AS GrandTotal
@@ -144,7 +145,7 @@ BEGIN
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
 				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = CONVERT(DATE, @StartDate) AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
-				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
+				GROUP BY WOP.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 		) AS ApprovedWOQuoteResult
 
 		-- selecting work order billing unit and amount details		:(DashboardType = 13)

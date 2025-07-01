@@ -16,6 +16,7 @@
 	2    09/24/2024   Moin Bloch		Restricted Piece Part In Drop Down List
 	3    03/25/2025	  Devendra Shekh	added new field: WorkOrderFormTypeId
 	4	 05/06/2025	  Abhishek Jirawla  Returning IsRepairManagement
+	5    01/07/2025	  Devendra Shekh    added New Field : MPNPartNumber
      
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
@@ -102,7 +103,10 @@ BEGIN
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
 						RCW.ACTailNum AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
-						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement
+						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement,
+						CONCAT(IM.partnumber, CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
+													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
+													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
 						JOIN dbo.WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON RCW.ReceivingCustomerWorkId = MSD.ReferenceID AND MSD.ModuleID = @RCWModuleID
 						JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = RCW.StockLineId
@@ -148,7 +152,10 @@ BEGIN
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
 						RCW.ACTailNum AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
-						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement
+						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement,
+						CONCAT(IM.partnumber, CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
+													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
+													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
 						JOIN dbo.WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON RCW.ReceivingCustomerWorkId = MSD.ReferenceID AND MSD.ModuleID = @RCWModuleID
 						JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = RCW.StockLineId
@@ -210,7 +217,10 @@ BEGIN
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
 						SL.AircraftTailNumber AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
-						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement
+						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement,
+						CONCAT(IM.partnumber, CASE	WHEN COALESCE(SL.SerialNumber, '') <> '' THEN ' - ' + SL.SerialNumber
+													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
+													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
@@ -255,7 +265,10 @@ BEGIN
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
 						SL.AircraftTailNumber AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
-						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement
+						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement,
+						CONCAT(IM.partnumber, CASE	WHEN COALESCE(SL.SerialNumber, '') <> '' THEN ' - ' + SL.SerialNumber
+													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
+													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
@@ -317,7 +330,10 @@ BEGIN
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
 						SL.AircraftTailNumber AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
-						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement
+						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement,
+						CONCAT(IM.partnumber, CASE	WHEN COALESCE(SL.SerialNumber, '') <> '' THEN ' - ' + SL.SerialNumber
+													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
+													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
@@ -362,7 +378,10 @@ BEGIN
 						WF.WorkflowExpirationDate AS WorkflowExpirationDate,
 						SL.AircraftTailNumber AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
-						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement
+						ISNULL(SL.IsRepairManagement, 0) AS IsRepairManagement,
+						CONCAT(IM.partnumber, CASE	WHEN COALESCE(SL.SerialNumber, '') <> '' THEN ' - ' + SL.SerialNumber
+													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
+													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.StockLine SL WITH(NOLOCK) 
 						JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON SL.StockLineId = MSD.ReferenceID AND MSD.ModuleID = @SLMSModuleID
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId

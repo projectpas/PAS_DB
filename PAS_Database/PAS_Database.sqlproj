@@ -4006,6 +4006,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicing.sql" />
     <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderShippingEditById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDomesticWirePaymentByVendorId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetInternationalWirePaymentByVendorId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

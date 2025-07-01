@@ -28,6 +28,7 @@
 	15   06/05/2025		Devendra Shekh 		Snapshot DashBoard - Count Issue Resoled
 	16	 06/24/2025		Devendra Shekh		Billing Table Changes
 	17	 06/30/2025		Devendra Shekh		SO Billing Table Changes
+	18	 07/01/2025		Devendra Shekh		Parts Count Issue resolved for WOQ
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -293,9 +294,9 @@ BEGIN
 		select @PartsSaleWorkable = ISNULL(SUM(GrandTotal),0) from #tmpNonInvoiceDashboard
 
 		-- selecting Work Order Quote Processed (Units)		:(DashboardType = 6)
-		SELECT @WOQProcessed = COUNT(*) FROM (
-			SELECT DISTINCT
-				item.PartNumber, item.PartDescription, A.WorkScope, item.ItemGroup,
+		SELECT @WOQProcessed = COUNT(*)  FROM (
+			SELECT DISTINCT WOP.ID,
+				item.PartNumber, item.PartDescription, WOP.WorkScope, item.ItemGroup,
 				WOP.Quantity, cust.Name AS CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 			FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK)
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
@@ -305,14 +306,14 @@ BEGIN
 			LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
-			Outer Apply(
-				SELECT 
-				STUFF((SELECT ', ' + WOPP.WorkScope
-				FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
-				ON WOQ.WorkOrderId = WOPP.WorkOrderId
-				WHERE WOPP.WorkOrderId = WOP.WorkOrderId
-				FOR XML PATH('')), 1, 1, '') WorkScope
-			) A
+			--Outer Apply(
+			--	SELECT 
+			--	STUFF((SELECT ', ' + WOPP.WorkScope
+			--	FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
+			--	ON WOQ.WorkOrderId = WOPP.WorkOrderId
+			--	WHERE WOPP.WorkOrderId = WOP.WorkOrderId
+			--	FOR XML PATH('')), 1, 1, '') WorkScope
+			--) A
 			WHERE
 			WOQ.IsActive = 1
 			AND WOQ.IsDeleted = 0

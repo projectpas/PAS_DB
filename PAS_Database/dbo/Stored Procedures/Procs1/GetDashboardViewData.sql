@@ -309,8 +309,8 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 6)
 			BEGIN
-				SELECT DISTINCT
-				item.PartNumber, item.PartDescription, A.WorkScope, item.ItemGroup,
+				SELECT DISTINCT WOP.ID,
+				item.PartNumber, item.PartDescription, WOP.WorkScope, item.ItemGroup,
 				WOP.Quantity, cust.Name AS CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK)
 				INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
@@ -323,14 +323,14 @@ BEGIN
 				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
 		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
 		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
-				Outer Apply(
-					SELECT 
-					STUFF((SELECT ', ' + WOPP.WorkScope
-					FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
-					ON WOQ.WorkOrderId = WOPP.WorkOrderId
-					WHERE WOPP.WorkOrderId = WOP.WorkOrderId
-					FOR XML PATH('')), 1, 1, '') WorkScope
-				) A
+				--Outer Apply(
+				--	SELECT 
+				--	STUFF((SELECT ', ' + WOPP.WorkScope
+				--	FROM DBO.WorkOrderQuote WOQ INNER JOIN DBO.WorkOrderPartNumber WOPP WITH (NOLOCK)
+				--	ON WOQ.WorkOrderId = WOPP.WorkOrderId
+				--	WHERE WOPP.WorkOrderId = WOP.WorkOrderId
+				--	FOR XML PATH('')), 1, 1, '') WorkScope
+				--) A
 				WHERE
 				WOQ.IsActive = 1
 				AND WOQ.IsDeleted = 0

@@ -1,7 +1,4 @@
-﻿
-
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetWorkOrderPrintPdfData]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Work order Print  Details      
@@ -22,6 +19,7 @@
 	2	 01/16/2025		Moin Bloch			Modified (Added TaskId In Type)
     3	 26 FEB 2025	RAJESH GAMI			Update the WorkOrderQuoteDetails COST
 	4	 21 APR 2025	HEMANT SALIYA		Update For WOM Kit Cost is not updating
+	5	 01 Jul 2025	Moin Bloch			Modified (Fixed For Billing Amount in WOQ Kit)
 
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
@@ -84,9 +82,9 @@ BEGIN
 
 			INSERT INTO [dbo].[WorkOrderQuoteMaterialKitMapping]
 		    (WorkOrderQuoteId,WorkflowWorkOrderId,[KitId],KitNumber,[ItemMasterId],[Quantity],[UnitCost],[ExtendedCost],
-		    [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],BillingRate,BillingAmount,[TaskId])
+		    [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[BillingRate],[BillingAmount],[TaskId])
 		    SELECT WorkOrderQuoteId,WorkflowWorkOrderId,tmp.KitId,KM.KitNumber,tmp.[ItemMasterId],[Quantity],[UnitCost],(UnitCost),
-		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],tmp.[CreatedDate],tmp.[UpdatedDate],tmp.[IsActive],tmp.[IsDeleted],UnitCost,(UnitCost),tmp.[TaskId]
+		    tmp.[MasterCompanyId],tmp.[CreatedBy],tmp.[UpdatedBy],tmp.[CreatedDate],tmp.[UpdatedDate],tmp.[IsActive],tmp.[IsDeleted],[UnitCost],tmp.[BillingAmount],tmp.[TaskId]   --(UnitCost),
 		    FROM #KITPartType tmp
 			INNER JOIN [dbo].[KitMaster] KM WITH (NOLOCK) ON KM.KitId = tmp.KitId 
 		    WHERE tmp.WOQMaterialKitMappingId = 0
@@ -104,11 +102,8 @@ BEGIN
 			
 			---------------------------------Update Kit Item Master Mapping---------------------
 			UPDATE kim
-			SET  
-				 --KitNumber = t.KitNumber
-				[UnitCost] = t.UnitCost
-				,[ExtendedCost] = t.ExtendedCost
-				--,[MasterCompanyId] = t.MasterCompanyId    
+			SET  [UnitCost] = t.UnitCost
+				,[ExtendedCost] = t.ExtendedCost				
 				,[UpdatedBy] = t.UpdatedBy     
 				,[UpdatedDate] = GETUTCDATE()
 				,[IsActive] = t.IsActive
@@ -127,11 +122,9 @@ BEGIN
 				LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON p.PercentId = kim.MarkupPercentageId 
 			 WHERE t.WOQMaterialKitMappingId > 0;
 
-			/********************** Update the WorkOrderQuoteDetails COST **************************/ 
-			PRINT 'Test'
+			/********************** Update the WorkOrderQuoteDetails COST **************************/ 			
 			IF((SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType) =1)
-			BEGIN
-			PRINT 'Test----'
+			BEGIN			
 					DECLARE @TotalMaterialCost decimal(18,2)=0, @TotalKitCost decimal(18,2)=0,@WorkOrderWorkflowId BIGINT = (SELECT TOP 1 WorkflowWorkOrderId FROM @tbl_KITPartType), @WorkOrderQuoteDetailsId BIGINT =0,@TotalAmount decimal(18,2)=0 ;
 					DECLARE @WorkOrderQuoteId BIGINT = (SELECT TOP 1 WorkOrderQuoteId FROM @tbl_KITPartType), @MasterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM @tbl_KITPartType)
 					DECLARE @IsUpdateQuoteDetail BIGINT = (SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType);

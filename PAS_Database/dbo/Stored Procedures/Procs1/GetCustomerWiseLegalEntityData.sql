@@ -17,7 +17,7 @@
 	5	27/2/2024		AMIT GHEDIYA	REMOVED isperforma Flage for SO
 	6	05/4/2024		Devendra Shekh	duplicate LegalEntity issue resolved
 	7	30/06/2025		Devendra Shekh	Modified (Billing Table Changes for WO)
-
+	8	30/06/2025		Rajesh Gami			Modified (Billing Invoicing Table Changes for SO as per new structure)
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerWiseLegalEntityData] 3398,'2024-03-26','2024-04-05'
 -- EXEC [dbo].[GetCustomerWiseLegalEntityData] 3401,'2024-03-26','2024-04-05'
@@ -33,17 +33,19 @@ BEGIN
 	DECLARE @SOMSModuleID INT = 17,@WOMSModuleID INT = 12,@SOAddessModuleID INT=10;
 	DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
 	DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
+	DECLARE @SOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder');
 
 	;WITH CTE AS(
-		select le.LegalEntityId,so.ManagementStructureId,so.CustomerId,LE.[Name],sobi.BillToSiteId AS 'BillToSiteId',aas.UserType AS 'UserType'
+		select le.LegalEntityId,so.ManagementStructureId,so.CustomerId,LE.[Name],invd.SoldToSiteId AS 'BillToSiteId',aas.UserType AS 'UserType'
 			from SalesOrder so
-			INNER JOIN SalesOrderBillingInvoicing sobi WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId 
+			INNER JOIN BillingInvoicing sobi WITH(NOLOCK) ON so.SalesOrderId = sobi.ReferenceId  and ISNULL(sobi.IsVersionIncrease,0)=0 
+			INNER JOIN dbo.BillingInvoicingDetails invd WITH (NOLOCK) ON sobi.BillingInvoicingId = invd.BillingInvoicingId
 			INNER JOIN SalesOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.EntityMSID = so.ManagementStructureId AND soms.ModuleID=@SOMSModuleID
 			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 			INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 			INNER JOIN AllAddress aas WITH(NOLOCK) ON aas.ReffranceId = so.SalesOrderId AND aas.ModuleId = @SOAddessModuleID AND aas.IsShippingAdd=0
-			where sobi.InvoiceStatus = 'Invoiced' AND CAST(sobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)
-			group by so.ManagementStructureId,so.CustomerId,LE.[Name],le.LegalEntityId,sobi.BillToSiteId,aas.UserType
+			where sobi.InvoiceStatus = 'Invoiced' AND CAST(sobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND sobi.ModuleId = @SOModuleId
+			group by so.ManagementStructureId,so.CustomerId,LE.[Name],le.LegalEntityId,invd.SoldToSiteId,aas.UserType
 			
 			UNION
 			

@@ -22,6 +22,7 @@
 	7    12/27/2024     AMIT GHEDIYA					added COntrolNumber
 	8    07-03-2025     Shrey Chandegara				Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
     9	 10/04/2025	    Ekta Chandegra	                Convert date using dbo.ConvertUTCtoLocal
+	10   07/01/2025     Sahdev Saliya                   Changed The DataType in Column CreatedDate To Datetime
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -131,8 +132,8 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						NPH.IsActive,
 						NPH.IsDeleted,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
 						Upper(NPH.UpdatedBy) UpdatedBy,
 						NPH.MasterCompanyId,
@@ -247,8 +248,8 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						NPH.IsActive,
 						NPH.IsDeleted,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
+						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
 						Upper(NPH.UpdatedBy) UpdatedBy,
 						NPH.MasterCompanyId,

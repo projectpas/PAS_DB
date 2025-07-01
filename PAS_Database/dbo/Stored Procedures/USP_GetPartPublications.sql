@@ -13,7 +13,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    27/06/2025  Moin Bloch     Created
+    1    27/06/2025  Moin Bloch			Created
+    2    01/07/2025  Devendra Shekh     Allowing to fetch @cmmIds data Despite being Deleted/InActive
      
 --   EXEC [dbo].[USP_GetPartPublications] 102544,1,'711'
      EXEC [dbo].[USP_GetPartPublications] 102544,1,''
@@ -74,10 +75,11 @@ BEGIN
 			[p].[CreatedDate]
 		FROM [dbo].[Publication] AS [p] WITH (NOLOCK)
 		INNER JOIN [dbo].[PublicationItemMasterMapping] AS [pim] WITH (NOLOCK) ON [p].[PublicationRecordId] = [pim].[PublicationRecordId]
-		WHERE [p].[IsDeleted] = 0 
-		  AND [p].[IsActive] = 1		 
-		  AND [pim].[ItemMasterId] = @ItemMasterId
-		  AND [p].[PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@cmmIds, ','))
+		WHERE	[pim].[ItemMasterId] = @ItemMasterId
+			AND [p].[PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@cmmIds, ','))
+		  --AND [p].[IsDeleted] = 0 
+		  --AND [p].[IsActive] = 1  
+		  
 	END
     END TRY    
 	BEGIN CATCH      

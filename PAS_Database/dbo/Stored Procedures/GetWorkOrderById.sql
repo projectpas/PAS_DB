@@ -16,6 +16,7 @@
 	4    13/05/2025	  Abhishek Jirawla Isue with create work order with stockline
 	5    04/06/2025	  Devendra Shekh   added stockLineUnitCost to PartNumbers
 	6    10/06/2025	  Devendra Shekh   added @AllowPrintReleaseForm
+	7    01/07/2025	  Devendra Shekh   added New Field : MPNPartNumber
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -90,6 +91,7 @@ BEGIN
 		[WorkflowExpirationDate] DATETIME2(7) NULL,
 		[IsRepairManagement] BIT NULL,
 		[StockLineUnitCost] DECIMAL(18, 2) NULL,
+		[MPNPartNumber] VARCHAR(400) NULL,
 	)
 
     DECLARE @CustomerId BIGINT=0,@CustomerContactId BIGINT=0,@ReceivingCustomerWorkId BIGINT=0,@ItemMasterId BIGINT=0,@ConditionId BIGINT=0,@RecStockLineId BIGINT=0,@WorkScopeId BIGINT=0,@CsrId BIGINT=0,@EmployeeId BIGINT=0
@@ -98,7 +100,7 @@ BEGIN
 	DECLARE @Reference VARCHAR(256)='',@RCReference VARCHAR(256)='',@ReceivingNumber VARCHAR(50)='',@CustomerPhoneNo VARCHAR(50)=NULL,@CustomerEmail VARCHAR(50)=NULL,@Condition VARCHAR(256)=NULL,@StockLineNumber VARCHAR(50)=NULL,@StockLineUnitCost DECIMAL(18, 2)=NULL
 	DECLARE @Memo VARCHAR(MAX)='',@PartDescription NVARCHAR(MAX)='',@Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@RevisedPartNo VARCHAR(250)=NULL
 	DECLARE @SerialNumber VARCHAR(100)='',@CustName VARCHAR(100)='',@ContractReference VARCHAR(100)='',@Email VARCHAR(200)='',@CustomerPhone VARCHAR(20)='',@CSRName VARCHAR(100)='',@CreditTermName VARCHAR(20)=NULL,@CustomerContact VARCHAR(200)=NULL
-	DECLARE @CreditLimit DECIMAL(18,2)=0,@AnnualRevenuePotential DECIMAL(16,2)=0,@ARBalance DECIMAL(18,2)=0,@SalesPersonName VARCHAR(100)=''
+	DECLARE @CreditLimit DECIMAL(18,2)=0,@AnnualRevenuePotential DECIMAL(16,2)=0,@ARBalance DECIMAL(18,2)=0,@SalesPersonName VARCHAR(100)='',@MPNPartNumber VARCHAR(400)=''
 	DECLARE @PMACOUNT INT=0,@DERCOUNT INT =0,@ReceivedDate datetime2(7)=NULL,@ManagementStructureId BIGINT = 0,@CustReqDate datetime2(7)=NULL,@Quantity INT = 0
     DECLARE @ItemGroup VARCHAR(30)='',@WorkOrderScopeId BIGINT = NULL,@NTE INT = 0,@IsPMA BIT = 0,@IsDER BIT = 0,@ACTailNum NVARCHAR(1000)=''
     DECLARE @SiteId BIGINT = 0,@Site  VARCHAR(100)='',@Warehouse VARCHAR(100)='',@Location VARCHAR(100)='',@Shelf VARCHAR(100)='',@Bin VARCHAR(100)=''
@@ -195,7 +197,10 @@ BEGIN
 			   @LastMSLevel = COALESCE(msd.[LastMSLevel], ''),
 			   @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
 			   @IsRepairManagement = ISNULL(sl.IsRepairManagement, 0),
-			   @StockLineUnitCost = ISNULL(sl.UnitCost, 0)
+			   @StockLineUnitCost = ISNULL(sl.UnitCost, 0),
+			   @MPNPartNumber = CONCAT(@PartNumber, CASE	WHEN COALESCE(@SerialNumber, '') <> '' THEN ' - ' + @SerialNumber
+															WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
+															ELSE '' END)
 		  FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 		INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[StockLineId] = sl.[StockLineId]
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
@@ -277,7 +282,8 @@ BEGIN
                @WorkFlowNo [WorkFlowNo],
                @WorkflowExpirationDate [WorkflowExpirationDate],
 			   @IsRepairManagement [IsRepairManagement],
-			   @StockLineUnitCost [StockLineUnitCost]
+			   @StockLineUnitCost [StockLineUnitCost],
+			   @MPNPartNumber [MPNPartNumber]
 	END
 	-- For Customer RMA
 	IF(@Opr=2)
@@ -385,14 +391,17 @@ BEGIN
 				INSERT INTO #TempTableForPartsDetailsWO([ReceivingCustomerWorkId],[Partnumber],[PartDescription],[RevisedPartNo],[Condition],[ConditionId],
 					[StockLineNumber],[StockLineId],[SerialNumber],[Reference],[ReceivedDate],[ManagementStructureId],[CustReqDate],[Quantity],[ItemMasterId],
 					[ItemGroup],[WorkOrderScopeId],[NTE],[IsPMA],[IsDER],[ACTailNum],[SiteId],[Site],[Warehouse],[Location],[Shelf],[Bin],[IsFinishedGood],
-					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement], [StockLineUnitCost])				
+					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement], [StockLineUnitCost], [MPNPartNumber])				
 				SELECT 0,im.[PartNumber],im.[PartDescription],im.[RevisedPart],con.[Description],COALESCE(wopn.[RevisedConditionId], 0),
 					sl.[StockLineNumber],sl.[StockLineId],sl.[SerialNumber],rc.[CustomerReference],CRM.[OpenDate],CRM.[ManagementStructureId],CRM.[OpenDate],1,rc.[ItemMasterId],
 					COALESCE(ig.[ItemGroupCode], ''),wopn.[WorkOrderScopeId],ISNULL((im.[OverhaulHours] + COALESCE(im.[mfgHours], 0) + im.[RPHours] + im.[TestHours]),0),
 					CASE WHEN @PMACOUNT > 0 THEN 0 ELSE c.[RestrictPMA] END,CASE WHEN @DERCOUNT > 0 THEN 0 ELSE c.[RestrictDER] END,wopn.[ACTailNum],
 					sl.[SiteId],sl.[Site],sl.[Warehouse],sl.[Location],sl.[Shelf],sl.[Bin],0,COALESCE(msd.[LastMSLevel], ''),COALESCE(msd.[AllMSlevels], ''),
 					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),(wf.[WorkOrderNumber] + '_' + wf.[Version]),
-					(CASE WHEN wf.WorkflowId = 0 THEN NULL ELSE wf.WorkflowId END),wf.WorkflowExpirationDate, sl.IsRepairManagement, ISNULL(sl.UnitCost, 0)
+					(CASE WHEN wf.WorkflowId = 0 THEN NULL ELSE wf.WorkflowId END),wf.WorkflowExpirationDate, sl.IsRepairManagement, ISNULL(sl.UnitCost, 0),
+					CONCAT(im.[PartNumber], CASE	WHEN COALESCE(sl.[SerialNumber], '') <> '' THEN ' - ' + sl.[SerialNumber]
+													WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
+													ELSE '' END)
 				FROM [dbo].[CustomerRMADeatils] rc WITH(NOLOCK)
 				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[RMADeatilsId] = sl.[RMADeatilsId]
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
@@ -411,13 +420,16 @@ BEGIN
 				INSERT INTO #TempTableForPartsDetailsWO([ReceivingCustomerWorkId],[Partnumber],[PartDescription],[RevisedPartNo],[Condition],[ConditionId],
 					[StockLineNumber],[StockLineId],[SerialNumber],[Reference],[ReceivedDate],[ManagementStructureId],[CustReqDate],[Quantity],[ItemMasterId],
 					[ItemGroup],[WorkOrderScopeId],[NTE],[IsPMA],[IsDER],[ACTailNum],[SiteId],[Site],[Warehouse],[Location],[Shelf],[Bin],[IsFinishedGood],
-					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement], [StockLineUnitCost])	
+					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement], [StockLineUnitCost], [MPNPartNumber])	
 				SELECT 0,im.[PartNumber],im.[PartDescription],im.[RevisedPart],con.[Description],COALESCE(wopn.[ConditionId], 0),
 				    sl.[StockLineNumber],sl.[StockLineId],sl.[SerialNumber],rc.[CustomerReference],CRM.[OpenDate],CRM.[ManagementStructureId],CRM.[OpenDate],1,rc.[ItemMasterId],
 				    COALESCE(ig.[ItemGroupCode], ''),NULL,ISNULL((im.OverhaulHours + COALESCE(im.mfgHours, 0) + im.RPHours + im.TestHours),0),
 					CASE WHEN @PMACOUNT > 0 THEN 0 ELSE c.[RestrictPMA] END,CASE WHEN @DERCOUNT > 0 THEN 0 ELSE c.[RestrictDER] END,NULL,
 					sl.[SiteId],sl.[Site],sl.[Warehouse],sl.[Location],sl.[Shelf],sl.[Bin],0,COALESCE(msd.[LastMSLevel], ''),COALESCE(msd.[AllMSlevels], ''),
-					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),NULL,NULL,NULL, sl.IsRepairManagement, ISNULL(sl.UnitCost, 0)
+					ISNULL(@DefaultPriorityId,0),ISNULL(@DefaultStageCodeId,0),ISNULL(@DefaultStatusId,0),NULL,NULL,NULL, sl.IsRepairManagement, ISNULL(sl.UnitCost, 0),
+					CONCAT(im.[PartNumber], CASE	WHEN COALESCE(sl.[SerialNumber], '') <> '' THEN ' - ' + sl.[SerialNumber]
+													WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
+													ELSE '' END)
 				FROM [dbo].[CustomerRMADeatils] rc WITH(NOLOCK)
 				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[RMADeatilsId] = sl.[RMADeatilsId]
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
@@ -561,7 +573,10 @@ BEGIN
 				@LastMSLevel = COALESCE(msd.[LastMSLevel], ''),
 			    @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
 				@IsRepairManagement = COALESCE(sl.[IsRepairManagement], 0),
-				@StockLineUnitCost = ISNULL(sl.UnitCost, 0)
+				@StockLineUnitCost = ISNULL(sl.UnitCost, 0),
+				@MPNPartNumber = CONCAT(@PartNumber, CASE	WHEN COALESCE(@SerialNumber, '') <> '' THEN ' - ' + @SerialNumber
+															WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
+															ELSE '' END)
 			FROM [dbo].[StockLine] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sl.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON sl.[CustomerId] = c.[CustomerId]
@@ -602,7 +617,10 @@ BEGIN
 				@LastMSLevel = COALESCE(msd.[LastMSLevel], ''),
 			    @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
 				@IsRepairManagement = COALESCE(sl.[IsRepairManagement], 0),
-				@StockLineUnitCost = ISNULL(sl.UnitCost, 0)
+				@StockLineUnitCost = ISNULL(sl.UnitCost, 0),
+				@MPNPartNumber = CONCAT(@PartNumber, CASE	WHEN COALESCE(@SerialNumber, '') <> '' THEN ' - ' + @SerialNumber
+															WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
+															ELSE '' END)
 			FROM [dbo].[StockLine] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im ON sl.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[Condition] con ON sl.[ConditionId] = con.[ConditionId]
@@ -683,7 +701,8 @@ BEGIN
                @WorkflowExpirationDate [WorkflowExpirationDate],	 
 			   @Reference Reference,
     		   ISNULL(@IsRepairManagement, 0) [IsRepairManagement],
-			   @StockLineUnitCost [StockLineUnitCost]
+			   @StockLineUnitCost [StockLineUnitCost],
+			   @MPNPartNumber [MPNPartNumber]
 	END	
 	-- For Work Order
 	IF(@Opr=4)
@@ -831,6 +850,7 @@ BEGIN
 				[IsWoadded]  BIT NULL,
 				[IsRepairManagement]  BIT NULL,
 				[StockLineUnitCost] DECIMAL(18, 2) NULL,
+				[MPNPartNumber] VARCHAR(400) NULL,
 			)
 
 			SELECT @WorkOrderNum=[WorkOrderNum],@PrimarySalesPersonId=[SalesPersonId],@CsrId =[CsrId] ,@EmployeeId=[EmployeeId],@CustomerId = [CustomerId],
@@ -957,7 +977,10 @@ BEGIN
 						@LastMSLevel = msd.LastMSLevel,
 						@AllMSlevels = msd.AllMSlevels,
 						@IsRepairManagement = ISNULL(sl.IsRepairManagement, 0),
-						@StockLineUnitCost = ISNULL(sl.UnitCost, 0)
+						@StockLineUnitCost = ISNULL(sl.UnitCost, 0),
+						@MPNPartNumber = CONCAT(@PartNumber, CASE	WHEN COALESCE(@SerialNumber, '') <> '' THEN ' - ' + @SerialNumber
+																	WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
+																	ELSE '' END)
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wop.[StockLineId] = sl.[StockLineId]
 					INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.[ItemMasterId] = im.[ItemMasterId]
@@ -1056,7 +1079,8 @@ BEGIN
                            [LastMSLevel] = @LastMSLevel,
 						   [IsWoadded] = @IsWoadded,
 						   [IsRepairManagement] = @IsRepairManagement,
-						   [StockLineUnitCost] = @StockLineUnitCost
+						   [StockLineUnitCost] = @StockLineUnitCost,
+						   [MPNPartNumber] = @MPNPartNumber
 					 WHERE [PKID] = @MinIds;
 
 					SET @MinIds = @MinIds + 1;

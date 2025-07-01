@@ -17,7 +17,7 @@
 	6	 21/05/2025				 Devendra Shekh						added Invoice Fields for WO
 	7	 22/05/2025				 Devendra Shekh						Corrected InvoiceAmount same as Billing reports
 	8	 28/05/2025				 Devendra Shekh						added InvoiceStatus Field
-	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO 
+	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO & fix the Currency related issue for the SO
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
@@ -158,7 +158,7 @@ BEGIN
 						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId -- and SV.IsPrimary=1
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
-						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.CurrencyId = CU.CurrencyId
+						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
 
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
 						
@@ -434,7 +434,7 @@ BEGIN
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = sos.ShipViaId -- and SV.CustomerId=sos.CustomerId -- and sv.IsPrimary=1
 							LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 							LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
-							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.CurrencyId = CU.CurrencyId
+							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1	AND SOS.AirwayBill IS NOT NULL			
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,SV.Name,
@@ -708,7 +708,7 @@ BEGIN
 
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
-						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.CurrencyId = CU.CurrencyId
+						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
 
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
 							and sop.SalesOrderPartId not in(SELECT SalesOrderPartId FROM DBO.SalesOrderShippingItem SOSI 

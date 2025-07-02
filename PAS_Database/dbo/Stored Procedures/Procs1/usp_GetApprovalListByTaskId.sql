@@ -20,6 +20,8 @@
 	7    26/12/2024  RAJESH GAMI     Added Vendor Proforma Approval for the Vendor Proforma Invoice 
 	8	 02/01/2024  RAJESH GAMI     Vendor Proforma Approval: Return the extended cost
 	9	 8/JAN/2024  RAJESH GAMI     Non PO Approval: Return the extended cost 
+	10   01/07/2025  Abhishek Jirawla Added sum of common flat rate
+
 -- exec [dbo].[usp_GetApprovalListByTaskId] 12, 12
 ************************************************************************/
 CREATE   Procedure [dbo].[usp_GetApprovalListByTaskId]
@@ -174,7 +176,7 @@ BEGIN TRY
 
 		IF @IsCommonFlatRate = 1
 		BEGIN
-			SELECT @TotalCost = CommonFlatRate
+			SELECT @TotalCost = SUM(ISNULL(CommonFlatRate, 0))
 			  FROM dbo.WorkOrderQuoteDetails woq  WITH(NOLOCK)
 			   WHERE woq.WorkOrderQuoteId = @ID;
 		END

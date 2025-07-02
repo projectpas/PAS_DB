@@ -4009,6 +4009,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetDomesticWirePaymentByVendorId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetInternationalWirePaymentByVendorId.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineDocumentDetailsByReferenceId.sql" />
+    <Build Include="dbo\Tables\AiIntegrationSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAiIntegrationSettingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Add_AiIntegrationSetting.sql" />
     <Build Include="dbo\Stored Procedures\DeleteWOTasksById.sql" />
   </ItemGroup>
   <ItemGroup>

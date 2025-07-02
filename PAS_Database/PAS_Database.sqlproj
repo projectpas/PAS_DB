@@ -4015,6 +4015,9 @@
     <Build Include="dbo\Stored Procedures\DeleteWOTasksById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorDefaultPaymentDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorContactList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityInternationalShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorCapabilityList.sql" />
+    <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetailsforCM_CashReceipt.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateDepositAmount.sql" />
   </ItemGroup>
   <ItemGroup>

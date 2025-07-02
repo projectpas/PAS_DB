@@ -4016,6 +4016,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorDefaultPaymentDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorContactList.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityInternationalShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorCapabilityList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -22,6 +22,8 @@
 	9    25/06/2025   Moin Bloch     Fixed Version Increase 
 	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
 	11   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
+	12   02/07/2025   Moin Bloch     Added DepositAmount
+
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -395,13 +397,13 @@ BEGIN
 						   ,[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus]
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
 						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate])
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate],[DepositAmount])
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			END
 			ELSE
@@ -453,7 +455,7 @@ BEGIN
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus]
 						   ,[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
 						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate])
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate],[DepositAmount])
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],
@@ -461,7 +463,7 @@ BEGIN
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 							[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			   
 			    UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 
@@ -492,7 +494,8 @@ BEGIN
 
 			SET @MinId = @MinId + 1;
 		END  /****** END : MAIN WHILE LOOP *******/
-
+		
+		EXEC [dbo].[USP_UpdateDepositAmount] @BillingInvoicingIdNew
 	/********* Return New Billing Invoicing Id **********/
 	SELECT @BillingInvoicingIdNew AS [BillingInvoicingId]  
  END   

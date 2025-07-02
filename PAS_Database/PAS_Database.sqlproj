@@ -4013,6 +4013,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetAiIntegrationSettingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_Add_AiIntegrationSetting.sql" />
     <Build Include="dbo\Stored Procedures\DeleteWOTasksById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorDefaultPaymentDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVendorContactList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

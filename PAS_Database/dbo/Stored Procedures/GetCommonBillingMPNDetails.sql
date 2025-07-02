@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -20,8 +21,8 @@
 	8    23/06/2025   Moin Bloch     Added WorkOrderShippingId IN WO
 	9    25/06/2025   RAJESH GAMI    Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
 	10   26/06/2025   Moin Bloch     Fixed For Settlement IN WO
-	11   26/06/2025   Moin Bloch     Fixed to not getting invoicing id while get the part detail call
---  EXEC [dbo].[GetCommonBillingMPNDetails] 8984,8812,'',15,0,0
+	11   26/06/2025   Rajesh Gami     Fixed to not getting invoicing id while get the part detail call 
+--  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
@@ -494,8 +495,9 @@ BEGIN
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
 				SELECT TOP 1 @BillingInvoicingId = MAX(ISNULL(BI.BillingInvoicingId,0)), @BillingInvoicingItemId = MAX(ISNULL(BII.BillingInvoicingItemId,0)),@itemProformaGrandTotal = MAX(ISNULL(BII.GrandTotal,0)),@InvoiceStatusName = MAX(ISNULL(BI.InvoiceStatus,''))  FROM #TempCommonPartNumberDetailsForBilling cpd   
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId 
-							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId AND BII.ConditionId = CPD.ConditionId AND cpd.StockLineId = BII.StocklineId
-							
+							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId 
+							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))
+							AND (cpd.StockLineId = BII.StocklineId OR (cpd.StockLineId IS NULL))							
 							WHERE cpd.ReferenceId = @ReferenceId  AND ((ISNULL(Bi.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsVersionIncrease,0) = 0) OR  (ISNULL(Bi.IsVersionIncrease,0) = 1 AND ISNULL(BII.IsVersionIncrease,0) = 0)) AND  [PKID] = @MinId AND ISNULL(BI.IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0);	
 				
 				IF(@SoChargesBillingMethodId != 0 AND @SoChargesBillingMethodId != @FlatBillingMethodId)

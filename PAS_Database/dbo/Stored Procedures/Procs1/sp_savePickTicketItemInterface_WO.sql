@@ -60,9 +60,11 @@ BEGIN
 			,@TemplateBody NVARCHAR(MAX),@WorkOrderNum VARCHAR(MAX),@StockLineNum VARCHAR(MAX),@WorkFlowWorkOrderId BIGINT
 			,@WorkOrderPartNoId BIGINT,@ItemMasterId BIGINT,@partnumber VARCHAR(200),@PNItemMasterId BIGINT,@RevisedItemmasterid BIGINT, @TotalWMSTK BIGINT
 			,@TotalShipQty BIGINT, @WOWorkFlowId BIGINT,@WOPartNoId BIGINT;
+		DECLARE @EnforcePickTicketConfirmation BIT;
 
 		SET @WOWorkFlowId = (SELECT WorkFlowWorkOrderId FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId);
 		SET @WOPartNoId = (SELECT WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WOWorkFlowId);
+		SELECT @EnforcePickTicketConfirmation = EnforceMpnPickTicketConfirmation FROM DBO.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 
 		IF(@WOPickTicketId = 0)  
 		BEGIN  
@@ -79,7 +81,14 @@ BEGIN
 				   ,[PickedById],[ConfirmedById],[Memo],[IsConfirmed],[QtyRemaining])  
 				VALUES(@WOPickTicketNumber, @WorkOrderId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted, @WorkOrderMaterialsId,@WorkOrderMaterialsId,  
 				  @Qty, @QtyToShip, @MasterCompanyId, @Status,  
-				  @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@QtyRemaining);  
+				  @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@QtyRemaining);
+
+				SELECT @WOPickTicketId = SCOPE_IDENTITY()
+
+				IF (ISNULL(@EnforcePickTicketConfirmation, 0) = 0)
+				BEGIN
+					UPDATE [dbo].[WOPickTicket] SET ConfirmedById = @PickedById, IsConfirmed = 1, ConfirmedDate = GETUTCDATE() WHERE PickTicketId = @WOPickTicketId;
+				END
 		   END  
 		   ELSE  
 		   BEGIN  

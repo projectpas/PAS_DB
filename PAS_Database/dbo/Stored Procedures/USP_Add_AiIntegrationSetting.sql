@@ -7,7 +7,8 @@
 	@IsReviewRequired BIT,
 	@IsAutoEmailSend BIT,
 	@FromDate DATETIME2(7),
-	@ToDate DATETIME2(7)
+	@ToDate DATETIME2(7),
+	@PercentId bigint = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -15,6 +16,12 @@ BEGIN
 
 	BEGIN TRY
 		BEGIN TRANSACTION;
+
+		DECLARE @PercentValue DECIMAL = NULL;
+		if(@PercentId > 0)
+		begin
+			(SELECT @PercentValue = PercentValue FROM [dbo].[Percent] WITH(NOLOCK) WHERE [PercentId] = @PercentId and [MasterCompanyId] = @MasterCompanyId and ISNULL(IsDeleted,0) = 0)
+		end
 
 		MERGE INTO dbo.AiIntegrationSetting AS TARGET
 		USING (SELECT @AiIntegrationSettingId AS AiIntegrationSettingId, @MasterCompanyId AS MasterCompanyId) AS SOURCE
@@ -27,11 +34,13 @@ BEGIN
 				TARGET.IsEnableDisableAIintegration = @IsEnableDisableAIintegration,
 				TARGET.IsReviewRequired = @IsReviewRequired,
 				TARGET.IsAutoEmailSend = @IsAutoEmailSend,
+				TARGET.PercentId = @PercentId,
+				TARGET.PercentValue = @PercentValue,
 				TARGET.UpdatedDate = GETUTCDATE(),
 				TARGET.UpdatedBy = @UpdatedBy
 		WHEN NOT MATCHED BY TARGET THEN
-			INSERT ([FromDate], [ToDate], [IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-			VALUES (@FromDate, @ToDate, @IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+			INSERT ([FromDate], [ToDate], [IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+			VALUES (@FromDate, @ToDate, @IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
 
 		COMMIT TRANSACTION;
 	END TRY

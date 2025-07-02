@@ -66,25 +66,19 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
 		SELECT
 				@CurrntEmpTimeZoneDesc = COALESCE(
 					ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 					LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
 				)
-			FROM
-				dbo.Employee E WITH (NOLOCK)
-			LEFT JOIN
-				dbo.TimeZone ETZ WITH (NOLOCK)
-				ON E.TimeZoneId = ETZ.TimeZoneId
-			LEFT JOIN
-				dbo.LegalEntity LE WITH (NOLOCK)
-				ON E.LegalEntityId = LE.LegalEntityId
-			LEFT JOIN
-				dbo.TimeZone LTZ WITH (NOLOCK)
-				ON LE.TimeZoneId = LTZ.TimeZoneId
-			WHERE
-				E.EmployeeId = @EmployeeId;
+			FROM dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE E.EmployeeId = @EmployeeId;
+
+			SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -132,8 +126,10 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						NPH.IsActive,
 						NPH.IsDeleted,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
+						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[CreatedDate])) [CreatedDate],
+						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[UpdatedDate])) [UpdatedDate],
+						--(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
+						--(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
 						Upper(NPH.UpdatedBy) UpdatedBy,
 						NPH.MasterCompanyId,
@@ -248,8 +244,10 @@ BEGIN
 						CT.Name AS [PaymentTerms],
 						NPH.IsActive,
 						NPH.IsDeleted,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
-						(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
+						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[CreatedDate])) [CreatedDate],
+						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[UpdatedDate])) [UpdatedDate],
+						--(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
+						--(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
 						Upper(NPH.UpdatedBy) UpdatedBy,
 						NPH.MasterCompanyId,

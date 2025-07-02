@@ -48,8 +48,14 @@
     [IsQuickBookGeneratedInvoice] BIT             NULL,
     [OldBillingInvoicingId]       BIGINT          NULL,
     [CreditMemoUsed]              DECIMAL (18, 2) DEFAULT ((0)) NULL,
+    [OriginCountryId]             INT             NULL,
+    [ShipToCountryId]             INT             NULL,
+    [SignEmpId]                   BIGINT          NULL,
+    [SignEmpDate]                 DATETIME2 (7)   NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
 
 
 

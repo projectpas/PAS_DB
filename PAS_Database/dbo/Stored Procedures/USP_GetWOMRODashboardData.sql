@@ -12,7 +12,8 @@
     1    02-June-2025		Devendra Shekh			CREATED   
 	2    16-June-2025		Devendra Shekh 			Amount Issue Resolved for MTD Billing
 	3    24-June-2025		Devendra Shekh			Billing Table Changes
-	4	 07-July-2025		Devendra Shekh			Parts Count Issue resolved for WOQ
+	4	 01-July-2025		Devendra Shekh			Parts Count Issue resolved for WOQ
+	5	 02-July-2025		Devendra Shekh			Using @BaseUtcOffsetSec for DateConversion
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -39,7 +40,7 @@ BEGIN
 		DECLARE @WOBillingAmount AS DECIMAL(20, 2);
 		DECLARE @WOMTDUnits AS INT;
 		DECLARE @WOMTDAmount AS DECIMAL(20, 2);
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
 
 		DECLARE @RecevingModuleID AS BIGINT = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'RecevingCustomer');
 		DECLARE @WOPartModuleID AS BIGINT = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
@@ -87,6 +88,8 @@ BEGIN
 		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @EmployeeId;
 
+		SELECT TOP 1 @BaseUtcOffsetSec = [BaseUtcOffsetSec] FROM [dbo].[TimeZone] WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc;
+
 		-- selecting receiving customer work details		:(DashboardType = 9)
 		SELECT @WOReceiptUnits = SUM(Quantity) FROM (
 				SELECT DISTINCT	
@@ -106,10 +109,7 @@ BEGIN
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				WHERE rec_cust.IsActive = 1 
 				AND rec_cust.IsDeleted = 0 
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-					CASE WHEN CAST(rec_cust.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(rec_cust.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-						ELSE (CAST(rec_cust.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @StartDate)
-				--AND CONVERT(DATE, rec_cust.CreatedDate) = CONVERT(DATE, @StartDate)
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, rec_cust.CreatedDate)) = CONVERT(DATE, @StartDate)
 				AND rec_cust.MasterCompanyId = @MasterCompanyId
 				AND  rec_cust.IsPiecePart = 0 
 				GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
@@ -165,10 +165,7 @@ BEGIN
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			       ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @StartDate)
-				--AND CONVERT(DATE, wobi.InvoiceDate) = CONVERT(DATE, @StartDate) 
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @StartDate)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
@@ -192,10 +189,7 @@ BEGIN
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
-				--AND CONVERT(DATE,wobi.InvoiceDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate 
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			       ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.ModuleId = @WOModuleId

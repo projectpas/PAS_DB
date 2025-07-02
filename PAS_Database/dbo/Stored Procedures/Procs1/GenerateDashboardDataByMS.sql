@@ -29,6 +29,7 @@
 	16	 06/24/2025		Devendra Shekh		Billing Table Changes
 	17	 06/30/2025		Devendra Shekh		SO Billing Table Changes
 	18	 07/01/2025		Devendra Shekh		Parts Count Issue resolved for WOQ
+	19	 07/02/2025		Devendra Shekh		Using @BaseUtcOffsetSec for DateConversion
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -147,9 +148,7 @@ BEGIN
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				WHERE rec_cust.IsActive = 1 
 				AND rec_cust.IsDeleted = 0 
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-					CASE WHEN CAST(rec_cust.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(rec_cust.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-						ELSE (CAST(rec_cust.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, rec_cust.CreatedDate)) = CONVERT(DATE, @SelectedDate)
 				AND rec_cust.MasterCompanyId = @MasterCompanyId
 				AND  rec_cust.IsPiecePart = 0 
 				GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
@@ -170,9 +169,7 @@ BEGIN
 			WHERE wobi.IsActive = 1 
 			AND wobi.IsDeleted = 0 
 			AND wobi.IsVersionIncrease = 0
-			AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+			AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @SelectedDate)
 			AND wobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 			AND wobi.ModuleId = @WOModuleId
@@ -201,9 +198,7 @@ BEGIN
 			WHERE sobi.IsActive = 1
 			AND sobi.IsDeleted = 0
 			AND ISNULL(SOV.StockLineId, 0) > 0
-			AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(sobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(sobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+			AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, sobi.InvoiceDate)) = CONVERT(DATE, @SelectedDate)
 			AND sobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 			AND SOBI.ModuleId = @SOModuleId
@@ -269,10 +264,7 @@ BEGIN
 			Where SOBI.ReferenceId = SOP.SalesOrderId AND SO.MasterCompanyId = @MasterCompanyId AND SOBI.ModuleId = @SOModuleId) AND
 			SO.IsActive = 1
 		AND SO.IsDeleted = 0
-		--AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @SelectedDate)
-		AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(SO.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			       ELSE (CAST(SO.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @SelectedDate)
+		AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @SelectedDate)
 		AND SO.MasterCompanyId = @MasterCompanyId
 		GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 		ORDER BY SO.SalesOrderNumber

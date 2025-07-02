@@ -18,6 +18,7 @@
     5    15/04/2025   RAJESH GAMI      Implement the traverler Number logic 
 	6    18/04/2025   Moin Bloch       Added For CREATING TRAVELER LABOUR HEADER
 	7    19/05/2025   Abhishek Jirawla Added new History template to mention if cretaed form lot
+	8    01/07/2025   Vishal Suthar	   Inserting EnforceMpnPickTicketConfirmation flag in WorkOrder table
 
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -87,7 +88,7 @@ BEGIN
 	DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1,@StocklineManagementStructureModule INT,@WorkOrderMPNManagementStructureModule INT
 	DECLARE @CustomerRMAHeaderManagementStructureModule INT,@OpenRMAStatus INT,@CustomerRMAItemReturnedStatus INT
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
-	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL ; 
+	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
 	
 	-- Work Order Type
 	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
@@ -372,7 +373,8 @@ BEGIN
 	             @TearDownTypes=[TearDownTypes],
 				 @IsManualForm = CASE WHEN [IsManualForm] IS NULL THEN 0 ELSE [IsManualForm] END,
 				 @IsTraveler = [IsTraveler],
-				 @AllowInvoiceBeforeShipping = [AllowInvoiceBeforeShipping]
+				 @AllowInvoiceBeforeShipping = [AllowInvoiceBeforeShipping],
+				 @EnforceMpnPickTicketConfirmation = [EnforceMpnPickTicketConfirmation]
       FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 
 	SELECT TOP 1  @CustomerFinancialId=[CustomerFinancialId],@CreditTermsId=[CreditTermsId] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
@@ -433,11 +435,11 @@ BEGIN
 	INSERT INTO [dbo].[WorkOrder]([WorkOrderNum],[IsSinglePN],[WorkOrderTypeId],[OpenDate],[CustomerId],[WorkOrderStatusId],[EmployeeId],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 	            [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[SalesPersonId],[CSRId],[ReceivingCustomerWorkId],[Memo],[Notes],[CustomerContactId],[CustomerName],[CustomerType],
                 [CreditLimit],[CreditTerms],[TearDownTypes],[RMAHeaderId],[IsWarranty],[IsAccepted],[ReasonId],[Reason],[CreditTermId],[IsManualForm],[PercentId],[Days],[NetDays],
-                [WorkOrderType],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[WorkOrderFormTypeId],[IsWoAlwaysOrOndemandId])
+                [WorkOrderType],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[WorkOrderFormTypeId],[IsWoAlwaysOrOndemandId],[EnforceMpnPickTicketConfirmation])
          VALUES (@WorkOrderNum,@IsSinglePN,@WorkOrderTypeId,GETUTCDATE(),@CustomerId,@WorkOrderStatusId,@EmployeeId,@MasterCompanyId,@CreatedBy,@UpdatedBy,
 				 @CreatedDate,@UpdatedDate,1,0,@SalesPersonId,@CSRId,@ReceivingCustomerWorkId,@Memo,@Notes,@CustomerContactId,@CustomerName,@CustomerType,
 				 @CreditLimit,@CreditTerms,@TearDownTypes,@RMAHeaderId,@IsWarranty,@IsAccepted,@ReasonId,@Reason,@CreditTermId,@IsManualForm,@PercentId,@Days,@NetDays,
-				 @WorkOrderType,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@WorkOrderFormTypeId,@IsWoAlwaysOrOndemandId)
+				 @WorkOrderType,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@WorkOrderFormTypeId,@IsWoAlwaysOrOndemandId,@EnforceMpnPickTicketConfirmation)
 
 	SET @WorkOrderId = SCOPE_IDENTITY();	   
 	

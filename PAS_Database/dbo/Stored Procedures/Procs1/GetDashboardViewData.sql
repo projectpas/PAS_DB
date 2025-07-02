@@ -28,6 +28,7 @@
 	16   24/06/2025		Devendra Shekh	Billing Table Changes
 	17	 30/06/2025		Devendra Shekh	Modified(SO Billing Table Changes)
 	18	 07/01/2025		Devendra Shekh  Parts Count Issue resolved for WOQ
+	19	 07/02/2025		Devendra Shekh  Using @BaseUtcOffsetSec for DateConversion
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -53,7 +54,7 @@ BEGIN
 			DECLARE @SalesOrderQouteModuleID AS INT = (SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SalesOrderQuote');
 			DECLARE @SpeedQouteModuleID AS INT = (SELECT ManagementStructureModuleId FROM [dbo].ManagementStructureModule	WITH (NOLOCK)  where ModuleName = 'SpeedQuote');
 			DECLARE @WOQApproveStatus AS INT;
-			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
 
 			DECLARE @CMPostedStatusId INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'POSTED');
 			DECLARE @ClosedCreditMemoStatus INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'CLOSED');
@@ -124,6 +125,8 @@ BEGIN
 			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 			WHERE E.EmployeeId = @EmployeeId;
 
+			SELECT TOP 1 @BaseUtcOffsetSec = [BaseUtcOffsetSec] FROM [dbo].[TimeZone] WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc;
+
 			IF (@DashboardType = 1)
 			BEGIN
 					;With TempResults as  (
@@ -140,19 +143,13 @@ BEGIN
 					FROM 
 						DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
 						INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
-						--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
-						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
-						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = rec_cust.ReceivingCustomerWorkId
 						LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
 						LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 					WHERE 
 						rec_cust.IsActive = 1 
 						AND rec_cust.IsDeleted = 0 
-						--AND CONVERT(DATE, rec_cust.ReceivedDate) = CONVERT(DATE, @Date) 
-						AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(rec_cust.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(rec_cust.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(rec_cust.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @Date)
+						AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, rec_cust.CreatedDate)) = CONVERT(DATE, @Date)
 						AND rec_cust.MasterCompanyId = @MasterCompanyId
 						AND  rec_cust.IsPiecePart = 0 
 					GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
@@ -171,15 +168,10 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON wop.ID = TMP.ReferenceID
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @Date)
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @Date)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.ModuleId = @WOModuleId
@@ -208,9 +200,7 @@ BEGIN
 					WHERE sobi.IsActive = 1
 					AND sobi.IsDeleted = 0
 					AND ISNULL(SOV.StockLineId, 0) > 0
-					AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(sobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(sobi.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @Date)
+					AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, sobi.InvoiceDate)) = CONVERT(DATE, @Date)
 					AND sobi.MasterCompanyId = @MasterCompanyId
 					AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 					AND SOBI.ModuleId = @SOModuleId
@@ -230,9 +220,6 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 		        INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE 
 				wop.WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
 				AND wop.IsActive = 1
@@ -283,10 +270,7 @@ BEGIN
 					Where SOBI.ReferenceId = SOP.SalesOrderId AND SO.MasterCompanyId = @MasterCompanyId AND SOBI.ModuleId = @SOModuleId)
 				AND SO.IsActive = 1
 				AND SO.IsDeleted = 0
-				--AND CONVERT(DATE, SO.CreatedDate) = CONVERT(DATE, @Date)
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(SO.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			       ELSE (CAST(SO.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @Date)
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SO.CreatedDate)) = CONVERT(DATE, @Date)
 				AND SO.MasterCompanyId = @MasterCompanyId
 				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName,SOP.SalesOrderId,SOP.SalesOrderPartId,SOP.MasterCompanyId
 				ORDER BY SO.SalesOrderNumber
@@ -321,9 +305,6 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = WOP.ID
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				--Outer Apply(
 				--	SELECT 
 				--	STUFF((SELECT ', ' + WOPP.WorkScope
@@ -351,9 +332,6 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SQP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpSpeedQuoteUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID =@SpeedQouteModuleID AND MSD.ReferenceID = SQ.SpeedQuoteId
-	            --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SQ.ManagementStructureId = RMS.EntityStructureId
-	            --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE
 				SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
 				AND SQ.IsActive = 1
@@ -398,19 +376,13 @@ BEGIN
 					FROM 
 						DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
 						INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
-						--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 1 AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
-						--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
-						--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = rec_cust.ReceivingCustomerWorkId
 						LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
 						LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 					WHERE 
 						rec_cust.IsActive = 1 
 						AND rec_cust.IsDeleted = 0 
-						--AND CONVERT(DATE, rec_cust.CreatedDate) = CONVERT(DATE, @Date) 
-						AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-							CASE WHEN CAST(rec_cust.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(rec_cust.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-								ELSE (CAST(rec_cust.CreatedDate AS DATETIME)) END) = CONVERT(DATE, @Date)
+						AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, rec_cust.CreatedDate)) = CONVERT(DATE, @Date)
 						AND rec_cust.MasterCompanyId = @MasterCompanyId
 						AND  rec_cust.IsPiecePart = 0 
 					GROUP BY WO.WorkOrderId, rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup, wo.WorkOrderNum, rec_cust.CustomerName, emp.FirstName, emp.LastName
@@ -429,16 +401,10 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
-				--AND CONVERT(DATE,wobi.InvoiceDate) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) AND @Date 
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(wobi.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(wobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			       ELSE (CAST(wobi.InvoiceDate AS DATETIME)) END) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) AND @Date 
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) AND @Date
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.ModuleId = @WOModuleId
@@ -455,9 +421,6 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE  CONVERT(DATE,WOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND WOQ.MasterCompanyId = @MasterCompanyId
 				GROUP BY wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
@@ -474,9 +437,6 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = WOQD.WOPartNoId
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = CONVERT(DATE, @Date) AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
 				GROUP BY wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 			END
@@ -494,16 +454,10 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
-				--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		        --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-		        --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
-				AND CONVERT(DATE, CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
-						CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
-			       ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END) = CONVERT(DATE, @Date)
-				--AND CONVERT(DATE, wobi.InvoiceDate) = CONVERT(DATE, @Date) 
+				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @Date)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      

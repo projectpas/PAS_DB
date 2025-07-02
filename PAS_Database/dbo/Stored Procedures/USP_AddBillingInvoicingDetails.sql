@@ -21,6 +21,7 @@
 	8    24/06/2025   RAJESH GAMI    Fixed while IsProformaInvoice = true part status changed to BILLED.  
 	9    25/06/2025   Moin Bloch     Fixed Version Increase 
 	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
+	11   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -78,6 +79,10 @@ CREATE PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @CustomerDomensticShippingShipViaId BIGINT = NULL,
 @WayBillRef VARCHAR(100) = NULL,
 @ShipAccountInfo VARCHAR(200) = NULL,
+@OriginCountryId INT = NULL,
+@DestinationCountryId INT = NULL,
+@SignEmpId BIGINT = NULL,
+@SignEmpDate DATETIME2(7) = NULL,
 -------------------------------------------BillingInvoicingItems-------------------------------------------
 @tbl_BillingInvoicingItemsType BillingInvoicingItemsType READONLY
 AS  
@@ -318,13 +323,13 @@ BEGIN
 				   ,[IsPerformaInvoice],[IsVersionIncrease],[PostedDate],[SubTotal],[OtherTax],[SalesTax],[DepositAmount],[GrandTotal]
 				   ,[Notes],[ManagementStructureId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
 				   ,[IsActive],[IsDeleted],[IsReversedJE],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate],[SyncToken]
-				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId])		 
+				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId],OriginCountryId,ShipToCountryId,SignEmpId,SignEmpDate)		 
 			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @CreatedDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
 					 @IsPerformaInvoice, @IsVersionIncrease, @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
 					 @Notes, @ManagementStructureId, @MasterCompanyId, @CreatedBy, @CreatedBy, @CreatedDate, @CreatedDate,
 					 @IsActive, @IsDeleted, @IsReversedJE, @QuickBooksReferenceId, @IsUpdated, @LastSyncDate, @SyncToken,
-					 @IsCreatedFromQuote, @IsQuickBookGeneratedInvoice,@RemainingAmount,@WorkOrderShippingId);
+					 @IsCreatedFromQuote, @IsQuickBookGeneratedInvoice,@RemainingAmount,@WorkOrderShippingId,@OriginCountryId,@DestinationCountryId,@SignEmpId,@SignEmpDate);
 				 
 		SET @BillingInvoicingIdNew = SCOPE_IDENTITY();	  
 
@@ -343,7 +348,7 @@ BEGIN
 					[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],
 					[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[ShippingId])
 			SELECT  [BillingInvoicingItemId],[BillingInvoicingId],@ModuleId,[ReferenceId],[SubModuleId],
-					[SubReferenceId],[ItemMasterId],[StocklineId],[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],
+					[SubReferenceId],[ItemMasterId],[StocklineId],[ConditionId],[CostPlusType],[UnitPrice],CASE WHEN  ISNULL([QtyBilled],0) = 0 THEN 1 ELSE [QtyBilled] END,
 					[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 					[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],
 					[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],

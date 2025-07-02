@@ -39,6 +39,8 @@ BEGIN
 					,AI.[UpdatedDate]
 					,AI.[IsActive]
 					,AI.[IsDeleted]
+					,AI.[PercentId]
+					,AI.[PercentValue]
 				FROM dbo.AiIntegrationSetting AI WITH(NOLOCK)
 				WHERE AI.MasterCompanyId = @MasterCompanyId
                 

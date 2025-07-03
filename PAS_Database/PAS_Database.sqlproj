@@ -4017,6 +4017,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetVendorContactList.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteLegalEntityInternationalShipping.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorCapabilityList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityInternationalShippingAudit.sql" />
     <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetailsforCM_CashReceipt.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -31,20 +31,42 @@ BEGIN
 		SET @SOModuleId = 10; --Sales Order
 
 		
-		--UPPDATE Credit Memo & Credit Memo Details
+		--UPPDATE Credit Memo 
 
-		UPDATE dbo.CreditMemo SET InvoiceId = BI.BillingInvoicingId FROM dbo.CreditMemo CM JOIN dbo.BillingInvoicing BI ON CM.InvoiceId =  BI.OldBillingInvoicingId WHERE BI.ModuleId = @WOModuleId AND CM.InvoiceTypeId = 1
-		UPDATE dbo.CreditMemo SET InvoiceId = BI.BillingInvoicingId FROM dbo.CreditMemo CM JOIN dbo.BillingInvoicing BI ON CM.InvoiceId =  BI.OldBillingInvoicingId WHERE BI.ModuleId = @SOModuleId AND CM.InvoiceTypeId = 2
-		
-		UPDATE dbo.CreditMemoDetails SET InvoiceId = BI.BillingInvoicingId FROM dbo.CreditMemoDetails CMD JOIN dbo.BillingInvoicing BI ON CMD.InvoiceId =  BI.OldBillingInvoicingId WHERE BI.ModuleId = @WOModuleId AND CMD.InvoiceTypeId = 1
-		UPDATE dbo.CreditMemoDetails SET InvoiceId = BI.BillingInvoicingId FROM dbo.CreditMemoDetails CMD JOIN dbo.BillingInvoicing BI ON CMD.InvoiceId =  BI.OldBillingInvoicingId WHERE BI.ModuleId = @SOModuleId AND CMD.InvoiceTypeId = 2
+		UPDATE dbo.CreditMemo SET InvoiceId = BI.BillingInvoicingId 
+		FROM dbo.CreditMemo CM JOIN dbo.BillingInvoicing BI ON CM.InvoiceId =  BI.OldBillingInvoicingId 
+		WHERE BI.ModuleId = @WOModuleId AND CM.InvoiceTypeId = 1 AND CM.MasterCompanyId = @MasterCompanyId
 
-		--UPPDATE Cash Receipt 
+		UPDATE dbo.CreditMemo SET InvoiceId = BI.BillingInvoicingId 
+		FROM dbo.CreditMemo CM JOIN dbo.BillingInvoicing BI ON CM.InvoiceId =  BI.OldBillingInvoicingId 
+		WHERE BI.ModuleId = @SOModuleId AND CM.InvoiceTypeId = 2 AND CM.MasterCompanyId = @MasterCompanyId
 		
-		UPDATE dbo.InvoicePayments SET SOBillingInvoicingId = BI.BillingInvoicingId FROM dbo.InvoicePayments INV JOIN dbo.BillingInvoicing BI ON INV.SOBillingInvoicingId =  BI.OldBillingInvoicingId WHERE BI.ModuleId = @WOModuleId AND INV.InvoiceType = 2
-		UPDATE dbo.InvoicePayments SET SOBillingInvoicingId = BI.BillingInvoicingId FROM dbo.InvoicePayments INV  JOIN dbo.BillingInvoicing BI ON INV.SOBillingInvoicingId =  BI.OldBillingInvoicingId WHERE BI.ModuleId = @SOModuleId AND INV.InvoiceType = 1
+		--UPPDATE Credit Memo Details
+		UPDATE dbo.CreditMemoDetails SET InvoiceId = BI.BillingInvoicingId 
+		FROM dbo.CreditMemoDetails CMD JOIN dbo.BillingInvoicing BI ON CMD.InvoiceId =  BI.OldBillingInvoicingId 
+		WHERE BI.ModuleId = @WOModuleId AND CMD.InvoiceTypeId = 1 AND CMD.MasterCompanyId = @MasterCompanyId
 
-		
+		UPDATE dbo.CreditMemoDetails SET InvoiceId = BI.BillingInvoicingId 
+		FROM dbo.CreditMemoDetails CMD JOIN dbo.BillingInvoicing BI ON CMD.InvoiceId =  BI.OldBillingInvoicingId 
+		WHERE BI.ModuleId = @SOModuleId AND CMD.InvoiceTypeId = 2 AND CMD.MasterCompanyId = @MasterCompanyId
+
+		--UPPDATE Cash Receipt 		
+		UPDATE dbo.InvoicePayments SET SOBillingInvoicingId = BI.BillingInvoicingId 
+		FROM dbo.InvoicePayments INV JOIN dbo.BillingInvoicing BI ON INV.SOBillingInvoicingId =  BI.OldBillingInvoicingId 
+		WHERE BI.ModuleId = @WOModuleId AND INV.InvoiceType = 2 AND INV.MasterCompanyId = @MasterCompanyId
+
+		UPDATE dbo.InvoicePayments SET SOBillingInvoicingId = BI.BillingInvoicingId 
+		FROM dbo.InvoicePayments INV  JOIN dbo.BillingInvoicing BI ON INV.SOBillingInvoicingId =  BI.OldBillingInvoicingId 
+		WHERE BI.ModuleId = @SOModuleId AND INV.InvoiceType = 1 AND INV.MasterCompanyId = @MasterCompanyId
+
+		--UPPDATE RMA
+		UPDATE dbo.CustomerRMADeatils SET InvoiceId = BII.BillingInvoicingId, BillingInvoicingItemId = BII.BillingInvoicingItemId 
+		FROM dbo.CustomerRMADeatils CRD 
+			JOIN dbo.BillingInvoicingItems BII ON CRD.BillingInvoicingItemId =  BII.OldWOBillingInvoicingItemId 
+				AND CRD.InvoiceId = BII.OldBillingInvoicingId 
+		WHERE BII.ModuleId = @WOModuleId AND CRD.MasterCompanyId = @MasterCompanyId
+
+
 
 	END TRY    
 	BEGIN CATCH      

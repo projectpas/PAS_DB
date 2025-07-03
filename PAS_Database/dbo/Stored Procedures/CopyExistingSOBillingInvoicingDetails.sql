@@ -20,7 +20,7 @@ DELETE from dbo.BillingInvoicingDetails
 
 EXEC CopyExistingBillingInvoicingDetails 2
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[CopyExistingSOBillingInvoicingDetails]
+CREATE    PROCEDURE [dbo].[CopyExistingSOBillingInvoicingDetails]
 @MasterCompanyId BIGINT = NULL
 AS
 BEGIN	
@@ -48,7 +48,7 @@ BEGIN
 		SELECT SOBI.SOBillingInvoicingId,@ModuleId,SOBI.SalesOrderId,SOBI.CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,NULL AS InvoiceTime,PrintDate,SOBI.EmployeeId,SOBI.CurrencyId,NULL AS RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
 			RevType,SOBI.VersionNo,NULL AS CostPlusType,IsProforma,SOBI.IsVersionIncrease,PostedDate,SOBI.SubTotal,SOBI.OtherTax,SOBI.SalesTax,SOBI.DepositAmount,SOBI.GrandTotal,			
 			CASE WHEN SOBI.InvoiceStatus = 'Invoiced' THEN 1 ELSE 0 END AS IsInvoicePosted,
-			UsedDeposit,ProformaDeposit,RemainingAmount
+			CASE WHEN ISNULL(ProformaDeposit, 0) > 0 THEN ISNULL(ProformaDeposit, 0) ELSE UsedDeposit END AS UsedDeposit,ProformaDeposit,RemainingAmount
 			,NULL AS Notes,NULL AS WorkOrderShippingId,ManagementStructureId,SOBI.MasterCompanyId,SOBI.CreatedBy,SOBI.UpdatedBy,SOBI.CreatedDate,SOBI.UpdatedDate,SOBI.IsActive,SOBI.IsDeleted,0,QuickBooksReferenceId,IsUpdated,LastSyncDate
 			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice, SOBI.CreditMemoUsed
 		FROM dbo.SalesOrderBillingInvoicing SOBI 

@@ -45,11 +45,14 @@ BEGIN
 			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice)
 
 		SELECT WOBI.BillingInvoicingId,@ModuleId,WorkOrderId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
-			RevType,WOBI.VersionNo,CostPlusType,IsPerformaInvoice,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,WOBI.IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount
+			RevType,WOBI.VersionNo,CostPlusType,IsPerformaInvoice,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,WOBI.IsInvoicePosted,
+			--UsedDeposit,
+			CASE WHEN ISNULL(ProformaDeposit, 0) > 0 THEN ISNULL(ProformaDeposit, 0) ELSE UsedDeposit END AS UsedDeposit,
+			ProformaDeposit,RemainingAmount
 			,Notes,WorkOrderShippingId,ManagementStructureId,WOBI.MasterCompanyId,WOBI.CreatedBy,WOBI.UpdatedBy,WOBI.CreatedDate,WOBI.UpdatedDate,WOBI.IsActive,WOBI.IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate
 			,SyncToken,isCreatedFromQuote,IsQuickBookGeneratedInvoice
 		FROM dbo.WorkOrderBillingInvoicing WOBI 
-		WHERE WOBI.MasterCompanyId = @MasterCompanyId
+		WHERE WOBI.MasterCompanyId = @MasterCompanyId 
 
 
 		--SELECT * from dbo.WorkOrderBillingInvoicing where MasterCompanyId = 2 and IsVersionIncrease = 0
@@ -102,7 +105,7 @@ BEGIN
 				JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = WOBII.BillingInvoicingId AND ModuleId = @ModuleId
 				JOIN dbo.WorkOrderPartNumber WOP ON WOP.ID = WOBII.WorkOrderPartId
 				JOIN dbo.WorkOrderWorkFlow WOWF ON WOP.ID = WOWF.WorkOrderPartNoId
-			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20 
+			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20
 
 			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
 				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
@@ -111,8 +114,8 @@ BEGIN
 			FROM dbo.BillingInvoicingItems BII
 				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
-				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-			WHERE BII.ModuleId = @ModuleId AND BII.MasterCompanyId = @MasterCompanyId
+				JOIN dbo.WorkOrderBillingInvoicingItem WOBII ON  WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+				WHERE BII.ModuleId = @ModuleId AND BII.MasterCompanyId = @MasterCompanyId
 		
 		END
 		ELSE

@@ -38,6 +38,7 @@
     [OtherTaxPercent]             BIGINT          NULL,
     [OtherTax]                    DECIMAL (18, 2) NULL,
     [GrandTotal]                  DECIMAL (18, 2) NULL,
+    [DepositAmount]               DECIMAL (18, 2) NULL,
     [RemainingAmount]             DECIMAL (18, 2) NULL,
     [PDFPath]                     NVARCHAR (MAX)  NULL,
     [VersionNo]                   VARCHAR (20)    NULL,
@@ -58,6 +59,8 @@
     CONSTRAINT [PK_BillingInvoicingItems] PRIMARY KEY CLUSTERED ([BillingInvoicingItemId] ASC),
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
+
+
 
 
 

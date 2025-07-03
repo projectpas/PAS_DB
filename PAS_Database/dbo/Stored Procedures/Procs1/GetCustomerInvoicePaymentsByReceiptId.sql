@@ -24,6 +24,7 @@
 	9    24/06/2024   HEMANT SALIYA		Added Un Applied Cash in Cash Receipt
 	10	 24/10/2024	  Devendra Shekh	added [CustomerPaymentDetailsId] to select
 	11   13-03-2025   Shrey Chandegara  Modified Due to Time Optimization
+	12   02-07-2025   Moin Bloch		Changed to new Billing table
       
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 10135,0,2,11      
@@ -32,7 +33,7 @@
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 154,0,2,34      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 61,0,2,14      
     
-EXEC GetCustomerInvoicePaymentsByReceiptId 366,0,2,70,1      
+EXEC GetCustomerInvoicePaymentsByReceiptId 160,0,2,3362,1      
 exec GetCustomerInvoicePaymentsByReceiptId @ReceiptId=123,@PageIndex=0,@Opr=2,@CustomerId=3335,@legalEntityId=1
       
 **************************************************************/      
@@ -49,10 +50,15 @@ BEGIN
  BEGIN TRY      
 	DECLARE @SOMSModuleID INT = 17, @WOMSModuleID INT = 12;    
 	DECLARE @CMSModuleID INT = 61, @ESOMSModuleID INT = 68;   
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
 	DECLARE @CustomerCreditPaymentOpenStatus INT = 1; -- For Un Applied Cash
 	DECLARE @SuspenseModuleID INT ;
 	 
 	SELECT @SuspenseModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SUSPENSEANDUNAPPLIEDPAYMENT';
+	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+
     IF OBJECT_ID(N'tempdb..#TempInvoicePayments') IS NOT NULL    
 	BEGIN    
 		DROP TABLE #TempInvoicePayments
@@ -200,23 +206,19 @@ BEGIN
 			   ELSE 0 END AS 'DiscountAvailable'    
 				,INV.[CustomerPaymentDetailsId]
 		FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      
-			  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId     
-			  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId    
+			  LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = INV.SOBillingInvoicingId AND SOBI.ModuleId = @SOModuleId   
+			  LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId AND WOBI.ModuleId = @WOModuleId      
 			  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId
-			  LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
+			  LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
 			  LEFT JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON INV.SOBillingInvoicingId = CM.CreditMemoHeaderId   
 			  LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCP WITH(NOLOCK) ON INV.SOBillingInvoicingId = CCP.CustomerCreditPaymentDetailId AND INV.ReceiptId =  CCP.ReceiptId  
-			  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
-			  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD_WO WITH (NOLOCK) ON MSD_WO.ModuleID = @WOMSModuleID AND MSD_WO.ReferenceID = wobii.WorkOrderPartId   
+			  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.ReferenceId      
+			  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD_WO WITH (NOLOCK) ON MSD_WO.ModuleID = @WOMSModuleID AND MSD_WO.ReferenceID = wobii.SubReferenceId   
 			  LEFT JOIN [dbo].[ExchangeManagementStructureDetails] EMSD WITH (NOLOCK) ON EMSD.ModuleID = @ESOMSModuleID AND EMSD.ReferenceID = ESOBI.ExchangeSalesOrderId 
 			  LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD_CM WITH (NOLOCK) ON MSD_CM.ModuleID = @CMSModuleID AND MSD_CM.ReferenceID =  CM.CreditMemoHeaderId  
 			  LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD_UC WITH (NOLOCK) ON MSD_UC.ModuleID = @CMSModuleID AND MSD_UC.ReferenceID =  CCP.CustomerCreditPaymentDetailId 
-			  LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId        
-			  --LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId        
-			  --LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId    
-			  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0        
-			  --LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
-			  --LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
+			  LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.ReferenceId = S.SalesOrderId 
+			  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease,0) = 0  
 			  LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(S.PercentId AS INT) = ps.PercentId        
 			  LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = pw.PercentId     
 		WHERE INV.[ReceiptId] = @ReceiptId AND PageIndex=@PageIndex AND INV.CustomerId=@CustomerId      
@@ -228,7 +230,7 @@ BEGIN
 						NewRemainingBal, DocNum, CurrencyCode, FxRate, WOSONum, DSI, DSO, AmountPastDue,ARBalance, InvDueDate, CreditLimit, CreditTermName, LastMSLevel, AllMSlevels,
 						PageIndex, RemainingAmount, InvoiceDate, Id, GLARAccount, Selected, DiscountDate,DiscountAvailable, CustomerPaymentDetailsId)      
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId    ELSE 0 END AS 'PaymentId',      
-			  SOBI.CustomerId,SOBI.SOBillingInvoicingId,      
+			  SOBI.CustomerId,SOBI.BillingInvoicingId,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId',      
 			  SOBI.MasterCompanyId,      
 			  0 AS IsMultiplePaymentMethod,0 AS IsCheckPayment,0 AS IsWireTransfer,0 AS IsEFT,0 AS IsCCDCPayment,      
@@ -275,13 +277,13 @@ BEGIN
 			  CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(SO.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(SO.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,  
 			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(SO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
 			  ,IPT.[CustomerPaymentDetailsId]
-		FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)      
-			INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId      
+		FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)      
+			INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId=SOBI.ReferenceId  AND SOBI.ModuleId = @SOModuleId    
 			INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=SO.CustomerId      
 			INNER JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId=SO.CreditTermId      
 			INNER JOIN [dbo].[Currency] CR WITH (NOLOCK) ON CR.CurrencyId=SOBI.CurrencyId      
-			LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(SO.PercentId as INT) = p.PercentId        
-			LEFT JOIN [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND IPT.InvoiceType=1 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
+			 LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(SO.PercentId as INT) = p.PercentId        
+			 LEFT JOIN [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = SOBI.BillingInvoicingId AND IPT.InvoiceType=1 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
 			INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId AND MSD.Level1Id = @legalEntityId      
 		WHERE SOBI.CustomerId=@CustomerId AND SOBI.InvoiceStatus = 'Invoiced' AND SOBI.RemainingAmount > 0      
       
@@ -339,16 +341,16 @@ BEGIN
 			  CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,        
 			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
 			  ,IPT.[CustomerPaymentDetailsId]
-		FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
-			 LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsInvoicePosted, 0) = 0
-			 LEFT JOIN  [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId      
-			 LEFT JOIN  [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId      
+		FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK)      
+			 LEFT JOIN  [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId AND WOBI.ModuleId = @WOModuleId --AND ISNULL(WOBII.IsInvoicePosted, 0) = 0
+			 LEFT JOIN  [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId      
+			 LEFT JOIN  [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId      
 			 INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=WOBI.CustomerId      
 			 INNER JOIN [dbo].[Currency] CR WITH (NOLOCK) ON CR.CurrencyId=WOBI.CurrencyId      
 			 LEFT JOIN  [dbo].[CreditTerms] CT WITH (NOLOCK) ON WO.CreditTermId = CT.CreditTermsId        
 			 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(WO.PercentId as INT) = p.PercentId        
 			 LEFT JOIN  [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = WOBI.BillingInvoicingId AND IPT.InvoiceType=2 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
-			 INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.WorkOrderPartId AND MSD.Level1Id = @legalEntityId      
+			 INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.SubReferenceId AND MSD.Level1Id = @legalEntityId      
 		WHERE WOBI.CustomerId=@CustomerId AND WOBI.InvoiceStatus = 'Invoiced' AND WOBI.RemainingAmount > 0     
 			 AND ISNULL(WOBI.IsInvoicePosted, 0) = 0
     
@@ -411,13 +413,13 @@ BEGIN
 			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)      
 			  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
-			  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.SOBillingInvoicingId AND CMD.IsWorkOrder = 0   
-			  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON CMD.InvoiceId =  WOBI.BillingInvoicingId AND CMD.IsWorkOrder = 1    
+			  LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.BillingInvoicingId AND CMD.IsWorkOrder = 0   
+			  LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON CMD.InvoiceId =  WOBI.BillingInvoicingId AND CMD.IsWorkOrder = 1    
 			  LEFT JOIN [dbo].[Currency] WCurr WITH (NOLOCK) ON WOBI.CurrencyId = WCurr.CurrencyId      
 			  LEFT JOIN [dbo].[Currency] SCurr WITH (NOLOCK) ON SOBI.CurrencyId = SCurr.CurrencyId      
 			  LEFT JOIN [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = CM.CreditMemoHeaderId AND IPT.InvoiceType=3 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
 			  INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId AND MSD.Level1Id = @legalEntityId   
-		WHERE CM.CustomerId=@CustomerId AND CM.Status = 'Fulfilling'
+		WHERE CM.CustomerId=@CustomerId AND CM.[Status] = 'Fulfilling'
 
 		--UNION     
     
@@ -587,21 +589,21 @@ BEGIN
 			   ELSE 0 END AS 'DiscountAvailable'    
 			  ,INV.[CustomerPaymentDetailsId]
 		FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      
-			  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId      
-			  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId      
+			  LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = INV.SOBillingInvoicingId      
+			  LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId      
 			  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId  
-			  LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
-			  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
-			  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD_WO WITH (NOLOCK) ON MSD_WO.ModuleID = @WOMSModuleID AND MSD_WO.ReferenceID = wobii.WorkOrderPartId    
+			  LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
+			  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.ReferenceId      
+			  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD_WO WITH (NOLOCK) ON MSD_WO.ModuleID = @WOMSModuleID AND MSD_WO.ReferenceID = wobii.SubReferenceId    
 			  LEFT JOIN [dbo].[ExchangeManagementStructureDetails] EMSD WITH (NOLOCK) ON EMSD.ModuleID = @ESOMSModuleID AND EMSD.ReferenceID = ESOBI.ExchangeSalesOrderId      
 			  LEFT JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON INV.SOBillingInvoicingId = CM.CreditMemoHeaderId   
 			  LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCP WITH(NOLOCK) ON INV.SOBillingInvoicingId = CCP.CustomerCreditPaymentDetailId  
 			  LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD_CM WITH (NOLOCK) ON MSD_CM.ModuleID = @CMSModuleID AND MSD_CM.ReferenceID =  CM.CreditMemoHeaderId  
 			  LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD_UC WITH (NOLOCK) ON MSD_UC.ModuleID = @CMSModuleID AND MSD_UC.ReferenceID =  CCP.CustomerCreditPaymentDetailId
-			  LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId        
+			  LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.ReferenceId = S.SalesOrderId        
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId        
 			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId    
-			  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0        
+			  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.ReferenceId  and WOBI.IsVersionIncrease = 0        
 			  LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
 			  LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
 			  LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(S.PercentId as INT) = ps.PercentId        

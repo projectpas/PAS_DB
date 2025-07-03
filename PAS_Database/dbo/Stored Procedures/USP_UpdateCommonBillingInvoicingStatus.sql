@@ -115,6 +115,59 @@ BEGIN
 					   SET [IsInvoicePosted] = 1
 					 WHERE [BillingInvoicingId] = @BillingInvoicingId
 
+					 IF OBJECT_ID(N'tempdb..#TempUpdateBillingDetailsForPerforma') IS NOT NULL    
+					 BEGIN    
+						DROP TABLE #TempUpdateBillingDetailsForPerforma
+					 END
+
+					 CREATE TABLE #TempUpdateBillingDetailsForPerforma
+					 (
+						[PKID] [BIGINT] NOT NULL IDENTITY,			
+						[BillingInvoicingId] [BIGINT],
+						[ModuleId] [INT] NULL,
+						[ReferenceId] [BIGINT] NULL,		
+						[DepositAmount] [DECIMAL](18,2) NULL,
+						[UsedDeposit] [DECIMAL](18,2) NULL				
+					 )
+					 					
+					 INSERT INTO #TempUpdateBillingDetailsForPerforma([BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit])
+															  SELECT [BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit] 
+					 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND ModuleId = @ModuleId AND [IsPerformaInvoice] = 1 AND ISNULL([IsVersionIncrease],0) = 0
+
+
+					 DECLARE @DepositAmount DECIMAL(18,2) = 0,@UsedDeposit DECIMAL(18,2) = 0
+					 DECLARE @TotalRecordPRo INT = 0,@MinIdPro BIGINT = 1
+
+					 SELECT @DepositAmount = ISNULL([DepositAmount],0) FROM [dbo].[BillingInvoicing] WHERE [BillingInvoicingId] = @BillingInvoicingId  
+
+
+					SELECT @TotalRecordPRo = COUNT(*), @MinIdPro = MIN([PKID]) FROM #TempUpdateBillingDetailsForPerforma    
+
+					WHILE @MinIdPro <= @TotalRecordPRo
+					BEGIN
+						DECLARE @PendingDeposit DECIMAL(18,2)=0,@PerformaBillingInvoicingId BIGINT = 0
+						DECLARE @PerformaDepositAmount DECIMAL(18,2)=0
+						SELECT @PerformaBillingInvoicingId = [BillingInvoicingId],
+						       @ModuleId = [ModuleId],
+							   @ReferenceId = [ReferenceId], 
+							   @PerformaDepositAmount = ISNULL([DepositAmount],0),
+							   @UsedDeposit = ISNULL([UsedDeposit],0)
+						  FROM #TempUpdateBillingDetailsForPerforma WHERE [PKID] = @MinIdPro
+			
+						IF(@DepositAmount > 0)
+						BEGIN	
+							SET @PendingDeposit = @PerformaDepositAmount - @UsedDeposit
+
+							UPDATE [dbo].[BillingInvoicing] SET [UsedDeposit] = CASE WHEN @DepositAmount >= @PendingDeposit THEN @PendingDeposit ELSE @DepositAmount END
+							 WHERE [BillingInvoicingId] = @PerformaBillingInvoicingId
+				
+							SET @DepositAmount =  CASE WHEN @DepositAmount >= @PendingDeposit THEN @DepositAmount - @PendingDeposit ELSE 0 END 				
+						END
+
+						SET @MinIdPro = @MinIdPro + 1;
+					END
+					
+
 					SELECT @DistributionMasterId = [ID],
 					       @DistributionCode = [DistributionCode]
 					FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'WOINVOICINGTAB';

@@ -18,8 +18,9 @@
 	2    01/29/2024   Devendra Shekh	modified sp for performaInvoice
 	3    02/02/2024   Devendra Shekh	modified sp for performaInvoice
 	4    02/08/2024   Devendra Shekh	changed join for shipping to left
+	5    03-07-2025   Moin Bloch        Changed Old To New Billing Table
 
-	-- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId] 2183, 1752
+	-- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId] 8996, 8829
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
@@ -33,25 +34,63 @@ BEGIN
 		BEGIN TRY
 		 BEGIN TRANSACTION
 			BEGIN
-			
-				SELECT 
+			DECLARE @WOModuleId INT
+
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+				--SELECT 
+				--	wo.WorkOrderNum as WorkOrderNumber, 
+				--	CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			 --       CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',
+				--	(SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
+				--	                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )	 AS QtyToBill,
+				--	ISNULL((Select SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId AND WOBI.WorkOrderPartId = wop.ID AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) as QtyBilled,
+				--	wop.WorkOrderId,
+				--	CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
+				--	wop.ID as WorkOrderPartId ,
+				--	((SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
+				--	                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )) - ISNULL((Select SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) as QtyRemaining,
+				--	CASE WHEN 
+				--	(SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
+				--	                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )
+				--	= ISNULL((Select  SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId AND WOBI.WorkOrderPartId = wop.ID AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) THEN 'Fullfilled'
+				--	ELSE 'Fullfilling' END as [Status], 
+				--	CASE WHEN SUM(ISNULL(wosi.QtyShipped, 0)) = (SELECT SUM(ISNULL(NoofPieces, 0)) FROM WorkOrderBillingInvoicingItem wobII Where wobII.ItemMasterId = imt.ItemMasterId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0) THEN 'Fullfilled'
+				--	END as [Status], 0 AS ItemNo  
+				--FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)
+				--	LEFT JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
+				--	LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId
+				--	LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
+				--	LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
+				--	LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+				--	LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0
+				--	LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
+				--	AND wobii.WorkOrderPartId = wop.ID AND wobii.NoofPieces = wosi.QtyShipped AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				--WHERE wop.WorkOrderId = @WorkOrderId 
+				--and wop.ID in (SELECT WorkOrderPartId FROM WorkOrderBillingInvoicingItem WITH (NOLOCK)
+				--				WHERE ISNULL(IsPerformaInvoice, 0) = 0 AND BillingInvoicingId in 
+				--				(SELECT TOP 1  BillingInvoicingId FROM WorkOrderBillingInvoicing WITH (NOLOCK)
+				--				WHERE WorkOrderId=@WorkOrderId AND ISNULL(IsPerformaInvoice, 0) = 0 ORDER BY BillingInvoicingId DESC))  --= @workOrderPartNumberId
+				--GROUP BY wo.WorkOrderNum,wop.ID, imt.partnumber, imt.PartDescription,wo.WorkOrderId,
+				--	wop.WorkOrderId, imt.ItemMasterId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription
+
+					SELECT 
 					wo.WorkOrderNum as WorkOrderNumber, 
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 			        CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',
 					(SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
 					                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )	 AS QtyToBill,
-					ISNULL((Select SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId AND WOBI.WorkOrderPartId = wop.ID AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) as QtyBilled,
+					ISNULL((Select SUM(ISNULL(WOBI.QtyBilled,0)) FROM dbo.BillingInvoicing WOB inner join  dbo.BillingInvoicingItems WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where WOB.[ModuleId] =@WOModuleId AND ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.ReferenceId = wo.WorkOrderId AND WOBI.SubReferenceId = wop.ID AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) as QtyBilled,
 					wop.WorkOrderId,
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 					wop.ID as WorkOrderPartId ,
-					((SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
-					                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )) - ISNULL((Select SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) as QtyRemaining,
+					((SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM dbo.WorkOrderShippingItem  WSI  WITH(NOLOCK) 
+					                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )) - ISNULL((Select SUM(ISNULL(WOBI.QtyBilled,0)) FROM dbo.BillingInvoicing WOB inner join dbo.BillingInvoicingItems WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where WOB.[ModuleId] =@WOModuleId AND ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.ReferenceId = wo.WorkOrderId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) as QtyRemaining,
 					CASE WHEN 
-					(SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
+					(SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM dbo.WorkOrderShippingItem  WSI  WITH(NOLOCK) 
 					                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId AND WP.ID = wop.ID )
-					= ISNULL((Select  SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId AND WOBI.WorkOrderPartId = wop.ID AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) THEN 'Fullfilled'
+					= ISNULL((Select  SUM(ISNULL(WOBI.QtyBilled,0)) FROM dbo.BillingInvoicing WOB inner join dbo.BillingInvoicingItems WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where WOB.[ModuleId] =@WOModuleId AND ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.ReferenceId = wo.WorkOrderId AND WOBI.SubReferenceId = wop.ID AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0),0) THEN 'Fullfilled'
 					ELSE 'Fullfilling' END as [Status], 
-					CASE WHEN SUM(ISNULL(wosi.QtyShipped, 0)) = (SELECT SUM(ISNULL(NoofPieces, 0)) FROM WorkOrderBillingInvoicingItem wobII Where wobII.ItemMasterId = imt.ItemMasterId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0) THEN 'Fullfilled'
+					CASE WHEN SUM(ISNULL(wosi.QtyShipped, 0)) = (SELECT SUM(ISNULL(QtyBilled, 0)) FROM dbo.BillingInvoicingItems wobII Where wobII.ItemMasterId = imt.ItemMasterId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0) THEN 'Fullfilled'
 					END as [Status], 0 AS ItemNo  
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)
 					LEFT JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
@@ -59,14 +98,14 @@ BEGIN
 					LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
-					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0
-					LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
-					AND wobii.WorkOrderPartId = wop.ID AND wobii.NoofPieces = wosi.QtyShipped AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+					LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wop.ID = wobii.SubReferenceId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0 AND wobii.[ModuleId] =@WOModuleId
+					LEFT JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
+					AND wobii.SubReferenceId = wop.ID AND wobii.QtyBilled = wosi.QtyShipped AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				WHERE wop.WorkOrderId = @WorkOrderId 
-				and wop.ID in (SELECT WorkOrderPartId FROM WorkOrderBillingInvoicingItem WITH (NOLOCK)
+				and wop.ID in (SELECT SubReferenceId FROM dbo.BillingInvoicingItems WITH (NOLOCK)
 								WHERE ISNULL(IsPerformaInvoice, 0) = 0 AND BillingInvoicingId in 
-								(SELECT TOP 1  BillingInvoicingId FROM WorkOrderBillingInvoicing WITH (NOLOCK)
-								WHERE WorkOrderId=@WorkOrderId AND ISNULL(IsPerformaInvoice, 0) = 0 ORDER BY BillingInvoicingId DESC))  --= @workOrderPartNumberId
+							  (SELECT TOP 1  BillingInvoicingId FROM dbo.BillingInvoicing WITH (NOLOCK)
+								WHERE ReferenceId=@WorkOrderId AND [ModuleId] = @WOModuleId AND ISNULL(IsPerformaInvoice, 0) = 0 ORDER BY BillingInvoicingId DESC))  --= @workOrderPartNumberId
 				GROUP BY wo.WorkOrderNum,wop.ID, imt.partnumber, imt.PartDescription,wo.WorkOrderId,
 					wop.WorkOrderId, imt.ItemMasterId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription
 			END

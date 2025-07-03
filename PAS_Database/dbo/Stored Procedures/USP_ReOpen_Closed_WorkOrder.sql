@@ -11,6 +11,7 @@ Exec [USP_ReOpen_Closed_WorkOrder]
 ** --   --------    -------				--------------------------------
 ** 1    05/10/2023  Hemant Saliya		 Re-Open Closed WO
 ** 2	04/24/2025  Devendra Shekh		 Modify (Added [IsManualText] check for DistributionSetup)
+** 3    03-07-2025  Moin Bloch           Changed Old To New Billing Table
 
 EXEC dbo.USP_ReOpen_Closed_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -50,6 +51,10 @@ AS
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
 
+			DECLARE @WOModuleId INT
+
+		    SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
 			IF((SELECT COUNT(ID) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId AND ISNULL(IsFinishGood,0) = 1 AND ISNULL(IsClosed, 0) = 0) >  0)
 			BEGIN
 				SELECT @StockLineId = StockLineId,@MasterCompanyId = MasterCompanyId FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId
@@ -57,14 +62,18 @@ AS
 				SELECT @IsShippingDone = COUNT(WSI.WorkOrderShippingItemId) FROM dbo.WorkOrderShippingItem WSI WITH (NOLOCK) 
 				WHERE WSI.WorkOrderPartNumId = @workOrderPartNoId
 
-				SELECT @BillingInvoicingId = WOB.BillingInvoicingId FROM dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) 
-					JOIN dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOB.BillingInvoicingId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
-				WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
+				--SELECT @BillingInvoicingId = WOB.BillingInvoicingId FROM dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) 
+				--	JOIN dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOB.BillingInvoicingId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
+				--WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
+
+				SELECT @BillingInvoicingId = WOB.BillingInvoicingId FROM dbo.BillingInvoicingItems WOBI WITH (NOLOCK) 
+					JOIN dbo.BillingInvoicing WOB WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOB.BillingInvoicingId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
+				WHERE WOBI.[SubReferenceId] = @workOrderPartNoId AND WOBI.[ModuleId] = @WOModuleId
 
 				IF(ISNULL(@IsShippingDone,0) > 0)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done */
-					UPDATE Stockline SET 
+					UPDATE dbo.Stockline SET 
 						--QuantityAvailable = CASE WHEN QuantityAvailable = 0 THEN ISNULL(QuantityAvailable, 0) + 1 ELSE QuantityAvailable END, 
 						QuantityOnHand = CASE WHEN QuantityOnHand = 0 THEN ISNULL(QuantityOnHand, 0) + 1 ELSE QuantityOnHand END,
 						QuantityReserved = CASE WHEN QuantityReserved = 0 THEN ISNULL(QuantityReserved, 0) + 1 ELSE QuantityReserved END,
@@ -75,11 +84,17 @@ AS
 				IF(ISNULL(@BillingInvoicingId,0) > 0)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done */
-					UPDATE WorkOrderBillingInvoicing SET 
+					--UPDATE WorkOrderBillingInvoicing SET 
+					--	InvoiceStatus = 'Reviewed', 
+					--	InvoiceFilePath = '', 
+					--	UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
+					--WHERE BillingInvoicingId = @BillingInvoicingId
+
+					UPDATE dbo.BillingInvoicing SET 
 						InvoiceStatus = 'Reviewed', 
 						InvoiceFilePath = '', 
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
-					WHERE BillingInvoicingId = @BillingInvoicingId
+					WHERE [BillingInvoicingId] = @BillingInvoicingId
 				END
 
 				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0 WHERE ID = @workOrderPartNoId;

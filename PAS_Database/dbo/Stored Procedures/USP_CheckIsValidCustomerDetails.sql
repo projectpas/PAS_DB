@@ -11,14 +11,14 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    05/01/2024   HEMANT SALIYA      Created  
+	2    03-07-2025   Moin Bloch         Changed Old To New Billing Table
 
 DECLARE @IsValidCustomerContact BIT;      
 DECLARE @IsValidCustomerShipping BIT;
 DECLARE @IsValidCustomerBilling BIT;
 EXECUTE USP_CheckIsValidCustomerDetails 77, 3165, @IsValidCustomerContact OUTPUT, @IsValidCustomerShipping OUTPUT, @IsValidCustomerBilling OUTPUT
 
-*************************************************************/   
-  
+*************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_CheckIsValidCustomerDetails] 	
 @CustomerId BIGINT = NULL,  
 @WorkOrderPartNoId BIGINT = NULL,  
@@ -35,6 +35,9 @@ BEGIN
 		DECLARE @InvoiceStatus VARCHAR(100) = NULL;
 		DECLARE @IsShippingDone BIT = 0;
 		DECLARE @IsBillingDone BIT = 0;
+		DECLARE @WOModuleId INT
+
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 		SELECT @IsValidCustomerContact = CASE WHEN ISNULL(CO.WorkPhone, '') <> '' THEN 1 ELSE 0 END 
 		FROM dbo.CustomerContact CC WITH(NOLOCK) 
@@ -46,10 +49,15 @@ BEGIN
 			JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
 		WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId
 
+		--SELECT @IsBillingDone = CASE WHEN COUNT(WOB.BillingInvoicingId) > 0 THEN 1 ELSE 0 END 
+		--FROM dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) 
+		--	JOIN dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) ON WOB.BillingInvoicingId = WOBI.BillingInvoicingId 
+		--WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
+
 		SELECT @IsBillingDone = CASE WHEN COUNT(WOB.BillingInvoicingId) > 0 THEN 1 ELSE 0 END 
-		FROM dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) 
-			JOIN dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) ON WOB.BillingInvoicingId = WOBI.BillingInvoicingId 
-		WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
+		FROM dbo.BillingInvoicing WOB WITH (NOLOCK) 
+		JOIN dbo.BillingInvoicingItems WOBI WITH (NOLOCK) ON WOB.BillingInvoicingId = WOBI.BillingInvoicingId 
+		WHERE WOBI.SubReferenceId = @workOrderPartNoId AND WOB.[ModuleId] = @WOModuleId
 
 		IF(ISNULL(@IsShippingDone,0) > 0 OR ISNULL(@IsBillingDone,0) > 0)
 		BEGIN

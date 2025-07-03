@@ -15,8 +15,8 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    19-Mar-2024  Rajesh Gami   Created  
-
+    1    19-Mar-2024  Rajesh Gami          Created  
+	2    03-07-2025   Moin Bloch           Changed Old To New Billing Table
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_ReceivedUnit] 
 @PageNumber int = 1,
@@ -56,6 +56,9 @@ BEGIN
     --BEGIN TRANSACTION  
        print 'Start'
       DECLARE @ModuleID INT = 1; -- MS Module ID
+	  DECLARE @WOModuleId INT
+
+	  SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
@@ -141,8 +144,8 @@ BEGIN
 			INNER JOIN DBO.Condition AS CN WITH (NOLOCK) ON CW.ConditionId = CN.ConditionId 
 			LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON CW.ReceivingCustomerWorkId = WOPN.ReceivingCustomerWorkId
 			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId 
-			LEFT JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK) ON WOPN.Id =  WOBIT.WorkOrderPartId AND ISNULL(WOBIT.IsVersionIncrease,0) = 0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0 
-			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+			LEFT JOIN DBO.BillingInvoicingItems AS WOBIT WITH (NOLOCK) ON WOPN.Id =  WOBIT.SubReferenceId AND ISNULL(WOBIT.IsVersionIncrease,0) = 0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0  AND WOBIT.[ModuleId] = @WOModuleId
+			LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  AND WBI.[ModuleId] = @WOModuleId
 			LEFT JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = CW.ReceivingCustomerWorkId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		  

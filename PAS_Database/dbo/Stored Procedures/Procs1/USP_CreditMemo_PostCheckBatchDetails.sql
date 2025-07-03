@@ -32,6 +32,7 @@
 	16	 04/11/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	17   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	18	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	19   03-07-2025     Moin Bloch      Changed Old To New Billing Table
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -104,6 +105,12 @@ BEGIN
 		DECLARE @CustomerName VARCHAR(150) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CUSTOMER CREDIT MEMO';
+		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+
 
 		SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -261,38 +268,64 @@ BEGIN
 
 					IF(@InvoiceTypeId = @SOInvoiceTypeId)
 					BEGIN
+						--SELECT @InvoiceReferenceId = SL.StockLineId, @ManagementStructureId = SL.ManagementStructureId  
+						--FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
+						--	JOIN [dbo].[SalesOrderPartV1] SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
+						--	JOIN [dbo].[Stockline] SL ON SOBII.StockLineId = SL.StockLineId
+						--WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
+
 						SELECT @InvoiceReferenceId = SL.StockLineId, @ManagementStructureId = SL.ManagementStructureId  
-						FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
-							JOIN [dbo].[SalesOrderPartV1] SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
+						FROM [dbo].[BillingInvoicingItems] SOBII WITH(NOLOCK) 
+							JOIN [dbo].[SalesOrderPartV1] SOP ON SOP.SalesOrderPartId = SOBII.SubReferenceId
 							JOIN [dbo].[Stockline] SL ON SOBII.StockLineId = SL.StockLineId
-						WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
+						WHERE BillingInvoicingItemId = @BillingInvoicingItemId  AND SOBII.[ModuleId] =@SOModuleId
+
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
+						--SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
+						--FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) 
+						--	JOIN [dbo].[SalesOrderBillingInvoicingItem]  SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+						--	LEFT JOIN [dbo].[Currency] CU ON SOBI.CurrencyId = CU.CurrencyId
+						--	LEFT JOIN [dbo].[Customer] CS ON SOBI.CustomerId = CS.CustomerId
+						--WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
+
 						SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
-						FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) 
-							JOIN [dbo].[SalesOrderBillingInvoicingItem]  SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+						FROM [dbo].[BillingInvoicing] SOBI WITH(NOLOCK) 
+							JOIN [dbo].[BillingInvoicingItems]  SOBII ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId
 							LEFT JOIN [dbo].[Currency] CU ON SOBI.CurrencyId = CU.CurrencyId
 							LEFT JOIN [dbo].[Customer] CS ON SOBI.CustomerId = CS.CustomerId
-						WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
+						WHERE BillingInvoicingItemId = @BillingInvoicingItemId  AND SOBII.[ModuleId] =@SOModuleId
 					END
 					ELSE IF(@InvoiceTypeId = @WOInvoiceTypeId)
 					BEGIN
-						SELECT @InvoiceReferenceId = WorkOrderPartId, @ManagementStructureId = WOP.ManagementStructureId  
-						FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
-							JOIN [dbo].[WorkOrderPartNumber]  WOP ON WOP.ID = WOBII.WorkOrderPartId
-						WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
+						--SELECT @InvoiceReferenceId = WorkOrderPartId, @ManagementStructureId = WOP.ManagementStructureId  
+						--FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
+						--	JOIN [dbo].[WorkOrderPartNumber]  WOP ON WOP.ID = WOBII.WorkOrderPartId
+						--WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
+
+						SELECT @InvoiceReferenceId = SubReferenceId, @ManagementStructureId = WOP.ManagementStructureId  
+						FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) 
+							JOIN [dbo].[WorkOrderPartNumber]  WOP ON WOP.ID = WOBII.SubReferenceId
+						WHERE BillingInvoicingItemId = @BillingInvoicingItemId AND WOBII.[ModuleId] =@WOModuleId
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
+						--SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
+						--FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) 
+						--	JOIN [dbo].[WorkOrderBillingInvoicingItem]  WOBII ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+						--	LEFT JOIN [dbo].[Currency] CU ON WOBI.CurrencyId = CU.CurrencyId
+						--	LEFT JOIN [dbo].[Customer] CS ON WOBI.CustomerId = CS.CustomerId
+						--WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
+
 						SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
-						FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) 
-							JOIN [dbo].[WorkOrderBillingInvoicingItem]  WOBII ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+						FROM [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) 
+							JOIN [dbo].[BillingInvoicingItems]  WOBII ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 							LEFT JOIN [dbo].[Currency] CU ON WOBI.CurrencyId = CU.CurrencyId
 							LEFT JOIN [dbo].[Customer] CS ON WOBI.CustomerId = CS.CustomerId
-						WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
+						WHERE BillingInvoicingItemId = @BillingInvoicingItemId AND WOBI.[ModuleId] = @WOModuleId
 					END
 					ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 					BEGIN

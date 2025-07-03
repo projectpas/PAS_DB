@@ -13,12 +13,13 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    17/03/2025   Ayushi Patel     Created
+	2    03/07/2025   Moin Bloch       Changed Old To New Billing Table
 
     USP_WorkOrderAnalysisForShippingARbalance 8473 , 8128
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
-    @WorkOrderId BIGINT,  
-    @WorkOrderPartNoId BIGINT  
+@WorkOrderId BIGINT,  
+@WorkOrderPartNoId BIGINT  
 AS  
 BEGIN  
     SET NOCOUNT ON;  
@@ -26,6 +27,9 @@ BEGIN
 
     BEGIN TRY  
         BEGIN TRANSACTION  
+
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
         -- Create a temporary table for Quote List  
         CREATE TABLE #QuoteTable  
@@ -65,14 +69,24 @@ BEGIN
         FROM dbo.WorkOrderMPNCostDetails woc WITH (NOLOCK)  
         INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId  
         INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON woc.WOPartNoId = wop.ID  
-        LEFT JOIN dbo.WorkOrderBillingInvoicingItem wbi WITH (NOLOCK)  
-            ON wop.ID = wbi.WorkOrderPartId  
+        --LEFT JOIN dbo.WorkOrderBillingInvoicingItem wbi WITH (NOLOCK)  
+        --    ON wop.ID = wbi.WorkOrderPartId  
+        --    AND ISNULL(wbi.IsVersionIncrease, 0) = 0  
+        --    AND ISNULL(wbi.IsPerformaInvoice, 0) = 0  
+        --LEFT JOIN dbo.WorkOrderBillingInvoicing wb WITH (NOLOCK)  
+        --    ON wbi.BillingInvoicingId = wb.BillingInvoicingId  
+        --    AND ISNULL(wb.IsVersionIncrease, 0) = 0  
+        --    AND ISNULL(wb.IsPerformaInvoice, 0) = 0  
+		LEFT JOIN dbo.BillingInvoicingItems wbi WITH (NOLOCK)  
+            ON wop.ID = wbi.SubReferenceId  
             AND ISNULL(wbi.IsVersionIncrease, 0) = 0  
             AND ISNULL(wbi.IsPerformaInvoice, 0) = 0  
-        LEFT JOIN dbo.WorkOrderBillingInvoicing wb WITH (NOLOCK)  
+			AND wbi.[ModuleId] =@WOModuleId
+        LEFT JOIN dbo.BillingInvoicing wb WITH (NOLOCK)  
             ON wbi.BillingInvoicingId = wb.BillingInvoicingId  
             AND ISNULL(wb.IsVersionIncrease, 0) = 0  
             AND ISNULL(wb.IsPerformaInvoice, 0) = 0  
+			AND wb.[ModuleId] =@WOModuleId
         INNER JOIN dbo.Customer c WITH (NOLOCK) ON wo.CustomerId = c.CustomerId  
         INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
         INNER JOIN dbo.WorkOrderStage s WITH (NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId  

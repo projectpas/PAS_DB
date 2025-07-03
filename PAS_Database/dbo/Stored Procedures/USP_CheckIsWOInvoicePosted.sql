@@ -11,12 +11,11 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    05/01/2024   HEMANT SALIYA      Created  
+	2    03-07-2025   Moin Bloch         Changed Old To New Billing Table
 
 DECLARE @IsBillingGenerated BIT;       
 EXECUTE USP_CheckIsWOInvoicePosted 3913,3430, @IsBillingGenerated OUTPUT 
-
-*************************************************************/   
-  
+*************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_CheckIsWOInvoicePosted] 	
 @WorkOrderId BIGINT = NULL,  
 @WorkOrderPartNoId BIGINT = NULL,
@@ -29,13 +28,22 @@ BEGIN
 
 		DECLARE @IsInvoiceGenerated BIT = 0;
 		DECLARE @InvoiceStatus VARCHAR(100) = NULL;
+		DECLARE @WOModuleId INT
 
-		SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END 
-		FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-			JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-		WHERE WOBI.WorkOrderId = @WorkOrderId AND WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-			ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		--SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END 
+		--FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+		--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+		--WHERE WOBI.WorkOrderId = @WorkOrderId AND WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+		--	ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
 		
+		SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END 
+		FROM dbo.BillingInvoicing WOBI WITH (NOLOCK) 
+			JOIN dbo.BillingInvoicingItems WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+		WHERE WOBI.ReferenceId = @WorkOrderId AND WOBI.[ModuleId] = @WOModuleId AND WOBII.SubReferenceId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+			ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+
 		SET @IsBillingGenerated = @IsInvoiceGenerated;
 
 		SELECT @IsBillingGenerated; 

@@ -11,6 +11,7 @@ Exec [ReverseWorkOrder]
 ** --   --------    -------         --------------------------------
 ** 1    07/04/2022  Hemant Saliya    Delete WO Details And Reverse MPN Stockline
    2    07/20/2024  Bhargav Saliya   Move Audit Table in backup DB
+   3    03-07-2025  Moin Bloch       Changed Old To New Billing Table
 
 EXEC dbo.ReverseWorkOrder 286,'Admin'
 
@@ -42,6 +43,7 @@ AS
 	DECLARE @SubWorkOrderLaborHeaderId BIGINT;
 	DECLARE @SubResIssueCount INT = 0;
 	DECLARE @IsSWOClose INT = 0;
+	DECLARE @WOModuleId INT
 
 	BEGIN TRY
 		BEGIN TRANSACTION
@@ -55,6 +57,8 @@ AS
 			SELECT @IsSubWO = COUNT(SubWorkOrderId) FROM dbo.SubWorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 			SELECT @IsSWOClose = COUNT(SubWorkOrderId) FROM dbo.SubWorkOrderPartNumber WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsClosed, 0) = 0
+						
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 			/* Sub Work Order deletion */
 			IF(ISNULL(@IsSubWO,0) >= 0 AND (ISNULL(@SubResIssueCount,0) <= 0 OR ISNULL(@IsSWOClose,0) = 0))
@@ -250,10 +254,16 @@ AS
 					DELETE FROM WorkOrderCostDetails WHERE WOPartNoId = @WorkOrderPartNumberId
 
 					/*WorkOrderCostDetails*/
-					DELETE FROM WorkOrderBillingInvoicingItemAudit WHERE WorkOrderPartId = @WorkOrderPartNumberId
-					DELETE FROM WorkOrderBillingInvoicingAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-					DELETE FROM WorkOrderBillingInvoicingItem WHERE WorkOrderPartId = @WorkOrderPartNumberId
-					DELETE FROM WorkOrderBillingInvoicing WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+					--DELETE FROM WorkOrderBillingInvoicingItemAudit WHERE WorkOrderPartId = @WorkOrderPartNumberId
+					--DELETE FROM WorkOrderBillingInvoicingAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+					--DELETE FROM WorkOrderBillingInvoicingItem WHERE WorkOrderPartId = @WorkOrderPartNumberId
+					--DELETE FROM WorkOrderBillingInvoicing WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+								
+					--DELETE FROM WorkOrderBillingInvoicingItemAudit WHERE WorkOrderPartId = @WorkOrderPartNumberId
+					--DELETE FROM WorkOrderBillingInvoicingAudit WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+					DELETE w FROM [dbo].[BillingInvoicingDetails] w INNER JOIN [dbo].[BillingInvoicing] e ON w.BillingInvoicingId=e.BillingInvoicingId WHERE e.[ReferenceId]=@WorkOrderId AND e.[ModuleId] = @WOModuleId
+					DELETE FROM [dbo].[BillingInvoicingItems] WHERE [ReferenceId] = @WorkOrderId AND [ModuleId] = @WOModuleId
+					DELETE FROM [dbo].[BillingInvoicing] WHERE [ReferenceId] = @WorkOrderId AND [ModuleId] = @WOModuleId
 
 					/*Release From Details*/
 					DELETE FROM dbo.Work_ReleaseFrom_8130 WHERE workOrderPartNoId = @WorkOrderPartNumberId

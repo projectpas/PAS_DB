@@ -17,6 +17,7 @@
 	5    04/06/2025	  Devendra Shekh   added stockLineUnitCost to PartNumbers
 	6    10/06/2025	  Devendra Shekh   added @AllowPrintReleaseForm
 	7    01/07/2025	  Devendra Shekh   added New Field : MPNPartNumber
+	8    03/07/2025   Moin Bloch       Changed Old To New Billing Table
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -107,7 +108,12 @@ BEGIN
     DECLARE @IsFinishedGood BIT = 0,@LastMSLevel VARCHAR(100)='',@AllMSlevels VARCHAR(MAX)='',@WorkFlowNo NVARCHAR(500)='',@WorkflowId BIGINT=0,@WorkflowExpirationDate DATETIME2(7)=NULL
 	DECLARE @IsSinglePN BIT = 1,@WorkOrderMPNMSModuleEnum INT=12 
 	DECLARE @IsRepairManagement BIT = 0
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
 
+	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+	
 	-- For ReceivingCustomer
 	IF(@Opr=1)
 	BEGIN	
@@ -407,8 +413,10 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
 				INNER JOIN [dbo].[CustomerRMAHeader] CRM WITH(NOLOCK) ON rc.[RMAHeaderId] = CRM.[RMAHeaderId]
 				INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON CRM.[CustomerId] = c.[CustomerId]
-				INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobi WITH(NOLOCK) ON rc.[BillingInvoicingItemId] = wobi.[WOBillingInvoicingItemId] AND ISNULL(wobi.[IsPerformaInvoice],0) = 0
-				INNER JOIN [dbo].[WorkOrderPartNumber] wopn WITH(NOLOCK) ON wobi.[WorkOrderPartId] = wopn.[ID]
+				--INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobi WITH(NOLOCK) ON rc.[BillingInvoicingItemId] = wobi.[WOBillingInvoicingItemId] AND ISNULL(wobi.[IsPerformaInvoice],0) = 0
+				--INNER JOIN [dbo].[WorkOrderPartNumber] wopn WITH(NOLOCK) ON wobi.[WorkOrderPartId] = wopn.[ID]
+				INNER JOIN [dbo].[BillingInvoicingItems] wobi WITH(NOLOCK) ON rc.[BillingInvoicingItemId] = wobi.[BillingInvoicingItemId] AND ISNULL(wobi.[IsPerformaInvoice],0) = 0 AND wobi.[ModuleId] = @WOModuleId
+				INNER JOIN [dbo].[WorkOrderPartNumber] wopn WITH(NOLOCK) ON wobi.[SubReferenceId] = wopn.[ID]
 				INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wopn.[ConditionId] = con.[ConditionId]				
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
@@ -435,8 +443,9 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
 				INNER JOIN [dbo].[CustomerRMAHeader] CRM WITH(NOLOCK) ON rc.[RMAHeaderId] = CRM.[RMAHeaderId]
 				INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON CRM.[CustomerId] = c.[CustomerId]
-				INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] wobi WITH(NOLOCK) ON rc.[BillingInvoicingItemId] = wobi.[SOBillingInvoicingItemId]
-				INNER JOIN [dbo].[SalesOrderPartV1] wopn WITH(NOLOCK) ON wobi.[SalesOrderPartId] = wopn.[SalesOrderPartId]
+				--INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] wobi WITH(NOLOCK) ON rc.[BillingInvoicingItemId] = wobi.[SOBillingInvoicingItemId]
+				INNER JOIN [dbo].[BillingInvoicingItems] wobi WITH(NOLOCK) ON rc.[BillingInvoicingItemId] = wobi.[BillingInvoicingItemId] AND [ModuleId] = @SOModuleId
+				INNER JOIN [dbo].[SalesOrderPartV1] wopn WITH(NOLOCK) ON wobi.[SubReferenceId] = wopn.[SalesOrderPartId]
 				INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wopn.[ConditionId] = con.[ConditionId]				
 				 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 				 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] msd WITH(NOLOCK) ON CRM.[RMAHeaderId] = msd.[ReferenceID] AND msd.[ModuleID] = @CustomerRMAHeaderModuleId
@@ -920,11 +929,20 @@ BEGIN
 
 					DECLARE @IsPaymentReceived BIT = NULL;
 					
+					--SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.[RemainingAmount]),0) - ISNULL(SUM(WOBI.[GrandTotal]), 0)) = 0 THEN 0 ELSE 1 END 
+					--FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
+					--JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+					--WHERE WOBI.WorkOrderId = @WorkOrderId 
+					--AND WOBII.[WorkOrderPartId] = @ID 
+					--AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBI.[IsVersionIncrease], 0) = 0 AND WOBI.[IsDeleted] = 0 
+					--AND ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0
+
 					SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.[RemainingAmount]),0) - ISNULL(SUM(WOBI.[GrandTotal]), 0)) = 0 THEN 0 ELSE 1 END 
-					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
-					JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
-					WHERE WOBI.WorkOrderId = @WorkOrderId 
-					AND WOBII.[WorkOrderPartId] = @ID 
+					FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+					JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+					WHERE WOBI.ReferenceId = @WorkOrderId 
+					AND WOBI.[ModuleId] = @WOModuleId
+					AND WOBII.[SubReferenceId] = @ID 
 					AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBI.[IsVersionIncrease], 0) = 0 AND WOBI.[IsDeleted] = 0 
 					AND ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0
 
@@ -1002,15 +1020,25 @@ BEGIN
 					
 						IF(@OldWorkOrderId > 0)
 						BEGIN
+							--SELECT @InvoiceId = WOBI.[BillingInvoicingId]
+							--	 FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
+							--LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON WOBI.CustomerId = C.CustomerId
+							--LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+							--LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+							--LEFT JOIN [dbo].[CustomerContact] CUN WITH(NOLOCK) ON CUN.CustomerContactId=WO.CustomerContactId
+							--LEFT JOIN [dbo].[Contact] CON WITH(NOLOCK) ON CON.ContactId=CUN.ContactId
+							--LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH(NOLOCK) ON wo.MasterCompanyId = RMAC.MasterCompanyId
+							--WHERE WO.[WorkOrderId] = @OldWorkOrderId  AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0;
+
 							SELECT @InvoiceId = WOBI.[BillingInvoicingId]
-								 FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
+						    FROM [dbo].[BillingInvoicing] WOBI WITH(NOLOCK)
 							LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON WOBI.CustomerId = C.CustomerId
-							LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+							LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 							LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 							LEFT JOIN [dbo].[CustomerContact] CUN WITH(NOLOCK) ON CUN.CustomerContactId=WO.CustomerContactId
 							LEFT JOIN [dbo].[Contact] CON WITH(NOLOCK) ON CON.ContactId=CUN.ContactId
 							LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH(NOLOCK) ON wo.MasterCompanyId = RMAC.MasterCompanyId
-							WHERE WO.[WorkOrderId] = @OldWorkOrderId  AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0;
+							WHERE WO.[WorkOrderId] = @OldWorkOrderId  AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0 AND WOBI.[ModuleId] = @WOModuleId
 
 							IF(@InvoiceId > 0)
 							BEGIN

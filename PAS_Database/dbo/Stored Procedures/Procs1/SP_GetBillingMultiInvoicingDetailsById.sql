@@ -15,7 +15,7 @@
  ** PR   Date         Author		  Change Description            
  ** --   --------     -------		  --------------------------------          
     1    02/11/2023   Amit Ghediya	  Created	
-
+    2    03/07/2025   Rajesh Gami	  Modified the table name as per new billing structure 	
 	-- EXEC [dbo].[SP_GetBillingMultiInvoicingDetailsById] '23,24',2
      
 **************************************************************/
@@ -30,29 +30,28 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+				DECLARE @SOModuleId INT = (SELECT [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder')
 				IF(@Opr = 1) -- Get Parent Data
 				BEGIN
 					SELECT 
-						bi.[SOBillingInvoicingId],
-						bi.[SalesOrderId],
+						bi.[BillingInvoicingId] [SOBillingInvoicingId],
+						bi.ReferenceId [SalesOrderId],
 						bi.[InvoiceTypeId],
 						bi.[InvoiceNo],
 						bi.[CustomerId],
 						bi.[InvoiceDate],
 						bi.[PrintDate],
-						bi.[ShipDate],
 						bi.[EmployeeId],
 						bi.[RevType],
 						bi.[CurrencyId],
-						bi.[SoldToCustomerId],
-						bi.[SoldToSiteId],
-						bi.[ShipToCustomerId],
-						bi.[ShipToSiteId],
-						bi.[ShipToAttention],
-						bi.[BillToCustomerId],
-						bi.[BillToSiteId],
-						bi.[BillToAttention],
-						bi.[AvailableCredit],
+						bid.[SoldToCustomerId] [SoldToCustomerId],
+						bid.[SoldToSiteId] [SoldToSiteId],
+						bid.[ShipToCustomerId] [ShipToCustomerId],
+						bid.[ShipToSiteId] [ShipToSiteId],
+						bid.[ShipToAttention] [ShipToAttention],
+						bid.SoldToCustomerId [BillToCustomerId],
+						bid.[SoldToSiteId] [BillToSiteId],
+						bid.SoldToAttention [BillToAttention],
 						bi.[MasterCompanyId],
 						bi.[InvoiceStatus],
 						bi.[InvoiceFilePath],
@@ -60,17 +59,18 @@ BEGIN
 						bi.[CreatedDate],
 						bi.[UpdatedBy],
 						bi.[UpdatedDate]
-					FROM DBO.SalesOrderBillingInvoicing bi WITH (NOLOCK)
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem bii WITH (NOLOCK) ON bii.[SOBillingInvoicingId] = bi.[SOBillingInvoicingId]
-					WHERE bi.[SOBillingInvoicingId] IN(SELECT Item FROM dbo.SplitString(@sobillingInvoicingId, ','))
+					FROM DBO.BillingInvoicing bi WITH (NOLOCK)
+					INNER JOIN dbo.BillingInvoicingDetails bid WITH(NOLOCK) on bid.BillingInvoicingId = bi.BillingInvoicingId
+					LEFT JOIN DBO.BillingInvoicingItems bii WITH (NOLOCK) ON bii.[BillingInvoicingId] = bi.[BillingInvoicingId]
+					WHERE bi.[BillingInvoicingId] IN(SELECT Item FROM dbo.SplitString(@sobillingInvoicingId, ',')) AND bi.ModuleId = @SOModuleId
 				END
 				ELSE -- Get Child Data
 				BEGIN
 					SELECT 
-						bii.[SOBillingInvoicingItemId],
-						bii.[SOBillingInvoicingId],
-						bii.[NoofPieces],
-						bii.[SalesOrderPartId],
+						bii.[BillingInvoicingItemId] [SOBillingInvoicingItemId],
+						bii.[BillingInvoicingId] [SOBillingInvoicingId],
+						bii.QtyBilled [NoofPieces],
+						bii.SubReferenceId [SalesOrderPartId],
 						bii.[ItemMasterId],
 						bii.[MasterCompanyId],
 						bii.[CreatedBy],
@@ -80,14 +80,14 @@ BEGIN
 						bii.[IsActive],
 						bii.[IsDeleted],
 						bii.[UnitPrice],
-						bii.[SalesOrderShippingId],
+						bii.[ShippingId] [SalesOrderShippingId],
 						bii.[PDFPath],
 						bii.[StockLineId],
 						bii.[VersionNo],
 						bii.[IsVersionIncrease]
-					FROM DBO.SalesOrderBillingInvoicing bi WITH (NOLOCK)
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem bii WITH (NOLOCK) ON bii.[SOBillingInvoicingId] = bi.[SOBillingInvoicingId]
-					WHERE bi.[SOBillingInvoicingId] IN(SELECT Item FROM dbo.SplitString(@sobillingInvoicingId, ','))
+					FROM DBO.BillingInvoicing bi WITH (NOLOCK)
+					LEFT JOIN DBO.BillingInvoicingItems bii WITH (NOLOCK) ON bii.[BillingInvoicingId] = bi.[BillingInvoicingId]
+					WHERE bi.[BillingInvoicingId] IN(SELECT Item FROM dbo.SplitString(@sobillingInvoicingId, ','))  AND bi.ModuleId = @SOModuleId
 				END
 				
 			END

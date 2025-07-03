@@ -23,7 +23,7 @@
 	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
 	11   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
 	12   02/07/2025   Moin Bloch     Added DepositAmount
-
+	13    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -78,7 +78,7 @@ CREATE PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @ShipToCustomerId BIGINT = NULL,
 @ShipToSiteId BIGINT = NULL,
 @ShipToAttention VARCHAR(256) = NULL,
-@CustomerDomensticShippingShipViaId BIGINT = NULL,
+@ShipViaId BIGINT = NULL,
 @WayBillRef VARCHAR(100) = NULL,
 @ShipAccountInfo VARCHAR(200) = NULL,
 @OriginCountryId INT = NULL,
@@ -337,9 +337,9 @@ BEGIN
 
 		INSERT INTO [dbo].[BillingInvoicingDetails]
 				   ([BillingInvoicingId],[SoldToCustomerId],[SoldToSiteId],[SoldToAttention],[ShipToCustomerId]
-				   ,[ShipToSiteId],[ShipToAttention],[CustomerDomensticShippingShipViaId],[WayBillRef],[ShipAccountInfo])
+				   ,[ShipToSiteId],[ShipToAttention],[ShipViaId],[WayBillRef],[ShipAccountInfo])
 			VALUES (@BillingInvoicingIdNew, @SoldToCustomerId, @SoldToSiteId,@SoldToAttention, @ShipToCustomerId, 
-					@ShipToSiteId,@ShipToAttention, @CustomerDomensticShippingShipViaId,@WayBillRef, @ShipAccountInfo);
+					@ShipToSiteId,@ShipToAttention, @ShipViaId,@WayBillRef, @ShipAccountInfo);
 
 		INSERT INTO #tmprAddBillingInvoicingDetailsTemp([BillingInvoicingItemId],[BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],
 					[SubReferenceId],[ItemMasterId],[StocklineId],[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],

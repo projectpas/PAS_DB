@@ -12,6 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1    16/05/2025   Moin Bloch		Created
     2    21/05/2025   RAJESH GAMI       Implemented SO
+	3    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
 --   EXEC [USP_GetCommonBillingInvoicingPdfData] 41,15
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingPdfData]
@@ -125,7 +126,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Countries] CONT WITH(NOLOCK) ON CUSTADDRESS.[CountryId] = CONT.[countries_id]
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON BI.[CurrencyId] = CUR.[CurrencyId]
 				 LEFT JOIN [dbo].[WorkOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[WorkOrderShippingId]
-				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
+				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
 				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 				 LEFT JOIN (
 					SELECT TOP 1 WOP.[CustomerReference],T.[ReferenceId]  --WFWO.WorkFlowWorkOrderId
@@ -233,7 +234,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Countries] CONT WITH(NOLOCK) ON CUSTADDRESS.[CountryId] = CONT.[countries_id]
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON BI.[CurrencyId] = CUR.[CurrencyId]
 				 LEFT JOIN [dbo].[WorkOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[WorkOrderShippingId]
-				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
+				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
 				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 				LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 				LEFT JOIN	[dbo].[JobTitle] jt WITH(NOLOCK) ON emp.JobTitleId = jt.JobTitleId

@@ -11,7 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/JUN/2025   RAJESH GAMI   CREATED
-	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed   
+	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed  
+	3    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 	
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 75,10,245
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -202,7 +203,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON SO.[FunctionalCurrencyId] = CUR.[CurrencyId]
 				 OUTER APPLY (SELECT TOP 1 * FROM [dbo].[SalesOrderShipping] s WITH(NOLOCK)	WHERE s.SalesOrderId = SO.SalesOrderId ORDER BY ISNULL(s.UpdatedDate, s.ShipDate) DESC ) SHIPPINGINFO
 				 --LEFT JOIN [dbo].[SalesOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON SO.[SalesOrderId] = SHIPPINGINFO.[SalesOrderId]
-				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
+				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
 				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 				LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 				LEFT JOIN	[dbo].[JobTitle] jt WITH(NOLOCK) ON emp.JobTitleId = jt.JobTitleId

@@ -15,6 +15,7 @@
     1    28/04/2025   Moin Bloch    Created
 	2    30 Apr 2025   RAJESH GAMI  Implemented Sales Order Module and Fix invoice Date issue
 	3    23 JUN 2025   RAJESH GAMI  FIXED CustomerDomensticShippingShipViaId related issue in SO
+	4    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
    EXEC [dbo].[GetBillingInvoicingDetails] 8781,8523,2,15,0,0
    EXEC [dbo].[GetBillingInvoicingDetails] 802,972,2,10,292,0
 **************************************************************/ 
@@ -90,10 +91,11 @@ BEGIN
 				[wo].[SalesPersonId],
 				ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 				[wosh].[ShippingAccountInfo] AS [ShipAccountInfo],
-				CASE 
-					WHEN [wosh].[IsCustomerShipping] = 1 THEN [wosh].[CustomerDomensticShippingShipViaId]
-					ELSE [wosh].[ShipviaId]
-				END AS [CustomerDomensticShippingShipViaId],
+				--CASE 
+				--	WHEN [wosh].[IsCustomerShipping] = 1 THEN [wosh].[CustomerDomensticShippingShipViaId]
+				--	ELSE [wosh].[ShipviaId]
+				--END AS [CustomerDomensticShippingShipViaId],
+				[wosh].[ShipviaId] ShipViaId,
 				ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 				ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
 				[wo].[CreditTerms] AS [CreditTerm],
@@ -169,7 +171,7 @@ BEGIN
 					[wo].[SalesPersonId],
 					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
-					ISNULL([cust_shipVia].[ShipViaId], 0) AS [CustomerDomensticShippingShipViaId],
+					ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
 					[ct].[Name] AS [CreditTerm],
@@ -246,7 +248,7 @@ BEGIN
 					[wo].[SalesPersonId],
 					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
-					ISNULL([cust_shipVia].[ShipViaId], 0) AS [CustomerDomensticShippingShipViaId],
+					ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
 					[ct].[Name] AS [CreditTerm],
@@ -323,10 +325,11 @@ BEGIN
 					[wo].[SalesPersonId],
 					ISNULL([sp].[FirstName] + ' ' + [sp].[LastName], '') AS [SalesPerson],
 					[wosh].[ShippingAccountInfo] AS [ShipAccountInfo],
-					CASE 
-						WHEN [wosh].[IsCustomerShipping] = 1 THEN [wosh].[CustomerDomensticShippingShipViaId]
-						ELSE [wosh].[ShipviaId]
-					END AS [CustomerDomensticShippingShipViaId],
+					--CASE 
+					--	WHEN [wosh].[IsCustomerShipping] = 1 THEN [wosh].[CustomerDomensticShippingShipViaId]
+					--	ELSE [wosh].[ShipviaId]
+					--END AS [CustomerDomensticShippingShipViaId],
+					wosh.ShipviaId ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
 					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
 					[ct].[Name] AS [CreditTerm],
@@ -425,7 +428,7 @@ BEGIN
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
-						BID.CustomerDomensticShippingShipViaId,
+						BID.ShipviaId,
 							sobi.InvoiceTypeId as InvoiceTypeId
 				  	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				  	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -486,10 +489,11 @@ BEGIN
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
-						CASE 
-							WHEN sos.[IsCustomerShipping] = 1 THEN sos.[CustomerDomensticShippingShipViaId]
-							ELSE sos.[ShipviaId]
-						END AS [CustomerDomensticShippingShipViaId],
+						--CASE 
+						--	WHEN sos.[IsCustomerShipping] = 1 THEN sos.[CustomerDomensticShippingShipViaId]
+						--	ELSE sos.[ShipviaId]
+						--END AS [CustomerDomensticShippingShipViaId],
+						sos.ShipviaId ShipViaId,
 							0 as InvoiceTypeId
 				 	FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
 				 	INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
@@ -541,7 +545,7 @@ BEGIN
 						[so].[ManagementStructureId],
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
-					    ISNULL([cust_shipVia].[ShipViaId], 0) AS [CustomerDomensticShippingShipViaId],
+					    ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipviaId,
 						sobi.InvoiceTypeId as InvoiceTypeId
 				 	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				 	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

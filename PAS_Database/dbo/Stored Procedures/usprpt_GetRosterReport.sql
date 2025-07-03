@@ -18,6 +18,7 @@
 	2    13-03-2025    Sahdev Saliya       supervisor's name has been updated
 	3    26-03-2025    Sahdev Saliya       EndDate has been updated And Record issue resolve
 	4    31-03-2025    Sahdev Saliya       Add Employee and Certifyingstaff Filters
+	5    03-73-2025    BHARGAV SALIYA       Add IsActive and IsDelete Condition
 
 **************************************************************/  
 
@@ -144,6 +145,7 @@ BEGIN
 	  LEFT JOIN  dbo.Employee EP WITH (NOLOCK) ON EP.EmployeeId = EMP.SupervisorId
 	  WHERE EMP.mastercompanyid = @mastercompanyid
 	        AND EMP.FirstName <> 'TBD' 
+			AND ISNULL(EMP.IsDeleted,0)  = 0 and ISNULL(EMP.IsActive,1) = 1
 			AND  ((ISNULL(@Employee, '') = '' OR EMP.EmployeeId = @Employee)
 			and (@certifyingstaff IS NULL OR EMP.EmployeeCertifyingStaff = @certifyingstaff))
 			AND  (ISNULL(@Level1,'') ='' OR EMS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

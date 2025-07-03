@@ -34,10 +34,6 @@ BEGIN
 		SET @ModuleId = 15; --Work Order
 		SET @SubModuleId = 43; --Work Order
 
-		--Select * from BillingInvoicing WHERE MasterCompanyId = 2
-		--Select * from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
-		--Select * from dbo.BillingInvoicingDetails
-
 		--Insert Into Billing Invoice 
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
 			,InvoiceStatusId,InvoiceStatus,InvoiceFilePath,RevType,VersionNo,CostPlusType,IsPerformaInvoice,IsVersionIncrease,PostedDate,SubTotal,OtherTax,SalesTax,DepositAmount,GrandTotal
@@ -46,18 +42,12 @@ BEGIN
 
 		SELECT WOBI.BillingInvoicingId,@ModuleId,WorkOrderId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
 			RevType,WOBI.VersionNo,CostPlusType,IsPerformaInvoice,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,WOBI.IsInvoicePosted,
-			--UsedDeposit,
 			CASE WHEN ISNULL(ProformaDeposit, 0) > 0 THEN ISNULL(ProformaDeposit, 0) ELSE UsedDeposit END AS UsedDeposit,
 			ProformaDeposit,RemainingAmount
 			,Notes,WorkOrderShippingId,ManagementStructureId,WOBI.MasterCompanyId,WOBI.CreatedBy,WOBI.UpdatedBy,WOBI.CreatedDate,WOBI.UpdatedDate,WOBI.IsActive,WOBI.IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate
 			,SyncToken,isCreatedFromQuote,IsQuickBookGeneratedInvoice
 		FROM dbo.WorkOrderBillingInvoicing WOBI 
 		WHERE WOBI.MasterCompanyId = @MasterCompanyId 
-
-
-		--SELECT * from dbo.WorkOrderBillingInvoicing where MasterCompanyId = 2 and IsVersionIncrease = 0
-		--SELECT * from dbo.BillingInvoicingItems where MasterCompanyId = 2 and IsVersionIncrease = 0
-		--SELECT * from dbo.WorkOrderBillingInvoicingItem where MasterCompanyId = 2 and IsVersionIncrease = 0
 
 		--Update InvoiceStatusId based on status and Path from item
 		UPDATE dbo.BillingInvoicing SET InvoiceStatusId = INS.InvoiceStatusId , InvoiceFilePath = WOBI.PDFPath
@@ -108,9 +98,9 @@ BEGIN
 			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId <> 20
 
 			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
-				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
+				ShipViaId,WayBillRef,ShipAccountInfo)
 			SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
-				WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
+				WOBI.ShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
 			FROM dbo.BillingInvoicingItems BII
 				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 
@@ -159,9 +149,9 @@ BEGIN
 			WHERE WOBII.MasterCompanyId = @MasterCompanyId and WOBII.MasterCompanyId = 20 AND ModuleId = @ModuleId
 
 			INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
-				CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
+				ShipViaId,WayBillRef,ShipAccountInfo)
 			SELECT BII.BillingInvoicingId , WOBI.SoldToCustomerId, WOBI.SoldToSiteId,NULL,WOBI.ShipToCustomerId,WOBI.ShipToSiteId,WOBI.ShipToAttention,
-				WOBI.CustomerDomensticShippingShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
+				WOBI.ShipViaId,WOBI.WayBillRef,WOBI.ShippingAccountInfo
 			FROM dbo.BillingInvoicingItems BII
 				JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 				JOIN dbo.WorkOrderBillingInvoicing WOBI ON BI.OldBillingInvoicingId = WOBI.BillingInvoicingId 

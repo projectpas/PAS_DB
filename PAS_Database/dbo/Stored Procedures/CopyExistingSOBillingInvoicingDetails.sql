@@ -34,11 +34,6 @@ BEGIN
 		SET @ModuleId = 10; --Sales Order
 		SET @SubModuleId = 66; --Sales Order Part
 
-		--Select * from BillingInvoicing WHERE MasterCompanyId = 2
-		--Select * from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
-		--Select * from dbo.BillingInvoicingDetails
-		--Select NetSaleAmountPerUnit AS UNITPRiCE,  * from SalesOrderStockLineCost
-
 		--Insert Into Billing Invoice 
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
 			,InvoiceStatusId,InvoiceStatus,InvoiceFilePath,RevType,VersionNo,CostPlusType,IsPerformaInvoice,IsVersionIncrease,PostedDate,SubTotal,OtherTax,SalesTax,DepositAmount,GrandTotal
@@ -54,11 +49,6 @@ BEGIN
 		FROM dbo.SalesOrderBillingInvoicing SOBI 
 		JOIN SalesOrder SO ON SOBI.SalesOrderId = SO.SalesOrderId
 		WHERE SOBI.MasterCompanyId = @MasterCompanyId
-
-
-		--SELECT top 100  * from dbo.SalesOrderBillingInvoicing where MasterCompanyId = 1 and IsVersionIncrease = 0 Order by 1 desc
-		--SELECT * from dbo.BillingInvoicingItems where MasterCompanyId = 2 and IsVersionIncrease = 0
-		--SELECT top 200 * from dbo.SalesOrderBillingInvoicingItem where MasterCompanyId = 1 and IsVersionIncrease = 0 Order by 1 desc
 
 		--Update InvoiceStatusId based on status and Path from item
 		UPDATE dbo.BillingInvoicing SET InvoiceStatusId = INS.InvoiceStatusId , InvoiceFilePath = SOBI.PDFPath
@@ -111,16 +101,25 @@ BEGIN
 
 
 		INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
-			CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
+			ShipViaId,WayBillRef,ShipAccountInfo)
 		SELECT DISTINCT BII.BillingInvoicingId , SOBI.BillToCustomerId, SOBI.BillToSiteId,NULL,SOBI.ShipToCustomerId,SOBI.ShipToSiteId,SOBI.ShipToAttention,
-			NULL AS CustomerDomensticShippingShipViaId,NULL AS WayBillRef,NULL AS ShippingAccountInfo
+			NULL AS ShipViaId,NULL AS WayBillRef,NULL AS ShippingAccountInfo
 		FROM dbo.BillingInvoicingItems BII
 			JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON BI.OldBillingInvoicingId = SOBI.SOBillingInvoicingId 
 			JOIN dbo.SalesOrderBillingInvoicingItem SOBII ON  SOBII.SoBillingInvoicingId = SOBI.SOBillingInvoicingId
 		WHERE BII.MasterCompanyId = @MasterCompanyId AND BII.ModuleId = @ModuleId
-		
 
+		--UPDATE SHIP VIA BASED on EXISTING DATA
+		UPDATE BillingInvoicingDetails SET ShipViaId = CASE WHEN ISNULL(SOS.ShipViaId, 0) > 0 THEN SOS.ShipViaId ELSE [cust_shipVia].ShipViaId END, 
+					ShipAccountInfo = CASE WHEN ISNULL(SOS.ShipViaId, 0) > 0 THEN SOS.ShippingAccountNo ELSE [cust_shipVia].ShippingAccountInfo END
+		FROM dbo.BillingInvoicingDetails BID WITH(NOLOCK) 
+			JOIN dbo.BillingInvoicing BI WITH(NOLOCK) ON BID.BillingInvoicingId = BI.BillingInvoicingId AND BI.ModuleId = @ModuleId
+			JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SO.SalesOrderId = BI.ReferenceId AND BI.ModuleId = @ModuleId
+			LEFT JOIN dbo.SalesOrderShipping SOS WITH(NOLOCK) ON SO.SalesOrderId = SOS.SalesOrderId
+			--LEFT JOIN dbo.ShippingVia SV WITH(NOLOCK) ON SOS.ShipViaId = sv.ShippingViaId
+			LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [SO].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
+		WHERE BI.ModuleId = @ModuleId AND BI.MasterCompanyId = @MasterCompanyId
 
 	END TRY    
 	BEGIN CATCH      

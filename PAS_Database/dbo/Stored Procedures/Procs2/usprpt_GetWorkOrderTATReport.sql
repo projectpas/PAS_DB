@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_GetWorkOrderTATReport]             
  ** Author:   Hemant    
  ** Description: Get Data for WorkOrderTAT Report  
@@ -21,6 +20,7 @@
  4 03/29/2024   Ekta Chandegra	IsDeleted and IsActive flag is added
  5 12-12-2024   Shrey Chandegara  Modify Due to change calculation of quotedays ,approvedays,shipdays and tatdays and add another filter
  6 09-Jan-2025	Devendra Shekh	Reading Revised PN details if exists
+ 7 03-Jul-2025	Devendra Shekh	Added @Stage for Filtering, Removed ConvertUTCtoLocal function, using BaseUtcOffsetSec for date conversion
  
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
@@ -40,7 +40,8 @@ BEGIN
     BEGIN TRANSACTION  
   
      DECLARE   
-  @customername VARCHAR(40) = NULL,  
+  @customername VARCHAR(40) = NULL,
+  @Stage VARCHAR(300) = NULL,
   @Fromdate DATETIME,  
   @Todate DATETIME,  
   @itemMasterId VARCHAR(50) = NULL,  
@@ -99,7 +100,10 @@ BEGIN
    THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,  
   
    @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end  
+   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end,
+   
+   @Stage=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(500)')='Stage'     
+   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(500)') ELSE @Stage END
   
     FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
 
@@ -198,6 +202,7 @@ BEGIN
 			AND WO.customerid=ISNULL(@customername,WO.customerid)  
 			AND WO.mastercompanyid = @mastercompanyid 
 			AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
+			AND (ISNULL(@Stage,'') ='' OR WOPN.WorkOrderStageId IN(SELECT value FROM String_split(ISNULL(@Stage,WOPN.WorkOrderStageId), ',')))
 			--AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
 			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
@@ -234,17 +239,18 @@ BEGIN
 		   0 AS 'tatavg',
   
 		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
-		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select DATEADD(SECOND, TZ.BaseUtcOffsetSec, WO.OpenDate)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select DATEADD(SECOND, TZ.BaseUtcOffsetSec, WO.OpenDate)), 107) END 'opendate',   
 		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.SentDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.SentDate, 107) END 'quotedate',   
-		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOQ.approveddate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOQ.approveddate,TZ.Description)), 107) END 'approveddate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select DATEADD(SECOND, TZ.BaseUtcOffsetSec, WOQ.approveddate)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select DATEADD(SECOND, TZ.BaseUtcOffsetSec, WOQ.approveddate)), 107) END 'approveddate',   
 		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.EstimatedShipDate, 107) END 'estshipdate',   
-		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)), 107) END 'invoicedate',   
+		   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select DATEADD(SECOND, TZ.BaseUtcOffsetSec, WOBI.InvoiceDate)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select DATEADD(SECOND, TZ.BaseUtcOffsetSec, WOBI.InvoiceDate)), 107) END 'invoicedate',   
      
 		   UPPER(E.FirstName + ' ' + E.LastName) 'techname',  
 		   UPPER(MSD.Level1Name) AS level1,      UPPER(MSD.Level2Name) AS level2,     UPPER(MSD.Level3Name) AS level3,     UPPER(MSD.Level4Name) AS level4,     UPPER(MSD.Level5Name) AS level5,     UPPER(MSD.Level6Name) AS level6,     UPPER(MSD.Level7Name) AS level7,     UPPER(MSD.Level8Name) AS level8,     UPPER(MSD.Level9Name) AS level9,     UPPER(MSD.Level10Name) AS level10  ,
 		   TZ.TimeZoneName AS 'TIMEZONE_NAME',
 			WOPN.ID ,
-			WOPN.mastercompanyid 
+			WOPN.mastercompanyid,
+			WOPN.WorkOrderStage AS 'workorderstage'
 	  INTO #Result
 	  FROM DBO.WorkOrder WO WITH (NOLOCK)  
 	   INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
@@ -269,6 +275,7 @@ BEGIN
 		AND WO.customerid=ISNULL(@customername,WO.customerid)  
 		AND WO.mastercompanyid = @mastercompanyid  
 		AND WO.IsDeleted = 0 AND WO.IsActive = 1 AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)
+		AND (ISNULL(@Stage,'') ='' OR WOPN.WorkOrderStageId IN(SELECT value FROM String_split(ISNULL(@Stage,WOPN.WorkOrderStageId), ',')))
 		AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
 		AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
 		AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  

@@ -57,7 +57,8 @@ BEGIN
 		DECLARE @StatisticalGLAccountTypeId BIGINT;
 		DECLARE @PeriodName VARCHAR(100) = '';
 		DECLARE @xml XML;
-		DECLARE @PeriodReportLayOutId BIGINT; 
+		DECLARE @PeriodReportLayOutId BIGINT;
+		DECLARE @TotalCreditAmount DECIMAL(18,2), @TotalDebitAmount DECIMAL(18,2);
 
 		SELECT @PeriodReportLayOutId = [ReportLayOutId] FROM dbo.ReportLayOut WITH(NOLOCK) WHERE UPPER([ReportLayOutName]) = 'TRIAL BALANCE(PERIOD)';
 
@@ -273,7 +274,7 @@ BEGIN
 				INNER JOIN dbo.BatchDetails BD ON CB.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.BatchHeader B WITH (NOLOCK) ON BD.JournalBatchHeaderId = B.JournalBatchHeaderId 
 				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CB.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
-				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)  
+				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND CB.MasterCompanyId = GL.MasterCompanyId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)  
 				LEFT JOIN dbo.GLAccountClass GC WITH(NOLOCK) ON GL.GLAccountTypeId = GC.GLAccountClassId
 				LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
 				LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -375,7 +376,7 @@ BEGIN
 			INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CMB.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.BatchHeader B WITH (NOLOCK) ON BD.JournalBatchHeaderId = B.JournalBatchHeaderId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMB.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
-			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CMB.GlAccountId = GL.GLAccountId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)
+			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CMB.GlAccountId = GL.GLAccountId AND CMB.MasterCompanyId = GL.MasterCompanyId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)
 			LEFT JOIN dbo.GLAccountClass GC WITH(NOLOCK) ON GL.GLAccountTypeId = GC.GLAccountClassId
 			LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
 			LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
@@ -404,6 +405,51 @@ BEGIN
 					 MSL5.Code,MSL6.Code,MSL7.Code, MSL8.Code, MSL9.Code,MSL10.Code,MSL1.[Description],MSL2.[Description],
 					 MSL3.[Description],MSL4.[Description],MSL5.[Description],MSL6.[Description],MSL7.[Description],
 					 MSL8.[Description],MSL9.[Description],MSL10.[Description], GC.SequenceNumber
+	
+		--Calculating Total Credit/Debit Amount
+		;WITH BatchResult AS (
+			SELECT
+			CMB.GlAccountId, 
+			MSD.EntityMSID AS EntityStructureId,
+			ISNULL(CMB.CreditAmount,0) 'CreditAmount', 
+			ISNULL(CMB.DebitAmount,0) 'DebitAmount'
+		FROM dbo.CommonBatchDetails CMB WITH(NOLOCK)
+			INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CMB.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
+			--INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CMB.GlAccountId = GL.GLAccountId AND CMB.MasterCompanyId = GL.MasterCompanyId AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)
+			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMB.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
+			LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON MSD.Level3Id = MSL3.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON MSD.Level4Id = MSL4.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON MSD.Level5Id = MSL5.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON MSD.Level6Id = MSL6.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON MSD.Level7Id = MSL7.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
+			LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
+		WHERE CMB.IsDeleted = 0 AND BD.IsDeleted = 0 AND CMB.MasterCompanyId = @MasterCompanyId AND ISNULL(CMB.IsVersionIncrease, 0) = 0	
+			AND BD.AccountingPeriodId IN (SELECT AccountcalID FROM #AccPeriodTable_All WHERE UPPER(PeriodName) = @PeriodName)
+			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
+			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
+			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
+			AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
+			AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
+			AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
+			AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
+			AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
+			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
+			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
+			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		)
+		,AmountResult AS (
+			SELECT 
+				GlAccountId, EntityStructureId,
+				CASE WHEN (SUM(DebitAmount) - SUM(CreditAmount)) > 0 THEN 0 ELSE ABS(SUM(DebitAmount) - SUM(CreditAmount)) END AS CreditAmount,
+				CASE WHEN (SUM(DebitAmount) - SUM(CreditAmount)) > 0 THEN SUM(DebitAmount) - SUM(CreditAmount) ELSE 0 END AS DebitAmount
+				FROM BatchResult
+				GROUP BY GlAccountId, EntityStructureId
+		) 
+		SELECT @TotalCreditAmount = SUM(CreditAmount), @TotalDebitAmount = SUM(DebitAmount) FROM AmountResult;
 
 		IF(@IsSupressZero = 1)
 		BEGIN
@@ -434,7 +480,7 @@ BEGIN
 			IF(@PeriodReportLayOutId = @ReportLayoutId)
 			BEGIN
 				SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-					Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
+					Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR, @TotalCreditAmount AS TotalCreditAmount, @TotalDebitAmount AS TotalDebitAmount 
 				FROM #TempResults 
 				WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 --AND AccountNum LIKE '%[0-9]%'
 				ORDER BY CAST(AccountNum AS BIGINT)
@@ -442,7 +488,7 @@ BEGIN
 			ELSE
 			BEGIN
 				SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-						Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
+						Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR, @TotalCreditAmount AS TotalCreditAmount, @TotalDebitAmount AS TotalDebitAmount
 					FROM #TempResults 
 					WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 --AND AccountNum LIKE '%[0-9]%'
 					ORDER BY CAST(AccountNum AS BIGINT)
@@ -496,7 +542,7 @@ BEGIN
 			END
 
 			SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-				Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
+				Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR, @TotalCreditAmount AS TotalCreditAmount, @TotalDebitAmount AS TotalDebitAmount 
 			FROM #TempResults 			
 			ORDER BY CAST(AccountNum AS BIGINT)
 

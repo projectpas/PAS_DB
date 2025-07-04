@@ -18,6 +18,7 @@
 	1    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
 	2    14/05/2024   Moin Bloch	    updated for dublicate record issue PN-7946
 	3    14/05/2024   Hemant Saliya	    updated for Shapping Status
+    4    04-07-2025   Moin Bloch        Changed Old To New Billing Table
 
 EXEC DBO.sp_GetWOShippingChildList @ItemMasterIdlist=20751,@WorkOrderId =618 ,@WorkOrderPartId=10
 **************************************************************/ 
@@ -30,6 +31,9 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON;    
 	BEGIN TRY  
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
 		SELECT  distinct
 			  wopt.[PickTicketId] AS WOPickTicketId,  
 			  wos.[WorkOrderShippingId],  
@@ -66,8 +70,8 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderPackaginSlipItems] wPI  WITH (NOLOCK) ON wopt.[PickTicketId] = wPI.[WOPickTicketId] AND wPI.[WOPartNoId] = wop.[id]  
 			LEFT JOIN [dbo].[WorkOrderPackaginSlipHeader] wPB  WITH (NOLOCK) ON wPB.[PackagingSlipId] = wPI.[PackagingSlipId]  
 			LEFT JOIN DBO.ShippingStatus SS WITH(NOLOCK) ON wos.WOShippingStatusId = SS.ShippingStatusId
-			OUTER APPLY (SELECT TOP 1 [WorkOrderShippingId] FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
-				WHERE wosi.[WorkOrderShippingId] = WOBI.[WorkOrderShippingId] AND wos.[WorkOrderId] = WOBI.[WorkOrderId] AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0) AS wobii          
+			OUTER APPLY (SELECT TOP 1 [WorkOrderShippingId] FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+				WHERE wosi.[WorkOrderShippingId] = WOBI.[WorkOrderShippingId] AND wos.[WorkOrderId] = WOBI.[ReferenceId] AND WOBI.[ModuleId] = @WOModuleId AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0) AS wobii          
 		WHERE wopt.[WorkOrderId]=@WorkOrderId AND wopt.[IsConfirmed]=1 AND wopt.[OrderPartId]=@WorkOrderPartId   
 
      

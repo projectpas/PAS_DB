@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [dbo.GetWOOperatingMetricReport_QuotedUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report by Most Quoted WO By Item MAster Id
@@ -16,8 +14,8 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    19-Mar-2024  Rajesh Gami   Created  
-
+    1    19-Mar-2024  Rajesh Gami          Created  
+	2    03-07-2025   Moin Bloch           Changed Old To New Billing Table
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetWOOperatingMetricReport_QuotedUnitByIMId] 
 @PageNumber int = 1,
@@ -56,6 +54,9 @@ BEGIN
     --BEGIN TRANSACTION  
        print 'Start'
       DECLARE @ModuleID INT = 12; -- MS Module ID
+	  DECLARE @WOModuleId INT
+
+	  SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
@@ -119,7 +120,7 @@ BEGIN
 			UPPER(IM.PartDescription) 'pnDescription',  
 			--UPPER(WS.WorkScopeCode) 'workscope',
 			UPPER(CN.Description) 'workscope',
-			CASE WHEN WOBIT.WOBillingInvoicingItemId IS NULL THEN 
+			CASE WHEN WOBIT.BillingInvoicingItemId IS NULL THEN 
 				CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL(WOQD.CommonFlatRate , 0) ELSE  
 			    ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount,0) + ISNULL(WOQD.LaborFlatBillingAmount,0) + ISNULL(WOQD.ChargesFlatBillingAmount,0)+ ISNULL(WOQD.FreightFlatBillingAmount,0),0) ,0) END
 			ELSE ISNULL(WOBIT.GrandTotal,0) END AS revenue,
@@ -151,8 +152,8 @@ BEGIN
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
 			--INNER JOIN DBO.WorkOrderMPNCostDetails CST WITH (NOLOCK) ON WOPN.ID = CST.WOPartNoId  
 			INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId
-			LEFT JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.WorkOrderPartId AND ISNULL(WOBIT.IsVersionIncrease,0)=0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0 
-			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  AND WBI.InvoiceStatus = 'Invoiced' 
+			LEFT JOIN DBO.BillingInvoicingItems AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.SubReferenceId AND ISNULL(WOBIT.IsVersionIncrease,0)=0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0 AND WOBIT.[ModuleId] = @WOModuleId 
+			LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and ISNULL(WBI.IsVersionIncrease,0) = 0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  AND WBI.InvoiceStatus = 'Invoiced' AND WBI.[ModuleId] = @WOModuleId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId

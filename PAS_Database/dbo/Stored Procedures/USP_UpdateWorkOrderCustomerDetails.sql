@@ -56,6 +56,10 @@ BEGIN
 		DECLARE @WorkOrderQuoteStatusId BIGINT = NULL;
 		
 		SELECT @WorkOrderQuoteStatusId = WorkOrderQuoteStatusId FROM dbo.WorkOrderQuoteStatus WITH(NOLOCK)  WHERE [Description] = 'OPEN'
+
+		DECLARE @WOModuleId INT
+
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		
 		SET @ModuleId = 15; --Fixed for Work Order
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
@@ -166,16 +170,38 @@ BEGIN
 			WHERE WO.WorkOrderId = @WorkOrderId
 			PRINT 'UPDATE WORKORDER SHIPPING DETAILS DONE'
 
-			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed',
-				SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
-				SoldToSiteId = CBD.CustomerBillingAddressId
-			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
-				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
-				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+			--UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed',
+			--	SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
+			--	SoldToSiteId = CBD.CustomerBillingAddressId
+			--FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
+			--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+			--	JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+			--	JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+			--	LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
+			--	LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
+			--WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+
+			UPDATE dbo.BillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'				
+			FROM dbo.BillingInvoicing WOBI WITH(NOLOCK) 
+				JOIN dbo.BillingInvoicingItems WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.BillingInvoicingDetails WOBID WITH(NOLOCK) ON WOBID.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.SubReferenceId
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
 				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
-			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+			WHERE WO.WorkOrderId = @WorkOrderId AND WOBI.[ModuleId] = @WOModuleId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+
+			UPDATE dbo.BillingInvoicingDetails SET SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
+				   SoldToSiteId = CBD.CustomerBillingAddressId
+			FROM dbo.BillingInvoicing WOBI WITH(NOLOCK) 
+				JOIN dbo.BillingInvoicingItems WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.BillingInvoicingDetails WOBID WITH(NOLOCK) ON WOBID.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.SubReferenceId
+				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
+				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
+			WHERE WO.WorkOrderId = @WorkOrderId AND WOBI.[ModuleId] = @WOModuleId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+
 			PRINT 'UPDATE WORKORDER BILLING DETAILS DONE'
 
 			UPDATE ReceivingCustomerWork
@@ -250,18 +276,29 @@ BEGIN
 				JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			UPDATE WorkOrderBillingInvoicingItem SET ItemMasterId = WOP.ItemMasterId, PDFPath = NULL , UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
-			FROM dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) 
-				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
-			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
+			--UPDATE WorkOrderBillingInvoicingItem SET ItemMasterId = WOP.ItemMasterId, PDFPath = NULL , UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+			--FROM dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) 
+			--	JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+			--WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 
-			UPDATE WorkOrderBillingInvoicing SET ItemMasterId = WOP.ItemMasterId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
-			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
-				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
-				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
-			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+			UPDATE dbo.BillingInvoicingItems SET ItemMasterId = WOP.ItemMasterId, PDFPath = NULL , UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+			FROM dbo.BillingInvoicingItems WOBII WITH(NOLOCK) 
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.SubReferenceId
+			WHERE WOP.ID = @WorkOrderPartNoId AND WOBII.[ModuleId] = @WOModuleId AND  ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
+					   
+			--UPDATE WorkOrderBillingInvoicing SET ItemMasterId = WOP.ItemMasterId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
+			--FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
+			--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+			--	JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+			--WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 
-			UPDATE WorkOrderQuoteDetails SET ItemMasterId = @ItemMasterId, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()				
+			UPDATE dbo.BillingInvoicing SET InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
+			FROM dbo.BillingInvoicing WOBI WITH(NOLOCK) 
+				JOIN dbo.BillingInvoicingItems WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.SubReferenceId
+			WHERE WOP.ID = @WorkOrderPartNoId AND WOBII.[ModuleId] = @WOModuleId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+
+			UPDATE dbo.WorkOrderQuoteDetails SET ItemMasterId = @ItemMasterId, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()				
 			FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK)
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOQD.WOPartNoId
 			WHERE WOP.WorkOrderId = @WorkOrderId 

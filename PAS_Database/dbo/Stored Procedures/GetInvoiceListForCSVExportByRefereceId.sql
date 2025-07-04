@@ -9,7 +9,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    2 May 2025   RAJESH GAMI	CREATED
-
+	2    03-07-2025   Moin Bloch    Changed Old To New Billing Table
 ** EXEC [dbo].[GetInvoiceListForCSVExportByRefereceId] 15,8720,NULL
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByRefereceId]
@@ -27,8 +27,8 @@ SET NOCOUNT ON;
 			IF(@ModuleId = @woModuleId) /******************* START: WORK ORDER MODULE *******************/
 			BEGIN
 				Select 
-					   WOBI.WorkOrderId, 
-					   WOBII.WorkOrderPartId,
+					   WOBI.ReferenceId WorkOrderId, 
+					   WOBII.SubReferenceId  WorkOrderPartId,
 					   WOBI.InvoiceNo,
 					   Wo.CustomerName Customer,
 					   WOBI.InvoiceDate,
@@ -42,11 +42,11 @@ SET NOCOUNT ON;
 					   ISNULL(WOBII.GrandTotal,0) as ItemRate,
 					   (ISNULL(WOP.Quantity,0) * ISNULL(WOBII.GrandTotal,0)) as ItemAmount,
 					   GETDATE() as ServiceDate
-					FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
-						 INNER JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
-						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+					FROM dbo.BillingInvoicing WOBI WITH(NOLOCK) 
+						 INNER JOIN  dbo.BillingInvoicingItems WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 						 INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOBII.ItemMasterId = WOP.ItemMasterId
-					WHERE WOBI.WorkOrderId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease,0) = 0
+					WHERE WOBI.ReferenceId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND wobi.[ModuleId] = @WOModuleId
 				
 			END /******************* END: WORK ORDER MODULE *******************/
 			ELSE IF(@ModuleId = @soModuleId) /******************* START: SALES ORDER MODULE *******************/

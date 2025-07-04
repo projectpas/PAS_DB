@@ -9,11 +9,12 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    05-05-2025		HEMANT SALIYA			Created  	
+	2    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 		
 	exec dbo.USP_WorkOrderAnalysisDetailsById 8631,8331
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_WorkOrderAnalysisDetailsById]
-    @WorkOrderId BIGINT
+@WorkOrderId BIGINT
 AS
 BEGIN
 
@@ -22,8 +23,11 @@ BEGIN
 
 	BEGIN TRY
 	BEGIN TRANSACTION
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		
-		IF EXISTS (SELECT TOP 1 1 WOBillingInvoicingItemId FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsVersionIncrease, 0) = 0 AND ISNULL(IsPerformaInvoice, 0) <> 1)
+	  --IF EXISTS (SELECT TOP 1 1 WOBillingInvoicingItemId FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsVersionIncrease, 0) = 0 AND ISNULL(IsPerformaInvoice, 0) <> 1)
+		IF EXISTS (SELECT TOP 1 1 [BillingInvoicingItemId] FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @WorkOrderId AND [ModuleId] =@WOModuleId AND ISNULL([IsVersionIncrease], 0) = 0 AND ISNULL([IsPerformaInvoice], 0) <> 1)
 		BEGIN
 			SELECT DISTINCT
 				wop.ID,
@@ -38,8 +42,8 @@ BEGIN
 				ISNULL(woc.OverHeadCost, 0) AS OverHeadCost,
 				woc.OverHeadPercentage AS OverHeadCostRevenuePercentage,
 				ISNULL(woc.ChargesCost, 0) AS ChargesCost,
-				ISNULL(wb.FreightCost, 0) AS FreightCost,
-				CASE WHEN ISNULL(woc.Revenue, 0) > 0 THEN ISNULL(wb.FreightCostPlus, 0) ELSE 0 END AS Freightbilling,
+				ISNULL(wbi.Freight, 0) AS FreightCost,
+				CASE WHEN ISNULL(woc.Revenue, 0) > 0 THEN ISNULL(wbi.FreightCostPlus, 0) ELSE 0 END AS Freightbilling,
 				ISNULL(woc.OtherCost, 0) AS OtherCost,
 				ISNULL(woc.DirectCost, 0) AS DirectCost,
 				CASE 
@@ -53,20 +57,23 @@ BEGIN
 					THEN ROUND((ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00))) * 100.00 / woc.Revenue, 2) 
 					ELSE 0 
 				END AS MarginPercentage,
-				c.Name AS CustomerName,
+				c.[Name] AS CustomerName,
 				wo.WorkOrderNum,
 				s.Stage,
-				st.Description AS Status,
+				st.[Description] AS [Status],
 				CAST(0 AS BIT) AS IsQuoteRevenue
-			FROM WorkOrderMPNCostDetails woc WITH(NOLOCK)
+			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
 				INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON wo.CustomerId = c.CustomerId
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
 				INNER JOIN [dbo].[WorkOrderStage] s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
-				LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wbi WITH(NOLOCK) ON wop.ID = wbi.WorkOrderPartId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1
-				LEFT JOIN [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1
+				--LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wbi WITH(NOLOCK) ON wop.ID = wbi.WorkOrderPartId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1
+				--LEFT JOIN [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1
+				LEFT JOIN [dbo].[BillingInvoicingItems] wbi WITH(NOLOCK) ON wop.ID = wbi.SubReferenceId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1 AND wbi.[ModuleId] =@WOModuleId
+				LEFT JOIN [dbo].[BillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1 AND wb.[ModuleId] =@WOModuleId
+			
 			WHERE wo.WorkOrderId = @WorkOrderId 
 			ORDER BY wop.ID;
 		END
@@ -84,7 +91,7 @@ BEGIN
 							THEN ISNULL(wqd.CommonFlatRate, 0)
 							ELSE ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)
 						END
-				FROM WorkOrder wo WITH(NOLOCK)
+				FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderQuoteDetails] wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId
 				WHERE wo.WorkOrderId = @WorkOrderId 				
@@ -117,12 +124,12 @@ BEGIN
 					THEN ROUND((ISNULL(q.Revenue, 0.00) - ISNULL(woc.DirectCost, 0.00)) * 100.00 / q.Revenue, 2) 
 					ELSE 0 
 				END AS MarginPercentage,
-				c.Name AS CustomerName,
+				c.[Name] AS CustomerName,
 				wo.WorkOrderNum,
 				s.Stage,
-				st.Description AS Status,
+				st.[Description] AS [Status],
 				CAST(1 AS BIT) AS IsQuoteRevenue
-			FROM WorkOrderMPNCostDetails woc WITH(NOLOCK)
+			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
 				INNER JOIN [dbo].[Customer] c WITH(NOLOCK) ON wo.CustomerId = c.CustomerId
@@ -143,8 +150,8 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_WorkOrderAnalysisDetailsById' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '')
+              , @AdhocComments     VARCHAR(150)    = 'USP_WorkOrderAnalysisDetailsById'               
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

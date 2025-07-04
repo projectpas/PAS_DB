@@ -15,6 +15,7 @@
 	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
 	4   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes and bill/ship)
+	5   03-Jul-2025     Moin Bloch              Changed Old To New Billing Table
      
  EXECUTE [QuickBooks_GetUpdatePendingWOInvoiceList] 1, 1, 4771, 4336
  EXECUTE [QuickBooks_GetUpdatePendingWOInvoiceList] 1, 1, 4772, 0
@@ -123,18 +124,17 @@ BEGIN
 				[WorkOrderPartId], [ShipViaName], [ReferenceNumber], [InvoiceNotes])
 				SELECT	WOBI.BillingInvoicingId,
 						WOBI.InvoiceNo,
-						WOBII.WOBillingInvoicingItemId,
+						WOBII.BillingInvoicingItemId,
 						C.[Name] AS Customer,
 						C.Email AS CustomerEmail,
 						WO.CreditTerms AS PaymentTerms,
 						WOBI.PostedDate AS InvoieDate,
-						--CASE WHEN WOBI.PostedDate IS NULL THEN NULL ELSE DATEADD(DAY, 3, WOBI.PostedDate) END AS DueDate,
 						NULL AS DueDate,
 						'' AS Tags,
 						'' AS Product,
 						IM.partnumber AS PartNumber,
 						IM.PartDescription,
-						WOBII.NoofPieces AS Quantity,
+						WOBII.QtyBilled AS Quantity,
 						ISNULL(WOBI.SalesTax, 0) AS SalesTax,
 						ISNULL(WOBI.OtherTax, 0) AS OtherTax,
 						CASE WHEN ISNULL(WOBI.SalesTax, 0) = 0 OR ISNULL(WOBI.SubTotal, 0) = 0 THEN 0 ELSE (ISNULL(WOBI.SalesTax, 0) * 100 / ISNULL(WOBI.SubTotal, 0)) END AS SalesTaxPercent,
@@ -159,30 +159,26 @@ BEGIN
 						ISNULL(WOBII.LaborCost, 0),
 						ISNULL(WOBII.MiscCharges, 0),
 						ISNULL(WOBII.Freight, 0),
-						ISNULL(WOBI.TotalWorkOrder, 0),
+						ISNULL(WOBII.IsTotalCheck, 0),
 						ISNULL(P.PercentValue, 0),
 						IM.QuickBooksReferenceId,
-						WOBI.WorkOrderId,
+						WOBI.ReferenceId,
 						ISNULL(WOBI.CostPlusType, ''),
-						WOBII.WorkOrderPartId,
+						WOBII.SubReferenceId,
 						sipVia.[Name],
 						WO.WorkOrderNum,
 						WOBI.Notes
-				FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
-					JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) 
+					JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId AND WOBI.[ModuleId] = @WOModuleId
+					JOIN [dbo].[BillingInvoicingDetails] WOBID WITH(NOLOCK) ON WOBID.BillingInvoicingId = WOBI.BillingInvoicingId AND WOBI.[ModuleId] = @WOModuleId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
-					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.WorkOrderId
-					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-					--LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
-					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
-					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND WOBI.[ModuleId] = @WOModuleId
+					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId					
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
-					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.TaxRate
-					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBI.ShipviaId = sipVia.ShippingViaId
-					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(WOBI.SalesTax,0) + ISNULL(WOBI.OtherTax,0))*100 / ISNULL(WOBI.SubTotal,0))
+					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
+					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.CustomerDomensticShippingShipViaId = sipVia.ShippingViaId
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) != 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
-						AND WOBII.WorkOrderPartId = @ReferencePartId AND WOBI.WorkOrderId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
+						AND WOBII.SubReferenceId = @ReferencePartId AND WOBI.ReferenceId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
 			END
 			ELSE
 			BEGIN
@@ -193,18 +189,17 @@ BEGIN
 				[WorkOrderPartId], [ShipViaName], [ReferenceNumber], [InvoiceNotes])
 				SELECT	WOBI.BillingInvoicingId,
 						WOBI.InvoiceNo,
-						WOBII.WOBillingInvoicingItemId,
+						WOBII.BillingInvoicingItemId,
 						C.[Name] AS Customer,
 						C.Email AS CustomerEmail,
 						WO.CreditTerms AS PaymentTerms,
 						WOBI.PostedDate AS InvoieDate,
-						--CASE WHEN WOBI.PostedDate IS NULL THEN NULL ELSE DATEADD(DAY, 3, WOBI.PostedDate) END AS DueDate,
 						NULL AS DueDate,
 						'' AS Tags,
 						'' AS Product,
 						IM.partnumber AS PartNumber,
 						IM.PartDescription,
-						WOBII.NoofPieces AS Quantity,
+						WOBII.QtyBilled AS Quantity,
 						ISNULL(WOBI.SalesTax, 0) AS SalesTax,
 						ISNULL(WOBI.OtherTax, 0) AS OtherTax,
 						CASE WHEN ISNULL(WOBI.SalesTax, 0) = 0 OR ISNULL(WOBI.SubTotal, 0) = 0 THEN 0 ELSE (ISNULL(WOBI.SalesTax, 0) * 100 / ISNULL(WOBI.SubTotal, 0)) END AS SalesTaxPercent,
@@ -213,8 +208,8 @@ BEGIN
 						ISNULL(WOBI.SubTotal, 0) AS SubTotal,
 						ISNULL(WOBI.GrandTotal, 0) AS GrandTotal,
 						ISNULL(WOBI.ProformaDeposit, 0) AS Deposit,
-						CASE	WHEN ISNULL(WOBI.TotalWorkOrder, 0) = 0	THEN ISNULL(WOBII.SubTotal, 0)
-								WHEN ISNULL(WOBI.TotalWorkOrder, 0) = 1 THEN 
+						CASE	WHEN ISNULL(WOBII.IsTotalCheck, 0) = 0	THEN ISNULL(WOBII.SubTotal, 0)
+								WHEN ISNULL(WOBII.IsTotalCheck, 0) = 1 THEN 
 										CASE WHEN ISNULL(WOBII.SubTotal, 0) = 0 THEN ISNULL(WOBI.SubTotal, 0) ELSE ISNULL(WOBII.SubTotal, 0) END END AS UnitPrice,
 						C.QuickBooksReferenceId as CustomerQuickBooksReferenceId, 
 						WOBI.QuickBooksReferenceId, 
@@ -231,30 +226,26 @@ BEGIN
 						ISNULL(WOBII.LaborCost, 0),
 						ISNULL(WOBII.MiscCharges, 0),
 						ISNULL(WOBII.Freight, 0),
-						ISNULL(WOBI.TotalWorkOrder, 0),
+						ISNULL(WOBII.IsTotalCheck, 0),
 						ISNULL(P.PercentValue, 0),
 						IM.QuickBooksReferenceId,
-						WOBI.WorkOrderId,
+						WOBI.ReferenceId,
 						ISNULL(WOBI.CostPlusType, ''),
-						WOBII.WorkOrderPartId,
+						WOBII.SubReferenceId,
 						sipVia.[Name],
 						WO.WorkOrderNum,
 						WOBI.Notes
-				FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
-					JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) 
+					JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId AND WOBI.[ModuleId] = @WOModuleId
+					JOIN [dbo].[BillingInvoicingDetails] WOBID WITH(NOLOCK) ON WOBID.BillingInvoicingId = WOBI.BillingInvoicingId AND WOBI.[ModuleId] = @WOModuleId
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
-					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.WorkOrderId
-					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-					--LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
-					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
-					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId AND WOBI.[ModuleId] = @WOModuleId
+					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId					
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
-					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.TaxRate
-					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBI.ShipviaId = sipVia.ShippingViaId
-					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(WOBI.SalesTax,0) + ISNULL(WOBI.OtherTax,0))*100 / ISNULL(WOBI.SubTotal,0))
+					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
+					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.CustomerDomensticShippingShipViaId = sipVia.ShippingViaId
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) != 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
-						AND WOBI.WorkOrderId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
+						AND WOBI.ReferenceId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
 			END
 
 			--Updating Shipping Details	: Start
@@ -296,9 +287,10 @@ BEGIN
 						billToCountry.countries_name AS BillToCountry,
 						billToCustomer.[Name] AS BillToNameOfCustomer,
 						billToCustomer.Email AS BillToCustomerEmail
-				FROM [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK)
-				LEFT JOIN  [dbo].[Customer] billToCustomer WITH(NOLOCK) ON BI.SoldToCustomerId = billToCustomer.CustomerId
-				LEFT JOIN  [dbo].[CustomerBillingAddress] AS billToSite WITH(NOLOCK) ON BI.SoldToSiteId = billToSite.CustomerBillingAddressId
+				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)
+				JOIN [dbo].[BillingInvoicingDetails] WOBID WITH(NOLOCK) ON WOBID.BillingInvoicingId = BI.BillingInvoicingId AND BI.[ModuleId] = @WOModuleId
+				LEFT JOIN  [dbo].[Customer] billToCustomer WITH(NOLOCK) ON WOBID.SoldToCustomerId = billToCustomer.CustomerId
+				LEFT JOIN  [dbo].[CustomerBillingAddress] AS billToSite WITH(NOLOCK) ON WOBID.SoldToSiteId = billToSite.CustomerBillingAddressId
 				LEFT JOIN  [dbo].[Address] AS billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN  [dbo].[Countries] AS billToCountry WITH(NOLOCK) ON billToAddress.CountryId = billToCountry.countries_id
 				WHERE BI.BillingInvoicingId = TMPAddr.[InvoiceId]
@@ -314,9 +306,10 @@ BEGIN
 					shipToCountry.countries_name AS ShipToCountry,
 					shipToCustomer.[Name] AS ShipToNameOfCustomer,
 					shipToCustomer.Email AS ShipToCustomerEmail
-				FROM [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK)
-				LEFT JOIN  [dbo].[Customer] shipToCustomer WITH(NOLOCK) ON BI.ShipToCustomerId = shipToCustomer.CustomerId
-				LEFT JOIN  [dbo].[CustomerDomensticShipping] AS shipToSite WITH(NOLOCK) ON BI.shipToSiteId = shipToSite.CustomerDomensticShippingId
+				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)
+				JOIN [dbo].[BillingInvoicingDetails] WOBID WITH(NOLOCK) ON WOBID.BillingInvoicingId = BI.BillingInvoicingId AND BI.[ModuleId] = @WOModuleId
+				LEFT JOIN  [dbo].[Customer] shipToCustomer WITH(NOLOCK) ON WOBID.ShipToCustomerId = shipToCustomer.CustomerId
+				LEFT JOIN  [dbo].[CustomerDomensticShipping] AS shipToSite WITH(NOLOCK) ON WOBID.shipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN  [dbo].[Address] AS shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 				LEFT JOIN  [dbo].[Countries] AS shipToCountry WITH(NOLOCK) ON shipToAddress.CountryId = shipToCountry.countries_id
 				WHERE BI.BillingInvoicingId = TMPAddr.[InvoiceId]

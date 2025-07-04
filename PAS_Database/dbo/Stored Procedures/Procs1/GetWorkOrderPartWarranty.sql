@@ -17,13 +17,14 @@
     1    05/13/2022   Subhash Saliya	Created
 	2    05/13/2022   Subhash Saliya	Updated for Check
 	3	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
-     
+    4    03/07/2025   Moin Bloch        Changed Old To New Billing Table
+
 --EXEC [GetWorkOrderPartWarranty] 9, 158651,'STL-000037'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPartWarranty]
-	@ItemMasterId bigint = 0,
-	@StocklineId bigint = 0,
-	@StocklineNumber varchar(100) 
+@ItemMasterId bigint = 0,
+@StocklineId bigint = 0,
+@StocklineNumber varchar(100) 
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -36,6 +37,9 @@ BEGIN
 			  DECLARE @SerialNumber VARCHAR(100);
 
 			  SELECT TOP 1 @SerialNumber=SerialNumber FROM dbo.Stockline  WITH (NOLOCK)  WHERE StockLineId = @StocklineId AND IsParent = 1
+			  DECLARE @WOModuleId INT
+
+			  SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 				SELECT TOP 1 WO.WorkOrderNum as WorkOrderNum
 					,WOBI.InvoiceNo [InvoiceNo]
@@ -44,14 +48,16 @@ BEGIN
 					,WS.ShipDate as ShipDate
 					,ST.StockLineNumber
 					,IM.partnumber
-				FROM WorkOrderShipping WS WITH (NOLOCK)
-					INNER JOIN WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WS.WorkOrderShippingId
-					INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WS.WorkOrderId AND WOPN.ID = WOSI.WorkOrderPartNumId
-					INNER JOIN WorkOrder WO WITH (NOLOCK) ON WS.WorkOrderId = WO.WorkOrderId
-					INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId
-					INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
-					LEFT JOIN  dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WOBI.WorkOrderId = WS.WorkOrderId
-					LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+				FROM [dbo].[WorkOrderShipping] WS WITH (NOLOCK)
+					INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WS.WorkOrderShippingId
+					INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WS.WorkOrderId AND WOPN.ID = WOSI.WorkOrderPartNumId
+					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WS.WorkOrderId = WO.WorkOrderId
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId
+					INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+					 --LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.WorkOrderId = WS.WorkOrderId
+					 --LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+					 LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.ReferenceId = WS.WorkOrderId AND WOBI.[ModuleId] = @WOModuleId
+					 LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND WOBII.[ModuleId] =@WOModuleId
 			    WHERE WOPN.ItemMasterId = @ItemMasterId and ST.isSerialized = 1 and ST.SerialNumber = @SerialNumber AND ISNULL(ST.SerialNumber,'')  != ''  AND 
 					WS.ShipDate > (DATEADD(year, -1, GETUTCDATE())) --WOBI.InvoiceStatus='Invoiced' AND WOBI.IsVersionIncrease=0
 					AND ISNULL(wobii.IsPerformaInvoice, 0) = 0

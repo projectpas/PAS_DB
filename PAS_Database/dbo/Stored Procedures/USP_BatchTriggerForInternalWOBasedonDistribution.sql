@@ -19,6 +19,7 @@
 	8	28/01/2025		Devendra Shekh		Modify (Reverse Entry Issue Resolved)
 	9	24/04/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 	10	02/06/2025		Abhishek Jirawla	Fixed Name concat read script
+	11  03-07-2025      Moin Bloch          Changed Old To New Billing Table
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
@@ -2025,22 +2026,24 @@ BEGIN
 					SELECT @InvoiceNo=[InvoiceNo],
 						   @InvoiceTotalCost=ISNULL([GrandTotal],0),
 						   --@MaterialCost=ISNULL([MaterialCost],0),
-						   @FreightCost=ISNULL([FreightCost],0),
+						   --@FreightCost=ISNULL([FreightCost],0),
 						   @SalesTax=ISNULL([SalesTax],0),
 						   @OtherTax = ISNULL([OtherTax],0),
-						   @MiscChargesCost=ISNULL([MiscChargesCost],0), 
+						   --@MiscChargesCost=ISNULL([MiscChargesCost],0), 
 						   @InvoiceDate = [InvoiceDate]
-					  FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @InvoiceId;
+					  FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @InvoiceId;
 				  
-					SELECT TOP 1 @Qty=[NoofPieces] from [dbo].[WorkOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [BillingInvoicingId] = @InvoiceId; 
+					SELECT TOP 1 @Qty=[QtyBilled] from [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingId] = @InvoiceId; 
 
 					SET @JournalBatchDetailId = CASE WHEN @StartCount = 1 THEN 0 ELSE @JournalBatchDetailId END;
 
 					SELECT @LaborCost = (SUM(ISNULL(WOPN.LaborCost,0))-SUM(ISNULL(WOPN.OverHeadCost,0))),
-						   @LaborOverHeadCost = SUM(ISNULL(WOPN.OverHeadCost,0))
-						   ,@MaterialCost = SUM(ISNULL(WOPN.PartsCost,0))
+						   @LaborOverHeadCost = SUM(ISNULL(WOPN.OverHeadCost,0)),
+						   @MaterialCost = SUM(ISNULL(WOPN.PartsCost,0)),
+						   @FreightCost = SUM(ISNULL([FreightCostPlus],0)),
+						   @MiscChargesCost = SUM(ISNULL([MiscChargesCostPlus],0))
 					from [dbo].[WorkOrderMPNCostDetails]  WOPN WITH(NOLOCK)
-					INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIT WITH(NOLOCK) ON WOPN.WOPartNoId= WOBIT.WorkOrderPartId
+					INNER JOIN [dbo].[BillingInvoicingItems] WOBIT WITH(NOLOCK) ON WOPN.WOPartNoId= WOBIT.SubReferenceId
 					WHERE [BillingInvoicingId] = @InvoiceId AND [IsVersionIncrease] = 0   
 					GROUP BY [BillingInvoicingId]
 					 

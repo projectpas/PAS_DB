@@ -14,6 +14,7 @@
     1    08/09/2023			Devendra shekh			  Created
     2    01/31/2023			Devendra shekh			  changes for condition Update
 	3    05/31/2024			Hemant Saliya			  Correced WOP condition Updates
+	4    03-07-2025         Moin Bloch                Changed Old To New Billing Table
 
 
 exec dbo.USP_UpdateConditionById @WOPartNoId =3696,@WOId=4201,@ConditionId=10
@@ -34,19 +35,37 @@ BEGIN
 
 					DECLARE @WOBillingId BIGINT = 0;
 
-					SELECT * INTO #Results FROM(SELECT BillingInvoicingId FROM WorkOrderBillingInvoicing t2 WHERE t2.WorkOrderId = @WOId AND t2.IsVersionIncrease = 0 GROUP BY BillingInvoicingId) A
+					DECLARE @WOModuleId INT
+
+					SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+					--SELECT * INTO #Results FROM(SELECT BillingInvoicingId FROM WorkOrderBillingInvoicing t2 WHERE t2.WorkOrderId = @WOId AND t2.IsVersionIncrease = 0 GROUP BY BillingInvoicingId) A
+
+					--SELECT @WOBillingId = ISNULL(WBI.BillingInvoicingId,0) 
+					--FROM [dbo].WorkOrderBillingInvoicing WBI WITH(NOLOCK) WHERE WBI.WorkOrderId = @WOId AND WBI.IsVersionIncrease = 0 
+					--ORDER BY WBI.BillingInvoicingId DESC
+
+					--UPDATE dbo.WorkOrderPartNumber SET RevisedConditionId = @ConditionId   WHERE ID = @WOPartNoId;
+
+					--IF(@WOBillingId > 0)
+					--BEGIN
+					--	UPDATE dbo.WorkOrderBillingInvoicing SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
+					--	UPDATE dbo.WorkOrderBillingInvoicingItem SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
+					--END	
+					
+					SELECT * INTO #Results FROM(SELECT BillingInvoicingId FROM dbo.BillingInvoicing t2 WHERE t2.ReferenceId = @WOId AND [ModuleId] = @WOModuleId AND ISNULL(t2.IsVersionIncrease,0) = 0 GROUP BY BillingInvoicingId) A
 
 					SELECT @WOBillingId = ISNULL(WBI.BillingInvoicingId,0) 
-					FROM [dbo].WorkOrderBillingInvoicing WBI WITH(NOLOCK) WHERE WBI.WorkOrderId = @WOId AND WBI.IsVersionIncrease = 0 
+					FROM [dbo].[BillingInvoicing] WBI WITH(NOLOCK) WHERE WBI.ReferenceId = @WOId AND WBI.[ModuleId] = @WOModuleId AND ISNULL(WBI.IsVersionIncrease,0) = 0 
 					ORDER BY WBI.BillingInvoicingId DESC
 
 					UPDATE dbo.WorkOrderPartNumber SET RevisedConditionId = @ConditionId   WHERE ID = @WOPartNoId;
 
 					IF(@WOBillingId > 0)
 					BEGIN
-						UPDATE dbo.WorkOrderBillingInvoicing SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
-						UPDATE dbo.WorkOrderBillingInvoicingItem SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
-					END					
+						--UPDATE dbo.BillingInvoicing SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
+						UPDATE [dbo].[BillingInvoicingItems] SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
+					END	
 
 			END
 		COMMIT  TRANSACTION

@@ -27,7 +27,8 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@NoOfItems INT=0
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@NoOfItems INT=0, @ProformaDepositAmount DECIMAL(18, 2) = 0;
+	DECLARE @ReferenceId BIGINT = NULL;
 	
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -51,6 +52,12 @@ BEGIN
 			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON T.BillingInvoicingId = BII.BillingInvoicingId
 			INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.SubReferenceId = WOP.ID
 			WHERE T.[BillingInvoicingId] = @BillingInvoicingId;
+
+			SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+			SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
+			FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
+			WHERE BI.[ReferenceId] = @ReferenceId AND BI.ModuleId  =  @ModuleId AND ISNULL(BI.IsPerformaInvoice, 0) = 1 
 
 			SELECT @NoOfItems = COUNT(ISNULL(BII.[BillingInvoicingItemId],0))			 
 			 FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 		 
@@ -133,9 +140,11 @@ BEGIN
 					BI.[Notes] [Notes],
 					WO.[WorkOrderNum] AS [ReferenceNo],
 					ISNULL(BI.[SubTotal],0) [SubTotal],
-					ISNULL(BI.[DepositAmount],0) [DepositAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],
+					--ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal],0) [GrandTotal],
-					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
+					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					ISNULL(CAST(@NoOfItems AS NVARCHAR), '0') [NoOfItems]					 
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]

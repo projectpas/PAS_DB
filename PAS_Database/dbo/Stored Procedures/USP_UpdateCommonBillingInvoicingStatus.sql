@@ -55,13 +55,14 @@ BEGIN
 			DECLARE @Customer INT,@Internal INT
 			DECLARE @DistributionCode VARCHAR(50)=''		
 			DECLARE @IsRestrict BIT,@IsAccountByPass BIT;			 
-			DECLARE @CustomerId BIGINT = 0, @SubReferenceId BIGINT = 0
-			DECLARE @WOMSModuleId INT = 0
+			DECLARE @CustomerId BIGINT = 0, @SubReferenceId BIGINT = 0;
+			DECLARE @WOMSModuleId INT = 0;
 			DECLARE @InvoiceNo VARCHAR(256) = '';	
-			DECLARE @GrandTotal DECIMAL(18,2) = 0
+			DECLARE @GrandTotal DECIMAL(18,2) = 0;
 			DECLARE @WorkOrderSettlementDetailId BIGINT = 0,@WorkOrderSettlementId BIGINT = 0,@WorkFlowWorkOrderId BIGINT = 0
 			DECLARE @PartNumber VARCHAR(50)='',@TemplateBody VARCHAR(MAX)=''
-			DECLARE @UpdatedDate DATETIME2(7)
+			DECLARE @UpdatedDate DATETIME2(7);
+			DECLARE @ProformaDepositAmount DECIMAL(18,2) = 0;
 						
 			SELECT @InvoicedStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Invoiced';
 			
@@ -83,6 +84,11 @@ BEGIN
 				INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON WO.[CustomerId] = CU.[CustomerId]
 				WHERE [WorkOrderId] = @ReferenceId
 
+
+			SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
+			FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
+			WHERE BI.[ReferenceId] = @ReferenceId AND BI.ModuleId  =  @ModuleId AND ISNULL(BI.IsPerformaInvoice, 0) = 1 
+
 			IF(ISNULL(@IsPerformaInvoice,0) = 0)
 			BEGIN					   						
 				UPDATE [dbo].[BillingInvoicing] 
@@ -90,6 +96,8 @@ BEGIN
 					   [PostedDate] = GETUTCDATE(),
 					   [InvoiceStatusId] = @InvoiceStatusId,
 					   [InvoiceStatus] = @InvoicedStatus,
+					   [DepositAmount] = CASE WHEN ISNULL([DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL([DepositAmount],0) END ,
+					   [RemainingAmount] = CASE WHEN ISNULL([DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL([GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL([GrandTotal],0) - ISNULL([DepositAmount],0) END ,
 					   [UpdatedBy] = @UpdatedBy					  
 				 WHERE [BillingInvoicingId] = @BillingInvoicingId
 
@@ -147,6 +155,7 @@ BEGIN
 					BEGIN
 						DECLARE @PendingDeposit DECIMAL(18,2)=0,@PerformaBillingInvoicingId BIGINT = 0
 						DECLARE @PerformaDepositAmount DECIMAL(18,2)=0
+
 						SELECT @PerformaBillingInvoicingId = [BillingInvoicingId],
 						       @ModuleId = [ModuleId],
 							   @ReferenceId = [ReferenceId], 
@@ -167,6 +176,7 @@ BEGIN
 						SET @MinIdPro = @MinIdPro + 1;
 					END
 					
+					EXEC [dbo].[USP_UpdateDepositAmount] @BillingInvoicingId, 1
 
 					SELECT @DistributionMasterId = [ID],
 					       @DistributionCode = [DistributionCode]

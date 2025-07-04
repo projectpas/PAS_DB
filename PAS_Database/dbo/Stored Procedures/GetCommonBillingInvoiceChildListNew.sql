@@ -17,9 +17,10 @@
 	4    17/06/2025   Rajesh Gami		Resolved issue regarding getting the Biling Amount
 	5    23/06/2025   Rajesh Gami		Fixed Proforma billing amount realted issue
 	6    25/06/2025   Rajesh Gami		Fixed Getting Child List Issue For the SO.
-	6    30/06/2025   Rajesh Gami		Added isSerialized return parameter
+	7    30/06/2025   Rajesh Gami		Added isSerialized return parameter
+	8    30/06/2025   Hemnat Saliya		Handle Duplidate entry in billing list
 **************************************************************/ 
---   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 8810,8582,1,15
+--   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceChildListNew]
 @ReferenceId BIGINT = NULL,
@@ -140,8 +141,9 @@ BEGIN
 				SET @ActionId = 10; -- Re-OpenFinishedGood
 				SELECT @IsInvoiceBeforeShippingAllowed = ISNULL(WOPN.[AllowInvoiceBeforeShipping], 0) FROM [dbo].[WorkOrderPartNumber] WOPN WITH(NOLOCK) WHERE WOPN.ID = @SubReferenceId;
 				
-				IF EXISTS (SELECT TOP 1 [WorkOrderShippingId] FROM [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) WHERE WOS.WorkOrderId = @ReferenceId AND WorkOrderPartNoId = @SubReferenceId)
+				IF EXISTS (SELECT TOP 1 [WorkOrderShippingId] FROM [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) WHERE WOS.WorkOrderId = @ReferenceId)
 				BEGIN
+					PRINT '1.1'
 					SELECT * INTO #MyTempTable FROM 
 					(SELECT DISTINCT 
 						wosi.WorkOrderShippingId, 
@@ -179,23 +181,23 @@ BEGIN
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
 					FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
-					INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId
-					 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
-					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-					 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
-					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
-					 LEFT JOIN [dbo].[WorkOrderMPNCostDetails] wocd WITH(NOLOCK) ON wop.ID = wocd.WOPartNoId
-					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
-					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
-					 LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
-					 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
+						INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId
+						LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId AND wosi.WorkOrderPartNumId = wof.WorkOrderPartNoId
+						LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
+						LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+						INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
+						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] wocd WITH(NOLOCK) ON wop.ID = wocd.WOPartNoId
+						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+						INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
+						LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
+						LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
 					 --LEFT JOIN [dbo].[ItemMaster] imv WITH(NOLOCK) ON imv.ItemMasterId = wobi.ItemMasterId
-					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
-					 LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH(NOLOCK) ON woc.WorkOrderShippingId = wos.WorkOrderShippingId
-					 LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
-					 LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wosc.ConditionId
-					 LEFT JOIN [dbo].[Currency] curr WITH(NOLOCK) ON curr.CurrencyId = wobi.CurrencyId
-					 LEFT JOIN [dbo].[InvoiceType] INV WITH(NOLOCK) ON INV.InvoiceTypeId = wobi.InvoiceTypeId
+						LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+						LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH(NOLOCK) ON woc.WorkOrderShippingId = wos.WorkOrderShippingId
+						LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
+						LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wosc.ConditionId
+						LEFT JOIN [dbo].[Currency] curr WITH(NOLOCK) ON curr.CurrencyId = wobi.CurrencyId
+						LEFT JOIN [dbo].[InvoiceType] INV WITH(NOLOCK) ON INV.InvoiceTypeId = wobi.InvoiceTypeId
 					WHERE wos.WorkOrderId = @ReferenceId AND wop.ID = @SubReferenceId 
 
 					GROUP BY wosi.WorkOrderShippingId, wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
@@ -235,7 +237,7 @@ BEGIN
 				BEGIN
 					IF (@IsInvoiceBeforeShippingAllowed = 0)
 					BEGIN
-						PRINT 'IF'
+						PRINT '1.2'
 						SELECT * INTO #MyTempTable1 from 
 							(SELECT DISTINCT 
 								wosi.WorkOrderShippingId, 
@@ -327,6 +329,7 @@ BEGIN
 					ELSE
 					BEGIN
 						PRINT 'ELSE'
+						PRINT '1.3'
 						SELECT * INTO #MyTempTable2 from 
 						(SELECT DISTINCT 							
 							CASE WHEN wosi.WorkOrderShippingId IS NOT NULL THEN wosi.WorkOrderShippingId ELSE wop.ID END AS WorkOrderShippingId, 
@@ -418,6 +421,7 @@ BEGIN
 				
 				IF(@IncludeProformaInvoice = 1)
 				BEGIN
+					PRINT '1.4'
 					SELECT * INTO #MyTempTable3 FROM 
 					(SELECT DISTINCT 
 						CASE WHEN wos.WorkOrderShippingId IS NOT NULL THEN wos.WorkOrderShippingId 

@@ -27,7 +27,7 @@
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
-CREATE PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
+CREATE   PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
 -------------------------------------------BillingInvoicing-------------------------------------------
 @BillingInvoicingId BIGINT = NULL,  
 @ModuleId INT = NULL,
@@ -495,7 +495,7 @@ BEGIN
 			SET @MinId = @MinId + 1;
 		END  /****** END : MAIN WHILE LOOP *******/
 		
-		EXEC [dbo].[USP_UpdateDepositAmount] @BillingInvoicingIdNew
+		EXEC [dbo].[USP_UpdateDepositAmount] @BillingInvoicingIdNew, 0
 	/********* Return New Billing Invoicing Id **********/
 	SELECT @BillingInvoicingIdNew AS [BillingInvoicingId]  
  END   

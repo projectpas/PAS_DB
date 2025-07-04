@@ -65,9 +65,9 @@ BEGIN
 		CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId, ShipDate)
 
 		SELECT DISTINCT SOBII.SOBillingInvoicingItemId,SOBII.SOBillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,SOBII.SalesOrderPartId,
-			SOP.ItemMasterId,
+			SOBII.ItemMasterId,
 			SOBII.StocklineId,
-			SOP.ConditionId,
+			SOST.ConditionId,
 			BI.CostPlusType,
 			SOC.NetSaleAmountPerUnit AS UnitPrice,
 			SOBII.NoofPieces, 
@@ -93,9 +93,8 @@ BEGIN
 			SOBI.ShipDate
 		FROM dbo.SalesOrderBillingInvoicingItem SOBII 
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = @ModuleId
-			JOIN dbo.SalesOrderPartV1 SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
-			JOIN dbo.SalesOrderStocklineV1 SOST ON SOP.SalesOrderPartId = SOST.SalesOrderPartId
+			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = 10
+			JOIN dbo.SalesOrderStocklineV1 SOST ON SOBII.StockLineId = SOST.StockLineId
 			JOIN dbo.SalesOrderStockLineCost SOC ON SOST.SalesOrderStocklineId = SOC.SalesOrderStocklineId
 		WHERE SOBII.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
 

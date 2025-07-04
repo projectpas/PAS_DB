@@ -176,7 +176,7 @@ BEGIN
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId					
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
-					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.CustomerDomensticShippingShipViaId = sipVia.ShippingViaId
+					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.ShipViaId = sipVia.ShippingViaId
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) != 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 						AND WOBII.SubReferenceId = @ReferencePartId AND WOBI.ReferenceId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
 			END
@@ -243,7 +243,7 @@ BEGIN
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId					
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
-					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.CustomerDomensticShippingShipViaId = sipVia.ShippingViaId
+					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.ShipViaId = sipVia.ShippingViaId
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) != 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 						AND WOBI.ReferenceId = @ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0;
 			END

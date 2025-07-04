@@ -1,21 +1,23 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [USP_UpdateCommonBillingInvoicingStatus]             
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Update Common Billing Invoicing Status
  ** Purpose:           
  ** Date:   05/06/2025
          
- **************************************************************             
+ **********************             
   ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date         Author				Change Description              
  ** --   --------     -------				-------------------------------            
     1    05/06/2025   Moin Bloch		Created
 	2    10/06/2025   Rajesh Gami		Implemented SO
 	3    18/06/2025   Moin Bloch		Update Status in Proforma
+	4    04/07/2025   Devendra Shekh	Update UsedDeposite for SO
+	5    04/07/2025   Moin Bloch		Update [IsStandardInvoicePosted] Status for Proforma
 
 EXEC  [dbo].[USP_UpdateCommonBillingInvoicingStatus] 4349
-**************************************************************/ 
+**********************/ 
 CREATE PROCEDURE [dbo].[USP_UpdateCommonBillingInvoicingStatus]    
 @BillingInvoicingId BIGINT = NULL,
 @ReferenceId BIGINT = NULL,
@@ -32,6 +34,7 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN
 		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@WOSubModuleId INT
+		DECLARE @ProformaDepositAmount DECIMAL(18,2) = 0;
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
@@ -42,7 +45,7 @@ BEGIN
 		SELECT @InvoicedStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Invoiced'
 		SELECT @InvoicedStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @InvoiceStatusId
 
-		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
+		IF(@ModuleId = @WOModuleId) /****START: WORK ORDER ***/
 		BEGIN		
 			DECLARE @CodeTypeId BIGINT			
 			DECLARE @WorkOrderTypeId BIGINT = 0
@@ -61,8 +64,7 @@ BEGIN
 			DECLARE @GrandTotal DECIMAL(18,2) = 0;
 			DECLARE @WorkOrderSettlementDetailId BIGINT = 0,@WorkOrderSettlementId BIGINT = 0,@WorkFlowWorkOrderId BIGINT = 0
 			DECLARE @PartNumber VARCHAR(50)='',@TemplateBody VARCHAR(MAX)=''
-			DECLARE @UpdatedDate DATETIME2(7);
-			DECLARE @ProformaDepositAmount DECIMAL(18,2) = 0;
+			DECLARE @UpdatedDate DATETIME2(7);			
 						
 			SELECT @InvoicedStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Invoiced';
 			
@@ -123,6 +125,12 @@ BEGIN
 					   SET [IsInvoicePosted] = 1
 					 WHERE [BillingInvoicingId] = @BillingInvoicingId
 
+					  UPDATE [dbo].[BillingInvoicing] 
+					    SET [IsStandardInvoicePosted] = 1
+					  WHERE [ReferenceId] = @ReferenceId 
+					    AND [ModuleId] = @ModuleId 
+						AND [IsPerformaInvoice] = 1	
+
 					 IF OBJECT_ID(N'tempdb..#TempUpdateBillingDetailsForPerforma') IS NOT NULL    
 					 BEGIN    
 						DROP TABLE #TempUpdateBillingDetailsForPerforma
@@ -140,7 +148,7 @@ BEGIN
 					 					
 					 INSERT INTO #TempUpdateBillingDetailsForPerforma([BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit])
 															  SELECT [BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit] 
-					 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND ModuleId = @ModuleId AND [IsPerformaInvoice] = 1 AND ISNULL([IsVersionIncrease],0) = 0
+					 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @ModuleId AND [IsPerformaInvoice] = 1 AND ISNULL([IsVersionIncrease],0) = 0
 
 
 					 DECLARE @DepositAmount DECIMAL(18,2) = 0,@UsedDeposit DECIMAL(18,2) = 0
@@ -280,10 +288,84 @@ BEGIN
 			
 			EXEC [dbo].[USP_History] @ModuleId,@ReferenceId,@WOSubModuleId,@SubReferenceId,@OldValue,@NewValue,@TemplateBody,'ShippingPost',@MasterCompanyId,@UpdatedBy,@UpdatedDate,@UpdatedBy,@UpdatedDate
 						
-		END /*********END: WORK ORDER ********/
-		ELSE IF(@ModuleId = @SOModuleId)/*********START: SALES ORDER ********/
+		END /****END: WORK ORDER ***/
+		ELSE IF(@ModuleId = @SOModuleId)/****START: SALES ORDER ***/
 		BEGIN
-			UPDATE [dbo].[BillingInvoicing] 
+
+			SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
+			FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
+			WHERE BI.[ReferenceId] = @ReferenceId AND BI.ModuleId =  @ModuleId AND ISNULL(BI.IsPerformaInvoice, 0) = 1 
+
+			IF(ISNULL(@IsPerformaInvoice,0) = 0)
+			BEGIN					   						
+				UPDATE [dbo].[BillingInvoicing] 
+				SET		[UpdatedDate] = GETUTCDATE(),
+						[PostedDate] = GETUTCDATE(),
+						[InvoiceStatusId] = @InvoiceStatusId,
+						[InvoiceStatus] = @InvoicedStatus,
+						[DepositAmount] = CASE WHEN ISNULL([DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL([DepositAmount],0) END ,
+						[RemainingAmount] = CASE WHEN ISNULL([DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL([GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL([GrandTotal],0) - ISNULL([DepositAmount],0) END ,
+						[UpdatedBy] = @UpdatedBy					  
+				 WHERE	[BillingInvoicingId] = @BillingInvoicingId
+
+				IF(@InvoiceStatusId = @InvoicedStatusId)
+				BEGIN
+					IF OBJECT_ID('tempdb..#TempUpdateSOBillingDetailsForPerforma') IS NOT NULL
+					BEGIN
+						DROP TABLE #TempUpdateSOBillingDetailsForPerforma
+					END
+
+					CREATE TABLE #TempUpdateSOBillingDetailsForPerforma
+					(
+						[PKID] [BIGINT] NOT NULL IDENTITY,
+						[BillingInvoicingId] [BIGINT],
+						[ModuleId] [INT] NULL,
+						[ReferenceId] [BIGINT] NULL,		
+						[DepositAmount] [DECIMAL](18,2) NULL,
+						[UsedDeposit] [DECIMAL](18,2) NULL				
+					)
+					 					
+					INSERT INTO #TempUpdateSOBillingDetailsForPerforma([BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit])
+															SELECT [BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit] 
+					FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND ModuleId = @ModuleId AND [IsPerformaInvoice] = 1 AND ISNULL([IsVersionIncrease],0) = 0
+
+					DECLARE @SODepositAmount DECIMAL(18,2) = 0,@SOUsedDeposit DECIMAL(18,2) = 0
+					DECLARE @SOTotalRecordPRo INT = 0,@SOMinIdPro BIGINT = 1
+
+					SELECT @SODepositAmount = ISNULL([DepositAmount],0) FROM [dbo].[BillingInvoicing] WHERE [BillingInvoicingId] = @BillingInvoicingId  
+
+					SELECT @SOTotalRecordPRo = COUNT(*), @SOMinIdPro = MIN([PKID]) FROM #TempUpdateSOBillingDetailsForPerforma    
+
+					WHILE @SOMinIdPro <= @SOTotalRecordPRo
+					BEGIN
+						DECLARE @SOPendingDeposit DECIMAL(18,2)=0,@SOPerformaBillingInvoicingId BIGINT = 0
+						DECLARE @SOPerformaDepositAmount DECIMAL(18,2)=0
+						SELECT @SOPerformaBillingInvoicingId = [BillingInvoicingId],
+								@ModuleId = [ModuleId],
+								@ReferenceId = [ReferenceId], 
+								@SOPerformaDepositAmount = ISNULL([DepositAmount],0),
+								@SOUsedDeposit = ISNULL([UsedDeposit],0)
+							FROM #TempUpdateSOBillingDetailsForPerforma WHERE [PKID] = @SOMinIdPro
+			
+						IF(@SODepositAmount > 0)
+						BEGIN	
+							SET @SOPendingDeposit = @SOPerformaDepositAmount - @SOUsedDeposit
+
+							IF(@SOPendingDeposit > 0)
+							BEGIN
+								UPDATE [dbo].[BillingInvoicing] SET [UsedDeposit] = CASE WHEN @SODepositAmount >= @SOPendingDeposit THEN ISNULL([UsedDeposit], 0) + @SOPendingDeposit ELSE @SODepositAmount END
+								WHERE [BillingInvoicingId] = @SOPerformaBillingInvoicingId
+							END
+				
+							SET @SODepositAmount =  CASE WHEN @SODepositAmount >= @SOPendingDeposit THEN @SODepositAmount - @SOPendingDeposit ELSE 0 END 				
+						END
+
+						SET @SOMinIdPro = @SOMinIdPro + 1;
+					END
+
+					EXEC [dbo].[USP_UpdateDepositAmount] @BillingInvoicingId, 1
+
+					UPDATE [dbo].[BillingInvoicing] 
 					   SET [UpdatedDate] = GETUTCDATE(),
 						   [PostedDate] = GETUTCDATE(),
 						   [InvoiceStatusId] = @InvoiceStatusId,
@@ -291,7 +373,31 @@ BEGIN
 						   [UpdatedBy] = @UpdatedBy,
 						   IsInvoicePosted = 1,IsUpdated =1
 					 WHERE [BillingInvoicingId] = @BillingInvoicingId
-		END/*********END: SALES ORDER ********/
+				END				 
+			END
+			BEGIN
+				 IF(@InvoiceStatusId = @InvoicedStatusId)
+				 BEGIN
+					UPDATE [dbo].[BillingInvoicing] 
+					   SET [UpdatedDate] = GETUTCDATE(),
+						   [PostedDate] = GETUTCDATE(),
+						   [InvoiceStatusId] = @InvoiceStatusId,
+						   [InvoiceStatus] = @InvoicedStatus,
+						   [UpdatedBy] = @UpdatedBy
+					 WHERE [BillingInvoicingId] = @BillingInvoicingId
+				 END
+				 ELSE
+				 BEGIN
+					UPDATE [dbo].[BillingInvoicing] 
+					   SET [UpdatedDate] = GETUTCDATE(),						   						   
+						   [InvoiceStatusId] = @InvoiceStatusId,
+						   [InvoiceStatus] = @InvoicedStatus,
+					       [UpdatedBy] = @UpdatedBy				
+					 WHERE [BillingInvoicingId] = @BillingInvoicingId
+				 END
+			END
+			
+		END/****END: SALES ORDER ***/
  END   
  COMMIT  TRANSACTION  
  END TRY           

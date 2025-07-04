@@ -4023,6 +4023,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderShippingLabelBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteFreightAuditByFreightId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteChargesAuditByChargeId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteSettingList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

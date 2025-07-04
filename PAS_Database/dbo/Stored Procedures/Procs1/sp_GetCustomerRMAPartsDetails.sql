@@ -24,8 +24,7 @@
 	12   12/04-05/2024   AMIT GHEDIYA	   Create RMA/CM from SO : UnitPrice & Amount wrong issue.
 	13   01/02/2025   Abhishek Jirawla	Updating the part cost
 	14   14/04/2025   Devendra Shekh	removed duplicate AltPartNumber field for WOInv Select
-	15	 06-June-2025 AMIT GHEDIYA		Get WO/SO Billing data from new table.
-	16   07/03/2025   Moin Bloch        Changed Old To New Billing Table
+	16   07/04/2025   Moin Bloch        Changed Old To New Billing Tables
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_GetCustomerRMAPartsDetails]
@@ -324,7 +323,7 @@ BEGIN
 						IM.ManufacturerName,
 						AltPartNumber=(  
 						 SELECT TOP 1  
-						A.PartNumber [AltPartNumberType] from [dbo].[BillingInvoicingItem] WOBIIA WITH (NOLOCK) 
+						A.PartNumber [AltPartNumberType] from [dbo].[BillingInvoicingItems] WOBIIA WITH (NOLOCK) 
 						Outer Apply(  
 						 SELECT   
 							STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 then ',' ELSE '' END + AI.partnumber  

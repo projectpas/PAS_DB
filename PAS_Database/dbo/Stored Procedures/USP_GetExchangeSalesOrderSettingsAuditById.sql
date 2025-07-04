@@ -5,7 +5,7 @@
  ** Purpose:         
  ** Date:   07/04/2025      
           
- ** PARAMETERS:  @ExchangeSalesOrderSettingsAuditId INT,   @EmployeeId BIGINT
+ ** PARAMETERS:  @ExchangeSalesOrderSettingsAuditId BIGINT,   @EmployeeId BIGINT
          
  ** RETURN VALUE:           
  **************************************************************           

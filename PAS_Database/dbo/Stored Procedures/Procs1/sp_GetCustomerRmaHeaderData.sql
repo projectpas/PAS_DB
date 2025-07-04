@@ -14,6 +14,7 @@
     1    04/18/2022   Subhash Saliya	 Created
     2	 19/06/2023   Ayesha Sultana	 ALtered - get new column ReceiverNum
     3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
+	4    04-07-2025   AMIT GHEDIYA		 Changed Old To New Billing Table
 	
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
 **************************************************************/ 
@@ -35,7 +36,13 @@ BEGIN
 			DECLARE @isWorkOrder bit
 			DECLARE @InvoiceId bigint
 			DECLARE @AddressCount int=0
-			DECLARE @PartCount int=0
+			DECLARE @PartCount int=0;
+			DECLARE @WOModuleId INT,
+					@SOModuleId INT;
+
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 			SELECT @isWorkOrder =isWorkOrder,@InvoiceId= InvoiceId FROM [dbo].[CustomerRMAHeader]  WITH (NOLOCK) WHERE  RMAHeaderId =@RMAHeaderId
 
 			SELECT top 1 @AddressCount = count(*) FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
@@ -47,11 +54,11 @@ BEGIN
 
 			if(@isWorkOrder =1)
 			BEGIN
-			  SELECT @InvoiceStatus = InvoiceStatus FROM WorkOrderBillingInvoicing WOBI WITH (NOLOCK) WHERE  BillingInvoicingId =@InvoiceId
+			  SELECT @InvoiceStatus = InvoiceStatus FROM BillingInvoicing WOBI WITH (NOLOCK) WHERE  BillingInvoicingId = @InvoiceId AND ISNULL(WOBI.IsPerformaInvoice,0) = 0 AND WOBI.ModuleId = @WOModuleId
 			END
 			ELSE
 			BEGIN
-			  SELECT @InvoiceStatus = InvoiceStatus FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId AND ISNULL(SOBI.IsProforma,0) = 0
+			  SELECT @InvoiceStatus = InvoiceStatus FROM BillingInvoicing SOBI WITH (NOLOCK) WHERE  BillingInvoicingId =@InvoiceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @SOModuleId
 			END
 
 

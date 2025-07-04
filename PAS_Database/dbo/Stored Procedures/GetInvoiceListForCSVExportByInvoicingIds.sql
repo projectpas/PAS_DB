@@ -14,6 +14,7 @@
 	4   19 May 2025   RAJESH GAMI	Remove remaining amount condition
 	5   28 May 2025   RAJESH GAMI   Corrected InvoiceAmount
 	6	13 Jun 2025	  RAJESH GAMI	Change the new billing invoicing table with old one (WO, SO)
+	8	04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing 
 ** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
@@ -102,7 +103,7 @@ SET NOCOUNT ON;
 						 INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 						 INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOBII.ItemMasterId = WOP.RevisedItemmasterid
 					WHERE 
-						WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.ModuleId = @woModuleId AND
+						WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.ModuleId = @woModuleId 		AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 AND 
 						((@IsSelectAllInvoice = 1 AND 
 							WOBI.IsVersionIncrease=0 AND
 							(@FromDate IS NULL OR CAST(WOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
@@ -151,7 +152,7 @@ SET NOCOUNT ON;
 						 INNER JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOBII.ItemMasterId = SOP.ItemMasterId
 						 INNER JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
 						 INNER JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
-					WHERE  SOBI.MasterCompanyId=@MasterCompanyId AND SOBI.ModuleId = @soModuleId
+					WHERE  SOBI.MasterCompanyId=@MasterCompanyId AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 						AND
 							((@IsSelectAllInvoice = 1 AND SOBI.IsVersionIncrease=0 --AND ISNULL(SOBI.[IsBilling], 0) != 1 
 							AND	(@FromDate IS NULL OR CAST(SOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 
@@ -229,7 +230,7 @@ SET NOCOUNT ON;
 						 INNER JOIN  dbo.ExchangeSalesOrderBillingInvoicingItem ESOBII WITH(NOLOCK) ON ESOBI.SOBillingInvoicingId = ESOBII.SOBillingInvoicingId
 						 INNER JOIN dbo.ExchangeSalesOrder ESO WITH(NOLOCK) ON ESOBI.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
 						 INNER JOIN dbo.ExchangeSalesOrderPart ESOP WITH(NOLOCK) ON ESO.ExchangeSalesOrderId = ESOP.ExchangeSalesOrderId AND ESOBII.ItemMasterId = ESOP.ItemMasterId
-					WHERE  ESOBI.MasterCompanyId=@MasterCompanyId 
+					WHERE  ESOBI.MasterCompanyId=@MasterCompanyId  
 						AND
 							((@IsSelectAllInvoice = 1 AND ISNULL(ESOBII.[IsDeleted],0) = 0 AND ISNULL(ESOBI.[GrandTotal],0) > 0	 AND
 							(@FromDate IS NULL OR CAST(ESOBI.InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND 

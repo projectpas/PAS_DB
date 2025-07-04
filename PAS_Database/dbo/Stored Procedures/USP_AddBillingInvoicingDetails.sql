@@ -23,7 +23,7 @@
 	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
 	11   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
 	12   02/07/2025   Moin Bloch     Added DepositAmount
-	13    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
+	13    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -486,7 +486,7 @@ BEGIN
 				SET @TemplateBody = REPLACE(@TemplateBody, '##InvoiceNo##', @InvoiceNo);
 				EXEC [dbo].[USP_History] @WOModuleId,@ReferenceId,@WorkOrderMPNModuleID,@SubReferenceId,'False','True',@TemplateBody,'Invoicing',@MasterCompanyId,@CreatedBy,@CreatedDate,@UpdatedBy,@UpdatedDate
 			END
-			IF(@ModuleId = @SOModuleId AND @IsPerformaInvoice = 1)
+			IF(@ModuleId = @SOModuleId AND @IsPerformaInvoice = 0)
 			BEGIN
 				DECLARE @SOBilledStatusId int = (select TOP 1 SOPartStatusId from SOPartStatus WHERE Description = 'Billed')
 				EXEC [dbo].[SP_SaveSOPartStatusByPartId] @SalesOrderPartId  = @SubReferenceId, @StatusId = @SOBilledStatusId

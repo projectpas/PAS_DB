@@ -100,7 +100,7 @@ BEGIN
 								INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SubReferenceId AND ISNULL(nwobii.IsPerformaInvoice, 0) = 1
 								INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.IsPerformaInvoice, 0) = 1
 								and nwobii.SubReferenceId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId AND nwobii.ModuleId = @SOModuleId AND nwobi.ModuleId = @SOModuleId GROUP BY nwop.SalesOrderId) AS DepositData
-		   WHERE sobi.InvoiceStatus = 'Invoiced' AND --ISNULL(sobi.IsBilling,0) = 0  AND--sobi.RemainingAmount > 0 
+		   WHERE sobi.InvoiceStatus = 'Invoiced' AND --ISNULL(sobi.IsStandardInvoicePosted,0) = 0  AND--sobi.RemainingAmount > 0 
 			   le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId  AND SOBI.ModuleId = @SOModuleId
 			   AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND invd.SoldToSiteId=@SiteId  
 			   AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) AND sobi.RemainingAmount > 0) 
@@ -190,7 +190,7 @@ BEGIN
 								INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SubReferenceId AND ISNULL(nwobii.IsPerformaInvoice, 0) = 1
 								INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.IsPerformaInvoice, 0) = 1
 								AND nwobii.ReferenceId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId AND nwobi.ModuleId = @SOModuleId GROUP BY nwop.SalesOrderId) AS DepositData
-			 WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId --AND ISNULL(sobi.IsBilling,0) = 0
+			 WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId --AND ISNULL(sobi.IsStandardInvoicePosted,0) = 0
 					AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
 					AND invd.SoldToSiteId=@SiteId  AND sobi.ModuleId = @SOModuleId
 					AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
@@ -393,7 +393,7 @@ BEGIN
      
 		   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
 			AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)  
-			AND invd.SoldToSiteId=@SiteId AND SOBI.ModuleId = @SOModuleId --AND ISNULL(sobi.IsBilling,0) = 0   
+			AND invd.SoldToSiteId=@SiteId AND SOBI.ModuleId = @SOModuleId --AND ISNULL(sobi.IsStandardInvoicePosted,0) = 0   
 			AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
 			OR (ISNULL(sobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
 		   GROUP BY  sobi.BillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
@@ -598,7 +598,7 @@ BEGIN
 						INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.IsPerformaInvoice, 0) = 1
 						and nwobii.SubReferenceId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId AND nwobi.ModuleId = @SOModuleId GROUP BY nwop.SalesOrderId) AS DepositData
      
-		   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId --AND ISNULL(sobi.IsBilling,0) = 0
+		   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId --AND ISNULL(sobi.IsStandardInvoicePosted,0) = 0
 		   AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
 		   AND invd.SoldToSiteId=@SiteId  AND SOBI.ModuleId = @SOModuleId
 		   AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 

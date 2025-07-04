@@ -4021,6 +4021,8 @@
     <Build Include="dbo\Stored Procedures\CopyExistingBillingInvoicingDetailsforCM_CashReceipt.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateDepositAmount.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderShippingLabelBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteFreightAuditByFreightId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteChargesAuditByChargeId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

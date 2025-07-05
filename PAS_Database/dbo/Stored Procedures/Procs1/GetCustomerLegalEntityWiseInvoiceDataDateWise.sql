@@ -117,7 +117,8 @@ BEGIN
 				wobi.InvoiceStatus AS InvoiceStatus,  
 				STUFF(UPPER((SELECT ', ' + WP.CustomerReference  
 				   FROM dbo.BillingInvoicing WI WITH (NOLOCK)  
-				   INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId  
+				    INNER JOIN dbo.BillingInvoicingItems WII WITH(NOLOCK) on WI.BillingInvoicingId = WII.BillingInvoicingId AND WII.SubModuleId = @SubModuleId AND WII.ModuleId = @WOModuleId
+					INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId = WP.WorkOrderId AND WP.ID = WII.SubReferenceId
 				   WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId AND WI.ModuleId = @WOModuleId  
 				   FOR XML PATH(''))), 1, 1, '')   
 				   AS 'Reference',  
@@ -189,11 +190,11 @@ BEGIN
 				OUTER APPLY (SELECT nwop.SalesOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].SalesOrderPartV1 nwop WITH (NOLOCK)  
 								INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SubReferenceId AND ISNULL(nwobii.IsPerformaInvoice, 0) = 1
 								INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.IsPerformaInvoice, 0) = 1
-								AND nwobii.ReferenceId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId AND nwobi.ModuleId = @SOModuleId GROUP BY nwop.SalesOrderId) AS DepositData
+								AND nwobii.SubReferenceId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId AND nwobi.ModuleId = @SOModuleId GROUP BY nwop.SalesOrderId) AS DepositData
 			 WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId --AND ISNULL(sobi.IsStandardInvoicePosted,0) = 0
 					AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
 					AND invd.SoldToSiteId=@SiteId  AND sobi.ModuleId = @SOModuleId
-					AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
+					AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) AND sobi.RemainingAmount > 0) 
 					OR (ISNULL(sobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
 			GROUP BY  sobi.BillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
 				  so.[CreditTermName],so.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt       
@@ -206,7 +207,8 @@ BEGIN
 				  wobi.InvoiceStatus AS InvoiceStatus,  
 				  STUFF(UPPER((SELECT ', ' + WP.CustomerReference  
 					   FROM dbo.BillingInvoicing WI WITH (NOLOCK)  
-						   INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId  
+						INNER JOIN dbo.BillingInvoicingItems WII WITH(NOLOCK) on WI.BillingInvoicingId = WII.BillingInvoicingId AND WII.SubModuleId = @SubModuleId AND WII.ModuleId = @WOModuleId
+						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId = WP.WorkOrderId AND WP.ID = WII.SubReferenceId
 					   WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId AND WI.ModuleId = @WOModuleId  
 						   FOR XML PATH(''))), 1, 1, '') AS 'Reference',  
 				WO.[CreditTerms] as CreditTerm,     
@@ -237,7 +239,7 @@ BEGIN
 			WHERE wobi.InvoiceStatus = 'Invoiced'    
 				AND wobi.IsVersionIncrease=0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
 				AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND invd.SoldToSiteId = @SiteId  
-				AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
+				AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) AND wobi.RemainingAmount > 0) 
 				OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
 			GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,WO.[CreditTerms],     
 				WO.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
@@ -408,7 +410,8 @@ BEGIN
 				  wobi.InvoiceStatus AS InvoiceStatus,  
 				  STUFF((SELECT ', ' + WP.CustomerReference  
 				  FROM dbo.BillingInvoicing WI WITH (NOLOCK)  
-				  INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId  
+					INNER JOIN dbo.BillingInvoicingItems WII WITH(NOLOCK) on WI.BillingInvoicingId = WII.BillingInvoicingId AND WII.SubModuleId = @SubModuleId AND WII.ModuleId = @WOModuleId
+					INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId = WP.WorkOrderId AND WP.ID = WII.SubReferenceId
 				  WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId AND WI.ModuleId = @WOModuleId
 				  FOR XML PATH('')), 1, 1, '')   
 				  AS 'Reference',  
@@ -613,7 +616,8 @@ BEGIN
 		   wobi.InvoiceStatus as InvoiceStatus,  
 		   STUFF((SELECT ', ' + WP.CustomerReference  
 			   FROM dbo.BillingInvoicing WI WITH (NOLOCK)  
-			   INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId  
+				INNER JOIN dbo.BillingInvoicingItems WII WITH(NOLOCK) on WI.BillingInvoicingId = WII.BillingInvoicingId AND WII.SubModuleId = @SubModuleId AND WII.ModuleId = @WOModuleId
+				INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId = WP.WorkOrderId AND WP.ID = WII.SubReferenceId
 			   WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId AND WI.ModuleId = @WOModuleId  
 			   FOR XML PATH('')), 1, 1, '')   
 			   AS 'Reference',  

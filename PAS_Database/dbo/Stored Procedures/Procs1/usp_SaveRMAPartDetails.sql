@@ -161,6 +161,7 @@ BEGIN
                             ,CRM.[ItemMasterId]
                             ,CRM.[PartNumber]
                             ,CRM.[PartDescription]
+							,IM.[ManufacturerName]
                             ,CRM.[CustPartNumber]
                             ,CRM.[SerialNumber]
                             ,CRM.[StocklineId]
@@ -212,6 +213,7 @@ BEGIN
 		                    FROM dbo.CustomerRMADeatils CRM  WITH (NOLOCK)
 							LEFT JOIN dbo.CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
 			                LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId
+							LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=CRM.ItemMasterId 
 				            WHERE isnull(CRM.IsDeleted,0) = 0  and CRM.RMAHeaderId =@RMAHeaderId 
 				
 				END

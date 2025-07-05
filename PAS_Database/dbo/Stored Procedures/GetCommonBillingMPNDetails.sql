@@ -22,6 +22,7 @@
 	9    25/06/2025   RAJESH GAMI    Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
 	10   26/06/2025   Moin Bloch     Fixed For Settlement IN WO
 	11   26/06/2025   Rajesh Gami     Fixed to not getting invoicing id while get the part detail call 
+	12	 05/07/2025   AbhishekJirawla Added ConditionName
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
@@ -50,7 +51,7 @@ BEGIN
 		DECLARE @TotalCost DECIMAL(18,2) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,2) = 0, @OtherTaxAmount DECIMAL(18,2) = 0, @GrandTotal DECIMAL(18,2) = 0;
 		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 , @InvoiceStatusName varchar(50)='';
 		DECLARE @InvoiceStatusId BIGINT=0,@WorkOrderQuoteStatusId INT=0
-
+		PRint '1'
 		SELECT @InvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WHERE [Status]='Invoiced'
 		SELECT @WorkOrderQuoteStatusId = [WorkOrderQuoteStatusId] FROM [dbo].[WorkOrderQuoteStatus] WITH(NOLOCK) WHERE [Description] = 'Approved'
 
@@ -85,6 +86,7 @@ BEGIN
 				[ItemMasterId] BIGINT NULL,	
 				[StockLineId] BIGINT NULL,
 				[ConditionId] BIGINT NULL,
+				[ConditionName] NVARCHAR(200) NULL,
 				[UnitPrice] DECIMAL(18,2) NULL,	 
 				[QtyBilled] INT NULL, 
 				[PartCost] DECIMAL(18,2) NULL,	 
@@ -110,7 +112,7 @@ BEGIN
 				[ShippingId]  BIGINT NULL, 
 				[InvoiceStatusName] VARCHAR(50)
 			)
-
+			PRint '1'
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
 		BEGIN
 			SELECT @WorkOrderMPNMSModuleEnum = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN'
@@ -118,18 +120,34 @@ BEGIN
 			SELECT @CustomerId = WO.[CustomerId],@WorkOrderTypeId = [WorkOrderTypeId], @MasterCompanyId = WO.[MasterCompanyId] FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.[WorkOrderId] = @ReferenceId;
 			
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId]=@WorkOrderTypeId AND [MasterCompanyId]=@MasterCompanyId
-						
+			
+			DECLARE @FinalCondCert INT
+				SELECT @FinalCondCert = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Final Cond/Cert'
+				PRint '2'
 			IF(@IsProformaInvoice = 0)
 			BEGIN
 
 				IF(@IsCreatedFromQuote = 1)
 				BEGIN
-					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+									SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+									
+									 CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
+						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		wop.[PartNumber],
+									wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 					FROM [dbo].[WorkOrderQuote] woq WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderQuoteDetails] woqd WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woqd.[WorkOrderQuoteId] AND ISNULL(woqd.[IsVersionIncrease], 0) = 0
 					INNER JOIN [WorkOrderApproval] woa WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woa.WorkOrderQuoteId AND woqd.WOPartNoId = woa.WorkOrderPartNoId AND woa.ApprovalActionId = @WorkOrderQuoteStatusId AND woa.[IsDeleted] = 0
 					 LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woqd.WOPartNoId = wop.ID 
+				   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+				   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 					 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
 					WHERE wop.[WorkOrderId] = @ReferenceId 
@@ -143,26 +161,50 @@ BEGIN
 				BEGIN
 					IF(@AllowInvoiceBeforeShipping = 1)
 					BEGIN					
-						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+																	    CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
+						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		
+																	   wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 						LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
-						WHERE [WorkOrderId] = @ReferenceId 
+			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND ISNULL([IsFinishGood], 0) = 1					  
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
+						PRint '3'
 					END
 					ELSE
 					BEGIN
-						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+																	    CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = BoI.[MasterCompanyId])
+						WHEN WOSD.[WorkOrderSettlementId] IS NOT NULL THEN WOSD.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 						INNER JOIN [dbo].[WorkOrderShippingItem] wos WITH(NOLOCK) ON wop.[ID] = wos.[WorkOrderPartNumId] AND wos.[IsDeleted] = 0 
 						 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
+			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOSD WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId] AND WOSD.[WorkOrderSettlementId] = @FinalCondCert
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND ISNULL([IsFinishGood], 0) = 1					
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
@@ -174,11 +216,22 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-															   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+															   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+															   CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
+						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 				LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 				LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId]
+			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 				WHERE wop.[WorkOrderId] = @ReferenceId 
 				  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 				  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
@@ -436,13 +489,16 @@ BEGIN
 		ELSE IF(@ModuleId = @SOModuleId) /****************** START: SALES ORDER ********************/
 		BEGIN
 			
-			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
-				                                           SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId],SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,STK.QtyOrder,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
+				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId]
+								,COND.[Description] [Cond],
+						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,STK.QtyOrder,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
 				 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
 				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId				
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
 				  OUTER APPLY (
 					SELECT TOP 1 s.SalesOrderShippingId
 					FROM [dbo].[SalesOrderShippingItem] s
@@ -493,7 +549,11 @@ BEGIN
 					[OtherTax]  DECIMAL(18,2) NULL				
 				)		
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
-				SELECT TOP 1 @BillingInvoicingId = MAX(ISNULL(BI.BillingInvoicingId,0)), @BillingInvoicingItemId = MAX(ISNULL(BII.BillingInvoicingItemId,0)),@itemProformaGrandTotal = MAX(ISNULL(BII.GrandTotal,0)),@InvoiceStatusName = MAX(ISNULL(BI.InvoiceStatus,''))  FROM #TempCommonPartNumberDetailsForBilling cpd   
+				SELECT TOP 1 @BillingInvoicingId = MAX(ISNULL(BI.BillingInvoicingId,0)), 
+					@BillingInvoicingItemId = MAX(ISNULL(BII.BillingInvoicingItemId,0)),
+					@itemProformaGrandTotal = MAX(ISNULL(BII.GrandTotal,0)),
+					@InvoiceStatusName = MAX(ISNULL(BI.InvoiceStatus,''))  
+				FROM #TempCommonPartNumberDetailsForBilling cpd   
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId 
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId 
 							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))

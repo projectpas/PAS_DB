@@ -13,6 +13,7 @@
     1    05/JUN/2025   RAJESH GAMI   CREATED
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed 
 	3    22/JUN/2025   RAJESH GAMI   Charges Type Issue Fixed 
+	4    05/JUL/2025   RAJESH GAMI   added weight, and dimension fields for Commercial Invoice
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 60,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -57,7 +58,7 @@ BEGIN
 					SubReferenceId = ISNULL(stock.SalesOrderPartId, sop.SalesOrderPartId),
 					ItemMasterId = sop.ItemMasterId,
 					ConditionId = sop.ConditionId,
-					SerialNumber = UPPER(sl.SerialNumber),
+					SerialNumber = UPPER(ISNULL(sl.SerialNumber,'')),
 					PNumber = UPPER(im.PartNumber),
 					PNDescription = UPPER(im.PartDescription),
 					Notes = ISNULL(stock.Notes, sop.Notes),
@@ -70,9 +71,9 @@ BEGIN
 					StockLineId = sl.StockLineId,
 					UPPER(ime.ExportECCN)ExportECCN,
 					UPPER(ime.HSCode)HSCode,
-					UPPER(sl.StockLineNumber)StockLineNumber,
-					UPPER(sl.ControlNumber)ControlNumber,
-					UPPER(sl.IdNumber)IdNumber,
+					UPPER(ISNULL(sl.StockLineNumber,''))StockLineNumber,
+					UPPER(ISNULL(sl.ControlNumber,''))ControlNumber,
+					UPPER(ISNULL(sl.IdNumber,''))IdNumber,
 					ShipViaDetails = CASE 
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
@@ -106,7 +107,11 @@ BEGIN
 										ELSE 'NA'
 									END,
 									BI.[BillingInvoicingId],
-									ROW_NUMBER() OVER (PARTITION BY BII.SubreferenceId,BII.ItemMasterId ORDER BY BI.BillingInvoicingId) as RowData
+									ROW_NUMBER() OVER (PARTITION BY BII.SubreferenceId,BII.ItemMasterId ORDER BY BI.BillingInvoicingId) as RowData,
+									'-' as [Weight],
+									'-' as [DimensionL],
+									'-' as DimensionW,
+									'-'as DimensionH
 				INTO #tmprRptInvoicingItem
 				FROM DBO.SalesOrder so WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -147,6 +152,10 @@ BEGIN
 						ShipViaDetails,
 						MiscChargesDetails,
 						BillingInvoicingId,
+						[Weight],
+						[DimensionL],
+						DimensionW,
+						DimensionH,
 						ROW_NUMBER() OVER (ORDER BY BillingInvoicingId) AS ItemNo
 					FROM #tmprRptInvoicingItem
 					WHERE RowNo = 1;

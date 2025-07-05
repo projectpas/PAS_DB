@@ -176,7 +176,7 @@ BEGIN
 						,wobi.Notes
 						,ISNULL(INV.[Description],'STANDARD') AS [InvoiceTypeName]
 						,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
-						,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
+						,ISNULL(wobii.[DepositAmount], 0) AS [DepositAmount]
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
@@ -206,7 +206,7 @@ BEGIN
 						cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
 						,wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.IsFinishGood
 						,wop.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-						,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+						,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
 					) a
 
 					;WITH CTE_Temp AS
@@ -270,7 +270,7 @@ BEGIN
 								,wobi.Notes
 								,ISNULL(INV.[Description],'STANDARD') AS [InvoiceTypeName]
 								,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
-								,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
+								,ISNULL(wobii.[DepositAmount], 0) AS [DepositAmount]
 								,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 								,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 								,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
@@ -299,7 +299,7 @@ BEGIN
 								cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
 								,wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.IsFinishGood
 								,wop.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-								,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+								,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
 							) a
 
 							;WITH CTE_Temp AS
@@ -362,7 +362,7 @@ BEGIN
 							,wobi.Notes
 							,ISNULL(INV.[Description],'STANDARD') AS [InvoiceTypeName]
 							,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
-							,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
+							,ISNULL(wobii.[DepositAmount], 0) AS [DepositAmount]
 							,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 							,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 							,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
@@ -390,7 +390,7 @@ BEGIN
 							cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
 							, wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wosi.WorkOrderShippingId,wop.IsFinishGood
 							,wop.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-							,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+							,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
 						) a
 
 						;WITH CTE_Temp AS
@@ -459,7 +459,7 @@ BEGIN
 						,wobi.Notes
 						,ISNULL(INV.[Description], 'PROFORMA') AS [InvoiceTypeName]
 						,CASE WHEN UPPER(ISNULL(woBillData.InvoiceStatus, '')) = 'INVOICED' THEN 1 ELSE ISNULL(wobi.[IsInvoicePosted], 0) END AS [IsInvoicePosted]
-						,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
+						,ISNULL(wobii.[DepositAmount], 0) AS [DepositAmount]
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
@@ -501,7 +501,7 @@ BEGIN
 						,wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wos.WorkOrderShippingId,wop.IsFinishGood
 						,wop.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
 						,INV.[Description],cond.ConditionId,wobi.[IsInvoicePosted],billcond.Memo,billcond.Code,billcond.ConditionId,woBillData.InvoiceStatus
-						,woProfomaBillData.WorkOrderShippingId,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+						,woProfomaBillData.WorkOrderShippingId,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
 					) a
 
 					;WITH CTE_Temp AS

@@ -28,8 +28,9 @@
 	15   17-01-2025   RAJESH GAMI		Modified to get Revised PN.     
 	16   13-03-2025   Vishal Suthar		Fixed issue with duplicate records     
 	17   05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
+	18   05-07-2025   BHARGAV SALIYA    get condition through the [SalesOrderPartV1] Join
 
--- EXEC [DBO].[GetSalesOrderPartView] 1603,0
+-- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT,
@@ -97,6 +98,7 @@ BEGIN
         part.CurrencyId,
         part.ConditionId,
         ISNULL(cp.Description, '') AS ConditionDescription,
+		--CASE WHEN ISNULL(cp.Description, '') = '' THEN ISNULL(cpart.Description, '') ELSE ISNULL(cp.Description, '') END AS ConditionDescription,
         ISNULL(qs.IdNumber, '') AS IdNumber,
         ISNULL(qs.TraceableToName, '') AS TraceableToName,
         ISNULL(qs.CertifiedBy, '') AS CertifiedBy,
@@ -198,7 +200,8 @@ BEGIN
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
     LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
     LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
-    LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON Stk.ConditionId = cp.ConditionId
+    LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
+	--LEFT JOIN DBO.Condition cpart WITH (NOLOCK) ON part.ConditionId = cpart.ConditionId
 	LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

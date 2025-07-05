@@ -15,8 +15,10 @@
 	3    18/06/2025   Moin Bloch		Update Status in Proforma
 	4    04/07/2025   Devendra Shekh	Update UsedDeposite for SO
 	5    04/07/2025   Moin Bloch		Update [IsStandardInvoicePosted] Status for Proforma
+	6    04/07/2025   Moin Bloch		Update Comment Un USED SP
 
-EXEC  [dbo].[USP_UpdateCommonBillingInvoicingStatus] 4349
+    EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
+
 **********************/ 
 CREATE PROCEDURE [dbo].[USP_UpdateCommonBillingInvoicingStatus]    
 @BillingInvoicingId BIGINT = NULL,
@@ -245,7 +247,7 @@ BEGIN
 					
 					-- EXEC [dbo].[USP_UpdateWOProformaInvoice] @ReferenceId,@WorkFlowWorkOrderId,@BillingInvoicingId
 
-					EXEC [dbo].[USP_UpdateUsedDepositForProforma_byId] @BillingInvoicingId
+					--EXEC [dbo].[USP_UpdateUsedDepositForProforma_byIdNew] @BillingInvoicingId
 
 					EXEC dbo.[USP_SaveCustomerARBalance] @CodeTypeId, @BillingInvoicingId, @CustomerId, 0, @GrandTotal,'',@MasterCompanyId,@UpdatedBy,@UpdatedBy,0
  

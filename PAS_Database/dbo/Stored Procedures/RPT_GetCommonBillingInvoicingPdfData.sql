@@ -89,7 +89,7 @@ BEGIN
 					SHIPTOADDRESS.[PostalCode] [ShipToPostalCode],
 					ISNULL(SHIPTOCOUNTRY.[countries_name], '') [ShipToCountry],
 					SHIPTOSITE.[Attention] [ShipToAttention],
-					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
+					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],(CASE WHEN ISNULL(SHIPPINGINFO.WorkOrderShippingId,0) > 0  THEN BILLTOCOUNTRY.[countries_name] ELSE CUSHIPTOCOUNTRY.[countries_name] END),NULL,NULL,NULL)),
 					-- SHIP TO ADDRESS END
 					-- BILL TO ADDRESS START 
 					BILLTOSITE.[SiteName] [BillToSiteName],
@@ -164,7 +164,10 @@ BEGIN
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON BI.[CurrencyId] = CUR.[CurrencyId]
 				 LEFT JOIN [dbo].[WorkOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[WorkOrderShippingId]
 				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
-				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]				
+				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]	
+				 LEFT JOIN [dbo].[CustomerDomensticShipping] DSHIP WITH(NOLOCK) ON DSHIP.[CustomerDomensticShippingId] = BID.[ShipToSiteId]
+				 LEFT JOIN [dbo].[Address] CUDOMAddRESS WITH(NOLOCK) ON CUDOMAddRESS.[AddressId] = DSHIP.[AddressId]
+				 LEFT JOIN [dbo].[Countries] CUSHIPTOCOUNTRY WITH(NOLOCK) ON CUDOMAddRESS.[CountryId] = CUSHIPTOCOUNTRY.[countries_id]
 				 LEFT JOIN #TempCustomerRef CUSTREF ON BI.ReferenceId = CUSTREF.ReferenceId
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 
 		END  /*********END: WORK ORDER ********/		

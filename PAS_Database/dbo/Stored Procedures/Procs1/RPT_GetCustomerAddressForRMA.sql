@@ -15,6 +15,7 @@
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3    28-08-2023   Shrey Chandegara  Modify Due to remove (...) From AddCommon and set proper length.
 	4    04-09-2024   Ekta Chandegara  Retrieve address using common function
+	5    05-07-2025   AMIT GHEDIYA		new billing table.
 	
 
 -- EXEC [dbo].[RPT_GetCustomerAddressForRMA] 5,65,0,1,37
@@ -68,11 +69,12 @@ BEGIN
 
 				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL))
 
-				FROM WorkOrderBillingInvoicing bi WITH(NOLOCK)
-				 INNER JOIN Customer billToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId=billToCustomer.CustomerId
-				 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.SoldToSiteId
-				 INNER JOIN [Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
-				 INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
+				FROM [dbo].[BillingInvoicing] bi WITH(NOLOCK)
+				 INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
+				 INNER JOIN [dbo].[Customer] billToCustomer WITH(NOLOCK) ON BID.SoldToCustomerId=billToCustomer.CustomerId
+				 INNER JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=BID.SoldToSiteId
+				 INNER JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
+				 INNER JOIN [dbo].[Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
 				WHERE bi.BillingInvoicingId = @InvoiceID;
 			END
 			 IF(@IsWorkOrder = 0)
@@ -110,12 +112,13 @@ BEGIN
 				
 				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL))
 
-				FROM SalesOrderBillingInvoicing bi WITH(NOLOCK)
-				 INNER JOIN Customer billToCustomer WITH(NOLOCK) ON bi.BillToCustomerId=billToCustomer.CustomerId
-				 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.BillToSiteId
-				 INNER JOIN [Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
-				 INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
-				WHERE bi.SOBillingInvoicingId = @InvoiceID AND ISNULL(bi.IsProforma,0) = 0;
+				FROM [dbo].[BillingInvoicing] bi WITH(NOLOCK)
+				 INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
+				 INNER JOIN [dbo].[Customer] billToCustomer WITH(NOLOCK) ON BID.SoldToCustomerId=billToCustomer.CustomerId
+				 INNER JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=BID.SoldToSiteId
+				 INNER JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
+				 INNER JOIN [dbo].[Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
+				WHERE bi.BillingInvoicingId = @InvoiceID AND ISNULL(bi.IsPerformaInvoice,0) = 0;
 			END
 		END
 	END TRY    

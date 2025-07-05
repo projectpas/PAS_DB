@@ -13,6 +13,7 @@
 	2    12-11-2024   Shrey Chandegara	 Updated for IsNOQuote
 	3    19-11-2024   AMIT GHEDIYA		 Added LOT Id
 	4    12-12-2024   Vishal Suthar		 Modified query that updates QtyQuoted to Part Cost when No stockline is there
+	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @MinsoqId
 
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
@@ -31,6 +32,7 @@ BEGIN
   BEGIN TRY
   BEGIN TRANSACTION
 	DECLARE @SOQPartLoopID AS INT;
+	DECLARE @MinsoqId AS INT;
 
 	IF OBJECT_ID(N'tempdb..#SOQPartDetails') IS NOT NULL
 	BEGIN
@@ -93,8 +95,9 @@ BEGIN
 	FROM @tbl_SalesOrderQuotePartList;
 
 	SELECT @SOQPartLoopID = MAX(ID) FROM #SOQPartDetails;
+	select @MinsoqId = MIN(ID) FROM #SOQPartDetails;
 
-	WHILE (@SOQPartLoopID > 0)
+	WHILE (@MinsoqId <= @SOQPartLoopID)
 	BEGIN
 		DECLARE @SalesOrderQuotePartId BIGINT = 0;
 		DECLARE @SalesOrderQuoteStocklineId BIGINT = 0;
@@ -129,7 +132,7 @@ BEGIN
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @QuantityToQuote = QuantityQuote, @Notes = Notes, 
 		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@IsNoQuote = IsNoQuote,
 		@IsLotAssigned = IsLotAssigned,@LotId = LotId
-		FROM #SOQPartDetails WHERE ID = @SOQPartLoopID;
+		FROM #SOQPartDetails WHERE ID = @MinsoqId;
 		
 		IF (ISNULL(@SalesOrderQuotePartId, 0) = 0) -- Add New Part
 		BEGIN
@@ -148,7 +151,7 @@ BEGIN
 
 				INSERT INTO [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuoteId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[IsLotAssigned],[LotId])
 				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,IsLotAssigned,LotId
-				FROM #SOQPartDetails WHERE ID = @SOQPartLoopID;
+				FROM #SOQPartDetails WHERE ID = @MinsoqId;
 
 				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
 
@@ -172,7 +175,7 @@ BEGIN
 				SELECT SalesOrderQuoteId, @SalesOrderQuotePartId, UnitSalesPrice, ISNULL((UnitSalesPrice * QtyQuoted), 0), MarkUpPercentage, ISNULL((MarkUpAmount * QtyQuoted), 0), DiscountPercentage, ISNULL((DiscountAmount * QtyQuoted), 0),
 				ISNULL(@GrossAmt, 0), @NetSalesAmt, NULL, NULL, TaxAmount, TaxPercentage, UnitCost, ISNULL((UnitCost * QtyQuoted), 0), MarginAmount, MarginPercentage, 0,
 				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
-				FROM #SOQPartDetails WHERE ID = @SOQPartLoopID;
+				FROM #SOQPartDetails WHERE ID = @MinsoqId;
 			END
 			ELSE
 			BEGIN
@@ -300,7 +303,7 @@ BEGIN
 
 		EXEC [dbo].[USP_UpdateSOQPartCostDetails] @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;
 
-		SET @SOQPartLoopID = @SOQPartLoopID - 1;
+		SET @MinsoqId = @MinsoqId + 1;
 	END
 
 	COMMIT  TRANSACTION

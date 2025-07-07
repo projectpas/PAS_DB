@@ -37,7 +37,7 @@
 	25   11/05/2024	  AMIT GHEDIYA		Update condition.
 	26   19-Mar-2025  Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
 	27   27/06/2025   Moin Bloch		Modify(Changed To New Table)
-
+	28   07/07/2025   Rajesh Gami		FIXED: If Standard invoice posted then no need to display proformainvoice 
 EXEC  [dbo].[SearchCustomerInvoicesByCustId] 90,1,226 
 **************************************************************/ 
 
@@ -522,6 +522,7 @@ BEGIN
 			  --AND ISNULL(SOBI.[IsBilling], 0) != 1  -- Need TO Discuss
 			  AND SOBI.RemainingAmount > 0 
 			  AND SOBI.ModuleId = @SOModuleId 
+			  AND ISNULL(SOBI.IsStandardInvoicePosted,0)= 0
 		GROUP BY SOBI.ReferenceId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
 			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsPerformaInvoice,msq.[Name]--,SOBI.CreditMemoUsed      
@@ -592,6 +593,7 @@ BEGIN
 		AND WOBI.CustomerId = @customerId 
 		AND WOBI.RemainingAmount > 0 
 		--AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1  -- Need TO Discuss
+		  AND ISNULL(WOBI.IsStandardInvoicePosted,0)= 0
 		AND WOBI.ModuleId = @WOModuleId 
 		GROUP BY  WOBI.ReferenceId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.Days, WOBI.PostedDate, WO.WorkOrderNum,      
 			 Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      --wop.CustomerReference,

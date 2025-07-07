@@ -25,6 +25,7 @@
 	13   01/02/2025   Abhishek Jirawla	Updating the part cost
 	14   14/04/2025   Devendra Shekh	removed duplicate AltPartNumber field for WOInv Select
 	16   07/04/2025   Moin Bloch        Changed Old To New Billing Tables
+	17   07-07-2025   Moin Bloch        Changed Old To New Billing Table
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_GetCustomerRMAPartsDetails]
@@ -166,7 +167,7 @@ BEGIN
 						IM.ManufacturerName,
 						AltPartNumber=(  
 						 Select top 1  
-						A.PartNumber [AltPartNumberType] from [dbo].[SalesOrderBillingInvoicingItem] SOBIIA WITH (NOLOCK) 
+						A.PartNumber [AltPartNumberType] from [dbo].[BillingInvoicingItems] SOBIIA WITH (NOLOCK) 
 						OUTER APPLY(  
 						 SELECT   
 							STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 THEN ',' ELSE '' END + AI.partnumber  
@@ -177,7 +178,7 @@ BEGIN
 							 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 							 FOR XML PATH('')), 1, 1, '') PartNumber  
 						) A  
-						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.BillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
+						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.BillingInvoicingId =SOBII.BillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsPerformaInvoice,0) = 0
 						GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 						) 
 						,@SOInvoiceTypeId AS InvoiceTypeId

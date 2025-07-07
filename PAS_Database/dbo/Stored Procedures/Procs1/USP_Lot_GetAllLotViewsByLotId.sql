@@ -14,7 +14,8 @@
     1    15/04/2023  Rajesh Gami   Created
 	2	 01/02/2024	 AMIT GHEDIYA  added isperforma Flage for SO
 	3    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-     
+    4    07-07-2025  Moin Bloch         Changed Old To New Billing Table 
+
 -- EXEC USP_Lot_GetAllLotViewsByLotId 7,'ViewAllPN',1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId]
@@ -36,6 +37,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)'; 
 			DECLARE @LotTransIn VARCHAR(100) = 'Trans In', @LotPO VARCHAR(100) = 'Purchase Order',@LotRO VARCHAR(100) = 'Repair Order',@LotSO VARCHAR(100) = 'Sales Order', @LotWO VARCHAR(100) = 'Work Order';
 			DECLARE @AppModuleId INT = 0;
+			DECLARE @SOModuleId INT
+		    SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
 				DECLARE @AppModuleCustomerId INT = 0;
 				DECLARE @AppModuleVendorId INT = 0;
@@ -158,8 +162,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 Inner JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
 					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.SalesOrderBillingInvoicing sobi on so.SalesOrderId = sobi.SalesOrderId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsProforma,0) = 0
-					 LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii on sop.SalesOrderPartId = sobii.SalesOrderPartId AND sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 0
+					 LEFT JOIN DBO.BillingInvoicing sobi WITH(NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] =@SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii WITH(NOLOCK) on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] =@SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -268,8 +272,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
 					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.SalesOrderBillingInvoicing sobi on so.SalesOrderId = sobi.SalesOrderId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsProforma,0) = 0
-					 LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii on sop.SalesOrderPartId = sobii.SalesOrderPartId AND sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 0
+					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -382,8 +386,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
 					 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.SalesOrderBillingInvoicing sobi on so.SalesOrderId = sobi.SalesOrderId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsProforma,0) = 0
-					 LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii on sop.SalesOrderPartId = sobii.SalesOrderPartId AND sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 0
+					 LEFT JOIN DBO.BillingInvoicing sobi WITH(NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] =@SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii WITH(NOLOCK) on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] =@SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -489,8 +493,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
 					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.SalesOrderBillingInvoicing sobi on so.SalesOrderId = sobi.SalesOrderId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsProforma,0) = 0
-					 LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii on sop.SalesOrderPartId = sobii.SalesOrderPartId AND sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 0
+					 LEFT JOIN DBO.BillingInvoicing sobi WITH(NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] =@SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii WITH(NOLOCK) on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] =@SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId

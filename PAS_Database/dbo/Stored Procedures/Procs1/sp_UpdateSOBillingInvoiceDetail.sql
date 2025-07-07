@@ -12,6 +12,7 @@
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	3   07-07-2025      Moin Bloch      Changed Old To New Billing Table
 
 ************************************************************************/
 CREATE Procedure [dbo].[sp_UpdateSOBillingInvoiceDetail]
@@ -74,18 +75,18 @@ BEGIN
 		SET @LoopID = @LoopID - 1;
 		END 
  
-		UPDATE SB SET
-		SB.Level1 = PMS.Level1,
-		SB.Level2 = PMS.Level2,
-		SB.Level3 = PMS.Level3,
-		SB.Level4 = PMS.Level4
-		FROM dbo.SalesOrderBillingInvoicing SB WITH (NOLOCK)
-		LEFT JOIN #SOBillingInvoicingMSDATA PMS ON PMS.MSID = @ManagementStructureId
-		WHERE SB.SOBillingInvoicingId = @SOBillingInvoicingId AND ISNULL(SB.IsProforma,0) = 0
+		--UPDATE SB SET
+		--SB.Level1 = PMS.Level1,
+		--SB.Level2 = PMS.Level2,
+		--SB.Level3 = PMS.Level3,
+		--SB.Level4 = PMS.Level4
+		--FROM dbo.BillingInvoicing SB WITH (NOLOCK)
+		--LEFT JOIN #SOBillingInvoicingMSDATA PMS ON PMS.MSID = @ManagementStructureId
+		--WHERE SB.BillingInvoicingId = @SOBillingInvoicingId AND ISNULL(SB.IsPerformaInvoice,0) = 0
 
 		SELECT
 		InvoiceNo as value
-		FROM dbo.SalesOrderBillingInvoicing SB WITH (NOLOCK) WHERE SOBillingInvoicingId = @SOBillingInvoicingId AND ISNULL(SB.IsProforma,0) = 0
+		FROM dbo.BillingInvoicing SB WITH (NOLOCK) WHERE BillingInvoicingId = @SOBillingInvoicingId AND ISNULL(SB.IsPerformaInvoice,0) = 0
 	COMMIT  TRANSACTION
 	END TRY    
 	BEGIN CATCH      

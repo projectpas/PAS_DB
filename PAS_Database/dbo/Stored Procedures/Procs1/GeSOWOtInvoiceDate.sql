@@ -16,6 +16,7 @@
 	4	 01/02/2024	    AMIT GHEDIYA	added isperforma Flage for SO
 	5	 19/02/2024	    Devendra Shekh	removed isperforma and added isinvoiceposted flage for wo
 	6	 27/02/2024	    AMIT GHEDIYA	removed isperforma and added IsBilling flage for so
+	3    07-07-2025     Moin Bloch      Changed Old To New Billing Table
 
 -- EXEC GeSOWOtInvoiceDate '74'  
 ************************************************************************/
@@ -29,16 +30,22 @@ BEGIN
 			DECLARE @SOSTDT datetime2(7) = NULL;   
 			DECLARE @WOSTDT datetime2(7) = NULL;   
 			DECLARE @StartDate datetime2(7) = NULL;  
+
+			DECLARE @WOModuleId INT
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		    DECLARE @SOModuleId INT
+		    SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 			
 			SELECT @SOSTDT = MIN(sb.InvoiceDate) 
-			FROM [dbo].[SalesOrderBillingInvoicing] sb WITH(NOLOCK)WHERE sb.RemainingAmount > 0 
-				AND sb.InvoiceStatus = 'Invoiced' 
-				AND ISNULL(sb.IsBilling,0) = 0
+			FROM [dbo].[BillingInvoicing] sb WITH(NOLOCK)WHERE sb.RemainingAmount > 0 
+				AND sb.InvoiceStatus = 'Invoiced' AND sb.[ModuleId] = @SOModuleId 
+				--AND ISNULL(sb.IsBilling,0) = 0
 				AND sb.CustomerId IN((SELECT Item FROM DBO.SPLITSTRING(@CustomerIDS,',')));    
 			
 			SELECT @WOSTDT = MIN(wb.InvoiceDate) 
-			FROM [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) WHERE wb.RemainingAmount > 0 
-				AND wb.InvoiceStatus = 'Invoiced' AND ISNULL(wb.IsInvoicePosted, 0) = 0
+			FROM [dbo].[BillingInvoicing] wb WITH(NOLOCK) WHERE wb.RemainingAmount > 0 
+				AND wb.InvoiceStatus = 'Invoiced'  AND wb.[ModuleId] = @WOModuleId AND ISNULL(wb.IsInvoicePosted, 0) = 0
 				AND wb.CustomerId IN ((SELECT Item FROM DBO.SPLITSTRING(@CustomerIDS,',')));    
 			
 			IF(@SOSTDT IS NULL OR @SOSTDT = '')  

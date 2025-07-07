@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    10/12/2024		EKTA CHANDEGRA	 Created  
+	2    07-07-2025     Moin Bloch       Changed Old To New Billing Table
 
  EXEC CalculateInvoiceItemDetails 11 
 ************************************************************************/ 
@@ -24,19 +25,22 @@ BEGIN
 	SET NOCOUNT ON;  
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED   
 	BEGIN TRY 
+	    DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 		SELECT TOP 1
-		sobi.NoofPieces,
+		sobi.QtyBilled NoofPieces,
 		-- UnitPrice logic
 		ISNULL(sosc.NetSaleAmount, 0) AS UnitPrice
 		FROM 
 			[dbo].[SalesOrder] so WITH(NOLOCK)
 			INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			LEFT JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
-			LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] sobi WITH(NOLOCK) ON sop.SalesOrderPartId = sobi.SalesOrderPartId
+			LEFT JOIN [dbo].[BillingInvoicingItems] sobi WITH(NOLOCK) ON sop.SalesOrderPartId = sobi.SubReferenceId AND sobi.[ModuleId] = @SOModuleId
 			LEFT JOIN [dbo].[SalesOrderStockLineV1] sos WITH(NOLOCK) ON sop.SalesOrderPartId = sos.SalesOrderPartId AND (sos.StockLineId = sobi.StocklineId OR sobi.StocklineId = 0)
 			LEFT JOIN [dbo].[SalesOrderStocklineCost] sosc WITH(NOLOCK) ON sos.SalesOrderStocklineId = sosc.SalesOrderStocklineId
 		WHERE 
-			sobi.SOBillingInvoicingItemId = @sobillingInvoicingItemId;
+			sobi.BillingInvoicingItemId = @sobillingInvoicingItemId;
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

@@ -18,6 +18,7 @@
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
     4   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	5   07-07-2025    Moin Bloch    Changed Old To New Billing Table
 
 EXECUTE   [dbo].[usp_GetSODashboardforunfulfilleddata] 
 **************************************************************/
@@ -30,6 +31,9 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+	  DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
       SELECT
         ((SOBI.GrandTotal)) AS SalesAmt,
         (C.Name) AS Customer,
@@ -46,8 +50,8 @@ BEGIN
         SO.SalesOrderNumber,
         SO.OpenDate 'Open Date'
       FROM dbo.SalesOrder AS SO WITH (NOLOCK)
-      LEFT JOIN dbo.SalesOrderBillingInvoicing AS SOBI WITH (NOLOCK)
-        ON SO.salesorderid = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
+      LEFT JOIN dbo.BillingInvoicing AS SOBI WITH (NOLOCK)
+        ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] = @SOModuleId
         LEFT JOIN dbo.Customer AS C WITH (NOLOCK)
           ON SOBI.CustomerId = C.CustomerId
         LEFT OUTER JOIN dbo.SalesOrderQuote AS SOQ WITH (NOLOCK)

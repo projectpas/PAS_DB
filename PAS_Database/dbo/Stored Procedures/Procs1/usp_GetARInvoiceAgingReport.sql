@@ -18,6 +18,7 @@
     1                 Swetha		Created
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
+	4    07-07-2025   Moin Bloch    Changed Old To New Billing Table
      
 --EXECUTE   [dbo].[usp_GetARInvoiceAgingReport] '','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -36,6 +37,9 @@ AS
 
       BEGIN try
           BEGIN TRANSACTION
+
+		  DECLARE @SOModuleId INT
+		  SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
           IF Object_id(N'tempdb..#ManagmetnStrcture') IS NOT NULL
             BEGIN
@@ -165,7 +169,7 @@ AS
                             ELSE ''
                           END                                AS LEVEL4
 			FROM  DBO.SalesOrder SO WITH(NOLOCK)
-			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
+			INNER JOIN DBO.BillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0
 			LEFT OUTER JOIN DBO.Customer C WITH(NOLOCK) ON SOBI.CustomerId=C.CustomerId
 			LEFT OUTER JOIN DBO.Currency CUR WITH(NOLOCK) ON SOBI.CurrencyId=CUR.CurrencyId
 			LEFT OUTER JOIN DBO.CustomerFinancial CF WITH(NOLOCK) ON C.CustomerId=CF.CustomerId
@@ -179,7 +183,7 @@ AS
 			LEFT join  DBO.ManagementStructure level2 WITH(NOLOCK) on level3.ParentId = level2.ManagementStructureId 
 			LEFT join  DBO.ManagementStructure level1 WITH(NOLOCK) on level2.ParentId = level1.ManagementStructureId
             WHERE  (so.customerid IN (@customerid) OR @customerid = ' ' )
-            AND SOBI.mastercompanyid = @mastercompanyid
+            AND SOBI.mastercompanyid = @mastercompanyid AND SOBI.[ModuleId] = @SOModuleId
 
           COMMIT TRANSACTION
       END try

@@ -10,10 +10,11 @@
  **************************************************************             
  ** PR   Date         Author				Change Description              
  ** --   --------     -------				-------------------------------            
-    1    15/02/2024   AMIT GHEDIYA		Created
+    1    15/02/2024   AMIT GHEDIYA		    Created
+	2    07-07-2025   Moin Bloch            Changed Old To New Billing Table
+
 EXEC  [dbo].[USP_GetSOBillingDepositeData_BySOId] 4349
 **************************************************************/ 
-
 CREATE    PROCEDURE [dbo].[USP_GetSOBillingDepositeData_BySOId]      
 @SalesOrderId BIGINT = NULL
 AS      
@@ -22,16 +23,19 @@ BEGIN
  SET NOCOUNT ON;      
  BEGIN TRY      
 
-	SELECT  sobi.SalesOrderId,
+	DECLARE @SOModuleId INT
+	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+	
+	SELECT  sobi.ReferenceId SalesOrderId,
 			sobi.MasterCompanyId,
 			SUM(ISNULL(sobi.GrandTotal, 0)) AS GrandTotal,
 			SUM(ISNULL(sobi.RemainingAmount, 0)) AS RemainingAmount,
 			SUM(ISNULL(sobi.DepositAmount, 0)) AS DepositAmount,
 			SUM(ISNULL(sobi.UsedDeposit, 0)) AS UsedDeposit
-		FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
-		WHERE sobi.SalesOrderId = @SalesOrderId
-			  AND sobi.IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED'
-		GROUP BY sobi.SalesOrderId,sobi.MasterCompanyId
+		FROM [DBO].[BillingInvoicing] sobi WITH(NOLOCK)
+		WHERE sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
+			  AND sobi.IsPerformaInvoice = 1 AND UPPER(InvoiceStatus) = 'INVOICED' 
+		GROUP BY sobi.ReferenceId,sobi.MasterCompanyId
 
  END TRY          
  BEGIN CATCH      

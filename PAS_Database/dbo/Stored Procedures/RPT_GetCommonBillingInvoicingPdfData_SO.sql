@@ -13,9 +13,9 @@
     1    05/JUN/2025   RAJESH GAMI   CREATED
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed  
 	3    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 	
---  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 75,10,245
+--  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 4352,10,245
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
+CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @EmployeeId BIGINT = NULL
@@ -184,12 +184,16 @@ BEGIN
 					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
   				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),
-					CAST(dbo.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATETIME) [PrintDate]
+					 GETDATE() [PrintDate],
+					UPPER(inv.[Description]) InvoiceType,
+					oriCountry.countries_name OriginCountry,
+					destCountry.countries_name DestinationCountry
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BI.[ReferenceId] = SO.[SalesOrderId]
 				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON SO.[CustomerId] = CUST.[CustomerId]
 				INNER JOIN [dbo].[Address] CUSTADDRESS WITH(NOLOCK) ON CUST.[AddressId] = CUSTADDRESS.[AddressId]
+				INNER JOIN [dbo].InvoiceType inv WITH(NOLOCK) ON inv.InvoiceTypeId = BI.InvoiceTypeId
 				 LEFT JOIN [dbo].[CustomerContact] CUSTCONT WITH(NOLOCK) ON SO.[CustomerContactId] = CUSTCONT.[CustomerContactId]
 				 LEFT JOIN [dbo].[Contact] CONTACT WITH(NOLOCK) ON CUSTCONT.[ContactId] = CONTACT.[ContactId]
 				INNER JOIN [dbo].[Customer] BILLTOCUSTOMER WITH(NOLOCK) ON BID.[SoldToCustomerId] = BILLTOCUSTOMER.[CustomerId]		
@@ -198,16 +202,19 @@ BEGIN
 				 LEFT JOIN [dbo].[Countries] BILLTOCOUNTRY WITH(NOLOCK) ON BILLTOADDRESS.[CountryId] = BILLTOCOUNTRY.[countries_id]
 				INNER JOIN [dbo].[CustomerDomensticShipping] SHIPTOSITE WITH(NOLOCK) ON BID.[ShipToSiteId] = SHIPTOSITE.[CustomerDomensticShippingId]
 				INNER JOIN [dbo].[Address] SHIPTOADDRESS WITH(NOLOCK) ON SHIPTOSITE.[AddressId] = SHIPTOADDRESS.[AddressId]
+				LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPTOADDRESS.[CountryId] = SHIPTOCOUNTRY.[countries_id]
 				 LEFT JOIN [dbo].[Employee] SP WITH(NOLOCK) ON SO.[SalesPersonId] = SP.[EmployeeId]
 				 LEFT JOIN [dbo].[Countries] CONT WITH(NOLOCK) ON CUSTADDRESS.[CountryId] = CONT.[countries_id]
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON SO.[FunctionalCurrencyId] = CUR.[CurrencyId]
 				 OUTER APPLY (SELECT TOP 1 * FROM [dbo].[SalesOrderShipping] s WITH(NOLOCK)	WHERE s.SalesOrderId = SO.SalesOrderId ORDER BY ISNULL(s.UpdatedDate, s.ShipDate) DESC ) SHIPPINGINFO
 				 --LEFT JOIN [dbo].[SalesOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON SO.[SalesOrderId] = SHIPPINGINFO.[SalesOrderId]
 				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
-				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
+				 --LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 				LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 				LEFT JOIN	[dbo].[JobTitle] jt WITH(NOLOCK) ON emp.JobTitleId = jt.JobTitleId
 				LEFT JOIN  [dbo].AllShipVia posv WITH(NOLOCK) ON so.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @ModuleId
+				LEFT JOIN [dbo].[Countries] oriCountry WITH(NOLOCK) ON Bi.OriginCountryId = oriCountry.[countries_id]
+				LEFT JOIN [dbo].[Countries] destCountry WITH(NOLOCK) ON Bi.ShipToCountryId = destCountry.[countries_id]
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 		END  /*********END: SALES ORDER ********/		

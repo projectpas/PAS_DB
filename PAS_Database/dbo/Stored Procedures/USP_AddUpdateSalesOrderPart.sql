@@ -16,6 +16,7 @@
 	5    12/07/2014   Moin Bloch		Modified to add AltOrEqType
 	6    12-12-2024   Vishal Suthar		Modified query that updates QtyOrder to Part Cost when No stockline is there
 	7    16-12-2024   Shrey Chandegara Updated for @PriorityId in  not update proper
+	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @SOMInID
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -33,6 +34,7 @@ BEGIN
   BEGIN TRY
   BEGIN TRANSACTION
 	DECLARE @SOPartLoopID AS INT;
+	DECLARE @SOMInID AS INT;
 
 	IF OBJECT_ID(N'tempdb..#SOPartDetails') IS NOT NULL
 	BEGIN
@@ -99,8 +101,9 @@ BEGIN
 	FROM @tbl_SalesOrderPartList;
 
 	SELECT @SOPartLoopID = MAX(ID) FROM #SOPartDetails;
+	SELECT @SOMInID = MIN(ID) FROM #SOPartDetails;
 
-	WHILE (@SOPartLoopID > 0)
+	WHILE (@SOMInID <= @SOPartLoopID)
 	BEGIN
 		DECLARE @SalesOrderPartId BIGINT = 0;
 		DECLARE @SalesOrderStocklineId BIGINT = 0;
@@ -139,7 +142,7 @@ BEGIN
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes, 
 		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId,
 		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight,@PriorityId = PriorityId
-		FROM #SOPartDetails WHERE ID = @SOPartLoopID;
+		FROM #SOPartDetails WHERE ID = @SOMInID;
 		
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
@@ -158,7 +161,7 @@ BEGIN
 
 				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType])
 				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType]
-				FROM #SOPartDetails WHERE ID = @SOPartLoopID;
+				FROM #SOPartDetails WHERE ID = @SOMInID;
 
 				SET @SalesOrderPartId = SCOPE_IDENTITY();
 
@@ -182,7 +185,7 @@ BEGIN
 				SELECT SalesOrderId, @SalesOrderPartId, UnitSalesPrice, ISNULL((UnitSalesPrice * QtyOrder), 0), MarkUpPercentage, ISNULL((MarkUpAmount * QtyOrder), 0), DiscountPercentage, ISNULL((DiscountAmount * QtyOrder), 0),
 				@NetSalesAmt, NULL, NULL, TaxAmount, TaxPercentage, UnitCost, ISNULL((UnitCost * QtyOrder), 0), MarginAmount, MarginPercentage, 0,
 				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
-				FROM #SOPartDetails WHERE ID = @SOPartLoopID;
+				FROM #SOPartDetails WHERE ID = @SOMInID;
 			END
 			ELSE
 			BEGIN
@@ -357,7 +360,7 @@ BEGIN
 
 		EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
 
-		SET @SOPartLoopID = @SOPartLoopID - 1;
+		SET @SOMInID = @SOMInID + 1;
 	END
 
 	COMMIT  TRANSACTION

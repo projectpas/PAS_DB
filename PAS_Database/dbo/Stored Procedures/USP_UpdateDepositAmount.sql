@@ -12,11 +12,13 @@
  ** PR   Date         Author		 Change Description            
  ** --   --------     -------		 --------------------------------          
     1    02/07/2025   Moin Bloch     Created
+	2    04/07/2025  Hemnat Saliya   Updated handle Deposite amount
 
-	EXEC  [dbo].[USP_UpdateDepositAmount] 10146,1
+	EXEC  [dbo].[USP_UpdateDepositAmount] 4377,1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateDepositAmount] 
-@BillingInvoicingId BIGINT = NULL
+@BillingInvoicingId BIGINT = NULL,
+@IsInvoicePosted BIT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -68,91 +70,94 @@ BEGIN
 		FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
 
 		SELECT @ReferenceId = [ReferenceId],
-		       @ModuleId = [ModuleId] 
+		       @ModuleId = [ModuleId] , 
+			   @UsedDepositAmount = ISNULL([DepositAmount],0) - ISNULL([UsedDeposit],0)
 		  FROM [dbo].[BillingInvoicing] WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+		  PRINT @UsedDepositAmount
 
 		INSERT INTO #TempUpdateBillingDetailsForPerforma([BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit])
 		                                          SELECT [BillingInvoicingId],[ModuleId],[ReferenceId],[DepositAmount],[UsedDeposit] 
 		FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND ModuleId = @ModuleId AND [IsPerformaInvoice] = 1 AND ISNULL([IsVersionIncrease],0) = 0
 
-		SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #TempUpdateBillingDetails    
+		DECLARE @BillingInvoicingIdI BIGINT = 0, @BillingInvoicingItemId BIGINT = 0
+			
+		DECLARE @SubReferenceId BIGINT 
+		DECLARE @GrandTotal DECIMAL(18,2) = 0
+		
+		DECLARE @RemainingDepositAmount DECIMAL(18,2) = 0
 
-		WHILE @MinId <= @TotalRecord
-		BEGIN		
-			DECLARE @BillingInvoicingIdI BIGINT = 0,@BillingInvoicingItemId BIGINT = 0
-			
-			DECLARE @SubReferenceId BIGINT 
-			DECLARE @GrandTotal DECIMAL(18,2) = 0
-			
-			DECLARE @RemainingDepositAmount DECIMAL(18,2) = 0
-			
-			SELECT @BillingInvoicingItemId = [BillingInvoicingItemId],
-			       @BillingInvoicingIdI = [BillingInvoicingId],
-				   @ModuleId = [ModuleId],
-				   @ReferenceId = [ReferenceId],
-				   @SubReferenceId = [SubReferenceId],
-				   @GrandTotal = ISNULL([GrandTotal],0)				   
-			  FROM #TempUpdateBillingDetails WHERE [PKID] = @MinId
+		SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #TempUpdateBillingDetails   
+		
+		IF(ISNULL(@IsInvoicePosted, 0) = 0)
+		BEGIN
+			WHILE @MinId <= @TotalRecord
+			BEGIN		
+				
+				SELECT @BillingInvoicingItemId = [BillingInvoicingItemId],
+					   @BillingInvoicingIdI = [BillingInvoicingId],
+					   @ModuleId = [ModuleId],
+					   @ReferenceId = [ReferenceId],
+					   @SubReferenceId = [SubReferenceId],
+					   @GrandTotal = ISNULL([GrandTotal],0)				   
+				  FROM #TempUpdateBillingDetails WHERE [PKID] = @MinId
 			  	
-			IF EXISTS(SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [SubReferenceId] = @SubReferenceId AND [ModuleId] = @ModuleId AND [IsPerformaInvoice] = 1 AND @Flag = 0)
-			BEGIN
-				SELECT @DepositAmount = ISNULL(SUM(BI.[DepositAmount]),0) - ISNULL(SUM(BI.[UsedDeposit]),0)
-				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK) 
-				--INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId]
-				WHERE BI.[ReferenceId] = @ReferenceId 	
-				--AND BI.[SubReferenceId] = @SubReferenceId	
-				  AND BI.[ModuleId] = @ModuleId 
-				  AND BI.[IsPerformaInvoice] = 1
-				  AND ISNULL(BI.[IsVersionIncrease],0) = 0
+				IF EXISTS(SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [SubReferenceId] = @SubReferenceId AND [ModuleId] = @ModuleId AND [IsPerformaInvoice] = 1 AND @Flag = 0)
+				BEGIN
+					SELECT @DepositAmount = ISNULL(SUM(BI.[DepositAmount]),0) - ISNULL(SUM(BI.[UsedDeposit]),0)
+					FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK) 
+					--INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId]
+					WHERE BI.[ReferenceId] = @ReferenceId 	
+					--AND BI.[SubReferenceId] = @SubReferenceId	
+					  AND BI.[ModuleId] = @ModuleId 
+					  AND BI.[IsPerformaInvoice] = 1
+					  AND ISNULL(BI.[IsVersionIncrease],0) = 0
 				
-				SET @Flag = 1;
+					SET @Flag = 1;
 				
-				SELECT @UsedDepositAmount = CASE WHEN [GrandTotal] > @DepositAmount THEN @DepositAmount ELSE [GrandTotal] END FROM [dbo].[BillingInvoicing] WHERE [BillingInvoicingId] = @BillingInvoicingId  
+					SELECT @UsedDepositAmount = CASE WHEN [GrandTotal] > @DepositAmount THEN @DepositAmount ELSE [GrandTotal] END FROM [dbo].[BillingInvoicing] WHERE [BillingInvoicingId] = @BillingInvoicingId  
 				
-				UPDATE [dbo].[BillingInvoicing] SET [DepositAmount] = CASE WHEN [GrandTotal] > @DepositAmount THEN @DepositAmount ELSE [GrandTotal] END,
-				                                    [RemainingAmount] = CASE WHEN [GrandTotal] > @DepositAmount THEN [GrandTotal] - @DepositAmount ELSE 0 END											    
-				WHERE [BillingInvoicingId] = @BillingInvoicingId  
+					UPDATE [dbo].[BillingInvoicing] SET [DepositAmount] = CASE WHEN [GrandTotal] > @DepositAmount THEN @DepositAmount ELSE [GrandTotal] END,
+														[RemainingAmount] = CASE WHEN [GrandTotal] > @DepositAmount THEN [GrandTotal] - @DepositAmount ELSE 0 END											    
+					WHERE [BillingInvoicingId] = @BillingInvoicingId  
 					
-			END
+				END
 
-			IF(@DepositAmount > 0)
-			BEGIN					
-				UPDATE [dbo].[BillingInvoicingItems] SET [DepositAmount] = CASE WHEN @DepositAmount <= @GrandTotal THEN @DepositAmount ELSE @GrandTotal END,
-				                                         [RemainingAmount] = CASE WHEN [GrandTotal] > @DepositAmount THEN [GrandTotal] - @DepositAmount ELSE 0 END 
-				 WHERE [BillingInvoicingItemId] = @BillingInvoicingItemId
+				IF(@DepositAmount > 0)
+				BEGIN					
+					UPDATE [dbo].[BillingInvoicingItems] SET [DepositAmount] = CASE WHEN @DepositAmount <= @GrandTotal THEN @DepositAmount ELSE @GrandTotal END,
+															 [RemainingAmount] = CASE WHEN [GrandTotal] > @DepositAmount THEN [GrandTotal] - @DepositAmount ELSE 0 END 
+					 WHERE [BillingInvoicingItemId] = @BillingInvoicingItemId
 				
-				SET @DepositAmount =  CASE WHEN @DepositAmount > @GrandTotal THEN @DepositAmount - @GrandTotal ELSE 0 END 				
-			END
+					SET @DepositAmount =  CASE WHEN @DepositAmount > @GrandTotal THEN @DepositAmount - @GrandTotal ELSE 0 END 				
+				END
 
-			SET @MinId = @MinId + 1;
+				SET @MinId = @MinId + 1;
+			END
 		END
-
-			   
-		--SELECT @TotalRecordPRo = COUNT(*), @MinIdPro = MIN([PKID]) FROM #TempUpdateBillingDetailsForPerforma    
-
-		--WHILE @MinIdPro <= @TotalRecordPRo
-		--BEGIN
-		--	DECLARE @PendingDeposit DECIMAL(18,2)=0
-
-		--	SELECT @BillingInvoicingIdI = [BillingInvoicingId],
-		--		   @ModuleId = [ModuleId],
-		--		   @ReferenceId = [ReferenceId], 
-		--		   @DepositAmount = [DepositAmount],
-		--		   @UsedDeposit = ISNULL([UsedDeposit],0)
-		--	  FROM #TempUpdateBillingDetailsForPerforma WHERE [PKID] = @MinIdPro
+		ELSE
+		BEGIN
+		
+			WHILE @MinId <= @TotalRecord
+			BEGIN		
 			
-		--	IF(@UsedDepositAmount > 0)
-		--	BEGIN	
-		--		SET @PendingDeposit = @DepositAmount - @UsedDeposit
+				SELECT @BillingInvoicingItemId = [BillingInvoicingItemId],
+					   @BillingInvoicingIdI = [BillingInvoicingId],
+					   @ModuleId = [ModuleId],
+					   @ReferenceId = [ReferenceId],
+					   @SubReferenceId = [SubReferenceId],
+					   @GrandTotal = ISNULL([GrandTotal],0)				   
+				  FROM #TempUpdateBillingDetails WHERE [PKID] = @MinId
 
-		--		UPDATE [dbo].[BillingInvoicing] SET [UsedDeposit] = CASE WHEN @UsedDepositAmount >= @PendingDeposit THEN @PendingDeposit ELSE [UsedDeposit] END
-		--		 WHERE [BillingInvoicingId] = @BillingInvoicingIdI
+				  UPDATE [dbo].[BillingInvoicingItems] SET [DepositAmount] = CASE WHEN @UsedDepositAmount <= @GrandTotal THEN @UsedDepositAmount ELSE @GrandTotal END,
+														   [RemainingAmount] = CASE WHEN [GrandTotal] > @UsedDepositAmount THEN [GrandTotal] - @UsedDepositAmount ELSE 0 END 
+				  WHERE [BillingInvoicingItemId] = @BillingInvoicingItemId
 				
-		--		SET @UsedDepositAmount =  CASE WHEN @UsedDepositAmount >= @UsedDeposit THEN @UsedDepositAmount - @UsedDeposit ELSE 0 END 				
-		--	END
+				  SET @UsedDepositAmount =  CASE WHEN @UsedDepositAmount > @GrandTotal THEN @UsedDepositAmount - @GrandTotal ELSE 0 END 	
 
-		--	SET @MinIdPro = @MinIdPro + 1;
-		--END
+				SET @MinId = @MinId + 1;
+			END
+		END
 		
 	END
 	COMMIT  TRANSACTION

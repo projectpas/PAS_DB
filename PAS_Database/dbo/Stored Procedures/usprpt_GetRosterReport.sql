@@ -18,11 +18,11 @@
 	2    13-03-2025    Sahdev Saliya       supervisor's name has been updated
 	3    26-03-2025    Sahdev Saliya       EndDate has been updated And Record issue resolve
 	4    31-03-2025    Sahdev Saliya       Add Employee and Certifyingstaff Filters
-	5    03-73-2025    BHARGAV SALIYA       Add IsActive and IsDelete Condition
+	5    07-7-2025     BHARGAV SALIYA      Add IsDelete and Supperadmin Condition
 
 **************************************************************/  
 
-CREATE     PROCEDURE [dbo].[usprpt_GetRosterReport]
+CREATE      PROCEDURE [dbo].[usprpt_GetRosterReport]
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @mastercompanyid INT,
@@ -47,7 +47,8 @@ BEGIN
 	@Employee VARCHAR(100) = NULL,
 	@certifyingstaff BIT = NULL,
 	@IsDownload BIT = NULL,
-	@ModuleID INT = 0;
+	@ModuleID INT = 0,
+	@EmployeeId bigint = NULL;
 
 	SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM [DBO].ManagementStructureModule WITH (NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
 
@@ -77,9 +78,15 @@ BEGIN
 	@Employee=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee Name' 
 	THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Employee END,
 	@certifyingstaff=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Certifying Staff' 
-	THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @certifyingstaff END
+	THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @certifyingstaff END,
+	@EmployeeId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(200)')='loginEmployeeId' 
+	THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @EmployeeId END
+
+	
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
+
+	  print @EmployeeId 
 
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -145,7 +152,13 @@ BEGIN
 	  LEFT JOIN  dbo.Employee EP WITH (NOLOCK) ON EP.EmployeeId = EMP.SupervisorId
 	  WHERE EMP.mastercompanyid = @mastercompanyid
 	        AND EMP.FirstName <> 'TBD' 
-			AND ISNULL(EMP.IsDeleted,0)  = 0 and ISNULL(EMP.IsActive,1) = 1
+			AND EMP.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+					                                   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+													               ON E.EmployeeId = EUR.EmployeeId 
+													   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+													               ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN'
+																        AND e.EmployeeId != @EmployeeId)
+			AND ISNULL(EMP.IsDeleted,0)  = 0 
 			AND  ((ISNULL(@Employee, '') = '' OR EMP.EmployeeId = @Employee)
 			and (@certifyingstaff IS NULL OR EMP.EmployeeCertifyingStaff = @certifyingstaff))
 			AND  (ISNULL(@Level1,'') ='' OR EMS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

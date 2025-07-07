@@ -13,6 +13,7 @@
     1    19/05/2025   Moin Bloch    Created
     2    06/06/2025   Rajesh Gami   Created    
 	3    10/06/2025   Moin Bloch    Added CustomerId
+	4    07/07/2025   Abhishek Jirawla Updated Manufacturer
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -140,14 +141,14 @@ BEGIN
 				  ,WOP.[RevisedPartDescription]  [PNDescription]
 				  ,WOP.[RevisedSerialNumber]  [SerialNumber]    						 
 				  ,CASE WHEN BII.[ConditionId] IS NOT NULL THEN 
-						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						(SELECT TOP 1 CASE WHEN c.[Description] <> '' THEN c.[Description] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
 						   WHERE c.[ConditionId] = BII.[ConditionId] AND c.[MasterCompanyId] = BII.[MasterCompanyId])
 						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
 						ELSE 
-							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Memo]
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
 								ELSE '' 
 							END
-						END [ConditonName]								
+						END [ConditionName]								
 				  ,WO.[Notes]
 				  ,MN.Name [Manufacturer]
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
@@ -155,7 +156,7 @@ BEGIN
 			  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
 			  INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOP.[ID] = WOF.[WorkOrderPartNoId]
 			  INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON BII.[ItemMasterId] = IM.[ItemMasterId]
-			  LEFT JOIN [dbo].[Manufacturer] MN WITH(NOLOCK) ON IM.[ManufacturerId] = IM.[ManufacturerId]
+			  LEFT JOIN [dbo].[Manufacturer] MN WITH(NOLOCK) ON MN.[ManufacturerId] = IM.[ManufacturerId]
 			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
@@ -266,14 +267,14 @@ BEGIN
 				  ,WOP.[PartNumber] [PNumber]			
 				  ,WOP.[PartDescription]  [PNDescription]
 				  ,''  [SerialNumber]    						 
-				  ,COND.Description [ConditonName]								
+				  ,COND.Description [ConditionName]								
 				  ,WO.[Notes]
 				  ,MN.Name [Manufacturer]
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[SalesOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[SalesOrderId]
 			  INNER JOIN [dbo].[SalesOrderPartV1] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[SalesOrderPartId]
 			  INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON BII.[ItemMasterId] = IM.[ItemMasterId]
-			  LEFT JOIN [dbo].[Manufacturer] MN WITH(NOLOCK) ON IM.[ManufacturerId] = IM.[ManufacturerId]
+			  LEFT JOIN [dbo].[Manufacturer] MN WITH(NOLOCK) ON MN.[ManufacturerId] = IM.[ManufacturerId]
 			  LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON BII.ConditionId = COND.[ConditionId]
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
 		END

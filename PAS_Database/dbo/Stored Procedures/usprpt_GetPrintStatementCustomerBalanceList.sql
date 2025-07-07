@@ -19,6 +19,7 @@
 	3    05-07-2024     Moin Bloch          Fixed Legel Entity sorting ,filer and global filter issue.
 	4    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
 	5	 26-Jun-2025	Rajesh Gami			Modified as per new billing table changes (WO, SO)
+	6	 07-Jul-2025	Devendra Shekh		Modified (Balance Amount Issue Resolved, Added LegalEntityId)
 
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
@@ -179,29 +180,32 @@ BEGIN
 				[ModuleTypeId] INT NULL,
 				[LegalEntityName] VARCHAR(MAX) NULL,
 				[ReceivedAmount] DECIMAL(18, 2) NULL,
+				[LegalEntityId] BIGINT NULL
 			) 
 		
 			-- WO INVOICE DETAILS
 
-			SELECT WO.WorkOrderId, WO.customerid, SUM(ISNULL(WOBI.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(WOBI.DepositAmount,0)) as OriginalDepositAmt  
-			INTO #ProformaDepositAmt
-			FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
-			INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId	= WOBI.ReferenceId
-			WHERE WOBI.ModuleId = @workOrderModuleId
-			GROUP BY WO.WorkOrderId, WO.customerid
+			--SELECT WO.WorkOrderId, WO.customerid, SUM(ISNULL(WOBI.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(WOBI.DepositAmount,0)) as OriginalDepositAmt  
+			--INTO #ProformaDepositAmt
+			--FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
+			--INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId	= WOBI.ReferenceId
+			--WHERE WOBI.ModuleId = @workOrderModuleId AND ISNULL(WOBI.isPerformaInvoice, 0) = 1
+			--GROUP BY WO.WorkOrderId, WO.customerid
 			
 			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CurrencyCode],
 			       [BalanceAmount],[RemainingAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount], [LegalEntityId])
 			SELECT DISTINCT WOBI.[BillingInvoicingId],			               
 							C.[CustomerId],
 							UPPER(ISNULL(C.[Name],'')),      
 							UPPER(ISNULL(C.[CustomerCode],'')),
 							CR.Code,
 							--WOBI.[GrandTotal], -- BalanceAmount
-							WOBI.[RemainingAmount], -- BalanceAmount
+							--WOBI.[RemainingAmount], -- BalanceAmount
+							CASE WHEN ISNULL(WOBI.IsPerformaInvoice, 0) = 0 THEN (WOBI.RemainingAmount) ELSE 
+						    CASE WHEN ISNULL(WOBI.DepositAmount, 0) - ISNULL(WOBI.UsedDeposit, 0) = 0 THEN 0 ELSE ((-1)*(ISNULL(WOBI.DepositAmount,0))) END END,  -- BalanceAmount
 							WOBI.[RemainingAmount], -- RemainingAmount
 							((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)),  -- CurrentAmount     
 							ISNULL(WOBI.[RemainingAmount], 0) + ISNULL(WOBI.[CreditMemoUsed], 0), --PaymentAmount  		               				
@@ -239,12 +243,13 @@ BEGIN
 							0,
 							@WOModuleTypeId, -- 'WorkOrder',
 
-							LegalEntityName = (SELECT DISTINCT TOP 1 LE.[Name]  
-								FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
-									JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = WOP.ManagementStructureId
-									JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
-									JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-								WHERE WOP.WorkOrderId = WO.WorkOrderId ),
+							LegalEntityName = LE.[Name],
+							--(SELECT DISTINCT TOP 1 LE.[Name]  
+							--	FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
+							--		JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = WOP.ManagementStructureId
+							--		JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+							--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+							--	WHERE WOP.WorkOrderId = WO.WorkOrderId ),
 							--LegalEntityName = (SELECT   
 							--STUFF((SELECT DISTINCT ',' + LE.[Name]  
 							--	FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
@@ -253,16 +258,20 @@ BEGIN
 							--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 							--	WHERE WOP.WorkOrderId = WO.WorkOrderId 
 							--	FOR XML PATH('')), 1, 1, '')),
-							0
+							0,
+							LegalEntityId = LE.LegalEntityId
 			FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId      
 				INNER JOIN [dbo].[Customer] C  WITH (NOLOCK) ON C.CustomerId = WO.CustomerId
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
 				LEFT JOIN  [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = WO.CreditTermId      
-				LEFT JOIN #ProformaDepositAmt PDA ON PDA.WorkOrderId = WO.WorkOrderId
+				--LEFT JOIN #ProformaDepositAmt PDA ON PDA.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = WOBI.ManagementStructureId
+				LEFT JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+				LEFT JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId
 			WHERE ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND WO.[MasterCompanyId] = @MasterCompanyid 
-				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
-				AND ((ISNULL(WOBI.[IsPerformaInvoice],0) = 0) OR (ISNULL(WOBI.[IsPerformaInvoice],0) = 1 AND (ISNULL(WOBI.GrandTotal, 0) - ISNULL(WOBI.RemainingAmount, 0)) > 0 AND PDA.OriginalDepositAmt - PDA.UsedDepositAmt != 0))
+				AND WOBI.[InvoiceStatus] = @InvoiceStatus
+				AND ((ISNULL(WOBI.[IsPerformaInvoice],0) = 0 AND ISNULL(WOBI.[RemainingAmount],0) > 0) OR (ISNULL(WOBI.[IsPerformaInvoice],0) = 1 AND (ISNULL(WOBI.DepositAmount, 0) - ISNULL(WOBI.UsedDeposit, 0)) > 0))
 				AND WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) AND WOBI.ModuleId = @workOrderModuleId
 				
 			UPDATE #TEMPInvoiceRecords SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
@@ -294,28 +303,30 @@ BEGIN
 			END
 			-- SO INVOICE DETAILS
 
-			SELECT SO.SalesOrderId, SO.customerid, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
-			INTO #SOProformaDepositAmt
-			FROM [dbo].SalesOrder SO WITH (NOLOCK)  
-				INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = SO.SalesOrderId
-				INNER JOIN [dbo].[BillingInvoicingItems] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SubReferenceId AND ISNULL(nsobii.IsPerformaInvoice, 0) = 1 AND nsobii.ModuleId = @salesOrderModuleId
-				INNER JOIN [dbo].[BillingInvoicing] nsobi WITH(NOLOCK) on nsobii.BillingInvoicingId = nsobi.BillingInvoicingId AND ISNULL(nsobi.IsPerformaInvoice, 0) = 1
-				AND nsobii.SubReferenceId = nsop.SalesOrderPartId 
-			WHERE nsobi.ModuleId = @salesOrderModuleId
-			GROUP BY SO.SalesOrderId, SO.customerid
+			--SELECT SO.SalesOrderId, SO.customerid, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
+			--INTO #SOProformaDepositAmt
+			--FROM [dbo].SalesOrder SO WITH (NOLOCK)  
+			--	INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = SO.SalesOrderId
+			--	INNER JOIN [dbo].[BillingInvoicingItems] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SubReferenceId AND ISNULL(nsobii.IsPerformaInvoice, 0) = 1 AND nsobii.ModuleId = @salesOrderModuleId
+			--	INNER JOIN [dbo].[BillingInvoicing] nsobi WITH(NOLOCK) on nsobii.BillingInvoicingId = nsobi.BillingInvoicingId AND ISNULL(nsobi.IsPerformaInvoice, 0) = 1
+			--	AND nsobii.SubReferenceId = nsop.SalesOrderPartId 
+			--WHERE nsobi.ModuleId = @salesOrderModuleId
+			--GROUP BY SO.SalesOrderId, SO.customerid
 			
 			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CurrencyCode],
 			       [BalanceAmount],[RemainingAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],				   
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount], [LegalEntityId])
 			SELECT DISTINCT SOBI.[BillingInvoicingId],
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
                                 UPPER(ISNULL(C.[CustomerCode],'')),		
 								CR.Code,
 								--SOBI.[GrandTotal],  -- [BalanceAmount]
-								SOBI.[RemainingAmount], -- BalanceAmount
+								--SOBI.[RemainingAmount], -- BalanceAmount
+								CASE WHEN ISNULL(SOBI.IsPerformaInvoice, 0) = 0 THEN (SOBI.RemainingAmount) ELSE 
+								CASE WHEN ISNULL(SOBI.DepositAmount, 0) - ISNULL(SOBI.UsedDeposit, 0) = 0 THEN 0 ELSE ((-1)*(ISNULL(SOBI.DepositAmount,0))) END END, -- BalanceAmount
 								SOBI.[RemainingAmount], -- RemainingAmount
 								(SOBI.[GrandTotal] - (SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0))), -- 'CurrentlAmount',
 								SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0), -- 'PaymentAmount', 
@@ -372,19 +383,20 @@ BEGIN
 								--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 								--	WHERE SOP.SalesOrderId = SO.SalesOrderId
 								--	FOR XML PATH('')), 1, 1, '')),
-							    0
+							    0,
+								LE.LegalEntityId
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
 					INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId      
 					INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId = SO.CustomerId   
 					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 					LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON CTM.CreditTermsId = SO.CreditTermId   
-					LEFT JOIN #SOProformaDepositAmt SPDA ON SPDA.SalesOrderId = SO.SalesOrderId 
+					--LEFT JOIN #SOProformaDepositAmt SPDA ON SPDA.SalesOrderId = SO.SalesOrderId 
 					JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SO.ManagementStructureId
 					JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 					JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId
 				WHERE SO.[MasterCompanyId] = @Mastercompanyid
-					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus 
-					AND ((ISNULL(SOBI.IsPerformaInvoice,0) = 0) OR (ISNULL(SOBI.IsPerformaInvoice,0) = 1 AND (ISNULL(SOBI.GrandTotal, 0) - ISNULL(SOBI.RemainingAmount, 0)) > 0 AND SPDA.OriginalDepositAmt - SPDA.UsedDepositAmt != 0))
+					AND SOBI.[InvoiceStatus] = @InvoiceStatus 
+					AND ((ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBI.[RemainingAmount],0) > 0) OR (ISNULL(SOBI.IsPerformaInvoice,0) = 1 AND (ISNULL(SOBI.DepositAmount, 0) - ISNULL(SOBI.UsedDeposit, 0)) > 0))
 					AND SO.[CustomerId] = ISNULL(@CustomerId, SO.CustomerId) AND SOBI.ModuleId = @salesOrderModuleId
 					
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
@@ -418,7 +430,7 @@ BEGIN
 			       [BalanceAmount],[RemainingAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],				   
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])			
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount], [LegalEntityId])			
 		    SELECT DISTINCT ESOBI.SOBillingInvoicingId,
 				            C.[CustomerId],  					
                             UPPER(ISNULL(C.[Name],'')),      
@@ -472,7 +484,8 @@ BEGIN
 								--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 								--	WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
 								--	FOR XML PATH('')), 1, 1, '')),
-							0
+							0,
+							LE.LegalEntityId
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    
 							INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId      
 							INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = ESO.CustomerId 
@@ -569,7 +582,7 @@ BEGIN
 			       [BalanceAmount], [RemainingAmount] ,[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],				   
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])	
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount], [LegalEntityId])	
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -595,7 +608,8 @@ BEGIN
 							0,  -- 'InvoicePaidAmount',
 							@STLCMModuleTypeId,  -- 'SalesOrderCreditMemo',
 					        LE.[Name],
-							0
+							0,
+							LE.LegalEntityId
 			 FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 					LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
 					LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId   
@@ -690,7 +704,7 @@ BEGIN
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],				  
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])	
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount], [LegalEntityId])	
 			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -715,7 +729,8 @@ BEGIN
 							0,  -- 'InvoicePaidAmount',
 							@UAModuleTypeId,  -- 'SUSPENSE AND UNAPPLIED CASH',
 					        LE.[Name],
-							0
+							0,
+							LE.LegalEntityId
 			  FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CCP.CustomerId = C.CustomerId   
 				LEFT JOIN [dbo].[CustomerFinancial] CSF  ON CSF.[CustomerId] = C.[CustomerId]
@@ -751,7 +766,8 @@ BEGIN
 					ISNULL(SUM([CreditMemoAmount]),0) [CreditMemoAmount],
 					ISNULL(SUM([CreditMemoUsed]),0) [CreditMemoUsed],	
 					[LegalEntityName] AS 'LegelEntity',
-					ISNULL(SUM([CurrentAmount]),0) AS [ReceivedAmount]
+					ISNULL(SUM([CurrentAmount]),0) AS [ReceivedAmount],
+					[LegalEntityId]
 			 INTO #TempResult1 FROM #TEMPInvoiceRecords		
 			 WHERE ((@GlobalFilter <>'' AND ((CustomerName LIKE '%' +@GlobalFilter+'%') OR      
 					([CurrencyCode] LIKE '%' +@GlobalFilter+'%') OR        
@@ -779,7 +795,7 @@ BEGIN
 				  (ISNULL(@Amountlessthan120days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan120days],0))= @Amountmorethan120days) )
 				  )
 				  --(ISNULL(@InvoiceAmount,0) = 0 OR [InvoiceAmount] = @InvoiceAmount)) 
-			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],[StatusId],[CurrencyCode] ,[IsCreditMemo],[CurrencyCode]
+			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],[StatusId],[CurrencyCode] ,[IsCreditMemo],[CurrencyCode],[LegalEntityId]
 
 			CREATE TABLE #TEMPFinalResilts(        
 				[CustomerId] BIGINT NULL,
@@ -799,7 +815,8 @@ BEGIN
 				[Amountpaidbymorethan120days] DECIMAL(18, 2) NULL,	
 				[LegelEntity] VARCHAR(MAX) NULL,
 				[InvoiceAmount] DECIMAL(18, 2) NULL,
-				[ReceivedAmount] DECIMAL(18, 2) NULL
+				[ReceivedAmount] DECIMAL(18, 2) NULL,
+				[LegalEntityId] BIGINT NULL,
 			)
 
 			--SELECT '#TempResult1'
@@ -807,7 +824,7 @@ BEGIN
 
 			INSERT INTO #TEMPFinalResilts(CustomerId, CustName, CustomerCode, CurrencyCode, BalanceAmount, RemainingAmount, CurrentAmount, CreditMemoAmount,
 					Amountpaidbylessthen0days, Amountpaidby30days, Amountpaidby60days, Amountpaidby90days, Amountpaidby120days,
-					Amountpaidbymorethan120days, LegelEntity)
+					Amountpaidbymorethan120days, LegelEntity, [LegalEntityId])
 			SELECT DISTINCT  CustomerId, CustName, CustomerCode, CurrencyCode, 
 					ISNULL(SUM([BalanceAmount]),0), 
 					ISNULL(SUM([RemainingAmount]),0), 
@@ -819,9 +836,10 @@ BEGIN
 					ISNULL(SUM([Amountpaidby90days]),0), 
 					ISNULL(SUM([Amountpaidby120days]),0),
 					ISNULL(SUM([Amountpaidbymorethan120days]),0), 
-					LegelEntity
+					LegelEntity,
+					[LegalEntityId]
 			FROM #TempResult1
-			GROUP BY CustomerId, CustName, CustomerCode, CurrencyCode, LegelEntity
+			GROUP BY CustomerId, CustName, CustomerCode, CurrencyCode, LegelEntity, [LegalEntityId]
 					 
 			--Select * from #TEMPFinalResilts
 				 		

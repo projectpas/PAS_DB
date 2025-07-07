@@ -4027,6 +4027,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteSettingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettingsAuditById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteSettingAuditById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteAnalysisList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

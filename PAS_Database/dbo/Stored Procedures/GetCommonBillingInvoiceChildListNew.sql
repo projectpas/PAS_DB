@@ -19,6 +19,7 @@
 	6    25/06/2025   Rajesh Gami		Fixed Getting Child List Issue For the SO.
 	7    30/06/2025   Rajesh Gami		Added isSerialized return parameter
 	8    30/06/2025   Hemnat Saliya		Handle Duplidate entry in billing list
+	9    07 JUL 2025   RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default 
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
@@ -36,7 +37,7 @@ BEGIN
 	SET NOCOUNT ON;
 		BEGIN TRY
 			DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
-			DECLARE @AllowBillingBeforeShipping BIT;
+			DECLARE @AllowBillingBeforeShipping BIT,@DefaultInvoiceTypeId INT =0;
 			DECLARE @FlateBilingMethodId INT = (SELECT BillingMethodId FROM dbo.BillingMethod WITH(NOLOCK) WHERE Description ='Flate Rate');
 
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
@@ -530,6 +531,8 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 			BEGIN
+				SET @DefaultInvoiceTypeId = ISNULL((SELECT InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
+
 			    SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 				BEGIN 
@@ -557,7 +560,8 @@ BEGIN
 					CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems sobii_1 WITH(NOLOCK) 
 					WHERE sobii_1.BillingInvoicingId = sobi.BillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId 
 					AND ISNULL(sobii_1.IsPerformaInvoice, 0) = 0) >0  THEN sobi.InvoiceNo ELSE NULL END AS InvoiceNo,
-					sobi.InvoiceTypeId,
+					--sobi.InvoiceTypeId,
+					(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 					sos.SOShippingNum, 
 					sosi.QtyShipped as QtyToBill,   
 					so.SalesOrderNumber, 
@@ -691,7 +695,8 @@ BEGIN
 							sobi.BillingInvoicingId,
 							case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 							sobi.InvoiceNo AS InvoiceNo,
-							sobi.InvoiceTypeId,
+							--sobi.InvoiceTypeId,
+							(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 							(CASE WHEN sobii.IsVersionIncrease = 1 then 
 								(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.ShippingId) 
 							else 
@@ -812,7 +817,7 @@ BEGIN
 								sobi.BillingInvoicingId,
 								case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 								sobi.InvoiceNo AS InvoiceNo,
-								sobi.InvoiceTypeId,
+							(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 								'' AS SOShippingNum,
 								ISNULL(SOR.QtyToReserve, 0) AS QtyToBill,
 								so.SalesOrderNumber,
@@ -1028,7 +1033,7 @@ BEGIN
 							sobii.BillingInvoicingItemId,
 							case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 							sobi.InvoiceNo AS InvoiceNo,
-							sobi.InvoiceTypeId,
+							(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 							'' AS SOShippingNum,
 							so.SalesOrderNumber, 
 							imt.partnumber, 

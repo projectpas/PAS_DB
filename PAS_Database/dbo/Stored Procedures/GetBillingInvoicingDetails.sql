@@ -16,10 +16,11 @@
 	2    30 Apr 2025   RAJESH GAMI  Implemented Sales Order Module and Fix invoice Date issue
 	3    23 JUN 2025   RAJESH GAMI  FIXED CustomerDomensticShippingShipViaId related issue in SO
 	4    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
+	5    07 JUL 2025   RAJESH GAMI  added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default selected
    EXEC [dbo].[GetBillingInvoicingDetails] 8781,8523,2,15,0,0
    EXEC [dbo].[GetBillingInvoicingDetails] 802,972,2,10,292,0
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[GetBillingInvoicingDetails]
+CREATE      PROCEDURE [dbo].[GetBillingInvoicingDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @EmployeeId BIGINT=NULL,
@@ -33,7 +34,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	 BEGIN TRY  	
 		
-		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@Result INT,@ItemCount INT, @CostPlusType VARCHAR(20) ='Cost Plus';		
+		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@Result INT,@ItemCount INT, @CostPlusType VARCHAR(20) ='Cost Plus', @DefaultInvoiceTypeId INT =0;;		
 		DECLARE @AllowInvoiceBeforeShipping BIT
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -391,12 +392,13 @@ BEGIN
 			BEGIN
 				SELECT @Result = 0;
 			END
+			SET @DefaultInvoiceTypeId = ISNULL((SELECT InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
 			IF(@BillingInvoicingId > 0)
 			BEGIN
 				  SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 				  		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerReference, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				  		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, so.FunctionalCurrencyId CurrencyId,
-				  		so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
+				  		so.TypeId, sotype.[Name] as RevType,ISNULL(sobii.QtyBilled, 0) NoofPieces,--(ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
 				  		sobi.OriginCountryId AS OriginCountryId, 
 				  		sobi.ShipToCountryId AS ShipToCountryId, 
 				  		ime.ExportECCN AS ECCN,
@@ -429,7 +431,7 @@ BEGIN
 						null AS [PrintDate],
 						null AS ShipDate,
 						BID.ShipviaId,
-							sobi.InvoiceTypeId as InvoiceTypeId
+							sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId
 				  	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				  	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				  	INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -447,7 +449,7 @@ BEGIN
 					LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 					LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
-				  	WHERE sop.SalesOrderPartId = @SubReferenceId AND sobii.BillingInvoicingId = @BillingInvoicingId;
+				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId;
 			END
 			ELSE
 			BEGIN
@@ -494,7 +496,7 @@ BEGIN
 						--	ELSE sos.[ShipviaId]
 						--END AS [CustomerDomensticShippingShipViaId],
 						sos.ShipviaId ShipViaId,
-							0 as InvoiceTypeId
+							0 as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId
 				 	FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
 				 	INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
 				 	INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
@@ -546,7 +548,7 @@ BEGIN
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 					    ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipviaId,
-						sobi.InvoiceTypeId as InvoiceTypeId
+						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId
 				 	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				 	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				 	INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

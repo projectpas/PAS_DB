@@ -393,7 +393,7 @@ BEGIN
 			BEGIN
 				SELECT @Result = 0;
 			END
-			SET @DefaultInvoiceTypeId = ISNULL((SELECT InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
+			SET @DefaultInvoiceTypeId = ISNULL((SELECT TOP 1 InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
 			IF(@BillingInvoicingId > 0)
 			BEGIN
 				  SELECT TOP 1 sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
@@ -450,7 +450,7 @@ BEGIN
 					LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 					LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
-				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId and ISNULL(sobi.IsVersionIncrease,0) = 0;
+				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId
 			END
 			ELSE
 			BEGIN

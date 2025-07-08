@@ -20,6 +20,7 @@
     4    11/29/2024   Vishal Suthar Fixed an issue with Tax Amount Calculation
     5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
 	6    07-07-2025   Moin Bloch    Changed Old To New Billing Table
+	7    08-07-2025   Moin Bloch    Fix For Approval Status
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
@@ -36,6 +37,12 @@ BEGIN
 	  	
 		DECLARE @SOModuleId INT
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
+		DECLARE @SentForInternalApproval INT = 1
+        DECLARE @SubmitInternalApproval INT = 2
+        DECLARE @SentForCustomerApproval INT = 3
+        DECLARE @SubmitCustomerApproval INT = 4
+        DECLARE @Approved INT = 5
 		
 		CREATE TABLE #ProcedureOutput (
 			SalesTax DECIMAL(18, 2),
@@ -150,7 +157,13 @@ BEGIN
 			ISNULL(iu.ShortName, '') AS uom,
 			--ISNULL(rPart.QtyToReserve, NULL) AS qtyReserved,
 			ISNULL(stk.QtyReserved, NULL) AS qtyReserved,
-			ISNULL(st.Name, '') AS [status],
+			--ISNULL(st.Name, '') AS [status],			
+			CASE WHEN sp.ApprovalActionId =  @SentForInternalApproval THEN 'Send for Internal Approval'
+			     WHEN sp.ApprovalActionId =  @SubmitInternalApproval THEN 'Submitted for Internal Approval'
+				 WHEN sp.ApprovalActionId =  @SentForCustomerApproval THEN 'Send for Customer Approval'
+				 WHEN sp.ApprovalActionId =  @SubmitCustomerApproval THEN 'Submitted for Cust Approval'
+				 WHEN sp.ApprovalActionId =  @Approved THEN 'Approved'
+			ELSE 'PENDING' END AS [status],
 			CASE WHEN so.StatusId = 2 THEN 1 ELSE 0 END AS isApproved, -- Assuming 2 is Approved status (replace with appropriate constant)
 			so.CustomerReference AS customerReference,
 			ISNULL(imx.ExportECCN, '') AS eccn,
@@ -198,6 +211,7 @@ BEGIN
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON so.CustomerId = cf.CustomerId
 		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
+	    LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON part.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId AND sp.IsDeleted = 0 AND sp.IsActive =1
 		LEFT JOIN DBO.BillingInvoicingItems sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SubReferenceId AND stk.StockLineId = sob.StockLineId AND ISNULL(sob.IsVersionIncrease,0) = 0 AND ISNULL(sob.IsPerformaInvoice,0) = 0  AND sob.[ModuleId] =@SOModuleId
 		LEFT JOIN DBO.BillingInvoicing sbi WITH (NOLOCK) ON sob.BillingInvoicingId = sbi.BillingInvoicingId AND sbi.ReferenceId = @SalesOrderId AND ISNULL(sbi.IsPerformaInvoice,0) = 0 AND sbi.[ModuleId] =@SOModuleId
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0

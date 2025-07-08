@@ -10,9 +10,10 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/JUN/2025   RAJESH GAMI   CREATED
-	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed  
-	3    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 	
+    1    05/JUN/2025   RAJESH GAMI		CREATED
+	2    18/JUN/2025   RAJESH GAMI		Proforma Amount Related Fixed  
+	3    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 	
+	4    07 JUL 2025   Devendra Shekh	Deposite Amount Calculation Issue Resolved
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 4352,10,245
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -29,6 +30,7 @@ BEGIN
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+	DECLARE @ReferenceId BIGINT = NULL, @ProformaDepositAmount DECIMAL(18, 2) = 0;
 	
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
@@ -38,6 +40,12 @@ BEGIN
 		   LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 		   LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @EmployeeId; 
+
+		SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+		SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
+		FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
+		WHERE BI.[ReferenceId] = @ReferenceId AND BI.ModuleId  =  @ModuleId AND ISNULL(BI.IsPerformaInvoice, 0) = 1 
 	   		
 		IF(@ModuleId = @SOModuleId) /********* START: SALES ORDER ********/
 		BEGIN	
@@ -156,7 +164,8 @@ BEGIN
 								)
 							ELSE ISNULL(BI.[SubTotal], 0)
 						END AS [SubTotal],
-					ISNULL(BI.[DepositAmount],0) [DepositAmount],
+					--ISNULL(BI.[DepositAmount],0) [DepositAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],
 					CASE WHEN BI.IsPerformaInvoice = 1 THEN 
 													(SELECT SUM(ISNULL(BII.PartCost,0)) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) + ISNULL(BI.[SalesTax], 0)  + ISNULL(BI.[OtherTax], 0) 
 													+
@@ -181,7 +190,8 @@ BEGIN
 									) AS DistinctCharges 
 								)
 								ELSE  ISNULL(BI.[GrandTotal],0) END [GrandTotal],
-					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
   				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),
 					 GETDATE() [PrintDate],

@@ -130,7 +130,7 @@ BEGIN
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
     
     ;WITH rptCTE (TotalRecordsCount, WorkOrderId,customername, pn, pndescription,ronum, wonum, serialnum, stagecode, totalDaysinStage, opendate,requestdate,promisedate,estshipdate,shipdate,requestdatesince,  
-    promisedatesince,estshipdatesince,shipdatesince,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId)  
+    promisedatesince,estshipdatesince,shipdatesince,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId, WorkOrderPartNoId)  
     AS (SELECT 0 AS TotalRecordsCount,    
     WO.WorkOrderId,  
     MAX(UPPER(C.Name)) 'customername',   
@@ -161,7 +161,8 @@ BEGIN
     UPPER(MAX(MSD.Level8Name)) AS level8,     
     UPPER(MAX(MSD.Level9Name)) AS level9,     
     UPPER(MAX(MSD.Level10Name)) AS level10 ,  
-    MAX(WO.MasterCompanyId) MasterCompanyId  
+    MAX(WO.MasterCompanyId) MasterCompanyId ,
+	WOPN.ID
    FROM DBO.WorkOrder WO WITH (NOLOCK)      
     INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
@@ -204,9 +205,9 @@ BEGIN
       
     
     ,finalCTE (WorkOrderId,customername, pn, pndescription,ronum, wonum, serialnum, stagecode, totalDaysinStage, opendate,requestdate,promisedate,estshipdate,shipdate,requestdatesince,  
-    promisedatesince,estshipdatesince,shipdatesince,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId)  
+    promisedatesince,estshipdatesince,shipdatesince,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId, WorkOrderPartNoId)  
     AS (SELECT DISTINCT WorkOrderId,customername, pn, pndescription,ronum, wonum, serialnum, stagecode, totalDaysinStage, opendate,requestdate,promisedate,estshipdate,shipdate,requestdatesince,  
-    promisedatesince,estshipdatesince,(CASE WHEN shipdatesince = '0' THEN ''  ELSE shipdatesince END),level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId FROM rptCTE)  
+    promisedatesince,estshipdatesince,(CASE WHEN shipdatesince = '0' THEN ''  ELSE shipdatesince END),level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId, WorkOrderPartNoId FROM rptCTE)  
   
     SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId,customername, pn, pndescription,ronum, wonum, serialnum, stagecode, totalDaysinStage, opendate,requestdate,promisedate,estshipdate,shipdate,requestdatesince,  
     promisedatesince,estshipdatesince,(CASE WHEN shipdatesince = '0' THEN ''  ELSE shipdatesince END)shipdatesince,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10   

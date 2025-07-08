@@ -38,14 +38,16 @@ BEGIN
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
 			,InvoiceStatusId,InvoiceStatus,InvoiceFilePath,RevType,VersionNo,CostPlusType,IsPerformaInvoice,IsVersionIncrease,PostedDate,SubTotal,OtherTax,SalesTax,DepositAmount,GrandTotal
 			,IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount,Notes,WorkOrderShippingId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive
-			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice)
+			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice,IsStandardInvoicePosted)
 
 		SELECT WOBI.BillingInvoicingId,@ModuleId,WorkOrderId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
-			RevType,WOBI.VersionNo,CostPlusType,IsPerformaInvoice,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,WOBI.IsInvoicePosted,
+			RevType,WOBI.VersionNo,CostPlusType,IsPerformaInvoice,WOBI.IsVersionIncrease,PostedDate,WOBI.SubTotal,WOBI.OtherTax,WOBI.SalesTax,DepositAmount,WOBI.GrandTotal,
+			--WOBI.IsInvoicePosted,
+			CASE WHEN UPPER(WOBI.InvoiceStatus) = 'INVOICED' THEN 1 ELSE 0 END IsInvoicePosted,
 			CASE WHEN ISNULL(ProformaDeposit, 0) > 0 THEN ISNULL(ProformaDeposit, 0) ELSE UsedDeposit END AS UsedDeposit,
 			ProformaDeposit,RemainingAmount
 			,Notes,WorkOrderShippingId,ManagementStructureId,WOBI.MasterCompanyId,WOBI.CreatedBy,WOBI.UpdatedBy,WOBI.CreatedDate,WOBI.UpdatedDate,WOBI.IsActive,WOBI.IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate
-			,SyncToken,isCreatedFromQuote,IsQuickBookGeneratedInvoice
+			,SyncToken,isCreatedFromQuote,IsQuickBookGeneratedInvoice, WOBI.IsInvoicePosted
 		FROM dbo.WorkOrderBillingInvoicing WOBI 
 		WHERE WOBI.MasterCompanyId = @MasterCompanyId 
 

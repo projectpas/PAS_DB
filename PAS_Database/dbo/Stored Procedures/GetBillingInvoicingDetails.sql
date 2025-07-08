@@ -17,6 +17,7 @@
 	3    23 JUN 2025   RAJESH GAMI  FIXED CustomerDomensticShippingShipViaId related issue in SO
 	4    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
 	5    07 JUL 2025   RAJESH GAMI  added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default selected
+	6    08 JUL 2025   RAJESH GAMI  Fixed: When we revise the proforma that time getting error 
    EXEC [dbo].[GetBillingInvoicingDetails] 8781,8523,2,15,0,0
    EXEC [dbo].[GetBillingInvoicingDetails] 802,972,2,10,292,0
 **************************************************************/ 
@@ -442,14 +443,14 @@ BEGIN
 				  	LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				  	LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				  	LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on SO.SalesOrderId = sobi.ReferenceId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ModuleId = @SOModuleId
-				  	LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.ModuleId = @SOModuleId
-					LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
+					INNER JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on SO.SalesOrderId = sobi.ReferenceId AND sobi.ModuleId = @SOModuleId
+				  	INNER JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND sobii.ModuleId = @SOModuleId
+					INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON SO.FunctionalCurrencyId = [cr].[CurrencyId]
 					LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 					LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
-				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId;
+				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId and ISNULL(sobi.IsVersionIncrease,0) = 0;
 			END
 			ELSE
 			BEGIN

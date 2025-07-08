@@ -531,7 +531,7 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 			BEGIN
-				SET @DefaultInvoiceTypeId = ISNULL((SELECT InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
+				SET @DefaultInvoiceTypeId = ISNULL((SELECT TOP 1 InvoiceTypeId FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @SOModuleId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0),0)
 
 			    SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)

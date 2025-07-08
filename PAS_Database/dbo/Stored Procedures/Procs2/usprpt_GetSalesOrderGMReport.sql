@@ -24,7 +24,8 @@
 	7    03-DEC-2024	Vishal Suthar		Fixed issue with table joins
 	8    24-DEC-2024	Vishal Suthar 		Fixed report calculations
 	9	 26-DEC-2024	Abhishek Jirawla	Fixed report calculations
- 	10  01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure       
+ 	10   01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure  
+	11	 08/JUL/2025	Abhishek Jirawla	Changed Revenue to get Grand Total
 EXECUTE   [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport] 
@@ -235,7 +236,7 @@ BEGIN
 		ISNULL((SOBII.SubTotal), 0) AS 'Netsales',
 		UPPER(SOBII.MiscCharges) AS 'Misc',  
 		--CASE WHEN SOBII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 THEN 
-		ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0) AS 'rev',
+		ISNULL(SOBII.GrandTotal, 0) AS 'rev',
 		--ELSE 
 			--ISNULL(SOBII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0) 
 		--END AS 'rev',

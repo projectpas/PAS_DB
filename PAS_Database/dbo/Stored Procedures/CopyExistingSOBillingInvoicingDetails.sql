@@ -38,14 +38,14 @@ BEGIN
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
 			,InvoiceStatusId,InvoiceStatus,InvoiceFilePath,RevType,VersionNo,CostPlusType,IsPerformaInvoice,IsVersionIncrease,PostedDate,SubTotal,OtherTax,SalesTax,DepositAmount,GrandTotal
 			,IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount,Notes,WorkOrderShippingId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive
-			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice,CreditMemoUsed)
+			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice,CreditMemoUsed, IsStandardInvoicePosted)
 
 		SELECT SOBI.SOBillingInvoicingId,@ModuleId,SOBI.SalesOrderId,SOBI.CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,NULL AS InvoiceTime,PrintDate,SOBI.EmployeeId,SOBI.CurrencyId,NULL AS RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
 			RevType,SOBI.VersionNo,NULL AS CostPlusType,IsProforma,SOBI.IsVersionIncrease,PostedDate,SOBI.SubTotal,SOBI.OtherTax,SOBI.SalesTax,SOBI.DepositAmount,SOBI.GrandTotal,			
-			CASE WHEN SOBI.InvoiceStatus = 'Invoiced' THEN 1 ELSE 0 END AS IsInvoicePosted,
+			CASE WHEN UPPER(SOBI.InvoiceStatus) = 'INVOICED' THEN 1 ELSE 0 END AS IsInvoicePosted,
 			CASE WHEN ISNULL(ProformaDeposit, 0) > 0 THEN ISNULL(ProformaDeposit, 0) ELSE UsedDeposit END AS UsedDeposit,ProformaDeposit,RemainingAmount
 			,NULL AS Notes,NULL AS WorkOrderShippingId,ManagementStructureId,SOBI.MasterCompanyId,SOBI.CreatedBy,SOBI.UpdatedBy,SOBI.CreatedDate,SOBI.UpdatedDate,SOBI.IsActive,SOBI.IsDeleted,0,QuickBooksReferenceId,IsUpdated,LastSyncDate
-			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice, SOBI.CreditMemoUsed
+			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice, SOBI.CreditMemoUsed, SOBI.IsBilling
 		FROM dbo.SalesOrderBillingInvoicing SOBI 
 		JOIN SalesOrder SO ON SOBI.SalesOrderId = SO.SalesOrderId
 		WHERE SOBI.MasterCompanyId = @MasterCompanyId
@@ -59,7 +59,10 @@ BEGIN
 
 		--Insert Into Billing Invoice Item
 		INSERT INTO dbo.BillingInvoicingItems(OldWOBillingInvoicingItemId,OldBillingInvoicingId,BillingInvoicingId,ModuleId,ReferenceId,SubModuleId,SubReferenceId,ItemMasterId,StocklineId,ConditionId,CostPlusType,
-		UnitPrice,QtyBilled,PartCost,IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
+		UnitPrice,
+		QtyBilled,
+		PartCost,
+		IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
 		LaborCostPercent,LaborCostPlus,IsFreightCheck,Freight,FreightCostPercent,FreightCostPlus,IsMiscChargesCheck,MiscCharges,MiscChargesCostPercent,MiscChargesCostPlus,
 		SubTotal,SalesTaxPercent,SalesTax,OtherTaxPercent,OtherTax,GrandTotal, RemainingAmount , PDFPath,VersionNo,IsVersionIncrease,IsPerformaInvoice,MasterCompanyId,CreatedBy,UpdatedBy,
 		CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId, ShipDate)
@@ -67,11 +70,12 @@ BEGIN
 		SELECT DISTINCT SOBII.SOBillingInvoicingItemId,SOBII.SOBillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,SOBII.SalesOrderPartId,
 			SOBII.ItemMasterId,
 			SOBII.StocklineId,
-			SOST.ConditionId,
+			SL.ConditionId,
 			BI.CostPlusType,
-			SOC.NetSaleAmountPerUnit AS UnitPrice,
+			SOBII.UnitPrice AS UnitPrice,
 			SOBII.NoofPieces, 
-			CASE WHEN SOBI.IsProforma = 1 THEN SOC.NetSaleAmount ELSE (SOBII.NoofPieces * SOC.NetSaleAmountPerUnit) END AS PartCost, 
+			SOBII.PartCost,
+			--CASE WHEN SOBI.IsProforma = 1 THEN SOC.NetSaleAmount ELSE (SOBII.NoofPieces * SOC.NetSaleAmountPerUnit) END AS PartCost, 
 			0 AS IsTotalCheck,  
 			CASE WHEN ISNULL(SOBII.SubTotal, 0) > 0 THEN SOBII.SubTotal ELSE SOBII.PartCost END AS TotalBillingCost,
 			NULL TotalBillingCostPercent,
@@ -94,10 +98,9 @@ BEGIN
 		FROM dbo.SalesOrderBillingInvoicingItem SOBII 
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
 			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = 10
-			JOIN dbo.SalesOrderStocklineV1 SOST ON SOBII.StockLineId = SOST.StockLineId
-			JOIN dbo.SalesOrderStockLineCost SOC ON SOST.SalesOrderStocklineId = SOC.SalesOrderStocklineId
+			LEFT JOIN DBO.Stockline SL ON SOBII.StockLineId = SL.StockLineId
 		WHERE SOBII.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
-
+		
 
 		INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
 			ShipViaId,WayBillRef,ShipAccountInfo)

@@ -26,6 +26,7 @@
 	9	 26-DEC-2024	Abhishek Jirawla	Fixed report calculations
  	10   01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure  
 	11	 08/JUL/2025	Abhishek Jirawla	Changed Revenue to get Grand Total 
+
 EXECUTE   [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport] 

@@ -21,7 +21,7 @@
     8    07-Feb-2025   Abhishek Jirawla	Modified (added Change for Purchase Order)
     9    11-Feb-2025   Abhishek Jirawla	Modified (added Change for Item Master)
 	10	 12-Feb-2024   Devendra Shekh	Modified (added Change for CreditMemo)
-     
+    11   07-07-2025    Moin Bloch       Modified Changed Old To New Billing Table
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
@@ -76,12 +76,12 @@ BEGIN
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @WOModuleId = @ReferenceModuleId) 
 		BEGIN
-			UPDATE [dbo].[WorkOrderBillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE BillingInvoicingId = @ReferenceId			
+			UPDATE [dbo].[BillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE BillingInvoicingId = @ReferenceId	AND [ModuleId] = @WOModuleId 		
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @SOModuleId = @ReferenceModuleId) 
 		BEGIN
-			UPDATE [dbo].[SalesOrderBillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE SOBillingInvoicingId = @ReferenceId			
+			UPDATE [dbo].[BillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE BillingInvoicingId = @ReferenceId	AND [ModuleId] = @SOModuleId		
 		END
 
 		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @ExchModuleId = @ReferenceModuleId) 

@@ -20,6 +20,7 @@
 	3	13-Dec 2021		Hemant Added		 Updated for Upper Case
 	4	02-FEB 2024	    AMIT GHEDIYA	     added isperforma Flage for SO
     5   11/04/2024		Vishal Suthar		 Modified to make use of new SO Part tables
+	6   07-07-2025      Moin Bloch           Changed Old To New Billing Table
 
 EXECUTE   [dbo].[usp_GetSalesOrderBillingReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -41,6 +42,9 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+
+	  DECLARE @SOModuleId INT
+	  SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
       IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
       BEGIN
@@ -106,11 +110,11 @@ BEGIN
 		(isnull(SOPC.UnitSalesPriceExtended,0) + (select isnull(sum(sc.billingamount),0) from SalesOrderCharges sc WITH (NOLOCK) where sc.SalesOrderId =SO.SalesOrderId and sop.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ) )as  'Revenue',
         SOQ.OpenDate 'Quote Date',
 		soq.ApprovedDate AS 'Quote Approval Date',
-        SOBI.shipdate 'Ship Date',
-		UPPER(SOBI.level1) AS LEVEL1,
-		UPPER(SOBI.level2) AS LEVEL2,
-		UPPER(SOBI.level3) AS LEVEL3,
-		UPPER(SOBI.level4) AS LEVEL4,        
+        SOBII.shipdate 'Ship Date',
+		'' AS LEVEL1,
+		'' AS LEVEL2,
+		'' AS LEVEL3,
+		'' AS LEVEL4,        
         UPPER(E.firstname + ' ' + E.lastname) 'Sales Person',
         UPPER(E1.firstname + ' ' + E1.lastname) 'CSR'
       FROM dbo.salesorder SO WITH (NOLOCK)
@@ -118,8 +122,10 @@ BEGIN
         LEFT JOIN dbo.salesorderstocklineV1 SOPS WITH (NOLOCK)  ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK)  ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
-          ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
+        LEFT JOIN dbo.billinginvoicing SOBI WITH (NOLOCK)
+          ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] = @SOModuleId
+		LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK)
+          ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND SOBII.[ModuleId] = @SOModuleId
         LEFT JOIN dbo.customer C WITH (NOLOCK)
           ON SOBI.customerid = C.customerid
         LEFT JOIN dbo.itemmaster IM WITH (NOLOCK)

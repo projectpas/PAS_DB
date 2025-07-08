@@ -18,6 +18,7 @@
     2                 Swetha			Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	    added isperforma Flage for SO
     4    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	5    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 
 EXECUTE   [dbo].[usp_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -36,6 +37,9 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+	
+	DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
       IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
       BEGIN
@@ -89,7 +93,7 @@ BEGIN
         SOBI.invoicedate 'InvoiceDate',
         SOPC.NetSaleAmount 'Netsales',
         UPPER(SOMS.misc) 'Misc',
-        (SOPC.UnitSalesPrice * SOP.QtyOrder) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
+        (SOPC.UnitSalesPrice * SOP.QtyOrder) + (SOBII.FreightCostPlus) + SOBII.MiscChargesCostPlus + (SOBI.salestax / 2) 'Revenue',
         SOMS.productcost 'Direct Cost',
         ((SOMS.productcost) / NULLIF((SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) '%TD of Rev',
         SOMS.marginamount 'Gross Margin',
@@ -99,11 +103,11 @@ BEGIN
         CASE
           WHEN soq.statusid = 5 THEN soq.statuschangedate
         END AS 'Quote Approval Date',
-        SOBI.shipdate 'Ship Date',
-		UPPER(SOBI.level1) AS LEVEL1,
-		UPPER(SOBI.level2) AS LEVEL2,
-		UPPER(SOBI.level3) AS LEVEL3,
-		UPPER(SOBI.level4) AS LEVEL4,        
+        SOBII.shipdate 'Ship Date',
+		'' AS LEVEL1,
+		'' AS LEVEL2,
+		'' AS LEVEL3,
+		'' AS LEVEL4,        
         UPPER(E.firstname + ' ' + E.lastname)
         'Sales Person',
         UPPER(E1.firstname + ' ' + E1.lastname)
@@ -113,8 +117,10 @@ BEGIN
       LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
       LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
-          ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
+        LEFT JOIN dbo.billinginvoicing SOBI WITH (NOLOCK)
+          ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+		LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK)
+          ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND SOBII.[ModuleId] = @SOModuleId
         LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK)
           ON SO.salesorderid = SOMS.salesorderid
         LEFT JOIN dbo.customer C WITH (NOLOCK)

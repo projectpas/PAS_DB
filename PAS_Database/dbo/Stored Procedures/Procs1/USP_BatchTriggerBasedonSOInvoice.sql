@@ -17,7 +17,7 @@
 	2	 02/1/2024	 AMIT GHEDIYA	added isperforma Flage for SO
     3    11/05/2024	 Vishal Suthar	Modified to make use of new SO Part tables
 	4	 02/06/2025	 Abhishek Jirawla  Fixed Name concat read script
-
+	5    07-07-2025  Moin Bloch        Changed Old To New Billing Table
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
 ************************************************************************/
@@ -132,7 +132,7 @@ BEGIN
 					  inner join AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 					  where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(getdate() as date)   >= CAST(FromDate as date) and  CAST(getdate() as date) <= CAST(ToDate as date)
 		              Set @ReferencePartId=@partId	
-					  SELECT @InvoiceNo=InvoiceNo,@SalesTax=(isnull(SalesTax,0)+ isnull(OtherTax,0) ) from SalesOrderBillingInvoicing Where SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0;
+					  SELECT @InvoiceNo=InvoiceNo,@SalesTax=(isnull(SalesTax,0)+ isnull(OtherTax,0) ) from dbo.BillingInvoicing Where BillingInvoicingId=@InvoiceId AND ISNULL(IsPerformaInvoice,0) = 0;
 
 	            IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN

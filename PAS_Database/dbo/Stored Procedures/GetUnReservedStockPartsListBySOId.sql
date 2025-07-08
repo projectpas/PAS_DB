@@ -17,6 +17,7 @@
      1    10/10/2024	AMIT GHEDIYA		Created
      2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
 	 3    17/01/2025	AMIT GHEDIYA		Handle mutiple invoiced data with laytest invoiced.
+	 4    07-07-2025    Moin Bloch          Changed Old To New Billing Table
 
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0,0
 **************************************************************/
@@ -29,6 +30,9 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON
   BEGIN TRY
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 		DECLARE @PartStatus INT = 5;
 
 		IF(@ItemMasterId = 0) 
@@ -78,10 +82,10 @@ BEGIN
 			   CASE WHEN 
 				   @isFromShipping = 0
 			   THEN 
-				   ISNULL((SELECT ISNULL(sobii.NoofPieces, 0) 
-				   FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
-				   LEFT JOIN [DBO].[SalesOrderBillingInvoicingItem] sobii WITH(NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-				   WHERE sobi.SalesOrderId = @SalesOrderId AND ISNULL(sobi.IsProforma, 0) = 0
+				   ISNULL((SELECT ISNULL(sobii.QtyBilled, 0) 
+				   FROM [DBO].[BillingInvoicing] sobi WITH(NOLOCK)
+				   LEFT JOIN [DBO].[BillingInvoicingItems] sobii WITH(NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId
+				   WHERE sobi.ReferenceId = @SalesOrderId AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] = @SOModuleId
 				   AND sobii.StockLineId = stl.StockLineId
 				   AND ISNULL(sobi.IsVersionIncrease,0) = 0), 0) 
 				ELSE 0 END AS NoofPieces

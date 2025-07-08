@@ -16,6 +16,7 @@
     1    02/11/2024   Moin Bloch    Created
 	2    02/21/2024   Moin Bloch    Flat SO Freigh AND Charge Amount Tax 
     3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	4    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 	
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10381,10835,77,1
 **************************************************************/
@@ -124,19 +125,19 @@ BEGIN
 	 BEGIN	 
 		INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
 		SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
-	          FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)							 
-		      INNER JOIN [dbo].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOBI.[SalesOrderShippingId]  = SOS.[SalesOrderShippingId]
-			  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId] AND SOBI.[SalesOrderPartId] = SOSI.[SalesOrderPartId]
-	          WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
+	          FROM [dbo].[BillingInvoicingItems] SOBI WITH(NOLOCK)							 
+		      INNER JOIN [dbo].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOBI.[ShippingId]  = SOS.[SalesOrderShippingId]
+			  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId] AND SOBI.[SubReferenceId] = SOSI.[SalesOrderPartId]
+	          WHERE [SOBI].[BillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
 			  
         SELECT @TotalShippingRecords = COUNT(*) FROM #tmprShipDetails  
 		
 		IF(@TotalShippingRecords = 0)
 		BEGIN			
 			INSERT INTO #tmprBillingPartDetails ([SalesOrderId],[SalesOrderPartId])	
-			SELECT @SalesOrderId,SOBI.[SalesOrderPartId]
-				  FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)	
-			WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND SOBI.[IsActive] = 1 AND SOBI.[IsDeleted] = 0;
+			SELECT @SalesOrderId,SOBI.[SubReferenceId]
+				  FROM [dbo].[BillingInvoicingItems] SOBI WITH(NOLOCK)	
+			WHERE [SOBI].[BillingInvoicingId] = @SOBillingInvoicingId AND SOBI.[IsActive] = 1 AND SOBI.[IsDeleted] = 0;
 					
            SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprBillingPartDetails
 		   IF(@TotalDirectBillingRecords > 0)
@@ -166,10 +167,10 @@ BEGIN
 	 BEGIN		
 			INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
 			SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
-				  FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)							 
-				  INNER JOIN [dbo].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOBI.[SalesOrderShippingId]  = SOS.[SalesOrderShippingId]
-				  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId] AND SOBI.[SalesOrderPartId] = SOSI.[SalesOrderPartId]
-				  WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
+				  FROM [dbo].[BillingInvoicingItems] SOBI WITH(NOLOCK)							 
+				  INNER JOIN [dbo].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOBI.[ShippingId]  = SOS.[SalesOrderShippingId]
+				  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId] AND SOBI.[SubReferenceId] = SOSI.[SalesOrderPartId]
+				  WHERE [SOBI].[BillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
 	  END		
 	
 	SELECT @FreightMethodId = SO.[FreightBilingMethodId],
@@ -246,9 +247,9 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		SELECT @Total = (ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOBI.NoofPieces,0))
-			FROM [dbo].[SalesOrderBillingInvoicingItem]  SOBI WITH(NOLOCK)
-			INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) on SOBI.SalesOrderPartId = SOP.SalesOrderPartId
+		SELECT @Total = (ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOBI.QtyBilled,0))
+			FROM [dbo].[BillingInvoicingItems]  SOBI WITH(NOLOCK)
+			INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) on SOBI.SubReferenceId = SOP.SalesOrderPartId AND sobi.[ModuleId] = @SOModuleId
 			INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			WHERE [SOP].[SalesOrderId] = @SalesOrderId 
 			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;			  

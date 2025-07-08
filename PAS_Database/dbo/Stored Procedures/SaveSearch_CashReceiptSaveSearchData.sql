@@ -10,6 +10,7 @@
 ** 1	20/11/2024		SHREY CHANDEGARA			Created
 ** 2    28/01/2025      SHREY CHANDEGARA        UPDATED due to duplicated record.
 ** 3    25/02/2025      SHREY CHANDEGARA        UPDATED due to PaymentMethod and PaymentReference(like if it is a checkpayment method then chek number).
+** 4    07-07-2025      Moin Bloch              Changed Old To New Billing Table
 **************************************************************/
 CREATE   PROCEDURE [dbo].[SaveSearch_CashReceiptSaveSearchData]
 	@PageNumber INT,
@@ -83,21 +84,28 @@ AS
 			DECLARE @FROMWOID BIGINT;
 			DECLARE @TOWOID BIGINT;
 
+			DECLARE @WOModuleId INT
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+			DECLARE @SOModuleId INT
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
+
 			SET @RecordFrom = (@PageNumber - 1) * @PageSize;
-			SET @FROMSOID = (SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum);
+			SET @FROMSOID = (SELECT BillingInvoicingId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum AND [ModuleId] = @SOModuleId);
 
 			SET @TOSOID = (CASE WHEN ISNULL(@FROMSOID,0) > 0 
-								THEN (SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum)
+								THEN (SELECT BillingInvoicingId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum AND [ModuleId] = @SOModuleId)
 								ELSE NULL END);
 
 			SET @FROMWOID = (CASE WHEN ISNULL(@FROMSOID,0) > 0 AND ISNULL(@TOSOID,0) > 0 
 								  THEN NULL 
-								  ELSE (SELECT BillingInvoicingId FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum)
+								  ELSE (SELECT BillingInvoicingId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @FromInvoiceNum AND [ModuleId] = @WOModuleId)
 							 END);
 
 			SET @TOWOID = (CASE WHEN ISNULL(@FROMSOID,0) > 0 AND ISNULL(@TOSOID,0) > 0  AND ISNULL(@FROMWOID,0) > 0
 								  THEN NULL 
-								  ELSE (SELECT BillingInvoicingId FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum)
+								  ELSE (SELECT BillingInvoicingId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE ISNULL(IsDeleted,0) = 0 AND ISNULL(IsVersionIncrease,0) = 0 AND InvoiceNo = @ToInvoiceNum AND [ModuleId] = @WOModuleId)
 							 END);
 
 			SET @CHEK = CASE WHEN @PaymentMethodId = '1' THEN 1 ELSE 0 END;
@@ -298,15 +306,15 @@ AS
 						INNER JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON AC.AccountingCalendarId = CP.AcctingPeriod AND AC.IsActive = 1 AND AC.IsDeleted = 0
 						INNER JOIN [dbo].[InvoiceType] IT WITH(NOLOCK) ON IT.InvoiceTypeId = IPS.InvoiceType
 						INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = CP.ReceiptId AND MSD.ModuleID = @CashModuleID
-						LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = IPS.SOBillingInvoicingId AND SOBI.IsVersionIncrease = 0 AND SOBI.IsDeleted = 0
-						LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = IPS.SOBillingInvoicingId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsDeleted = 0
+						LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = IPS.SOBillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND SOBI.IsDeleted = 0 AND SOBI.[ModuleId] = @SOModuleId
+						LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = IPS.SOBillingInvoicingId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.IsDeleted = 0 AND WOBI.[ModuleId] = @WOModuleId
 					WHERE   CAST(@FromInvoiceDate AS DATE) <= CAST(IPS.InvoiceDate AS DATE ) AND CAST(IPS.InvoiceDate AS DATE) <= CAST(@ToInvoiceDate AS DATE)
 							AND (NULLIF(@FromPostDate, '') IS NULL OR CAST(CP.PostedDate AS DATE) >= CAST(@FromPostDate AS DATE))
 							AND (NULLIF(@ToPostDate, '') IS NULL OR CAST(CP.PostedDate AS DATE) <= CAST(@ToPostDate AS DATE))
 							AND (NULLIF(@FromReceiptDate, '') IS NULL OR CAST(CP.DepositDate AS DATE) >= CAST(@FromReceiptDate AS DATE))
 							AND (NULLIF(@ToReceiptDate, '') IS NULL OR CAST(CP.DepositDate AS DATE) <= CAST(@ToReceiptDate AS DATE))
 							AND CP.MasterCompanyId = @MasterCompanyId  AND ISNULL(CP.IsActive,0)  = 1 AND  ISNULL(CP.IsDeleted,0) = 0 
-							AND ( (ISNULL(@FROMSOID,'') = '' AND ISNULL(@TOSOID,'') = '') OR SOBI.SOBillingInvoicingId BETWEEN @FROMSOID AND @TOSOID )
+							AND ( (ISNULL(@FROMSOID,'') = '' AND ISNULL(@TOSOID,'') = '') OR SOBI.BillingInvoicingId BETWEEN @FROMSOID AND @TOSOID )
 							AND ( (ISNULL(@FROMWOID,'') = '' AND ISNULL(@TOWOID,'') = '') OR WOBI.BillingInvoicingId BETWEEN @FROMWOID AND @TOWOID )
 							AND (ISNULL(@CHEK ,'') = '' OR ISNULL(IPM.PaymentMethodId,0) = @CheckPayment) 
 							AND (ISNULL(@WIRE ,'') = '' OR ISNULL(IPM.PaymentMethodId,0) = @WirePayment) 

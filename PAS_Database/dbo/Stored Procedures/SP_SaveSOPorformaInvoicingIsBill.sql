@@ -16,7 +16,7 @@
 	2    04/03/2024   AMIT GHEDIYA		 Update only for Proforma records.
  	3    11/Jun/2025  RAJESH GAMI		 Modified : As new Common Billing Invoicing Table SalesOrderBillingInvoicing to BillingInvoicing
  	4    04/Jul/2025  Devendra Shekh	 Modified (updating IsStandardInvoicePosted after all standard inv posted)
-
+	5    07-07-2025   Moin Bloch         Added standerd format
 EXEC [SP_SaveSOPorformaInvoicingIsBill] 4351
 ************************************************************************/
 
@@ -158,7 +158,7 @@ BEGIN
 				BEGIN 
 					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderPartId,BillingInvoicingId)
 					(SELECT SubReferenceId,BillingInvoicingId 
-					FROM BillingInvoicingItems WHERE BillingInvoicingId = @sobillingInvoicingId)--SalesOrderPartId = @soPartID AND IsPerformaInvoice = 1)
+					FROM dbo.BillingInvoicingItems WITH(NOLOCK) WHERE BillingInvoicingId = @sobillingInvoicingId)--SalesOrderPartId = @soPartID AND IsPerformaInvoice = 1)
 
 					SELECT @COUNT = MAX(ID) FROM #SalesOrderBillingInvoiceList 
 

@@ -13,6 +13,7 @@
  ** --   --------     -------			--------------------------------     
 	1    12/05/2025   Moin Bloch		Created
 	2    02/06/2025   Rajesh Gami		Implemented SO
+	3    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 8810, 8582,15
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -220,10 +221,10 @@ BEGIN
 					INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
-					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sos.SalesOrderId AND sobi.IsProforma = 0
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-								AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sosi.QtyShipped
-								AND ISNULL(sobii.IsVersionIncrease,0) = 0 AND ISNULL(sobii.IsProforma,0) = 0
+					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sos.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId
+								AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sosi.QtyShipped
+								AND ISNULL(sobii.IsVersionIncrease,0) = 0 AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId 
 					WHERE sop.SalesOrderId = @ReferenceId AND ISNULL(stk.StockLineId, 0) > 0
 					GROUP BY so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription,
@@ -241,10 +242,10 @@ BEGIN
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
-						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0--AND sobi.IsVersionIncrease = 0
-						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-									AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.QtyOrder
-									AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsProforma,0) = 0
+						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId--AND sobi.IsVersionIncrease = 0
+						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId
+									AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder
+									AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
@@ -265,10 +266,10 @@ BEGIN
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId
-						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0--AND sobi.IsVersionIncrease = 0
-						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-									AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.QtyOrder
-									AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsProforma,0) = 0
+						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId --AND sobi.IsVersionIncrease = 0
+						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId
+									AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder
+									AND ISNULL(sobii.IsVersionIncrease,0) = 0 AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId

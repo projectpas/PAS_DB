@@ -19,6 +19,7 @@
     3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
     4    11/29/2024   Vishal Suthar Fixed an issue with Tax Amount Calculation
     5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
+	6    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
@@ -32,6 +33,10 @@ BEGIN
     BEGIN TRY
     BEGIN TRANSACTION
       BEGIN	
+	  	
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+		
 		CREATE TABLE #ProcedureOutput (
 			SalesTax DECIMAL(18, 2),
 			OtherTax DECIMAL(18, 2),
@@ -165,7 +170,7 @@ BEGIN
 			so.TotalFreight totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
-			CASE WHEN sob.SOBillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.Freight, 0) ELSE 
+			CASE WHEN sob.BillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.FreightCostPlus, 0) ELSE 
 				CASE 
 					WHEN so.FreightBilingMethodId = 3 THEN 0 
 					ELSE ISNULL((SELECT SUM(b.BillingAmount)
@@ -193,8 +198,8 @@ BEGIN
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON so.CustomerId = cf.CustomerId
 		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
-		LEFT JOIN DBO.SalesOrderBillingInvoicingItem sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SalesOrderPartId AND stk.StockLineId = sob.StockLineId AND sob.IsVersionIncrease = 0 AND sob.IsProforma = 0
-		LEFT JOIN DBO.SalesOrderBillingInvoicing sbi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sbi.SOBillingInvoicingId AND sbi.SalesOrderId = @SalesOrderId AND sbi.IsProforma = 0
+		LEFT JOIN DBO.BillingInvoicingItems sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SubReferenceId AND stk.StockLineId = sob.StockLineId AND ISNULL(sob.IsVersionIncrease,0) = 0 AND ISNULL(sob.IsPerformaInvoice,0) = 0  AND sob.[ModuleId] =@SOModuleId
+		LEFT JOIN DBO.BillingInvoicing sbi WITH (NOLOCK) ON sob.BillingInvoicingId = sbi.BillingInvoicingId AND sbi.ReferenceId = @SalesOrderId AND ISNULL(sbi.IsPerformaInvoice,0) = 0 AND sbi.[ModuleId] =@SOModuleId
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId

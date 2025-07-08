@@ -22,6 +22,9 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+			   DECLARE @SOModuleId INT
+		       SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 				SELECT DISTINCT so.SalesOrderNumber, 
 								imt.partnumber, 
 								imt.PartDescription, 
@@ -36,11 +39,11 @@ BEGIN
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
-							LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 1
-							LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 1
-										AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.QtyOrder
-										AND sobii.IsVersionIncrease = 0
-						WHERE sop.SalesOrderId = @SalesOrderId --AND ISNULL(sop.StockLineId,0) >0
+							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.[ModuleId] = @SOModuleId
+							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 1
+										AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder
+										AND ISNULL(sobii.IsVersionIncrease,0) = 0
+						WHERE sop.SalesOrderId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId --AND ISNULL(sop.StockLineId,0) >0
 						GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
 							sop.SalesOrderId, imt.ItemMasterId, sop.QtyOrder, sop.ConditionId;
 			END

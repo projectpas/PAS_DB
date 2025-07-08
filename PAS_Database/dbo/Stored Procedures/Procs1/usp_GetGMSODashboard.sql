@@ -17,6 +17,7 @@
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	4    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	3    07-07-2025   Moin Bloch    Changed Old To New Billing Table
      
 EXECUTE   [dbo].[usp_GetGMSODashboard] 
 **************************************************************/
@@ -28,15 +29,20 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+	
+	DECLARE @SOModuleId INT
+    SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
       SELECT
-        SOBI.SubTotal + SOBI.MiscCharges + SOBI.Freight AS PartsSaleBilling,
+        SOBI.SubTotal + SOBII.MiscChargesCostPlus + SOBII.FreightCostPlus AS PartsSaleBilling,
         SOPC.marginamount AS PartsSaleGM,
         SOBI.invoicedate 'SALE DATE'
-      FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-      INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+      FROM dbo.BillingInvoicing SOBI WITH (NOLOCK)
+	  INNER JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId
+      INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
       INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
       INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-	  WHERE ISNULL(SOBI.IsProforma,0) = 0
+	  WHERE ISNULL(SOBI.IsPerformaInvoice,0) = 0  AND SOBI.[ModuleId] = @SOModuleId
     COMMIT TRANSACTION
   END TRY
 

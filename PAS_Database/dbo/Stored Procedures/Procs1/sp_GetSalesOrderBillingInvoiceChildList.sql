@@ -52,6 +52,7 @@
 	35	 27/02/2025	  Vishal Suthar		Fixed issue with billing when multiple pick ticket created for same stockline AND one when Proforma is created and standard invoice is pending
 	36	 13/03/2025	  Vishal Suthar		Fixed issue with duplicate records when no invoice is created and only proforma was created
 	37	 03/04/2025	  Vishal Suthar		Fixed issue with Freight and Charges not populating on revised billing
+	38   07-07-2025   Moin Bloch        Changed Old To New Billing Table
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
@@ -72,6 +73,13 @@ BEGIN
 		DECLARE @ChargesBilingMethodId INT = 3	
 		SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @SalesOrderId;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 
 			SELECT
 					@CurrntEmpTimeZoneDesc = COALESCE(
@@ -161,20 +169,21 @@ BEGIN
 			0 AS IndexColumn,
 			sosi.SalesOrderShippingId,   
 			sosi.SalesOrderShippingItemId,   
-			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
-			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId
-			AND ISNULL(sobii_1.IsProforma, 0) = 0) > 0 THEN sobii.SOBillingInvoicingId  
+			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems sobii_1 WITH(NOLOCK) 
+			WHERE sobii_1.BillingInvoicingId = sobi.BillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId AND sobii_1.[ModuleId] = @SOModuleId
+			AND ISNULL(sobii_1.IsPerformaInvoice, 0) = 0) > 0 THEN sobii.BillingInvoicingId  
 			ELSE NULL END AS SOBillingInvoicingId,
 
-			(SELECT TOP 1 case when CAST(a.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(a.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK)
-				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-				Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId 
-				AND stk.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId
-				AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) AS InvoiceDate,
+			(SELECT TOP 1 case when CAST(a.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(a.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end 
+				FROM dbo.BillingInvoicing a WITH (NOLOCK)
+				INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+				Where a.ReferenceId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId  AND a.[ModuleId] = @SOModuleId
+				AND stk.StockLineId = b.StockLineId AND ShippingId = sosi.SalesOrderShippingId
+				AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) AS InvoiceDate,
 
-			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.SalesOrderBillingInvoicingItem sobii_1 WITH(NOLOCK) 
-			WHERE sobii_1.SOBillingInvoicingId = sobi.SOBillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId 
-			AND ISNULL(sobii_1.IsProforma, 0) = 0) >0  THEN sobi.InvoiceNo ELSE NULL END AS InvoiceNo,
+			CASE WHEN sop.SalesOrderPartId IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems sobii_1 WITH(NOLOCK) 
+			WHERE sobii_1.BillingInvoicingId = sobi.BillingInvoicingId and sobii_1.ItemMasterId = sop.ItemMasterId  AND sobii_1.[ModuleId] = @SOModuleId
+			AND ISNULL(sobii_1.IsPerformaInvoice, 0) = 0) >0  THEN sobi.InvoiceNo ELSE NULL END AS InvoiceNo,
 			sobi.InvoiceTypeId,
 			sos.SOShippingNum, 
 			sosi.QtyShipped as QtyToBill,   
@@ -187,18 +196,18 @@ BEGIN
 			sl.SerialNumber, 
 			cr.[Name] as CustomerName,   
 			stk.StockLineId,  
-			(SELECT TOP 1 b.NoofPieces FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-				WHERE a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId 
-				AND stk.StockLineId = b.StockLineId AND b.SalesOrderShippingId = sosi.SalesOrderShippingId
-				AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) AS QtyBilled,  
+			(SELECT TOP 1 b.QtyBilled FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+				INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+				WHERE a.ReferenceId = @SalesOrderId AND a.[ModuleId] = @SOModuleId AND b.ItemMasterId = sop.ItemMasterId 
+				AND stk.StockLineId = b.StockLineId AND b.ShippingId = sosi.SalesOrderShippingId
+				AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) AS QtyBilled,  
 			0 AS ItemNo,  
 			sop.SalesOrderId, 
 			sop.SalesOrderPartId, 
 			stk.SalesOrderStocklineId,
 			cond.Description as 'Condition',   
 			CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-			CASE WHEN ISNULL(sobii.SOBillingInvoicingId, 0) > 0 THEN ISNULL(sobi.GrandTotal, 0) ELSE 
+			CASE WHEN ISNULL(sobii.BillingInvoicingId, 0) > 0 THEN ISNULL(sobi.GrandTotal, 0) ELSE 
 			((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 1)) * sosi.QtyShipped)
 			END 
 			as 'TotalSales',  
@@ -224,21 +233,21 @@ BEGIN
 			(SELECT ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 			WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
 			AS TotalFlatCharges,
-			(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-				Where a.SalesOrderId = @SalesOrderId AND sobii.SOBillingInvoicingId = a.SOBillingInvoicingId AND b.ItemMasterId = sop.ItemMasterId 
-				AND stk.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId
-				AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) 
+			(SELECT a.InvoiceStatus FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+				INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+				Where a.ReferenceId = @SalesOrderId AND a.[ModuleId] = @SOModuleId AND sobii.BillingInvoicingId = a.BillingInvoicingId AND b.ItemMasterId = sop.ItemMasterId 
+				AND stk.StockLineId = b.StockLineId AND ShippingId = sosi.SalesOrderShippingId
+				AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) 
 			AS InvoiceStatus, 
 			sos.SmentNum AS 'SmentNo',
 			sobii.VersionNo,
 			(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
-			CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
+			CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 			0 AS IsProforma,
 			0 AS DepositAmount,
 			(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-			ISNULL(sobi.[IsBilling], 0) as [IsBilling],
-
+			--ISNULL(sobi.[IsBilling], 0) 
+			0 as [IsBilling],
 			sop.ECCN AS ECCN,
 			sop.HSCODE AS HSCODE,
 			sop.[Weight] AS [Weight], 
@@ -253,8 +262,8 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
 			INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) on SOPT.SalesOrderId = sos.SalesOrderId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 			INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  AND sosi.SOPickTicketId = SOPT.SOPickTicketId
-			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.ItemMasterId = sop.ItemMasterId AND ISNULL(sobii.IsProforma,0) = 0
-			LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0
+			LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.ItemMasterId = sop.ItemMasterId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+			LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
 			LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
@@ -267,7 +276,7 @@ BEGIN
 			GROUP BY sosi.SalesOrderShippingId, sosi.SalesOrderShippingItemId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 			sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
-			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.SOBillingInvoicingId, sobii.SOBillingInvoicingId,sobi.GrandTotal,sobi.[IsBilling],
+			SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,--sobi.[IsBilling],
 			sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder)
 
 			INSERT INTO #SalesOrderBillingInvoiceChildList (IndexColumn,
@@ -289,9 +298,10 @@ BEGIN
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
 			BEGIN  
 				PRINT '2.1'
-				IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) INNER JOIN DBO.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
-				INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) on SOP.SalesOrderId = SOBI.SalesOrderId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
-				WHERE SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma, 0) = 0 AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
+				IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
+				INNER JOIN DBO.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId
+				INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) on SOP.SalesOrderId = SOBI.ReferenceId AND SOP.SalesOrderPartId = SOBII.SubReferenceId AND SOBI.[ModuleId] = @SOModuleId
+				WHERE SOBI.ReferenceId = @SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
 				BEGIN
 					PRINT '2.1.1.1'
 					INSERT INTO #SalesOrderBillingInvoiceChildList(IndexColumn,
@@ -303,18 +313,18 @@ BEGIN
 					SELECT DISTINCT 
 					--ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.SOBillingInvoicingId DESC) AS IndexColumn,
 					0 AS IndexColumn,
-					(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
+					(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.ShippingId 
 					else (SELECT SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
 					WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 					INNER JOIN DBO.SOPickTicket SO_PICK WITH (NOLOCK) on SO_PICK.SOPickTicketId = SOSI.SOPickTicketId
 					WHERE SOS.SalesOrderId = @SalesOrderId AND SO_PICK.SOPickTicketId = SOPPick.SOPickTicketId) end) AS SalesOrderShippingId,   
 					SOSI.SalesOrderShippingItemId,
-					sobi.SOBillingInvoicingId,
+					sobi.BillingInvoicingId SOBillingInvoicingId,
 					case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
 					sobi.InvoiceTypeId,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 
-						(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) 
+						(SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.ShippingId) 
 					else 
 						(SELECT SOS.SOShippingNum 
 						FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
@@ -336,16 +346,16 @@ BEGIN
 					so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 					sl.SerialNumber, cr.[Name] as CustomerName,   
 					stk.StockLineId,  
-					ISNULL((SELECT ISNULL(b.NoofPieces, 0) FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-						WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND b.StockLineId = SOBII.StockLineId
-						AND a.SalesOrderId = @SalesOrderId
-						AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0), 0) AS QtyBilled,
+					ISNULL((SELECT ISNULL(b.QtyBilled, 0) FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+						WHERE b.BillingInvoicingItemId = SOBII.BillingInvoicingItemId AND b.StockLineId = SOBII.StockLineId
+						AND a.ReferenceId = @SalesOrderId AND a.[ModuleId] = @SOModuleId
+						AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0), 0) AS QtyBilled,
 					0 AS ItemNo, 
 					sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description as 'Condition',   
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 					--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOR.QtyToReserve, 0)) +   
-					CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * ((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
+					CASE WHEN ISNULL(sobi.BillingInvoicingId, 0) = 0 THEN ((ISNULL(SOSC.NetSaleAmount, 0) / ISNULL(STK.QtyOrder, 0)) * ((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
 					FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 					INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 					INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
@@ -391,19 +401,19 @@ BEGIN
 					WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
 					AS TotalFlatCharges,
 
-					(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-						Where a.SalesOrderId = @SalesOrderId AND b.SOBillingInvoicingItemId = sobii.SOBillingInvoicingItemId
-						AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) AS InvoiceStatus,
-					(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.SalesOrderShippingId > 0 THEN 1 ELSE 0 END) else 1 end) AS 'SmentNo',
+					(SELECT a.InvoiceStatus FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+						Where a.ReferenceId = @SalesOrderId AND b.BillingInvoicingItemId = sobii.BillingInvoicingItemId
+						AND ISNULL(a.IsPerformaInvoice,0) = 0 AND ISNULL(b.IsPerformaInvoice,0) = 0) AS InvoiceStatus,
+					(CASE WHEN sobii.IsVersionIncrease = 1 then (CASE WHEN SOBII.ShippingId > 0 THEN 1 ELSE 0 END) else 1 end) AS 'SmentNo',
 					sobii.VersionNo, 
 					(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
-					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
+					CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					0 AS IsProforma,
 					0 AS DepositAmount,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
-
+					--ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+					0 as [IsBilling],
 					stk.ECCN AS ECCN,
 					stk.HSCODE AS HSCODE,
 					stk.[Weight] AS [Weight], 
@@ -416,8 +426,8 @@ BEGIN
 					LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) on SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 					LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SOPickTicketId = SOPPick.SOPickTicketId
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderShippingId = SOSI.SalesOrderShippingId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0 
-					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 0 AND sobi.SalesOrderId = @SalesOrderId
+					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.ShippingId = SOSI.SalesOrderShippingId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
@@ -436,7 +446,7 @@ BEGIN
 						0 AS IndexColumn,
 						0 AS SalesOrderShippingId,   
 						0 AS SalesOrderShippingItemId,   
-						sobi.SOBillingInvoicingId,
+						sobi.BillingInvoicingId SOBillingInvoicingId,
 						--sobi.InvoiceDate,
 						case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 						sobi.InvoiceNo AS InvoiceNo,
@@ -452,7 +462,7 @@ BEGIN
 						sl.SerialNumber, 
 						cr.[Name] as CustomerName,   
 						stk.StockLineId,
-						ISNULL(sobii.NoofPieces, 0) AS QtyBilled,
+						ISNULL(sobii.QtyBilled, 0) AS QtyBilled,
 						0 AS ItemNo,  
 						sop.SalesOrderId, 
 						sop.SalesOrderPartId, 
@@ -475,11 +485,12 @@ BEGIN
 						0 AS 'SmentNo',
 						sobii.VersionNo,
 						(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
-						CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
+						CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 						0 AS IsProforma,
 						0 AS DepositAmount,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-						ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+						--ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+						0 as [IsBilling],
 						stk.ECCN AS ECCN,
 						stk.HSCODE AS HSCODE,
 						stk.[Weight] AS [Weight], 
@@ -493,8 +504,8 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = Stk.StockLineId AND SOR.SalesOrderId = @SalesOrderId
 						LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) on SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) on SOSI.SOPickTicketId = SOPPick.SOPickTicketId
-						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0
-						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0 AND sobi.SalesOrderId = @SalesOrderId
+						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
 						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 						LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
@@ -531,8 +542,8 @@ BEGIN
 										 AND SOPICK.SOPickTicketId = SOPPick.SOPickTicketId)
 								END, 0) AS SalesOrderShippingId,
 							0 AS SalesOrderShippingItemId,
-							sobi.SOBillingInvoicingId,
-							sobii.SOBillingInvoicingItemId,
+							sobi.BillingInvoicingId SOBillingInvoicingId,
+							sobii.BillingInvoicingItemId SOBillingInvoicingItemId,
 							CASE 
 								WHEN CAST(sobi.InvoiceDate AS DATE) = '0001-01-01 00:00:00' THEN NULL 
 								ELSE CAST(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATE)
@@ -570,15 +581,16 @@ BEGIN
 							stk.SalesOrderStocklineId,
 							cond.Description AS 'Condition',   
 							ISNULL(currb.Code, curr.Code) AS 'CurrencyCode',
-							(CASE WHEN SOBII.SalesOrderShippingId > 0 THEN 1 ELSE 0 END) AS 'SmentNo',
+							(CASE WHEN SOBII.ShippingId > 0 THEN 1 ELSE 0 END) AS 'SmentNo',
 							ISNULL(SOSC.NetSaleAmount, 0) AS TotalUnitCost,
 							sobii.VersionNo,
 							CASE WHEN ISNULL(sobi.IsVersionIncrease, 0) = 1 then 0 else 1 end AS IsVersionIncrease,
-							CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
+							CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 							0 AS IsProforma,
 							0 AS DepositAmount,
 							(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-							ISNULL(sobi.[IsBilling], 0) AS [IsBilling],
+							--ISNULL(sobi.[IsBilling], 0) AS [IsBilling],
+							0 AS [IsBilling],
 							stk.ECCN, 
 							stk.HSCODE, 
 							stk.[Weight], 
@@ -589,8 +601,8 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SOPickTicket SOPPick WITH (NOLOCK) ON SOPPick.SalesOrderId = sop.SalesOrderId AND SOPPick.SalesOrderPartId = sop.SalesOrderPartId AND SOPPick.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId 
-						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR sobii.StockLineId IS NULL)
-						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma, 0) = 0 AND sobi.SalesOrderId = @SalesOrderId
+						LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.SubReferenceId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR sobii.StockLineId IS NULL) AND sobii.[ModuleId] = @SOModuleId
+						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
 						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 						LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
@@ -600,7 +612,7 @@ BEGIN
 						INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 						WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId
-						AND (sobi.SOBillingInvoicingId IS NOT NULL OR ISNULL(stk.QtyReserved, 0) > 0)
+						AND (sobi.BillingInvoicingId IS NOT NULL OR ISNULL(stk.QtyReserved, 0) > 0)
 					)
 
 					INSERT INTO #SalesOrderBillingInvoiceChildList (IndexColumn,
@@ -617,14 +629,14 @@ BEGIN
 					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight FROM CTE;
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyToBill = tmpcash.QtyToBill
-						FROM (SELECT CASE WHEN SOSI.SalesOrderShippingId IS NOT NULL THEN ISNULL(SOSI.QtyShipped, 0) ELSE ISNULL(SOP.QtyReserved, 0) END  QtyToBill, b.SOBillingInvoicingItemId, b.StockLineId
-							FROM dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) 
-									JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = b.SOBillingInvoicingId
-									AND tmpSOBI.SOBillingInvoicingItemId = b.SOBillingInvoicingItemId
+						FROM (SELECT CASE WHEN SOSI.SalesOrderShippingId IS NOT NULL THEN ISNULL(SOSI.QtyShipped, 0) ELSE ISNULL(SOP.QtyReserved, 0) END  QtyToBill, b.BillingInvoicingItemId, b.StockLineId
+							FROM dbo.BillingInvoicingItems b WITH (NOLOCK) 
+									JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = b.BillingInvoicingId
+									AND tmpSOBI.SOBillingInvoicingItemId = b.BillingInvoicingItemId
 									LEFT JOIN DBO.SOPickTicket SOPick WITH (NOLOCK) ON SOPick.SalesOrderId = @SalesOrderId AND tmpSOBI.SalesOrderStocklineId = SOPick.SalesOrderPartStocklineId
-									LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOPick.SOPickTicketId = SOSI.SOPickTicketId AND b.SalesOrderShippingId = SOSI.SalesOrderShippingId
+									LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOPick.SOPickTicketId = SOSI.SOPickTicketId AND b.ShippingId = SOSI.SalesOrderShippingId
 									LEFT JOIN DBO.SalesOrderStocklineV1 SOP WITH (NOLOCK) ON b.StockLineId = SOP.StockLineId
-						) tmpcash WHERE tmpcash.SOBillingInvoicingItemId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingItemId
+						) tmpcash WHERE tmpcash.BillingInvoicingItemId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingItemId
 						AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyToBill = tmpcash.QtyToBill
@@ -636,12 +648,12 @@ BEGIN
 						) tmpcash WHERE tmpcash.SalesOrderShippingId = #SalesOrderBillingInvoiceChildList.SalesOrderShippingId
 						AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 					  
-					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyBilled = tmpcash.NoofPieces
-						FROM( SELECT b.NoofPieces, b.SOBillingInvoicingItemId, b.StockLineId
-							FROM dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) 
-									JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = b.SOBillingInvoicingId
-									AND tmpSOBI.SOBillingInvoicingItemId = b.SOBillingInvoicingItemId
-						) tmpcash WHERE tmpcash.SOBillingInvoicingItemId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingItemId
+					UPDATE  #SalesOrderBillingInvoiceChildList SET QtyBilled = tmpcash.QtyBilled
+						FROM( SELECT b.QtyBilled, b.BillingInvoicingItemId, b.StockLineId
+							FROM dbo.BillingInvoicingItems b WITH (NOLOCK) 
+									JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = b.BillingInvoicingId
+									AND tmpSOBI.SOBillingInvoicingItemId = b.BillingInvoicingItemId
+						) tmpcash WHERE tmpcash.BillingInvoicingItemId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingItemId
 						AND tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
@@ -657,9 +669,9 @@ BEGIN
 							--INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = SOP.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 							LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 							LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
-							LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsProforma,0) = 0
-							LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
-							LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
+							LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0 AND SOBII.[ModuleId] = @SOModuleId
+							LEFT JOIN dbo.BillingInvoicing SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId =  SOBII.BillingInvoicingId AND SOBI.ReferenceId = @SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+							LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = SOBI.BillingInvoicingId AND tmpSOBI.SOBillingInvoicingItemId = SOBII.BillingInvoicingItemId
 					) tmpcash WHERE 
 					tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 					--tmpcash.SalesOrderStocklineId = #SalesOrderBillingInvoiceChildList.SalesOrderStocklineId
@@ -676,9 +688,9 @@ BEGIN
 							INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = SOP.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 							LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 							LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
-							LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsProforma,0) = 0
-							LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
-							LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
+							LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0 AND SOBII.[ModuleId] = @SOModuleId
+							LEFT JOIN dbo.BillingInvoicing SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId =  SOBII.BillingInvoicingId AND SOBI.ReferenceId = @SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+							LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.BillingInvoicingItemId
 					) tmpcash WHERE 
 					tmpcash.SalesOrderStocklineId = #SalesOrderBillingInvoiceChildList.SalesOrderStocklineId
 					AND tmpcash.SOBillingInvoicingId IS NULL
@@ -721,10 +733,10 @@ BEGIN
 
 					UPDATE  #SalesOrderBillingInvoiceChildList SET InvoiceStatus = tmpcash.InvoiceStatus
 					FROM( SELECT SOBI.InvoiceStatus, tmpSOBI.SOBillingInvoicingId 
-							FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-							INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId 
-							JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
-							Where SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0 AND ISNULL(SOBII.IsProforma,0) = 0
+							FROM dbo.BillingInvoicing SOBI WITH (NOLOCK) 
+							INNER JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND SOBII.[ModuleId] = @SOModuleId
+							JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.BillingInvoicingItemId 
+							Where SOBI.ReferenceId = @SalesOrderId AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
 					
 					) tmpcash WHERE tmpcash.SOBillingInvoicingId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingId
 
@@ -748,8 +760,8 @@ BEGIN
 					0 AS IndexColumn,
 					0 AS SalesOrderShippingId,   
 					0 AS SalesOrderShippingItemId,   
-					sobi.SOBillingInvoicingId,
-					sobii.SOBillingInvoicingItemId,
+					sobi.BillingInvoicingId,
+					sobii.BillingInvoicingItemId,
 					--sobi.InvoiceDate,
 					case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
@@ -775,12 +787,12 @@ BEGIN
 					(ISNULL(SOSC.NetSaleAmount, 0)) AS TotalUnitCost,
 					sobii.VersionNo,
 					(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
-					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
+					CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					0 AS IsProforma,
 					0 AS DepositAmount,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
-
+					--ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+					0 as [IsBilling],
 					stk.ECCN AS ECCN,
 					stk.HSCODE AS HSCODE,
 					stk.[Weight] AS [Weight], 
@@ -792,8 +804,8 @@ BEGIN
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
 					INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = Stk.StockLineId AND SOR.SalesOrderId = @SalesOrderId
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsProforma,0) = 0
-					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0 AND sobi.SalesOrderId = @SalesOrderId
+					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
@@ -814,12 +826,12 @@ BEGIN
 									AND SORR.SalesOrderId = @SalesOrderId
 							) tmpcash WHERE tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 
-				UPDATE  #SalesOrderBillingInvoiceChildList SET QtyBilled = tmpcash.NoofPieces
-							FROM( SELECT b.NoofPieces, b.SalesOrderPartId, b.StockLineId
-								FROM dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) 
-										JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = b.SOBillingInvoicingItemId
-										WHERE b.SOBillingInvoicingItemId = tmpSOBI.SOBillingInvoicingItemId
-										AND ISNULL(b.IsProforma,0) = 0 
+				UPDATE  #SalesOrderBillingInvoiceChildList SET QtyBilled = tmpcash.QtyBilled
+							FROM( SELECT b.QtyBilled, b.SubReferenceId, b.StockLineId
+								FROM dbo.BillingInvoicingItems b WITH (NOLOCK) 
+										JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = b.BillingInvoicingItemId
+										WHERE b.BillingInvoicingItemId = tmpSOBI.SOBillingInvoicingItemId
+										AND ISNULL(b.IsPerformaInvoice,0) = 0 
 							) tmpcash WHERE tmpcash.StockLineId = #SalesOrderBillingInvoiceChildList.StockLineId
 							--tmpcash.SalesOrderPartId = #SalesOrderBillingInvoiceChildList.SalesOrderPartId
 
@@ -833,9 +845,9 @@ BEGIN
 						INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
-						LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsProforma,0) = 0
-						LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
-						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
+						LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0 AND SOBII.[ModuleId] = @SOModuleId
+						LEFT JOIN dbo.BillingInvoicing SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId =  SOBII.BillingInvoicingId AND SOBI.ReferenceId = @SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingId = SOBI.BillingInvoicingId AND tmpSOBI.SOBillingInvoicingItemId = SOBII.BillingInvoicingItemId
 				) tmpcash WHERE 
 				tmpcash.SOBillingInvoicingItemId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingItemId
 
@@ -851,9 +863,9 @@ BEGIN
 						INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = SOP.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId
 						LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = STK.SalesOrderStocklineId
-						LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsProforma,0) = 0
-						LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId =  SOBII.SOBillingInvoicingId AND SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
-						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
+						LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND SOBII.StockLineId = STK.StockLineId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0 AND SOBII.[ModuleId] = @SOModuleId
+						LEFT JOIN dbo.BillingInvoicing SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId =  SOBII.BillingInvoicingId AND SOBI.ReferenceId = @SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+						LEFT JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.BillingInvoicingItemId
 				) tmpcash WHERE 
 				tmpcash.SalesOrderStocklineId = #SalesOrderBillingInvoiceChildList.SalesOrderStocklineId
 				AND tmpcash.SOBillingInvoicingId IS NULL
@@ -898,11 +910,11 @@ BEGIN
 
 				UPDATE  #SalesOrderBillingInvoiceChildList SET InvoiceStatus = tmpcash.InvoiceStatus
 				FROM( SELECT SOBI.InvoiceStatus, tmpSOBI.SOBillingInvoicingId 
-						FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId 
-						JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId
-						Where SOBI.SalesOrderId = @SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0 AND ISNULL(SOBII.IsProforma,0) = 0
-					
+						FROM dbo.BillingInvoicing SOBI WITH (NOLOCK) 
+						INNER JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId 
+						JOIN #SalesOrderBillingInvoiceChildList tmpSOBI ON tmpSOBI.SOBillingInvoicingItemId = SOBII.BillingInvoicingItemId
+						Where SOBI.ReferenceId = @SalesOrderId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
+						  AND SOBI.[ModuleId] = @SOModuleId
 				) tmpcash WHERE tmpcash.SOBillingInvoicingId = #SalesOrderBillingInvoiceChildList.SOBillingInvoicingId
 				
 				UPDATE  #SalesOrderBillingInvoiceChildList SET TotalFreight = 0
@@ -925,7 +937,7 @@ BEGIN
 					0 AS IndexColumn,
 					0 AS SalesOrderShippingId,   
 					0 AS SalesOrderShippingItemId,   
-					sobi.SOBillingInvoicingId,
+					sobi.BillingInvoicingId,
 					--sobi.InvoiceDate,
 					case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate,
 					sobi.InvoiceNo AS InvoiceNo,
@@ -935,27 +947,28 @@ BEGIN
 					so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 					sl.SerialNumber, cr.[Name] AS CustomerName,   
 					stk.StockLineId,  
-					ISNULL((SELECT ISNULL(b.NoofPieces, 0)
-						FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-						WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1), 0) AS QtyBilled,  
+					ISNULL((SELECT ISNULL(b.QtyBilled, 0)
+						FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+						WHERE b.BillingInvoicingItemId = SOBII.BillingInvoicingItemId AND ISNULL(b.IsPerformaInvoice,0) = 1 AND ISNULL(a.IsPerformaInvoice,0) = 1), 0) AS QtyBilled,  
 					0 AS ItemNo,  
 					sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description AS 'Condition',   
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 					ISNULL(sobi.GrandTotal, 0) as 'TotalSales',  
-					(SELECT a.InvoiceStatus FROM DBO.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-						Where a.SalesOrderId = @SalesOrderId 
-						AND b.SOBillingInvoicingItemId = sobii.SOBillingInvoicingItemId
-						AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1) AS InvoiceStatus,
+					(SELECT a.InvoiceStatus FROM DBO.BillingInvoicing a WITH (NOLOCK) 
+						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
+						Where a.ReferenceId = @SalesOrderId 
+						AND b.BillingInvoicingItemId = sobii.BillingInvoicingItemId
+						AND ISNULL(b.IsPerformaInvoice,0) = 1 AND ISNULL(a.IsPerformaInvoice,0) = 1) AS InvoiceStatus,
 					0 AS 'SmentNo',
 					sobii.VersionNo, 
 					(CASE WHEN sobi.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsVersionIncrease,
-					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
+					CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 					1 AS IsProforma,
 					ISNULL(sobi.DepositAmount,0) AS DepositAmount,
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
-					ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+					--ISNULL(sobi.[IsBilling], 0) as [IsBilling],
+					0 as [IsBilling],
 					'' AS ECCN,
 					'' AS HSCODE,
 					0 AS [Weight], 
@@ -986,8 +999,8 @@ BEGIN
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsProforma,0) = 1
-					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1 AND sobi.SalesOrderId = @SalesOrderId
+					LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.SubReferenceId = sop.SalesOrderPartId AND (sobii.StockLineId = stk.StockLineId OR ISNULL(sobii.StockLineId, 0) = 0) AND ISNULL(sobii.IsPerformaInvoice,0) = 1 AND sobii.[ModuleId] = @SOModuleId
+					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.ReferenceId = @SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
 					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  

@@ -29,6 +29,7 @@
  17   11/04/2024   Vishal Suthar	Modified to make use of new SO Part tables
  18	  30/06/2025   Devendra Shekh	Modified (Billing Table Changes for WO)
  19	  30/06/2025   Rajesh Gami		Modified (Billing Invoicing Table Changes for SO as per new structure)
+ 20	  09/07/2025   Devendra Shekh	Modified (returning 0 values data if no records)
 exec dbo.GetCustomerLegalEntityWiseInvoiceDataDateWise @CustomerId=3389,@ManagementStructureId=1,@StartDate='2024-04-12 09:12:23',@EndDate='2024-06-21 09:12:23',
 @OpenTransactionsOnly=1,@IncludeCredits=1,@SiteId=4527,@MasterCompanyId=1  
   
@@ -63,8 +64,31 @@ BEGIN
 		  DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
   		  DECLARE @SOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder');
 
+		  IF OBJECT_ID('tempdb..#InvResults') IS NOT NULL
+			DROP TABLE #InvResults
+
+		  CREATE TABLE #InvResults
+		  (
+			RecordId INT IDENTITY(1,1) NOT NULL,
+			InvoiceId BIGINT NULL,
+			CustomerId BIGINT NULL,
+			InvoiceDate DATETIME2 NULL,
+			InvoiceNo VARCHAR(300) NULL,
+			InvoiceStatus VARCHAR(100) NULL,
+			Reference VARCHAR(MAX) NULL,
+			CreditTerm VARCHAR(100) NULL,
+			DueDate DATETIME2 NULL,
+			Currency VARCHAR(50) NULL,
+			CM DECIMAL(18, 2) NULL,
+			InvoiceAmount DECIMAL(18, 2) NULL,
+			RemainingAmount DECIMAL(18, 2) NULL,
+			PaidAmount DECIMAL(18, 2) NULL,
+		  )
+
+
 		  IF(@OpenTransactionsOnly = 1 and @IncludeCredits =0)  
 		  BEGIN  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT sobi.BillingInvoicingId AS InvoiceId,   
 				   ct.CustomerId,  
 				   CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,     
@@ -108,8 +132,8 @@ BEGIN
 		   GROUP BY  sobi.BillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
 				so.[CreditTermName],so.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt     
      
-		   UNION ALL  
-     
+		   --UNION ALL  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT wobi.BillingInvoicingId AS InvoiceId,  
 				ct.CustomerId,  
 				CAST(wobi.InvoiceDate AS DATE) AS InvoiceDate,  
@@ -159,6 +183,7 @@ BEGIN
 		  END  
 		  ELSE if(@IncludeCredits = 1 AND @OpenTransactionsOnly = 1)  
 		  BEGIN  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT sobi.BillingInvoicingId AS InvoiceId,   
 				  ct.CustomerId,  
 				  CAST(sobi.InvoiceDate as date) AS InvoiceDate,  
@@ -199,8 +224,8 @@ BEGIN
 			GROUP BY  sobi.BillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
 				  so.[CreditTermName],so.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt       
      
-		   UNION ALL  
-     
+		   --UNION ALL  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT wobi.BillingInvoicingId AS InvoiceId,  
 				  ct.CustomerId,CASt(wobi.InvoiceDate as date) AS InvoiceDate,  
 				  wobi.InvoiceNo AS InvoiceNo,  
@@ -244,8 +269,8 @@ BEGIN
 			GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,WO.[CreditTerms],     
 				WO.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
   
-		   UNION ALL  
-     
+		   --UNION ALL  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT CM.CreditMemoHeaderId AS InvoiceId,  
 				   CGL.CustomerId,CASt(CGL.CreatedDate AS date) AS InvoiceDate,  
 				   CM.CreditMemoNumber AS InvoiceNo,  
@@ -269,8 +294,8 @@ BEGIN
 				CGL.ModuleId = @CreditMemoMSModuleID AND CGL.CustomerId=@CustomerId   
 				AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)   
 
-			UNION ALL  
-     
+			--UNION ALL  
+		    INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 			SELECT DISTINCT UAC.CustomerCreditPaymentDetailId AS InvoiceId,  
 					UAC.CustomerId,
 					CASt(UAC.ReceiveDate AS date) AS InvoiceDate,  
@@ -293,8 +318,8 @@ BEGIN
 			   WHERE UAC.StatusId = @CustomerCreditPaymentOpenStatus AND UAC.CustomerId = @CustomerId AND ISNULL(IsProcessed, 0) = 0  
 					AND CAST(UAC.ReceiveDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)  
   
-			UNION ALL  
-  
+			--UNION ALL  
+			INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 			SELECT DISTINCT MJH.ManualJournalHeaderId AS InvoiceId,  
 				  MJD.ReferenceId AS CustomerId,  
 				  CAST(MJH.[PostedDate] AS DATE) AS InvoiceDate,      
@@ -326,8 +351,8 @@ BEGIN
 			GROUP BY MJH.ManualJournalHeaderId,MJD.ReferenceId,MJH.[PostedDate],MJH.JournalNumber,
 				MJD.[Description],CTM.[Name],CTM.NetDays,cr.Code
               
-			UNION ALL  
-		
+			--UNION ALL  
+			INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 			SELECT DISTINCT CM.CreditMemoHeaderId AS InvoiceId,
 					CM.CustomerId AS CustomerId,  
 					CM.InvoiceDate,
@@ -358,6 +383,7 @@ BEGIN
 		  END  
 		  ELSE if(@IncludeCredits = 1 AND @OpenTransactionsOnly = 0)  
 		  BEGIN  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT sobi.BillingInvoicingId AS InvoiceId, 
 				  ct.CustomerId,CASt(sobi.InvoiceDate as date) AS InvoiceDate,  
 				  sobi.InvoiceNo as InvoiceNo,  
@@ -401,8 +427,8 @@ BEGIN
 		   GROUP BY  sobi.BillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
 		   so.[CreditTermName],so.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
      
-		   UNION ALL  
-     
+		   --UNION ALL  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT wobi.BillingInvoicingId AS InvoiceId,  
 				  ct.CustomerId,  
 				  CAST(wobi.InvoiceDate AS DATE) AS InvoiceDate,  
@@ -452,8 +478,8 @@ BEGIN
 			 GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,WO.[CreditTerms],     
 			WO.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
   
-		   UNION ALL  
-     
+		   --UNION ALL  
+           INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT CM.CreditMemoHeaderId AS InvoiceId,  
 				CGL.CustomerId,  
 				CAST(CGL.CreatedDate AS DATE) AS InvoiceDate,  
@@ -476,8 +502,8 @@ BEGIN
 		   WHERE CM.StatusId = @CreditMemoMSModuleID AND CGL.ModuleId=@CreditMemoMSModuleID and CGL.CustomerId=@CustomerId   
 		   AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) 
 		   
-		   UNION ALL  
-     
+		   --UNION ALL  
+			INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)  
 			SELECT DISTINCT UAC.CustomerCreditPaymentDetailId AS InvoiceId,  
 					UAC.CustomerId,
 					CASt(UAC.ReceiveDate AS date) AS InvoiceDate,  
@@ -500,8 +526,8 @@ BEGIN
 			   WHERE UAC.StatusId = @CustomerCreditPaymentOpenStatus AND UAC.CustomerId = @CustomerId AND ISNULL(IsProcessed, 0) = 0  
 					AND CAST(UAC.ReceiveDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
   
-		   UNION ALL  
-  
+		   --UNION ALL  
+			 INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 			 SELECT DISTINCT MJH.ManualJournalHeaderId AS InvoiceId,  
 					MJD.ReferenceId AS CustomerId,  
 					CAST(MJH.[PostedDate] as date) AS InvoiceDate,      
@@ -533,8 +559,8 @@ BEGIN
 				GROUP BY MJH.ManualJournalHeaderId,MJD.ReferenceId,MJH.[PostedDate],MJH.JournalNumber,MJD.[Description],
 				CTM.[Name],CTM.NetDays,cr.Code
 	
-		  UNION ALL   
-	
+		  --UNION ALL   
+			   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 			   SELECT DISTINCT CM.CreditMemoHeaderId AS InvoiceId,
 						CM.CustomerId AS CustomerId,  
 						CM.InvoiceDate,
@@ -565,6 +591,7 @@ BEGIN
 		  END  
 		  ELSE  
 		  BEGIN  
+		   INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   SELECT DISTINCT sobi.BillingInvoicingId AS InvoiceId,   
 		   ct.CustomerId,  
 		   CAST(sobi.InvoiceDate as date) AS InvoiceDate,  
@@ -609,8 +636,8 @@ BEGIN
 		   GROUP BY  sobi.BillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
 		   so.[CreditTermName],so.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt   
      
-		   UNION ALL  
-     
+		   --UNION ALL  
+           INSERT INTO #InvResults (InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount)
 		   select DISTINCT wobi.BillingInvoicingId AS InvoiceId,ct.CustomerId,CASt(wobi.InvoiceDate as date) AS InvoiceDate,  
 		   wobi.InvoiceNo as InvoiceNo,  
 		   wobi.InvoiceStatus as InvoiceStatus,  
@@ -660,6 +687,27 @@ BEGIN
 		   ORDER BY InvoiceDate   
     
 		  END  
+
+		  IF EXISTS(SELECT 1 FROM #InvResults)
+		  BEGIN
+			SELECT InvoiceId, CustomerId, InvoiceDate, InvoiceNo, InvoiceStatus, Reference, CreditTerm, DueDate, Currency, CM, InvoiceAmount, RemainingAmount, PaidAmount FROM #InvResults;
+		  END
+		  ELSE
+		  BEGIN
+			SELECT	0 AS InvoiceId, 
+					0 AS CustomerId,
+					NULL AS InvoiceDate, 
+					'' AS InvoiceNo, 
+					'' AS InvoiceStatus, 
+					'' AS Reference, 
+					'' AS CreditTerm, 
+					NULL AS DueDate, 
+					'' AS Currency,
+					0 AS CM,
+					0 AS InvoiceAmount, 
+					0 AS RemainingAmount, 
+					0 AS PaidAmount
+		  END
      
  END TRY      
  BEGIN CATCH  

@@ -16,7 +16,7 @@
     1    10/12/2024		EKTA CHANDEGRA	 Created  
     2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
     3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
-
+    4    09/Jul/2025	RAJESH GAMI		 Manage address space
  EXEC GetWireTransferBankingInfo 1 
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[GetWireTransferBankingInfo]
@@ -85,15 +85,17 @@ BEGIN
 					'<label style="text-transform: uppercase;">' + ad.Line1 + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN ad.City IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + UPPER(ad.City) + '</label>' 
+					'<label style="text-transform: uppercase;">' + UPPER(ad.City) +  ', '+	CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
+					 + ad.StateOrProvince 
+				ELSE '' END + ', ' +CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + '</label>' 
 				ELSE '' END +
-				',<br />' + 
-				CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + ad.StateOrProvince + '</label>' 
-				ELSE '' END +
-				',' +
-				CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + 
-				'<br />' +
+				'<br />' + 
+				--CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
+				--	'<label style="text-transform: uppercase;">' + ad.StateOrProvince + '</label>' 
+				--ELSE '' END +
+				--',' +
+				--CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + 
+				--'<br />' +
 				CASE WHEN co.countries_name IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + co.countries_name + '</label><br />' 
 				ELSE '' END +

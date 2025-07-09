@@ -31,6 +31,7 @@
 	18   11/04/2024		   Vishal Suthar	Modified to make use of new SO Part tables
 	19   30/06/2025		   Devendra Shekh	Modified (Billing Table Changes for WO)
 	20	 30/06/2025		   Rajesh Gami		Modified (Billing Invoicing Table Changes for SO as per new structure)
+	21	 09/07/2025		   Devendra Shekh	Modified (returning 0 values data if no records)
 
 exec dbo.GetCustomerAccountListDataByCustomerId @customerId=3389,@StartDate='2024-04-12 09:12:23',@EndDate='2024-06-21 09:12:23',@OpenTransactionsOnly=1,
 @IncludeCredits=1,@SiteId=4527,@LegalEntityId=1
@@ -332,8 +333,35 @@ BEGIN
 
 			SELECT * INTO #TempResult FROM Result
 
-			SELECT * FROM #TempResult;
-
+			IF EXISTS(SELECT 1 FROM #TempResult)
+			BEGIN
+				SELECT * FROM #TempResult;
+			END
+			ELSE 
+			BEGIN
+				SELECT 0 CustomerId,
+                       '' 'CustName' ,
+					   '' 'CustomerCode' ,
+                       '' 'CustomertType' ,
+					   '' 'currencyCode',
+					   0 AS 'CreditMemoAmount',
+					   0 AS 'ManualJEAmount',
+					   0 AS 'UnAppliedCashAmount',
+					   0 AS 'BalanceAmount',
+					   0 AS 'CurrentlAmount',                    
+					   0 AS 'PaymentAmount',
+					   0 AS 'Amountpaidbylessthen0days',      
+					   0 AS 'Amountpaidby30days',      
+                       0 AS 'Amountpaidby60days',
+					   0 AS 'Amountpaidby90days',
+					   0 AS 'Amountpaidby120days',
+					   0 AS 'Amountpaidbymorethan120days',  
+					   '' AS 'LegelEntity',	
+					   NULL AS CreatedDate,
+                       NULL AS UpdatedDate,
+					   '' AS CreatedBy,
+                       '' AS UpdatedBy
+			END
          END
 		 ELSE
 		 BEGIN 
@@ -590,8 +618,36 @@ BEGIN
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			
 			SELECT * INTO #TempResult2 FROM  Result
-			SELECT * FROM #TempResult2;
-
+			
+			IF EXISTS(SELECT 1 FROM #TempResult2)
+			BEGIN
+				SELECT * FROM #TempResult2;
+			END
+			ELSE 
+			BEGIN
+				SELECT 0 CustomerId,
+                       '' 'CustName' ,
+					   '' 'CustomerCode' ,
+                       '' 'CustomertType' ,
+					   '' 'currencyCode',
+					   0 AS 'CreditMemoAmount',
+					   0 AS 'ManualJEAmount',
+					   0 AS 'UnAppliedCashAmount',
+					   0 AS 'BalanceAmount',
+					   0 AS 'CurrentlAmount',                    
+					   0 AS 'PaymentAmount',
+					   0 AS 'Amountpaidbylessthen0days',      
+					   0 AS 'Amountpaidby30days',      
+                       0 AS 'Amountpaidby60days',
+					   0 AS 'Amountpaidby90days',
+					   0 AS 'Amountpaidby120days',
+					   0 AS 'Amountpaidbymorethan120days',  
+					   '' AS 'LegelEntity',	
+					   NULL AS CreatedDate,
+                       NULL AS UpdatedDate,
+					   '' AS CreatedBy,
+                       '' AS UpdatedBy
+			END
 		 END
 
 	END TRY    

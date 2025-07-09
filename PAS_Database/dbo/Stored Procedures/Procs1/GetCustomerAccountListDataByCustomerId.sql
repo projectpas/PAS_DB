@@ -148,7 +148,7 @@ BEGIN
 			SELECT
 				CustomerId,
 					SUM (CASE WHEN IsProformaInvoice = 1 THEN RemainingAmount
-								ELSE (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) END)AS paidbylessthen0days,
+								ELSE (CASE WHEN CreditRemainingDays <= 0 THEN RemainingAmount ELSE 0 END) END)AS paidbylessthen0days,
 					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
 							ELSE (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) END) AS paidby30days,
 					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
@@ -414,7 +414,7 @@ BEGIN
 			
 			), CTECalculation AS(
 			SELECT CustomerId, SUM (CASE WHEN IsProformaInvoice = 1 THEN RemainingAmount
-											ELSE (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) END) AS paidbylessthen0days,
+											ELSE (CASE WHEN CreditRemainingDays <= 0 THEN RemainingAmount ELSE 0 END) END) AS paidbylessthen0days,
 							   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0
 											ELSE (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) END) AS paidby30days,
 							   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0

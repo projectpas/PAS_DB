@@ -30,6 +30,7 @@
 	15	 22/01/2025	 Devendra Shekh		Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 	16	 28/01/2025	 Devendra Shekh		Modify (Reverse Entry Issue Resolved)
 	17	 24/04/2025  Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
+	18   08-07-2025     Moin Bloch      Changed Old To New Billing Table SP NOT IN USE
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -2029,27 +2030,31 @@ BEGIN
 			
 			IF(UPPER(@DistributionCode) = UPPER('WOINVOICINGTAB'))
 	        BEGIN
-				SELECT @InvoiceNo = InvoiceNo,
-				       @InvoiceTotalCost = ISNULL(GrandTotal,0),
-					   --@MaterialCost = ISNULL(MaterialCost,0),
-					   @FreightCost = ISNULL(FreightCost,0),
-					   @SalesTax = ISNULL(SalesTax,0),
-					   @OtherTax = ISNULL(OtherTax,0),
-					   @MiscChargesCost = ISNULL(MiscChargesCost,0), 
+				SELECT @InvoiceNo = [InvoiceNo],
+				       @InvoiceTotalCost = ISNULL([GrandTotal],0),					  
+					-- @FreightCost = ISNULL([FreightCost],0),
+					   @SalesTax = ISNULL([SalesTax],0),
+					   @OtherTax = ISNULL([OtherTax],0),
+					-- @MiscChargesCost = ISNULL([MiscChargesCost],0), 
 					   @InvoiceDate = [InvoiceDate]
-				  FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK)
+				  FROM [dbo].[BillingInvoicing] WITH(NOLOCK)
 				 WHERE [BillingInvoicingId] = @InvoiceId  
-				
-				SELECT TOP 1 @Qty = NoofPieces 
-				  FROM [dbo].[WorkOrderBillingInvoicingItem] WITH(NOLOCK) 
+
+				 SELECT TOP 1 @FreightCost = ISNULL(SUM([FreightCostPlus]),0),
+				              @MiscChargesCost = ISNULL(SUM([MiscChargesCostPlus]),0) 
+				  FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) 
+				 WHERE [BillingInvoicingId] = @InvoiceId AND ISNULL([IsVersionIncrease],0) = 0 
+				 
+				SELECT TOP 1 @Qty = [QtyBilled] 
+				  FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) 
 				 WHERE [BillingInvoicingId] = @InvoiceId 
 
-				SELECT @LaborCost = (SUM(ISNULL(WOPN.LaborCost,0)) - SUM(ISNULL(WOPN.OverHeadCost,0))),
-				       @LaborOverHeadCost = SUM(ISNULL(WOPN.OverHeadCost,0)),
-					   @MaterialCost = SUM(ISNULL(WOPN.PartsCost,0))
+				SELECT @LaborCost = (SUM(ISNULL(WOPN.[LaborCost],0)) - SUM(ISNULL(WOPN.[OverHeadCost],0))),
+				       @LaborOverHeadCost = SUM(ISNULL(WOPN.[OverHeadCost],0)),
+					   @MaterialCost = SUM(ISNULL(WOPN.[PartsCost],0))
 				  FROM [dbo].[WorkOrderMPNCostDetails]  WOPN WITH(NOLOCK)
-                INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIT WITH(NOLOCK) ON WOPN.WOPartNoId= WOBIT.WorkOrderPartId
-                WHERE BillingInvoicingId = @InvoiceId AND IsVersionIncrease = 0 GROUP BY BillingInvoicingId
+                INNER JOIN [dbo].[BillingInvoicingItems] WOBIT WITH(NOLOCK) ON WOPN.[WOPartNoId] = WOBIT.[SubReferenceId]
+                WHERE WOBIT.[BillingInvoicingId] = @InvoiceId AND ISNULL(WOBIT.[IsVersionIncrease],0) = 0 GROUP BY BillingInvoicingId
 					 
 				SET @RevenuWO = @InvoiceTotalCost - (@FreightCost + @MiscChargesCost + @SalesTax + @OtherTax)
 

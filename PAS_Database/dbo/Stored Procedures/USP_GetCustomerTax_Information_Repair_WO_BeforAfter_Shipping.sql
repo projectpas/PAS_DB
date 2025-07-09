@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/15/2024   Moin Bloch    Created
 	2    02/22/2024   Moin Bloch    Updated For Multiple MPN
+	3    07-07-2025   Moin Bloch    Changed Old To New Billing Table
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_WO_BeforAfter_Shipping] 10403,4111,77,1
 **************************************************************/
@@ -67,6 +68,10 @@ BEGIN
 	DECLARE @TotalDirectBillingRecords INT = 0;	
 	DECLARE @TotalPart INT = 0;	
 
+	DECLARE @WOModuleId INT
+	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+
 	IF OBJECT_ID(N'tempdb..#tmprwoShipDetails') IS NOT NULL
 	BEGIN
 		DROP TABLE #tmprwoShipDetails
@@ -116,7 +121,7 @@ BEGIN
 	  FROM [dbo].[WorkOrderSettings] SOS WITH(NOLOCK) 
 	  WHERE SOS.[MasterCompanyId] = @MasterCompanyId AND SOS.[IsActive] = 1 AND SOS.[IsDeleted] = 0 AND SOS.[AllowInvoiceBeforeShipping] = 1;
 	  	
-	 SELECT @TotalPart = COUNT(*) FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
+	 SELECT @TotalPart = COUNT(*) FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) 
 	 WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND WOBII.[IsVersionIncrease] = 0;
 
 	 IF(@TotalPart = 1)
@@ -125,20 +130,21 @@ BEGIN
 		 BEGIN	 
 			INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
 			  SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
-				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
-				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
-				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
-				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+				  FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[ReferenceId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[SubReferenceId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
+
 					  
 			SELECT @TotalShippingRecords = COUNT(*) FROM #tmprwoShipDetails  
 		
 			IF(@TotalShippingRecords = 0)
 			BEGIN			
 				INSERT INTO #tmprwoBillingPartDetails ([WorkOrderId],[WorkOrderPartId])				
-				SELECT @WorkOrderId,WOBI.[WorkOrderPartId]
-					   FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)	
-				WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsVersionIncrease] = 0 AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0;
+				SELECT @WorkOrderId,WOBI.[SubReferenceId]
+					   FROM [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK)	
+				WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsVersionIncrease] = 0 AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId;
 					
 			   SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprwoBillingPartDetails
 			   IF(@TotalDirectBillingRecords > 0)
@@ -168,11 +174,11 @@ BEGIN
 		 BEGIN		
 				INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
 				 SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
-				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
-				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
-				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
-				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+				  FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[ReferenceId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[SubReferenceId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
 		  END		
 														
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprwoShipDetails    
@@ -210,10 +216,10 @@ BEGIN
 				 @TotalSalesTax = @TotalSalesTax OUTPUT,
 				 @TotalOtherTax = @TotalOtherTax OUTPUT	
 				
-			SELECT  @Total = WOBII.[SubTotal] FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
-				INNER JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-				WHERE [WOBI].[WorkOrderId] = @WorkOrderId 
-				  AND [WOBII].[WorkOrderPartId] = @WorkOrderPartId;	
+			SELECT  @Total = WOBII.[SubTotal] FROM [dbo].[BillingInvoicing] WOBI WITH(NOLOCK)
+				INNER JOIN  [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				WHERE [WOBI].[ReferenceId] = @WorkOrderId  AND WOBI.[ModuleId] = @WOModuleId
+				  AND [WOBII].[SubReferenceId] = @WorkOrderPartId;	
 				  
 			SET @SubTotal += ISNULL(@Total,0);
 			SET @SalesTax = (ISNULL(@Total,0) * ISNULL(@TotalSalesTax,0) / 100)
@@ -267,20 +273,20 @@ BEGIN
 		 BEGIN	 
 			INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
 			  SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
-				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
-				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
-				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
-				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+				  FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[ReferenceId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[SubReferenceId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
 					  
 			SELECT @TotalShippingRecords = COUNT(*) FROM #tmprwoShipDetails  
 		
 			IF(@TotalShippingRecords = 0)
 			BEGIN			
 				INSERT INTO #tmprwoBillingPartDetails ([WorkOrderId],[WorkOrderPartId])				
-				SELECT @WorkOrderId,WOBI.[WorkOrderPartId]
-					   FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)	
-				WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsVersionIncrease] = 0 AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0;
+				SELECT @WorkOrderId,WOBI.[SubReferenceId]
+					   FROM [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK)	
+				WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsVersionIncrease] = 0 AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
 					
 			   SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprwoBillingPartDetails
 			   IF(@TotalDirectBillingRecords > 0)
@@ -312,11 +318,11 @@ BEGIN
 		 BEGIN		
 				INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
 				 SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
-				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
-				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
-				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
-				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+				  FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[ReferenceId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[SubReferenceId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0 AND WOBI.[ModuleId] = @WOModuleId
 		  END		
 														
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprwoShipDetails    
@@ -336,10 +342,10 @@ BEGIN
 				 @TotalSalesTax = @TotalSalesTax OUTPUT,
 				 @TotalOtherTax = @TotalOtherTax OUTPUT	
 				
-			SELECT @Total = WOBII.[SubTotal] FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
-				INNER JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-				WHERE [WOBI].[WorkOrderId] = @WorkOrderId 
-				  AND [WOBII].[WorkOrderPartId] = @WorkOrderPartId;	
+			SELECT @Total = WOBII.[SubTotal] FROM [dbo].[BillingInvoicing] WOBI WITH(NOLOCK)
+				INNER JOIN  [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				WHERE [WOBI].[ReferenceId] = @WorkOrderId 
+				  AND [WOBII].[SubReferenceId] = @WorkOrderPartId AND WOBI.[ModuleId] = @WOModuleId
 				  
 			 SET @SubTotal = ISNULL(@Total,0);
 

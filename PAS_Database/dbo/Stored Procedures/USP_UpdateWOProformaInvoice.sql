@@ -18,6 +18,7 @@
 	1		08/02/2024		Devendra Shekh			CREATED
 	2		15/02/2024		Devendra Shekh			Modified
 	3		16/02/2024		Devendra Shekh			added NOLOCK for update
+	4       07-07-2025      Moin Bloch              Changed Old To New Billing Table SP NOT IN USE
 
 	EXEC [USP_UpdateWOProformaInvoice] 4270,3737
 
@@ -49,13 +50,13 @@ BEGIN
 				)
 
 				INSERT INTO #tempProformaInvoice([BillingInvoicingId], [WorkOrderId], [WorkFlowWorkOrderId])
-				SELECT [BillingInvoicingId],[WorkOrderId],[WorkFlowWorkOrderId] 
-				FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND ISNULL(IsPerformaInvoice, 0) = 1
+				SELECT [BillingInvoicingId],[ReferenceId],0 
+				FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @WorkOrderId AND ISNULL(IsPerformaInvoice, 0) = 1
 
-				SELECT TOP 1 @WorkOrderPartNoId = WorkOrderPartId FROM [dbo].[WorkOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId;
+				SELECT TOP 1 @WorkOrderPartNoId = SubReferenceId FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId;
 
 				SELECT TOP 1 @WOProfomaBillingInvoicingId = BillingInvoicingId 
-				FROM [dbo].[WorkOrderBillingInvoicingItem] WITH(NOLOCK) WHERE WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(IsPerformaInvoice, 0) = 1 AND ISNULL(IsVersionIncrease, 0) = 0;
+				FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE SubReferenceId = @WorkOrderPartNoId AND ISNULL(IsPerformaInvoice, 0) = 1 AND ISNULL(IsVersionIncrease, 0) = 0;
 
 				SET @TotalRec = (SELECT MAX(Id) FROM #tempProformaInvoice);
 
@@ -70,13 +71,13 @@ BEGIN
 
 						UPDATE WOB
 						SET WOB.IsInvoicePosted = 1
-						FROM [dbo].[WorkOrderBillingInvoicing] WOB WITH(NOLOCK)
+						FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK)
 						WHERE WOB.[BillingInvoicingId] = @BillingInvoiceId
 
-						UPDATE WOBI
-						SET WOBI.IsInvoicePosted = 1
-						FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)
-						WHERE WOBI.[BillingInvoicingId] = @BillingInvoiceId
+						--UPDATE WOBI
+						--SET WOBI.IsInvoicePosted = 1
+						--FROM [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK)
+						--WHERE WOBI.[BillingInvoicingId] = @BillingInvoiceId
 
 						SET @StartCount = @StartCount + 1;
 					END
@@ -88,13 +89,13 @@ BEGIN
 					PRINT @WOProfomaBillingInvoicingId
 					UPDATE WOBN
 					SET WOBN.IsInvoicePosted = 1
-					FROM [dbo].[WorkOrderBillingInvoicing] WOBN WITH(NOLOCK)
+					FROM [dbo].[BillingInvoicing] WOBN WITH(NOLOCK)
 					WHERE WOBN.[BillingInvoicingId] = @WOProfomaBillingInvoicingId
 
-					UPDATE WOBIN
-					SET WOBIN.IsInvoicePosted = 1
-					FROM [dbo].[WorkOrderBillingInvoicingItem] WOBIN WITH(NOLOCK)
-					WHERE WOBIN.[BillingInvoicingId] = @WOProfomaBillingInvoicingId
+					--UPDATE WOBIN
+					--SET WOBIN.IsInvoicePosted = 1
+					--FROM [dbo].[BillingInvoicingItems] WOBIN WITH(NOLOCK)
+					--WHERE WOBIN.[BillingInvoicingId] = @WOProfomaBillingInvoicingId
 				END
 
 			END

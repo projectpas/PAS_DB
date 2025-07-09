@@ -172,13 +172,13 @@ BEGIN
 		WHERE sos.SalesOrderId = @SalesOrderId AND sopt.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
 		
 		(SELECT SUM(sobi.QtyBilled) FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) qtyInvoiced,
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) qtyInvoiced,
 		
 		(SELECT TOP 1 sob.InvoiceDate FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceDate,
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND  sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceDate,
 		
 		(SELECT TOP 1 sob.InvoiceNo FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceNumber,
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceNumber,
 		
 		(SELECT TOP 1 sos.SOShippingNum FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) shipReference,

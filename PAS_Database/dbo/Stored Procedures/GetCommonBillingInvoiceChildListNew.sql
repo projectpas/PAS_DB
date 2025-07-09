@@ -20,6 +20,7 @@
 	7    30/06/2025   Rajesh Gami		Added isSerialized return parameter
 	8    30/06/2025   Hemnat Saliya		Handle Duplidate entry in billing list
 	9    07 JUL 2025   RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default 
+	10   09 Jul 2025   RAJESH GAMI		Deposit amount getting from the item level instead of invoice in SO
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
@@ -1235,7 +1236,7 @@ BEGIN
 						(CASE WHEN sobi.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsVersionIncrease,
 						CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
 						1 AS IsProformaInvoice,
-						ISNULL(sobi.DepositAmount,0) AS DepositAmount,
+						ISNULL(sobii.DepositAmount,0) AS DepositAmount,
 						(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem,
 						ISNULL(sobi.[IsInvoicePosted], 0) as [IsBilling],
 						'' AS ECCN,

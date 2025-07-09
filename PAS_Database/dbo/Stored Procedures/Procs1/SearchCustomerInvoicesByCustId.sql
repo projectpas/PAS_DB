@@ -458,7 +458,8 @@ BEGIN
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
-
+	SELECT *
+FROM (
 		SELECT SOBI.ReferenceId AS 'Id',      
 	           SOBI.BillingInvoicingId AS 'SOBillingInvoicingId',       		     
 			   CASE WHEN SOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',    
@@ -829,7 +830,8 @@ BEGIN
 			  AND ESOBI.CustomerId = @customerId AND ESOBI.RemainingAmount > 0     
 		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, ES.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
 			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId,EST.[Name]   
+			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId,EST.[Name] 
+			  ) AS FinalResult ORDER BY InvoiceDate DESC;
     
  END TRY          
  BEGIN CATCH      

@@ -16,6 +16,7 @@
 	4    04/07/2025   Devendra Shekh	Update UsedDeposite for SO
 	5    04/07/2025   Moin Bloch		Update [IsStandardInvoicePosted] Status for Proforma
 	6    04/07/2025   Moin Bloch		Update Comment Un USED SP
+	7    09/07/2025   Moin Bloch		Fix For Deposit Amount
 
     EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
 
@@ -169,15 +170,15 @@ BEGIN
 						SELECT @PerformaBillingInvoicingId = [BillingInvoicingId],
 						       @ModuleId = [ModuleId],
 							   @ReferenceId = [ReferenceId], 
-							   @PerformaDepositAmount = ISNULL([DepositAmount],0),
-							   @UsedDeposit = ISNULL([UsedDeposit],0)
+							   @PerformaDepositAmount = ISNULL([DepositAmount],0),  
+							   @UsedDeposit = ISNULL([UsedDeposit],0) 
 						  FROM #TempUpdateBillingDetailsForPerforma WHERE [PKID] = @MinIdPro
 			
-						IF(@DepositAmount > 0)
+						IF(@DepositAmount > 0) 
 						BEGIN	
-							SET @PendingDeposit = @PerformaDepositAmount - @UsedDeposit
+							SET @PendingDeposit = @PerformaDepositAmount - @UsedDeposit    
 
-							UPDATE [dbo].[BillingInvoicing] SET [UsedDeposit] = CASE WHEN @DepositAmount >= @PendingDeposit THEN @PendingDeposit ELSE @DepositAmount END
+							UPDATE [dbo].[BillingInvoicing] SET [UsedDeposit] = CASE WHEN @DepositAmount >= @PendingDeposit THEN ISNULL([UsedDeposit],0) + @PendingDeposit ELSE ISNULL([UsedDeposit],0) + @DepositAmount END
 							 WHERE [BillingInvoicingId] = @PerformaBillingInvoicingId
 				
 							SET @DepositAmount =  CASE WHEN @DepositAmount >= @PendingDeposit THEN @DepositAmount - @PendingDeposit ELSE 0 END 				

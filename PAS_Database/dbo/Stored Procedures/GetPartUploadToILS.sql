@@ -36,6 +36,11 @@ BEGIN
 
 			SELECT @SiteId = [SiteId],@WarehouseId = [WarehouseId],@LocationId = [LocationId],@ShelfId = [ShelfId],@BinId = [BinId] FROM [dbo].[StocklineSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
+			IF(@SiteId = 0)
+			BEGIN
+				SET @SiteId = NULL;
+			END
+
 			IF(@WarehouseId = 0)
 			BEGIN
 				SET @WarehouseId = NULL;

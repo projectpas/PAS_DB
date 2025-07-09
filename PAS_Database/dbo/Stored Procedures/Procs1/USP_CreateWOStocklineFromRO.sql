@@ -348,6 +348,10 @@ SET NOCOUNT ON
 										ELSE
 										BEGIN
 											SELECT @WorkOrderMaterialStockLineId = SWOMStockLineId FROM DBO.SubWorkOrderMaterialStockLine WITH (NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
+											
+											DECLARE @UnitCostSWO DECIMAL (18, 2) = 0;
+											SELECT @UnitCostSWO = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+											UPDATE dbo.SubWorkOrderMaterialStockLine SET UnitCost = @UnitCostSWO WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId;
 
 											UPDATE dbo.SubWorkOrderMaterialStockLine SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId
 
@@ -811,7 +815,10 @@ SET NOCOUNT ON
 												SELECT @NewConditionId = ConditionId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId
 
 												SELECT @WorkOrderMaterialStockLineId = WOMStockLineId FROM DBO.WorkOrderMaterialStockLine WITH (NOLOCK) WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
-												
+												SELECT @UnitCost = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+
+												UPDATE dbo.WorkOrderMaterialStockLine SET UnitCost = @UnitCost WHERE WOMStockLineId = @WorkOrderMaterialStockLineId;
+
 												UPDATE dbo.WorkOrderMaterialStockLine 
 												SET QtyReserved = @StlQuantity, 
 												ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),
@@ -1163,6 +1170,9 @@ SET NOCOUNT ON
 												SELECT @NewConditionId1 = ConditionId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId
 
 												SELECT @WorkOrderMaterialStockLineId = WorkOrderMaterialStockLineKitId FROM DBO.WorkOrderMaterialStockLineKit WITH (NOLOCK) WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
+
+												SELECT @UnitCost = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+												UPDATE dbo.WorkOrderMaterialStockLineKit SET UnitCost = @UnitCost WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId;
 
 												UPDATE dbo.WorkOrderMaterialStockLineKit SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId
 

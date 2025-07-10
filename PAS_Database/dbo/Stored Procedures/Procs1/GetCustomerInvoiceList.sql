@@ -16,6 +16,8 @@
 	12	 21-FEB-2024	  Devendra Shekh    added proformadeposit for balance calculation
 	13	 21-FEB-2024	  AMIT GHEDIYA      removed isperforma Flage for SO
 	14   11/05/2024		  Vishal Suthar		Modified to make use of new SO Part tables
+	15   07-07-2025       Moin Bloch        Changed Old To New Billing Table
+
 
 **************************************************************/  
 --exec GetCustomerInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'CustName',@SortOrder=1,@GlobalFilter=N'',@StatusId=2,@CustName='Fast',@CustomerCode=NULL,@CustomertType=NULL,@currencyCode=NULL,@BalanceAmount=NULL,@CurrentlAmount=NULL,@Amountpaidbylessthen0days=NULL,@Amountpaidby30days=NULL,@Amountpaidby60days=NULL,@Amountpaidby90days=NULL,@Amountpaidby120days=NULL,@Amountpaidbymorethan120days=NULL,@LegelEntity=NULL,@EmployeeId=2,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@viewType=N'Deatils',@MasterCompanyId=1,@InvoiceDate=NULL,@CustomerRef=NULL,@InvoiceNo=NULL,@DocType=NULL,@Salesperson=NULL,@Terms=NULL,@DueDate=NULL,@FixRateAmount=NULL,@InvoiceAmount=NULL,@InvoicePaidAmount=NULL,@InvoicePaidDate=NULL,@PaymentRef=NULL,@CMAmount=NULL,@CMDate=NULL,@AdjustMentAmount=NULL,@AdjustMentDate=NULL,@SOMSModuleID=17,@WOMSModuleID=12
@@ -77,6 +79,12 @@ BEGIN
 	    DECLARE @adjustString  varchar(500);
 		DECLARE @ESOMSModuleID BIGINT;
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
 		DECLARE @CMMSModuleID bigint = 61;
 		SELECT @CMMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='CreditMemoHeader';
@@ -176,14 +184,14 @@ BEGIN
 					   0 AS IsCreditMemo,					   
 					   0 AS StatusId,
 					   ISNULL(wobi.ProformaDeposit,0) AS ProformaDeposit
-			   FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH (NOLOCK) 			  
-			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = wobi.WorkOrderId
+			   FROM [dbo].[BillingInvoicing] wobi WITH (NOLOCK) 			  
+			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = wobi.ReferenceId
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=WO.CustomerId
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
 			    LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = WO.SalesPersonId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
+			   INNER JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.ID = wobii.SubReferenceId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.SubReferenceId = wop.ID AND wobi.[ModuleId] = @WOModuleId
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId
 			   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
 			    LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
@@ -206,7 +214,7 @@ BEGIN
 					SELECT SUM(CMD.Amount)  AS 'CMAmount'
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)
 					INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CM.CustomerId = WO.CustomerId
-					WHERE wobii.WOBillingInvoicingItemId = CMD.BillingInvoicingItemId AND CMD.IsWorkOrder=1 AND CM.CustomerId = WO.CustomerId GROUP BY CMD.BillingInvoicingItemId 
+					WHERE wobii.BillingInvoicingItemId = CMD.BillingInvoicingItemId AND CMD.IsWorkOrder=1 AND CM.CustomerId = WO.CustomerId GROUP BY CMD.BillingInvoicingItemId 
 		       ) B
 			  -- OUTER APPLY
 			  -- (
@@ -215,7 +223,7 @@ BEGIN
 					--INNER JOIN DBO.CreditMemo CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CM.CustomerId = WO.CustomerId
 					--Where wobii.WOBillingInvoicingItemId = CMD.BillingInvoicingItemId AND CMD.IsWorkOrder=1 AND CM.CustomerId = WO.CustomerId GROUP BY CMD.BillingInvoicingItemId 
 		   --    ) D
-			  WHERE  wobi.InvoiceStatus = 'Invoiced' and WO.MasterCompanyId = @MasterCompanyId 
+			  WHERE  wobi.InvoiceStatus = 'Invoiced' and WO.MasterCompanyId = @MasterCompanyId AND wobi.[ModuleId] = @WOModuleId
 
 			UNION ALL
 
@@ -276,15 +284,15 @@ BEGIN
 					   0 AS IsCreditMemo,					   
 					   0 AS StatusId,
 					    ISNULL(sobi.ProformaDeposit,0) AS ProformaDeposit
-			   FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) 
-			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.SalesOrderId
+			   FROM [dbo].[BillingInvoicing] sobi WITH (NOLOCK) 
+			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.ReferenceId
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId
+			   INNER JOIN [dbo].[BillingInvoicingItems] sobii WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId AND sobii.SubReferenceId = sop.SalesOrderPartId  AND sobi.[ModuleId] = @SOModuleId
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
-			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
+			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.ReferenceId
 		 	    LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) on MSL.ID = MSD.Level1Id
 			   OUTER APPLY
 			   (
@@ -298,14 +306,14 @@ BEGIN
 						   MAX(ISNULL(IPS.BankFeeAmount,0)) AS BankFeeAmount
 					FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId
-					WHERE sobii.SOBillingInvoicingId = IPS.SOBillingInvoicingId AND CP.StatusId = 2 AND IPS.InvoiceType = 1 GROUP BY IPS.SOBillingInvoicingId 
+					WHERE sobii.BillingInvoicingId = IPS.SOBillingInvoicingId AND CP.StatusId = 2 AND IPS.InvoiceType = 1 GROUP BY IPS.SOBillingInvoicingId 
 		       ) A
 			   OUTER APPLY
 			   (
 					SELECT SUM(CMD.Amount)  AS 'CMAmount'
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)
 					INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CM.CustomerId = SO.CustomerId
-					Where sobii.SOBillingInvoicingItemId = CMD.BillingInvoicingItemId AND CMD.IsWorkOrder=0 AND CM.CustomerId = SO.CustomerId GROUP BY CMD.BillingInvoicingItemId 
+					Where sobii.BillingInvoicingItemId = CMD.BillingInvoicingItemId AND CMD.IsWorkOrder=0 AND CM.CustomerId = SO.CustomerId GROUP BY CMD.BillingInvoicingItemId 
 		       ) B
 			  -- OUTER APPLY
 			  -- (
@@ -314,7 +322,7 @@ BEGIN
 					--INNER JOIN DBO.CreditMemo CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CM.CustomerId = SO.CustomerId
 					--Where sobii.SOBillingInvoicingItemId = CMD.BillingInvoicingItemId AND CMD.IsWorkOrder=0 AND CM.CustomerId = SO.CustomerId GROUP BY CMD.BillingInvoicingItemId 
 		   --    ) D
-			  WHERE sobi.InvoiceStatus = 'Invoiced' AND SO.MasterCompanyId = @MasterCompanyId  
+			  WHERE sobi.InvoiceStatus = 'Invoiced' AND sobi.[ModuleId] = @SOModuleId AND SO.MasterCompanyId = @MasterCompanyId  
 
 			  UNION ALL
 
@@ -381,14 +389,14 @@ BEGIN
 					   0 AS ProformaDeposit
 			   FROM  [dbo].[CreditMemo] CM WITH (NOLOCK) 	
 			   INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId			   
-			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH (NOLOCK) ON CMD.InvoiceId = wobi.BillingInvoicingId		 			  
-			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = wobi.WorkOrderId
+			   INNER JOIN [dbo].[BillingInvoicing] wobi WITH (NOLOCK) ON CMD.InvoiceId = wobi.BillingInvoicingId		 			  
+			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = wobi.ReferenceId
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=WO.CustomerId
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
 			    LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = WO.SalesPersonId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
+			   INNER JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.ID = wobii.SubReferenceId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.SubReferenceId = wop.ID AND wobii.[ModuleId] = @WOModuleId
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId
 			   --INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId
 			   -- LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
@@ -476,13 +484,13 @@ BEGIN
 					  0 AS ProformaDeposit
 			    FROM  [dbo].[CreditMemo] CM WITH (NOLOCK) 	
 			   INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId	
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId 
-			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.SalesOrderId
+			   INNER JOIN [dbo].[BillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.BillingInvoicingId 
+			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.ReferenceId
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId 
+			   INNER JOIN [dbo].[BillingInvoicingItems] sobii WITH (NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobi.[ModuleId] = @SOModuleId
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId			  		 	  
 			   --INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  
 			   -- LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
@@ -499,7 +507,7 @@ BEGIN
 						   MAX(ISNULL(IPS.BankFeeAmount, 0)) AS BankFeeAmount
 					FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId
-					WHERE sobii.SOBillingInvoicingId = IPS.SOBillingInvoicingId AND CP.StatusId=2 AND IPS.InvoiceType = 1 GROUP BY IPS.SOBillingInvoicingId 
+					WHERE sobii.BillingInvoicingId = IPS.SOBillingInvoicingId AND CP.StatusId=2 AND IPS.InvoiceType = 1 GROUP BY IPS.SOBillingInvoicingId 
 		       ) A			  
 			  WHERE CM.StatusId = @CMPostedStatusId 
 			  AND  CMD.IsWorkOrder = 0  
@@ -865,10 +873,10 @@ BEGIN
 			FROM [dbo].[Customer] C WITH (NOLOCK) 
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
+			   INNER JOIN [dbo].[BillingInvoicing] sobi WITH (NOLOCK) on sobi.ReferenceId = so.SalesOrderId
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
 		 	    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
-			    WHERE  C.MasterCompanyId=@MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced'
+			    WHERE  C.MasterCompanyId= @MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced' AND sobi.[ModuleId] = @SOModuleId
 
 			UNION ALL
 			
@@ -886,10 +894,10 @@ BEGIN
 			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
 			   LEFT JOIN  dbo.[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = WO.CreditTermId
 			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN dbo.[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) ON wobi.IsVersionIncrease=0 AND wobi.WorkOrderId=WO.WorkOrderId
+			   INNER JOIN dbo.[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.IsVersionIncrease=0 AND wobi.ReferenceId=WO.WorkOrderId
 		 	   INNER JOIN dbo.[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
 			   INNER JOIN dbo.[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
-			   WHERE  C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'
+			   WHERE  C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced' AND wobi.[ModuleId] = @WOModuleId
 			
 			--group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate
 			
@@ -988,7 +996,8 @@ BEGIN
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = WO.CreditTermId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderWorkFlow] F WITH (NOLOCK) ON F.WorkOrderPartNoId = wop.ID
-			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkFlowWorkOrderId=F.WorkFlowWorkOrderId
+			   INNER JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) on wo.WorkOrderId = wobi.ReferenceId AND ISNULL(wobi.IsVersionIncrease,0)=0  AND wobi.[ModuleId] = @WOModuleId
+			   INNER JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) on ISNULL(wobi.IsVersionIncrease,0)=0 AND wobii.WorkFlowWorkOrderId =F.WorkFlowWorkOrderId  AND wobii.[ModuleId] = @WOModuleId
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
 			    LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WO.SalesPersonId 
 			   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
@@ -1022,25 +1031,26 @@ BEGIN
 			   OUTER APPLY
 			   (  
 					SELECT STUFF((SELECT CASE WHEN LEN(S.InvoiceNo) > 0 THEN ',' ELSE '' END + s.InvoiceNo  
-					 FROM [dbo].[WorkOrderBillingInvoicing] S WITH (NOLOCK)  
-					 WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced'  AND s.IsVersionIncrease = 0 FOR XML PATH('')), 1, 1, '') InvoiceNo  
+					 FROM [dbo].[BillingInvoicing] S WITH (NOLOCK)  
+					 WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' AND S.[ModuleId] = @WOModuleId  AND s.IsVersionIncrease = 0 FOR XML PATH('')), 1, 1, '') InvoiceNo  
 				) B
 				OUTER APPLY
 				(  
 					SELECT STUFF((SELECT CASE WHEN LEN(S.CustomerReference) >0 then ',' ELSE '' END + s.CustomerReference  
 					 FROM [dbo].[WorkOrder] WOS WITH (NOLOCK) 
 					 INNER JOIN [dbo].[WorkOrderPartNumber] s WITH (NOLOCK) ON WOS.WorkOrderId = s.WorkOrderId
-					 INNER JOIN [dbo].[WorkOrderWorkFlow] F WITH (NOLOCK) ON F.WorkOrderPartNoId = s.ID
-					 INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobis WITH(NOLOCK) on wobis.IsVersionIncrease=0 AND wobis.WorkFlowWorkOrderId=F.WorkFlowWorkOrderId
-					WHERE wobi.CustomerId = wobis.CustomerId  AND wobis.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') CustomerReference  
+					 INNER JOIN [dbo].[WorkOrderWorkFlow] F WITH (NOLOCK) ON F.WorkOrderPartNoId = s.ID					 
+					 INNER JOIN [dbo].[BillingInvoicing] wobis WITH(NOLOCK) on wo.WorkOrderId = wobi.ReferenceId AND ISNULL(wobi.IsVersionIncrease,0)=0  AND wobi.[ModuleId] = @WOModuleId
+					 INNER JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) on ISNULL(wobi.IsVersionIncrease,0)=0 AND wobii.WorkFlowWorkOrderId =F.WorkFlowWorkOrderId  AND wobii.[ModuleId] = @WOModuleId
+					WHERE wobi.CustomerId = wobis.CustomerId  AND wobis.InvoiceStatus = 'Invoiced' AND wobis.[ModuleId] = @WOModuleId FOR XML PATH('')), 1, 1, '') CustomerReference  
 				) D
 				OUTER APPLY(  
 					 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceDate) >0 then ',' ELSE '' END + CONVERT(VARCHAR, S.InvoiceDate, 110)   
-						 FROM [dbo].[WorkOrderBillingInvoicing] S WITH (NOLOCK)  
-					WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced'  AND s.IsVersionIncrease = 0 FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
+						 FROM [dbo].[BillingInvoicing] S WITH (NOLOCK)  
+					WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' AND S.[ModuleId] = @WOModuleId  AND s.IsVersionIncrease = 0 FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
 				) E
 			   
-			   WHERE  C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced' 
+			   WHERE  C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'   AND wobi.[ModuleId] = @WOModuleId
 			   GROUP BY C.CustomerId  --,wop.CustomerReference ,wobi.InvoiceNo,wobi.BillingInvoicingId
 			  
 			UNION ALL
@@ -1078,7 +1088,7 @@ BEGIN
 					   MAX(d.CustomerReference) AS CustomerRef,
 					   MAX(AA.ReceiptNo) AS 'ReceiptNo',
 					   MAX(SO.SalesPersonName) AS 'SalesPerson',
-					   count(sobi.SOBillingInvoicingId) AS 'InvoiceCount',
+					   count(sobi.BillingInvoicingId) AS 'InvoiceCount',
 					   MAX(A.PaymentCount) AS 'PaymentCount',
 					   MAX(
                       (CASE WHEN A.DiscAmount >0 THEN 'Discounts , ' ELSE '' END) +
@@ -1087,9 +1097,9 @@ BEGIN
 			   FROM [dbo].Customer C WITH (NOLOCK) 
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
+			   INNER JOIN [dbo].[BillingInvoicing] sobi WITH (NOLOCK) ON sobi.ReferenceId = so.SalesOrderId AND sobi.[ModuleId] = @SOModuleId
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId
-			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
+			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.ReferenceId
 		 	   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
 			   OUTER APPLY
 			   (
@@ -1118,20 +1128,20 @@ BEGIN
 				) AB
 			    OUTER APPLY(  
 					 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceNo) >0 THEN ',' ELSE '' END + s.InvoiceNo  
-						 FROM [dbo].[SalesOrderBillingInvoicing] S WITH (NOLOCK)  
-						 WHERE sobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') InvoiceNo  
+						 FROM [dbo].[BillingInvoicing] S WITH (NOLOCK)  
+						 WHERE sobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' AND S.[ModuleId] = @SOModuleId FOR XML PATH('')), 1, 1, '') InvoiceNo  
 				) B
 				OUTER APPLY(  
 					 SELECT	STUFF((SELECT CASE WHEN LEN(WOS.CustomerReference) > 0 THEN ',' ELSE '' END + WOS.CustomerReference  
 						 FROM [dbo].[SalesOrder] WOS WITH (NOLOCK) 
-						 INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobis WITH(NOLOCK) on  sobis.SalesOrderId=WOS.SalesOrderId
-						 WHERE sobi.CustomerId = sobis.CustomerId AND sobis.InvoiceStatus = 'Invoiced'
+						 INNER JOIN [dbo].[BillingInvoicing] sobis WITH(NOLOCK) on  sobis.ReferenceId=WOS.SalesOrderId AND sobis.[ModuleId] = @SOModuleId
+						 WHERE sobi.CustomerId = sobis.CustomerId AND sobis.InvoiceStatus = 'Invoiced' AND sobis.[ModuleId] = @SOModuleId
 						 FOR XML PATH('')), 1, 1, '') CustomerReference  
 				) D
 				OUTER APPLY(  
 					 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceDate) >0 then ',' ELSE '' END + CONVERT(VARCHAR(MAX), S.InvoiceDate, 110)   
-						 FROM [dbo].[SalesOrderBillingInvoicing] S WITH (NOLOCK)  
-						 WHERE sobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
+						 FROM [dbo].[BillingInvoicing] S WITH (NOLOCK)  
+						 WHERE sobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' AND S.[ModuleId] = @SOModuleId FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
 				) E
 			    WHERE  C.MasterCompanyId=@MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced'	
 				        GROUP BY C.CustomerId  --,SO.CustomerReference,sobi.InvoiceNo,sobi.SOBillingInvoicingId
@@ -1184,7 +1194,7 @@ BEGIN
 		 		   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = ESO.CreditTermId
 				   OUTER APPLY(  
 					 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceNo) >0 THEN ',' ELSE '' END + s.InvoiceNo  
-						 FROM [dbo].[SalesOrderBillingInvoicing] S WITH (NOLOCK)  
+						 FROM [dbo].[BillingInvoicing] S WITH (NOLOCK)  
 						 WHERE esobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') InvoiceNo  
 					) B
 					OUTER APPLY(  

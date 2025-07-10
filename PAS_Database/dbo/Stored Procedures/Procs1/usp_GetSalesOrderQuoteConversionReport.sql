@@ -18,7 +18,8 @@
 	2	        	  Swetha			 Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
 	4	 11/04/2024	  VISHAL SUTHAR	     Modified to make use of new SOQ-SO part tables
-     
+    5    07-07-2025   Moin Bloch         Changed Old To New Billing Table
+
 EXECUTE   [dbo].[usp_GetSalesOrderQuoteConversionReport] '','2020-06-15','2021-06-15','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 CREATE      PROCEDURE [dbo].[usp_GetSalesOrderQuoteConversionReport] @customername varchar(40) = NULL,
@@ -35,6 +36,9 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+
+	  DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
       IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
       BEGIN
@@ -170,8 +174,8 @@ BEGIN
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
           ON STK.stocklineId = STL.StockLineId and STL.IsParent=1
         --left join DBO.SOMarginSummary SOMS WITH(NOLOCK) ON so.SalesOrderId=SOMS.SalesOrderId
-        LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-          ON SO.SalesOrderId = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
+        LEFT JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK)
+          ON SO.SalesOrderId = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
         LEFT JOIN DBO.Employee E WITH (NOLOCK)
           ON SOQ.CustomerSeviceRepId = E.EmployeeId
         LEFT JOIN DBO.Employee E1 WITH (NOLOCK)

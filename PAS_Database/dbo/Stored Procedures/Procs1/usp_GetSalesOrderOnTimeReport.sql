@@ -20,6 +20,7 @@
 	2	        	  Swetha			 Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
     4    11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
+	5    07-07-2025   Moin Bloch         Changed Old To New Billing Table
 
 EXECUTE   [dbo].[usp_GetSalesOrderOnTimeReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -38,6 +39,9 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+
+	  DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
       IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
       BEGIN
@@ -159,8 +163,8 @@ BEGIN
         --LEFT OUTER JOIN DBO.WorkOrder AS WO WITH(NOLOCK) ON STl.WorkOrderId = WO.WorkOrderId           
         LEFT OUTER JOIN dbo.itemmaster WITH (NOLOCK)
           ON SOP.itemmasterid = itemmaster.itemmasterid
-        LEFT OUTER JOIN dbo.salesorderbillinginvoicing AS SOBI WITH (NOLOCK)
-          ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
+        LEFT OUTER JOIN dbo.billinginvoicing AS SOBI WITH (NOLOCK)
+          ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] = @SOModuleId
         LEFT OUTER JOIN dbo.condition AS CDTN WITH (NOLOCK)
           ON SOP.conditionid = CDTN.conditionid
         LEFT OUTER JOIN dbo.employee AS E WITH (NOLOCK)

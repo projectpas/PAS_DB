@@ -17,7 +17,7 @@
     1    08/17/2023   Vishal Suthar Created
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
-     
+    4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]
@@ -28,6 +28,9 @@ BEGIN
 	SET NOCOUNT ON;
 		BEGIN TRY
 			BEGIN
+			    DECLARE @SOModuleId INT
+				SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 				SELECT UPPER(IM.partnumber) AS PN, UPPER(IM.PartDescription) AS PNDescription, 
 				UPPER(IM.ItemGroup) AS ItemGroup, UPPER(CON.Memo) AS Condition, UPPER(C.Name) AS Customer, SOB.InvoiceDate,
 				UPPER(SO.SalesOrderNumber) SONum, UPPER(SO.SalesPersonName) AS SalesPersonName, (SOPC.UnitSalesPrice * SOP.QtyOrder) AS SalesAmount, SOPC.UnitCostExtended AS Cost, 
@@ -40,7 +43,7 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
 				LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				LEFT JOIN DBO.SalesOrderBillingInvoicing SOB WITH (NOLOCK) ON SOB.SalesOrderId = SOP.SalesOrderId AND ISNULL(SOB.IsProforma,0) = 0
+				LEFT JOIN DBO.BillingInvoicing SOB WITH (NOLOCK) ON SOB.ReferenceId = SOP.SalesOrderId AND ISNULL(SOB.IsPerformaInvoice,0) = 0  AND SOB.[ModuleId] = @SOModuleId
 				Where SO.MasterCompanyId = @MasterCompanyId
 				AND IM.partnumber <> ''
 			END

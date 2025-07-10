@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[EmployeeExpertise] (
     [EmployeeExpertiseId]     SMALLINT        IDENTITY (1, 1) NOT NULL,
-    [Description]             VARCHAR (30)    NOT NULL,
+    [Description]             VARCHAR (50)    NOT NULL,
     [Memo]                    NVARCHAR (MAX)  NULL,
     [MasterCompanyId]         INT             NOT NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
@@ -20,6 +20,8 @@
     CONSTRAINT [FK_EmployeeExpertiser_PercentId] FOREIGN KEY ([OverheadburdenPercentId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [Unique_EmployeeExpertise] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

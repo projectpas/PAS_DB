@@ -12,7 +12,7 @@
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
-
+	3   07-07-2025      Moin Bloch      Changed Old To New Billing Table
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerGeneralLedgerListByCustomer]    
 (    
@@ -38,7 +38,14 @@ AS
 BEGIN    
  SET NOCOUNT ON;        
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED         
- BEGIN TRY    
+ BEGIN TRY   
+ 
+   DECLARE @WOModuleId INT
+   SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+   DECLARE @SOModuleId INT
+   SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
   DECLARE @RecordFrom int;        
   DECLARE @IsActive bit=1        
   DECLARE @Count Int;        
@@ -63,13 +70,13 @@ BEGIN
  WHEN M.ModuleName = 'WorkOrder' THEN WB.InvoiceFilePath   
  WHEN M.ModuleName = 'ExchangeSO' THEN ESB.InvoiceFilePath  
  ELSE '' END AS 'PdfPath',  
- ISNULL(SB.SalesOrderId,0) SalesOrderId ,ISNULL(WB.WorkOrderId,0) WorkOrderId,ISNULL(ESB.ExchangeSalesOrderId,0)ExchangeSalesOrderId,  
+ ISNULL(SB.ReferenceId,0) SalesOrderId ,ISNULL(WB.ReferenceId,0) WorkOrderId,ISNULL(ESB.ExchangeSalesOrderId,0)ExchangeSalesOrderId,  
  ISNULL(CS.ReceiptId,0) 'ReciptId'  
    FROM [dbo].CustomerGeneralLedger CL WITH(NOLOCK)  
    LEFT JOIN [dbo].Customer C WITH(NOLOCK) ON CL.CustomerId = C.CustomerId  
    LEFT JOIN [dbo].ManagementStructureModule M WITH(NOLOCK) ON CL.ModuleId = M.ManagementStructureModuleId  
-   LEFT JOIN [dbo].SalesOrderBillingInvoicing SB WITH(NOLOCK) ON CL.ReferenceId = SB.SOBillingInvoicingId AND ISNULL(SB.IsProforma,0) = 0  
-   LEFT JOIN [dbo].WorkOrderBillingInvoicing WB WITH(NOLOCK) ON CL.ReferenceId = WB.BillingInvoicingId  
+   LEFT JOIN [dbo].BillingInvoicing SB WITH(NOLOCK) ON CL.ReferenceId = SB.BillingInvoicingId AND ISNULL(SB.IsPerformaInvoice,0) = 0 AND SB.[ModuleId] = @SOModuleId 
+   LEFT JOIN [dbo].BillingInvoicing WB WITH(NOLOCK) ON CL.ReferenceId = WB.BillingInvoicingId AND WB.[ModuleId] = @WOModuleId
    LEFT JOIN [dbo].ExchangeSalesOrderBillingInvoicing ESB WITH(NOLOCK) ON CL.ReferenceId = ESB.SOBillingInvoicingId  
    LEFT JOIN [dbo].CustomerPayments CS ON CL.ReferenceId = CS.ReceiptId  
   

@@ -24,6 +24,7 @@
 	12  27-Mar-2025		Divyesh Kathiriya	Update InvoiceDate based on Employee time zone
 	13	30/06/2025		Devendra Shekh		Modified (Billing Table Changes for WO)
 	14	30/06/2025		Rajesh Gami			Modified (Billing Invoicing Table Changes for SO as per new structure)
+	15  10/07/2025	    Devendra Shekh		Modified (Balance Amount Changes)
 -- EXEC GetCustomerAccountDatabyCustId 7,226  
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerAccountDatabyCustId] 13
@@ -61,23 +62,24 @@ BEGIN
 		DECLARE @SOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder');
 		DECLARE @SOMSModuleID INT = 17,@WOMSModuleID INT = 12;
 
-		 ;WITH NEWDepositAmt AS(
-						 SELECT nso.SalesOrderId AS Id, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
-												FROM [dbo].SalesOrder nso WITH (NOLOCK)  
-													INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
-													INNER JOIN [dbo].[BillingInvoicingItems] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SubReferenceId AND ISNULL(nsobii.IsPerformaInvoice, 0) = 1 AND nsobii.ModuleId = @SOModuleId
-													INNER JOIN [dbo].[BillingInvoicing] nsobi WITH(NOLOCK) on nsobii.BillingInvoicingId = nsobi.BillingInvoicingId AND ISNULL(nsobi.IsPerformaInvoice, 0) = 1 AND nsobi.ModuleId = @SOModuleId
-													AND nsobii.SubReferenceId = nsop.SalesOrderPartId GROUP BY nso.SalesOrderId
+		 --;WITH NEWDepositAmt AS(
+			--			 SELECT nso.SalesOrderId AS Id, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
+			--									FROM [dbo].SalesOrder nso WITH (NOLOCK)  
+			--										INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
+			--										INNER JOIN [dbo].[BillingInvoicingItems] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SubReferenceId AND ISNULL(nsobii.IsPerformaInvoice, 0) = 1 AND nsobii.ModuleId = @SOModuleId
+			--										INNER JOIN [dbo].[BillingInvoicing] nsobi WITH(NOLOCK) on nsobii.BillingInvoicingId = nsobi.BillingInvoicingId AND ISNULL(nsobi.IsPerformaInvoice, 0) = 1 AND nsobi.ModuleId = @SOModuleId
+			--										AND nsobii.SubReferenceId = nsop.SalesOrderPartId GROUP BY nso.SalesOrderId
 
-						 UNION ALL
+			--			 UNION ALL
 		 
-						 SELECT nwo.WorkOrderId as Id, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  
-												FROM [dbo].WorkOrder nwo WITH (NOLOCK)  
-													INNER JOIN [dbo].WorkOrderPartNumber nwop WITH(NOLOCK) on nwop.WorkOrderId = nwo.WorkOrderId
-													INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.ID = nwobii.SubReferenceId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1 AND nwobii.SubModuleId = @SubModuleId AND nwobii.ModuleId = @WOModuleId
-													INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1 AND nwobi.ModuleId = @WOModuleId
-													AND nwobii.SubReferenceId = nwop.ID GROUP BY nwo.WorkOrderId
-			), CTE AS(
+			--			 SELECT nwo.WorkOrderId as Id, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  
+			--									FROM [dbo].WorkOrder nwo WITH (NOLOCK)  
+			--										INNER JOIN [dbo].WorkOrderPartNumber nwop WITH(NOLOCK) on nwop.WorkOrderId = nwo.WorkOrderId
+			--										INNER JOIN [dbo].[BillingInvoicingItems] nwobii WITH(NOLOCK) on nwop.ID = nwobii.SubReferenceId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1 AND nwobii.SubModuleId = @SubModuleId AND nwobii.ModuleId = @WOModuleId
+			--										INNER JOIN [dbo].[BillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1 AND nwobi.ModuleId = @WOModuleId
+			--										AND nwobii.SubReferenceId = nwop.ID GROUP BY nwo.WorkOrderId
+			--),
+			;WITH CTE AS(
 						SELECT DISTINCT (C.CustomerId) as CustomerId,
 
                        ((ISNULL(C.[Name],''))) 'CustName' ,
@@ -86,8 +88,7 @@ BEGIN
 					   (CR.Code) as  'currencyCode',
 					   CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS BalanceAmount,
 					   (wobi.GrandTotal - wobi.RemainingAmount)as 'CurrentlAmount',            
-					   CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
-						    CASE WHEN DSA.OriginalDepositAmt - DSA.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS PaymentAmount,
+					   CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE ((-1) * (ISNULL(wobi.DepositAmount, 0) - ISNULL(wobi.UsedDeposit, 0))) END AS PaymentAmount,
 					   (wobi.InvoiceNo) as 'InvoiceNo',
 			           --(wobi.InvoiceDate) as 'InvoiceDate',
 					   	CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -119,7 +120,7 @@ BEGIN
 				   Left JOIN DBO.ManagementStructureLevel MSL WITH(NOLOCK) on MSL.ID = MSD.Level1Id
 				   Left JOIN DBO.LegalEntity Le WITH(NOLOCK) on MSL.LegalEntityId = Le.LegalEntityId
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
-				   LEFT JOIN NEWDepositAmt DSA ON  DSA.Id = wobi.ReferenceId
+				   --LEFT JOIN NEWDepositAmt DSA ON  DSA.Id = wobi.ReferenceId
 				   OUTER APPLY (SELECT DATEDIFF(DAY, CAST(CAST(wobi.PostedDate AS datetime) + (CASE 
 										WHEN ctm.Code IN ('COD', 'CIA', 'CreditCard', 'PREPAID') THEN -1 
 										ELSE ISNULL(WO.NetDays, 0) END) AS date), GETUTCDATE()) AS CreditRemainingDays) AS DaysData
@@ -129,7 +130,7 @@ BEGIN
 					AND C.CustomerId= @customerId   
 				    --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
 					AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
-					OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
+					OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND ISNULL(wobi.DepositAmount, 0) > 0))
 					AND wobi.ModuleId = @WOModuleId --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
 				
 				UNION ALL
@@ -141,8 +142,7 @@ BEGIN
 					   (CR.Code) as  'currencyCode',
 					   CASE WHEN ISNULL(sobi.IsPerformaInvoice, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS BalanceAmount,
 					   (sobi.GrandTotal - sobi.RemainingAmount)as 'CurrentlAmount', 
-					    CASE WHEN ISNULL(sobi.IsPerformaInvoice, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
-							CASE WHEN DSA.OriginalDepositAmt - DSA.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS PaymentAmount,
+					   CASE WHEN ISNULL(sobi.IsPerformaInvoice, 0) = 0 THEN (sobi.RemainingAmount) ELSE ((-1) * (ISNULL(sobi.DepositAmount, 0) - ISNULL(sobi.UsedDeposit, 0))) END AS PaymentAmount,
 					   (sobi.InvoiceNo) as 'InvoiceNo',
 			           --(sobi.InvoiceDate) as 'InvoiceDate',
 					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -174,7 +174,7 @@ BEGIN
 		 		   Left JOIN DBO.ManagementStructureLevel MSL WITH(NOLOCK) on MSL.ID = MSD.Level1Id
 				   Left JOIN DBO.LegalEntity Le WITH(NOLOCK) on MSL.LegalEntityId = Le.LegalEntityId
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
-				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = sobi.ReferenceId
+				   --LEFT JOIN NEWDepositAmt DSA ON DSA.Id = sobi.ReferenceId
 				   OUTER APPLY (SELECT DATEDIFF(DAY, CAST(CAST(sobi.PostedDate AS datetime) + (CASE 
 										WHEN ctm.Code IN ('COD', 'CIA', 'CreditCard', 'PREPAID') THEN -1 
 										ELSE ISNULL(SO.NetDays, 0) END) AS date), GETUTCDATE()) AS CreditRemainingDays) AS DaysData
@@ -183,7 +183,7 @@ BEGIN
 			  WHERE   sobi.InvoiceStatus = 'Invoiced' --AND ISNULL(sobi.IsBilling, 0) = 0	     
 					AND C.CustomerId= @customerId  AND sobi.ModuleId = @SOModuleId
 					AND ((ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
-					OR (ISNULL(sobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
+					OR (ISNULL(sobi.IsPerformaInvoice, 0) = 1 AND ISNULL(sobi.DepositAmount, 0) > 0))
 						), Result AS(
 				SELECT DISTINCT 
 				       (CTE.CustomerId) as CustomerId ,

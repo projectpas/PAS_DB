@@ -14,6 +14,7 @@
     1    19-11-2024   AMIT GHEDIYA		Created 
 	2    05-12-2024   AMIT GHEDIYA		Updated logic for multiple stockline
 	3    23-01-2025   Abhishek Jirawla	Updated logic to select Qty resquested instead of SalesOrderId	
+	4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 
 -- EXEC [UpdateSalesOrderStatus] 1316,11,1
 ************************************************************************/
@@ -33,6 +34,9 @@ BEGIN
 				@SoShippingItemCount BIGINT,
 				@SOBillingInvoicingId BIGINT,
 				@SoBillingItemCount BIGINT;
+
+			DECLARE @SOModuleId INT
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
 			SELECT @SoPartDataCount = ISNULL(SUM(QtyRequested), 0) FROM [DBO].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
@@ -71,10 +75,10 @@ BEGIN
 			BEGIN
 				IF(ISNULL(@SoPartDataCount,0) > 0)
 				BEGIN
-					 SELECT @SOBillingInvoicingId = [SOBillingInvoicingId] FROM [DBO].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
+					 SELECT @SOBillingInvoicingId = [BillingInvoicingId] FROM [DBO].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @SalesOrderId  AND [ModuleId] = @SOModuleId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
 
 					 --Check for multiple billing
-					SELECT @SoBillingItemCount = COUNT([SOBillingInvoicingId]) FROM [DBO].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SOBillingInvoicingId;
+					SELECT @SoBillingItemCount = COUNT([BillingInvoicingId]) FROM [DBO].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingId] = @SOBillingInvoicingId;
 					IF(ISNULL(@SoBillingItemCount,0) = ISNULL(@SoPartDataCount,0))
 					BEGIN
 						 UPDATE [DBO].[SalesOrder]

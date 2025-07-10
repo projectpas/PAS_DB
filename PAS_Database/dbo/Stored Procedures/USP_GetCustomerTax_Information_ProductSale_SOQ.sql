@@ -18,8 +18,9 @@
 	3    09/23/2024   Vishal Suthar		Modified for Old tables with new tables
 	4    03/19/2025   RAJESH GAMI		Modified for SaleTax and OtherTax Multyply by part count and fix the other issue
 	5    06/26/2025   HEMANT SALIYA		Reslved Duplicate billing issue DCA
+	6    07/09/2025   Vishal Suthar		Fixed SubTotal field which already includes Charges in the TotalRevenue field
           
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 1125
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 1148
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
 	@SalesOrderQuoteId bigint
@@ -106,13 +107,13 @@ BEGIN
 				   SOQ.[SalesOrderQuoteId],
 				   SOQP.[SalesOrderQuotePartId]
 			FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK) 
-				INNER JOIN [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
-				LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQS WITH(NOLOCK) ON SOQS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId]
-				LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQS.[StockLineId] = STK.[StockLineId]
-				LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
-				LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId AND AAD.MasterCompanyId = SOQ.MasterCompanyId and AAD.IsDeleted = 0
-				LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
-			WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId AND SOQ.IsDeleted = 0 AND SOQP.IsDeleted = 0;
+			INNER JOIN [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
+			 LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQS WITH(NOLOCK) ON SOQS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId]
+			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQS.[StockLineId] = STK.[StockLineId]
+			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
+			 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId AND AAD.MasterCompanyId = SOQ.MasterCompanyId and AAD.IsDeleted = 0
+			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
+   		     WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId AND SOQ.IsDeleted = 0 AND SOQP.IsDeleted = 0;
 	
 	SELECT @FreightMethodId = SO.[FreightBilingMethodId],
 	       @ChargesMethodId = SO.[ChargesBilingMethodId] 
@@ -195,7 +196,8 @@ BEGIN
 			FROM [dbo].[SalesOrderQuotePartCost] SOQC WITH(NOLOCK)
 			WHERE [SOQC].[SalesOrderQuoteId] = @SalesOrderQuoteId AND [SOQC].[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
 
-	    SET @SubTotal = @SubTotal+ ISNULL(@Total,0);
+
+		SET @SubTotal = @SubTotal+ ISNULL(@Total,0);
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)
 	    SET @OtherTax = (ISNULL(@Total,0)  * ISNULL(@TotalOtherTax,0) / 100)
 		IF(@FreighFlag = 0 AND @ChargeFlag = 0)
@@ -255,7 +257,7 @@ BEGIN
 									WHERE [ID] = @MinId
 		END	
 		
-		IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
+		IF (@TotalSalesTax > 0 OR @TotalOtherTax > 0)
 		BEGIN
 			IF NOT EXISTS(SELECT 1 FROM #tmprShipDetails2 WHERE [OriginSiteId] = @OriginSiteId AND [ShipToSiteId] = @ShipToSiteId and [CustomerId]=@CustomerId)
 			BEGIN
@@ -292,11 +294,11 @@ BEGIN
 		SET @MinId2 = @MinId2 + 1
 	END
 					
-	 SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
-	  SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
+	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
+	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	          ISNULL(@TotalCharges,0) AS TotalCharges,	
-	          ISNULL((@SubTotal + @TotalFreight + @TotalCharges),0) AS SubTotal,
-	          ISNULL((@SubTotal + @TotalFreight + @TotalCharges + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
+	          ISNULL((@SubTotal + @TotalFreight),0) AS SubTotal,
+	          ISNULL((@SubTotal + @TotalFreight + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
 			  ISNULL(@FinalSalesTaxes,0) AS SalesTax,
 			  ISNULL(@FinalOtherTaxes,0) AS OtherTax
 	

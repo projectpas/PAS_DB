@@ -15,6 +15,7 @@
     1             
 	2   01/31/2024		Devendra Shekh			added isperforma Flage for WO
 	3	01/02/2024	    AMIT GHEDIYA				added isperforma Flage for SO
+	4   07-07-2025      Moin Bloch              Changed Old To New Billing Table
 **********************/
 /*************************************************************
 EXEC [dbo].[GenerateDashboardData] 10, 2021
@@ -42,6 +43,12 @@ BEGIN
 			DECLARE @BacklogStartDt AS DateTime;
 
 			SELECT @MasterCompanyLoopID = MIN(MasterCompanyId) FROM DBO.MasterCompany WITH (NOLOCK) WHERE IsActive = 1
+
+			DECLARE @WOModuleId INT
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+			DECLARE @SOModuleId INT
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 			
 			WHILE (@MasterCompanyLoopID IS NOT NULL)
 			BEGIN
@@ -94,12 +101,12 @@ BEGIN
 						--WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID
 						--GROUP BY ReceivedDate
 
-						SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.WorkOrderBillingInvoicing 
-						WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice, 0) = 0
+						SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.BillingInvoicing 
+						WHERE ISNULL(IsVersionIncrease,0) = 0 AND [ModuleId] = @WOModuleId AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice, 0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
-						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing
-						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsProforma,0) = 0
+						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.BillingInvoicing
+						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND [ModuleId] = @SOModuleId  AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice,0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber
@@ -147,12 +154,12 @@ BEGIN
 						WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID
 						GROUP BY ReceivedDate
 
-						SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.WorkOrderBillingInvoicing 
-						WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice, 0) = 0
+						SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.BillingInvoicing WITH (NOLOCK)
+						WHERE ISNULL(IsVersionIncrease,0) = 0 AND [ModuleId] = @WOModuleId AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice, 0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
-						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing
-						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsProforma,0) = 0
+						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.BillingInvoicing WITH (NOLOCK)
+						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND [ModuleId] = @SOModuleId  AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice,0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber

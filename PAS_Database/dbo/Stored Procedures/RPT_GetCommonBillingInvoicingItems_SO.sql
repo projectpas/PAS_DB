@@ -13,8 +13,9 @@
     1    05/JUN/2025   RAJESH GAMI   CREATED
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed 
 	3    22/JUN/2025   RAJESH GAMI   Charges Type Issue Fixed 
-	4    05/JUL/2025   RAJESH GAMI   added weight, and dimension fields for Commercial Invoice
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 60,10
+	4    05/JUL/2025   RAJESH GAMI   added weight, and dimension fields for Commercial Invoice (Get from the Part table)
+
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4400,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -69,8 +70,8 @@ BEGIN
 					UnitPrice = ISNULL(BII.UnitPrice, 0),
 					Amount = ISNULL(BII.PartCost, 0),
 					StockLineId = sl.StockLineId,
-					UPPER(ime.ExportECCN)ExportECCN,
-					UPPER(ime.HSCode)HSCode,
+					ISNULL(UPPER(SOP.ECCN),'-')ExportECCN,
+					ISNULL(UPPER(SOP.HSCODE),'-')HSCode,
 					UPPER(ISNULL(sl.StockLineNumber,''))StockLineNumber,
 					UPPER(ISNULL(sl.ControlNumber,''))ControlNumber,
 					UPPER(ISNULL(sl.IdNumber,''))IdNumber,
@@ -108,17 +109,17 @@ BEGIN
 									END,
 									BI.[BillingInvoicingId],
 									ROW_NUMBER() OVER (PARTITION BY BII.SubreferenceId,BII.ItemMasterId ORDER BY BI.BillingInvoicingId) as RowData,
-									'-' as [Weight],
-									'-' as [DimensionL],
-									'-' as DimensionW,
-									'-'as DimensionH
+									ISNULL(CAST(SOP.[Weight] as NVARCHAR),'-') as [Weight],
+									ISNULL(CAST(SOP.SizeLength as NVARCHAR),'-') as [DimensionL],
+									ISNULL(CAST(SOP.SizeWidth as NVARCHAR),'-')  as DimensionW,
+									ISNULL(CAST(SOP.SizeHeight as NVARCHAR),'-')  as DimensionH
 				INTO #tmprRptInvoicingItem
 				FROM DBO.SalesOrder so WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON sop.SalesOrderPartId = BII.[SubReferenceId]
 				INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId]
 				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+				--LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 				LEFT JOIN DBO.SalesOrderStockLineV1 stock WITH (NOLOCK) ON sop.SalesOrderPartId = stock.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderPartCost sopc WITH (NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON stock.SalesOrderStocklineId = sosc.SalesOrderStocklineId

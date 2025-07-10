@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
 	1    05/12/2024   Moin Bloch    Created	
 	2    19/12/2024   AMIT GHEDIYA  Get QTY based on selection. 	
+	3    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 
   EXEC [dbo].[GetSalesOrderProformaAmountDetails] 1260,12,0
   EXEC [dbo].[GetSalesOrderProformaAmountDetails] 1260,10,177272
@@ -28,10 +29,13 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY  
 
+	DECLARE @SOModuleId INT
+	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+	
 	IF(ISNULL(@StocklineId,0) > 0)
 	BEGIN
 		SELECT ISNULL(SOSC.[NetSaleAmount],0) NetSaleAmount,
-			   ISNULL(sobii.[NoofPieces],0) NoofPieces,
+			   ISNULL(sobii.[QtyBilled],0) NoofPieces,
 			   ISNULL(SOSC.[NetSaleAmount],0) / ISNULL(stk.[QtyOrder],0) UnitPrice,
 			   stk.[StockLineId],
 			   ISNULL(stk.[QtyOrder],0) QTYOnBACKOrder
@@ -39,8 +43,8 @@ BEGIN
 		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.[SalesOrderPartId] = sop.[SalesOrderPartId]
 		LEFT JOIN [dbo].[SalesOrderPartCost] spc WITH (NOLOCK) ON spc.[SalesOrderPartId] = sop.[SalesOrderPartId]
 		LEFT JOIN [dbo].[SalesOrderStockLineCost] SOSC WITH (NOLOCK) ON SOSC.[SalesOrderStocklineId] = stk.[SalesOrderStocklineId]
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.[SalesOrderPartId] = sop.[SalesOrderPartId] AND (sobii.[StockLineId] = stk.[StockLineId] OR ISNULL(sobii.[StockLineId], 0) = 0) AND ISNULL(sobii.[IsProforma],0) = 1 AND ISNULL(sobii.[IsVersionIncrease],0) = 0
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON sobi.[SOBillingInvoicingId] = sobii.[SOBillingInvoicingId]  AND ISNULL(sobi.[IsProforma],0) = 1 AND sobi.[SalesOrderId] = @SalesOrderId AND ISNULL(sobi.[IsVersionIncrease],0) = 0
+		LEFT JOIN [dbo].[BillingInvoicingItems] sobii WITH (NOLOCK) ON sobii.[SubReferenceId] = sop.[SalesOrderPartId] AND (sobii.[StockLineId] = stk.[StockLineId] OR ISNULL(sobii.[StockLineId], 0) = 0) AND ISNULL(sobii.[IsPerformaInvoice],0) = 1 AND ISNULL(sobii.[IsVersionIncrease],0) = 0 AND sobii.[ModuleId] = @SOModuleId
+		LEFT JOIN [dbo].[BillingInvoicing] sobi WITH (NOLOCK) ON sobi.[BillingInvoicingId] = sobii.[BillingInvoicingId]  AND ISNULL(sobi.[IsPerformaInvoice],0) = 1 AND sobi.[ReferenceId] = @SalesOrderId AND ISNULL(sobi.[IsVersionIncrease],0) = 0 AND sobi.[ModuleId] = @SOModuleId
 		WHERE sop.[SalesOrderId] = @SalesOrderId 
 		  AND sop.[SalesOrderPartId] = @SalesOrderPartId
 		  AND stk.[StockLineId] = @StocklineId
@@ -48,15 +52,15 @@ BEGIN
 	ELSE
 	BEGIN
 		SELECT ISNULL(spc.[NetSaleAmount],0)  NetSaleAmount,
-			   ISNULL(sobii.[NoofPieces],0) NoofPieces,
+			   ISNULL(sobii.[QtyBilled],0) NoofPieces,
 			   ISNULL(spc.[NetSaleAmount],0) / ISNULL(sop.[QtyRequested],0) UnitPrice,
 			   NULL [StockLineId],
 			   ISNULL(sop.[QtyRequested],0) QTYOnBACKOrder
 		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
 		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.[SalesOrderPartId] = sop.[SalesOrderPartId]
 		LEFT JOIN [dbo].[SalesOrderPartCost] spc WITH (NOLOCK) ON spc.[SalesOrderPartId] = sop.[SalesOrderPartId]
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.[SalesOrderPartId] = sop.[SalesOrderPartId] AND (sobii.[StockLineId] = stk.[StockLineId] OR ISNULL(sobii.[StockLineId], 0) = 0) AND ISNULL(sobii.[IsProforma],0) = 1 AND ISNULL(sobii.[IsVersionIncrease],0) = 0
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON sobi.[SOBillingInvoicingId] = sobii.[SOBillingInvoicingId]  AND ISNULL(sobi.[IsProforma],0) = 1 AND sobi.[SalesOrderId] = @SalesOrderId AND ISNULL(sobi.[IsVersionIncrease],0) = 0
+		LEFT JOIN [dbo].[BillingInvoicingItems] sobii WITH (NOLOCK) ON sobii.[SubReferenceId] = sop.[SalesOrderPartId] AND (sobii.[StockLineId] = stk.[StockLineId] OR ISNULL(sobii.[StockLineId], 0) = 0) AND ISNULL(sobii.[IsPerformaInvoice],0) = 1 AND ISNULL(sobii.[IsVersionIncrease],0) = 0 AND sobii.[ModuleId] = @SOModuleId
+		LEFT JOIN [dbo].[BillingInvoicing] sobi WITH (NOLOCK) ON sobi.[BillingInvoicingId] = sobii.[BillingInvoicingId]  AND ISNULL(sobi.[IsPerformaInvoice],0) = 1 AND sobi.[ReferenceId] = @SalesOrderId AND ISNULL(sobi.[IsVersionIncrease],0) = 0 AND sobi.[ModuleId] = @SOModuleId
 		WHERE sop.[SalesOrderId] = @SalesOrderId 
 		  AND sop.[SalesOrderPartId] = @SalesOrderPartId
 	END

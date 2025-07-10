@@ -12,6 +12,7 @@
  ** PR   Date          Author  		 Change Description            
  ** --   --------      -------		 ---------------------------     
     1    21 MAR 2025   Rajesh Gami     Created
+	2    08-07-2025    Moin Bloch      Changed Old To New Billing Table SP NOT IN USE
  EXEC SP_CreateWorkOrderBillingPerformaInvoicing 246
  **************************************************************/
 CREATE     PROCEDURE [dbo].[SP_CreateWorkOrderBillingPerformaInvoicing] 
@@ -155,7 +156,7 @@ BEGIN
 
 					IF @IsNewInvoice = 0
 					BEGIN
-						SELECT @InvoiceNo = InvoiceNo FROM DBO.WorkOrderBillingInvoicing WITH(NOLOCK) WHERE BillingInvoicingId = @BillingInvoicingId;
+						SELECT @InvoiceNo = InvoiceNo FROM DBO.BillingInvoicing WITH(NOLOCK) WHERE BillingInvoicingId = @BillingInvoicingId;
 					END
 					ELSE
 					BEGIN
@@ -236,13 +237,13 @@ BEGIN
 						DROP TABLE #tmpBillingItemsLoop
 					END
 					CREATE TABLE #tmpBillingItemsLoop (BillingInvoicingId BIGINT);
-					INSERT INTO #tmpBillingItemsLoop (BillingInvoicingId)	SELECT BillingInvoicingId FROM DBO.WorkOrderBillingInvoicingItem WITH(NOLOCK) WHERE WorkOrderPartId = @WorkOrderPartId  AND ISNULL(IsPerformaInvoice,0) = 1;
+					INSERT INTO #tmpBillingItemsLoop (BillingInvoicingId)	SELECT BillingInvoicingId FROM DBO.BillingInvoicingItems WITH(NOLOCK) WHERE SubReferenceId = @WorkOrderPartId  AND ISNULL(IsPerformaInvoice,0) = 1;
 
 					UPDATE wobi
 					SET IsVersionIncrease = 1
-					FROM dbo.WorkOrderBillingInvoicing wobi
+					FROM dbo.BillingInvoicing wobi
 					INNER JOIN #tmpBillingItemsLoop tbi	ON wobi.BillingInvoicingId = tbi.BillingInvoicingId
-					WHERE wobi.WorkOrderId = @WorkOrderId  AND wobi.IsVersionIncrease = 0  AND wobi.IsPerformaInvoice = 1;
+					WHERE wobi.ReferenceId = @WorkOrderId  AND wobi.IsVersionIncrease = 0  AND wobi.IsPerformaInvoice = 1;
 				 END
 
 				SELECT TOP 1 
@@ -251,7 +252,7 @@ BEGIN
 				FROM DBO.WorkOrderPartNumber WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ID = @WorkOrderPartId;
 
 				SELECT TOP 1 @VersionNo = ISNULL(VersionNo,'')
-				FROM DBO.WorkOrderBillingInvoicingItem WITH(NOLOCK) WHERE WorkOrderPartId = @WorkOrderPartId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 1;
+				FROM DBO.BillingInvoicingItems WITH(NOLOCK) WHERE SubReferenceId = @WorkOrderPartId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 1;
 				PRINT '@VersionNo'
 				PRINT @VersionNo
 				SET @NewVersion = ''
@@ -289,27 +290,27 @@ BEGIN
 				IF(@BillingInvoicingIdMain > 0)
 				BEGIN
 				/******START: INSERT INTO : WorkOrderBillingInvoicingItem *******/
-					INSERT INTO WorkOrderBillingInvoicingItem (
-					VersionNo,		IsVersionIncrease,
-					NoOfPieces,		TaxRate,
-					UnitPrice,		Freight,
-					MiscCharges,	SalesTax,
-					SubTotal,		OtherTax,
-					ItemMasterId,   WorkOrderPartId,
-					MasterCompanyId,CreatedBy,
-					UpdatedBy,	BillingInvoicingId,
-					CreatedDate,	UpdatedDate,
-					IsActive,		IsDeleted,
-					ConditionId,	IsPerformaInvoice
-					)
-					VALUES (
-						@NewVersion,0,1,0,@UnitPrice,0,0,0,0,0,@ItemMasterId,@WorkOrderPartId,@MasterCompanyId,@CreatedBy,@CreatedBy,@BillingInvoicingIdMain,GETUTCDATE(), GETUTCDATE(),
-						1,0,@ConditionId,1
-					);
+					--INSERT INTO BillingInvoicingItems (
+					--VersionNo,		IsVersionIncrease,
+					--QtyBilled,		SalesTax,
+					--UnitPrice,		Freight,
+					--MiscCharges,	SalesTax,
+					--SubTotal,		OtherTax,
+					--ItemMasterId,   SubReferenceId,
+					--MasterCompanyId,CreatedBy,
+					--UpdatedBy,	BillingInvoicingId,
+					--CreatedDate,	UpdatedDate,
+					--IsActive,		IsDeleted,
+					--ConditionId,	IsPerformaInvoice
+					--)
+					--VALUES (
+					--	@NewVersion,0,1,0,@UnitPrice,0,0,0,0,0,@ItemMasterId,@WorkOrderPartId,@MasterCompanyId,@CreatedBy,@CreatedBy,@BillingInvoicingIdMain,GETUTCDATE(), GETUTCDATE(),
+					--	1,0,@ConditionId,1
+					--);
 
 					UPDATE wobi
-					SET UpdatedDate = GETUTCDATE(),UpdatedBy = CASE WHEN ISNULL(@CreatedBy,'') != '' THEN @CreatedBy ELSE UpdatedBy END, InvoiceDate = GETUTCDATE(),Freight= @Freight,InvoiceNo = @InvoiceNo
-					FROM dbo.WorkOrderBillingInvoicing wobi
+					SET UpdatedDate = GETUTCDATE(),UpdatedBy = CASE WHEN ISNULL(@CreatedBy,'') != '' THEN @CreatedBy ELSE UpdatedBy END, InvoiceDate = GETUTCDATE(),InvoiceNo = @InvoiceNo
+					FROM dbo.BillingInvoicing wobi
 					WHERE BillingInvoicingId = @BillingInvoicingIdMain
 			
 				/****** END: INSERT INTO : WorkOrderBillingInvoicingItem *******/
@@ -338,16 +339,16 @@ BEGIN
 			BEGIN
 				DECLARE @ExistingBillingInvoicingId INT;
 				SELECT TOP 1 @ExistingBillingInvoicingId = BillingInvoicingId, @VersionNo = VersionNo
-				FROM dbo.WorkOrderBillingInvoicing WITH(NOLOCK)
-				WHERE WorkOrderId = @WorkOrderId  AND IsVersionIncrease = 0  AND InvoiceNo = @InvoiceNo  AND IsPerformaInvoice = 1;
+				FROM dbo.BillingInvoicing WITH(NOLOCK)
+				WHERE ReferenceId = @WorkOrderId  AND IsVersionIncrease = 0  AND InvoiceNo = @InvoiceNo  AND IsPerformaInvoice = 1;
 
 				IF @ExistingBillingInvoicingId IS NOT NULL
 				BEGIN
-					UPDATE dbo.WorkOrderBillingInvoicing 
+					UPDATE dbo.BillingInvoicing 
 					SET IsVersionIncrease = 1
 					WHERE BillingInvoicingId = @ExistingBillingInvoicingId;
 
-					UPDATE dbo.WorkOrderBillingInvoicingItem 
+					UPDATE dbo.BillingInvoicingItems 
 					SET IsVersionIncrease = 1
 					WHERE BillingInvoicingId = @ExistingBillingInvoicingId;
 
@@ -384,53 +385,53 @@ BEGIN
 				SET @RemainingAmount = @FinalGrandTotal;
 			
 
-				INSERT INTO [dbo].[WorkOrderBillingInvoicing] ([WorkOrderId], [WorkFlowWorkOrderId], [WorkOrderPartNoId], [ItemMasterId], [InvoiceTypeId], [InvoiceNo], [CustomerId], [InvoiceDate], 
-															 [InvoiceTime], [PrintDate], [ShipDate], [NoofPieces], [EmployeeId], [GateStatus], [SoldToCustomerId], [SoldToSiteId], [ShipToCustomerId], 
-															 [ShipToSiteId], [ShipToAttention], [ManagementStructureId], [CostPlusType], [TotalWorkOrder],ShipViaId, [WayBillRef], [Tracking], [MasterCompanyId], 
-															 [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [CurrencyId], [AvailableCredit], [TotalWorkOrderCostPlus],  
-															 [GrandTotal], [WorkOrderShippingId], [InvoiceStatus], [VersionNo], [IsVersionIncrease],  [Freight], [CustomerDomensticShippingShipViaId], 
-															 [ShippingAccountInfo], [RemainingAmount], [TaxRate], [SalesTax], [OtherTax], [SubTotal], [IsCustomerShipping], [ConditionId], [RevisedSerialNumber], 
-															 [IsPerformaInvoice], [isCreatedFromQuote]) 
-														VALUES (@WorkOrderId, @WorkFlowWorkOrderId, @WorkOrderPartNoId, @ItemMasterId, @InvoiceTypeId, @InvoiceNo, @CustomerId, GETUTCDATE(), 
-															@InvoiceTime, @PrintDate, @ShipDate, @NoofPieces, @EmployeeId, @GateStatus, @SoldToCustomerId, @SoldToSiteId, @ShipToCustomerId, 
-															@ShipToSiteId, @ShipToAttention, @ManagementStructureId, @CostPlusType, @TotalWorkOrder,  @ShipViaId, @WayBillRef, @Tracking, @MasterCompanyId, 
-															@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @CurrencyId, @AvailableCredit, @TotalWorkOrderCostPlus,
-															@FinalGrandTotal, @WorkOrderShippingId, @InvoiceStatus, @NewVersion, 0, @Freight, @CustomerDomensticShippingShipViaId, 
-															@ShippingAccountInfo, @RemainingAmount, @TaxRate, @SalesTax, @OtherTax, @SubTotal, @IsCustomerShipping, @ConditionId, @RevisedSerialNumber, 
-															1, @isCreatedFromQuote);
+				--INSERT INTO [dbo].[BillingInvoicing] ([WorkOrderId], [WorkFlowWorkOrderId], [WorkOrderPartNoId], [ItemMasterId], [InvoiceTypeId], [InvoiceNo], [CustomerId], [InvoiceDate], 
+				--											 [InvoiceTime], [PrintDate], [ShipDate], [NoofPieces], [EmployeeId], [GateStatus], [SoldToCustomerId], [SoldToSiteId], [ShipToCustomerId], 
+				--											 [ShipToSiteId], [ShipToAttention], [ManagementStructureId], [CostPlusType], [TotalWorkOrder],ShipViaId, [WayBillRef], [Tracking], [MasterCompanyId], 
+				--											 [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [CurrencyId], [AvailableCredit], [TotalWorkOrderCostPlus],  
+				--											 [GrandTotal], [WorkOrderShippingId], [InvoiceStatus], [VersionNo], [IsVersionIncrease],  [Freight], [CustomerDomensticShippingShipViaId], 
+				--											 [ShippingAccountInfo], [RemainingAmount], [TaxRate], [SalesTax], [OtherTax], [SubTotal], [IsCustomerShipping], [ConditionId], [RevisedSerialNumber], 
+				--											 [IsPerformaInvoice], [isCreatedFromQuote]) 
+				--										VALUES (@WorkOrderId, @WorkFlowWorkOrderId, @WorkOrderPartNoId, @ItemMasterId, @InvoiceTypeId, @InvoiceNo, @CustomerId, GETUTCDATE(), 
+				--											@InvoiceTime, @PrintDate, @ShipDate, @NoofPieces, @EmployeeId, @GateStatus, @SoldToCustomerId, @SoldToSiteId, @ShipToCustomerId, 
+				--											@ShipToSiteId, @ShipToAttention, @ManagementStructureId, @CostPlusType, @TotalWorkOrder,  @ShipViaId, @WayBillRef, @Tracking, @MasterCompanyId, 
+				--											@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @CurrencyId, @AvailableCredit, @TotalWorkOrderCostPlus,
+				--											@FinalGrandTotal, @WorkOrderShippingId, @InvoiceStatus, @NewVersion, 0, @Freight, @CustomerDomensticShippingShipViaId, 
+				--											@ShippingAccountInfo, @RemainingAmount, @TaxRate, @SalesTax, @OtherTax, @SubTotal, @IsCustomerShipping, @ConditionId, @RevisedSerialNumber, 
+				--											1, @isCreatedFromQuote);
 
-				SET @BillingInvoicingIdMain =(SELECT IDENT_CURRENT('WorkOrderBillingInvoicing'))
-				INSERT INTO WorkOrderBillingInvoicingItem (
-					VersionNo,		IsVersionIncrease,
-					NoOfPieces,		TaxRate,
-					UnitPrice,		Freight,
-					MiscCharges,	SalesTax,
-					SubTotal,		OtherTax,
-					ItemMasterId,   WorkOrderPartId,
-					MasterCompanyId,CreatedBy,
-					UpdatedBy,	BillingInvoicingId,
-					CreatedDate,	UpdatedDate,
-					IsActive,		IsDeleted,
-					ConditionId,	IsPerformaInvoice
-					)
-					SELECT VersionNo,		IsVersionIncrease,
-					NoOfPieces,		TaxRate,
-					UnitPrice,		Freight,
-					MiscCharges,	SalesTax,
-					SubTotal,		OtherTax,
-					ItemMasterId,   WorkOrderPartId,
-					MasterCompanyId,CreatedBy,
-					UpdatedBy,	@BillingInvoicingIdMain,
-					CreatedDate,	UpdatedDate,
-					IsActive,		IsDeleted,
-					ConditionId,	IsPerformaInvoice FROM #tmpWorkOrderBillingInvoicingItem
+				--SET @BillingInvoicingIdMain =(SELECT IDENT_CURRENT('WorkOrderBillingInvoicing'))
+				--INSERT INTO WorkOrderBillingInvoicingItem (
+				--	VersionNo,		IsVersionIncrease,
+				--	NoOfPieces,		TaxRate,
+				--	UnitPrice,		Freight,
+				--	MiscCharges,	SalesTax,
+				--	SubTotal,		OtherTax,
+				--	ItemMasterId,   WorkOrderPartId,
+				--	MasterCompanyId,CreatedBy,
+				--	UpdatedBy,	BillingInvoicingId,
+				--	CreatedDate,	UpdatedDate,
+				--	IsActive,		IsDeleted,
+				--	ConditionId,	IsPerformaInvoice
+				--	)
+				--	SELECT VersionNo,		IsVersionIncrease,
+				--	NoOfPieces,		TaxRate,
+				--	UnitPrice,		Freight,
+				--	MiscCharges,	SalesTax,
+				--	SubTotal,		OtherTax,
+				--	ItemMasterId,   WorkOrderPartId,
+				--	MasterCompanyId,CreatedBy,
+				--	UpdatedBy,	@BillingInvoicingIdMain,
+				--	CreatedDate,	UpdatedDate,
+				--	IsActive,		IsDeleted,
+				--	ConditionId,	IsPerformaInvoice FROM #tmpWorkOrderBillingInvoicingItem
 			END /*------- END :IF ISNULL(@BillingInvoicingIdMain,0) = 0----------*/
 		
 
 		END  /****END: IF EXISTS (SELECT 1 FROM @BillingItems)****/
 
-		SELECT * FROM DBO.WorkOrderBillingInvoicing WITH (NOLOCK) WHERE BillingInvoicingId = @BillingInvoicingIdMain
-		SELECT * FROM DBO.WorkOrderBillingInvoicingItem WITH (NOLOCK) WHERE BillingInvoicingId = @BillingInvoicingIdMain
+		SELECT * FROM DBO.BillingInvoicing WITH (NOLOCK) WHERE BillingInvoicingId = @BillingInvoicingIdMain
+		SELECT * FROM DBO.BillingInvoicingItems WITH (NOLOCK) WHERE BillingInvoicingId = @BillingInvoicingIdMain
 	END
 	COMMIT  TRANSACTION
   END TRY

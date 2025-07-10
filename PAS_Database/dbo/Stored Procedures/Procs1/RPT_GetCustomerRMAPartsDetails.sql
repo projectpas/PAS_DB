@@ -15,6 +15,7 @@
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables
 	4    04-07-2025   AMIT GHEDIYA	  Changed Old To New Billing Table
+	5    07-07-2025   Moin Bloch      Changed Old To New Billing Table
 
  -- exec RPT_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
@@ -70,20 +71,20 @@ BEGIN
 					 ,IM.ManufacturerName
 					 ,AltPartNumber=(  
 					 SELECT TOP 1  
-					A.PartNumber [AltPartNumberType] from [dbo].[SalesOrderBillingInvoicingItem] SOBIIA WITH (NOLOCK) 
+					A.PartNumber [AltPartNumberType] from [dbo].[BillingInvoicingItems] SOBIIA WITH (NOLOCK) 
 					OUTER APPLY(  
 					 SELECT   
 						STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 THEN ',' ELSE '' END + AI.partnumber  
 						 FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] AL WITH (NOLOCK)  
 						 INNER JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON AL.ItemMasterId=I.ItemMasterId 
 						 INNER JOIN [dbo].[ItemMaster] AI WITH (NOLOCK) ON AL.MappingItemMasterId=AI.ItemMasterId 
-						 Where I.ItemMasterId = SOBIIA.ItemMasterId  and MappingType=1  
+						 Where I.ItemMasterId = SOBIIA.ItemMasterId  and MappingType=1   AND SOBIIA.[ModuleId] = @SOModuleId
 						 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 						 FOR XML PATH('')), 1, 1, '') PartNumber  
 					) A  
 					WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId 
-					and SOBIIA.SOBillingInvoicingId =SOBII.BillingInvoicingId 
-					AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
+					and SOBIIA.BillingInvoicingId =SOBII.BillingInvoicingId 
+					AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsPerformaInvoice,0) = 0
 					GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 					) 
 					FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)
@@ -127,14 +128,14 @@ BEGIN
 				,IM.ManufacturerName
 				,AltPartNumber=(  
 				SELECT TOP 1  
-				A.PartNumber [AltPartNumberType] FROM [dbo].[WorkOrderBillingInvoicingItem] WOBIIA WITH (NOLOCK) 
+				A.PartNumber [AltPartNumberType] FROM [dbo].[BillingInvoicingItems] WOBIIA WITH (NOLOCK) 
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 THEN ',' ELSE '' END + AI.partnumber  
 					 FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] AL WITH (NOLOCK)  
 					 INNER Join [dbo].[ItemMaster] I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
 					 INNER Join [dbo].[ItemMaster] AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
-					 WHERE I.ItemMasterId = WOBIIA.ItemMasterId  and MappingType=1  
+					 WHERE I.ItemMasterId = WOBIIA.ItemMasterId  and MappingType=1  AND WOBIIA.[ModuleId] = @WOModuleId
 					 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
 				) A  

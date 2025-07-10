@@ -25,6 +25,7 @@
 	7    07/17/2023   Vishal Suthar    Modified for stockline history and added userName as a parameter
     8    10/08/2024   RAJESH GAMI 	   Implement the ReferenceNumber column data into "WO | SubWOMaterial | Kit Stockline" table.
 	9	 06/25/2025   Vishal Suthar	   Handle the case of having the same stockline after repair
+	10	 07/07/2025   Vishal Suthar	   Fixed an issue with updating new condition and provision in material stockline level
 
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
 **************************************************************/
@@ -347,6 +348,10 @@ SET NOCOUNT ON
 										ELSE
 										BEGIN
 											SELECT @WorkOrderMaterialStockLineId = SWOMStockLineId FROM DBO.SubWorkOrderMaterialStockLine WITH (NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
+											
+											DECLARE @UnitCostSWO DECIMAL (18, 2) = 0;
+											SELECT @UnitCostSWO = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+											UPDATE dbo.SubWorkOrderMaterialStockLine SET UnitCost = @UnitCostSWO WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId;
 
 											UPDATE dbo.SubWorkOrderMaterialStockLine SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId
 
@@ -752,7 +757,8 @@ SET NOCOUNT ON
 
 													IF (@OldConditionId <> @NewConditionId)
 													BEGIN
-														UPDATE dbo.WorkOrderMaterials SET ConditionCodeId = @NewConditionId, 
+														UPDATE dbo.WorkOrderMaterials 
+														SET ConditionCodeId = @NewConditionId, 
 														QuantityReserved = QuantityReserved + @StlQuantity,
 														TotalReserved = TotalReserved + @StlQuantity,
 														UpdatedDate = GETDATE()
@@ -809,7 +815,15 @@ SET NOCOUNT ON
 												SELECT @NewConditionId = ConditionId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId
 
 												SELECT @WorkOrderMaterialStockLineId = WOMStockLineId FROM DBO.WorkOrderMaterialStockLine WITH (NOLOCK) WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
-												UPDATE dbo.WorkOrderMaterialStockLine SET QtyReserved = @StlQuantity, ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+												SELECT @UnitCost = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+
+												UPDATE dbo.WorkOrderMaterialStockLine SET UnitCost = @UnitCost WHERE WOMStockLineId = @WorkOrderMaterialStockLineId;
+
+												UPDATE dbo.WorkOrderMaterialStockLine 
+												SET QtyReserved = @StlQuantity, 
+												ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),
+												ReferenceNumber = @MaterialRefNo+@RONumber 
+												WHERE WOMStockLineId = @WorkOrderMaterialStockLineId;
 
 												IF (@OldConditionId = @NewConditionId)
 												BEGIN
@@ -839,8 +853,14 @@ SET NOCOUNT ON
 														UPDATE dbo.WorkOrderMaterials SET ConditionCodeId = @NewConditionId, 
 														QuantityReserved = QuantityReserved + @StlQuantity,
 														TotalReserved = TotalReserved + @StlQuantity,
-														UpdatedDate = GETDATE()
-														WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
+														UpdatedDate = GETDATE(),
+														ProvisionId = @ProvisionId
+														WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId;
+
+														UPDATE dbo.WorkOrderMaterialStockLine
+														SET ProvisionId = @ProvisionId,
+														ConditionId = @NewConditionId
+														WHERE WOMStockLineId = @ExWorkOrderMaterialStockLineId;
 													END
 												END
 												ELSE
@@ -1151,6 +1171,9 @@ SET NOCOUNT ON
 
 												SELECT @WorkOrderMaterialStockLineId = WorkOrderMaterialStockLineKitId FROM DBO.WorkOrderMaterialStockLineKit WITH (NOLOCK) WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
 
+												SELECT @UnitCost = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+												UPDATE dbo.WorkOrderMaterialStockLineKit SET UnitCost = @UnitCost WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId;
+
 												UPDATE dbo.WorkOrderMaterialStockLineKit SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId
 
 												IF (@OldConditionId1 = @NewConditionId1)
@@ -1159,7 +1182,7 @@ SET NOCOUNT ON
 														SET QuantityReserved = QuantityReserved + @StlQuantity, 
 															TotalReserved = TotalReserved + @StlQuantity,
 															UpdatedDate = GETDATE()
-													WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId
+													WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId;
 												END
 
 												UPDATE Stockline SET QuantityAvailable = QuantityAvailable - @StlQuantity,
@@ -1179,7 +1202,12 @@ SET NOCOUNT ON
 														QuantityReserved = QuantityReserved + @StlQuantity, 
 														TotalReserved = TotalReserved + @StlQuantity,
 														UpdatedDate = GETDATE()
-														WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId
+														WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId;
+
+														UPDATE dbo.WorkOrderMaterialStockLineKit
+														SET ProvisionId = @ProvisionId,
+														ConditionId = @NewConditionId
+														WHERE WorkOrderMaterialStockLineKitId = @ExWorkOrderMaterialStockLineId;
 													END
 												END
 												ELSE

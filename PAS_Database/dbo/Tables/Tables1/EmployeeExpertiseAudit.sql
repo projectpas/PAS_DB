@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[EmployeeExpertiseAudit] (
     [AuditEmployeeExpertiseId] SMALLINT        IDENTITY (1, 1) NOT NULL,
     [EmployeeExpertiseId]      SMALLINT        NOT NULL,
-    [Description]              VARCHAR (30)    NOT NULL,
+    [Description]              VARCHAR (50)    NOT NULL,
     [Memo]                     NVARCHAR (MAX)  NULL,
     [MasterCompanyId]          INT             NOT NULL,
     [CreatedBy]                VARCHAR (256)   NOT NULL,

@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   ----------  -----------	--------------------------------          
     1    11/02/2024  Vishal Suthar	Created
+	2    09/07/2025  Amit Ghediya	Update for TotalRecords & status.
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAllInventoryUploadList]
@@ -33,8 +34,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			InvUpload.UpdatedDate,
 			InvUpload.IsActive,
 			InvUpload.MasterCompanyId,
-			InvUpload.IsDeleted
+			InvUpload.IsDeleted,
+			InvUpload.TotalRecords,
+			STS.IntegrationStatus AS [Status]
 		FROM DBO.[ILSInventoryUpload] InvUpload WITH (NOLOCK)
+		JOIN DBO.[IntegrationStatus] STS WITH(NOLOCK) ON InvUpload.StatusId = STS.IntegrationStatusId
 		WHERE InvUpload.MasterCompanyId = @MasterCompanyId
 		ORDER BY InvUpload.ILSInventoryUploadId DESC;
 	END TRY    

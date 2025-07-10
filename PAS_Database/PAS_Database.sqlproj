@@ -4022,6 +4022,8 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateDepositAmount.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderShippingLabelBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingIds.sql" />
+    <Build Include="dbo\Tables\IntegrationStatus.sql" />
+    <Build Include="dbo\Stored Procedures\IsExistsInventoryPartForIntegration.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShippinIdInBillingInvoice.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -26,7 +26,7 @@
 	10	 05/30/2025	  Abhishek Jirawla  Updated the condition to the new stockline.
 	11	 06/18/2025   AMIT GHEDIYA		Updated the sp USP_UpdateSOPartCostDetails for SalesOrderPartV1 table.
 	12	 06/23/2025   Vishal Suthar		Handle the case of having the same stockline after repair
-
+	13	 10/Jul/2025  Rajesh Gami		Fixed: Added the Stockline History while reserve the stockline in the SO (Create RO from the SO and then receive the RO that time history not inserted)
  EXECUTE USP_CreateSOStocklineFromRO 2667
 
 **************************************************************/
@@ -62,7 +62,7 @@ BEGIN
 		DECLARE @RPUpdatedBy VARCHAR(256) = '';
 		DECLARE @RefNumber VARCHAR(100) = '';
 		DECLARE @UpdatedConditionId BIGINT;
-
+		DECLARE @SOModuleId INT = (SELECT TOP 1 ModuleId FROM Dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
         IF OBJECT_ID(N'tempdb..#ROStockLineSamePart') IS NOT NULL
         BEGIN
           DROP TABLE #ROStockLineSamePart
@@ -827,7 +827,7 @@ BEGIN
 
 						SELECT @QtyFulfilled = @QtyFulfilled - (SELECT SUM(ISNULL(QtyOrder,0)) FROM [dbo].[SalesOrderStocklineV1] WITH (NOLOCK) 
 						WHERE SalesOrderStocklineId = @NewSalesOrderStocklineId)
-
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StockLineId, @ModuleId = @SOModuleId, @ReferenceId = @SalesOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 2, @Qty = @Quantity, @UpdatedBy = @RPUpdatedBy;
 						IF (@QtyFulfilled <= 0)
 						BEGIN
 							IF (@OldConditionId <> @NewConditionId)

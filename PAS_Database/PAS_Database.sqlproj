@@ -4025,6 +4025,7 @@
     <Build Include="dbo\Tables\IntegrationStatus.sql" />
     <Build Include="dbo\Stored Procedures\IsExistsInventoryPartForIntegration.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShippinIdInBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkorderQuoteCurrectiveAction.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

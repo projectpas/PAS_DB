@@ -297,8 +297,8 @@ BEGIN
 	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
 	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	          ISNULL(@TotalCharges,0) AS TotalCharges,	
-	          ISNULL((@SubTotal),0) AS SubTotal,
-	          ISNULL((@SubTotal + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
+	          ISNULL((@SubTotal + @TotalFreight),0) AS SubTotal,
+	          ISNULL((@SubTotal + @TotalFreight + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
 			  ISNULL(@FinalSalesTaxes,0) AS SalesTax,
 			  ISNULL(@FinalOtherTaxes,0) AS OtherTax
 	

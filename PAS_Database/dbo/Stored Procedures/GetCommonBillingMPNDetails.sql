@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -22,7 +21,8 @@
 	9    25/06/2025   RAJESH GAMI    Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
 	10   26/06/2025   Moin Bloch     Fixed For Settlement IN WO
 	11   26/06/2025   Rajesh Gami     Fixed to not getting invoicing id while get the part detail call 
-	12	 05/07/2025   AbhishekJirawla Added ConditionName
+	12	 05/07/2025   AbhishekJirawla Added ConditionName	
+	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
@@ -489,6 +489,12 @@ BEGIN
 		ELSE IF(@ModuleId = @SOModuleId) /****************** START: SALES ORDER ********************/
 		BEGIN
 			
+			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 
+				  @SoFreightBillingMethodId = ISNULL(FreightBilingMethodId,0), @SoChargesBillingMethodId = ISNULL(ChargesBilingMethodId,0),
+				  @SoTotalCharges = ISNULL(TotalCharges,0), @SoTotalFreight = ISNULL(TotalFreight,0)
+			FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE SO.[SalesOrderId] = @ReferenceId;
+
+
 			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
 				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId]
 								,COND.[Description] [Cond],
@@ -502,20 +508,17 @@ BEGIN
 				  OUTER APPLY (
 					SELECT TOP 1 s.SalesOrderShippingId
 					FROM [dbo].[SalesOrderShippingItem] s
-					WHERE s.SalesOrderPartId = SOP.SalesOrderPartId
+					WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
 					ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
 				) SHIPPINGINFO
-			WHERE SOP.SalesOrderId = @ReferenceId  
+			WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
 			  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 			  AND ISNULL(SOP.IsDeleted,0) = 0 AND  (( (@IsProformaInvoice = 1 AND ISNULL(SOP.QtyReserved, 0) >= 0) OR (@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0)) 
 			  OR ((SELECT SUM(ISNULL(sopi.QtyShipped,0)) FROM dbo.SalesOrderShippingItem sopi WITH(NOLOCK) WHERE  sopi.SalesOrderPartId = SOP.SalesOrderPartId and SOPI.IsActive = 1 AND ISNULL(SOPI.IsDeleted,0) = 0)) > 0
 			  )
 			ORDER BY SOP.SalesOrderPartId	
 
-			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 
-				  @SoFreightBillingMethodId = ISNULL(FreightBilingMethodId,0), @SoChargesBillingMethodId = ISNULL(ChargesBilingMethodId,0),
-				  @SoTotalCharges = ISNULL(TotalCharges,0), @SoTotalFreight = ISNULL(TotalFreight,0)
-			FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE SO.[SalesOrderId] = @ReferenceId;
+			
 		    
 			SELECT @TotalRecords = COUNT(*), @MinId = MIN([PKID]) FROM #TempCommonPartNumberDetailsForBilling    
 

@@ -318,8 +318,8 @@ BEGIN
                        MAX(C.UpdatedBy) AS UpdatedBy
 			   FROM [dbo].[Customer] C WITH (NOLOCK) 
 					INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-					INNER JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
-					INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
+					LEFT JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
+					LEFT JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
 					LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId 
 					LEFT JOIN StandaloneCreditMemo AS SCM WITH (NOLOCK) ON SCM.CustomerId = C.CustomerId 					
 					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 		
@@ -602,8 +602,8 @@ BEGIN
                        MAX(C.UpdatedBy) AS UpdatedBy
 			   FROM [dbo].[Customer] C WITH (NOLOCK) 
 					INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-					INNER JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
-					INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
+					LEFT JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
+					LEFT JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
 					LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId
 					LEFT JOIN StandaloneCreditMemo AS SCM WITH (NOLOCK) ON SCM.CustomerId = C.CustomerId 	
 					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 			

@@ -135,7 +135,7 @@ BEGIN
 				INSERT INTO #tmpSalesOrderStockline (StocklineId) 
 							  SELECT VRP.StockLineId
 				FROM [DBO].[WorkOrderMaterialStockLine] VRP WITH(NOLOCK) 
-				JOIN WorkOrderMaterials MST WITH(NOLOCK) ON MST.WorkOrderMaterialsId = VRP.WorkOrderMaterialsId
+				JOIN [DBO].[WorkOrderMaterials] MST WITH(NOLOCK) ON MST.WorkOrderMaterialsId = VRP.WorkOrderMaterialsId
 				WHERE MST.WorkOrderId = @WorkOrderId; -- get workorderid
 
 				INSERT INTO #tmpSalesOrderStockline (StocklineId) 

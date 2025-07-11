@@ -10,6 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    21-04-2025		Hemnat Saliya			Created  		
     2    16-06-2025		Devendra Shekh			Modified Calculation for MarginPercentage	
+	3    11-07-2025     Devendra Shekh			added PartNumberLabel
 		
 	exec dbo.USP_GetSummarisedQuotationAnalysisData 8941
 **************************************************************/
@@ -82,7 +83,9 @@ BEGIN
 			wo.WorkOrderNum,
 			s.Stage,
 			st.Description AS Status,
-			ws.WorkScopeCode AS WorkScope
+			ws.WorkScopeCode AS WorkScope,
+			CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+					WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 		FROM [dbo].WorkOrder wo WITH(NOLOCK)
 			INNER JOIN [dbo].WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId AND ISNULL(woq.IsVersionIncrease, 0) = 0
 			INNER JOIN [dbo].WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId AND ISNULL(wqd.IsVersionIncrease, 0) = 0
@@ -92,6 +95,7 @@ BEGIN
 			INNER JOIN [dbo].WorkOrderStage s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 			INNER JOIN [dbo].WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 			INNER JOIN [dbo].WorkScope ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId
+			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 		WHERE wo.WorkOrderId = @WorkOrderId
 		--ORDER BY wop.ID
 		)

@@ -20,6 +20,8 @@
     5    15-APR-2025	 RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
 	6    01-MAY-2025	 HEMANT SALIYA		Updated Hangle Error on Corrective Action
 	7    09-MAY-2025	 Devendra Shekh		Added IsPrintCorrectiveAction to select
+    8    10-JUL-2025     Moin Bloch         Updated MEMO To PublicationNotes
+
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7342,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
@@ -153,16 +155,17 @@ BEGIN
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId  and t.Code !='SALES TAX'
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-				CAST((
-					SELECT TOP 1
-						REPLACE(REPLACE(ctd.Memo, '</p><p>', ' '), '<br>', '')
-					FROM dbo.CommonWorkOrderTearDown ctd WITH (NOLOCK)
-					LEFT JOIN dbo.CommonTeardownType ctt WITH (NOLOCK) 
-						ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId
-					  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
-					FOR XML PATH(''), TYPE
-				).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				--CAST((
+				--	SELECT TOP 1
+				--		REPLACE(REPLACE(ctd.Memo, '</p><p>', ' '), '<br>', '')
+				--	FROM dbo.CommonWorkOrderTearDown ctd WITH (NOLOCK)
+				--	LEFT JOIN dbo.CommonTeardownType ctt WITH (NOLOCK) 
+				--		ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+				--	WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId
+				--	  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
+				--	FOR XML PATH(''), TYPE
+				--).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo				
+				 REPLACE(REPLACE(wop.PublicationNotes, '</p><p>', ' '), '<br>', '') AS Memo
 				,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 				--Memo =
 				--(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
@@ -183,10 +186,11 @@ BEGIN
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID IN (SELECT value FROM STRING_SPLIT(@workOrderPartNoIds, ','))
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
-				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId,  
+				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId, wop.PublicationNotes, 
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
-	
+	       
+
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
 			CASE WHEN ISNULL(QuoteMethod,0) > 0  THEN ISNULL(MaterialFlatBillingAmount,0) ELSE ISNULL(MaterialFlatBillingAmount,0) + ISNULL(LaborFlatBillingAmount,0)END as FinalLaborTotal,ROW_NUMBER() OVER (ORDER BY ItemMasterId) AS RowNumber INTO #tmpQuoteIds FROM AfterTax FinalQuote;
 			
@@ -269,16 +273,17 @@ BEGIN
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-				CAST((
-					SELECT TOP 1
-						REPLACE(REPLACE(ctd.Memo, '</p><p>', ' '), '<br>', '')
-					FROM dbo.CommonWorkOrderTearDown ctd WITH (NOLOCK)
-					LEFT JOIN dbo.CommonTeardownType ctt WITH (NOLOCK) 
-						ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId
-					  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
-					FOR XML PATH(''), TYPE
-				).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				--CAST((
+				--	SELECT TOP 1
+				--		REPLACE(REPLACE(ctd.Memo, '</p><p>', ' '), '<br>', '')
+				--	FROM dbo.CommonWorkOrderTearDown ctd WITH (NOLOCK)
+				--	LEFT JOIN dbo.CommonTeardownType ctt WITH (NOLOCK) 
+				--		ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+				--	WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId
+				--	  AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode)
+				--	FOR XML PATH(''), TYPE
+				--).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX)) AS Memo
+				REPLACE(REPLACE(wop.PublicationNotes, '</p><p>', ' '), '<br>', '') AS Memo
 				,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 				--Memo =
 				--(SELECT CAST('<x>' + REPLACE(REPLACE(ctd.Memo, '</p><p>',' '),'<br>','') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)') 
@@ -300,7 +305,7 @@ BEGIN
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId 
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
-				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, 
+				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, wop.PublicationNotes,
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 

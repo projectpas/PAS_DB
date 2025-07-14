@@ -108,6 +108,7 @@ BEGIN
 			wci.CommodityCode,
 			wci.CustomCurrencyId,
 			wci.CreatedDate AS CustomsCreatedDate,
+			wci.CreatedBy AS CustomsCreatedBy,
 			-- ExchangeSalesOrderShippingCustomsInfo
 
 			sos.ShipWeightUnit,

@@ -19,6 +19,7 @@
 	2	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
 	3   11/26/2024		Amit Ghediya		Get ECCN,HSCODE,Weight,LWH for billing.
  	4	16 Jun 2025	    RAJESH GAMI			Change the new billing invoicing table with old one (SO)    
+	5	11 July 2025	RAJESH GAMI			Get SOShipping ID from the BIlling Invoicing If it's posted    
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
@@ -41,7 +42,7 @@ BEGIN
 			 sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
 			 sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
 			 CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  
-			 SOBI.ShippingId AS  SOShippingId,
+			 (CASE WHEN ISNULL(BI.IsInvoicePosted,0) = 1 THEN SOBI.ShippingId ELSE 0 END) AS  SOShippingId,
 			 sosi.FedexPdfPath,
 			 Stk.ECCN AS ECCN,
 			 Stk.HSCODE AS HSCODE,
@@ -64,7 +65,8 @@ BEGIN
 	  LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId   
 		 AND SPI.SalesOrderPartId = sop.SalesOrderPartId  
 	  LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  
-	  LEFT JOIN DBO.BillingInvoicingItems SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.ShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId
+	  LEFT JOIN DBO.BillingInvoicingItems SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.ShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.IsVersionIncrease,0) = 0
+	  LEFT JOIN DBO.BillingInvoicing BI  WITH (NOLOCK) ON SOBI.BillingInvoicingId = BI.BillingInvoicingId AND BI.ModuleId = @soModuleId AND ISNULL(BI.IsVersionIncrease,0) = 0 
 	  WHERE sopt.SalesOrderId = @SalesOrderId  
 	  AND sop.ItemMasterId = @SalesOrderPartId  
 	  AND sop.ConditionId = @ConditionId  

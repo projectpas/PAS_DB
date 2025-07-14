@@ -1,7 +1,5 @@
 ﻿CREATE TABLE [dbo].[AiIntegrationSetting] (
     [AiIntegrationSettingId]       BIGINT          IDENTITY (1, 1) NOT NULL,
-    [FromDate]                     DATETIME        NOT NULL,
-    [ToDate]                       DATETIME        NOT NULL,
     [IsEnableDisableAIintegration] BIT             NOT NULL,
     [IsReviewRequired]             BIT             NULL,
     [IsAutoEmailSend]              BIT             NULL,
@@ -14,6 +12,8 @@
     [UpdatedDate]                  DATETIME2 (7)   CONSTRAINT [DF_AiIntegrationSetting_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_AiIntegrationSetting_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_AiIntegrationSetting_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [YearId]                       BIGINT          NULL,
+    [MonthId]                      BIGINT          NULL,
     CONSTRAINT [PK_AiIntegrationSetting] PRIMARY KEY CLUSTERED ([AiIntegrationSettingId] ASC)
 );
 

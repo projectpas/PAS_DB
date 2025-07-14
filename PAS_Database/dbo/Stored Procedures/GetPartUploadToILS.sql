@@ -14,7 +14,7 @@
  ** --   --------     -------		   -------------------------------          
     1    25/06/2025   Amit Ghediya     Created
     
- EXEC GetPartUploadToILS 1
+ EXEC GetPartUploadToILS 20
 
 **************************************************************/ 
     
@@ -27,9 +27,41 @@ BEGIN
 	BEGIN TRY
 
 			DECLARE @Condition_Code VARCHAR(100) = 'AR,NE,NS,OH,SVC',
-					@NHA_MappingType INT = 1;
+					@NHA_MappingType INT = 1,
+					@SiteId BIGINT = 0,
+					@WarehouseId BIGINT = 0,
+					@LocationId BIGINT = 0,
+					@ShelfId BIGINT = 0,
+					@BinId BIGINT = 0;
 
-			SELECT  TOP 2
+			SELECT @SiteId = [SiteId],@WarehouseId = [WarehouseId],@LocationId = [LocationId],@ShelfId = [ShelfId],@BinId = [BinId] FROM [dbo].[StocklineSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+
+			IF(@SiteId = 0)
+			BEGIN
+				SET @SiteId = NULL;
+			END
+
+			IF(@WarehouseId = 0)
+			BEGIN
+				SET @WarehouseId = NULL;
+			END
+
+			IF(@LocationId = 0)
+			BEGIN
+				SET @LocationId = NULL;
+			END
+
+			IF(@ShelfId = 0)
+			BEGIN
+				SET @ShelfId = NULL;
+			END
+
+			IF(@BinId = 0)
+			BEGIN
+				SET @BinId = NULL;
+			END
+
+			SELECT TOP 2
 				1 AS ITEMNUMBER,
 				'' AS 'COMPANYID',
 				IM.Partnumber AS 'PARTNUMBER',
@@ -51,15 +83,18 @@ BEGIN
 			FROM [dbo].[Stockline] STK WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
 			LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType
-			INNER JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
-			INNER JOIN [dbo].[StocklineSettings] STKS WITH(NOLOCK) ON  STKs.SiteId = STK.SiteId 
-				  AND STK.WarehouseId = STKS.WarehouseId 
-				  AND STK.LocationId = STKS.LocationId 
-				  AND STK.ShelfId = STKS.ShelfId
-				  AND STK.BinId = STKS.BinId
-				  AND STKS.MasterCompanyId = @MasterCompanyId
+			LEFT JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
 			INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
-			WHERE STK.MasterCompanyId = @MasterCompanyId AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code,','))
+			WHERE STK.MasterCompanyId = @MasterCompanyId 
+			AND @SiteId IS NULL OR STK.SiteId = @SiteId
+			AND @WarehouseId IS NULL OR STK.WarehouseId = @WarehouseId
+			AND @LocationId IS NULL OR STK.LocationId = @LocationId
+			AND @ShelfId IS NULL OR STK.ShelfId = @ShelfId
+			AND @BinId IS NULL OR STK.BinId = @BinId
+			AND STK.isActive = 1
+			AND STK.isDeleted = 0
+			AND STk.MasterCompanyId = @MasterCompanyId
+			AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code,','))
 			ORDER BY STK.CreatedDate DESC
 	END TRY    
 	BEGIN CATCH      

@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
+﻿/*********************     
+** Author:  <BHARGAV SALIYA >    
+** Create date: <July-01-2025>    
+** Description: <get Ai Integration Setting Data by mastercompanyId>    
+    
+EXEC [USP_GetPNLabelSettingData]   
+**********************   
+** Change History   
+**********************     
+** PR   Date              Author          Change Description    
+** --   --------          -------         --------------------------------  
+** 1	July-01-2025	BHARGAV SALIYA    Create
+** 2	July-11-2025	BHARGAV SALIYA    Modified Two Fields YearId and MonthId
+
+exec dbo.USP_GetPNLabelSettingData 1  
+**********************/   
+CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
 	@AiIntegrationSettingId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -6,8 +22,8 @@
 	@IsEnableDisableAIintegration BIT,
 	@IsReviewRequired BIT,
 	@IsAutoEmailSend BIT,
-	@FromDate DATETIME2(7),
-	@ToDate DATETIME2(7),
+	@YearId bigint = 0,
+	@MonthId bigint = 0,
 	@PercentId bigint = 0
 AS
 BEGIN
@@ -29,8 +45,8 @@ BEGIN
 			   AND TARGET.MasterCompanyId = SOURCE.MasterCompanyId
 		WHEN MATCHED THEN
 			UPDATE SET 
-				TARGET.FromDate = @FromDate,
-				TARGET.ToDate = @ToDate,
+				TARGET.YearId = @YearId,
+				TARGET.MonthId = @MonthId,
 				TARGET.IsEnableDisableAIintegration = @IsEnableDisableAIintegration,
 				TARGET.IsReviewRequired = @IsReviewRequired,
 				TARGET.IsAutoEmailSend = @IsAutoEmailSend,
@@ -39,8 +55,8 @@ BEGIN
 				TARGET.UpdatedDate = GETUTCDATE(),
 				TARGET.UpdatedBy = @UpdatedBy
 		WHEN NOT MATCHED BY TARGET THEN
-			INSERT ([FromDate], [ToDate], [IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-			VALUES (@FromDate, @ToDate, @IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0);
+			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId])
+			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId);
 
 		COMMIT TRANSACTION;
 	END TRY
@@ -59,8 +75,8 @@ BEGIN
 											  '@Parameter6 = '''+ CAST(ISNULL(@IsReviewRequired, '') as Varchar(100))+		
 											  '@Parameter7 = '''+ CAST(ISNULL(@IsAutoEmailSend, '') as Varchar(100))+		
 											  '@Parameter8 = '''+ CAST(ISNULL(@MasterCompanyId, '') as Varchar(100))+		
-											  '@Parameter9 = '''+ CAST(ISNULL(@FromDate, '') as Varchar(100))+		
-											  '@Parameter10 = '''+ CAST(ISNULL(@ToDate, '') as Varchar(100))
+											  '@Parameter9 = '''+ CAST(ISNULL(@YearId, '') as Varchar(100))+		
+											  '@Parameter10 = '''+ CAST(ISNULL(@MonthId, '') as Varchar(100))
 		, @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
 		exec spLogException   

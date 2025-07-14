@@ -20,6 +20,7 @@
 	4    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
 	5	 26-Jun-2025	Rajesh Gami			Modified as per new billing table changes (WO, SO)
 	6	 07-Jul-2025	Devendra Shekh		Modified (Balance Amount Issue Resolved, Added LegalEntityId)
+	7	 10-Jul-2025	Devendra Shekh		Modified (Balance Amount Changes)
 
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
@@ -204,8 +205,7 @@ BEGIN
 							CR.Code,
 							--WOBI.[GrandTotal], -- BalanceAmount
 							--WOBI.[RemainingAmount], -- BalanceAmount
-							CASE WHEN ISNULL(WOBI.IsPerformaInvoice, 0) = 0 THEN (WOBI.RemainingAmount) ELSE 
-						    CASE WHEN ISNULL(WOBI.DepositAmount, 0) - ISNULL(WOBI.UsedDeposit, 0) = 0 THEN 0 ELSE ((-1)*(ISNULL(WOBI.DepositAmount,0))) END END,  -- BalanceAmount
+							CASE WHEN ISNULL(WOBI.IsPerformaInvoice, 0) = 0 THEN (WOBI.RemainingAmount) ELSE ((-1) * (ISNULL(WOBI.DepositAmount, 0) - ISNULL(WOBI.UsedDeposit, 0))) END,  -- BalanceAmount
 							WOBI.[RemainingAmount], -- RemainingAmount
 							((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)),  -- CurrentAmount     
 							ISNULL(WOBI.[RemainingAmount], 0) + ISNULL(WOBI.[CreditMemoUsed], 0), --PaymentAmount  		               				
@@ -271,7 +271,7 @@ BEGIN
 				LEFT JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId
 			WHERE ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND WO.[MasterCompanyId] = @MasterCompanyid 
 				AND WOBI.[InvoiceStatus] = @InvoiceStatus
-				AND ((ISNULL(WOBI.[IsPerformaInvoice],0) = 0 AND ISNULL(WOBI.[RemainingAmount],0) > 0) OR (ISNULL(WOBI.[IsPerformaInvoice],0) = 1 AND (ISNULL(WOBI.DepositAmount, 0) - ISNULL(WOBI.UsedDeposit, 0)) > 0))
+				AND ((ISNULL(WOBI.[IsPerformaInvoice],0) = 0 AND ISNULL(WOBI.[RemainingAmount],0) > 0) OR (ISNULL(WOBI.[IsPerformaInvoice],0) = 1 AND ISNULL(WOBI.DepositAmount, 0) > 0))
 				AND WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) AND WOBI.ModuleId = @workOrderModuleId
 				
 			UPDATE #TEMPInvoiceRecords SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
@@ -325,8 +325,7 @@ BEGIN
 								CR.Code,
 								--SOBI.[GrandTotal],  -- [BalanceAmount]
 								--SOBI.[RemainingAmount], -- BalanceAmount
-								CASE WHEN ISNULL(SOBI.IsPerformaInvoice, 0) = 0 THEN (SOBI.RemainingAmount) ELSE 
-								CASE WHEN ISNULL(SOBI.DepositAmount, 0) - ISNULL(SOBI.UsedDeposit, 0) = 0 THEN 0 ELSE ((-1)*(ISNULL(SOBI.DepositAmount,0))) END END, -- BalanceAmount
+								CASE WHEN ISNULL(SOBI.IsPerformaInvoice, 0) = 0 THEN (SOBI.RemainingAmount) ELSE ((-1) * (ISNULL(SOBI.DepositAmount, 0) - ISNULL(SOBI.UsedDeposit, 0))) END, -- BalanceAmount
 								SOBI.[RemainingAmount], -- RemainingAmount
 								(SOBI.[GrandTotal] - (SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0))), -- 'CurrentlAmount',
 								SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0), -- 'PaymentAmount', 
@@ -396,7 +395,7 @@ BEGIN
 					JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId
 				WHERE SO.[MasterCompanyId] = @Mastercompanyid
 					AND SOBI.[InvoiceStatus] = @InvoiceStatus 
-					AND ((ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBI.[RemainingAmount],0) > 0) OR (ISNULL(SOBI.IsPerformaInvoice,0) = 1 AND (ISNULL(SOBI.DepositAmount, 0) - ISNULL(SOBI.UsedDeposit, 0)) > 0))
+					AND ((ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBI.[RemainingAmount],0) > 0) OR (ISNULL(SOBI.IsPerformaInvoice,0) = 1 AND ISNULL(SOBI.DepositAmount, 0) > 0))
 					AND SO.[CustomerId] = ISNULL(@CustomerId, SO.CustomerId) AND SOBI.ModuleId = @salesOrderModuleId
 					
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)

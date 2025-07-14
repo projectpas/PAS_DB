@@ -15,7 +15,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    02/03/2020   Hemant Saliya Created
+    1    02/03/2020   Hemant Saliya		Created
+	2    11/07/2025   Devendra Shekh    added PartNumberLabel
      
  EXECUTE [GetWorkOrderSummarisedChargesData] 365
 
@@ -56,13 +57,16 @@ BEGIN
 					ELSE (SELECT WOC.ReferenceNo FROM dbo.WorkOrderCharges WOC WITH(NOLOCK) WHERE WOC.WorkOrderId = @WorkOrderId AND WOC.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId AND WOC.IsDeleted = 0 AND WOC.IsActive = 1) END AS RefNum,
 					
 					WOP.WorkOrderId,
-					WOWF.WorkFlowWorkOrderId
+					WOWF.WorkFlowWorkOrderId,
+					CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+							WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE im.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 				FROM dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) 
 					JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
 					LEFT JOIN dbo.WorkOrderCharges WC WITH(NOLOCK) ON WOWF.WorkFlowWorkOrderId = WC.WorkFlowWorkOrderId
+					LEFT JOIN  [dbo].StockLine SL WITH(NOLOCK) ON WOP.StockLineId = SL.StockLineId
 				WHERE WOP.IsDeleted = 0 AND WOP.WorkOrderId = @WorkOrderId AND WC.IsDeleted = 0 AND WC.IsActive = 1
-				GROUP BY IM.partnumber, Im.PartDescription, IM.RevisedPart, WOP.WorkOrderId, WOWF.WorkFlowWorkOrderId 
+				GROUP BY IM.partnumber, Im.PartDescription, IM.RevisedPart, WOP.WorkOrderId, WOWF.WorkFlowWorkOrderId,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 
 			END
 		COMMIT  TRANSACTION

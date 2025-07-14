@@ -10,6 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    05-05-2025		HEMANT SALIYA			Created  	
 	2    03-07-2025     Moin Bloch              Changed Old To New Billing Table
+	3    11-07-2025		Devendra Shekh			added PartNumberLabel
 		
 	exec dbo.USP_WorkOrderAnalysisDetailsById 8631,8331
 **************************************************************/
@@ -61,7 +62,9 @@ BEGIN
 				wo.WorkOrderNum,
 				s.Stage,
 				st.[Description] AS [Status],
-				CAST(0 AS BIT) AS IsQuoteRevenue
+				CAST(0 AS BIT) AS IsQuoteRevenue,
+				CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+						WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
@@ -73,7 +76,7 @@ BEGIN
 				--LEFT JOIN [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1
 				LEFT JOIN [dbo].[BillingInvoicingItems] wbi WITH(NOLOCK) ON wop.ID = wbi.SubReferenceId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1 AND wbi.[ModuleId] =@WOModuleId
 				LEFT JOIN [dbo].[BillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1 AND wb.[ModuleId] =@WOModuleId
-			
+				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			WHERE wo.WorkOrderId = @WorkOrderId 
 			ORDER BY wop.ID;
 		END
@@ -128,7 +131,9 @@ BEGIN
 				wo.WorkOrderNum,
 				s.Stage,
 				st.[Description] AS [Status],
-				CAST(1 AS BIT) AS IsQuoteRevenue
+				CAST(1 AS BIT) AS IsQuoteRevenue,
+				CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+						WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
@@ -137,6 +142,7 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderStage] s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
+				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			WHERE wo.WorkOrderId = @WorkOrderId 
 			ORDER BY wop.ID;
 		END

@@ -16,11 +16,10 @@
  ** --		--------		-------				--------------------------------            
  **	1							
  **	2		20-Jan-2025		Devendra Shekh		Added IsQuickBookEnabled to select and formatted the SP
+ **	3		10-JUL-2025		Moin Bloch  		Added IsBillingMultipleMPN 
 
- EXEC [usp_GetcompanyDetails] 1
-**************************************************************/  
- 
- 
+ EXEC [usp_GetcompanyDetails] 20
+**************************************************************/    
 CREATE   PROCEDURE [dbo].[usp_GetcompanyDetails] 
 @mastercompanyid int
 AS  
@@ -32,8 +31,9 @@ BEGIN
     BEGIN TRANSACTION  
   
 	  SELECT	MasterCompanyId, MasterCompanyCode, CompanyName, TaxId, EmailAddress, companylogo,
-				Line1, Line2, City, StateOrProvince, PostalCode, CountryId, PhoneNumber, ISNULL(IsQuickBookEnabled, 0) AS IsQuickBookEnabled 
-	  FROM [dbo].[MasterCompany] where MasterCompanyId = @mastercompanyid
+				Line1, Line2, City, StateOrProvince, PostalCode, CountryId, PhoneNumber, ISNULL(IsQuickBookEnabled, 0) AS IsQuickBookEnabled, 
+				ISNULL(IsBillingMultipleMPN, 0) AS IsBillingMultipleMPN 
+	  FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @mastercompanyid
 
     COMMIT TRANSACTION  
   END TRY  

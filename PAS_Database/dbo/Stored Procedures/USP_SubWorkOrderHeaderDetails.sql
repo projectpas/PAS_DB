@@ -16,6 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    25-April-2025   Bhargav Saliya		Created
+	2    11-July-2025    Devendra Shekh     added PartNumberLabel
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SubWorkOrderHeaderDetails]
     @WorkOrderId INT,
@@ -61,7 +62,9 @@ BEGIN
 			ISNULL(fcu.Code, '') AS FunctionalCurrency,
 			ISNULL(rcu.Code, '') AS ReportCurrency,
 			CASE WHEN wo.ForeignExchangeRate > 0 THEN wo.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
-			wosett.Is813013aeOr14ae
+			wosett.Is813013aeOr14ae,
+			CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+					WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 		FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
 		INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId

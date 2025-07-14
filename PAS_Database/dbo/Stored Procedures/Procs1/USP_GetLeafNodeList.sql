@@ -15,6 +15,7 @@
 	4   12/12/2023		Moin Bloch		    order by AccountCode issue resolved
 	5   01Mar2023		Rajesh Gami			GLMapping Sequence related change
 	6   05-Mar-2025     Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+	7   11-JUL-2025		Moin Bloch		    Added GLAccountType in GLAccount
 
     USP_GetLeafNodeList 1,1,226
 **************************************************************/ 
@@ -53,7 +54,8 @@ BEGIN
 		AS(
 			SELECT 
 			L.LeafNodeId,L.Name,L.ParentId,LP.Name 'ParentNodeName',
-			l.IsLeafNode,GL.AccountCode + '-' + GL.AccountName 'GLAccount',
+			l.IsLeafNode,
+			GL.AccountCode + '-' + GL.AccountName + '-' + GLT.GLAccountClassName  'GLAccount',
 			L.MasterCompanyId,
 			L.CreatedBy,
 			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -97,6 +99,7 @@ BEGIN
 			FROM dbo.LeafNode L WITH(NOLOCK)
 			LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH(NOLOCK) ON L.LeafNodeId = GLM.LeafNodeId AND GLM.IsDeleted = 0
 			LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON GLM.GLAccountId = GL.GLAccountId
+			LEFT JOIN dbo.GLAccountClass GLT WITH(NOLOCK) ON GLT.GLAccountClassId = GL.GLAccountTypeId
 			LEFT JOIN dbo.LeafNode LP WITH(NOLOCK) ON L.ParentId = LP.LeafNodeId
 			WHERE L.MasterCompanyId = @masterCompanyId AND L.IsDeleted = 0 AND
 			L.ReportingStructureId = @ReportingStructureId AND L.IsActive = 1 

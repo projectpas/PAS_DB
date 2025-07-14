@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [UpdateSalesOrderQuotePartsStatus]           
  ** Author:   EKTA CHANDEGRA
  ** Description: This stored procedure is used to UpdateSalesOrderQuotePartsStatus
@@ -13,8 +14,8 @@
  ******************************************x********************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    04/03/2025	 EKTA CHANDEGRA	 Created  
-
+    1    04/03/2025	 EKTA CHANDEGRA		Created  
+    2    14/07/2025	 RAJESH GAMI		Added SalesQuoteId  & Call the new SP for update the SOQ Header status  
 --  exec dbo.UpdateSalesOrderQuotePartsStatus @SalesOrderQuotePartId=3377,@SalesOrderQuotePartStatus=3,@UpdatedBy=N'EKTA CHANDEGRA'
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[UpdateSalesOrderQuotePartsStatus]
@@ -27,13 +28,13 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 		DECLARE @ItemMasterId BIGINT;
-		DECLARE @ConditionId BIGINT;
+		DECLARE @ConditionId BIGINT, @SalesOrderQuoteId BIGINT =0;
 		DECLARE @Result BIT;
 		SET @Result = 0;
 
 		-- Retrieve the first sales order quote part
 		SELECT TOP 1 @ItemMasterId = sop.ItemMasterId,
-					 @ConditionId = sop.ConditionId
+					 @ConditionId = sop.ConditionId, @SalesOrderQuoteId = sop.SalesOrderQuoteId
 		FROM [dbo].[SalesOrderQuotePartV1] sop WITH(NOLOCK)
 		WHERE ISNULL(sop.IsActive,0) = 1 
 		  AND ISNULL(sop.IsDeleted,0) = 0 
@@ -49,13 +50,15 @@ BEGIN
 			WHERE ISNULL(IsActive,0) = 1 
 			  AND ISNULL(IsDeleted,0) = 0
 			  AND ItemMasterId = @ItemMasterId
-			  AND ConditionId = @ConditionId;
+			  AND ConditionId = @ConditionId
+			  AND SalesOrderQuoteId = @SalesOrderQuoteId;
 			
 			IF @@ROWCOUNT > 0
 			BEGIN
 				SET @Result = 1;
 			END
 		END
+		EXEC [dbo].[SP_UpdateSOQHeaderStatusBySOQId] @SalesOrderQuoteId
 		SELECT @Result AS 'Result';
 	END TRY
 	BEGIN CATCH

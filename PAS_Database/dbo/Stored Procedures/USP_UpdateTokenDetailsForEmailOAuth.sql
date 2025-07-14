@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    05/23/2025   Vishal Suthar		Created
+    2    07/14/2025   Vishal Suthar		Inserting Not Null fields with default values
      
 -- EXEC USP_UpdateTokenDetailsForEmailOAuth
 ************************************************************************/
@@ -46,8 +47,8 @@ BEGIN TRANSACTION
 	END
 	ELSE
 	BEGIN
-		INSERT INTO DBO.Usersmtpsetting (EmployeeId,AccessToken,RefreshToken,TokenExpiresIn,TokenCreatedAt,UpdatedDate)
-		VALUES (@EmployeeId,@AccessToken,@RefreshToken,@ExpiresIn,GETDATE(),GETDATE())
+		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,AccessToken,RefreshToken,TokenExpiresIn,TokenCreatedAt,UpdatedDate)
+		VALUES (@EmployeeId,'','',0,@AccessToken,@RefreshToken,@ExpiresIn,GETDATE(),GETDATE())
 	END
 
 	SELECT smtpsettingId from DBO.Usersmtpsetting WITH (NOLOCK) WHERE EmployeeId = @EmployeeId;

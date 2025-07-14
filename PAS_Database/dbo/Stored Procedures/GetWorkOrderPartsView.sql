@@ -14,11 +14,13 @@
     1    08-APR-2025   Abhishek Jirawla	Created
     2    15-APR-2025   RAJESH GAMI 	    Added Order By (WO Part Id Ascending)
     3    17-APR-2025   Abhishek Jirawla Adding Item Group and other modifications
+	4    10-JUL-2025   Moin Bloch       Added PublicationNotes
+	4    11-Jul-2025   Devendra Shekh    added PartNumberLabel
 
- EXECUTE [USP_GetWorkOrderPartsView] 1
+ EXECUTE [GetWorkOrderPartsView] 9756
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetWorkOrderPartsView]
-    @WorkOrderId INT
+@WorkOrderId INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -44,7 +46,7 @@ BEGIN
 		SELECT @WorkOrderMPNModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'WorkOrderMPN'
 
 		SELECT DISTINCT
-		Wop.ID,
+		    Wop.ID,
 			wop.ManagementStructureId,
 			wop.ItemMasterId AS itemMasterId,
 			-- Use COALESCE to handle NULL values and prioritize RevisedPartNumber/Description/SerialNumber
@@ -89,11 +91,14 @@ BEGIN
 			CONCAT(wf.WorkOrderNumber, '_', wf.Version) AS WorkFlowNo,
 			ts.StationName AS TechStation,
 			ISNULL(wop.ContractNo, '') AS ContractNo,
-			COALESCE(cmot.Memo, '') AS NotesSection,
+			--COALESCE(cmot.Memo, '') AS NotesSection,
+			wop.PublicationNotes  AS NotesSection,
 			wowf.WorkFlowWorkOrderId,
 			COALESCE(cmot.CommonWorkOrderTearDownId, 0) AS CommonWorkOrderTearDownId,
 			msd.AllMSlevels,
-			msd.LastMSLevel
+			msd.LastMSLevel,
+			CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+					WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE wop.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 		FROM dbo.WorkOrderPartNumber wop WITH (NOLOCK)
 		INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId
 		INNER JOIN dbo.WorkOrderManagementStructureDetails msd WITH (NOLOCK) ON wop.ID = msd.ReferenceID AND msd.ModuleID = @WorkOrderMPNModuleId
@@ -116,7 +121,6 @@ BEGIN
 		LEFT JOIN dbo.EmployeeStation ts WITH (NOLOCK) ON wop.TechStationId = ts.EmployeeStationId
 		LEFT JOIN dbo.CommonWorkOrderTeardown cmot WITH (NOLOCK) ON wowf.WorkFlowWorkOrderId = cmot.WorkFlowWorkOrderId AND wop.WorkOrderId = cmot.WorkOrderId
 		LEFT JOIN dbo.CommonTeardownType cm WITH (NOLOCK) ON cmot.CommonTeardownTypeId = cm.CommonTeardownTypeId AND cmot.MasterCompanyId = cm.MasterCompanyId
-
 		WHERE wop.WorkOrderId = @WorkOrderId
 		  AND wop.IsDeleted = 0
 		  AND (cm.Name IS NULL OR cm.Code = @CorrectiveActionCode)

@@ -84,8 +84,11 @@
     [EmployeeStation]            VARCHAR (100)   NULL,
     [PublicationNo]              VARCHAR (MAX)   NULL,
     [TravelerNumber]             VARCHAR (100)   NULL,
+    [PublicationNotes]           NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

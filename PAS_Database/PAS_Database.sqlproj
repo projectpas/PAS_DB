@@ -4025,6 +4025,9 @@
     <Build Include="dbo\Tables\IntegrationStatus.sql" />
     <Build Include="dbo\Stored Procedures\IsExistsInventoryPartForIntegration.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShippinIdInBillingInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkorderQuoteCurrectiveAction.sql" />
+    <Build Include="dbo\Tables\Years.sql" />
+    <Build Include="dbo\Tables\Months.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteFreightAuditByFreightId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteChargesAuditByChargeId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteSettingList.sql" />

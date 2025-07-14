@@ -10,7 +10,7 @@
  ** --   --------			-------				--------------------------------            
     1    03-04-2025			AMIT GHEDIYA		Created
     2    04-04-2025			Devendra SHekh		Added Audit Details changes
-
+	3    10-07-2025         Moin Bloch          Updated PublicationNotes
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_updateTeardownNotes]
 	@WorkOrderId BIGINT,
@@ -24,24 +24,33 @@ BEGIN
 
 	BEGIN TRY
 		
-		UPDATE [DBO].[CommonWorkOrderTearDown]
-			SET 
-			Memo = @Memo
-			WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND CommonWorkOrderTearDownId = @CommonWorkOrderTearDownId;
+		--UPDATE [DBO].[CommonWorkOrderTearDown]
+		--	SET 
+		--	Memo = @Memo
+		--	WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND CommonWorkOrderTearDownId = @CommonWorkOrderTearDownId;
 	
-		--Adding Audit Details
-		DECLARE @CommonTeardownType VARCHAR(250), @CommonTeardownTypeId BIGINT = 0;
+		----Adding Audit Details
+		--DECLARE @CommonTeardownType VARCHAR(250), @CommonTeardownTypeId BIGINT = 0;
 
-		SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonWorkOrderTearDownId] = @CommonWorkOrderTearDownId;
-		SELECT @CommonTeardownType = [Name] FROM [dbo].[CommonTeardownType] WITH(NOLOCK)  where CommonTeardownTypeId= @CommonTeardownTypeId
+		--SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonWorkOrderTearDownId] = @CommonWorkOrderTearDownId;
+		--SELECT @CommonTeardownType = [Name] FROM [dbo].[CommonTeardownType] WITH(NOLOCK)  where CommonTeardownTypeId= @CommonTeardownTypeId
 
-		INSERT INTO [dbo].[CommonWorkOrderTearDownAudit]
-				([CommonWorkOrderTearDownId] ,[CommonTeardownType] ,[Memo] ,[TechnicianDate] ,[InspectorDate] ,[ReasonName] ,[InspectorName] ,[TechnicalName]
-				,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted] ,[MasterCompanyId] ,[IsSubWorkOrder])
-		SELECT	@CommonWorkOrderTeardownId ,@CommonTeardownType ,@Memo ,[TechnicianDate] ,[InspectorDate] ,[ReasonName] ,[InspectorName] ,[TechnicalName]
-				,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,GETDATE(), [IsActive] ,[IsDeleted] ,[IsSubWorkOrder] ,IsSubWorkOrder
-		FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK)
-		WHERE CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
+		--INSERT INTO [dbo].[CommonWorkOrderTearDownAudit]
+		--		([CommonWorkOrderTearDownId] ,[CommonTeardownType] ,[Memo] ,[TechnicianDate] ,[InspectorDate] ,[ReasonName] ,[InspectorName] ,[TechnicalName]
+		--		,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted] ,[MasterCompanyId] ,[IsSubWorkOrder])
+		--SELECT	@CommonWorkOrderTeardownId ,@CommonTeardownType ,@Memo ,[TechnicianDate] ,[InspectorDate] ,[ReasonName] ,[InspectorName] ,[TechnicalName]
+		--		,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,GETDATE(), [IsActive] ,[IsDeleted] ,[IsSubWorkOrder] ,IsSubWorkOrder
+		--FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK)
+		--WHERE CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
+
+		DECLARE @WorkOrderPartNoId BIGINT = 0
+
+		SELECT @WorkOrderPartNoId = WorkOrderPartNoId 
+		 FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) 
+		WHERE [WorkOrderId] = @WorkOrderId 
+		  AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+		  
+		UPDATE [dbo].[WorkOrderPartNumber] SET [PublicationNotes] = @Memo WHERE [ID] = @WorkOrderPartNoId AND [WorkOrderId] = @WorkOrderId 
 
 	END TRY   
 	BEGIN CATCH      

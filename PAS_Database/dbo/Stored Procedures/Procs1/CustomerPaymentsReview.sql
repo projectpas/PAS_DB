@@ -18,8 +18,9 @@
 	6    08/04/2024    Devendra Shekh	remaining amt issue for known customer without invoices resolved
 	7    19/04/2024    Moin Bloch	    Duplicate issue
 	8    20/06/2024    Moin Bloch	    Added isDeleted flage
+	9    11/07/2024    Moin Bloch	    Fix For Stand Alone Credit Memo
 
-	EXEC [dbo].[CustomerPaymentsReview]  188
+	EXEC [dbo].[CustomerPaymentsReview]  155
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[CustomerPaymentsReview]    
@@ -30,28 +31,8 @@ BEGIN
  SET NOCOUNT ON    
  BEGIN TRY    
     	
-  --;WITH myCTE(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount) AS    
-	 -- (SELECT DISTINCT IPS.ReceiptId, C.CustomerId, C.Name, C.CustomerCode,     
-	 -- LTRIM(RTRIM(A.PaymentRef)) PaymentRef, 
-	 -- (ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0)) AS 'Amount'
-	 -- FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)    
-	 -- LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = IPS.CustomerId    
-	 -- LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId    
-	 -- LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.CustomerId = IPS.CustomerId    
-	 -- LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.CustomerId = IPS.CustomerId    
-	 -- LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.CustomerId = IPS.CustomerId    
-	 -- OUTER APPLY(    
-	 --  SELECT DISTINCT  ((ISNULL(ICP1.CheckNumber,'')) + (CASE WHEN IWP1.ReferenceNo IS NOT NULL THEN ' ' + IWP1.ReferenceNo ELSE '' END) +     
-	 --  (CASE WHEN ICCP1.Reference IS NOT NULL THEN ' ' + ICCP1.Reference ELSE '' END)) AS 'PaymentRef'    
-	 --  FROM [dbo].[CustomerPayments] CP1 WITH (NOLOCK) --ON CP.ReceiptId = IPS.ReceiptId    
-	 --  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP1 WITH (NOLOCK)  ON ICP1.ReceiptId = CP1.ReceiptId AND ICP1.CustomerId = IPS.CustomerId    
-	 --  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP1 WITH (NOLOCK) ON IWP1.ReceiptId = CP1.ReceiptId AND IWP1.CustomerId = IPS.CustomerId    
-	 --  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP1 WITH (NOLOCK) ON ICCP1.ReceiptId = CP1.ReceiptId AND ICCP1.CustomerId = IPS.CustomerId    
-	 --  WHERE CP.ReceiptId = CP1.ReceiptId --AND ICP1.ReceiptId = IPS.ReceiptId --AND ICP1.CustomerId = IPS.CustomerId    
-	 -- ) A    
-	 -- WHERE CP.ReceiptId = @ReceiptId    
-	 -- AND IPS.IsDeleted = 0
-	 -- GROUP BY A.PaymentRef, IPS.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, ICP.CheckNumber, IWP.ReferenceNo, ICCP.Reference, ICP.Amount, IWP.Amount, ICCP.Amount, IPS.PaymentAmount)    
+	 DECLARE @CreditMemoInvoiceType INT = 3;
+	 DECLARE @StandAloneCreditMemoInvoiceType INT = 4;
 
 	;WITH myCTE(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount) AS 
 	  (SELECT  CP.ReceiptId, 
@@ -143,8 +124,8 @@ BEGIN
 			 C.CustomerCode,     
 			 REPLACE(PaymentRef, '~' ,'') AS PaymentRef,
 			 Amount, 
-			 CASE WHEN ISNULL(IPS.PaymentId, 0) = 0 AND ISNULL(CU.Ismiscellaneous, 0) = 0 THEN Amount ELSE (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0))  END AS AmountRemaining,
-			(Amount - (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0)))  AS AmtApplied  
+			 CASE WHEN ISNULL(IPS.PaymentId, 0) = 0 AND ISNULL(CU.Ismiscellaneous, 0) = 0 THEN Amount ELSE (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = @CreditMemoInvoiceType OR IPS.InvoiceType = @StandAloneCreditMemoInvoiceType THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0))  END AS AmountRemaining,
+			(Amount - (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = @CreditMemoInvoiceType OR IPS.InvoiceType = @StandAloneCreditMemoInvoiceType THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0)))  AS AmtApplied  
 		  FROM myCTE3 C          
 	  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId AND IPS.IsActive = 1 AND IPS.IsDeleted = 0     
 	  LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = C.CustomerId    

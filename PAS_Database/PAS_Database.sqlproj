@@ -4022,9 +4022,14 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateDepositAmount.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderShippingLabelBySalesOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingIds.sql" />
+    <Build Include="dbo\Tables\IntegrationStatus.sql" />
+    <Build Include="dbo\Stored Procedures\IsExistsInventoryPartForIntegration.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShippinIdInBillingInvoice.sql" />
     <Build Include="dbo\Stored Procedures\SP_UpdateSOQHeaderStatusBySOQId.sql" />
     <Build Include="dbo\Stored Procedures\SP_UpdateSOHeaderStatusBySOId.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkorderQuoteCurrectiveAction.sql" />
+    <Build Include="dbo\Tables\Years.sql" />
+    <Build Include="dbo\Tables\Months.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

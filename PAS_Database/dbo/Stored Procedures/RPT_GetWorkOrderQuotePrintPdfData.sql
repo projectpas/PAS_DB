@@ -20,7 +20,7 @@
 	6    28-APR-2025	Abhishek Jirawla    Added Corrective Action Data
 	7    01-MAY-2025    Hemant Saliya		Created for Marerials, labor, flat rate changes
 	8    09-MAY-2025	Devendra Shekh		Added IsPrintCorrectiveAction to select
-
+	9    10-JUL-2025    Moin Bloch          Updated MEMO To PublicationNotes
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -110,6 +110,24 @@ BEGIN
 					LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 					LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 				WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 )
+		--,Memo =
+		--		(SELECT CAST('<x>' + 
+		--			REPLACE(
+		--				REPLACE(
+		--					REPLACE(
+		--						REPLACE(
+		--							REPLACE(
+		--								REPLACE(ctd.Memo, '&', '&amp;'),
+		--							'<', '&lt;'),
+		--						'>', '&gt;'),
+		--					'"', '&quot;'),
+		--				'''', '&apos;'),
+		--			'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)')
+		--			FROM
+		--				dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
+		--				LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
+		--			WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
+
 		,Memo =
 				(SELECT CAST('<x>' + 
 					REPLACE(
@@ -117,16 +135,12 @@ BEGIN
 							REPLACE(
 								REPLACE(
 									REPLACE(
-										REPLACE(ctd.Memo, '&', '&amp;'),
+										REPLACE(wop.PublicationNotes, '&', '&amp;'),
 									'<', '&lt;'),
 								'>', '&gt;'),
 							'"', '&quot;'),
 						'''', '&apos;'),
-					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)')
-					FROM
-						dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
-						LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
-					WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
+					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)'))
 		,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 	FROM dbo.WorkOrder wo WITH(NOLOCK)        
 		 INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
@@ -141,7 +155,7 @@ BEGIN
 	WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 	GROUP BY im.PartNumber,  
-		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,  
+		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,wop.PublicationNotes,  
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wop.RevisedPartNumber, wop.RevisedPartDescription
 		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)

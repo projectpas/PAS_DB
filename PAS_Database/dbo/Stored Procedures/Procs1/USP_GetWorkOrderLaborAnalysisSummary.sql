@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisSummary]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -17,12 +16,13 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
-	2    01/19/2022   Hemant Saliya Update Calculated Values
-    3    01/09/2025   Moin Bloch    Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
-	4    01/29/2025   Moin Bloch    Update SET Hours
+    1    02/22/2021   Hemant Saliya		Created
+	2    01/19/2022   Hemant Saliya		Update Calculated Values
+    3    01/09/2025   Moin Bloch		Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
+	4    01/29/2025   Moin Bloch		Update SET Hours
+	5    07/11/2025   Devendra Shekh    added PartNumberLabel
      
- EXECUTE USP_GetWorkOrderLaborAnalysisSummary 60, 67,false
+ EXECUTE USP_GetWorkOrderLaborAnalysisSummary 9752, 0,false
 
 **************************************************************/ 
     
@@ -72,7 +72,9 @@ SET NOCOUNT ON
 							c.[Name] AS Customer,
 							wo.WorkOrderNum,
 							ws.Stage,
-							st.[Description] AS [Status]
+							st.[Description] AS [Status],
+							CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+									WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE im.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 						FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
 							JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId
 							JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
@@ -83,9 +85,10 @@ SET NOCOUNT ON
 							JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 							JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 							JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
+							LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 						WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
 						GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,wop.Id,BillableId,
-						 c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours
+						 c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 					END
 					if(@workOrderPartNoId > 0)
 					BEGIN   
@@ -162,7 +165,9 @@ SET NOCOUNT ON
 								c.[Name] AS Customer,
 								wo.WorkOrderNum,
 								ws.Stage,
-								st.[Description] As [Status]
+								st.[Description] As [Status],
+								CASE	WHEN ISNULL(wop.RevisedPartNumber, '') != '' AND ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedPartNumber + '-' + wop.RevisedSerialNumber 
+										WHEN ISNULL(wop.RevisedPartNumber, '') != '' THEN wop.RevisedPartNumber + '-' + sl.ControlNumber ELSE im.partnumber + '-' + sl.ControlNumber END AS PartNumberLabel
 							FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
 								JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId
 								JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
@@ -173,9 +178,10 @@ SET NOCOUNT ON
 								JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 								JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 								JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
+								LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 							WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
 							GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,
-								c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours
+								c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 					END
 
 		END TRY    

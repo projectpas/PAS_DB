@@ -25,8 +25,11 @@
     [IsAccountByPass]          BIT           NULL,
     [IsDeleted]                BIT           NULL,
     [IsQuickBookEnabled]       BIT           NULL,
+    [IsBillingMultipleMPN]     BIT           DEFAULT ((0)) NULL,
     CONSTRAINT [PK_MasterCompanyAudit] PRIMARY KEY CLUSTERED ([MasterCompanyAuditId] ASC)
 );
+
+
 
 
 

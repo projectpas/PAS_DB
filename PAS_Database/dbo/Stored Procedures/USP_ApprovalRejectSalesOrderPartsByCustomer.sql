@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_ApprovalRejectSalesOrderPartsByCustomer]           
  ** Author:   BHARGAV SALIYA
  ** Description: This stored procedure is used to Approval Reject Sales Order Parts By Customer
@@ -16,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    25-06-2025	 BHARGAV SALIYA	  Created 
 	2    14-07-2025	 RAJESH GAMI	  Call the new SP for update the SO Header status  
+	3    15-07-2025	 Devendra Shekh	  Added @ContactId param
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
@@ -29,7 +29,8 @@ CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
 	@MasterCompanyId bigint,
 	@UpdatedBy varchar(250),
     @Action VARCHAR(100),
-	@ApprovalActionId BIGINT
+	@ApprovalActionId BIGINT,
+	@ContactId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -82,7 +83,7 @@ BEGIN
 					CustomerApprovedBy = @ApproveCustName,
 					ApprovalAction = @RejectApprovalAction,
 					CustomerStatus = @RejectCustomerStatus,
-					RejectedById = @CustomerId,
+					RejectedById = @ContactId,
 					RejectedByName = @ApproveCustName,
 					RejectedDate = GETUTCDATE()
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId  

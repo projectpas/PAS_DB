@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    26-03-2025	 BHARGAV SALIYA	 Created  
+	2    15-07-2025	 Devendra Shekh	  Added @ContactId param
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesQuotePartsByCustomer]
@@ -25,7 +26,8 @@ CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesQuotePartsByCustomer]
 	@SalesOrderQuotePartId bigint,
 	@UpdatedBy varchar(250),
     @Action VARCHAR(100),
-	@ApprovalActionId BIGINT
+	@ApprovalActionId BIGINT,
+	@ContactId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -56,7 +58,8 @@ BEGIN
 					UpdatedDate = GETUTCDATE(),
 					CustomerApprovedBy = @ApproveCustName,
 					ApprovalAction = @ApprovalAction,
-					CustomerStatus = @CustomerStatus
+					CustomerStatus = @CustomerStatus,
+					CustomerApprovedById = @ContactId
 			WHERE SalesOrderQuoteId = @SalesOrderQuoteId AND SalesOrderQuotePartId = @SalesOrderQuotePartId 
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 
@@ -73,7 +76,7 @@ BEGIN
 					--CustomerApprovedBy = @ApproveCustName,
 					ApprovalAction = @RejectApprovalAction,
 					CustomerStatus = @RejectCustomerStatus,
-					RejectedById = @CustomerId,
+					RejectedById = @ContactId,
 					RejectedByName = @ApproveCustName,
 					RejectedDate = GETUTCDATE()
 			WHERE SalesOrderQuoteId = @SalesOrderQuoteId AND SalesOrderQuotePartId = @SalesOrderQuotePartId 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SP_SaveSOPartStatusByPartId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to save part status by part id
@@ -15,7 +16,8 @@
     1    15/12/2023  Rajesh Gami		Created
     2    19/12/2023  Rajesh Gami		changes by rajesh
 	3    11/04/2024	 Vishal Suthar		Modified to make use of new SO Part tables
-	3    11/04/2024	 Rajesh Gami		Modified : Implemented statusID logic in the SalesOrderStocklineV1
+	4    11/04/2024	 Rajesh Gami		Modified : Implemented statusID logic in the SalesOrderStocklineV1
+	5    14/07/2025	 Rajesh Gami		Call the SP for update SO Header status
      
 ************************************************************************/
 
@@ -44,7 +46,7 @@ BEGIN
 			BEGIN
 				UPDATE dbo.SalesOrderPartV1 set StatusId = @StatusId WHERE SalesOrderPartId = @SalesOrderPartId;
 				UPDATE dbo.SalesOrderStocklineV1 set StatusId = @StatusId WHERE SalesOrderPartId = @SalesOrderPartId;
-
+				EXEC [dbo].[SP_UpdateSOHeaderStatusBySOId] @SOID
 			END
 		END
 	END	

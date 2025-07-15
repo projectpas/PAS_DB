@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_SearchCustomerInvoices]           
  ** Author:  
  ** Description: Search CustomerInvoices 
@@ -48,6 +47,9 @@
 	31  17 Jun 2025   Moin Bloch        Added CustomerId
 	32  26 Jun 2025   RAJESH GAMI       Resovled duplicate WO Invoice while Invoice VIEW filter selection due to WorkFlowWorkORderId
 	33  04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing 
+	34  14 Jul 2025	  Moin Bloch        added Credit Memo
+	35  15 Jul 2025	  Hemant Saliya     Remove the credit memo condition (Where we check the CM status and all)
+	36  15 Jul 2025	  Moin Bloch        added Customer Code
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -90,6 +92,7 @@ BEGIN
 	  DECLARE @ModuleID VARCHAR(500) ='12'
 	  DECLARE @SOModuleID VARCHAR(500) ='17'
 	  DECLARE @ExchSOModuleID VARCHAR(500) ='19'
+	  DECLARE @CMMSModuleID BIGINT;
 	  DECLARE @IsActive BIT = 1  
 	  DECLARE @Count INT;  
 	  DECLARE @InvoiceTotalAmount DECIMAL(18, 2);  
@@ -107,6 +110,10 @@ BEGIN
 	  DECLARE @workOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder')
 	  DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
 	  DECLARE @exchModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'ExchangeSalesOrder')
+	  DECLARE @creditMemoModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'CreditMemo')	
+
+	  SELECT @CMMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='CREDITMEMOHEADER';
+
 	  SELECT 
 			@CurrntEmpTimeZoneDesc = COALESCE(
 				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
@@ -154,7 +161,8 @@ BEGIN
 						CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 			       ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   WO.WorkOrderNum [OrderNumber],
-				   C.Name [CustomerName],				   
+				   C.Name [CustomerName],	
+				   C.CustomerCode,
 				   CT.CustomerTypeName [CustomerType],
 				   WOBI.GrandTotal [InvoiceAmt],
 				   ISNULL(WOBI.RemainingAmount,0) RemainingAmount,
@@ -187,7 +195,9 @@ BEGIN
 				   	WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
 				   	WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
 				   	ELSE 'OEM' END) END) AS 'StockTypeType',
-					@workOrderModuleId as ModuleId
+					@workOrderModuleId as ModuleId,
+					0 AS IsStandAloneCM,
+					0 AS IsCreditMemo
 				FROM dbo.WorkOrder WO WITH (NOLOCK)
 					JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WO.WorkOrderId 
 					JOIN dbo.WorkorderManagementStructureDetails M WITH (NOLOCK) ON M.ReferenceID = WOPN.ID AND M.ModuleID = @ModuleID
@@ -206,9 +216,9 @@ BEGIN
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(WOBI.RemainingAmount,0) > 0
-			AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			--AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 			AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(WOBI.IsPerformaInvoice,0) = 0))
-			GROUP BY	WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceStatus, WOBI.InvoiceDate, WO.WorkOrderNum, C.[Name], CT.CustomerTypeName, WOBI.GrandTotal, WOBI.RemainingAmount, WQ.QuoteNumber, WOBI.ReferenceId
+			GROUP BY	WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceStatus, WOBI.InvoiceDate, WO.WorkOrderNum, C.[Name],C.CustomerCode, CT.CustomerTypeName, WOBI.GrandTotal, WOBI.RemainingAmount, WQ.QuoteNumber, WOBI.ReferenceId
 						, C.CustomerId, CRM.RMAHeaderId, WOBI.IsPerformaInvoice, WOPN.ManagementStructureId
 			),				
 			WorkFlowData AS(  
@@ -221,19 +231,19 @@ BEGIN
 				GROUP BY PC.ReferenceId,PC.BillingInvoicingId--,WOFN.WorkFlowWorkOrderId
 				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, M.PN [PN],M.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerCode,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, M.PN [PN],M.PNDescription [PNDescription],
 				M.PartNumberType,M.PartDescriptionType,M.StockType,M.StocktypeType,
 				M.VersionNo,M.VersionNoType,M.QuoteNumber,
 				M.CustomerReference,M.CustomerReferenceType,M.SerialNumber,M.SerialNumberType,M.IsWorkOrder,M.IsExchange,
-				M.LastMSLevel,M.AllMSlevels, M.ReferenceId,M.CustomerId,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId
+				M.LastMSLevel,M.AllMSlevels, M.ReferenceId,M.CustomerId,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId,M.IsStandAloneCM,M.IsCreditMemo
 				FROM Result M   
 					LEFT JOIN WorkFlowData WOFD  on WOFD.BillingInvoicingId=M.InvoicingId
 					GROUP BY 
 				M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,PN,M.PNDescription,
+				M.CustomerName,M.CustomerCode,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,PN,M.PNDescription,
 				M.PartNumberType,M.PartDescriptionType,M.StockType,M.StocktypeType,
 				M.VersionNo,M.VersionNoType,M.QuoteNumber,M.LastMSLevel,M.AllMSlevels	,
-				M.CustomerReference,M.CustomerReferenceType,M.SerialNumber,M.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId,M.IsExchange,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId)
+				M.CustomerReference,M.CustomerReferenceType,M.SerialNumber,M.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId,M.IsExchange,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId,M.IsStandAloneCM,M.IsCreditMemo)
 			,SOResult AS(
 				SELECT DISTINCT 
 				       SOBI.BillingInvoicingId [InvoicingId],
@@ -244,7 +254,8 @@ BEGIN
 							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.SalesOrderNumber [OrderNumber],
-					   C.Name [CustomerName],					   
+					   C.Name [CustomerName],		
+					   C.CustomerCode,
 					   CT.CustomerTypeName [CustomerType],
 					   SOBI.GrandTotal [InvoiceAmt],
 					   ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
@@ -277,7 +288,9 @@ BEGIN
 						 WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
 						 WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
 						 ELSE 'OEM' END ) END) AS 'StockTypeType',
-						 @salesOrderModuleId as ModuleId
+						 @salesOrderModuleId as ModuleId,
+						 0 AS IsStandAloneCM,
+						 0 AS IsCreditMemo
 			FROM dbo.BillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId =SOBI.BillingInvoicingId --AND ISNULL(SOBII.[IsBilling], 0) != 1
 				LEFT JOIN dbo.SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.ReferenceId
@@ -293,24 +306,24 @@ BEGIN
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsVersionIncrease,0)=0  AND SOBI.ModuleId = @salesOrderModuleId
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(SOBI.RemainingAmount,0) > 0
-				AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+				--AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsPerformaInvoice,0) = 0))
-				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name], CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
+				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
 							, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ReferenceId, C.CustomerId, CRM.RMAHeaderId, SOBI.IsPerformaInvoice, SMS.EntityMSID 
 						),
 				SOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, M.AmountPaid, M.PN [PN],M.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerCode,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, M.AmountPaid, M.PN [PN],M.PNDescription [PNDescription],
 				M.PartNumberType,M.PartDescriptionType,M.StockType,M.StocktypeType,
 				M.VersionNo,M.VersionNoType,
 				M.QuoteNumber,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
-				M.CustomerReference,ISNULL(M.SerialNumber,'') [SerialNumber],M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId
+				M.CustomerReference,ISNULL(M.SerialNumber,'') [SerialNumber],M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId,M.IsStandAloneCM,M.IsCreditMemo
 				FROM SOResult M   
 				GROUP BY 
 				M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,M.PNDescription,
+				M.CustomerName,M.CustomerCode,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,M.PNDescription,
 				M.PartNumberType,M.PartDescriptionType,M.StockType,M.StocktypeType,
 				M.VersionNo,M.VersionNoType,M.QuoteNumber,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
-				M.CustomerReference,ISNULL(M.SerialNumber,''),M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId
+				M.CustomerReference,ISNULL(M.SerialNumber,''),M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId,M.IsStandAloneCM,M.IsCreditMemo
 					),
 				ExchSOResult AS(
 			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],
@@ -321,7 +334,8 @@ BEGIN
 						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.ExchangeSalesOrderNumber [OrderNumber],
-				   C.Name [CustomerName],				   
+				   C.Name [CustomerName],
+				   C.CustomerCode,
 				   CT.CustomerTypeName [CustomerType],
 				   SOBI.GrandTotal [InvoiceAmt],
 				   ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
@@ -353,7 +367,9 @@ BEGIN
 					WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
 					WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
 					ELSE 'OEM' END ) END) AS 'StockTypeType',
-					@exchModuleId as ModuleId
+					@exchModuleId as ModuleId,
+					0 AS IsStandAloneCM,
+					0 AS IsCreditMemo
 			FROM dbo.ExchangeSalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN dbo.ExchangeSalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId
 				LEFT JOIN dbo.ExchangeSalesOrderPart SOPN WITH (NOLOCK) ON SOPN.ExchangeSalesOrderId =SOBI.ExchangeSalesOrderId
@@ -365,66 +381,133 @@ BEGIN
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 AND ISNULL(SOBI.GrandTotal,0) > 0	
-			AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			--AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 			AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0))
-			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name], CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
+			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
 						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId
 						),
 				ExchSOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,M.PN as [PN],M.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerCode,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,M.PN as [PN],M.PNDescription [PNDescription],
 				M.PartNumberType,M.PartDescriptionType,M.StockType,M.StocktypeType,
 				M.VersionNo,M.VersionNoType,
 				'' as QuoteNumber,
 				M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
 				M.CustomerReference,'' as CustomerReferenceType,
-				ISNULL(M.SerialNumber,'') [SerialNumber],M.IsWorkOrder,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId
+				ISNULL(M.SerialNumber,'') [SerialNumber],M.IsWorkOrder,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId,M.IsStandAloneCM,M.IsCreditMemo
 				FROM ExchSOResult M 
 				GROUP BY 
 				M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,M.PNDescription,
+				M.CustomerName,M.CustomerCode,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,M.PNDescription,
 				M.PartNumberType,M.PartDescriptionType,M.StockType,M.StocktypeType,
 				M.VersionNo,M.VersionNoType,M.QuoteNumber,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
-				M.CustomerReference,ISNULL(M.SerialNumber,''),M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId
-				)
-			   , FinalResult AS(
+				M.CustomerReference,ISNULL(M.SerialNumber,''),M.IsWorkOrder,M.CustomerReferenceType,M.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice,M.ManagementStructureId,M.ModuleId,M.IsStandAloneCM,M.IsCreditMemo
+				),
+
+		CreditMemoResult AS(
+				SELECT DISTINCT CM.[CreditMemoHeaderId] [InvoicingId],
+				       UPPER(CM.[CreditMemoNumber]) [InvoiceNo],
+					   UPPER(CM.[Status]) [InvoiceStatus],					   
+					   CM.[CreatedDate] [InvoiceDate],					  
+					   CMD.[SOWONum] [OrderNumber],			
+					   UPPER(C.[Name]) [CustomerName],
+					   C.CustomerCode,
+					   CT.CustomerTypeName [CustomerType],					   
+					   CMD.[Amount] [InvoiceAmt],
+					   CMD.[Amount] [RemainingAmount],
+					   0 [AmountPaid],
+					   '' [QuoteNumber],
+					   IsWorkOrder=0,
+					   IsExchange=0,
+					   MSD.LastMSLevel,
+					   MSD.AllMSlevels, 
+					   CM.CreditMemoHeaderId AS [ReferenceId],
+					   C.CustomerId,
+					   0 as WorkFlowWorkOrderId,
+					   0 isRMACreate,
+					   0 AS IsPerformaInvoice,
+					   MSD.EntityMSID AS ManagementStructureId,
+					   '' AS 'VersionNo',
+					   '' AS 'VersionNoType',					   					  
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELse MAX(CMD.ReferenceNo) END) AS 'CustomerReference',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELse MAX(CMD.ReferenceNo) END) AS 'CustomerReferenceType',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELse MAX(CMD.SerialNumber) END) AS 'SerialNumber',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELse MAX(CMD.SerialNumber) END) AS 'SerialNumberType',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELSE MAX(CMD.partnumber) END) AS 'PN',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELSE MAX(CMD.partnumber) END) AS 'PartNumberType',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELSE MAX(CMD.PartDescription) END) AS 'PNDescription',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELSE MAX(CMD.PartDescription) END) AS 'PartDescriptionType',
+					   (CASE WHEN COUNT(CMD.CreditMemoDetailId) > 1 Then 'Multiple' ELSE MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
+						     WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
+					         WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
+					    ELSE 'OEM' END ) END) AS 'StockType'
+				       ,(CASE WHEN COUNT(*) OVER (PARTITION BY  CM.[CreditMemoNumber],I.ItemMasterId) > 1 THEN 'Multiple' ELse MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
+						WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
+						WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
+						ELSE 'OEM' END ) END) AS 'StockTypeType',
+					    @creditMemoModuleId as [ModuleId],
+						CM.IsStandAloneCM,
+						1 AS IsCreditMemo
+				FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
+				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
+				 LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId  
+				 LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			     LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CM.CustomerId = CF.CustomerId    
+			     LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
+				INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId
+				INNER JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.EntityStructureId = CM.ManagementStructureId
+				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
+				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
+				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
+			WHERE CM.MasterCompanyId = @MasterCompanyid
+				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
+						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM	
+			)		 
+		   , FinalResult AS(
 					SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt, RemainingAmount, AmountPaid ,[PN], [PNDescription],
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt, RemainingAmount, AmountPaid ,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
-				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId
+				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo	
 				FROM Results
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount, AmountPaid,[PN], [PNDescription],
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt,RemainingAmount, AmountPaid,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
-				CustomerReference,SerialNumber ,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId
+				CustomerReference,SerialNumber ,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo		
 					UNION ALL 
 				SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
-				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId
+				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo		
 				FROM SOResults
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid,[PN], [PNDescription],
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
-				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId
+				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo		
 					UNION ALL 
 				SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
-				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId
+				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo		
 				FROM ExchSOResults
+					UNION ALL 
+				SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
+				PartNumberType,PartDescriptionType,StockType,StocktypeType,
+				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
+				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo		
+				FROM CreditMemoResult
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid,[PN], [PNDescription],
+				CustomerName,CustomerCode,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
-				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId
+				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice,ManagementStructureId,ModuleId,IsStandAloneCM,IsCreditMemo		
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM FinalResult)  
    SELECT * INTO #TempResult from  FinalResult
    WHERE (  
@@ -521,6 +604,7 @@ BEGIN
 				ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],
+				C.CustomerCode,
 				C.CustomerId,
 				CT.CustomerTypeName [CustomerType],
 				WOBII.GrandTotal [InvoiceAmt], 
@@ -544,7 +628,9 @@ BEGIN
 					 WOBI.ReferenceId AS [ReferenceId],WOWF.WorkFlowWorkOrderId,
 			    CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 					 ,ISNULL(WOBI.IsPerformaInvoice, 0) AS IsPerformaInvoice,
-				MSD.EntityMSID AS ManagementStructureId,@workOrderModuleId as ModuleId
+				MSD.EntityMSID AS ManagementStructureId,@workOrderModuleId as ModuleId,
+				0 AS IsStandAloneCM,
+				0 AS IsCreditMemo	
 				FROM dbo.BillingInvoicing WOBI WITH (NOLOCK)
 				LEFT JOIN dbo.BillingInvoicingItems WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
 				--AND ISNULL(WOBII.[IsInvoicePosted], 0) != 1 
@@ -563,7 +649,7 @@ BEGIN
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(WOBI.RemainingAmount,0) > 0
-			AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			--AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 
 			UNION ALL
 
@@ -577,6 +663,7 @@ BEGIN
 				   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 				   SO.SalesOrderNumber [OrderNumber],
 				   C.Name [CustomerName],
+				   C.CustomerCode,
 				   C.CustomerId,
 				   CT.CustomerTypeName [CustomerType],
 				   SUM(ISNULL(SOBII.GrandTotal,0)) [InvoiceAmt], 
@@ -601,7 +688,9 @@ BEGIN
 					   0 as WorkFlowWorkOrderId,
 					   CASE WHEN Max(CRM.RMAHeaderId) >1 then 1 else  0 end isRMACreate
 					   ,ISNULL(SOBI.IsPerformaInvoice, 0) AS IsPerformaInvoice,
-					   SMS.EntityMSID AS ManagementStructureId,@salesOrderModuleId as ModuleId
+					   SMS.EntityMSID AS ManagementStructureId,@salesOrderModuleId as ModuleId,
+					   0 AS IsStandAloneCM,
+					   0 AS IsCreditMemo	
 			FROM dbo.BillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId
 				LEFT JOIN dbo.SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.ReferenceId AND SOPN.SalesOrderPartId = SOBII.SubReferenceId
@@ -617,10 +706,10 @@ BEGIN
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND SOBI.ModuleId = @salesOrderModuleId
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(SOBI.RemainingAmount,0) > 0
-			 AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+			 --AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				GROUP BY SOBI.BillingInvoicingId,SOBI.InvoiceNo,
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
-					C.Name ,CT.CustomerTypeName , SOBII.RemainingAmount,
+					C.Name ,C.CustomerCode,CT.CustomerTypeName , SOBII.RemainingAmount,
 					SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
 					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
 					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId ,SOBII.GrandTotal,C.CustomerId
@@ -637,6 +726,7 @@ BEGIN
 					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
 					   SO.ExchangeSalesOrderNumber [OrderNumber],
 					   C.Name [CustomerName],
+					   C.CustomerCode,
 					   C.CustomerId,
 					   CT.CustomerTypeName [CustomerType],
 					   SOBI.GrandTotal [InvoiceAmt],
@@ -662,7 +752,9 @@ BEGIN
 					   0 as WorkFlowWorkOrderId,
 					   0 isRMACreate,
 					   0 IsPerformaInvoice,
-					   SMS.EntityMSID AS ManagementStructureId, @exchModuleId as ModuleId
+					   SMS.EntityMSID AS ManagementStructureId, @exchModuleId as ModuleId,
+					   0 AS IsStandAloneCM,
+					   0 AS IsCreditMemo	
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
 				LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId
 				LEFT JOIN [dbo].[ExchangeSalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.ExchangeSalesOrderId =SOBI.ExchangeSalesOrderId
@@ -675,8 +767,59 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId = IM.ItemMasterId
 				WHERE SOBI.MasterCompanyId=@MasterCompanyId	
 				 AND SOBII.[IsDeleted] = 0 AND ISNULL(SOBI.[GrandTotal],0) > 0	
-			     AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
-						
+			     --AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			
+			UNION ALL
+
+				SELECT DISTINCT CM.[CreditMemoHeaderId] [InvoicingId],				      
+					   ROW_NUMBER() OVER (PARTITION BY CM.[CreditMemoNumber],I.ItemMasterId ORDER BY CM.CreditMemoHeaderId) AS [RowNum],
+				       UPPER(CM.[CreditMemoNumber]) [InvoiceNo],
+					   UPPER(CM.[Status]) [InvoiceStatus],	
+					   CM.[CreatedDate] [InvoiceDate],
+					   CMD.[SOWONum] [OrderNumber],									   
+					   UPPER(C.[Name]) [CustomerName],
+					   C.[CustomerCode],
+					   C.[CustomerId],
+					   CT.[CustomerTypeName] [CustomerType],						   				   
+					   CMD.[Amount] [InvoiceAmt],
+					   CMD.[Amount] [RemainingAmount],
+					   0 [AmountPaid],
+					   I.[partnumber] [PN], 
+					   I.[PartDescription] [PNDescription],
+					   '' AS 'VersionNo',
+					   '' [QuoteNumber],
+					   CMD.[ReferenceNo] AS 'CustomerReference',					   
+					   CMD.[SerialNumber] AS 'SerialNumber',
+					   CMD.[stocklineid],
+					   CASE WHEN I.[IsPma] = 1 AND I.[IsDER] = 1 THEN 'PMA&DER'
+						 WHEN I.[IsPma] = 1 AND I.[IsDER] = 0 THEN 'PMA'
+						 WHEN I.[IsPma] = 0 AND I.[IsDER] = 1 THEN 'DER'
+						 ELSE 'OEM' END AS [StockType],
+					   [IsWorkOrder]=0,
+					   [IsExchange]=0,
+					   MSD.[LastMSLevel],
+					   MSD.[AllMSlevels], 
+					   CM.[CreditMemoHeaderId] AS [ReferenceId],
+					   0 AS [WorkFlowWorkOrderId],
+					   0 [isRMACreate],
+					   0 [IsPerformaInvoice],
+					   MSD.EntityMSID AS ManagementStructureId,
+					   @creditMemoModuleId as [ModuleId],
+					   CM.IsStandAloneCM,
+					   1 AS IsCreditMemo	
+				FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
+				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
+				 LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId  
+				 LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			     LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CM.CustomerId = CF.CustomerId    
+			     LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
+				INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId
+				INNER JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.EntityStructureId = CM.ManagementStructureId
+				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
+				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
+				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
+			WHERE CM.MasterCompanyId = @MasterCompanyid
+
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result where  RowNum = 1)  
 			   SELECT * INTO #TempResults from  Result
 			   WHERE RowNum = 1 AND (  

@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2024   Vishal Suthar Created
     2    12/13/2024   Vishal Suthar Fixed an alias for Credit Terms
-     
+    3    15-07-2025  Rajesh Gami	Fixed: showing proper status
  -- EXEC DBO.GetSalesOrderQuoteById 804
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetSalesOrderQuoteById]
@@ -104,7 +104,7 @@ BEGIN
 			soq.UpdatedDate,
 			soq.IsDeleted,
 			soq.IsActive,
-			soq.StatusName AS Status,
+			MST.Name AS Status,
 			soq.StatusChangeDate,
 			soq.ManagementStructureId,
 			sAddress.UserTypeName AS ShipToUserType,
@@ -144,6 +144,7 @@ BEGIN
 			ISNULL(rcu.Code, '') AS ReportCurrency,
 			CASE WHEN soq.ForeignExchangeRate > 0 THEN soq.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
+		INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
 		LEFT JOIN DBO.ManagementStructure mn WITH (NOLOCK) ON soq.ManagementStructureId = mn.ManagementStructureId
 		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 		LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON soq.CustomerId = cust.CustomerId

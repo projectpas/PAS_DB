@@ -13,13 +13,15 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    25-06-2025	 BHARGAV SALIYA	  Created  
+    1    25-06-2025	 BHARGAV SALIYA	  Created 
+	2    14-07-2025	 RAJESH GAMI	  Call the new SP for update the SO Header status  
+	3    15-07-2025	 Devendra Shekh	  Added @ContactId param
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
 	@SalesOrderId BIGINT,
 	@SalesOrderPartId BIGINT,
-	@CustomerApprovedById BIGINT,
+	@CustomerApprovedById BIGINT = NULL,
     @CustomerId BIGINT,
 	@InternalStatusId BIGINT,
 	@IsActive bit,
@@ -27,7 +29,8 @@ CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
 	@MasterCompanyId bigint,
 	@UpdatedBy varchar(250),
     @Action VARCHAR(100),
-	@ApprovalActionId BIGINT
+	@ApprovalActionId BIGINT,
+	@ContactId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -52,7 +55,7 @@ BEGIN
 		BEGIN
 			UPDATE [dbo].[SalesOrderApproval]
 				SET CustomerApprovedDate = GETUTCDATE(),
-				    CustomerApprovedById = @CustomerApprovedById,
+				    CustomerApprovedById = @ContactId,
 					ApprovalActionId = @ApprovalProcessId,
 					CustomerStatusId = @CustStatusId,
 					InternalStatusId = @InternalStatusId,
@@ -65,28 +68,28 @@ BEGIN
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId 
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 
-		    --EXEC dbo.UpdateSalesOrderQuotePartsStatus @SalesOrderPartId, @ApprovalActionId, @UpdatedBy
+		    EXEC dbo.SP_UpdateSOHeaderStatusBySOId @SalesOrderId
 		END
 
 		ELSE IF(UPPER(@Action) = 'REJECT')
 		BEGIN
 			UPDATE [dbo].[SalesOrderApproval]
 				SET 
-					CustomerApprovedById = @CustomerApprovedById,
+					--CustomerApprovedById = @CustomerApprovedById,
 					ApprovalActionId = @RejectApprovalActionId,
 					CustomerStatusId = @RejectCustStatusId,
 					UpdatedBy = @UpdatedBy,
 					UpdatedDate = GETUTCDATE(),
-					CustomerApprovedBy = @ApproveCustName,
+					--CustomerApprovedBy = @ApproveCustName,
 					ApprovalAction = @RejectApprovalAction,
 					CustomerStatus = @RejectCustomerStatus,
-					RejectedById = @CustomerId,
+					RejectedById = @ContactId,
 					RejectedByName = @ApproveCustName,
 					RejectedDate = GETUTCDATE()
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId  
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 
-		    --EXEC dbo.UpdateSalesOrderQuotePartsStatus @SalesOrderQuotePartId, @ApprovalActionId, @UpdatedBy
+		    EXEC dbo.SP_UpdateSOHeaderStatusBySOId @SalesOrderId
 		END
 		
 	END TRY

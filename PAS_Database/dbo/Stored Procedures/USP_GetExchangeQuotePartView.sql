@@ -3,7 +3,7 @@
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuotePartView
  ** Purpose:         
- ** Date:   07/03/2025      
+ ** Date:   07/11/2025      
           
  ** PARAMETERS:  @ExchangeQuoteId BIGINT
          

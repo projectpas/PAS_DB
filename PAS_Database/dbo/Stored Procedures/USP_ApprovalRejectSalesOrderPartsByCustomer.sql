@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_ApprovalRejectSalesOrderPartsByCustomer]           
  ** Author:   BHARGAV SALIYA
  ** Description: This stored procedure is used to Approval Reject Sales Order Parts By Customer
@@ -13,7 +14,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    25-06-2025	 BHARGAV SALIYA	  Created  
+    1    25-06-2025	 BHARGAV SALIYA	  Created 
+	2    14-07-2025	 RAJESH GAMI	  Call the new SP for update the SO Header status  
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
@@ -65,7 +67,7 @@ BEGIN
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId 
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 
-		    --EXEC dbo.UpdateSalesOrderQuotePartsStatus @SalesOrderPartId, @ApprovalActionId, @UpdatedBy
+		    EXEC dbo.SP_UpdateSOHeaderStatusBySOId @SalesOrderId
 		END
 
 		ELSE IF(UPPER(@Action) = 'REJECT')
@@ -86,7 +88,7 @@ BEGIN
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId  
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 
-		    --EXEC dbo.UpdateSalesOrderQuotePartsStatus @SalesOrderQuotePartId, @ApprovalActionId, @UpdatedBy
+		    EXEC dbo.SP_UpdateSOHeaderStatusBySOId @SalesOrderId
 		END
 		
 	END TRY

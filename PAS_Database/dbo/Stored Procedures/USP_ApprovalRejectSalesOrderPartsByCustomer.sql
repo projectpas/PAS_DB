@@ -21,7 +21,7 @@
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
 	@SalesOrderId BIGINT,
 	@SalesOrderPartId BIGINT,
-	@CustomerApprovedById BIGINT,
+	@CustomerApprovedById BIGINT = NULL,
     @CustomerId BIGINT,
 	@InternalStatusId BIGINT,
 	@IsActive bit,
@@ -55,7 +55,7 @@ BEGIN
 		BEGIN
 			UPDATE [dbo].[SalesOrderApproval]
 				SET CustomerApprovedDate = GETUTCDATE(),
-				    CustomerApprovedById = @CustomerApprovedById,
+				    CustomerApprovedById = @ContactId,
 					ApprovalActionId = @ApprovalProcessId,
 					CustomerStatusId = @CustStatusId,
 					InternalStatusId = @InternalStatusId,
@@ -75,12 +75,12 @@ BEGIN
 		BEGIN
 			UPDATE [dbo].[SalesOrderApproval]
 				SET 
-					CustomerApprovedById = @CustomerApprovedById,
+					--CustomerApprovedById = @CustomerApprovedById,
 					ApprovalActionId = @RejectApprovalActionId,
 					CustomerStatusId = @RejectCustStatusId,
 					UpdatedBy = @UpdatedBy,
 					UpdatedDate = GETUTCDATE(),
-					CustomerApprovedBy = @ApproveCustName,
+					--CustomerApprovedBy = @ApproveCustName,
 					ApprovalAction = @RejectApprovalAction,
 					CustomerStatus = @RejectCustomerStatus,
 					RejectedById = @ContactId,

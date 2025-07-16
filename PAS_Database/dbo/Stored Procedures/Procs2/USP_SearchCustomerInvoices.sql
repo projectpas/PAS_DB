@@ -50,6 +50,7 @@
 	34  14 Jul 2025	  Moin Bloch        added Credit Memo
 	35  15 Jul 2025	  Hemant Saliya     Remove the credit memo condition (Where we check the CM status and all)
 	36  15 Jul 2025	  Moin Bloch        added Customer Code
+	37  16 Jul 2025	  Devendra Shekh	added Condition for IsActive/IsDeleted check
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -216,6 +217,7 @@ BEGIN
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(WOBI.RemainingAmount,0) > 0
+			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
 			--AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 			AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(WOBI.IsPerformaInvoice,0) = 0))
 			GROUP BY	WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceStatus, WOBI.InvoiceDate, WO.WorkOrderNum, C.[Name],C.CustomerCode, CT.CustomerTypeName, WOBI.GrandTotal, WOBI.RemainingAmount, WQ.QuoteNumber, WOBI.ReferenceId
@@ -306,6 +308,7 @@ BEGIN
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsVersionIncrease,0)=0  AND SOBI.ModuleId = @salesOrderModuleId
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(SOBI.RemainingAmount,0) > 0
+			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 				--AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsPerformaInvoice,0) = 0))
 				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
@@ -381,6 +384,7 @@ BEGIN
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 AND ISNULL(SOBI.GrandTotal,0) > 0	
+			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 			--AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 			AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0))
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
@@ -458,7 +462,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-			WHERE CM.MasterCompanyId = @MasterCompanyid
+			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM	
 			)		 
@@ -649,6 +653,7 @@ BEGIN
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(WOBI.RemainingAmount,0) > 0
+			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
 			--AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 
 			UNION ALL
@@ -706,6 +711,7 @@ BEGIN
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND SOBI.ModuleId = @salesOrderModuleId
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND ISNULL(SOBI.RemainingAmount,0) > 0
+			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 			 --AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				GROUP BY SOBI.BillingInvoicingId,SOBI.InvoiceNo,
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
@@ -767,6 +773,7 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId = IM.ItemMasterId
 				WHERE SOBI.MasterCompanyId=@MasterCompanyId	
 				 AND SOBII.[IsDeleted] = 0 AND ISNULL(SOBI.[GrandTotal],0) > 0	
+				 AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 			     --AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 			
 			UNION ALL
@@ -818,7 +825,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-			WHERE CM.MasterCompanyId = @MasterCompanyid
+			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result where  RowNum = 1)  
 			   SELECT * INTO #TempResults from  Result

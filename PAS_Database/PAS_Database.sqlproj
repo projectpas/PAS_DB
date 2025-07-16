@@ -4030,6 +4030,8 @@
     <Build Include="dbo\Stored Procedures\GetWorkorderQuoteCurrectiveAction.sql" />
     <Build Include="dbo\Tables\Years.sql" />
     <Build Include="dbo\Tables\Months.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOItemDepositAmount.sql" />
+    <Build Include="dbo\Stored Procedures\CopySOItemDepositeDetails.sql" />
     <Build Include="dbo\Tables\EmailApproval.sql" />
     <Build Include="dbo\Stored Procedures\InsertEmailApproval.sql" />
     <Build Include="dbo\Stored Procedures\GetDeleteEmailApprovalById.sql" />

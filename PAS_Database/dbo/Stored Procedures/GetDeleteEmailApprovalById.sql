@@ -19,7 +19,8 @@
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetDeleteEmailApprovalById]
 	@RefrenceId BIGINT,
-	@Mode INT = 0
+	@Mode INT = 0,
+	@ModuleId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -45,13 +46,15 @@ BEGIN
 				 [Email],
 				 [ContactId]		  
 		  FROM  [DBO].[EmailApproval] WITH (NOLOCK) 
-		  WHERE RefrenceId = @RefrenceId;
+		  WHERE RefrenceId = @RefrenceId
+		  AND ModuleId = @ModuleId;
 	END
-	ELSE --For Delete
+	IF(@Mode = 1) --For Delete
 	BEGIN
 		DELETE 
 			FROM  [DBO].[EmailApproval] 
-		 WHERE RefrenceId = @RefrenceId;
+		 WHERE RefrenceId = @RefrenceId
+		 AND ModuleId = @ModuleId;
 	END
 
 END TRY    

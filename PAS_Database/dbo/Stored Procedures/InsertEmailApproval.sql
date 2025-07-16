@@ -28,9 +28,9 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 
-		INSERT INTO [DBO].[EmailApproval] ([PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
+		INSERT INTO [DBO].[EmailApproval] ([PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[ModuleId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
 										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId])
-									SELECT [PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
+									SELECT [PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[ModuleId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
 										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId] 
 		FROM @EmailApproval;
 

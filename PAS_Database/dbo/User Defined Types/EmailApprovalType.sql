@@ -5,6 +5,7 @@
     [TotalSales]           DECIMAL (18, 4) NULL,
     [RefrenceId]           BIGINT          NULL,
     [SubRefrenceId]        BIGINT          NULL,
+    [ModuleId]             INT             NULL,
     [CustomerApprovedById] BIGINT          NULL,
     [CustomerId]           BIGINT          NULL,
     [InternalStatusId]     BIGINT          NULL,

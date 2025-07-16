@@ -4030,6 +4030,10 @@
     <Build Include="dbo\Stored Procedures\GetWorkorderQuoteCurrectiveAction.sql" />
     <Build Include="dbo\Tables\Years.sql" />
     <Build Include="dbo\Tables\Months.sql" />
+    <Build Include="dbo\Tables\EmailApproval.sql" />
+    <Build Include="dbo\Stored Procedures\InsertEmailApproval.sql" />
+    <Build Include="dbo\Stored Procedures\GetDeleteEmailApprovalById.sql" />
+    <Build Include="dbo\User Defined Types\EmailApprovalType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

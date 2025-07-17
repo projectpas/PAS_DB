@@ -33,6 +33,7 @@
 	16   10-APR-2025  Moin Bloch        Updated [QuantityReceived] in [PurchaseOrderPart] Table
 	17   18-APR-2025  Abhishek Jirawla  Added Integration Portal in Stockline
 	18   05-MAY-2025  Abhishek Jirawla  Added ObtainFrom in Stockline
+	19   16-JUL-2025  Moin Bloch        Modified ObtainFromType As NULL when it comes 0
 
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -572,7 +573,7 @@ BEGIN
 						[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],
 						ISNULL([RepairOrderUnitCost], 0),GETUTCDATE(),@ReceiverNumber,[ReconciliationNumber],ISNULL([UnitSalesPrice], 0),ISNULL([CoreUnitCost], 0),[GLAccountId],[AssetId],[IsHazardousMaterial],
 						[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],
-						[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],
+						CASE WHEN [ObtainFromType] = 0 THEN NULL ELSE [ObtainFromType] END,[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],
 						[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],
 						[WorkOrderId],CASE WHEN [WorkOrderMaterialsId] = 0 THEN NULL ELSE[WorkOrderMaterialsId]END,ISNULL([QuantityReserved], 0),ISNULL([QuantityTurnIn], 0),ISNULL([QuantityIssued], 0),CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
 							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,

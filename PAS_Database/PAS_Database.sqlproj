@@ -4046,6 +4046,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePrintData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteVerificationResult.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteAuditHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

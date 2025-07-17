@@ -15,10 +15,11 @@
  ** PR   Date         Author          Change Description            
  ** --   --------     -------		  --------------------------------          
     1    02/06/2025   Moin Bloch    Created
+	2    16/Jul/2025  Moin Bloch	Added UPPERCASE
 
 EXEC [dbo].[RPT_ACHByManagementStructId]  1
 **************************************************************/
-Create    PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
+CREATE      PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
 @ManagementStructId BIGINT = NULL
 AS
 BEGIN
@@ -36,9 +37,9 @@ BEGIN
 			SELECT 
 			'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(BankName, '')) + ' </label><br/>' +
 			'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(IntermediateBankName, '')) + ' </label><br/>' +
-			'Account Number: <label style="text-transform:uppercase;">' + UPPER(ISNULL(AccountNumber, '')) + '</label><br/>' +
-			'Routing Number: <label style="text-transform:uppercase;">' + UPPER(ISNULL(ABA, '')) + '</label><br/>' +
-			'Swift Code : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
+			'ACCOUNT NUMBER: <label style="text-transform:uppercase;">' + UPPER(ISNULL(AccountNumber, '')) + '</label><br/>' +
+			'ROUTING NUMBER: <label style="text-transform:uppercase;">' + UPPER(ISNULL(ABA, '')) + '</label><br/>' +
+			'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
 			AS ACHDetail
 		FROM [dbo].[ACH] WITH (NOLOCK)
 		WHERE LegalEntityId = @LegalEntityId 

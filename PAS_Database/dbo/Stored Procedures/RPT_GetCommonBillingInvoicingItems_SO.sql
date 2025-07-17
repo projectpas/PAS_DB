@@ -1,4 +1,5 @@
-﻿/*****************************************************************************************           
+﻿
+/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems_SO]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items FOR SO Invoice SSRS
@@ -14,8 +15,8 @@
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed 
 	3    22/JUN/2025   RAJESH GAMI   Charges Type Issue Fixed 
 	4    05/JUL/2025   RAJESH GAMI   added weight, and dimension fields for Commercial Invoice (Get from the Part table)
-	5    17/JUL/2025   VISHAL SUTHAR Trimming the Notes field with "<p></p>" tag in the beginning and end.
-
+	5   17/JUL/2025   RAJESH GAMI   SO: Freight Charges Amount Issue Fixed
+	6    17/JUL/2025   VISHAL SUTHAR Trimming the Notes field with "<p></p>" tag in the beginning and end.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -133,7 +134,7 @@ BEGIN
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId
 				WHERE BI.BillingInvoicingId = @BillingInvoicingId	 
-				UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
+				--UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
 				SELECT 
 						Freight,
 						MiscCharges,

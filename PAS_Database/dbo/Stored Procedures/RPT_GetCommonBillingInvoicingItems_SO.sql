@@ -15,8 +15,9 @@
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed 
 	3    22/JUN/2025   RAJESH GAMI   Charges Type Issue Fixed 
 	4    05/JUL/2025   RAJESH GAMI   added weight, and dimension fields for Commercial Invoice (Get from the Part table)
-	4    17/JUL/2025   RAJESH GAMI   SO: Freight Charges Amount Issue Fixed
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4400,10
+	5   17/JUL/2025   RAJESH GAMI   SO: Freight Charges Amount Issue Fixed
+	6    17/JUL/2025   VISHAL SUTHAR Trimming the Notes field with "<p></p>" tag in the beginning and end.
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -63,7 +64,13 @@ BEGIN
 					SerialNumber = UPPER(ISNULL(sl.SerialNumber,'')),
 					PNumber = UPPER(im.PartNumber),
 					PNDescription = UPPER(im.PartDescription),
-					Notes = ISNULL(stock.Notes, sop.Notes),
+					--Notes = ISNULL(stock.Notes, sop.Notes),
+					Notes = CASE 
+					  WHEN LOWER(LEFT(ISNULL(stock.Notes, sop.Notes), 3)) = '<p>'
+						   AND LOWER(RIGHT(ISNULL(stock.Notes, sop.Notes), 4)) = '</p>'
+					  THEN SUBSTRING(ISNULL(stock.Notes, sop.Notes), 4, LEN(ISNULL(stock.Notes, sop.Notes)) - 7)
+					  ELSE ISNULL(stock.Notes, sop.Notes)
+					END,
 					UOM = UPPER(im.PurchaseUnitOfMeasure),
 					Cond = UPPER(c.Description),
 					QtyShipped = ISNULL(BII.QtyBilled,0),

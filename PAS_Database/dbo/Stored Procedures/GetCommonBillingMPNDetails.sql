@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -23,6 +24,7 @@
 	11   26/06/2025   Rajesh Gami     Fixed to not getting invoicing id while get the part detail call 
 	12	 05/07/2025   AbhishekJirawla Added ConditionName	
 	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
+	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
@@ -488,7 +490,6 @@ BEGIN
 		END /*END: WORK ORDER ********/
 		ELSE IF(@ModuleId = @SOModuleId) /****************** START: SALES ORDER ********************/
 		BEGIN
-			
 			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 
 				  @SoFreightBillingMethodId = ISNULL(FreightBilingMethodId,0), @SoChargesBillingMethodId = ISNULL(ChargesBilingMethodId,0),
 				  @SoTotalCharges = ISNULL(TotalCharges,0), @SoTotalFreight = ISNULL(TotalFreight,0)
@@ -496,11 +497,12 @@ BEGIN
 
 
 			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
-				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId]
+				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
 								,COND.[Description] [Cond],
-						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,STK.QtyOrder,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
+				 LEFT JOIN dbo.SalesOrderPartCost PC WITH (NOLOCK) ON SOP.SalesOrderPartId = PC.SalesOrderPartId 
 				 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
 				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId				
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
@@ -571,16 +573,20 @@ BEGIN
 				BEGIN
 					SET @SOFreightAmount = ISNULL((SELECT SUM(ISNULL(BillingAmount,0)) FROM Dbo.SalesOrderFreight WHERE SalesOrderPartId = @ID AND ISNULL(IsDeleted,0) = 0),0.0)
 				END
-				--SET @UnitCost = (SELECT SUM(ISNULL(NetSaleAmountPerUnit,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
-				 SELECT @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId
-				--SET @PartsCost = (SELECT SUM(ISNULL(NetSaleAmount,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
-				--SET @PartsCost = ISNULL(@UnitCost,0.0) * ISNULL((Select QtyReserved From dbo.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderPartId = @ID),0.0)
+					IF(ISNULL(@SOStocklineId,0) >0)
+					BEGIN
+						SELECT @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId
+					END
+					ELSE
+					BEGIN
+						SELECT @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderPartCost WHERE SalesOrderPartId = @ID AND SalesOrderId = @ReferenceId
+					END
+			
 				DECLARE @stkShipped decimal(10,2) = ISNULL((Select SUM(ISNULL(QtyShipped,0)) From dbo.SalesOrderShippingItem SOS WITH(NOLOCK) INNER JOIN dbo.SOPickTicket SOPIC WITH(NOLOCK) on SOS.SOPickTicketId = SOPIC.SOPickTicketId
 															Where SOS.SalesOrderPartId =  @ID AND  SOS.IsActive = 1 AND ISNULL(SOS.IsDeleted,0) = 0 AND  SOPIC.SalesOrderPartStocklineId = @SOStocklineId),0.0)
 				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
-				PRINT @totalQtyShippedReserved
-				PRINT '@totalQtyShippedReserved'
+		
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					

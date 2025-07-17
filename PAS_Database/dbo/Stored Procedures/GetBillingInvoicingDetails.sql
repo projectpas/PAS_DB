@@ -18,6 +18,7 @@
 	4    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId 
 	5    07 JUL 2025   RAJESH GAMI  added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default selected
 	6    08 JUL 2025   RAJESH GAMI  Fixed: When we revise the proforma that time getting error 
+	7    17 JUL 2025   RAJESH GAMI  Implement SO notes
    EXEC [dbo].[GetBillingInvoicingDetails] 8781,8523,2,15,0,0
    EXEC [dbo].[GetBillingInvoicingDetails] 802,972,2,10,292,0
 **************************************************************/ 
@@ -124,7 +125,8 @@ BEGIN
 				@ItemCount AS [NoofPieces],
 				[wosh].[IsCustomerShipping],
 				@Result [BillShipInfoExist],
-				0 as InvoiceTypeId
+				0 as InvoiceTypeId,
+				'' Notes
 			FROM [dbo].[WorkOrderShipping] [wosh] WITH(NOLOCK)
 			INNER JOIN [dbo].[WorkOrder] [wo] WITH(NOLOCK) ON [wosh].[WorkOrderId] = [wo].[WorkOrderId]
 			INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wosh].[WorkOrderId] = [wop].[WorkOrderId]
@@ -200,7 +202,7 @@ BEGIN
 					@ItemCount AS [NoofPieces],
 					0 AS [IsCustomerShipping],
 					@Result [BillShipInfoExist],
-						0 as InvoiceTypeId
+						0 as InvoiceTypeId,'' Notes
 				FROM [dbo].[WorkOrder] [wo] WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wo].[WorkOrderId] = [wop].[WorkOrderId]
 				 LEFT JOIN [dbo].[WOPickTicket] [wopick] WITH(NOLOCK) ON [wop].[ID] = [wopick].[OrderPartId]
@@ -277,7 +279,7 @@ BEGIN
 					@ItemCount AS [NoofPieces],
 					0 AS [IsCustomerShipping],
 					@Result [BillShipInfoExist],
-						0 as InvoiceTypeId
+						0 as InvoiceTypeId,'' Notes
 				FROM [dbo].[WorkOrder] [wo] WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wo].[WorkOrderId] = [wop].[WorkOrderId]
 				 LEFT JOIN [dbo].[WOPickTicket] [wopick] WITH(NOLOCK) ON [wop].[ID] = [wopick].[OrderPartId]
@@ -358,7 +360,7 @@ BEGIN
 					@ItemCount AS [NoofPieces],
 					[wosh].[IsCustomerShipping],
 					@Result [BillShipInfoExist],
-						0 as InvoiceTypeId
+						0 as InvoiceTypeId,'' Notes
 				FROM [dbo].[WorkOrderShipping] [wosh] WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] [wo] WITH(NOLOCK) ON [wosh].[WorkOrderId] = [wo].[WorkOrderId]
 				INNER JOIN [dbo].[WorkOrderPartNumber] [wop] WITH(NOLOCK) ON [wosh].[WorkOrderId] = [wop].[WorkOrderId]
@@ -432,7 +434,8 @@ BEGIN
 						null AS [PrintDate],
 						null AS ShipDate,
 						BID.ShipviaId,
-							sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId
+							sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,
+						so.Notes Notes
 				  	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				  	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				  	INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -497,7 +500,7 @@ BEGIN
 						--	ELSE sos.[ShipviaId]
 						--END AS [CustomerDomensticShippingShipViaId],
 						sos.ShipviaId ShipViaId,
-							0 as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId
+							0 as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,so.Notes Notes
 				 	FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
 				 	INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
 				 	INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
@@ -549,7 +552,7 @@ BEGIN
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 					    ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipviaId,
-						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId
+						sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,so.Notes Notes
 				 	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				 	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				 	INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

@@ -17,9 +17,10 @@
     2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
     3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
     4    09/Jul/2025	RAJESH GAMI		 Manage address space
+	5    16/Jul/2025	Moin Bloch		 Added UPPERCASE
  EXEC GetWireTransferBankingInfo 1 
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[GetWireTransferBankingInfo]
+CREATE     PROCEDURE [dbo].[GetWireTransferBankingInfo]
     @ManagementStructId BIGINT
 AS
 BEGIN
@@ -42,21 +43,21 @@ BEGIN
 			SELECT TOP 1
 			(
 				 CASE WHEN inter.BankName IS NOT NULL THEN 
-                '<label style="text-transform: uppercase;">' + inter.BankName + '</label><br />' 
+                '<label style="text-transform: uppercase;">' + UPPER(inter.BankName) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + inter.BeneficiaryBank + '</label><br />' 
+					'<label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBank) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
-					'Account #: <label style="text-transform: uppercase;">' + inter.BeneficiaryBankAccount + '</label>' 
+					'ACCOUNT #: <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBankAccount) + '</label>' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN ', ' ELSE '' END + 
 				'<br />' +
 				CASE WHEN inter.ABA IS NOT NULL THEN 
-					'Routing #: <label style="text-transform: uppercase;">' + inter.ABA + '</label><br />' 
+					'ROUTING #: <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
-					'Swift Code: <label style="text-transform: uppercase;">' + inter.SwiftCode + '</label>' 
+					'SWIFT CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
 				ELSE '' END
 			) AS chequeTo
 			FROM 
@@ -79,15 +80,15 @@ BEGIN
 			SELECT TOP 1
 			(
 				 CASE WHEN inter.BankName IS NOT NULL THEN 
-                '<label style="text-transform: uppercase;">' + inter.BankName + '</label><br />' 
+                '<label style="text-transform: uppercase;">' + UPPER(inter.BankName) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN ad.Line1 IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + ad.Line1 + '</label><br />' 
+					'<label style="text-transform: uppercase;">' + UPPER(ad.Line1) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN ad.City IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(ad.City) +  ', '+	CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
-					 + ad.StateOrProvince 
-				ELSE '' END + ', ' +CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + '</label>' 
+					 + UPPER(ad.StateOrProvince) 
+				ELSE '' END + ', ' +CASE WHEN ad.PostalCode IS NOT NULL THEN UPPER(ad.PostalCode) ELSE '' END + '</label>' 
 				ELSE '' END +
 				'<br />' + 
 				--CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
@@ -97,21 +98,21 @@ BEGIN
 				--CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + 
 				--'<br />' +
 				CASE WHEN co.countries_name IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + co.countries_name + '</label><br />' 
+					'<label style="text-transform: uppercase;">' + UPPER(co.countries_name) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
-					'Account Name: <label style="text-transform: uppercase;">' + inter.BeneficiaryBank + '</label><br />' 
+					'ACCOUNT NAME: <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBank) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
-					'Acct #: <label style="text-transform: uppercase;">' + inter.BeneficiaryBankAccount + '</label>' 
+					'ACCT #: <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBankAccount) + '</label>' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN ', ' ELSE '' END + 
 				'<br />' +
 				CASE WHEN inter.ABA IS NOT NULL THEN 
-					'ABA #: <label style="text-transform: uppercase;">' + inter.ABA + '</label><br />' 
+					'ABA #: <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
-					'Swift Code: <label style="text-transform: uppercase;">' + inter.SwiftCode + '</label>' 
+					'SWIFT CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
 				ELSE '' END
 			) AS chequeTo
 			FROM 

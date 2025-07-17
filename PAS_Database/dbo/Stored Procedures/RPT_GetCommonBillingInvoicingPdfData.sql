@@ -14,6 +14,7 @@
     2    21/05/2025   RAJESH GAMI       Implemented SO
 	3    23/05/2025   Moin Bloch        Added UPEERCASE And NoOfItems
 	4    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
+	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 68,15,2
 **************************************************************/
@@ -137,7 +138,8 @@ BEGIN
 					ISNULL(BI.[SalesTax], 0) [Tax],
 					ISNULL(BI.[OtherTax], 0) [OtherTax],
 					BI.InvoiceTypeId,
-					BI.[Notes] [Notes],
+					--BI.[Notes] [Notes],
+					REPLACE(REPLACE(ISNULL(BI.[Notes],''), '<p>', ''),'</p>','<br />') AS [Notes],
 					WO.[WorkOrderNum] AS [ReferenceNo],
 					ISNULL(BI.[SubTotal],0) [SubTotal],
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],

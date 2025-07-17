@@ -14,6 +14,7 @@
 	2    18/JUN/2025   RAJESH GAMI		Proforma Amount Related Fixed  
 	3    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 	
 	4    07 JUL 2025   Devendra Shekh	Deposite Amount Calculation Issue Resolved
+	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 4352,10,245
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -120,8 +121,8 @@ BEGIN
 					SO.[MasterCompanyId],
 					ISNULL(BI.[SalesTax], 0) [Tax],
 					ISNULL(BI.[OtherTax], 0) [OtherTax],
-					BI.InvoiceTypeId,
-					BI.[Notes] [Notes],
+					BI.InvoiceTypeId,					
+					REPLACE(REPLACE(ISNULL(BI.[Notes],''), '<p>', ''),'</p>','<br />') AS [Notes],
 					SO.SalesOrderNumber AS ReferenceNo,
 					SignEmpName = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),
 					SignEmpTitle = ISNULL(jt.Description,''),

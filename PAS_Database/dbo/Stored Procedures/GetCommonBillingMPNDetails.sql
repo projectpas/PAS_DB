@@ -24,6 +24,7 @@
 	12	 05/07/2025   AbhishekJirawla Added ConditionName	
 	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
 	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
+	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
@@ -497,7 +498,7 @@ BEGIN
 
 			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
 				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
-								,COND.[Description] [Cond],
+								, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
 						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
@@ -505,7 +506,8 @@ BEGIN
 				 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
 				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId				
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
-			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
+				 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
+				 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 				  OUTER APPLY (
 					SELECT TOP 1 s.SalesOrderShippingId
 					FROM [dbo].[SalesOrderShippingItem] s
@@ -587,6 +589,16 @@ BEGIN
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
 		
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
+				
+				IF(@SoFreightBillingMethodId = @FlatBillingMethodId)
+				BEGIN
+					IF(@MinId > 1)
+					BEGIN
+						SET @SOChargesAmount = 0;
+						SET @SOFreightAmount = 0;
+					END
+				END
+
 				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
 				--IF(@IsProformaInvoice = 1)
@@ -624,6 +636,8 @@ BEGIN
 						   PartCost = CASE WHEN @IsProformaInvoice = 1 THEN @UnitCostExt ELSE @PartsCost END,
 						   [BillingInvoicingId] = @BillingInvoicingId,
 						   [BillingInvoicingItemId] = @BillingInvoicingItemId,
+						   --[MiscCharges] = CASE WHEN @SoFreightBillingMethodId = @FlatBillingMethodId THEN (CASE WHEN [PKID] = 1 THEN @SOChargesAmount ELSE 0 END) ELSE @SOChargesAmount END,
+						   --[FreightCost] = CASE WHEN @SoChargesBillingMethodId = @FlatBillingMethodId THEN (CASE WHEN [PKID] = 1 THEN @SOFreightAmount ELSE 0 END) ELSE @SOFreightAmount END,
 						   [MiscCharges] = @SOChargesAmount,
 						   [FreightCost] = @SOFreightAmount,
 						   [TotalCost] = ISNULL(@TotalCost,0),

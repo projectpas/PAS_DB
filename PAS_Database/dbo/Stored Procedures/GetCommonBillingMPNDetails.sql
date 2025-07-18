@@ -24,10 +24,10 @@
 	12	 05/07/2025   AbhishekJirawla Added ConditionName	
 	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
 	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
-	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only
+	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only & Fix SalesTax Amount issue
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
+CREATE       PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,
@@ -590,16 +590,16 @@ BEGIN
 		
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				
-				IF(@SoFreightBillingMethodId = @FlatBillingMethodId)
+				IF(@SoFreightBillingMethodId = @FlatBillingMethodId AND @MinId > 1)
 				BEGIN
-					IF(@MinId > 1)
-					BEGIN
-						SET @SOChargesAmount = 0;
-						SET @SOFreightAmount = 0;
-					END
+					SET @SOFreightAmount = 0;
 				END
-
-				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
+				IF(@SoChargesBillingMethodId = @FlatBillingMethodId AND @MinId > 1)
+				BEGIN
+					SET @SOChargesAmount = 0;
+				END
+				SET @TotalCost =  @PartsCost + @SOChargesAmount + @SOFreightAmount;
+				--SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
 				--IF(@IsProformaInvoice = 1)
 				--BEGIN
@@ -626,9 +626,22 @@ BEGIN
 				IF(@OtherTax > 0)
 				BEGIN
 					SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
-					SET @OtherTaxAmount = (@OtherTax / 100.00) * @TotalCost
+					SET @OtherTaxAmount =  (@OtherTax / 100.00) * @TotalCost
 				END
 				SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
+
+
+				--IF(@SalesTax > 0)
+				--BEGIN
+				--	SELECT @SalesTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @SalesTax;					
+				--	SET @SalesTaxAmount = CASE WHEN @IsProformaInvoice = 1 THEN (@SalesTax / 100.00) * (@TotalCost + @SOChargesAmount + @SOFreightAmount) ELSE (@SalesTax / 100.00) * @TotalCost END
+				--END
+				--IF(@OtherTax > 0)
+				--BEGIN
+				--	SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
+				--	SET @OtherTaxAmount =  CASE WHEN @IsProformaInvoice = 1 THEN (@OtherTax / 100.00) * (@TotalCost + @SOChargesAmount + @SOFreightAmount) ELSE  (@OtherTax / 100.00) * @TotalCost END
+				--END
+				--SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
 
 				UPDATE #TempCommonPartNumberDetailsForBilling 
 					   SET 
@@ -657,7 +670,7 @@ BEGIN
 
 		/********** Final Get Query From the Temp Table *************/
 		SELECT  ROW_NUMBER() OVER (PARTITION BY SubReferenceId ORDER BY PKID) AS RowNum,* INTO #TempWithRowNum FROM #TempCommonPartNumberDetailsForBilling;
-		IF(@ModuleId = @SOModuleId AND @IsProformaInvoice = 0)
+		IF(@ModuleId = @SOModuleId)
 		BEGIN
 			UPDATE #TempWithRowNum SET MiscCharges = 0, FreightCost = 0, 
 									   TotalCost = CASE WHEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) >= 0 THEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) ELSE 0 END  WHERE RowNum > 1

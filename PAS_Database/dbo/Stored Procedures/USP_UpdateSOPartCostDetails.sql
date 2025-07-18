@@ -24,7 +24,7 @@
 	8    21-01-2025   Shrey Chandegara   Add charge In totalRevenue
 	9    22-01-2025   Abhishek Jirawla Commented the section for "Remove/Modify Pick Ticket on Un-Reserve" after discussion with Vishalbhai as it was creating problem after SO shipping 
 	10	 06/18/2025	  AMIT GHEDIYA      Updated the sp for add paramm @IsFromRRO
-     
+  	11	 07/18/2025	  RAJESH GAMI     Calculate NetSaleAmountPerUnit in partCost table  
  EXECUTE USP_UpdateSOPartCostDetails 1283, 1467, 'ADMIN User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOPartCostDetails]
@@ -188,6 +188,7 @@ SET NOCOUNT ON
 						SET UnitSalesPriceExtended = ISNULL(UnitSalesPrice, 0) * @PartQty,
 						UnitCostExtended = ISNULL(UnitCost, 0) * @PartQty,
 						NetSaleAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount,
+						NetSaleAmountPerUnit = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount)/ (CASE WHEN @PartQty > 0 THEN @PartQty ELSE 1 END),
 						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + ISNULL(@Charges_S, 0)
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END

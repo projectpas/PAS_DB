@@ -27,6 +27,7 @@
 	11   02/04/2025   Bhargav Saliya        UTC Date Changes
 	12   25/06/2025   Vishal Suthar			Performance Improvement
 	13   25/06/2025   HEMANT SALIYA			Optimize SP to reduce wating time
+	14   18/07/2025   Vishal Suthar			Added DISTINCT in the final resultset which was populating duplicate entry
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -332,7 +333,7 @@ BEGIN
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
         --SELECT * INTO #TempResult from  QuoteResult
 		INSERT INTO #TempResult
-		SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType],
+		SELECT DISTINCT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType],
 			   [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName],
 			   [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate],
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],

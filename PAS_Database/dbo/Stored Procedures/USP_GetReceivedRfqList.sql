@@ -11,8 +11,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    22/02/2024  Rajesh Gami    Created
-	2    10-07-2024  SHrey Chandegara MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
+    1    22/02/2024  Rajesh Gami		Created
+	2    10-07-2024  SHrey Chandegara	MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
+	3    21-07-2025  Devendra Shekh		Modified (Added CustomerId to select)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -83,7 +84,8 @@ BEGIN
 					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
 					RFQ.[AltPartNumber] AS 'AltPartNumber',
 					RFQ.[Quantity] AS 'Quantity',
-					RFQ.[Condition] AS 'Condition'
+					RFQ.[Condition] AS 'Condition',
+					0 AS 'CustomerId'
 				FROM CustomerRfq RFQ WITH (NOLOCK)
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				--AND RFQ.IsQuote IS NOT NULL 
@@ -150,7 +152,12 @@ BEGIN
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 
-					Select * from #resultTemp
+					UPDATE TMP
+					SET TMP.CustomerId = CASE	WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(TMP.companyName)) THEN CU.CustomerId ELSE 0 END					
+					FROM #resultTemp TMP
+					LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON CU.[Name] = TMP.companyName AND CU.MasterCompanyId = @MasterCompanyId
+
+					SELECT * FROM #resultTemp
 
 					SELECT  
 							crq.[CustomerRfqQuoteId],

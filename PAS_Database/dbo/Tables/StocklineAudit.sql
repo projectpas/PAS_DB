@@ -234,6 +234,10 @@
     [QuantityAdjustment]                  INT             NULL,
     [IsDocument]                          BIT             NULL,
     [PurchaseOrderNumber]                 VARCHAR (50)    NULL,
+    [IsBatchStock]                        BIT             DEFAULT ((0)) NULL,
+    [BatchNumber]                         VARCHAR (50)    NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 

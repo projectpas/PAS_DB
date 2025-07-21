@@ -14,12 +14,13 @@
  **************************************************************           
  ** PR   Date         Author    Change Description            
  ** --   --------     -------		--------------------------------          
-    1    10/08/2021   Vishal Suthar Created
-	2    09/12/2024   Moin Bloch    Alter set QtyRequested When stk line is null
+    1    10/08/2021   Vishal Suthar  Created
+	2    09/12/2024   Moin Bloch     Alter set QtyRequested When stk line is null
+	2    21/jul/2025  Bhargav Saliya Select UOM
 
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetSOQApprovalList] 
+CREATE   PROCEDURE [dbo].[USP_GetSOQApprovalList] 
 (
 	@SalesOrderQuoteId BIGINT = NULL
 )
@@ -261,12 +262,14 @@ BEGIN
 			0 ELSE 
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) END) AS TotalSales,
 			soq.IsEnforceApproval,
-			soq.EnforceEffectiveDate
+			soq.EnforceEffectiveDate,
+			ISNULL(UPPER(um.ShortName), '') AS UomName
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.SalesOrderQuotePartV1 soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
 		INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 		LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId AND sqp.SalesOrderQuoteId = @SalesOrderQuoteId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
+		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
 		WHERE soq.IsDeleted = 0 AND soqp.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId;

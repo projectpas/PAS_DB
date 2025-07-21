@@ -17,6 +17,7 @@
     1    10/08/2021   Vishal Suthar Created
     2    01/04/2022   Vishal Suthar Added Internal Sent fields
     3    09/27/2024   Vishal Suthar Modified the query to use new so part tables
+	4    21/jul/2025  Bhargav Saliya  Select UOM
 
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
@@ -262,12 +263,14 @@ BEGIN
 			0 ELSE 
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderId = so.SalesOrderId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderPartId = sop.SalesOrderPartId) END) AS TotalSales,
 			so.IsEnforceApproval,
-			so.EnforceEffectiveDate
+			so.EnforceEffectiveDate,
+			ISNULL(um.ShortName, '') AS UomName
 		FROM DBO.SalesOrder so WITH (NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 sop ON so.SalesOrderId = sop.SalesOrderId
 		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
+		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
 		WHERE so.IsDeleted = 0 AND sop.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId;

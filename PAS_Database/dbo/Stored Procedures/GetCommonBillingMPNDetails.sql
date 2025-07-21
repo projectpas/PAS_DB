@@ -24,9 +24,11 @@
 	12	 05/07/2025   AbhishekJirawla Added ConditionName	
 	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
 	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
+	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only & Fix SalesTax Amount issue
+	16	 21/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge): frieght and charges are being included again
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
+CREATE       PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,
@@ -39,7 +41,8 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT;
+		DECLARE @IsFlatChargeUsed BIT = 0, @IsFlatFreightUsed BIT = 0, @FlatChargeStkId BIGINT =0, @FlatFreightStkId BIGINT =0, @UsedSubReferenceIdCharge BIGINT =0, @UsedSubReferenceIdFreight BIGINT =0, @IsPartUsedFreight BIT = 0,  @IsPartUsedCharge BIT = 0; 
 		DECLARE @FlatBillingMethodId INT = (select BillingMethodId from dbo.BillingMethod WITH(NOLOCK) WHERE Description = 'Flate Rate')
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -111,7 +114,11 @@ BEGIN
 				[StockLineNumber] VARCHAR(200) NULL,
 				[QuoteMethod] BIT NULL,
 				[ShippingId]  BIGINT NULL, 
-				[InvoiceStatusName] VARCHAR(50)
+				[InvoiceStatusName] VARCHAR(50),
+				IsFlatChargeUsed BIT DEFAULT 0,
+				IsFlatFreightUsed BIT DEFAULT 0,
+				FlatChargeStkId BIGINT NULL,
+				FlatFreightStkId BIGINT NULL
 			)
 			PRint '1'
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
@@ -494,10 +501,30 @@ BEGIN
 				  @SoTotalCharges = ISNULL(TotalCharges,0), @SoTotalFreight = ISNULL(TotalFreight,0)
 			FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE SO.[SalesOrderId] = @ReferenceId;
 
+			IF(@SoChargesBillingMethodId = @FlatBillingMethodId)
+			BEGIN
+			
+				SELECT @FlatChargeStkId = ISNULL(StocklineId,0), @UsedSubReferenceIdCharge = ISNULL(SubReferenceId,0) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @ModuleId 
+																			   AND ISNULL(IsVersionIncrease,0) = 0 
+																			   AND ISNULL(IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0)
+																			   AND ISNULL(MiscChargesCostPlus,0) > 0 
+
+				SET @IsFlatChargeUsed = CASE WHEN @FlatChargeStkId > 0 OR @UsedSubReferenceIdCharge > 0  THEN 1 ELSE 0 END
+				SET @IsPartUsedCharge = CASE WHEN ISNULL(@FlatChargeStkId,0) = 0 AND @UsedSubReferenceIdCharge > 0 THEN 1 ELSE 0 END;
+			END
+			IF(@SoFreightBillingMethodId = @FlatBillingMethodId)
+			BEGIN
+				SELECT @FlatFreightStkId = ISNULL(StocklineId,0), @UsedSubReferenceIdFreight = ISNULL(SubReferenceId,0)  FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @ModuleId 
+																			   AND ISNULL(IsVersionIncrease,0) = 0 
+																			   AND ISNULL(IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0)
+																			   AND ISNULL(FreightCostPlus,0) > 0 
+				SET @IsFlatFreightUsed = CASE WHEN @FlatFreightStkId > 0  OR @UsedSubReferenceIdFreight > 0 THEN 1 ELSE 0 END
+				SET @IsPartUsedFreight = CASE WHEN ISNULL(@FlatFreightStkId,0) = 0 AND @UsedSubReferenceIdFreight > 0 THEN 1 ELSE 0 END;
+			END
 
 			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
 				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
-								,COND.[Description] [Cond],
+								, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
 						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
@@ -505,7 +532,8 @@ BEGIN
 				 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
 				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId				
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
-			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
+				 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
+				 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 				  OUTER APPLY (
 					SELECT TOP 1 s.SalesOrderShippingId
 					FROM [dbo].[SalesOrderShippingItem] s
@@ -586,8 +614,18 @@ BEGIN
 				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select TOP 1 ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
 		
-				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
-				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
+				--SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
+				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
+				IF(@SoFreightBillingMethodId = @FlatBillingMethodId AND @MinId > 1)
+				BEGIN
+					SET @SOFreightAmount = 0;
+				END
+				IF(@SoChargesBillingMethodId = @FlatBillingMethodId AND @MinId > 1)
+				BEGIN
+					SET @SOChargesAmount = 0;
+				END
+				SET @TotalCost =  @PartsCost + @SOChargesAmount + @SOFreightAmount;
+				--SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
 				--IF(@IsProformaInvoice = 1)
 				--BEGIN
@@ -614,9 +652,22 @@ BEGIN
 				IF(@OtherTax > 0)
 				BEGIN
 					SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
-					SET @OtherTaxAmount = (@OtherTax / 100.00) * @TotalCost
+					SET @OtherTaxAmount =  (@OtherTax / 100.00) * @TotalCost
 				END
 				SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
+
+
+				--IF(@SalesTax > 0)
+				--BEGIN
+				--	SELECT @SalesTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @SalesTax;					
+				--	SET @SalesTaxAmount = CASE WHEN @IsProformaInvoice = 1 THEN (@SalesTax / 100.00) * (@TotalCost + @SOChargesAmount + @SOFreightAmount) ELSE (@SalesTax / 100.00) * @TotalCost END
+				--END
+				--IF(@OtherTax > 0)
+				--BEGIN
+				--	SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
+				--	SET @OtherTaxAmount =  CASE WHEN @IsProformaInvoice = 1 THEN (@OtherTax / 100.00) * (@TotalCost + @SOChargesAmount + @SOFreightAmount) ELSE  (@OtherTax / 100.00) * @TotalCost END
+				--END
+				--SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
 
 				UPDATE #TempCommonPartNumberDetailsForBilling 
 					   SET 
@@ -624,8 +675,10 @@ BEGIN
 						   PartCost = CASE WHEN @IsProformaInvoice = 1 THEN @UnitCostExt ELSE @PartsCost END,
 						   [BillingInvoicingId] = @BillingInvoicingId,
 						   [BillingInvoicingItemId] = @BillingInvoicingItemId,
-						   [MiscCharges] = @SOChargesAmount,
-						   [FreightCost] = @SOFreightAmount,
+						   --[MiscCharges] = CASE WHEN @SoFreightBillingMethodId = @FlatBillingMethodId THEN (CASE WHEN [PKID] = 1 THEN @SOChargesAmount ELSE 0 END) ELSE @SOChargesAmount END,
+						   --[FreightCost] = CASE WHEN @SoChargesBillingMethodId = @FlatBillingMethodId THEN (CASE WHEN [PKID] = 1 THEN @SOFreightAmount ELSE 0 END) ELSE @SOFreightAmount END,
+						   [MiscCharges] = CASE WHEN @IsFlatChargeUsed = 1 THEN (CASE WHEN @IsPartUsedCharge = 1 THEN (CASE WHEN SubReferenceId = @UsedSubReferenceIdCharge THEN @SoTotalCharges ELSE 0 END) ELSE (CASE WHEN StockLineId = @FlatChargeStkId THEN @SoTotalCharges ELSE 0 END)END)  ELSE  @SOChargesAmount END,
+						   [FreightCost] = CASE WHEN @IsFlatFreightUsed = 1 THEN ( CASE WHEN @IsPartUsedFreight = 1 THEN (CASE WHEN SubReferenceId = @UsedSubReferenceIdFreight THEN @SoTotalFreight ELSE 0 END)  ELSE (CASE WHEN StockLineId = @FlatFreightStkId THEN @SoTotalFreight ELSE 0 END)END)  ELSE  @SOFreightAmount END, 
 						   [TotalCost] = ISNULL(@TotalCost,0),
 						   [SalesTaxPercent] = @SalesTaxPercent,
 						   [SalesTax] = ISNULL(@SalesTax,0),
@@ -634,7 +687,12 @@ BEGIN
 						   [OtherTax] = ISNULL(@OtherTax,0),
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
 						   [GrandTotal] = @GrandTotal,
-						   InvoiceStatusName = @InvoiceStatusName
+						   InvoiceStatusName = @InvoiceStatusName,
+						   IsFlatChargeUsed = @IsFlatChargeUsed,
+						   IsFlatFreightUsed = @IsFlatFreightUsed,
+						   FlatChargeStkId = @FlatChargeStkId,
+						   FlatFreightStkId = @FlatFreightStkId 
+
 					 WHERE [PKID] = @MinId;
 					 SET @MinId = @MinId + 1;
 			END /****** END OF WHILE LOOP ********/
@@ -643,7 +701,7 @@ BEGIN
 
 		/********** Final Get Query From the Temp Table *************/
 		SELECT  ROW_NUMBER() OVER (PARTITION BY SubReferenceId ORDER BY PKID) AS RowNum,* INTO #TempWithRowNum FROM #TempCommonPartNumberDetailsForBilling;
-		IF(@ModuleId = @SOModuleId AND @IsProformaInvoice = 0)
+		IF(@ModuleId = @SOModuleId)
 		BEGIN
 			UPDATE #TempWithRowNum SET MiscCharges = 0, FreightCost = 0, 
 									   TotalCost = CASE WHEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) >= 0 THEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) ELSE 0 END  WHERE RowNum > 1

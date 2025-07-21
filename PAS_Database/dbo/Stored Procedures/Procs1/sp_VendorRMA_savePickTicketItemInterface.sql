@@ -6,31 +6,32 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
-    1    06/22/2023   Amit Ghediya			 created
-	2    06/28/2023   Amit Ghediya			 Status remove for as it is.
-	2    06/28/2023   Devendra Shekh		 added @QtyRemaining for insert and update
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/22/2023   Amit Ghediya		created
+	2    06/28/2023   Amit Ghediya		Status remove for as it is.
+	3    06/28/2023   Devendra Shekh	added @QtyRemaining for insert and update
+	4    07/08/2025   Vishal Suthar		Bypass Vendor RMA Pickticket Confirmation When Config Flag is Enabled
 
-**************************************************************/ 
-CREATE   PROCEDURE [dbo].[sp_VendorRMA_savePickTicketItemInterface]    
+**************************************************************/
+CREATE   PROCEDURE [dbo].[sp_VendorRMA_savePickTicketItemInterface]
 (    
   @RMAPickTicketId bigint = 0,
-  @RMAPickTicketNumber varchar(100)='',
-  @VendorRMAId bigint=0,
-  @CreatedBy varchar(100)='',
-  @UpdatedBy varchar(100)='',
-  @IsActive bit =0,
-  @IsDeleted bit =0,
+  @RMAPickTicketNumber varchar(100) = '',
+  @VendorRMAId bigint = 0,
+  @CreatedBy varchar(100) = '',
+  @UpdatedBy varchar(100) = '',
+  @IsActive bit = 0,
+  @IsDeleted bit = 0,
   @VendorRMADetailId bigint=0,
   @Qty int = 0,
-  @QtyToShip int=0,
-  @MasterCompanyId int=0,
-  @Status int=0,
-  @PickedById int=0,
-  @ConfirmedById int=0,
-  @Memo varchar(MAX)='',
-  @IsConfirmed bit=0,
+  @QtyToShip int = 0,
+  @MasterCompanyId int = 0,
+  @Status int = 0,
+  @PickedById int = 0,
+  @ConfirmedById int = 0,
+  @Memo varchar(MAX) = '',
+  @IsConfirmed bit = 0,
   @CodePrefixId bigint,
   @CurrentNummber bigint = 0
 )    
@@ -44,6 +45,9 @@ BEGIN
 	BEGIN
 		DECLARE @VendorRMAPartId BIGINT;
 		DECLARE @QtyRemaining BIGINT; 
+		DECLARE @EnforcePickTicketConfirmation BIT;
+
+		SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM DBO.VendorRMASettings WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 
 		IF(@RMAPickTicketId = 0)
 		BEGIN
@@ -61,6 +65,13 @@ BEGIN
 			VALUES(@RMAPickTicketNumber, @VendorRMAId, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE(), @IsActive, @IsDeleted, 
 					@VendorRMADetailId,
 					@Qty, @QtyToShip, @MasterCompanyId, @Status, @PickedById, @ConfirmedById, @Memo, @IsConfirmed, @QtyRemaining);
+
+			SELECT @RMAPickTicketId = SCOPE_IDENTITY();
+
+			IF (ISNULL(@EnforcePickTicketConfirmation, 0) = 0)
+			BEGIN
+				UPDATE [dbo].[RMAPickTicket] SET ConfirmedById = @PickedById, IsConfirmed = 1, ConfirmedDate = GETUTCDATE() WHERE RMAPickTicketId = @RMAPickTicketId;
+			END
 
 			IF(@CodePrefixId > 0 AND @CurrentNummber > 0)
 			BEGIN

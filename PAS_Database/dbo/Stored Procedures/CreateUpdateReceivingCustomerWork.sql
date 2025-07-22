@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
  ** Author:   Abhishek Jirawla
  ** Description: Get work order parts view
@@ -16,13 +15,15 @@
 	2	 24-APR-2025   Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 	3	 30-APR-2025   ABHISHEK JIRAWLA		Adding IsPiecePart and IsRepairManagement to the Stockline
     4	 15-MAY-2025   AYUSHI PATEL 		Inserted CustReq Date into table by removing UTCDATE 
+	5	 16-JUL-2025   Moin Bloch   		Added IsBatchStock,BatchNumber Flag for Stockline Batch 
+
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
-	@ReceivingCustomerWorkId [bigint] NULL,
-	@MasterCompanyId [int] NULL,
-	@IsRepairManagement [bit] NULL,
-	@tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY      
+CREATE   PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
+@ReceivingCustomerWorkId [bigint] NULL,
+@MasterCompanyId [int] NULL,
+@IsRepairManagement [bit] NULL,
+@tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY      
 AS    
 BEGIN    
  SET NOCOUNT ON;    
@@ -34,11 +35,11 @@ BEGIN
 	   DECLARE @CurrentStockLineNumber AS BIGINT;    
 	   DECLARE @TotalRecord int = 0;   
 	   DECLARE @MinId BIGINT = 1; 
-	   DECLARE @CurrentIndex BIGINT, @RCCurrentIndex BIGINT;
+	   DECLARE @CurrentIndex BIGINT, @RCCurrentIndex BIGINT, @CSBCurrentIndex BIGINT
 	   DECLARE @StockIdCodeTypeId INT = 0; 
 	   DECLARE @IdNumberCodeTypeId INT = 0; 
 	   DECLARE @ControlNumberCodeTypeId INT = 0; 
-	   DECLARE @IDNumber VARCHAR(50)='',@RCReceiverNumber AS VARCHAR(50)='';  
+	   DECLARE @IDNumber VARCHAR(50)='',@RCReceiverNumber AS VARCHAR(50)='',@CSBReceiverNumber AS VARCHAR(50)=''
 	   DECLARE @ItemtypeId INT = 2; 
 	   DECLARE @RCId BIGINT = 0; 
 	   DECLARE @ReceivingCustomerModuleId INT = 27
@@ -182,6 +183,8 @@ BEGIN
 				[LastSinceOVH] [varchar](20) NULL,	
 				[LastSinceInspection] [varchar](20) NULL,
 				[IsSkipShippingReference] [bit] NULL,
+				[IsBatchStock] [bit] NULL,
+				[BatchNumber] [varchar](50) NULL
 			)
 				
 		INSERT INTO #tmprReceiveCustomer ([ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
@@ -195,7 +198,7 @@ BEGIN
 						[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount],
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference])
+                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber])
 			     SELECT [ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
 						[ItemMasterId],[ManufacturerId],[RevisePartId],[IsSerialized],[SerialNumber],[Quantity],[UnitCost],[ExtendedCost],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[OwnerTypeId],
 						[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[MFGBatchNo],[IsExpDate],
@@ -207,8 +210,8 @@ BEGIN
 						[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount], 
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference]							
-						FROM @tbl_ReceivingCustomerWorkType
+                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber]							
+				   FROM @tbl_ReceivingCustomerWorkType
 
 		SELECT @TotalRecord = MIN(Quantity), @MinId = MIN(ID) FROM #tmprReceiveCustomer    
 		
@@ -219,9 +222,9 @@ BEGIN
 		WHILE @TotalCount <= @TotalRecord
 		BEGIN				
 				PRINT @TotalCount + ''
-				DECLARE @CurrentIdNumber AS BIGINT, @RCCurrentIdNumber AS BIGINT;
+				DECLARE @CurrentIdNumber AS BIGINT, @RCCurrentIdNumber AS BIGINT,@CSBCurrentIdNumber AS BIGINT
 				DECLARE @ReceiverNumber AS VARCHAR(50),@CreatedBy VARCHAR(250),@UpdatedBy VARCHAR(250)
-				DECLARE @IdCodeTypeId BIGINT, @RCIdCodeTypeId BIGINT;					
+				DECLARE @IdCodeTypeId BIGINT, @RCIdCodeTypeId BIGINT,@CSBCodeTypeId BIGINT;					
 				DECLARE @NHAItemMasterId BIGINT,@TLAItemMasterId BIGINT,@LegalEntityId BIGINT,@ManagementStructureId BIGINT,@RevicedPNId BIGINT,@TimeLifeCyclesId BIGINT, @ConditionId BIGINT
 				DECLARE @StockLineNumber VARCHAR(100);
 				DECLARE @CNCurrentNumber BIGINT;
@@ -234,9 +237,11 @@ BEGIN
 				DECLARE @PreviousStockLineNumber VARCHAR(50);
 				DECLARE @Quantity INT = 0;
 				DECLARE @ShelfLife BIT,@IsHazardousMaterial BIT,@IsPMA BIT,@IsDER BIT,@OEM BIT,@IsTimeLIfe BIT,@TimeLifeDetailsNotProvided BIT, @GlAccountId BIGINT, @GlAccountName VARCHAR(100)
+				DECLARE @IsBatchStock BIT = 0
 
                 SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'Stock Line';
 				SELECT @RCIdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'Receiving Customer Work';
+				SELECT @CSBCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'BatchNumber';
   			    
 				SELECT @ItemMasterId = [ItemMasterId], 
 				       @ManufacturerId = [ManufacturerId], 
@@ -244,13 +249,13 @@ BEGIN
 					   @ReceivingCustomerWorkId = [ReceivingCustomerWorkId],
 					   @TimeLifeCyclesId = [TimeLifeCyclesId],
 					   @ManagementStructureId = [ManagementStructureId], 
-					   @ConditionId = [ConditionId], 
-					   --@IsTimeLIfe = [IsTimeLIfe],
+					   @ConditionId = [ConditionId], 					   
 					   @TimeLifeDetailsNotProvided = ISNULL([TimeLifeDetailsNotProvided],0),
 					   @CreatedBy = [CreatedBy],
 					   @UpdatedBy = [UpdatedBy],
 					   @Quantity = ISNULL([Quantity],0),
-					   @CreatedBy = [CreatedBy]
+					   @CreatedBy = [CreatedBy],
+					   @IsBatchStock  = ISNULL([IsBatchStock],0)
 				 FROM #tmprReceiveCustomer WHERE [ID] = @MinId;
 
 				SELECT @ShelfLife = [ShelfLife], 
@@ -319,8 +324,29 @@ BEGIN
 					SELECT [CodePrefixId],CP.[CodeTypeId],[CurrentNummber],[CodePrefix],[CodeSufix],[StartsFrom] 
 					FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 					WHERE CT.CodeTypeId = @RCIdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+														   					 				  				  
+					IF OBJECT_ID(N'tempdb..#tmpCSBCodePrefixes') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpCSBCodePrefixes
+					END
 
+					CREATE TABLE #tmpCSBCodePrefixes
+					(
+						[ID] BIGINT NOT NULL IDENTITY,
+						[CodePrefixId] BIGINT NULL,
+						[CodeTypeId] BIGINT NULL,
+						[CurrentNumber] BIGINT NULL,
+						[CodePrefix] VARCHAR(50) NULL,
+						[CodeSufix] VARCHAR(50) NULL,
+						[StartsFrom] BIGINT NULL,
+					)
 
+					INSERT INTO #tmpCSBCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
+					SELECT [CodePrefixId],CP.[CodeTypeId],[CurrentNummber],[CodePrefix],[CodeSufix],[StartsFrom] 
+					FROM [dbo].[CodePrefixes] CP WITH (NOLOCK) 
+					JOIN [dbo].[CodeTypes] CT WITH (NOLOCK) ON CP.[CodeTypeId] = CT.[CodeTypeId]
+					WHERE CT.[CodeTypeId] = @CSBCodeTypeId AND CP.[MasterCompanyId] = @MasterCompanyId AND CP.[IsActive] = 1 AND CP.[IsDeleted] = 0;
+					
 					IF (@CurrentIndex = 0)
 					BEGIN
 						SELECT @CurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END
@@ -336,25 +362,37 @@ BEGIN
 
 					IF (@RCCurrentIndex = 0)
 					BEGIN
-						SELECT @RCCurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END
-						FROM #tmpRCCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId
+						SELECT @RCCurrentIdNumber = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) ELSE CAST([StartsFrom] AS BIGINT) END
+						FROM #tmpRCCodePrefixes WHERE [CodeTypeId] = @RCIdCodeTypeId
 					END
 					ELSE
 					BEGIN
-						SELECT @RCCurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END
-						FROM #tmpRCCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId
+						SELECT @RCCurrentIdNumber = CASE WHEN CurrentNumber > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE CAST([StartsFrom] AS BIGINT) + 1 END
+						FROM #tmpRCCodePrefixes WHERE [CodeTypeId] = @RCIdCodeTypeId
+					END		
+					-- Batch Number
+					IF(@IsBatchStock = 1)
+					BEGIN
+						IF (@CSBCurrentIndex = 0)
+						BEGIN
+							SELECT @CSBCurrentIdNumber = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) ELSE CAST([StartsFrom] AS BIGINT) END
+							FROM #tmpCSBCodePrefixes WHERE [CodeTypeId] = @CSBCodeTypeId
+						END
+						ELSE
+						BEGIN
+							SELECT @CSBCurrentIdNumber = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE CAST([StartsFrom] AS BIGINT) + 1 END
+							FROM #tmpCSBCodePrefixes WHERE [CodeTypeId] = @CSBCodeTypeId
+						END   
 					END
-
+                    
 					IF(@TotalCount = 1 )
 					BEGIN
 						SET @RCReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@RCCurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @RCIdCodeTypeId)))
-					END						
-						
-					--IF(@MinId = 1 )
-					--BEGIN
-					--	SET @RCReceiverNumber = @ReceiverNumber;
-					--END				
-					/* PN Manufacturer Combination Stockline logic */
+						IF(@IsBatchStock = 1)
+						BEGIN 
+							SET @CSBReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CSBCurrentIdNumber, (SELECT [CodePrefix] FROM #tmpCSBCodePrefixes WHERE [CodeTypeId] = @CSBCodeTypeId), (SELECT [CodeSufix] FROM #tmpCSBCodePrefixes WHERE [CodeTypeId] = @CSBCodeTypeId)))
+						END
+					END	
                 
 					IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL                
 					BEGIN                    
@@ -462,7 +500,7 @@ BEGIN
 						   ,[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost]
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
-						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement])                       
+						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement],[IsBatchStock],[BatchNumber])                       
 				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],1,[ConditionId],ISNULL([SerialNumber],''),						   
 						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
 							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
@@ -485,7 +523,7 @@ BEGIN
 							0,'',0,NULL,NULL,NULL,0,0,0,0,
 							0,NULL,NULL,NULL,0,NULL,0,NULL,
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
-						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0) FROM #tmprReceiveCustomer WHERE ID = @MinId
+						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0),@IsBatchStock,@CSBReceiverNumber FROM #tmprReceiveCustomer WHERE ID = @MinId
 
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					
@@ -535,7 +573,11 @@ BEGIN
 					IF(@TotalCount = 1 )
 					BEGIN
 						UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @RCCurrentIdNumber WHERE [CodeTypeId] = @RCIdCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;	
-					END				
+					END	
+					IF(@TotalCount = 1 AND @IsBatchStock = 1)
+					BEGIN
+						UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @CSBCurrentIdNumber WHERE [CodeTypeId] = @CSBCodeTypeId AND [MasterCompanyId] = @MasterCompanyId;	
+					END
 
 					IF (@IsTimeLIfe = 1)
                     BEGIN

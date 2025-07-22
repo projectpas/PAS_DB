@@ -9,10 +9,12 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    22/02/2024  Rajesh Gami    Created
-	2    10-07-2024  SHrey Chandegara MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    22/02/2024  Rajesh Gami         Created
+	2    10-07-2024  SHrey Chandegara    MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
+	3    21-07-2025  Amit Ghediya        MOdify for get RFQ part is in our inventory or not (ItemMasterId)
+	4    21-07-2025  Devendra Shekh		 Modified (Added CustomerId to select)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -83,8 +85,12 @@ BEGIN
 					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
 					RFQ.[AltPartNumber] AS 'AltPartNumber',
 					RFQ.[Quantity] AS 'Quantity',
-					RFQ.[Condition] AS 'Condition'
-				FROM CustomerRfq RFQ WITH (NOLOCK)
+					RFQ.[Condition] AS 'Condition',
+					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
+					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
+				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
+				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),
@@ -206,9 +212,8 @@ BEGIN
 							res.AltPartNumber,
 							res.Quantity,
 							res.Condition
-
 					FROM dbo.CustomerRfqQuote crq WITH(NOLOCK)
-					INNER JOIN #resultTemp res on crq.CustomerRfqId = res.CustomerRfqId
+					INNER JOIN #resultTemp res WITH(NOLOCK) on  crq.CustomerRfqId = res.CustomerRfqId
 					INNER JOIN  dbo.CustomerRfqQuoteDetails csd WITH(NOLOCK) on crq.CustomerRfqQuoteId = csd.CustomerRfqQuoteId
 					WHERE ISNULL(crq.IsDeleted,0) = 0 AND ISNULL(csd.IsDeleted,0) = 0
 				END

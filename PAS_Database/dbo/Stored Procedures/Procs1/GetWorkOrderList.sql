@@ -27,6 +27,7 @@
 	11   02/04/2025   Bhargav Saliya        UTC Date Changes
 	12   25/06/2025   Vishal Suthar			Performance Improvement
 	13   25/06/2025   HEMANT SALIYA			Optimize SP to reduce wating time
+	14   18/07/2025   Vishal Suthar			Added DISTINCT in the final resultset which was populating duplicate entry
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -332,7 +333,7 @@ BEGIN
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
         --SELECT * INTO #TempResult from  QuoteResult
 		INSERT INTO #TempResult
-		SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType],
+		SELECT DISTINCT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType],
 			   [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName],
 			   [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate],
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
@@ -515,7 +516,7 @@ BEGIN
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
-			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			LEFT JOIN LatestWorkOrderShipping LWS WITH (NOLOCK) ON WO.WorkOrderId = LWS.WorkOrderId
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
 			OUTER APPLY (
 				SELECT TOP 1 'Yes' AS IsSubWorkOrder
@@ -529,7 +530,7 @@ BEGIN
 			))
 			, WorkOrderPartCount AS (
 			SELECT WorkOrderId, COUNT(WorkOrderId) AS PartCount
-			FROM dbo.WorkOrderPartNumber
+			FROM dbo.WorkOrderPartNumber WITH (NOLOCK)
 			GROUP BY WorkOrderId	
 			)
 
@@ -574,7 +575,7 @@ BEGIN
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
-			  JOIN WorkOrderPartCount WOPC ON WO.WorkOrderId = WOPC.WorkOrderId
+			  JOIN WorkOrderPartCount WOPC WITH (NOLOCK) ON WO.WorkOrderId = WOPC.WorkOrderId
 			  --LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
 			  --LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
 			  --LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId

@@ -4048,6 +4048,14 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteVerificationResult.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteAuditHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartViewByQuoteId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOQStatusId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveEmail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CopyWorkFlowDetailsToSubWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\GetSWOWorkflowTransferData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -4036,12 +4036,26 @@
     <Build Include="dbo\Stored Procedures\InsertEmailApproval.sql" />
     <Build Include="dbo\Stored Procedures\GetDeleteEmailApprovalById.sql" />
     <Build Include="dbo\User Defined Types\EmailApprovalType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteFreightAuditByFreightId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteChargesAuditByChargeId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteSettingList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeSalesOrderSettingsAuditById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteSettingAuditById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteAnalysisList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteApprovalListNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePrintData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteVerificationResult.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteAuditHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartViewByQuoteId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSOQStatusId.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveEmail.sql" />
     <Build Include="dbo\Stored Procedures\USP_CopyWorkFlowDetailsToSubWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\GetSWOWorkflowTransferData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -4055,7 +4055,12 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntitySettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityLogoDelete.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingStatusChange.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityInternationalShippingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityContactList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityAddressById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

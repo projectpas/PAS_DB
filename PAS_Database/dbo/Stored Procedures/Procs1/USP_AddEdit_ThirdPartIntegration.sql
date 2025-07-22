@@ -1,16 +1,31 @@
-﻿CREATE     PROCEDURE [dbo].[USP_AddEdit_ThirdPartIntegration]
-@ThirdPartInegrationId bigint,
-@LegalEntityId varchar(50),
-@CageCode varchar(50),
-@IntegrationIds varchar(100) = NULL,
-@APIURL varchar(50),
-@SecretKey varchar(50),
-@AccessKey varchar(50),
-@CreatedBy varchar(50),
-@UpdatedBy  varchar(50),
-@IsDeleted bit,
-@MasterCompanyId bigint 
-
+﻿/*************************************************************           
+ ** File:   [USP_AddEdit_ThirdPartIntegration]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:    
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------    ---------			--------------------------------          
+    1   22/07/2025    Amit Ghediya     Added Email field
+************************************************************************/
+CREATE     PROCEDURE [dbo].[USP_AddEdit_ThirdPartIntegration]
+	@ThirdPartInegrationId bigint,
+	@LegalEntityId varchar(50),
+	@CageCode varchar(50),
+	@IntegrationIds varchar(100) = NULL,
+	@APIURL varchar(50),
+	@SecretKey varchar(50),
+	@AccessKey varchar(50),
+	@IsEmail bit,
+	@CreatedBy varchar(50),
+	@UpdatedBy  varchar(50),
+	@IsDeleted bit,
+	@MasterCompanyId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -30,6 +45,7 @@ BEGIN
 				  ,[APIURL]
                   ,[SecretKey]
 				  ,[AccessKey]
+				  ,[IsEmail]
                   ,[MasterCompanyId]
                   ,[CreatedBy]
                   ,[UpdatedBy]
@@ -45,6 +61,7 @@ BEGIN
 				  ,@APIURL
                   ,@SecretKey
 				  ,@AccessKey
+				  ,@IsEmail
                   ,@MasterCompanyId
                   ,@CreatedBy
                   ,@CreatedBy
@@ -55,7 +72,6 @@ BEGIN
 			END
 			else
 			Begin
-				EXEC [USP_Integration_History] @ThirdPartInegrationId,@CreatedBy
 
 			    UPDATE [dbo].[ThirdPartInegration]
                 SET 
@@ -65,10 +81,14 @@ BEGIN
 				   ,[APIURL] = @APIURL
                    ,[SecretKey] = @SecretKey
                    ,[AccessKey] = @AccessKey
+				   ,[IsEmail] = @IsEmail
                    ,[UpdatedBy] = @CreatedBy
                    ,[UpdatedDate] = GETUTCDATE()
                    ,[IsDeleted] = @IsDeleted
               WHERE ThirdPartInegrationId= @ThirdPartInegrationId
+
+			  EXEC [USP_Integration_History] @ThirdPartInegrationId,@CreatedBy
+
 			END			
                 
 			END

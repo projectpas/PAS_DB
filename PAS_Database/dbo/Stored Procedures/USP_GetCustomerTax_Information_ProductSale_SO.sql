@@ -19,7 +19,7 @@
     4    11/11/2024	  Vishal Suthar	Modified to return proper Sub Total for Print PDF
     5    12/05/2024	  Vishal Suthar	Fixed an issue with SO Print after shipping is completed
     6    12/19/2024	  Vishal Suthar	If only part level record is there then Sub Total not coming in SO Print
-
+	7    07/22/2025	  RAJESH GAMI	Calculate sales and other taxes on sub total instead of line level.
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 608
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
@@ -64,7 +64,7 @@ BEGIN
 	DECLARE @TotalFreightPartWise DECIMAL(18,2) = 0;	
 	DECLARE @TotalChargePartWise DECIMAL(18,2) = 0;	
 	DECLARE @TaxableFreight DECIMAL(18,2) = 0;	
-	DECLARE @TaxableCharge DECIMAL(18,2) = 0;	
+	DECLARE @TaxableCharge DECIMAL(18,2) = 0, @SaleTaxMiniTotal DECIMAL(18,2) = 0 , @OtherTaxMiniTotal DECIMAL(18,2) = 0 ;	
 
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
@@ -232,7 +232,7 @@ BEGIN
 	    SET @SubTotal += ISNULL(@Total,0);
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)
 	    SET @OtherTax = (ISNULL(@Total,0)  * ISNULL(@TotalOtherTax,0) / 100)
-
+		
 		IF(@FreighFlag = 0 AND @ChargeFlag = 0)
 		BEGIN
 			SET @FreighSalesTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
@@ -240,6 +240,9 @@ BEGIN
 			SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
 			SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
 			
+			SET @SaleTaxMiniTotal = @SalesTax + (CASE WHEN @MinId = 1 THEN  @FreighSalesTax + @ChargeSalesTax ELSE 0 END)
+			SET @OtherTaxMiniTotal = @OtherTax + (CASE WHEN @MinId = 1 THEN  @FreighOtherTax + @ChargeOtherTax	 ELSE 0 END)
+				
 			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
 										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
 								  WHERE [ID] = @MinId
@@ -267,7 +270,8 @@ BEGIN
 				BEGIN
 					SET @ChargeSalesTax = (ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTax,0) / 100);
 					SET @ChargeOtherTax = (ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTax,0) / 100);
-				END				
+				END		
+
 				UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
 											[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
 									  WHERE [ID] = @MinId;
@@ -363,16 +367,11 @@ BEGIN
 		SET @MinId2 = @MinId2 + 1
 	END
 					
-	--SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TotalFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TotalCharges,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
-	--       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TotalFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TotalCharges,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
-	--  FROM #tmprShipDetails
+	--SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
 
-	--SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
-	--       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
-	--  FROM #tmprShipDetails
-
-	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
-
+	SET @FinalSalesTaxes = (ISNULL((@SubTotal + @TotalFreight + @TotalCharges),0)  * ISNULL(@TotalSalesTax,0) / 100);
+	SET @FinalOtherTaxes = (ISNULL((@SubTotal + @TotalFreight + @TotalCharges),0)  * ISNULL(@TotalOtherTax,0) / 100);
+	
 	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	        ISNULL(@TotalCharges,0) AS TotalCharges,	
 	        ISNULL((@SubTotal + @TotalFreight + @TotalCharges),0) AS SubTotal,

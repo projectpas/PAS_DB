@@ -4042,6 +4042,7 @@
     <Build Include="dbo\Stored Procedures\GetSWOWorkflowTransferData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

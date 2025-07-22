@@ -15,7 +15,7 @@
 	2    05-12-2024   AMIT GHEDIYA		Updated logic for multiple stockline
 	3    23-01-2025   Abhishek Jirawla	Updated logic to select Qty resquested instead of SalesOrderId	
 	4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
-
+	5    21-07-2025   Rajesh Gami       Fixed: Get proper invoice count and based on that change the status
 -- EXEC [UpdateSalesOrderStatus] 1316,11,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[UpdateSalesOrderStatus]
@@ -33,7 +33,7 @@ BEGIN
 				@SalesOrderShippingId BIGINT,
 				@SoShippingItemCount BIGINT,
 				@SOBillingInvoicingId BIGINT,
-				@SoBillingItemCount BIGINT;
+				@SoBillingItemCount BIGINT, @InvoicedStatusId INT = (SELECT TOP 1 InvoiceStatusId FROM InvoiceStatus WHERE [Status] = 'Invoiced');
 
 			DECLARE @SOModuleId INT
 			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -48,10 +48,10 @@ BEGIN
 					
 					--Check for multiple shipping
 					SELECT @SoShippingItemCount = ISNULL(SUM(QtyShipped), 0) FROM [DBO].[SalesOrderShippingItem] WITH(NOLOCK) WHERE [SalesOrderShippingId] IN (SELECT [SalesOrderShippingId] FROM [DBO].[SalesOrderShipping] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0);
-					IF(ISNULL(@SoShippingItemCount,0) = ISNULL(@SoPartDataCount,0))
+					IF(ISNULL(@SoShippingItemCount,0) >= ISNULL(@SoPartDataCount,0))
 					BEGIN 
 						 UPDATE [DBO].[SalesOrder]
-						 SET StatusId = @SalesOrderStatus
+						 SET StatusId = @SalesOrderStatus,UpdatedDate = GETUTCDATE(), StatusChangeDate = GETUTCDATE()
 						 WHERE SalesOrderId = @SalesOrderId;
 					END
 					ELSE
@@ -61,10 +61,10 @@ BEGIN
 						IF(ISNULL(@SoShippingCount,0) > 0)
 						BEGIN 
 							--Check is all shipped or not
-							IF(ISNULL(@SoPartDataCount,0) = ISNULL(@SoShippingCount,0))
+							IF(ISNULL(@SoPartDataCount,0) >= ISNULL(@SoShippingCount,0))
 							BEGIN 
 								UPDATE [DBO].[SalesOrder]
-								SET StatusId = @SalesOrderStatus
+								SET StatusId = @SalesOrderStatus,UpdatedDate = GETUTCDATE(), StatusChangeDate = GETUTCDATE()
 								WHERE SalesOrderId = @SalesOrderId;
 							END
 						END
@@ -75,14 +75,12 @@ BEGIN
 			BEGIN
 				IF(ISNULL(@SoPartDataCount,0) > 0)
 				BEGIN
-					 SELECT @SOBillingInvoicingId = [BillingInvoicingId] FROM [DBO].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @SalesOrderId  AND [ModuleId] = @SOModuleId AND ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0;
-
 					 --Check for multiple billing
-					SELECT @SoBillingItemCount = COUNT([BillingInvoicingId]) FROM [DBO].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingId] = @SOBillingInvoicingId;
-					IF(ISNULL(@SoBillingItemCount,0) = ISNULL(@SoPartDataCount,0))
+					SELECT @SoBillingItemCount =ISNULL(SUM(BII.QtyBilled), 0) FROM [DBO].[BillingInvoicingItems] BII WITH(NOLOCK) WHERE ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice,0) = 0 AND [BillingInvoicingId] IN ( SELECT [BillingInvoicingId] FROM [DBO].[BillingInvoicing] BI WITH(NOLOCK) WHERE Bi.InvoiceStatusId = @InvoicedStatusId AND BI.[ReferenceId] = @SalesOrderId  AND BI.[ModuleId] = @SOModuleId AND ISNULL(BI.[IsActive],0) = 1 AND ISNULL(BI.[IsDeleted],0) = 0 AND ISNULL(BI.IsVersionIncrease,0) = 0 AND ISNULL(BI.IsPerformaInvoice,0) = 0);
+					IF(@SoBillingItemCount > 0 AND ISNULL(@SoBillingItemCount,0) >= ISNULL(@SoPartDataCount,0))
 					BEGIN
 						 UPDATE [DBO].[SalesOrder]
-						 SET StatusId = @SalesOrderStatus
+						 SET StatusId = @SalesOrderStatus, UpdatedDate = GETUTCDATE(), StatusChangeDate = GETUTCDATE()
 						 WHERE SalesOrderId = @SalesOrderId;
 					END
 				END

@@ -11,10 +11,10 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    22/02/2024  Rajesh Gami		Created
-	2    10-07-2024  SHrey Chandegara	MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
-	3    21-07-2025  Amit Ghediya		MOdify for get RFQ part is in our inventory or not (IsInventoryPart)
-	4    21-07-2025  Devendra Shekh		Modified (Added CustomerId to select)
+    1    22/02/2024  Rajesh Gami         Created
+	2    10-07-2024  SHrey Chandegara    MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
+	3    21-07-2025  Amit Ghediya        MOdify for get RFQ part is in our inventory or not (ItemMasterId)
+	4    21-07-2025  Devendra Shekh		 Modified (Added CustomerId to select)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -86,11 +86,11 @@ BEGIN
 					RFQ.[AltPartNumber] AS 'AltPartNumber',
 					RFQ.[Quantity] AS 'Quantity',
 					RFQ.[Condition] AS 'Condition',
-				    (CASE WHEN ISNULL(IM.[ItemMasterId],'') = '' THEN 0 ELSE 1 END) IsInventoryPart,
-					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.CustomerId ELSE 0 END) CustomerId
+					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
+					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
-				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.LinePartNumber = IM.partnumber AND RFQ.MasterCompanyId = IM.MasterCompanyId
-				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.MasterCompanyId = CU.MasterCompanyId
+				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),

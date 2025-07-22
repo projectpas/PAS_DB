@@ -11,9 +11,10 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    13/06/2025   Amit Ghediya     Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    13/06/2025   Amit Ghediya		Created
+    2    03/07/2025   Vishal Suthar     WorkFlowId was missing in the update section for Template
      
 -- EXEC [InsertSubWorkOrderPartNumber] 
 ************************************************************************/
@@ -227,7 +228,8 @@ BEGIN
 						sub.PublicationNo = tmp.PublicationNo,
 						sub.TravelerNumber = @TraverIdString,
 						sub.CMMIds = tmp.CMMIds,
-						sub.SubWorkOrderScopeId = tmp.SubWorkOrderScopeId
+						sub.SubWorkOrderScopeId = tmp.SubWorkOrderScopeId,
+						sub.WorkFlowId = tmp.WorkFlowId
 					FROM [dbo].[SubWorkOrderPartNumber] sub
 					JOIN #tmpSubWorkOrderParts tmp ON tmp.ID = @MasterLoopID
 					WHERE tmp.ID = @MasterLoopID;

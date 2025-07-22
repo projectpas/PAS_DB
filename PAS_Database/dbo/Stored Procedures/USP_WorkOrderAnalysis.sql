@@ -11,6 +11,7 @@
     1    11-04-2025		Shrey Chandegara		Created  	
 	2    18-04-2025		Hemnat Saliya			Added DB Standards  	
 	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
+	4    21-07-2025		Hemnat Saliya			Added IsVersionIncrease	
 		
 	exec dbo.USP_WorkOrderAnalysis 8631,8331
 **************************************************************/
@@ -93,8 +94,8 @@ BEGIN
 							ELSE ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0)
 						END
 				FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
-				INNER JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId
-				INNER JOIN [dbo].[WorkOrderQuoteDetails] wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId
+				INNER JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId AND ISNULL(woq.IsVersionIncrease, 0) = 0
+				INNER JOIN [dbo].[WorkOrderQuoteDetails] wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId AND ISNULL(wqd.IsVersionIncrease, 0) = 0
 				WHERE wo.WorkOrderId = @WorkOrderId AND wqd.WOPartNoId = @WorkOrderPartNoId
 			)
 			SELECT DISTINCT

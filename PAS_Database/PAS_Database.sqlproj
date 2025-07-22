@@ -4036,6 +4036,8 @@
     <Build Include="dbo\Stored Procedures\InsertEmailApproval.sql" />
     <Build Include="dbo\Stored Procedures\GetDeleteEmailApprovalById.sql" />
     <Build Include="dbo\User Defined Types\EmailApprovalType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOQStatusId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveEmail.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql" />
   </ItemGroup>

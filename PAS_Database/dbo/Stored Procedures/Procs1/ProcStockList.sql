@@ -37,7 +37,7 @@
 	20   13/05/2025   Hemant Saliya		Remove 'PoNumber, RoNumber, IsDocument join to Improve Performance.
 	21   16/05/2025   Devendra Shekh    reading RepairOrderNumber, PurchaseOrderNumber, IsDocument from StockLine Table
 	22   22/05/2025   Abhishek Jirawala Added new field Repair Management for list
-
+	23   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -111,7 +111,8 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@ReceiverNumber varchar(50) = NULL,
 	@QuantityAdjustment varchar(50) = NULL,
 	@IsDocument varchar(50) = NULL,
-	@IsRepairManagement varchar(50) = NULL
+	@IsRepairManagement varchar(50) = NULL,
+	@BatchNumber varchar(50)=NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -262,7 +263,9 @@ BEGIN
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
 	   CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument',
-		CASE WHEN ISNULL(stl.IsRepairManagement, 0) = 0 THEN 'No' ELSE 'Yes' END AS IsRepairManagement
+		CASE WHEN ISNULL(stl.IsRepairManagement, 0) = 0 THEN 'No' ELSE 'Yes' END AS IsRepairManagement,
+		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
+		stl.[BatchNumber]
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -319,6 +322,7 @@ BEGIN
 		  (RONumber LIKE '%' +@GlobalFilter+'%') OR
 		  (ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
 		  (QuantityAdjustment LIKE '%' +@GlobalFilter+'%') OR 
+		  ([BatchNumber] LIKE '%' +@GlobalFilter+'%') OR	
 		  (IsDocument LIKE '%' +@GlobalFilter+'%')))         
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -368,6 +372,7 @@ BEGIN
 		  (ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
 		  (ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 		  (ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
+		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND			
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%'))        
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
@@ -466,7 +471,9 @@ BEGIN
 	      CASE WHEN (@SortOrder=1  AND @SortColumn='IsDocument')  THEN IsDocument END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsDocument')  THEN IsDocument END DESC,
 	      CASE WHEN (@SortOrder=1  AND @SortColumn='IsRepairManagement')  THEN IsDocument END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC,
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END ASC,
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -542,7 +549,9 @@ BEGIN
 		ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 		CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
 		CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument',
-		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement
+		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
+		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
+		stl.[BatchNumber]
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
@@ -600,6 +609,7 @@ BEGIN
 		(RONumber LIKE '%' +@GlobalFilter+'%') OR
 		(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
 		(QuantityAdjustment LIKE '%' +@GlobalFilter+'%') OR 
+		([BatchNumber] LIKE '%' +@GlobalFilter+'%') OR
 		(IsDocument LIKE '%' +@GlobalFilter+'%')))         
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -635,7 +645,7 @@ BEGIN
 		(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND              
 		(ISNULL(@CertifiedDate,'') ='' OR CAST(CertifiedDate AS Date)=CAST(@CertifiedDate AS date)) AND        
 		(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND           
-		  (ISNULL(@IsRepairManagement,'') ='' OR IsRepairManagement LIKE '%' + @IsRepairManagement + '%') AND
+		(ISNULL(@IsRepairManagement,'') ='' OR IsRepairManagement LIKE '%' + @IsRepairManagement + '%') AND
 		(ISNULL(@IsTurnIn,'') ='' OR IsTurnIn LIKE '%' + @IsTurnIn + '%') AND    
 		(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND        
 		(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND        
@@ -649,6 +659,7 @@ BEGIN
 		(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
 		(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
+		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%'))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
@@ -747,8 +758,10 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityAdjustment')  THEN QuantityAdjustment END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsDocument')  THEN IsDocument END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsDocument')  THEN IsDocument END DESC,
-		CASE WHEN (@SortOrder=1  AND @SortColumn='IsRepairManagement')  THEN IsDocument END ASC,        
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsRepairManagement')  THEN IsDocument END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC,
+	   CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END ASC,
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -826,7 +839,9 @@ BEGIN
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
 	   CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument',
-		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement
+	   CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
+	   ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
+	   stl.[BatchNumber]
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -886,6 +901,7 @@ BEGIN
 		  (RONumber LIKE '%' +@GlobalFilter+'%') OR
 		  (ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
 		  (QuantityAdjustment LIKE '%' +@GlobalFilter+'%') OR 
+		  ([BatchNumber] LIKE '%' +@GlobalFilter+'%') OR
 		  (IsDocument LIKE '%' +@GlobalFilter+'%')))
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
@@ -935,6 +951,7 @@ BEGIN
 		  (ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
 		  (ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 		  (ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
+		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND		
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%'))        
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
@@ -1033,7 +1050,9 @@ BEGIN
 	      CASE WHEN (@SortOrder=1  AND @SortColumn='IsDocument')  THEN IsDocument END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsDocument')  THEN IsDocument END DESC,
 	      CASE WHEN (@SortOrder=1  AND @SortColumn='IsRepairManagement')  THEN IsDocument END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC,
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END ASC,
+	      CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -1108,7 +1127,9 @@ BEGIN
 	    ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
 		CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
 		CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument',
-		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement
+		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
+		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
+		stl.[BatchNumber]
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1171,6 +1192,7 @@ BEGIN
 		(RONumber LIKE '%' +@GlobalFilter+'%') OR
 		(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
 		(QuantityAdjustment LIKE '%' +@GlobalFilter+'%') OR 
+		([BatchNumber] LIKE '%' +@GlobalFilter+'%')	OR		
 		(IsDocument LIKE '%' +@GlobalFilter+'%')))       
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -1207,7 +1229,7 @@ BEGIN
 		(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND              
 		(ISNULL(@CertifiedDate,'') ='' OR CAST(CertifiedDate AS Date)=CAST(@CertifiedDate AS date)) AND        
 		(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND           
-		  (ISNULL(@IsRepairManagement,'') ='' OR IsRepairManagement LIKE '%' + @IsRepairManagement + '%') AND  
+		(ISNULL(@IsRepairManagement,'') ='' OR IsRepairManagement LIKE '%' + @IsRepairManagement + '%') AND  
 		(ISNULL(@IsTurnIn,'') ='' OR IsTurnIn LIKE '%' + @IsTurnIn + '%') AND    
 		(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND        
 		(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND        
@@ -1220,6 +1242,7 @@ BEGIN
 		(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
 		(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
+		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%'))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
@@ -1318,8 +1341,10 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityAdjustment')  THEN QuantityAdjustment END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsDocument')  THEN IsDocument END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsDocument')  THEN IsDocument END DESC,
-	    CASE WHEN (@SortOrder=1  AND @SortColumn='IsRepairManagement')  THEN IsDocument END ASC,        
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsRepairManagement')  THEN IsDocument END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsRepairManagement')  THEN IsDocument END DESC,
+	   CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END ASC,
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        

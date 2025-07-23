@@ -15,9 +15,9 @@
 	1    12/05/2025   Moin Bloch		Created
 	2    02/06/2025   Rajesh Gami		Implemented SO
 	3    07-07-2025   Moin Bloch        Changed Old To New Billing Table
-	4    21-07-2025   Moin Bloch        Added BillingAmount
+	4    21-07-2025   Moin Bloch        Added BillingAmount IN SO PartList
 **************************************************************/ 
---   EXEC [dbo].[GetCommonBillingInvoiceListNew] 8810, 8582,15
+--   EXEC [dbo].[GetCommonBillingInvoiceListNew] 706, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
 @ReferenceId BIGINT = NULL,
 @SubReferenceId BIGINT = NULL, 
@@ -256,8 +256,7 @@ BEGIN
 					imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]								
 		END /*********END: WORK ORDER ********/
 		ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
-		BEGIN
-		PRINT 'SALES ORDER'
+		BEGIN		
 			SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 			SELECT @SalesOrderShippingId = ISNULL(SalesOrderShippingId,0) FROM DBO.SalesOrderShipping SO (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 						
@@ -299,9 +298,9 @@ BEGIN
 					sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId,cond.Description, sop.SalesOrderPartId,so.CustomerId)
 				END
 				ELSE
-				BEGIN
+				BEGIN					
 					IF (@SalesOrderShippingId > 0)
-					BEGIN 
+					BEGIN 					
 						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
 						sop.SalesOrderId, sop.SalesOrderPartId AS SubReferenceId,	'' as [Status], 0 AS ItemNo,so.CustomerId
@@ -341,7 +340,7 @@ BEGIN
 						sop.SalesOrderId, imt.ItemMasterId, sop.SalesOrderPartId, sop.ConditionId,cond.Description,so.CustomerId)
 					END
 					ELSE 
-					BEGIN
+					BEGIN						
 						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
 						sop.SalesOrderId,sop.SalesOrderPartId AS SubReferenceId,'' as [Status],0 AS ItemNo,so.CustomerId
@@ -424,9 +423,23 @@ BEGIN
 										sop.SalesOrderPartId As SubReferenceId,
 										'' AS [Status],
 										0 AS ItemNo,
-										so.CustomerId,
-										0 AS [BillingAmount],
-										0 AS [PerformaBillingAmount]
+										so.CustomerId,										
+									   (SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+										FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+										INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+										WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+										   AND WOB.[ModuleId] = @SOModuleId
+										   AND WOB.[ReferenceId] = @ReferenceId
+										   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+										   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0) [BillingAmount]
+									,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+											FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+											INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+											WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+											   AND WOB.[ModuleId] = @SOModuleId
+											   AND WOB.[ReferenceId] = @ReferenceId
+											   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+											   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1) [PerformaBillingAmount]
 								FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 									INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 									INNER JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId

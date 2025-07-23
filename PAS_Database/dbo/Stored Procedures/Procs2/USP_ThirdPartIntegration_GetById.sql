@@ -1,4 +1,19 @@
-﻿CREATE    PROCEDURE [dbo].[USP_ThirdPartIntegration_GetById]
+﻿/*************************************************************           
+ ** File:   [USP_AddEdit_ThirdPartIntegration]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:    
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------    ---------			--------------------------------          
+    1   22/07/2025    Amit Ghediya     Added Email field
+************************************************************************/
+CREATE    PROCEDURE [dbo].[USP_ThirdPartIntegration_GetById]
 @ThirdPartInegrationId bigint
 AS
 BEGIN
@@ -31,7 +46,8 @@ BEGIN
 					t.CreatedDate,
 					t.UpdatedDate,
 					t.IsActive,
-					t.IsDeleted
+					t.IsDeleted,
+					t.IsEmail
 				FROM [DBO].[ThirdPartInegration] t WITH (NOLOCK) 
 				LEFT JOIN [DBO].[LegalEntity] l WITH (NOLOCK) ON t.LegalEntityId = l.LegalEntityId
 				--LEFT JOIN [DBO].[IntegrationPortal] i WITH (NOLOCK) ON t.IntegrationIds = i.IntegrationPortalId

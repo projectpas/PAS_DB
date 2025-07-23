@@ -12,8 +12,8 @@
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    
-    2    22-JUNE-203     Devendra Shekh        made changes for total unitcost and extcost
-
+    2    22-JUNE-2023     Devendra Shekh    made changes for total unitcost and extcost
+	3    22-JULY-2025     Moin Bloch        added Some New Fields
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReport]     
 @PageNumber int = 1,    
@@ -26,9 +26,9 @@ BEGIN
   SET NOCOUNT ON;    
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
     
-    declare @Fromdate datetime2,    
- @Todate datetime2,    
- @tagtype varchar(50) = NULL,    
+ declare @Fromdate DATETIME2,    
+ @Todate DATETIME2,    
+ @tagtype VARCHAR(50) = NULL,    
  @level1 VARCHAR(MAX) = NULL,    
  @level2 VARCHAR(MAX) = NULL,    
  @level3 VARCHAR(MAX) = NULL,    
@@ -38,76 +38,108 @@ BEGIN
  @Level7 VARCHAR(MAX) = NULL,    
  @Level8 VARCHAR(MAX) = NULL,    
  @Level9 VARCHAR(MAX) = NULL,    
- @Level10 VARCHAR(MAX) = NULL,    
+ @Level10 VARCHAR(MAX) = NULL,  
+ @Site VARCHAR(MAX) = NULL,  
+ @Warehouse VARCHAR(MAX) = NULL,  
+ @Location VARCHAR(MAX) = NULL,  
+ @Shelf VARCHAR(MAX) = NULL,  
+ @Bin VARCHAR(MAX) = NULL,  
  @IsDownload BIT = NULL,    
- @ECS BIT = 0    
-    
-  BEGIN TRY    
+ @ECS BIT = 0,   
+ @ItemMasterId BIGINT = NULL
+
+BEGIN TRY    
           
- select     
-       
- @Fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date'     
- then convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) else @Fromdate end,    
-  @Todate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date'     
- then convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) else @Todate end,    
-  @tagtype=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Tag Type'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @tagtype end,    
- @ECS=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Exclude Customer Stock'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @ECS end,  
- @level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,    
- @level2=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level2 end,    
- @level3=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level3 end,    
- @level4=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level4 end,    
- @level5=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level5 end,    
- @level6=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level6 end,    
- @level7=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level7 end,    
- @level8=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level8 end,    
- @level9=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level9 end,    
- @level10=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'     
- then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end    
-    
+ SELECT
+ @Fromdate = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date'     
+ THEN CONVERT(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Fromdate END,    
+ @Todate = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date'     
+ THEN CONVERT(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,    
+ @tagtype = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Tag Type'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @tagtype END,    
+ @ECS = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Exclude Customer Stock ?'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @ECS END,  
+ @level1 = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,    
+ @level2 = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level2 END,    
+ @level3=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level3 END,    
+ @level4=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level4 END,    
+ @level5=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level5 END,    
+ @level6=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level6 END,    
+ @level7=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level7 END,    
+ @level8=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level8 END,    
+ @level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,    
+ @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 END,  
+ @Site=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Site'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Site END,
+ @Warehouse=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Warehouse'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Warehouse END,
+ @Location=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Location'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Location END,
+ @Shelf=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Shelf'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Shelf END,
+ @Bin=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Bin'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Bin END,
+ @ItemMasterId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Part Number'     
+ THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @ItemMasterId END
+
   FROM    
-      @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)    
-    
+      @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)        
       DECLARE @ModuleID INT = 2; -- MS Module ID    
    SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END    
   
-    IF ISNULL(@PageSize,0)=0    
+  IF(@ItemMasterId = '')
+  BEGIN
+	SET @ItemMasterId = NULL;
+  END
+
+  IF ISNULL(@PageSize,0)=0    
   BEGIN     
     SELECT @PageSize=COUNT(*)    
-    FROM DBO.stockline stl WITH (NOLOCK)    
-   INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
-   LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
-   LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId    
-   LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
-   LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
-   LEFT OUTER JOIN DBO.RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid    
-   LEFT JOIN DBO.vendor VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId    
-   LEFT JOIN DBO.StocklineAdjustment stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId    
-   LEFT JOIN DBO.StocklineAdjustmentDataType stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId    
-          WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 AND stl.IsDeleted=0 and  CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
+    FROM [dbo].[Stockline] stl WITH (NOLOCK)    
+   INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+    LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
+   LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId    
+   LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
+   LEFT OUTER JOIN [dbo].PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
+   LEFT OUTER JOIN [dbo].PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
+   LEFT OUTER JOIN [dbo].RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid    
+   LEFT OUTER JOIN [dbo].[WorkOrder] wox WITH (NOLOCK) ON stl.WorkOrderId = wox.WorkOrderId   
+   LEFT OUTER JOIN [dbo].[SubWorkOrder] swox WITH (NOLOCK) ON stl.SubWorkOrderId = swox.SubWorkOrderId 
+   LEFT JOIN [dbo].[Vendor] VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId    
+   LEFT JOIN [dbo].[StocklineAdjustment] stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId    
+   LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId    
+   WHERE stl.MasterCompanyId = @mastercompanyid 
+    AND stl.IsParent = 1 
+	AND stl.IsDeleted = 0 
+	AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)
+	AND CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
     AND stl.IsCustomerStock =  CASE WHEN @ECS = 1 THEN 0 ELSE stl.IsCustomerStock END  
-         AND      
-     (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))    
-   AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
-   AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))    
-   AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))    
-   AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))    
-   AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))    
-   AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))    
-   AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
-   AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
-   AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
-   AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))     
+    AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ','))) 
+	AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
+	AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
+	AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
+	AND (ISNULL(@Shelf,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@Shelf,',')))   
+	AND (ISNULL(@Bin,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@Bin,',')))   
+    AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
+    AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))    
+    AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))    
+    AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))    
+    AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))    
+    AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))    
+    AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
+    AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
+    AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
+    AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))     
    END    
        
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
@@ -116,7 +148,8 @@ BEGIN
      ;WITH rptCTE (TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
 				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto,
 				 mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
-			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId) AS (
+			     level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId,itemClassificationName,
+			     workOrderNum,subWorkOrderNo,daysFromReceiveDate,currencyName,customerName) AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,    
         UPPER(im.partnumber) AS 'pn',    
         UPPER(im.PartDescription) AS 'pndescription',    
@@ -149,7 +182,16 @@ BEGIN
 		ISNULL(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'extprice',    
         --stl.UnitCost 'unitprice',    
         --stl.UnitCost*stl.QuantityOnHand 'extprice',    
-        UPPER(MSD.Level1Name) AS level1,     UPPER(MSD.Level2Name) AS level2,    UPPER(MSD.Level3Name) AS level3,    UPPER(MSD.Level4Name) AS level4,    UPPER(MSD.Level5Name) AS level5,    UPPER(MSD.Level6Name) AS level6,    UPPER(MSD.Level7Name) AS level7,    UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MSD.Level10Name) AS level10,      
+        UPPER(MSD.Level1Name) AS level1,     
+		UPPER(MSD.Level2Name) AS level2,    
+		UPPER(MSD.Level3Name) AS level3,    
+		UPPER(MSD.Level4Name) AS level4,    
+		UPPER(MSD.Level5Name) AS level5,    
+		UPPER(MSD.Level6Name) AS level6,    
+		UPPER(MSD.Level7Name) AS level7,   
+		UPPER(MSD.Level8Name) AS level8,    
+		UPPER(MSD.Level9Name) AS level9,    
+		UPPER(MSD.Level10Name) AS level10,      
         UPPER(stl.site) 'site',    
         UPPER(stl.warehouse) 'warehouse',    
         UPPER(stl.location) 'Location',    
@@ -163,41 +205,57 @@ BEGIN
         UPPER(stl.ReceiverNumber) 'receivernum',    
         UPPER(stl.ReconciliationNumber) 'receiverrecon',
 		UPPER(ISNULL(stl.Quantity,0)) 'poqty',
-		stl.MasterCompanyId
-      FROM DBO.stockline stl WITH (NOLOCK)    
-     INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
-	 LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
-	 LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId    
-	 LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
-	 LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
-	 LEFT OUTER JOIN DBO.RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid    
-	 LEFT JOIN DBO.vendor VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId    
-	 LEFT JOIN DBO.StocklineAdjustment stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId    
-	 LEFT JOIN DBO.StocklineAdjustmentDataType stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId    
-	 --LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK) ON stl.MasterCompanyId = MC.MasterCompanyId    
-       WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 AND stl.IsDeleted=0 and  CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
-	 AND stl.IsCustomerStock = CASE WHEN @ECS = 1 THEN 0 ELSE stl.IsCustomerStock END  
-         AND      
-     (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))    
-   AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
-   AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))    
-   AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))    
-   AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))    
-   AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))    
-   AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))    
-   AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
-   AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
-   AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
-   AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))   
+		stl.MasterCompanyId,
+		UPPER(im.itemClassificationName) 'itemClassificationName',
+		UPPER(wox.WorkOrderNum) 'workOrderNum',
+		UPPER(swox.SubWorkOrderNo) 'subWorkOrderNo',
+		DATEDIFF(DAY, STL.receiveddate, GETUTCDATE()) 'daysFromReceiveDate',
+		UPPER(im.PurchaseCurrency) 'currencyName',
+		UPPER(cst.[Name]) 'customerName'
+      FROM [dbo].[Stockline] stl WITH (NOLOCK)    
+     INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+	  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
+	 LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId  
+	 LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
+	 LEFT OUTER JOIN [dbo].[PurchaseOrder] pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
+	 LEFT OUTER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
+	 LEFT OUTER JOIN [dbo].[RepairOrder] rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid   
+	 LEFT OUTER JOIN [dbo].[WorkOrder] wox WITH (NOLOCK) ON stl.WorkOrderId = wox.WorkOrderId   
+	 LEFT OUTER JOIN [dbo].[SubWorkOrder] swox WITH (NOLOCK) ON stl.SubWorkOrderId = swox.SubWorkOrderId  
+	 LEFT JOIN [dbo].[Vendor] VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId    
+	 LEFT JOIN [dbo].[StocklineAdjustment] stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId    
+	 LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId    
+     WHERE stl.[MasterCompanyId] = @mastercompanyid 
+	 AND stl.[IsParent] = 1 
+	 AND stl.[IsDeleted] = 0 
+	 AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)
+	 AND CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+	 AND stl.[IsCustomerStock] = CASE WHEN @ECS = 1 THEN 0 ELSE stl.[IsCustomerStock] END  
+     AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))    
+     AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
+	 AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
+	 AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
+	 AND (ISNULL(@Shelf,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@Shelf,',')))   
+	 AND (ISNULL(@Bin,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@Bin,',')))   
+	 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
+     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))    
+     AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))    
+     AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))    
+     AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))    
+     AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))    
+     AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
+     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
+     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
+     AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))   
    )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
 				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto,
 				 mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
-				level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId) 
+				level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId,itemClassificationName,workOrderNum,subWorkOrderNo,daysFromReceiveDate,currencyName,customerName) 
 			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
 				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto,
 				 mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
-			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId FROM rptCTE)
+			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId,itemClassificationName,workOrderNum,subWorkOrderNo,daysFromReceiveDate,currencyName,customerName FROM rptCTE)
 
 			,WithTotal (masterCompanyId, TotalPOUnitCost, TotalExtCost, TotalUnitPrice, TotalExtPrice,TotalROCost) 
 			  AS (SELECT masterCompanyId, 
@@ -224,7 +282,13 @@ BEGIN
 					WC.TotalExtCost,
 					WC.TotalUnitPrice,
 					WC.TotalExtPrice,
-					WC.TotalROCost
+					WC.TotalROCost,
+					FC.itemClassificationName,
+					FC.workOrderNum,
+					FC.subWorkOrderNo,
+					FC.daysFromReceiveDate,
+					FC.currencyName,
+					FC.customerName
 				FROM FinalCTE FC
 					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
 				ORDER BY pn DESC

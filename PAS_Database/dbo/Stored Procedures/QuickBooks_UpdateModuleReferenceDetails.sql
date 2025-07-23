@@ -19,7 +19,7 @@
 	6    12-Feb-2025   Devendra Shekh	Modified (added Change for CreditMemo)
 	7    12-Feb-2025   Rajesh Gami   	Modified as per new SO Billing structure (So)
 	8    12-Feb-2025   Moin Bloch   	Modified as per new WO Billing structure (WO)
-
+	9    23/07/2025   Rajesh Gami		Remove Transaction
  EXECUTE [QuickBooks_UpdateModuleReferenceDetails] 1, 10, '150'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[QuickBooks_UpdateModuleReferenceDetails]
@@ -32,7 +32,7 @@ AS
 BEGIN
 	
 	SET NOCOUNT ON;
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
+	--SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;

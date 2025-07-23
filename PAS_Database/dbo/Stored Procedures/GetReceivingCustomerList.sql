@@ -31,11 +31,11 @@
 	14   18/03/2025   RAJESH GAMI       Fix the ReceivedDate issue (make a created date as a Received Date)
 	15   16/04/2025   ABHISHEK JIRAWLA  Updated (Added Repair Management Filter)
 	16   13/05/2025   Hemant Saliya		Resolved Performance issue for Production
-
+  	17   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
-CREATE     PROCEDURE [dbo].[GetReceivingCustomerList]
+CREATE   PROCEDURE [dbo].[GetReceivingCustomerList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
 	@PageNumber int,
@@ -66,7 +66,8 @@ CREATE     PROCEDURE [dbo].[GetReceivingCustomerList]
 	@IdNumber varchar(50)=null,
 	@Reference varchar(100)=null,
 	@ManufacturerName varchar(150)=null,
-	@PiecePartFilter varchar(50)=null
+	@PiecePartFilter varchar(50)=null,
+	@BatchNumber varchar(50)=null
 AS
 BEGIN
 		SET NOCOUNT ON;
@@ -153,53 +154,50 @@ BEGIN
 
 				;With Result AS(
 					SELECT	DISTINCT
-					RC.CustomerId, 
-					RC.ReceivingCustomerWorkId,
-					RC.ReceivingNumber,
-					RC.StockLineId,
-					SL.QuantityAvailable,
-					SL.QuantityOnHand,
-					SL.StocklineNumber,
-					SL.ControlNumber,
-					SL.IdNumber,
-					IM.partnumber AS PartNumber,
-					M.Name As ManufacturerName,
-					IM.PartDescription,
-					RC.CustomerName,
-					WOS.Stage AS StageCode,
-					WOST.Description AS Status,
-					RC.ManagementStructureId,
-					RC.SerialNumber,
+					RC.[CustomerId], 
+					RC.[ReceivingCustomerWorkId],
+					RC.[ReceivingNumber],
+					RC.[StockLineId],
+					SL.[QuantityAvailable],
+					SL.[QuantityOnHand],
+					SL.[StocklineNumber],
+					SL.[ControlNumber],
+					SL.[IdNumber],
+					IM.[partnumber] AS PartNumber,
+					M.[Name] As ManufacturerName,
+					IM.[PartDescription],
+					RC.[CustomerName],
+					WOS.[Stage] AS StageCode,
+					WOST.[Description] AS [Status],
+					RC.[ManagementStructureId],
+					RC.[SerialNumber],
 					CASE WHEN @WOFilter = 1 THEN NULL
-						 WHEN @WOFilter = 2 AND wo.WorkOrderStatusId = 2 THEN WO.WorkOrderNum
-						 ELSE WO.WorkOrderNum
-					END AS WorkOrderNum,
+						 WHEN @WOFilter = 2 AND wo.[WorkOrderStatusId] = 2 THEN WO.[WorkOrderNum]
+						 ELSE WO.[WorkOrderNum]
+					END AS [WorkOrderNum],
 					CASE WHEN @WOFilter = 1 THEN NULL
-						 WHEN @WOFilter = 2 AND wo.WorkOrderStatusId = 2 THEN WO.OpenDate
-						 ELSE WO.OpenDate
-					END AS WOOpenDate,
-					WO.WorkOrderNum AS WONumber,
-					RO.RepairOrderNumber AS RONumber,
-					RC.Reference AS Reference,
-					ROP.RepairOrderPartRecordId,
-					RC.EmployeeName AS ReceivedBy,
-					RC.ManagementStructureId AS Ids,
-					RC.IsActive,
-					RC.IsDeleted,
-					--RC.CreatedDate,
-					RC.CreatedBy,
-					--RC.UpdatedDate,
-					RC.UpdatedBy, 
-					MSD.LastMSLevel,
-					MSD.AllMSlevels,
-					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart,
-					CASE WHEN RC.IsRepairManagement = 1 THEN 1 ELSE 0 END IsRepairManagement,
-					DATEADD(SECOND, @BaseUtcOffsetSec, RC.CreatedDate) CreatedDate,
-					DATEADD(SECOND, @BaseUtcOffsetSec, RC.UpdatedDate) UpdatedDate,
-					DATEADD(SECOND, @BaseUtcOffsetSec, RC.CreatedDate) ReceivedDate
-					--(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) CreatedDate,
-					--(Cast(DBO.ConvertUTCtoLocal(RC.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
-					--(Cast(DBO.ConvertUTCtoLocal(RC.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime)) AS ReceivedDate
+						 WHEN @WOFilter = 2 AND wo.[WorkOrderStatusId] = 2 THEN WO.[OpenDate]
+						 ELSE WO.[OpenDate]
+					END AS [WOOpenDate],
+					WO.[WorkOrderNum] AS WONumber,
+					RO.[RepairOrderNumber] AS RONumber,
+					RC.[Reference],
+					ROP.[RepairOrderPartRecordId],
+					RC.[EmployeeName] AS [ReceivedBy],
+					RC.[ManagementStructureId] AS Ids,
+					RC.[IsActive],
+					RC.[IsDeleted],					
+					RC.[CreatedBy],					
+					RC.[UpdatedBy], 
+					MSD.[LastMSLevel],
+					MSD.[AllMSlevels],
+					CASE WHEN RC.[IsPiecePart] = 1 THEN 1 ELSE 0 END [IsPiecePart],
+					CASE WHEN RC.[IsRepairManagement] = 1 THEN 1 ELSE 0 END [IsRepairManagement],
+					DATEADD(SECOND, @BaseUtcOffsetSec, RC.[CreatedDate]) [CreatedDate],
+					DATEADD(SECOND, @BaseUtcOffsetSec, RC.[UpdatedDate]) [UpdatedDate],
+					DATEADD(SECOND, @BaseUtcOffsetSec, RC.[CreatedDate]) [ReceivedDate],					
+					ISNULL(SL.[IsBatchStock],0) [IsBatchStock],
+				    SL.[BatchNumber]
 				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
@@ -235,50 +233,51 @@ BEGIN
 						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 
 						OR (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) 
 						OR (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll OR RO.RepairOrderNumber IS NOT NULL OR RO.RepairOrderNumber IS NULL))))
-			), ResultCount AS(SELECT COUNT(ReceivingCustomerWorkId) AS totalItems FROM Result)
+			), ResultCount AS(SELECT COUNT([ReceivingCustomerWorkId]) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE (
-					(@GlobalFilter <>'' AND ((CustomerName like '%' +@GlobalFilter+'%' ) OR 
-					(PartNumber like '%' +@GlobalFilter+'%') OR
-					(PartDescription like '%' +@GlobalFilter+'%') OR
-					(SerialNumber like '%' +@GlobalFilter+'%') OR
-					(StocklineNumber like '%' +@GlobalFilter+'%') OR
-					(ControlNumber like '%' +@GlobalFilter+'%') OR
-					(IdNumber like '%' +@GlobalFilter+'%') OR
-					(WorkOrderNum like '%' +@GlobalFilter+'%') OR
-					(ReceivingNumber like '%' +@GlobalFilter+'%') OR
-					(ReceivedBy like '%' +@GlobalFilter+'%') OR
-					(LastMSLevel like '%' +@GlobalFilter+'%') OR
-					(Status like '%'+@GlobalFilter+'%') OR
-					(StageCode like '%'+@GlobalFilter+'%') OR
-					(CreatedBy like '%' +@GlobalFilter+'%') OR
-					(UpdatedBy like '%' +@GlobalFilter+'%') OR
-					(Reference like '%' +@GlobalFilter+'%') OR
-					(ManufacturerName like '%' +@GlobalFilter+'%')
+					(@GlobalFilter <>'' AND (([CustomerName] LIKE '%' +@GlobalFilter+'%' ) OR 
+					([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([PartDescription] LIKE '%' +@GlobalFilter+'%') OR
+					([SerialNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([StocklineNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([ControlNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([IdNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR
+					([ReceivingNumber] LIKE '%' +@GlobalFilter+'%') OR
+					([ReceivedBy] LIKE '%' +@GlobalFilter+'%') OR
+					([LastMSLevel] LIKE '%' +@GlobalFilter+'%') OR
+					([Status] LIKE '%'+@GlobalFilter+'%') OR
+					([StageCode] LIKE '%'+@GlobalFilter+'%') OR
+					([CreatedBy] LIKE '%' +@GlobalFilter+'%') OR
+					([UpdatedBy] LIKE '%' +@GlobalFilter+'%') OR
+					([Reference] LIKE '%' +@GlobalFilter+'%') OR
+					([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR
+					([BatchNumber] LIKE '%' +@GlobalFilter+'%')					
 					))
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName+'%') AND 
-					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
-					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription+'%') AND
-					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber+'%') AND
-					(ISNULL(@StocklineNumber,'') ='' OR StocklineNumber LIKE '%' + @StocklineNumber+'%') AND
-					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND
-					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber+'%') AND
-					(ISNULL(@WONumber,'') ='' OR WorkOrderNum LIKE '%' + @WONumber+'%') AND
-					(ISNULL(@ReceivingNumber,'') ='' OR ReceivingNumber LIKE '%' + @ReceivingNumber+'%') AND
-					(ISNULL(@ReceivedBy,'') ='' OR ReceivedBy LIKE '%' + @ReceivedBy+'%') AND
-					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') AND
-					(ISNULL(@StageCode,'') ='' OR StageCode LIKE '%' + @StageCode+'%') AND
-					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status+'%') AND
-					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
-					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
-					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE)=CAST(@ReceivedDate AS DATE)) AND
-					--(IsNull(@CreatedDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@CreatedDate as date)) AND 
-					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
-					(ISNULL(@Reference,'') ='' OR Reference LIKE '%' + @Reference+'%') AND
-					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%'))
-					)
+					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND 
+					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') AND
+					(ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber+'%') AND
+					(ISNULL(@StocklineNumber,'') ='' OR [StocklineNumber] LIKE '%' + @StocklineNumber+'%') AND
+					(ISNULL(@ControlNumber,'') ='' OR [ControlNumber] LIKE '%' + @ControlNumber+'%') AND
+					(ISNULL(@IdNumber,'') ='' OR [IdNumber] LIKE '%' + @IdNumber+'%') AND
+					(ISNULL(@WONumber,'') ='' OR [WorkOrderNum] LIKE '%' + @WONumber+'%') AND
+					(ISNULL(@ReceivingNumber,'') ='' OR [ReceivingNumber] LIKE '%' + @ReceivingNumber+'%') AND
+					(ISNULL(@ReceivedBy,'') ='' OR [ReceivedBy] LIKE '%' + @ReceivedBy+'%') AND
+					(ISNULL(@LastMSLevel,'') ='' OR [LastMSLevel] LIKE '%' + @LastMSLevel+'%') AND
+					(ISNULL(@StageCode,'') ='' OR [StageCode] LIKE '%' + @StageCode+'%') AND
+					(ISNULL(@Status,'') ='' OR [Status] LIKE '%' + @Status+'%') AND
+					(ISNULL(@CreatedBy,'') ='' OR [CreatedBy] LIKE '%' + @CreatedBy+'%') AND
+					(ISNULL(@UpdatedBy,'') ='' OR [UpdatedBy] LIKE '%' + @UpdatedBy+'%') AND
+					(ISNULL(@ReceivedDate,'') ='' OR CAST([ReceivedDate] AS DATE) = CAST(@ReceivedDate AS DATE)) AND
+					(ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE) = CAST(@CreatedDate AS DATE)) AND
+					(ISNULL(@UpdatedDate,'') ='' OR CAST([UpdatedDate] AS DATE) = CAST(@UpdatedDate AS DATE)) AND
+					(ISNULL(@Reference,'') ='' OR [Reference] LIKE '%' + @Reference+'%') AND
+					(ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND
+					(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%')					
+					))
 
 			SELECT @Count = COUNT(ReceivingCustomerWorkId) FROM #TempResult			
 
@@ -304,6 +303,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='REFERENCE')  THEN Reference END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
@@ -324,7 +324,8 @@ BEGIN
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='REFERENCE')  THEN Reference END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='BATCHNUMBER')  THEN BatchNumber END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

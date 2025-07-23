@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetCommonBillingInvoiceListNew]           
  ** Author:	  Moin Bloch
  ** Description: This SP is Used to get list of Invoices for Part    
@@ -14,6 +15,7 @@
 	1    12/05/2025   Moin Bloch		Created
 	2    02/06/2025   Rajesh Gami		Implemented SO
 	3    07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	4    21-07-2025   Moin Bloch        Added BillingAmount
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 8810, 8582,15
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -50,9 +52,11 @@ BEGIN
 			[Status] [VARCHAR](50) NULL,
 			[NewStatus] [VARCHAR](50) NULL,
 			[ItemNo] [INT] NULL,
-			ConditionId [BIGINT]  NULL,
-			Condition [VARCHAR](250)  NULL,
-			CustomerId [BIGINT] NULL
+			[ConditionId] [BIGINT]  NULL,
+			[Condition] [VARCHAR](250)  NULL,
+			[CustomerId] [BIGINT] NULL,
+			[BillingAmount] [decimal](18,2) NULL,
+			[PerformaBillingAmount] [decimal](18,2) NULL,
 		)
 		
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
@@ -65,7 +69,7 @@ BEGIN
 			BEGIN
 
 					INSERT INTO #InvoiceMainDetails([ReferenceNumber], [PartNumber], [PartDescription], [QtyToBill], [QtyBilled], [ReferenceId], [ItemMasterId], [SubReferenceId], [QtyRemaining], [Status], 
-													[NewStatus], [ItemNo], [IsProformaInvoice])
+													[NewStatus], [ItemNo], [IsProformaInvoice],[BillingAmount],[PerformaBillingAmount])
 					SELECT 
 						wo.WorkOrderNum as WorkOrderNumber, 
 						CASE WHEN ISNULL(wop.[RevisedItemmasterid], 0) > 0 THEN wop.[RevisedPartNumber] ELSE imt.[PartNumber] END as 'PartNumber',
@@ -98,7 +102,23 @@ BEGIN
 						END as [NewStatus],
 
 						0 AS ItemNo
-						,0 AS [IsProformaInvoice]
+					   ,0 AS [IsProformaInvoice]
+					   ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @WOModuleId
+								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
+								   AND WOBI.[SubReferenceId] = wop.[ID] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					   ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @WOModuleId
+								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
+								   AND WOBI.[SubReferenceId] = wop.[ID] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wos.[WorkOrderId] = wop.[WorkOrderId]
@@ -114,7 +134,7 @@ BEGIN
 			ELSE
 			BEGIN
 					INSERT INTO #InvoiceMainDetails([ReferenceNumber], [PartNumber], [PartDescription], [QtyToBill], [QtyBilled], [ReferenceId], [ItemMasterId], [SubReferenceId], [QtyRemaining], [Status],
-													[NewStatus], [ItemNo], [IsProformaInvoice])
+													[NewStatus], [ItemNo], [IsProformaInvoice],[BillingAmount],[PerformaBillingAmount])
 					SELECT 
 						wo.[WorkOrderNum] AS [WorkOrderNumber], 
 						CASE WHEN ISNULL(wop.[RevisedItemmasterid], 0) > 0 THEN wop.[RevisedPartNumber] ELSE imt.[PartNumber] END AS 'PartNumber',
@@ -133,6 +153,22 @@ BEGIN
 						END as [NewStatus],
 						0 AS ItemNo, 
 						0 AS [IsProformaInvoice]
+					   ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @WOModuleId
+								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
+								   AND WOBI.[SubReferenceId] = wop.[ID] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					   ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @WOModuleId
+								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
+								   AND WOBI.[SubReferenceId] = wop.[ID] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
@@ -147,7 +183,7 @@ BEGIN
 				END
 										
 			INSERT INTO #InvoiceMainDetails([ReferenceNumber], [PartNumber], [PartDescription], [QtyToBill], [QtyBilled], [ReferenceId], [ItemMasterId], [SubReferenceId], [QtyRemaining], [Status],
-													[NewStatus], [ItemNo], [IsProformaInvoice])
+													[NewStatus], [ItemNo], [IsProformaInvoice],[BillingAmount],[PerformaBillingAmount])
 				SELECT 
 						wo.[WorkOrderNum] 'WorkOrderNumber', 
 						CASE WHEN ISNULL(wop.[RevisedItemmasterid], 0) > 0 THEN wop.[RevisedPartNumber] ELSE imt.[PartNumber] END 'PartNumber',
@@ -191,6 +227,22 @@ BEGIN
 								 END END AS [NewStatus],
 						0 AS ItemNo
 						,1 AS [IsProformaInvoice]
+						,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @WOModuleId
+								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
+								   AND WOBI.[SubReferenceId] = wop.[ID] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					    ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @WOModuleId
+								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
+								   AND WOBI.[SubReferenceId] = wop.[ID] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wos.[WorkOrderId] = wop.[WorkOrderId]
@@ -211,9 +263,25 @@ BEGIN
 						
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 				BEGIN 
-					INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId)
+					INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 					(
 					SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition', sop.SalesOrderId,sop.SalesOrderPartId, '' as [Status],	0 AS ItemNo,so.CustomerId
+					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)					
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -234,9 +302,25 @@ BEGIN
 				BEGIN
 					IF (@SalesOrderShippingId > 0)
 					BEGIN 
-						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId)
+						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
 						sop.SalesOrderId, sop.SalesOrderPartId AS SubReferenceId,	'' as [Status], 0 AS ItemNo,so.CustomerId
+						,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					    ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
 						FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
@@ -258,9 +342,25 @@ BEGIN
 					END
 					ELSE 
 					BEGIN
-						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId)
+						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, cond.Description as 'Condition',				
 						sop.SalesOrderId,sop.SalesOrderPartId AS SubReferenceId,'' as [Status],0 AS ItemNo,so.CustomerId
+						,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+					    ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
+						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
+								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
+								WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 
+								   AND WOB.[ModuleId] = @SOModuleId
+								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
+								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
 						FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
@@ -313,7 +413,7 @@ BEGIN
 					IF((SELECT COUNT(1) FROM #InvoiceMainDetails WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId AND ReferenceId = @ReferenceId AND SubReferenceId = @SalesOrderPartId) <= 0)
 					BEGIN
 					
-						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId)
+						INSERT INTO #InvoiceMainDetails(ReferenceNumber,partnumber,ItemMasterId,PartDescription,ConditionId,Condition,ReferenceId,SubReferenceId,Status,ItemNo,CustomerId,[BillingAmount],[PerformaBillingAmount])
 						(SELECT DISTINCT so.SalesOrderNumber, 
 										imt.partnumber, 
 										imt.ItemMasterId,
@@ -324,7 +424,9 @@ BEGIN
 										sop.SalesOrderPartId As SubReferenceId,
 										'' AS [Status],
 										0 AS ItemNo,
-										so.CustomerId
+										so.CustomerId,
+										0 AS [BillingAmount],
+										0 AS [PerformaBillingAmount]
 								FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 									INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 									INNER JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId

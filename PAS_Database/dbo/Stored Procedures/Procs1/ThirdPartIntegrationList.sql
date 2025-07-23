@@ -1,4 +1,19 @@
-﻿CREATE    PROCEDURE [dbo].[ThirdPartIntegrationList]
+﻿/*************************************************************           
+ ** File:   [ThirdPartIntegrationList]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:    
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------    ---------			--------------------------------          
+    1   22/07/2025    Amit Ghediya     Added Email field
+************************************************************************/
+CREATE    PROCEDURE [dbo].[ThirdPartIntegrationList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -67,7 +82,8 @@ BEGIN
 						, 1, 1, '')  AS Description,
 					   (ISNULL(tpi.APIURL,'')) 'APIURL', 
 					   (ISNULL(tpi.SecretKey,'')) 'SecretKey',   	
-					   (ISNULL(tpi.AccessKey,'')) 'AccessKey',  
+					   (ISNULL(tpi.AccessKey,'')) 'AccessKey', 
+					   ISNULL(tpi.IsEmail,0) 'IsEmail',
 					   tpi.IntegrationIds,
                        tpi.IsActive,
                        tpi.IsDeleted,

@@ -516,7 +516,7 @@ BEGIN
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
-			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			LEFT JOIN LatestWorkOrderShipping LWS WITH (NOLOCK) ON WO.WorkOrderId = LWS.WorkOrderId
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
 			OUTER APPLY (
 				SELECT TOP 1 'Yes' AS IsSubWorkOrder
@@ -530,7 +530,7 @@ BEGIN
 			))
 			, WorkOrderPartCount AS (
 			SELECT WorkOrderId, COUNT(WorkOrderId) AS PartCount
-			FROM dbo.WorkOrderPartNumber
+			FROM dbo.WorkOrderPartNumber WITH (NOLOCK)
 			GROUP BY WorkOrderId	
 			)
 
@@ -575,7 +575,7 @@ BEGIN
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
-			  JOIN WorkOrderPartCount WOPC ON WO.WorkOrderId = WOPC.WorkOrderId
+			  JOIN WorkOrderPartCount WOPC WITH (NOLOCK) ON WO.WorkOrderId = WOPC.WorkOrderId
 			  --LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
 			  --LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
 			  --LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId

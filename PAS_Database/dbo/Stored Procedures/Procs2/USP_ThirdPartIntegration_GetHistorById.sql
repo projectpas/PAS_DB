@@ -1,5 +1,20 @@
-﻿CREATE     PROCEDURE [dbo].[USP_ThirdPartIntegration_GetHistorById]
-@ThirdPartInegrationId bigint
+﻿/*************************************************************           
+ ** File:   [USP_ThirdPartIntegration_GetHistorById]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:    
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------    ---------			--------------------------------          
+    1   22/07/2025    Amit Ghediya     Added Email field
+************************************************************************/
+CREATE     PROCEDURE [dbo].[USP_ThirdPartIntegration_GetHistorById]
+	@ThirdPartInegrationId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -31,7 +46,8 @@ BEGIN
 					t.CreatedDate,
 					t.UpdatedDate,
 					t.IsActive,
-					t.IsDeleted
+					t.IsDeleted,
+					ISNULL(t.IsEmail,0) 'IsEmail'
 				FROM [DBO].[ThirdPartInegrationAudit] t WITH (NOLOCK) 
 				LEFT JOIN [DBO].[LegalEntity] l WITH (NOLOCK) ON t.LegalEntityId = l.LegalEntityId
 				--LEFT JOIN [DBO].[ThirdPartInegration] i WITH (NOLOCK) ON t.[ThirdPartInegrationId] = l.[ThirdPartInegrationId]

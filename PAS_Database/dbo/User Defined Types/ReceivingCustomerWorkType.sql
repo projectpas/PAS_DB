@@ -122,7 +122,11 @@
     [LastSinceNew]               VARCHAR (20)    NULL,
     [LastSinceOVH]               VARCHAR (20)    NULL,
     [LastSinceInspection]        VARCHAR (20)    NULL,
-    [IsSkipShippingReference]    BIT             NULL);
+    [IsSkipShippingReference]    BIT             NULL,
+    [IsBatchStock]               BIT             NULL,
+    [BatchNumber]                VARCHAR (50)    NULL);
+
+
 
 
 

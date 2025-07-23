@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [UpdateSalesOrderStatus]           
  ** Author:  AMIT GHEDIYA
  ** Description: This stored procedure is used to update Sales Order status Shipped/Invoiced
@@ -16,6 +17,7 @@
 	3    23-01-2025   Abhishek Jirawla	Updated logic to select Qty resquested instead of SalesOrderId	
 	4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	5    21-07-2025   Rajesh Gami       Fixed: Get proper invoice count and based on that change the status
+	6    23-07-2025   Rajesh Gami       Remove Transaction
 -- EXEC [UpdateSalesOrderStatus] 1316,11,1
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[UpdateSalesOrderStatus]
@@ -27,7 +29,6 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		BEGIN TRANSACTION  
 			DECLARE @SoPartDataCount BIGINT,
 				@SoShippingCount BIGINT,
 				@SalesOrderShippingId BIGINT,
@@ -88,12 +89,10 @@ BEGIN
 
 			SELECT [SalesOrderId] AS [value] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId
 	
-		COMMIT TRANSACTION
 	END TRY 
 	BEGIN CATCH      
 		IF @@trancount > 0
 		PRINT 'ROLLBACK'
-				ROLLBACK TRANSACTION;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'UpdateSalesOrderStatus' 

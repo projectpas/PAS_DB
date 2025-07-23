@@ -17,6 +17,7 @@
 	5	 15/11/2024	  RAJESH GAMI			Handle the NULL value of WOMaterialID when its 0
 	6	 12/12/2024	  AYUSHI PATEL			change the status of approval process based on isModified
 	7	 19/02/2025	  Vishal Suthar			Optimized by removing the call to update stockline draft to outside the while loop
+	8	 23/07/2025	  RAJESH GAMI			Fixed: Get @OrderPartStatusId from the SOPartStatus table
 ************************************************************************/
 CREATE        PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -43,7 +44,7 @@ BEGIN
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
 			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
 			DECLARE @IsModified BIT = 0
-			DECLARE @OrderPartStatusId INT = (SELECT POPartStatusId FROM dbo.POPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
+			DECLARE @OrderPartStatusId INT = (SELECT SOPartStatusId FROM dbo.SOPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
 			SELECT TOP 1 @ApproveStatusId = ApprovalStatusId,@ApproveStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1
 			SELECT TOP 1 @PendingStatusId = ApprovalStatusId,@PendingStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'pending' AND ISNULL(IsActive,0) = 1
 
@@ -383,7 +384,6 @@ BEGIN
 						END -- END: Fulfill Status :IF
 						
 						EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordId,@ManagementStructureId,@MasterCompanyId,@userName,@userName,@ModuleId,3, 0
-						
 						IF(ISNULL(@SalesOrderId,0) > 0)
 						BEGIN --START: IF  SalesOrderPart
 							SELECT TOP 1 @SalesOrderPartId = SalesOrderPartId FROM Dbo.SalesOrderPartV1 WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId

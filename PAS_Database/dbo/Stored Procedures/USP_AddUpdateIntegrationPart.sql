@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   ----------  -----------	--------------------------------          
     1    23/01/2024  Rajesh Gami	Created
+	2    23-07-2025  Amit Ghediya   MOdify for get RFQ part is in our inventory or not (ItemMasterId)
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
@@ -271,10 +272,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						ofc.TestPrice,
 						ofc.TestTAT,
 						ofc.WebLink,
-						ofc.[Location] AS Location
+						ofc.[Location] AS Location,
+						(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+						(CASE WHEN LOWER(TRIM(ILS.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) ChildItemMasterId
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					LEFT JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
+					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
 				
@@ -389,9 +394,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						ofc.[Location] AS Location,
 						im.MasterCompanyId,
 						im.UpdatedBy,
-						im.UpdatedDate
+						im.UpdatedDate,
+						(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+						0 ChildItemMasterId
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
+					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
 			END   /**** End:  145 Integration ******/
@@ -497,9 +505,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						ils.ExchangeOption,
 						im.MasterCompanyId,
 						im.UpdatedBy,
-						im.UpdatedDate
+						im.UpdatedDate,
+						(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+						(CASE WHEN LOWER(TRIM(ILS.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) ChildItemMasterId
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
+					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 				END  /**** End:  ILS Integration ******/
 			END	 /** END ELSE : @IntegrationPortalId IS NULL OR @IntegrationPortalId = 0**/	

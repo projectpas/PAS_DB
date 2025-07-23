@@ -1,20 +1,22 @@
 ﻿/*************************************************************           
- ** File:   [usp_GetCustomerRfqById]           
+ ** File:   [usp_GetIntegrationCustomerById]           
  ** Author:  Devendra Shekh	
- ** Description: This stored procedure is used Get Customer Rfq by Id
+ ** Description: This stored procedure is used Get Integration Customer by Id and Type Id
  ** Purpose:         
- ** Date:   22-July-2025 
+ ** Date:   23-July-2025 
  ** RETURN VALUE:           
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
-    1    22-July-2025	Devendra Shekh			Created
--- EXEC usp_GetCustomerRfqById 7 
+    1    23-July-2025	Devendra Shekh			Created
+
+-- EXEC usp_GetIntegrationCustomerById 9,2 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_GetCustomerRfqById]
-@CustomerRfqId BIGINT
+CREATE   PROCEDURE [dbo].[usp_GetIntegrationCustomerById]
+@ReferenceId BIGINT = NULL,
+@TypeId INT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -22,12 +24,36 @@ BEGIN
 
 	BEGIN TRY
 
-		SELECT	[CustomerRfqId], [RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes],
-				[BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], [BuyerState], [BuyerZip],
-				[LinePartNumber], [LineDescription], [IsQuote], [AltPartNumber], [Condition], [Quantity],
-				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
-		FROM [dbo].[CustomerRfq] WITH(NOLOCK)
-		WHERE [CustomerRfqId] = @CustomerRfqId;
+		DECLARE @InventorySearchType INT = 1, @ReceivedRFQType INT = 2, @SendRFQListType INT = 3;
+
+		IF(@InventorySearchType = @TypeId)
+		BEGIN
+			SELECT	[RepairStation] AS CustomerName, 
+					[AddressLine1] AS Address1,
+					[AddressLine2] AS Address2,
+					[City] AS City,
+					[State] AS State, 
+					[PostalCode] AS PostalCode,				 
+					[Country] AS Country 
+			FROM [dbo].[IntegrationMaster] WITH(NOLOCK)
+			WHERE [IntegrationMasterId] = @ReferenceId;
+		END
+		ELSE IF(@ReceivedRFQType = @TypeId)
+		BEGIN
+			SELECT	[BuyerCompanyName] AS CustomerName, 
+					[BuyerAddress] AS Address1,
+					'' AS Address2,
+					[BuyerCity] AS City,
+					[BuyerState] AS State, 
+					[BuyerZip] AS PostalCode,				 
+					[BuyerCountry] AS Country 
+			FROM [dbo].[CustomerRfq] WITH(NOLOCK)
+			WHERE [CustomerRfqId] = @ReferenceId;
+		END
+		ELSE IF(@SendRFQListType = @TypeId)
+		BEGIN
+			SELECT	'' AS CustomerName, '' AS AddressLine1, '' AS Address2, '' AS City, '' AS State, '' AS PostalCode, '' AS Country
+		END	
 
 	END TRY    
 	BEGIN CATCH      
@@ -35,7 +61,7 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
         , @AdhocComments     VARCHAR(150)    = 'usp_GetCustomerRfqDetails' 
-        , @ProcedureParameters VARCHAR(3000) = '@CustomerRfqId = ''' + CAST(ISNULL(@CustomerRfqId, '') as varchar(100))
+        , @ProcedureParameters VARCHAR(3000) = '@CustomerRfqId = ''' + CAST(ISNULL(@ReferenceId, '') as varchar(100))
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         exec spLogException 

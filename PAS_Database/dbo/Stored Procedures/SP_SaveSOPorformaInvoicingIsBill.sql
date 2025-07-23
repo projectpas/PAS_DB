@@ -17,6 +17,7 @@
  	3    11/Jun/2025  RAJESH GAMI		 Modified : As new Common Billing Invoicing Table SalesOrderBillingInvoicing to BillingInvoicing
  	4    04/Jul/2025  Devendra Shekh	 Modified (updating IsStandardInvoicePosted after all standard inv posted)
 	5    07-07-2025   Moin Bloch         Added standerd format
+	6    23/07/2025   Rajesh Gami		Remove Transaction
 EXEC [SP_SaveSOPorformaInvoicingIsBill] 4351
 ************************************************************************/
 
@@ -27,7 +28,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;	
 	BEGIN TRY
-	BEGIN TRANSACTION
+	--BEGIN TRANSACTION
 	BEGIN 
 		DECLARE @SOModuleId INT
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -230,12 +231,12 @@ BEGIN
 			END
 		END
 	END	
-	COMMIT  TRANSACTION
+	--COMMIT  TRANSACTION
 	END TRY 
 	BEGIN CATCH      
 		IF @@trancount > 0
 		PRINT 'ROLLBACK'
-				ROLLBACK TRANSACTION;
+				--ROLLBACK TRANSACTION;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'SP_SaveSOPorformaInvoicingIsBill' 

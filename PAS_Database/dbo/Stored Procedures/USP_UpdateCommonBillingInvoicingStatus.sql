@@ -17,7 +17,7 @@
 	5    04/07/2025   Moin Bloch		Update [IsStandardInvoicePosted] Status for Proforma
 	6    04/07/2025   Moin Bloch		Update Comment Un USED SP
 	7    09/07/2025   Moin Bloch		Fix For Deposit Amount
-
+	8    23/07/2025   Rajesh Gami		Remove Transaction
     EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
 
 **********************/ 
@@ -34,7 +34,7 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;   
  BEGIN TRY  
- BEGIN TRANSACTION  
+ --BEGIN TRANSACTION  
  BEGIN
 		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@WOSubModuleId INT
 		DECLARE @ProformaDepositAmount DECIMAL(18,2) = 0;
@@ -402,11 +402,11 @@ BEGIN
 			
 		END/****END: SALES ORDER ***/
  END   
- COMMIT  TRANSACTION  
+ --COMMIT  TRANSACTION  
  END TRY           
  BEGIN CATCH      
   IF @@trancount > 0        
-   ROLLBACK TRAN;    
+   --ROLLBACK TRAN;    
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'USP_UpdateCommonBillingInvoicingStatus'     

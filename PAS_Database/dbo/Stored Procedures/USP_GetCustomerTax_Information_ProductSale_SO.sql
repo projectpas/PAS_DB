@@ -64,7 +64,7 @@ BEGIN
 	DECLARE @TotalFreightPartWise DECIMAL(18,2) = 0;	
 	DECLARE @TotalChargePartWise DECIMAL(18,2) = 0;	
 	DECLARE @TaxableFreight DECIMAL(18,2) = 0;	
-	DECLARE @TaxableCharge DECIMAL(18,2) = 0, @SaleTaxMiniTotal DECIMAL(18,2) = 0 , @OtherTaxMiniTotal DECIMAL(18,2) = 0 ;	
+	DECLARE @TaxableCharge DECIMAL(18,2) = 0;
 
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
@@ -239,10 +239,7 @@ BEGIN
 			SET @FreighOtherTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
 			SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
 			SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
-			
-			SET @SaleTaxMiniTotal = @SalesTax + (CASE WHEN @MinId = 1 THEN  @FreighSalesTax + @ChargeSalesTax ELSE 0 END)
-			SET @OtherTaxMiniTotal = @OtherTax + (CASE WHEN @MinId = 1 THEN  @FreighOtherTax + @ChargeOtherTax	 ELSE 0 END)
-				
+	
 			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
 										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
 								  WHERE [ID] = @MinId

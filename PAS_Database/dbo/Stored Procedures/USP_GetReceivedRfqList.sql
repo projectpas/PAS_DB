@@ -13,7 +13,7 @@
  ** --   --------     -------			--------------------------------          
     1    22/02/2024  Rajesh Gami         Created
 	2    10-07-2024  SHrey Chandegara    MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
-	3    21-07-2025  Amit Ghediya        MOdify for get RFQ part is in our inventory or not (ItemMasterId)
+	3    21-07-2025  Amit Ghediya        MOdify for get RFQ part is in our inventory or not (ItemMasterId,StockLineId)
 	4    21-07-2025  Devendra Shekh		 Modified (Added CustomerId to select)
      
 -- EXEC USP_GetReceivedRfqList 
@@ -87,7 +87,8 @@ BEGIN
 					RFQ.[Quantity] AS 'Quantity',
 					RFQ.[Condition] AS 'Condition',
 					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
-					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
+					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
+					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]

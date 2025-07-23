@@ -1,4 +1,5 @@
-﻿/************************************************************************             
+﻿
+/************************************************************************             
  ** File:  [USP_UpdateBillingInvoicingPdfPath]
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to update Billing Details
@@ -12,7 +13,7 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    19/05/2025   Moin Bloch     Created  
-       
+    2    23-07-2025   Rajesh Gami       Remove Transactio     
 -- EXEC USP_UpdateBillingInvoicingPdfPath
 ************************************************************************/  
 CREATE      PROCEDURE [dbo].[USP_UpdateBillingInvoicingPdfPath]
@@ -26,7 +27,7 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;   
  BEGIN TRY  
- BEGIN TRANSACTION  
+ --BEGIN TRANSACTION  
  BEGIN    
 	--DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT	
 	--SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
@@ -41,12 +42,12 @@ BEGIN
 		UPDATE [dbo].[BillingInvoicingItems] SET [PDFPath] = @PDFPath WHERE [BillingInvoicingId] = @BillingInvoicingId; 	
 	END
  END   
- COMMIT  TRANSACTION  
+ --COMMIT  TRANSACTION  
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  
   PRINT 'ROLLBACK'  
-    ROLLBACK TRANSACTION;  
+    --ROLLBACK TRANSACTION;  
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateBillingInvoicingDetails'   

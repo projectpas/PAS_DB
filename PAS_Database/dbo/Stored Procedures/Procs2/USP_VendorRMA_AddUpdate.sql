@@ -8,11 +8,12 @@
  ******************************************************************************           
   ** Change History           
  ******************************************************************************           
- ** PR   Date         Author  		Change Description            
- ** --   --------     -------		---------------------------     
-    1    06/15/2023   Moin Bloch     Created
-    2    08/04/2023   Vishal Suthar  Added stockline history
-	3    12/16/2024   AMIT GHEDIYA	 Add RefrenceNumber in stocktable.
+ ** PR   Date         Author  			Change Description            
+ ** --   --------     -------			---------------------------     
+    1    06/15/2023   Moin Bloch		Created
+    2    08/04/2023   Vishal Suthar		Added stockline history
+	3    12/16/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
+	4    07/23/2024   Vishal Suthar		Updating EnforcePickTicketConfirmation column from VendorRMASettings
 
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_AddUpdate]
@@ -79,33 +80,40 @@ BEGIN
 		DECLARE @StockLineNumber VARCHAR(100) = '';
 		DECLARE @StkVendorRMADetailId BIGINT;
 		DECLARE	@RefNumber VARCHAR(100) = '';
+		DECLARE @EnforcePickTicketConfirmation BIT;
 
 		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'VendorRMA'; -- For Return Authorization Module
 
 		IF(@VendorRMAId = 0)
 		BEGIN
 			INSERT INTO [dbo].[VendorRMA]([RMANumber],[VendorId],[OpenDate],[VendorRMAStatusId],[RequestedById],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[Notes])
-		                       VALUES(@RMANumber,@VendorId,GETUTCDATE(),@VendorRMAStatusId,@RequestedById,@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,@Notes);          
+		    VALUES(@RMANumber,@VendorId,GETUTCDATE(),@VendorRMAStatusId,@RequestedById,@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,@Notes);          
+			
 			SET  @VendorRMAId = @@IDENTITY;
 				
 			INSERT INTO [dbo].[VendorRMADetail]([VendorRMAId],[RMANum],[StockLineId],[ReferenceId],[ItemMasterId],[SerialNumber],[Qty],[UnitCost],[ExtendedCost]
-										   ,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
-                                           ,[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[QuantityBackOrdered],[QuantityRejected],[ModuleId],[QtyShipped]
-										   ,[ReferenceNumber])
-							         SELECT @VendorRMAId,[RMANum],VR.[StockLineId],VR.[ReferenceId],VR.[ItemMasterId],VR.[SerialNumber],VR.[Qty],VR.[UnitCost],VR.[ExtendedCost]
-										   ,VR.[VendorRMAReturnReasonId],VR.[VendorRMAStatusId],VR.[VendorShippingAddressId],VR.[Notes],@MasterCompanyId,@CreatedBy
-                                           ,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,VR.[Qty],0,VR.[ModuleId],0,
-										   (@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
+				,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
+                ,[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[QuantityBackOrdered],[QuantityRejected],[ModuleId],[QtyShipped]
+				,[ReferenceNumber])
+			SELECT @VendorRMAId,[RMANum],VR.[StockLineId],VR.[ReferenceId],VR.[ItemMasterId],VR.[SerialNumber],VR.[Qty],VR.[UnitCost],VR.[ExtendedCost]
+				,VR.[VendorRMAReturnReasonId],VR.[VendorRMAStatusId],VR.[VendorShippingAddressId],VR.[Notes],@MasterCompanyId,@CreatedBy
+				,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,VR.[Qty],0,VR.[ModuleId],0,
+				(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId];
 
 			UPDATE  [dbo].[Stockline]
-				SET [QuantityAvailable] -= VR.[Qty],
-				    [QuantityReserved] += VR.[Qty]
-				   ,[Memo] = 'StockLine Added into RMA ' + VR.RMANum				  
+			SET [QuantityAvailable] -= VR.[Qty],
+				[QuantityReserved] += VR.[Qty]
+				,[Memo] = 'StockLine Added into RMA ' + VR.RMANum				  
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-						
+					
+			SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM DBO.VendorRMASettings WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+
+			UPDATE [dbo].[VendorRMA] SET EnforcePickTicketConfirmation = ISNULL(@EnforcePickTicketConfirmation, 0)
+			WHERE VendorRMAId = @VendorRMAId;
+
 			INSERT INTO #tmpReturnVendorRMAId ([VendorRMAId]) VALUES (@VendorRMAId);
 
 			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId],IsDeleted) 
@@ -119,12 +127,6 @@ BEGIN
 				DECLARE @ActionId INT;
 				SET @ActionId = 2; -- Reserve
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StockLineId, @ModuleId = @ModuleId, @ReferenceId = @VendorRMAId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = @Qty, @UpdatedBy = @CreatedBy;
-
-				--Add RMA RefrenceNumber
-				--SELECT @PNNumber = [PartNumber], @StockLineNumber = [StockLineNumber] FROM [dbo].[Stockline] WITH (NOLOCK) WHERE [StockLineId] = @StockLineId;
-				--print '@StkVendorRMADetailId';
-				--print @StkVendorRMADetailId
-				--UPDATE [dbo].[VendorRMADetail] SET ReferenceNumber = (@StkReserveRefNumber + ' PN -' + @PNNumber + ' StockId -' + @StockLineNumber) WHERE [VendorRMADetailId] = @StkVendorRMADetailId;
 
 				SET @MasterLoopID = @MasterLoopID - 1;
 			END

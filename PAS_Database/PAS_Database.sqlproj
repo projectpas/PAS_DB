@@ -4054,7 +4054,6 @@
     <Build Include="dbo\Stored Procedures\GetSWOWorkflowTransferData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql" />
-    <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateLegalEntitySettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityLogoDelete.sql" />
     <Build Include="dbo\Stored Procedures\USP_LegalEntityBankingStatusChange.sql" />
@@ -4101,6 +4100,7 @@
     <Build Include="dbo\User Defined Types\UT_VendorProcess1099.sql" />
     <Build Include="dbo\User Defined Types\TVP_BigInt.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateVendorShipping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetIntegrationCustomerById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateExchangeQuote.sql" />
   </ItemGroup>
   <ItemGroup>

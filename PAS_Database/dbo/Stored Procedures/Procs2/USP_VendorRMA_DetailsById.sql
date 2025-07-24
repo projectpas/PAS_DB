@@ -8,10 +8,11 @@
  ******************************************************************************           
   ** Change History           
  ******************************************************************************           
- ** PR   Date         Author  		Change Description            
- ** --   --------     -------		---------------------------     
-    1    06/15/2023   Moin Bloch     Created
-	2    29-03-2024   Shrey Chandegara            Add RevisedStocklineId
+ ** PR   Date         Author  				Change Description            
+ ** --   --------     -------				---------------------------     
+    1    06/15/2023   Moin Bloch			Created
+	2    03-29-2024   Shrey Chandegara      Add RevisedStocklineId
+	3    07-23-2024   Vishal Suthar			Added EnforcePickTicketConfirmation column
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
@@ -36,6 +37,7 @@ BEGIN
 				  ,HS.[StatusName] 'VendorRMAStatus'
 				  ,VR.[Notes]
 				  ,VR.[MasterCompanyId]
+				  ,VR.[EnforcePickTicketConfirmation]
 			  FROM [dbo].[VendorRMA] VR WITH(NOLOCK) 
 			  INNER JOIN [dbo].[Vendor] VO WITH (NOLOCK) ON VR.[VendorId] = VO.[VendorId]
 			   LEFT JOIN [dbo].[VendorRMAHeaderStatus] HS WITH (NOLOCK) ON VR.[VendorRMAStatusId] = HS.[VendorRMAStatusId]

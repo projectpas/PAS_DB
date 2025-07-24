@@ -14,6 +14,7 @@
     1    
     2    22-JUNE-2023     Devendra Shekh    made changes for total unitcost and extcost
 	3    22-JULY-2025     Moin Bloch        added Some New Fields
+	5    23-JULY-2025     Moin Bloch        modified Currency
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReport]     
 @PageNumber int = 1,    
@@ -108,7 +109,8 @@ BEGIN TRY
     FROM [dbo].[Stockline] stl WITH (NOLOCK)    
    INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
     LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
-   LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId    
+   LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId   
+   LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
    LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
    LEFT OUTER JOIN [dbo].PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
    LEFT OUTER JOIN [dbo].PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
@@ -124,7 +126,7 @@ BEGIN TRY
 	AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)
 	AND CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
     AND stl.IsCustomerStock =  CASE WHEN @ECS = 1 THEN 0 ELSE stl.IsCustomerStock END  
-    AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ','))) 
+    --AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ','))) 
 	AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
 	AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
 	AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
@@ -210,12 +212,13 @@ BEGIN TRY
 		UPPER(wox.WorkOrderNum) 'workOrderNum',
 		UPPER(swox.SubWorkOrderNo) 'subWorkOrderNo',
 		DATEDIFF(DAY, STL.receiveddate, GETUTCDATE()) 'daysFromReceiveDate',
-		UPPER(im.PurchaseCurrency) 'currencyName',
+		UPPER(cr.Code) 'currencyName',
 		UPPER(cst.[Name]) 'customerName'
       FROM [dbo].[Stockline] stl WITH (NOLOCK)    
      INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
 	  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
 	 LEFT OUTER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId  
+	 LEFT OUTER JOIN [dbo].[Currency] cr WITH (NOLOCK) ON im.PurchaseCurrencyId = cr.CurrencyId
 	 LEFT OUTER JOIN [dbo].[Customer] cst WITH (NOLOCK) ON stl.CustomerId = cst.CustomerId  
 	 LEFT OUTER JOIN [dbo].[PurchaseOrder] pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
 	 LEFT OUTER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
@@ -231,7 +234,7 @@ BEGIN TRY
 	 AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)
 	 AND CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
 	 AND stl.[IsCustomerStock] = CASE WHEN @ECS = 1 THEN 0 ELSE stl.[IsCustomerStock] END  
-     AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))    
+     --AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))    
      AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
 	 AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
 	 AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   

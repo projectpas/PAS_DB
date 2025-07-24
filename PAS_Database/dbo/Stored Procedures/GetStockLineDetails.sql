@@ -20,6 +20,7 @@
 	4	 11/02/2025	 Bhargav Saliya  get InventoryGLAccName Changes
 	5	 09/02/2025	 Devendra Shekh	 Added new field 'QuantityAdjustment'
 	6    21/04/2025  Abhishek Jirawla Added Integration portal changes
+	7    23/07/2025  MOIN BLOCH 	  Added BatchNumber
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -327,11 +328,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(stl.[QuantityAdjustment],0) QuantityAdjustment
 			,ISNULL(stl.IsPiecePart, 0) IsPiecePart
 			,ISNULL(stl.IsRepairManagement, 0) IsRepairManagement
+			,ISNULL(stl.[IsBatchStock],0) IsBatchStock
+			,stl.[BatchNumber]
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
 		OUTER APPLY (
-			SELECT STRING_AGG(ip.Description, ', ') AS IntegrationPortalDescriptions
+			SELECT STRING_AGG(ip.[Description], ', ') AS IntegrationPortalDescriptions
 			FROM dbo.SplitString(stl.IntegrationPortal, ',') AS ids
 			JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON ids.Item = ip.IntegrationPortalId
 		) AS ipFromStockLine
@@ -346,7 +349,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			WHERE mp.IntegrationPortalId IS NOT NULL
 			GROUP BY iM.ItemMasterId
 		) AS ipAgg ON stl.ItemMasterId = ipAgg.ItemMasterId
-		LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
+		 LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
 		 LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON im.[ItemMasterId] = imx.[ItemMasterId]
 		 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.[PurchaseOrderId] = po.[PurchaseOrderId]
 		 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON stl.[RepairOrderId] = ro.[RepairOrderId]

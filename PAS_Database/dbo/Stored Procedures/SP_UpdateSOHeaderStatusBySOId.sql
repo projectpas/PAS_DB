@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_UpdateSOHeaderStatusBySOId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to update SO Header Status Based on part status
@@ -14,6 +13,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    14/07/2025  Rajesh Gami		Created
+    2    23/07/2025  Bhargav Saliya		Modified and select @TotalParts from the [SalesOrderPartV1] instead of [SalesOrderApproval]
      
 ************************************************************************/
 
@@ -31,12 +31,15 @@ BEGIN
 				DECLARE @OpenStatusId INT = (select TOP 1 ID from DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Open');
 				DECLARE @ApprovedStatusId INT = (select TOP 1 ID from DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Approved');
 				DECLARE @PartiallyApprovedStatusId INT = (select TOP 1 ID from DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Partially Approved');
+				DECLARE @PendingStatusId INT = (select TOP 1 ID from DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Pending');
 				
 				DECLARE @PartApprovedStatusId INT = (select TOP 1 ApprovalStatusId from DBO.[ApprovalStatus] WITH (NOLOCK) WHERE [Name] = 'Approved');
 				DECLARE @PartRejectedStatusId INT = (select TOP 1 ApprovalStatusId from DBO.[ApprovalStatus] WITH (NOLOCK) WHERE [Name] = 'Rejected');
+
+				DECLARE @WaitingForApprovalStatusId INT = (select TOP 1 ApprovalStatusId from DBO.[ApprovalStatus] WITH (NOLOCK) WHERE [Name] = 'Waiting for Approval');
 							
 				DECLARE @TotalParts INT = (
-					SELECT COUNT(*) FROM dbo.SalesOrderApproval WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ISNULL(IsDeleted,0) = 0
+					SELECT COUNT(*) FROM dbo.SalesOrderPartV1 WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ISNULL(IsDeleted,0) = 0
 				);
             
 				DECLARE @ApprovedParts INT = (
@@ -47,6 +50,11 @@ BEGIN
 				DECLARE @RejectedParts INT = (
 					SELECT COUNT(*) FROM dbo.SalesOrderApproval WITH (NOLOCK) 
 					WHERE SalesOrderId = @SalesOrderId AND CustomerStatusId = @PartRejectedStatusId AND ISNULL(IsDeleted,0) = 0
+				);
+
+				DECLARE @WaitingForApprovalParts INT = (
+					SELECT COUNT(*) FROM dbo.SalesOrderApproval WITH (NOLOCK) 
+					WHERE SalesOrderId = @SalesOrderId AND CustomerStatusId = @WaitingForApprovalStatusId AND ISNULL(IsDeleted,0) = 0
 				);
             
 				IF @ApprovedParts = @TotalParts AND @TotalParts > 0
@@ -65,6 +73,18 @@ BEGIN
 				ELSE IF @RejectedParts = @TotalParts AND @TotalParts > 0
 				BEGIN
                
+					UPDATE dbo.SalesOrder
+					SET StatusId = @OpenStatusId,UpdatedDate = GETUTCDATE()
+					WHERE SalesOrderId = @SalesOrderId;
+				END
+				ELSE IF @WaitingForApprovalParts > 0
+				BEGIN
+					UPDATE dbo.SalesOrder
+					SET StatusId = @PendingStatusId,UpdatedDate = GETUTCDATE()
+					WHERE SalesOrderId = @SalesOrderId;
+				END
+				ELSE
+				BEGIN
 					UPDATE dbo.SalesOrder
 					SET StatusId = @OpenStatusId,UpdatedDate = GETUTCDATE()
 					WHERE SalesOrderId = @SalesOrderId;

@@ -62,7 +62,7 @@ BEGIN
 		PRINT @ExchangeQuotePrefix;
 
 		-- Fetch soqCodeData
-		SELECT TOP 1 * INTO #esoqCodeData FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @ExchangeQuotePrefix AND [MasterCompanyId] = @MasterCompanyId
+		SELECT TOP 1 * INTO #esoqCodeData FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0 AND [CodeTypeId] = @ExchangeQuotePrefix AND [MasterCompanyId] = @MasterCompanyId
 
 		-- Determine the current number
 		IF EXISTS (SELECT 1 FROM #esoqCodeData)
@@ -161,13 +161,13 @@ BEGIN
 		PRINT @EmployeeName
 
 		DECLARE @ManagementStructureName VARCHAR(286);
-		SELECT TOP 1 @ManagementStructureName  = Code + ' ' + Name FROM [dbo].[ManagementStructure]
+		SELECT TOP 1 @ManagementStructureName  = Code + ' ' + Name FROM [dbo].[ManagementStructure] WITH(NOLOCK)
 		WHERE ManagementStructureId = @ManagementStructureId;
 
 		DECLARE @EnforceApproval BIT, @EnforceEffectiveDate DATETIME
 		SELECT TOP 1 @EnforceApproval = IsApprovalRule,
 			         @EnforceEffectiveDate = EffectiveDate
-		FROM [dbo].[ExchangeQuoteSetting] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1;
+		FROM [dbo].[ExchangeQuoteSetting] WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,0) = 1;
 
         -- Step 3: Insert into ExchangeQuote
         INSERT INTO ExchangeQuote

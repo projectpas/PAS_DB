@@ -28,6 +28,7 @@
 	12   25/06/2025   Vishal Suthar			Performance Improvement
 	13   25/06/2025   HEMANT SALIYA			Optimize SP to reduce wating time
 	14   18/07/2025   Vishal Suthar			Added DISTINCT in the final resultset which was populating duplicate entry
+	15   24/07/2025   Devendra Shekh		added WOPartId for MPN View
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -219,7 +220,8 @@ BEGIN
 			CustomerReferenceType NVARCHAR(100),
 			IsSubWorkOrder NVARCHAR(10),
 			MPNQuoteStatus NVARCHAR(100),
-			ApprovedAmount NVARCHAR(100)
+			ApprovedAmount NVARCHAR(100),
+			WOPartId NVARCHAR(100)
 		);
 
 		-- 2. Create the index for faster filtering/sorting
@@ -288,7 +290,8 @@ BEGIN
 			,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder,
 			UPPER(wqs.Description) AS MPNQuoteStatus,
 			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-			ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) 'ApprovedAmount' 
+			ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
+			WPN.ID as WOPartId
 			FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			--LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
@@ -327,7 +330,7 @@ BEGIN
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
 				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber], 
 				[CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus],
-				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount]
+				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId]
 			FROM Result
 		),
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
@@ -339,7 +342,7 @@ BEGIN
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
 			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
 			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],
-			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount]
+			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId]
 		FROM QuoteResult
         WHERE (  
         (@GlobalFilter <>'' AND 

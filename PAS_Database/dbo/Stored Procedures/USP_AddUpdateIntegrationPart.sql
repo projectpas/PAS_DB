@@ -481,14 +481,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			ELSE IF(UPPER(@PortalType) = UPPER(@ILSName)) /**** Start:  ILS Integration ******/
 			BEGIN
 						SET @ExistOtherConCount = (SELECT COUNT(1) FROM DBO.ILSChildPartDetail WITH(NOLOCK) WHERE  IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition != @Condition AND MasterCompanyId = @MasterCompanyId)) 
-						--DELETE FROM DBO.ILSChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition = @Condition AND MasterCompanyId = @MasterCompanyId)
 						--For MRO without Condition.
 						IF(@IsMRO > 0)
-						BEGIN print '1.1';
+						BEGIN 
 							 DELETE FROM DBO.ILSChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO)
 						END
 						ELSE
-						BEGIN print '1.2';
+						BEGIN 
 							 DELETE FROM DBO.ILSChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition = @Condition AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO)
 						END	
 						
@@ -496,7 +495,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						IF(@ExistOtherConCount = 0)
 						BEGIN 
 							DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO
-							print '1.1';
+							
 							/******* Insert into IntegrationMaster Table ********/
 							INSERT INTO [dbo].[IntegrationMaster]
 								   ([PartNumber]

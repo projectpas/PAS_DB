@@ -1,5 +1,4 @@
-﻿
-/*****************************************************************************************           
+﻿/*****************************************************************************************           
  ** File:   [USP_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -15,7 +14,7 @@
     2    06/06/2025   Rajesh Gami   Created    
 	3    10/06/2025   Moin Bloch    Added CustomerId
 	4    07/07/2025   Abhishek Jirawla Updated Manufacturer
-	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO
+	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -123,9 +122,9 @@ BEGIN
 				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
 				  ,ISNULL(BII.[SubTotal],0) [SubTotal] 
-				  ,ISNULL(BII.[SalesTaxPercent],0) [SalesTaxPercent]
+				  ,ISNULL(salePer.PercentValue,0) [SalesTaxPercent]
 				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
-				  ,ISNULL(BII.[OtherTaxPercent],0) [OtherTaxPercent]
+				  ,ISNULL(otherPer.PercentValue,0) [OtherTaxPercent]
 				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
 				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
 				  ,BII.[PDFPath]
@@ -159,8 +158,10 @@ BEGIN
 			  INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOP.[ID] = WOF.[WorkOrderPartNoId]
 			  INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON BII.[ItemMasterId] = IM.[ItemMasterId]
 			  LEFT JOIN [dbo].[Manufacturer] MN WITH(NOLOCK) ON MN.[ManufacturerId] = IM.[ManufacturerId]
-			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
-			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+			  LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+			  LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+			  LEFT JOIN dbo.[Percent] salePer WITH(NOLOCK) ON BII.SalesTaxPercent = salePer.PercentId
+			  LEFT JOIN dbo.[Percent] otherPer WITH(NOLOCK) ON BII.OtherTaxPercent = otherPer.PercentId
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
 		  		  
 		END 

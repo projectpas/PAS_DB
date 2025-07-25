@@ -14,6 +14,7 @@
     1    23/01/2024  Rajesh Gami	Created
 	2    23-07-2025  Amit Ghediya   MOdify for get RFQ part is in our inventory or not (ItemMasterId)
 	3    23-07-2025  Devendra Shekh	Modify to get customerId and address Details
+	4	 25-07-2025  Devendra Shekh	added IsMRO Field
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
@@ -47,7 +48,8 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
 	@City varchar(50) = '',
 	@State varchar(50) = '',
 	@PostalCode varchar(50) = '',
-	@Country varchar(100) = ''
+	@Country varchar(100) = '',
+	@IsMRO bit = null
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -104,6 +106,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							   ,[State]
 							   ,[PostalCode]
 							   ,[Country]
+							   ,[IsMRO]
 							   )
 							 VALUES
 								   (@PartNumber,
@@ -125,7 +128,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   @City,
 								   @State,
 								   @PostalCode,
-								   @Country
+								   @Country,
+								   @IsMRO
 								   )
 						SET @LatestId = SCOPE_IDENTITY();
 
@@ -209,6 +213,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   ,[State]
 								   ,[PostalCode]
 								   ,[Country]
+								   ,[IsMRO]
 								   )
 								 VALUES
 									   (@PartNumber,
@@ -230,7 +235,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 									   @City,
 									   @State,
 									   @PostalCode,
-									   @Country
+									   @Country,
+									   @IsMRO
 									   )
 							SET @LatestId = SCOPE_IDENTITY();
 							INSERT INTO #tempTableIntegration(ID)Values(@LatestId)
@@ -316,7 +322,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						IM.State,
 						IM.PostalCode,
 						IM.Country,
-						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
+						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId,
+						IM.IsMRO
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					LEFT JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
@@ -360,6 +367,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							   ,[State]
 							   ,[PostalCode]
 							   ,[Country]
+							   ,[IsMRO]
 							   )
 							 VALUES
 								   (@PartNumber,
@@ -381,7 +389,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   @City,
 								   @State,
 								   @PostalCode,
-								   @Country
+								   @Country,
+								   @IsMRO
 								   )
 						SET @LatestId = SCOPE_IDENTITY();
 
@@ -460,7 +469,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						IM.State,
 						IM.PostalCode,
 						IM.Country,
-						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
+						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId,
+						IM.IsMRO
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
@@ -499,6 +509,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   ,[State]
 								   ,[PostalCode]
 								   ,[Country]
+								   ,[IsMRO]
 								   )
 								 VALUES
 									   (@PartNumber,
@@ -520,7 +531,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 									   @City,
 									   @State,
 									   @PostalCode,
-									   @Country
+									   @Country,
+									   @IsMRO
 									   )
 							SET @LatestId = SCOPE_IDENTITY();
 							INSERT INTO #tempTableIntegration(ID)Values(@LatestId)
@@ -593,7 +605,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						IM.State,
 						IM.PostalCode,
 						IM.Country,
-						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
+						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId,
+						IM.IsMRO
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]

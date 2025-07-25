@@ -11,6 +11,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    23-July-2025	Devendra Shekh			Created
+    2    25-July-2025	Devendra Shekh			added IsMRO Field
 
 -- EXEC usp_GetIntegrationCustomerById 9,2 
 ************************************************************************/
@@ -34,7 +35,8 @@ BEGIN
 					[City] AS City,
 					[State] AS State, 
 					[PostalCode] AS PostalCode,				 
-					[Country] AS Country 
+					[Country] AS Country, 
+					[IsMRO] AS IsMRO 
 			FROM [dbo].[IntegrationMaster] WITH(NOLOCK)
 			WHERE [IntegrationMasterId] = @ReferenceId;
 		END
@@ -46,13 +48,14 @@ BEGIN
 					[BuyerCity] AS City,
 					[BuyerState] AS State, 
 					[BuyerZip] AS PostalCode,				 
-					[BuyerCountry] AS Country 
+					[BuyerCountry] AS Country,
+					[IsMRO] AS IsMRO 
 			FROM [dbo].[CustomerRfq] WITH(NOLOCK)
 			WHERE [CustomerRfqId] = @ReferenceId;
 		END
 		ELSE IF(@SendRFQListType = @TypeId)
 		BEGIN
-			SELECT	'' AS CustomerName, '' AS AddressLine1, '' AS Address2, '' AS City, '' AS State, '' AS PostalCode, '' AS Country
+			SELECT	'' AS CustomerName, '' AS AddressLine1, '' AS Address2, '' AS City, '' AS State, '' AS PostalCode, '' AS Country, 0 as [IsMRO]
 		END	
 
 	END TRY    

@@ -19,7 +19,7 @@
 exec [dbo].[USP_CreateExchangeQuote] @CustomerReference=N'',@OpenDate='2025-07-23 00:00:00',@QuoteExpireDate='2025-08-22 00:00:00',
 @PriorityId=3,@StatusId=1,@StatusChangeDate='2025-07-23 16:50:33.567',@CustomerId=77,@SalesPersonId=5,@CreatedBy=N'roza diaz',
 @MasterCompanyId=1,@ManagementStructureId=1,@EmployeeId=237,@ValidForDays=30,@CustomerServiceRepId=5,@Memo=N'',@Notes=N'',
-@ContractReference=N'',@FunctionalCurrencyId=1,@ReportCurrencyId=1,@ForeignExchangeRate=1.000000
+@ContractReference=N'',@FunctionalCurrencyId=1,@ReportCurrencyId=1,@ForeignExchangeRate=1.000000,@TypeId = 1 
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuote]

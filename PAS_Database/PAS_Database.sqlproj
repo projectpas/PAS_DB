@@ -4101,6 +4101,7 @@
     <Build Include="dbo\User Defined Types\TVP_BigInt.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateVendorShipping.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetIntegrationCustomerById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateExchangeQuote.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

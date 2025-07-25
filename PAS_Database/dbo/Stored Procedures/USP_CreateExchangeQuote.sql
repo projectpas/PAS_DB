@@ -24,16 +24,16 @@ exec [dbo].[USP_CreateExchangeQuote] @CustomerReference=N'',@OpenDate='2025-07-2
 
 CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuote]
 	@CustomerReference VARCHAR(100),
-    @OpenDate DATETIME,
-    @QuoteExpireDate DATETIME,
+    	@OpenDate DATETIME,
+    	@QuoteExpireDate DATETIME,
 	@PriorityId INT,
 	@StatusId INT,
 	@StatusChangeDate DATETIME,
 	@CustomerId BIGINT,
 	@SalesPersonId BIGINT,
-    @CreatedBy VARCHAR(256),
-    @MasterCompanyId INT,
-    @ManagementStructureId BIGINT,
+    	@CreatedBy VARCHAR(256),
+    	@MasterCompanyId INT,
+    	@ManagementStructureId BIGINT,
 	@EmployeeId BIGINT,
 	@ValidForDays INT,
 	@CustomerServiceRepId BIGINT,
@@ -53,7 +53,6 @@ BEGIN
 		DECLARE @ExchangeQuotePrefix INT; 
 		DECLARE @CurrentNumber BIGINT;
 		DECLARE @ExchangeQuoteId BIGINT;
-
 
 		SELECT @ExchangeTypeId = [Id], @ExchangeType = [Name]
 		FROM [dbo].[ExchangeType] WITH(NOLOCK) WHERE [Name] = 'Exchange';
@@ -167,7 +166,7 @@ BEGIN
 		DECLARE @EnforceApproval BIT, @EnforceEffectiveDate DATETIME
 		SELECT TOP 1 @EnforceApproval = IsApprovalRule,
 			         @EnforceEffectiveDate = EffectiveDate
-		FROM [dbo].[ExchangeQuoteSetting] WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,0) = 1;
+		FROM [dbo].[ExchangeQuoteSetting] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,0) = 1;
 
         -- Step 3: Insert into ExchangeQuote
         INSERT INTO ExchangeQuote

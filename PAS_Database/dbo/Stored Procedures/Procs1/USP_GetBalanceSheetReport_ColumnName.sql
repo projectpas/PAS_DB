@@ -10,10 +10,11 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-	1    31/08/2023   Rajesh Gami   Created
-	2    19/12/2023   Moin Bloch    Updated (Added Calander Period Name When we getting 0 Month)
-	3    01/02/2024   Hemnat Saliya Handle ADJ- Period case
-	4    18/07/2024   Hemnat Saliya Added isAccountPeriod for Period Count
+	1    31/08/2023   Rajesh Gami		Created
+	2    19/12/2023   Moin Bloch		Updated (Added Calander Period Name When we getting 0 Month)
+	3    01/02/2024   Hemnat Saliya		Handle ADJ- Period case
+	4    18/07/2024   Hemnat Saliya		Added isAccountPeriod for Period Count
+	5    25/07/2025   Devendra Shekh	added PeriodSeq Field
 
 **************************************************************/  
 
@@ -94,6 +95,7 @@ BEGIN
 			   PeriodId INT,  
 			   PeriodName VARCHAR(50),
 			   [isAccountPeriod] BIT NULL,
+			   PeriodSeq INT NULL,  
 		  ) 
 
 		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
@@ -152,8 +154,8 @@ BEGIN
 		  WHERE L.ReportingStructureId = @ReportingStructureId AND L.IsDeleted = 0 and L.MasterCompanyId = @MasterCompanyId  
 		  ORDER BY L.SequenceNumber 
 
-		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign,[isAccountPeriod])
-		  VALUES(0, 'name', '', 0, 0, 0)
+		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign,[isAccountPeriod], PeriodSeq)
+		  VALUES(0, 'name', '', 0, 0, 0, 0)
 
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign,[isAccountPeriod])  
 		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1, 1 FROM #TempTable 
@@ -168,7 +170,7 @@ BEGIN
 			    WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND  --IsAdjustPeriod = 0 AND --AC.[Period] >= @Period AND
 		  		  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
 				  AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable)
-				  AND AccountingCalendarId IN (@AccountPeriodIds)
+				  AND AccountingCalendarId IN (SELECT * FROM SplitString(@AccountPeriodIds,','))
 			    ORDER BY AccountingCalendarId 
 
 			   --DO Not Remove #Hemant
@@ -181,11 +183,16 @@ BEGIN
 			  -- ORDER BY AccountingCalendarId 
 		  END		 
 
-		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1, [isAccountPeriod] = 0 WHERE PeriodName = 'Other'
+		  UPDATE TMP 
+		  SET	TMP.[PeriodSeq] = AC.[Period]
+		  FROM #AccPeriodTempTable TMP
+		  INNER JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON TMP.PeriodId = AC.AccountingCalendarId
+
+		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1, [isAccountPeriod] = 0, [PeriodSeq] = ISNULL((SELECT MAX([PeriodSeq]) FROM #AccPeriodTempTable), 0) + 1 WHERE PeriodName = 'Other'
 
 		  UPDATE #AccPeriodTempTable SET headerName = PeriodName, fieldName = REPLACE(PeriodName,' ','')  
 
-		  SELECT * FROM #AccPeriodTempTable ORDER BY PeriodId
+		  SELECT * FROM #AccPeriodTempTable ORDER BY PeriodSeq
 
  END TRY  
  BEGIN CATCH  

@@ -26,6 +26,7 @@
     8    10/08/2024   RAJESH GAMI 	   Implement the ReferenceNumber column data into "WO | SubWOMaterial | Kit Stockline" table.
 	9	 06/25/2025   Vishal Suthar	   Handle the case of having the same stockline after repair
 	10	 07/07/2025   Vishal Suthar	   Fixed an issue with updating new condition and provision in material stockline level
+	11	 07/25/2025   Vishal Suthar	   Fixed an issue with not updating the Provision with new implementation
 
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
 **************************************************************/
@@ -353,7 +354,11 @@ SET NOCOUNT ON
 											SELECT @UnitCostSWO = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
 											UPDATE dbo.SubWorkOrderMaterialStockLine SET UnitCost = @UnitCostSWO WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId;
 
-											UPDATE dbo.SubWorkOrderMaterialStockLine SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId
+											UPDATE dbo.SubWorkOrderMaterialStockLine 
+											SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),
+											ReferenceNumber = @MaterialRefNo + @RONumber,
+											ProvisionId = @ProvisionId
+											WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId
 
 											UPDATE dbo.SubWorkOrderMaterials 
 												SET QuantityReserved = QuantityReserved + @StlQuantity, 
@@ -375,9 +380,13 @@ SET NOCOUNT ON
 
 											IF(@QtyFulfilled > 0)
 											BEGIN
-												UPDATE dbo.SubWorkOrderMaterialStockLine SET Quantity = Quantity - @StlQuantity,ReferenceNumber = @MaterialRefNo+@RONumber  WHERE SWOMStockLineId = @ExWorkOrderMaterialStockLineId;
+												UPDATE dbo.SubWorkOrderMaterialStockLine 
+												SET Quantity = Quantity - @StlQuantity,
+												ReferenceNumber = @MaterialRefNo + @RONumber
+												WHERE SWOMStockLineId = @ExWorkOrderMaterialStockLineId;
 											END
 										END
+
 										--UPDATE WO PART LEVEL TOTAL COST
 										EXEC USP_UpdateWOTotalCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkFlowWorkOrderId, @UpdatedBy = 'Admin' ;
 
@@ -389,6 +398,7 @@ SET NOCOUNT ON
 									END
 								END
 							END
+
 							SET @LoopID = @LoopID - 1;
 						END 
 					END
@@ -830,6 +840,7 @@ SET NOCOUNT ON
 													UPDATE dbo.WorkOrderMaterials 
 														SET QuantityReserved = QuantityReserved + @StlQuantity, 
 															TotalReserved = TotalReserved + @StlQuantity,
+															ProvisionId = @ProvisionId,
 															UpdatedDate = GETDATE()
 													WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
 												END
@@ -1181,6 +1192,7 @@ SET NOCOUNT ON
 													UPDATE dbo.WorkOrderMaterialsKit 
 														SET QuantityReserved = QuantityReserved + @StlQuantity, 
 															TotalReserved = TotalReserved + @StlQuantity,
+															ProvisionId = @ProvisionId,
 															UpdatedDate = GETDATE()
 													WHERE WorkOrderMaterialsKitId = @ExWorkOrderMaterialsId;
 												END

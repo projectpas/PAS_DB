@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/07/2025   Ekta Chandegra     Created
+    2    07/28/2025   Ekta Chandegra     Retrieve billing amount as OtherCharges and ExtendedCost as OtherCost
      
   EXEC USP_GetExchangeQuoteAnalysisList @ExchangeQuoteId = 113
 
@@ -53,7 +54,7 @@ BEGIN
 
 		-- Get Charges and OtherCharges
 		SELECT TOP 1 
-			@Charges = ISNULL(MarkupFixedPrice, 0),
+			@Charges = ISNULL(BillingAmount, 0),
 			@OtherCharges = ISNULL(ExtendedCost, 0),
 			@BillingMethodId = ISNULL(BillingMethodId, 0)
 		FROM [dbo].[ExchangeQuoteCharges] WITH(NOLOCK)
@@ -62,8 +63,8 @@ BEGIN
 		IF @OtherCharges = 0
 		BEGIN
 			SELECT TOP 1
-				@OtherCharges = ISNULL(MarkupFixedPrice, 0),
-				@Charges = ISNULL(MarkupFixedPrice, 0)
+				@OtherCharges = ISNULL(ExtendedCost, 0),
+				@Charges = ISNULL(BillingAmount, 0)
 			FROM [dbo].[ExchangeQuoteCharges] WITH(NOLOCK)
 			WHERE ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(IsActive,0) = 1;
 		END

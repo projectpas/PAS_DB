@@ -35,18 +35,10 @@ BEGIN
 		  BEGIN TRANSACTION
 			BEGIN
 			   
-				DECLARE @EnforceMpnPickTicketConfirmation BIT,@WorkOrderTypeId BIGINT = NULL,@MasterCompanyId INT
+				DECLARE @EnforceMpnPickTicketConfirmation BIT
 
-				SELECT @WorkOrderTypeId = wo.[WorkOrderTypeId], 
-					   @MasterCompanyId = wo.[MasterCompanyId]
+				SELECT @EnforceMpnPickTicketConfirmation = ISNULL(wo.[EnforceMpnPickTicketConfirmation],0)
 				FROM [dbo].[WorkOrder] wo WITH(NOLOCK) WHERE wo.[WorkOrderId] = @WorkOrderId 
-
-				SELECT @EnforceMpnPickTicketConfirmation = ISNULL([EnforceMpnPickTicketConfirmation],0)
-				FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) 
-				WHERE [WorkOrderTypeId] = @WorkOrderTypeId 
-				AND [MasterCompanyId] = @MasterCompanyId 
-				AND [IsActive] = 1 
-				AND [IsDeleted] = 0;
 
 				SELECT 
 					wo.WorkOrderNum,

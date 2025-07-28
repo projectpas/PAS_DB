@@ -10,17 +10,17 @@
  ** --   --------			-------				--------------------------------            
     1    03-Feb-2025		Devendra Shekh			Created
 	2	 24-Feb-2025		Abhishek Jirawla		Modified this SP to check when 1 reference is checked
-
+	3	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for @ItemMasterModule too
 DECLARE @IsDuplicate BIT;
 
 EXEC [dbo].[USP_ChekDuplicateValueForUpload]
-    @ChekDuplticateRef1 = 'ItemMasterId',
-    @ChekDuplticateRef2 = 'MappingItemMasterId',
-    @DuplicateRefeValue1 = '14',
-    @DuplicateRefeValue2 = '102605',
-    @ReferenceTable = 'Nha_Tla_Alt_Equ_ItemMapping',
+    @ChekDuplticateRef1 = 'accountCode',
+    @ChekDuplticateRef2 = '',
+    @DuplicateRefeValue1 = 'aswq134',
+    @DuplicateRefeValue2 = '',
+    @ReferenceTable = 'GLAccount',
     @MasterCompanyId = 1,
-    @ModuleId = 3,
+    @ModuleId = 2,
     @IsDuplicate = @IsDuplicate OUTPUT;
 
 SELECT @IsDuplicate AS IsDuplicateResult;
@@ -49,8 +49,10 @@ BEGIN
     DECLARE @RefQuery AS NVARCHAR(MAX) = '';
     DECLARE @Params AS NVARCHAR(MAX);
     DECLARE @AlterModule AS BIGINT;
+	DECLARE @ItemMasterModule AS BIGINT;
     
 	SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
+	SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
     
 	SET @IsDuplicate = 0;
 
@@ -103,7 +105,7 @@ BEGIN
 			@DuplicateRefeValue2 = @DuplicateRefeValue2, 
 			@IsDuplicate = @IsDuplicate OUTPUT;
 
-		IF @ModuleId = @AlterModule
+		IF @ModuleId = @AlterModule OR @ModuleId = @ItemMasterModule
 		BEGIN
 			IF @IsDuplicate != 1
 			BEGIN

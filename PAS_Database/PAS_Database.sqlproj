@@ -4107,6 +4107,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetRepaireOrderAssemplyDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteRepairOrderSubAssembly.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddRepairOrderSubAssembly.sql" />
+    <Build Include="dbo\Stored Procedures\usp_UpdateItemMasterWithGLAccountNames.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

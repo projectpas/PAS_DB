@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
 
-EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData '','',1
+EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ '','',1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ]
 	--@MasterCompanyId BIGINT = NULL,
@@ -28,7 +28,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY  	
 
-				DECLARE @Month INT = 8;
+				DECLARE @Month INT = 7;
 				DECLARE @Year INT = 2025;
 	
 		DECLARE @MasterLoopID INT = 0,
@@ -78,21 +78,26 @@ BEGIN
 					@CustomerRfqId = CustomerRfqId,
 					@RfqId = RfqId
 			 FROM #tmpCustomerRfq WITH(NOLOCK) 
-			 WHERE [ID] = @MasterLoopID;
+			 WHERE [ID] = @MasterLoopID;			 
 			 
 			 --Get Ai Percent Value from Aisetting table mastercompany wise
-			 SELECT @AiPercentValue = ISNULL([PercentValue],0), 
-					@IsEnableDisableAIintegration = ISNULL(IsEnableDisableAIintegration,0)
-			 FROM [DBO].[AiIntegrationSetting] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+			 SELECT @AiPercentValue = ISNULL(SIS.[PercentValue],0), 
+					@IsEnableDisableAIintegration = ISNULL(SIS.[IsEnableDisableAIintegration],0),
+					@Year = ISNULL(YR.[YearName],0),
+					@Month = ISNULL(MON.[MonthNumber],0)
+			 FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
+			 INNER JOIN [DBO].[Years] YR WITH(NOLOCK) ON SIS.[YearId] = YR.[YearId]
+			 INNER JOIN [DBO].[Months] MON WITH(NOLOCK) ON SIS.[MonthId] = MON.[MonthId]
+			 WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
 
 			 --Check is allow AI calculation or not
 			 IF(@IsEnableDisableAIintegration > 0)
 			 BEGIN
-				  SELECT @RecordsTotal = COUNT(WBI.BillingInvoicingItemId),
+				  SELECT @RecordsTotal = COUNT(WBI.[BillingInvoicingItemId]),
 						 @UnitSalesPriceTotal = ISNULL(SUM(WBI.GrandTotal),0)
 				  FROM [dbo].[BillingInvoicingItems] WBI WITH(NOLOCK)
-				  LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WBI.[ReferenceId] = WO.[WorkOrderId]
-				  LEFT JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WBI.[ReferenceId] = WO.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId]
 				  INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WBI.[ItemMasterId] = IM.[ItemMasterId]
 				  WHERE WBI.[ModuleId] = @WOModuleId
 				  AND LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(@PartNumber))
@@ -144,7 +149,7 @@ BEGIN
 					  ------- Update Csutomer RFQ for Is Quote added ----------					 
 						 UPDATE [dbo].[CustomerRfq] 
 							SET IsQuote = 1
-						 WHERE CustomerRfqId = @CustomerRfqId;
+						 WHERE [CustomerRfqId] = @CustomerRfqId;
 				  END
 			 END
 

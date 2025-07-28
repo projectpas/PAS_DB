@@ -79,9 +79,14 @@ BEGIN
 			 WHERE [ID] = @MasterLoopID;
 			 
 			 --Get Ai Percent Value from Aisetting table mastercompany wise
-			 SELECT @AiPercentValue = ISNULL([PercentValue],0), 
-					@IsEnableDisableAIintegration = ISNULL(IsEnableDisableAIintegration,0)
-			 FROM [DBO].[AiIntegrationSetting] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+			 SELECT @AiPercentValue = ISNULL(SIS.[PercentValue],0), 
+					@IsEnableDisableAIintegration = ISNULL(SIS.IsEnableDisableAIintegration,0),
+					@Year = ISNULL(YR.[YearName],0),
+					@Month = ISNULL(MON.[MonthNumber],0)
+			 FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
+			 INNER JOIN [DBO].[Years] YR WITH(NOLOCK) ON SIS.[YearId] = YR.[YearId]
+			 INNER JOIN [DBO].[Months] MON WITH(NOLOCK) ON SIS.[MonthId] = MON.[MonthId]
+			 WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
 
 			 --Check is allow AI calculation or not
 			 IF(@IsEnableDisableAIintegration > 0)
@@ -89,19 +94,17 @@ BEGIN
 				  SELECT @RecordsTotal = COUNT(SOPC.SalesOrderQuotePartId), 
 						 @UnitSalesPriceTotal = ISNULL(SUM(SOPC.UnitSalesPrice),0)
 				  FROM [DBO].[SalesOrderQuotePartV1] SQP WITH(NOLOCK)
-				  INNER JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SQP.SalesOrderQuotePartId = SOPC.SalesOrderQuotePartId
-				  INNER JOIN [DBO].[SalesOrderQuote] SQ WITH(NOLOCK) ON SQP.SalesOrderQuoteId = SQ.SalesOrderQuoteId
-				  INNER JOIN [DBO].[MasterSalesOrderQuoteStatus] SQS WITH(NOLOCK) ON SQ.StatusId = SQS.Id
-				  WHERE LOWER(TRIM(SQP.PartNumber)) = LOWER(TRIM(@PartNumber))
-				  AND MONTH(SQ.OpenDate) >= @Month
-				  AND YEAR(SQ.OpenDate) >= @Year
+				  INNER JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SQP.[SalesOrderQuotePartId] = SOPC.[SalesOrderQuotePartId]
+				  INNER JOIN [DBO].[SalesOrderQuote] SQ WITH(NOLOCK) ON SQP.[SalesOrderQuoteId] = SQ.[SalesOrderQuoteId]
+				  INNER JOIN [DBO].[MasterSalesOrderQuoteStatus] SQS WITH(NOLOCK) ON SQ.[StatusId] = SQS.[Id]
+				  WHERE LOWER(TRIM(SQP.[PartNumber])) = LOWER(TRIM(@PartNumber))
+				  AND MONTH(SQ.[OpenDate]) >= @Month
+				  AND YEAR(SQ.[OpenDate]) >= @Year
 				  AND SQS.[Name] NOT IN (SELECT item FROM SplitString(@Condition_Code,','))
-				  AND SQP.MasterCompanyId = @MasterCompanyId;
+				  AND SQP.[MasterCompanyId] = @MasterCompanyId;
 				  
 				  IF(@RecordsTotal > 0)
 				  BEGIN
-						--Get PerUnit price
-					   --SELECT (1000 * 20) /100
 
 					   DECLARE @FinalUnitPrice DECIMAL(18,2) = 0;
 
@@ -142,7 +145,7 @@ BEGIN
 					  ------- Update Csutomer RFQ for Is Quote added ----------					 
 						 UPDATE [dbo].[CustomerRfq] 
 							SET IsQuote = 1
-						 WHERE CustomerRfqId = @CustomerRfqId;
+						 WHERE [CustomerRfqId] = @CustomerRfqId;
 				  END
 			 END
 

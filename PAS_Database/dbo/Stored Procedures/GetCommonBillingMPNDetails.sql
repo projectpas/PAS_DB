@@ -26,9 +26,10 @@
 	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
 	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only & Fix SalesTax Amount issue
 	16	 21/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge): frieght and charges are being included again
+	17	 28/07/2025   RAJESH GAMI	Get Unit Sales PRice, Markup% and Amount, Discount% & Amount for the SO
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[GetCommonBillingMPNDetails]
+CREATE PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,
@@ -51,7 +52,8 @@ BEGIN
 		DECLARE @TotalRecords INT = 0,@MinId INT = 1,@WorkOrderMPNMSModuleEnum INT=12   			 
 		DECLARE @ID BIGINT = 0, @CustomerId BIGINT = 0,@MasterCompanyId INT = 0;			
 		DECLARE @Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@PartDescription NVARCHAR(MAX)='',@SerialNumber VARCHAR(100)=''
-		DECLARE @WorkFlowWorkOrderId BIGINT = 0, @BillingInvoicingId BIGINT = 0, @BillingInvoicingItemId BIGINT = 0, @LabourCost DECIMAL(18,2) = 0,@UnitCostExt DECIMAL(18,2) = 0, @UnitCost DECIMAL(18,2) = 0,@PartsCost DECIMAL(18,2) = 0, @MicCharges DECIMAL(18,2) = 0, @FreightCost DECIMAL(18,2) = 0;
+		DECLARE @WorkFlowWorkOrderId BIGINT = 0, @BillingInvoicingId BIGINT = 0, @BillingInvoicingItemId BIGINT = 0, @LabourCost DECIMAL(18,2) = 0,@UnitCostExt DECIMAL(18,2) = 0,@UnitSalesPrice DECIMAL(18,2) = 0, @UnitCost DECIMAL(18,2) = 0,@PartsCost DECIMAL(18,2) = 0, @MicCharges DECIMAL(18,2) = 0, @FreightCost DECIMAL(18,2) = 0;
+		DECLARE @MarkUpPercentage  DECIMAL(18,2) = 0,@DiscountPercentage  DECIMAL(18,2) = 0, @MarkUpAmount  DECIMAL(18,2) = 0,@DiscountAmount  DECIMAL(18,2) = 0
 		DECLARE @TotalCost DECIMAL(18,2) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,2) = 0, @OtherTaxAmount DECIMAL(18,2) = 0, @GrandTotal DECIMAL(18,2) = 0;
 		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 , @InvoiceStatusName varchar(50)='';
 		DECLARE @InvoiceStatusId BIGINT=0,@WorkOrderQuoteStatusId INT=0
@@ -91,6 +93,11 @@ BEGIN
 				[StockLineId] BIGINT NULL,
 				[ConditionId] BIGINT NULL,
 				[ConditionName] NVARCHAR(200) NULL,
+				[UnitSalePrice] DECIMAL(18,2) NULL,	 
+				[MarkUpPercentage] DECIMAL(18,2) NULL, 
+				[DiscountPercentage] DECIMAL(18,2) NULL, 
+				[MarkUpAmount] DECIMAL(18,2) NULL, 
+				[DiscountAmount] DECIMAL(18,2) NULL, 			
 				[UnitPrice] DECIMAL(18,2) NULL,	 
 				[QtyBilled] INT NULL, 
 				[PartCost] DECIMAL(18,2) NULL,	 
@@ -602,11 +609,11 @@ BEGIN
 				END
 					IF(ISNULL(@SOStocklineId,0) >0)
 					BEGIN
-						SELECT  TOP 1  @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId
+						SELECT  TOP 1 @DiscountPercentage=  SUM(ISNULL(DiscountPercentage,0)), @MarkUpPercentage=  SUM(ISNULL(MarkUpPercentage,0)), @MarkUpAmount=  SUM(ISNULL(MarkUpAmount,0)), @DiscountAmount =  SUM(ISNULL(DiscountAmount,0)), @UnitSalesPrice=  SUM(ISNULL(UnitSalesPrice,0)),  @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId
 					END
 					ELSE
 					BEGIN
-						SELECT TOP 1 @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderPartCost WHERE SalesOrderPartId = @ID AND SalesOrderId = @ReferenceId
+						SELECT TOP 1 @DiscountPercentage=  SUM(ISNULL(DiscountPercentage,0)), @MarkUpPercentage=  SUM(ISNULL(MarkUpPercentage,0)), @MarkUpAmount=  SUM(ISNULL(MarkUpAmount,0)), @DiscountAmount =  SUM(ISNULL(DiscountAmount,0)),@UnitSalesPrice=  SUM(ISNULL(UnitSalesPrice,0)),@UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderPartCost WHERE SalesOrderPartId = @ID AND SalesOrderId = @ReferenceId
 					END
 		
 				DECLARE @stkShipped decimal(10,2) = ISNULL((Select SUM(ISNULL(QtyShipped,0)) From dbo.SalesOrderShippingItem SOS WITH(NOLOCK) INNER JOIN dbo.SOPickTicket SOPIC WITH(NOLOCK) on SOS.SOPickTicketId = SOPIC.SOPickTicketId
@@ -671,6 +678,11 @@ BEGIN
 
 				UPDATE #TempCommonPartNumberDetailsForBilling 
 					   SET 
+						   MarkUpAmount = @MarkUpAmount,
+						   DiscountAmount = @DiscountAmount,
+						   MarkUpPercentage = @MarkUpPercentage,
+						   DiscountPercentage = @DiscountPercentage,
+						   UnitSalePrice = @UnitSalesPrice,
 						   [UnitPrice] = @UnitCost,
 						   PartCost = CASE WHEN @IsProformaInvoice = 1 THEN @UnitCostExt ELSE @PartsCost END,
 						   [BillingInvoicingId] = @BillingInvoicingId,

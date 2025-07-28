@@ -11,20 +11,24 @@
     1    23-Dec-2024		Devendra Shekh			Created
     2    06-Jan-2025		Devendra Shekh			Issue While Save Resolved
 	3    04-02-2025         Shrey Chandegara        Modified due to ItemMaster AlternatePart
-
+	4	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for ItemMasterModule too
 declare @p4 dbo.UploadModuleDataTableType
-insert into @p4 values(2,N'DEVENDRASILVER MICKSILVER',1,N'{
-  "oldAccountCode": "TestUploadOldCode",
-  "accountCode": 50009,
-  "accountName": "Test Account Name check",
-  "accountDescription": "Checking Test Description",
-  "allowManualJE": "yes",
-  "glAccountTypeId": " ",
-  "glClassFlowClassificationId": " ",
-  "ledgerId": "Power Aero Suites - DEMO"
+insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
+  "partnumber": "AEIN122",
+  "PartDescription": "Aein description",
+  "IsOEM": "",
+  "IsPma": "",
+  "IsDER": "",
+  "ItemClassificationId": "ROTABLE ",
+  "ItemGroupId": "BRAKES ",
+  "ManufacturerId": "ARMSTRONG ",
+  "PurchaseUnitOfMeasureId": "KG",
+  "PurchaseCurrencyId": "USD",
+  "SalesCurrencyId": "USD",
+  "SiteId": "MESA"
 }')
 
-exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=2,@UserName=N'DEVENDRASILVER MICKSILVER',@MasterCompanyId=1,@UploadData=@p4
+exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
@@ -53,10 +57,11 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT;
     
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
+		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -208,6 +213,7 @@ BEGIN
 						UPDATE #ImportFields 
 						SET DuplicateErrorMsg = CASE	WHEN @ModuleId = @AlterModule THEN 'Entered PN and Alterate PN Already Exits!'
 														WHEN @ModuleId = @GLModule THEN 'Entered Account Code Already Exits!'
+														WHEN @ModuleId = @ItemMasterModule THEN 'Entered PN And Manufacturer Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -271,7 +277,14 @@ BEGIN
 	COMMIT TRANSACTION
 	 
 	END TRY    
-	BEGIN CATCH    
+	BEGIN CATCH  
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;

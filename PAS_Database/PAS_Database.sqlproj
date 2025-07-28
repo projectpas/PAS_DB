@@ -4102,6 +4102,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateVendorShipping.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetIntegrationCustomerById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateExchangeQuote.sql" />
+    <Build Include="dbo\Stored Procedures\usp_UpdateItemMasterWithGLAccountNames.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -19,8 +19,9 @@
 	2    14/05/2024   Moin Bloch	    updated for dublicate record issue PN-7946
 	3    14/05/2024   Hemant Saliya	    updated for Shapping Status
     4    04-07-2025   Moin Bloch        Changed Old To New Billing Table
+	5    07/28/2025   Moin Bloch        Added Condition For Enforce Mpn Pick Ticket Confirmation
 
-EXEC DBO.sp_GetWOShippingChildList @ItemMasterIdlist=20751,@WorkOrderId =618 ,@WorkOrderPartId=10
+EXEC DBO.sp_GetWOShippingChildList @WorkOrderId =19769 ,@WorkOrderPartId=19892
 **************************************************************/ 
 CREATE Procedure [dbo].[sp_GetWOShippingChildList]  
 @WorkOrderId bigint,  
@@ -31,9 +32,14 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON;    
 	BEGIN TRY  
-		DECLARE @WOModuleId INT
-		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+		DECLARE @WOModuleId INT,@EnforceMpnPickTicketConfirmation BIT
+		
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';			
 
+		SELECT @EnforceMpnPickTicketConfirmation = ISNULL(wo.[EnforceMpnPickTicketConfirmation],0)
+		FROM [dbo].[WorkOrder] wo WITH(NOLOCK) 
+		WHERE wo.[WorkOrderId] = @WorkOrderId 
+	
 		SELECT  distinct
 			  wopt.[PickTicketId] AS WOPickTicketId,  
 			  wos.[WorkOrderShippingId],  
@@ -72,9 +78,13 @@ BEGIN
 			LEFT JOIN DBO.ShippingStatus SS WITH(NOLOCK) ON wos.WOShippingStatusId = SS.ShippingStatusId
 			OUTER APPLY (SELECT TOP 1 [WorkOrderShippingId] FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
 				WHERE wosi.[WorkOrderShippingId] = WOBI.[WorkOrderShippingId] AND wos.[WorkOrderId] = WOBI.[ReferenceId] AND WOBI.[ModuleId] = @WOModuleId AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0) AS wobii          
-		WHERE wopt.[WorkOrderId]=@WorkOrderId AND wopt.[IsConfirmed]=1 AND wopt.[OrderPartId]=@WorkOrderPartId   
-
-     
+		WHERE wopt.[WorkOrderId]=@WorkOrderId
+		--AND wopt.[IsConfirmed]=1 
+		AND (
+			@EnforceMpnPickTicketConfirmation = 0 
+			OR wopt.[IsConfirmed] = 1                 
+		)
+		AND wopt.[OrderPartId]=@WorkOrderPartId        
   
 	END TRY      
 	BEGIN CATCH        

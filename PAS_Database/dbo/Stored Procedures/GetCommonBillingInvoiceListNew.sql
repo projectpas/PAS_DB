@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetCommonBillingInvoiceListNew]           
  ** Author:	  Moin Bloch
  ** Description: This SP is Used to get list of Invoices for Part    
@@ -16,6 +15,7 @@
 	2    02/06/2025   Rajesh Gami		Implemented SO
 	3    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	4    21-07-2025   Moin Bloch        Added BillingAmount IN SO PartList
+	5    28-07-2025   Moin Bloch        Modified Fix for performa not comming due to same ItemMasterId
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 706, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -125,8 +125,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId] AND wosi.[WorkOrderPartNumId] = wop.[ID]
 					 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
 					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]
-					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 0
-					 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobii.[SubReferenceId] = wop.ID AND wobii.[QtyBilled] = wosi.[QtyShipped]
+					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 0 AND wobii.[ModuleId] = @WOModuleId
+					 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobii.[SubReferenceId] = wop.ID AND wobii.[QtyBilled] = wosi.[QtyShipped] AND wobi.[ModuleId] = @WOModuleId
 					WHERE wop.[WorkOrderId] = @ReferenceId
 					GROUP BY wo.[WorkOrderNum],wop.[ID], imt.[partnumber],imt.[PartDescription],wo.[WorkOrderId],wop.[WorkOrderId], 
 					imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]
@@ -173,15 +173,16 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
 					LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]
-					LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 0
-					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0
+					LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 0 AND wobii.[ModuleId] = @WOModuleId
+					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobi.[ModuleId] = @WOModuleId
 					AND wobii.[SubReferenceId] = wop.[ID] AND wobii.[QtyBilled] = wop.[Quantity] --wopick.QtyToShip
 					WHERE wop.[WorkOrderId] = @ReferenceId
 					AND (ISNULL(wop.[IsFinishGood], 0) = 1 OR wobi.[BillingInvoicingId] IS NOT NULL)
 					GROUP BY wo.[WorkOrderNum],wop.[ID],imt.[partnumber],imt.[PartDescription],wo.[WorkOrderId],wop.[WorkOrderId],
 					        imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]
 				END
-										
+							
+			
 			INSERT INTO #InvoiceMainDetails([ReferenceNumber], [PartNumber], [PartDescription], [QtyToBill], [QtyBilled], [ReferenceId], [ItemMasterId], [SubReferenceId], [QtyRemaining], [Status],
 													[NewStatus], [ItemNo], [IsProformaInvoice],[BillingAmount],[PerformaBillingAmount])
 				SELECT 
@@ -249,9 +250,19 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId] AND wosi.[WorkOrderPartNumId] = wop.[ID]
 					LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
 					LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]
-					LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 1
-					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobii.[SubReferenceId] = wop.[ID] AND wobii.[QtyBilled] = wop.[Quantity]
-					WHERE wop.[WorkOrderId] = @ReferenceId AND ((SELECT CASE WHEN ISNULL(wop.[RevisedItemmasterid], 0) > 0 THEN wop.[RevisedItemmasterid] ELSE imt.[ItemMasterId] END) NOT IN (SELECT [ItemMasterId] FROM #InvoiceMainDetails))					
+					LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wop.[ID] = wobii.[SubReferenceId] AND ISNULL(wobii.[IsPerformaInvoice], 0) = 1 AND wobii.[ModuleId] = @WOModuleId
+					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND wobi.[ModuleId] = @WOModuleId
+					AND ISNULL(wobi.[IsVersionIncrease],0) = 0 
+					AND wobii.[SubReferenceId] = wop.[ID] 
+					AND wobii.[QtyBilled] = wop.[Quantity]					
+					AND ISNULL(wobi.[IsPerformaInvoice], 0) = 1
+					WHERE wop.[WorkOrderId] = @ReferenceId
+					--AND ((SELECT CASE WHEN ISNULL(wop.[RevisedItemmasterid], 0) > 0 THEN wop.[RevisedItemmasterid] ELSE imt.[ItemMasterId] END) NOT IN (SELECT [ItemMasterId] FROM #InvoiceMainDetails))										
+					AND NOT EXISTS (
+						SELECT 1 
+						FROM #InvoiceMainDetails imd
+						WHERE imd.ItemMasterId = ISNULL(wop.RevisedItemMasterId, imt.ItemMasterId) AND imd.SubReferenceId = wop.ID
+					)
 					GROUP BY wo.[WorkOrderNum],wop.[ID],imt.[partnumber],imt.[PartDescription],wo.[WorkOrderId],wop.[WorkOrderId],
 					imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]								
 		END /*********END: WORK ORDER ********/

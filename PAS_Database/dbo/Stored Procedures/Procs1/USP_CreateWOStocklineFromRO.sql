@@ -832,7 +832,8 @@ SET NOCOUNT ON
 												UPDATE dbo.WorkOrderMaterialStockLine 
 												SET QtyReserved = @StlQuantity, 
 												ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),
-												ReferenceNumber = @MaterialRefNo+@RONumber 
+												ReferenceNumber = @MaterialRefNo+@RONumber,
+												ProvisionId = @ProvisionId
 												WHERE WOMStockLineId = @WorkOrderMaterialStockLineId;
 
 												IF (@OldConditionId = @NewConditionId)
@@ -1185,7 +1186,11 @@ SET NOCOUNT ON
 												SELECT @UnitCost = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
 												UPDATE dbo.WorkOrderMaterialStockLineKit SET UnitCost = @UnitCost WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId;
 
-												UPDATE dbo.WorkOrderMaterialStockLineKit SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),ReferenceNumber = @MaterialRefNo+@RONumber WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId
+												UPDATE dbo.WorkOrderMaterialStockLineKit 
+												SET ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity, 0),
+												ReferenceNumber = @MaterialRefNo+@RONumber,
+												ProvisionId = @ProvisionId
+												WHERE WorkOrderMaterialStockLineKitId = @WorkOrderMaterialStockLineId
 
 												IF (@OldConditionId1 = @NewConditionId1)
 												BEGIN

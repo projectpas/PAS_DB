@@ -89,7 +89,7 @@ BEGIN
 					LEFT JOIN  dbo.BillingInvoicingItems WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingItemId = CM.BillingInvoicingItemId
 					LEFT JOIN dbo.BillingInvoicing WOBI WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
 					LEFT JOIN  dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId AND CM.StocklineId = WOPN.StockLineId				
-					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.ConditionId
+					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.RevisedConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId				
 				WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId = @CreditMemoHeaderId AND WOBI.ModuleId = @WOModuleId;
 		END

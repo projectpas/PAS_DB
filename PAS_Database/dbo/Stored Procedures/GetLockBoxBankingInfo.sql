@@ -16,10 +16,11 @@
     1    09/12/2024		EKTA CHANDEGRA	 Created  
     2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
     3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
+	4    16/Jul/2025    Moin Bloch	     Added UPPERCASE
 
  EXEC GetLockBoxBankingInfo 1 
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[GetLockBoxBankingInfo]
+CREATE     PROCEDURE [dbo].[GetLockBoxBankingInfo]
     @managementStructId BIGINT
 AS
 BEGIN
@@ -30,34 +31,34 @@ BEGIN
         (
             CASE
                 WHEN lockbox.BankName IS NOT NULL THEN
-                    '<label style="text-transform: uppercase;">' + lockbox.BankName + '</label><br />'
+                    '<label style="text-transform: uppercase;">' + UPPER(lockbox.BankName) + '</label><br />'
                 ELSE ''
             END +
             CASE
                 WHEN ad.Line1 IS NOT NULL THEN
-                    '<label style="text-transform: uppercase;">' + ad.Line1 + '</label><br />'
+                    '<label style="text-transform: uppercase;">' + UPPER(ad.Line1) + '</label><br />'
                 ELSE ''
             END +
             CASE
                 WHEN ad.City IS NOT NULL THEN
-                    '<label style="text-transform: uppercase;">' + ad.City + '</label>'
+                    '<label style="text-transform: uppercase;">' + UPPER(ad.City) + '</label>'
                 ELSE ''
             END +
             ',' + '<br />' +
             CASE
                 WHEN ad.StateOrProvince IS NOT NULL THEN
-                    '<label style="text-transform: uppercase;">' + ad.StateOrProvince + '</label>'
+                    '<label style="text-transform: uppercase;">' + UPPER(ad.StateOrProvince) + '</label>'
                 ELSE ''
             END +
             ',' +
             CASE
                 WHEN ad.PostalCode IS NOT NULL THEN
-                    ad.PostalCode
+                    UPPER(ad.PostalCode)
                 ELSE ''
             END + '<br/>' +
             CASE
                 WHEN co.countries_name IS NOT NULL THEN
-                    '<label style="text-transform: uppercase;">' + co.countries_name + '</label>'
+                    '<label style="text-transform: uppercase;">' + UPPER(co.countries_name) + '</label>'
                 ELSE ''
             END
         ) AS chequeTo

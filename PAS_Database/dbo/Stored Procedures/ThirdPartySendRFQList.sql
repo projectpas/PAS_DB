@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    14/02/2024   Rajesh Gami     Created
+	3    24-07-2025   Amit Ghediya    MOdify for get RFQ part is in our inventory or not (ItemMasterId)
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
@@ -140,10 +141,14 @@ BEGIN
                        part.UpdatedDate,
 					   Upper(part.CreatedBy) CreatedBy,
 					   Upper(part.CreatedBy) CreatedByFilter,
-                       Upper(part.UpdatedBy) UpdatedBy
+                       Upper(part.UpdatedBy) UpdatedBy,
+					   (CASE WHEN LOWER(TRIM(part.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
+					   (CASE WHEN LOWER(TRIM(part.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) AltItemMasterId
 			   FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
+					LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON part.[PartNumber] = IM.[partnumber] AND part.[MasterCompanyId] = IM.[MasterCompanyId]
+					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
 
 		 	  WHERE 
 					((ISNULL(part.IsDeleted,0)= 0) ) AND 			     

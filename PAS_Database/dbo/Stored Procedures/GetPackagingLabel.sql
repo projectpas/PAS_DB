@@ -14,6 +14,7 @@
  ** --   --------     -------   --------------------------------              
     2    13/11/2024    SHREY CHANDEGARA      UPDATED for @SalesOrderModuleId
 	3    17/06/2025    Amit Ghediya			 UPDATED for add @PackagingSlipId
+	4    07-07-2025    Moin Bloch            Changed Old To New Billing Table
          
 -- EXEC [dbo].[GetPackagingLabel] 1300, 1507
 **************************************************************/  
@@ -85,7 +86,7 @@ BEGIN
     LEFT JOIN [dbo].[SalesOrderPackaginSlipHeader] spb WITH(NOLOCK) ON spi.PackagingSlipId = spb.PackagingSlipId 
     LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH(NOLOCK) ON sopkt.SOPickTicketId = sosi.SOPickTicketId
     LEFT JOIN [dbo].[SalesOrderShipping] sos WITH(NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId
-    LEFT JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK) ON sos.SalesOrderId = sobi.SalesOrderId
+    LEFT JOIN [dbo].[BillingInvoicing] sobi WITH(NOLOCK) ON sos.SalesOrderId = sobi.ReferenceId AND sobi.[ModuleId] = @SalesOrderModuleId
     LEFT JOIN [dbo].[Employee] saemp WITH(NOLOCK) ON soq.SalesPersonId = saemp.EmployeeId
     LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
     LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId

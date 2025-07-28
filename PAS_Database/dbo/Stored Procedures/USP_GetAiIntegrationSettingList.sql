@@ -10,6 +10,7 @@ EXEC [USP_GetPNLabelSettingData]
 ** PR   Date              Author          Change Description    
 ** --   --------          -------         --------------------------------  
 ** 1	July-01-2025	BHARGAV SALIYA    Create
+** 2	July-11-2025	BHARGAV SALIYA    Modified Two Fields YearId and MonthId
 
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
@@ -27,8 +28,8 @@ BEGIN
 				
 				SELECT 
 					 AI.AiIntegrationSettingId
-					,AI.[FromDate]
-					,AI.[ToDate]
+					,AI.[YearId]
+					,AI.[MonthId]
 					,AI.[IsEnableDisableAIintegration]
 					,AI.[IsReviewRequired]
 					,AI.[IsAutoEmailSend]
@@ -39,6 +40,8 @@ BEGIN
 					,AI.[UpdatedDate]
 					,AI.[IsActive]
 					,AI.[IsDeleted]
+					,AI.[PercentId]
+					,AI.[PercentValue]
 				FROM dbo.AiIntegrationSetting AI WITH(NOLOCK)
 				WHERE AI.MasterCompanyId = @MasterCompanyId
                 

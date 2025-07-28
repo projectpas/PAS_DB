@@ -10,8 +10,9 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1				  Moin					Created	
+	2    04/07/2025   Moin Bloch			Get Country in ship to address.
 ******************************************************************************/ 
-create FUNCTION [dbo].[FN_ValidatePDFAddress]
+CREATE FUNCTION [dbo].[FN_ValidatePDFAddress]
 (
     @Address1 NVARCHAR(255),
     @Address2 NVARCHAR(255),
@@ -47,8 +48,8 @@ BEGIN
     SELECT TRIM(@StateOrProvince), ', ' WHERE TRIM(ISNULL(@StateOrProvince, '')) NOT IN ('', '-')
     UNION ALL
     SELECT TRIM(@PostalCode), ', ' WHERE TRIM(ISNULL(@PostalCode, '')) NOT IN ('', '-')
-    UNION ALL
-    SELECT TRIM(@Country), @lineBreak WHERE TRIM(ISNULL(@Country, '')) NOT IN ('', '-');
+   -- UNION ALL
+   -- SELECT TRIM(@Country), @lineBreak WHERE TRIM(ISNULL(@Country, '')) NOT IN ('', '-');
 
     -- Build string
     SELECT @address = @address +
@@ -66,6 +67,10 @@ BEGIN
     -- Append email
     IF TRIM(ISNULL(@Email, '')) NOT IN ('', '-')
         SET @address = @address + @newLine + TRIM(@Email);
+
+	 -- Append email
+    IF TRIM(ISNULL(@Country, '')) NOT IN ('', '-')
+        SET @address = @address + @newLine + TRIM(@Country);
 
     RETURN UPPER(@address);
 END

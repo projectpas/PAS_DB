@@ -18,7 +18,8 @@
  1  12-July-2023   Devendra  created    
  2  13-July-2023   Devendra  changed sp for filtering 
  3  25-July-2023   Shrey Chandegara Add Parameter QtyOnAction For Filtering.
- 4  13/02/2025     Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone        
+ 4  13/02/2025     Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone   
+ 5  14/07/2025     RajeshGami        By default latest record should be on the top
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
@@ -75,9 +76,10 @@ BEGIN
 						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
  SET @RecordFrom = (@PageNumber-1) * @PageSize;    
         
- IF @SortColumn is null    
+ IF @SortColumn is null OR @SortColumn = 'StocklineHistoryId' OR @SortColumn = 'StklineHistoryId'    
  BEGIN    
   SET @SortColumn=Upper('UpdatedDate')    
+  SET @SortOrder=-1; 
  END     
  Else    
  BEGIN     

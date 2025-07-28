@@ -17,24 +17,26 @@
 	1										created
 	2    01/01/2024   Devendra Shekh	update for serialnumber
 	3    02/17/2025   Bhargav Saliya	UTC Date Changes
+	4    07/03/2025   Vishal Suthar		Added EnforceMpnPickTicketConfirmation column
+
 EXEC DBO.sp_GetPickTicketChildList_MainPart @referenceId=20751,@OrderPartId =618
 **************************************************************/ 
 CREATE   Procedure [dbo].[sp_GetPickTicketChildList_MainPart]
-@referenceId  bigint,
-@OrderPartId bigint,
-@EmployeeId bigint = 0
+	@referenceId BIGINT,
+	@OrderPartId BIGINT,
+	@EmployeeId BIGINT = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
-		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
-			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
-			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-		WHERE E.EmployeeId = @EmployeeId; 
+	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE E.EmployeeId = @EmployeeId; 
 
 	BEGIN TRY
 	BEGIN TRANSACTION
@@ -46,13 +48,15 @@ BEGIN
 		CONCAT(empy.FirstName ,' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, 
 		CASE WHEN CAST(wopt.ConfirmedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wopt.ConfirmedDate, @CurrntEmpTimeZoneDesc) AS DATE))END ConfirmedDate,
 		sl.StockLineId,
-		wopt.IsConfirmed 
-		from WOPickTicket wopt WITH (NOLOCK)
+		wopt.IsConfirmed,
+		WO.EnforceMpnPickTicketConfirmation
+		from DBO.WOPickTicket wopt WITH (NOLOCK)
 		INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wopt.WorkFlowWorkOrderId = wowf.WorkOrderPartNoId
-		INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wopt.WorkorderId and wowf.WorkOrderPartNoId = wop.ID
-		LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StocklineId
-		INNER JOIN Employee emp WITH (NOLOCK) on emp.EmployeeId = wopt.PickedById
-		LEFT JOIN Employee empy WITH (NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
+		INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wopt.WorkorderId and wowf.WorkOrderPartNoId = wop.ID
+		LEFT JOIN DBO.StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StocklineId
+		INNER JOIN DBO.Employee emp WITH (NOLOCK) on emp.EmployeeId = wopt.PickedById
+		LEFT JOIN DBO.Employee empy WITH (NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
+		LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) on WO.WorkOrderId = wopt.WorkorderId
 		WHERE wopt.WorkorderId = @referenceId and wopt.WorkFlowWorkOrderId = @OrderPartId
 	END
 	COMMIT  TRANSACTION

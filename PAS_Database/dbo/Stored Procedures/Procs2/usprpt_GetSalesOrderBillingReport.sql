@@ -24,6 +24,7 @@
 	8  24-DEC-2024		Vishal Suthar 	Fixed report calculations
 	9  26-DEC-2024		Abhishek Jirawla	Fixed report calculations
  	10 01/july/2025		RAJESH GAMI	 Change the table as per new Billing Structure
+
 --EXECUTE[dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
@@ -225,7 +226,8 @@ select
 			--CASE 
 			--	WHEN SOBIII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 
 				--THEN 
-				ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOBIII.Freight, 0) + ISNULL(SOBIII.MiscCharges, 0) AS 'revenue',
+			--ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOBIII.Freight, 0) + ISNULL(SOBIII.MiscCharges, 0) AS 'revenue',
+			ISNULL(SOBIII.GrandTotal, 0) AS 'revenue',
 			--	ELSE ISNULL(SOBIII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0)
 			--END 'revenue',
 			UPPER(MSD.Level1Name) AS level1, 
@@ -252,10 +254,11 @@ select
 				ON ES.EntityStructureId = MSD.EntityMSID  
 			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 				ON SO.SalesOrderId = SOP.SalesOrderId
-			INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) 
-				ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId
 			INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) 
-				ON SOBIII.StockLineId = SOV.StockLineId 
+				--ON SOBIII.StockLineId = SOV.StockLineId 
+				ON SOV.SalesOrderPartId = SOP.SalesOrderPartId 
+			INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) 
+				ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId AND SOV.StockLineId = SOBIII.StockLineId
 			INNER JOIN dbo.customer C WITH (NOLOCK) 
 				ON SOBI.customerid = C.customerid 
 			INNER JOIN dbo.itemmaster IM WITH (NOLOCK) 

@@ -12,6 +12,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
+	3    07-07-2025   Moin Bloch      Changed Old To New Billing Table
 
 -- EXEC [dbo].[RPT_GetCustomerBillingAddressForCreditMemo] 131,0,1
 **************************************************************/ 
@@ -25,6 +26,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+        DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';		
+
 	     IF(@Type = 1)
 		 BEGIN
 		 IF(@IsWorkOrder = 1)
@@ -59,10 +66,10 @@ BEGIN
 				''
 			END  AS 'StatePostalCommon',
             Country = ca.countries_name 
-			FROM WorkOrderBillingInvoicing bi WITH(NOLOCK)
-		    INNER JOIN [WorkOrderShipping] shipping WITH(NOLOCK) ON shipping.WorkOrderShippingId=bi.WorkOrderShippingId
-			INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=shipping.SoldToCountryId
-			WHERE bi.BillingInvoicingId = @InvoiceID;
+			FROM dbo.BillingInvoicing bi WITH(NOLOCK)
+		    INNER JOIN dbo.[WorkOrderShipping] shipping WITH(NOLOCK) ON shipping.WorkOrderShippingId=bi.WorkOrderShippingId
+			INNER JOIN dbo.[Countries] ca WITH(NOLOCK) ON ca.countries_id=shipping.SoldToCountryId
+			WHERE bi.BillingInvoicingId = @InvoiceID  AND bi.[ModuleId] = @WOModuleId
 		END
 		 IF(@IsWorkOrder = 0)
 		 BEGIN
@@ -96,12 +103,14 @@ BEGIN
 				''
 			END  AS 'StatePostalCommon',
             Country = ca.countries_name 
-			FROM SalesOrderBillingInvoicing bi WITH(NOLOCK)
-		     INNER JOIN Customer billToCustomer WITH(NOLOCK) ON bi.BillToCustomerId=billToCustomer.CustomerId
-			 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.BillToSiteId
-			 INNER JOIN [Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
-			 INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
-			WHERE bi.SOBillingInvoicingId = @InvoiceID AND ISNULL(bi.IsProforma,0) = 0;
+			FROM dbo.BillingInvoicing bi WITH(NOLOCK)
+			 INNER JOIN dbo.BillingInvoicingDetails BD WITH(NOLOCK) ON bi.BillingInvoicingId=BD.BillingInvoicingId
+		     INNER JOIN dbo.Customer billToCustomer WITH(NOLOCK) ON BD.SoldToCustomerId=billToCustomer.CustomerId
+			 INNER JOIN dbo.[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=BD.SoldToSiteId
+			 INNER JOIN dbo.[Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
+			 INNER JOIN dbo.[Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
+			WHERE bi.BillingInvoicingId = @InvoiceID AND ISNULL(bi.IsPerformaInvoice,0) = 0 AND bi.[ModuleId] = @SOModuleId
+
 		END
 	END	 
 	END TRY    

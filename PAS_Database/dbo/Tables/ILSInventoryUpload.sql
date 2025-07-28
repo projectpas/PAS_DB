@@ -12,6 +12,8 @@
     [IsActive]             BIT            CONSTRAINT [D_ILSInventoryUpload_Active] DEFAULT ((1)) NOT NULL,
     [MasterCompanyId]      INT            NOT NULL,
     [IsDeleted]            BIT            CONSTRAINT [D_ILSInventoryUpload_Delete] DEFAULT ((0)) NOT NULL,
+    [TotalRecords]         BIGINT         NULL,
+    [StatusId]             INT            NULL,
     CONSTRAINT [PK_ILSInventoryUpload] PRIMARY KEY CLUSTERED ([ILSInventoryUploadId] ASC),
     CONSTRAINT [FK_ILSInventoryUpload_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

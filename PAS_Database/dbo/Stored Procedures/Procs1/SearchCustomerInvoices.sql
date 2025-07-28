@@ -12,16 +12,21 @@
  ** --   --------     -------		-------------------------------            
     1    05/01/2024   Moin Bloch    Format SP
 	2	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
-
+	3    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 	EXEC [dbo].[SearchCustomerInvoices]
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[SearchCustomerInvoices]
-	
+CREATE PROCEDURE [dbo].[SearchCustomerInvoices]	
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 		SELECT 'Invoice' AS 'DocumentType', 
 				C.Name AS 'CustName', 
 				C.CustomerCode, 
@@ -42,11 +47,11 @@ BEGIN
 				S.CreditTermName,
 				--SOBI.Level1, SOBI.Level2, SOBI.Level3, SOBI.Level4, 
 				(Select COUNT(SOBI.InvoiceNo) AS NumberOfItems) 'NumberOfItems'
-			FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
+			FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId
-				LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId
-			WHERE SOBI.InvoiceStatus = 'Invoiced' AND ISNULL(SOBI.IsProforma,0) = 0
+				LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.ReferenceId = S.SalesOrderId
+			WHERE SOBI.InvoiceStatus = 'Invoiced' AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  AND SOBI.[ModuleId] = @SOModuleId
 				Group By SOBI.InvoiceNo, C.Name, C.CustomerCode, SOBI.InvoiceNo, SOBI.InvoiceDate, S.SalesOrderNumber,
 				S.CustomerReference, Curr.Code, SOBI.GrandTotal, SOBI.InvoiceDate, S.BalanceDue, S.CreditLimit, S.CreditTermName
 				--SOBI.Level1, SOBI.Level2, SOBI.Level3, SOBI.Level4
@@ -73,11 +78,11 @@ BEGIN
 				WO.CreditTerms AS 'CreditTermName',
 				--WOBI.Level1, WOBI.Level2, WOBI.Level3, WOBI.Level4, 
 				(Select COUNT(WOBI.InvoiceNo) AS NumberOfItems) 'NumberOfItems'
-			FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
+			FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK)
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON WOBI.CurrencyId = Curr.CurrencyId
-				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
-			WHERE WOBI.InvoiceStatus = 'Invoiced'
+				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
+			WHERE WOBI.InvoiceStatus = 'Invoiced' AND WOBI.[ModuleId] = @WOModuleId
 				Group By WOBI.InvoiceNo, C.Name, C.CustomerCode, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.WorkOrderNum,
 				Curr.Code, WOBI.GrandTotal, WOBI.InvoiceDate, WO.CreditLimit, WO.CreditTerms
 				--WOBI.Level1, WOBI.Level2, WOBI.Level3, WOBI.Level4

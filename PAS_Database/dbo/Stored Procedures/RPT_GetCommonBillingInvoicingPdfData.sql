@@ -13,6 +13,8 @@
     1    16/05/2025   Moin Bloch		Created
     2    21/05/2025   RAJESH GAMI       Implemented SO
 	3    23/05/2025   Moin Bloch        Added UPEERCASE And NoOfItems
+	4    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
+	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 68,15,2
 **************************************************************/
@@ -26,7 +28,8 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@NoOfItems INT=0
+	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT,@NoOfItems INT=0, @ProformaDepositAmount DECIMAL(18, 2) = 0;
+	DECLARE @ReferenceId BIGINT = NULL;
 	
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -50,6 +53,12 @@ BEGIN
 			INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON T.BillingInvoicingId = BII.BillingInvoicingId
 			INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.SubReferenceId = WOP.ID
 			WHERE T.[BillingInvoicingId] = @BillingInvoicingId;
+
+			SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+			SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
+			FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
+			WHERE BI.[ReferenceId] = @ReferenceId AND BI.ModuleId  =  @ModuleId AND ISNULL(BI.IsPerformaInvoice, 0) = 1 
 
 			SELECT @NoOfItems = COUNT(ISNULL(BII.[BillingInvoicingItemId],0))			 
 			 FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 		 
@@ -81,7 +90,7 @@ BEGIN
 					SHIPTOADDRESS.[PostalCode] [ShipToPostalCode],
 					ISNULL(SHIPTOCOUNTRY.[countries_name], '') [ShipToCountry],
 					SHIPTOSITE.[Attention] [ShipToAttention],
-					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
+					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],(CASE WHEN ISNULL(SHIPPINGINFO.WorkOrderShippingId,0) > 0  THEN BILLTOCOUNTRY.[countries_name] ELSE CUSHIPTOCOUNTRY.[countries_name] END),NULL,NULL,NULL)),
 					-- SHIP TO ADDRESS END
 					-- BILL TO ADDRESS START 
 					BILLTOSITE.[SiteName] [BillToSiteName],
@@ -129,12 +138,15 @@ BEGIN
 					ISNULL(BI.[SalesTax], 0) [Tax],
 					ISNULL(BI.[OtherTax], 0) [OtherTax],
 					BI.InvoiceTypeId,
-					BI.[Notes] [Notes],
+					--BI.[Notes] [Notes],
+					REPLACE(REPLACE(ISNULL(BI.[Notes],''), '<p>', ''),'</p>','<br />') AS [Notes],
 					WO.[WorkOrderNum] AS [ReferenceNo],
 					ISNULL(BI.[SubTotal],0) [SubTotal],
-					ISNULL(BI.[DepositAmount],0) [DepositAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],
+					--ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal],0) [GrandTotal],
-					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
+					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					ISNULL(CAST(@NoOfItems AS NVARCHAR), '0') [NoOfItems]					 
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
@@ -153,8 +165,11 @@ BEGIN
 				 LEFT JOIN [dbo].[Countries] CONT WITH(NOLOCK) ON CUSTADDRESS.[CountryId] = CONT.[countries_id]
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON BI.[CurrencyId] = CUR.[CurrencyId]
 				 LEFT JOIN [dbo].[WorkOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON BI.[WorkOrderShippingId] = SHIPPINGINFO.[WorkOrderShippingId]
-				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
-				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]				
+				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
+				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]	
+				 LEFT JOIN [dbo].[CustomerDomensticShipping] DSHIP WITH(NOLOCK) ON DSHIP.[CustomerDomensticShippingId] = BID.[ShipToSiteId]
+				 LEFT JOIN [dbo].[Address] CUDOMAddRESS WITH(NOLOCK) ON CUDOMAddRESS.[AddressId] = DSHIP.[AddressId]
+				 LEFT JOIN [dbo].[Countries] CUSHIPTOCOUNTRY WITH(NOLOCK) ON CUDOMAddRESS.[CountryId] = CUSHIPTOCOUNTRY.[countries_id]
 				 LEFT JOIN #TempCustomerRef CUSTREF ON BI.ReferenceId = CUSTREF.ReferenceId
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 
 		END  /*********END: WORK ORDER ********/		

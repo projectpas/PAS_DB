@@ -12,9 +12,10 @@
  ** --   --------     -------		--------------------------------          
     1    27/03/2025   Moin Bloch		Created
     2    22/04/2025   Devendra Shekh	Added WorkOrderPartNoId,WorkFlowWorkOrderId to select
-     
+    3    03-07-2025   Moin Bloch        Changed Old To New Billing Table
+
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7929,1,3193
---   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7930,1,3193
+--   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 8829,1,10155
 ********************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderBillingInvoicingItemData]
 @WorkOrderPartId BIGINT = NULL,
@@ -29,10 +30,14 @@ BEGIN
 		DECLARE @FinalCondCert INT
 	    SELECT @FinalCondCert = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Final Cond/Cert'
 
+		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
 		SELECT TOP 1 
 			1 AS [ItemNo],
 			CASE WHEN BI.[IsVersionIncrease] IS NOT NULL AND BI.[IsVersionIncrease] = 1 THEN
-			     CASE WHEN BI.[RevisedSerialNumber] IS NOT NULL THEN BI.[RevisedSerialNumber]
+			     CASE --WHEN BI.[RevisedSerialNumber] IS NOT NULL THEN BI.[RevisedSerialNumber]
 					  WHEN WOP.[RevisedSerialNumber] IS NOT NULL THEN WOP.[RevisedSerialNumber]
 					  ELSE SL.[SerialNumber]
 				  END
@@ -43,12 +48,12 @@ BEGIN
 				  END
 			END AS [SerialNumber],    
 			CASE 
-				WHEN BI.[IsVersionIncrease] IS NOT NULL AND BI.[IsVersionIncrease] = 1 AND BI.[ItemMasterId] > 0 THEN IMV.[PartNumber]
+				WHEN BI.[IsVersionIncrease] IS NOT NULL AND BI.[IsVersionIncrease] = 1 AND BID.[ItemMasterId] > 0 THEN IMV.[PartNumber]
 				WHEN IMT.[ItemMasterId] IS NOT NULL THEN WOP.[RevisedPartNumber]
 				ELSE IM.[PartNumber]
 			END AS [PNumber],
 			CASE 
-				WHEN BI.[IsVersionIncrease] IS NOT NULL AND BI.[IsVersionIncrease] = 1 AND BI.[ItemMasterId] > 0 THEN IMV.[PartDescription]
+				WHEN BI.[IsVersionIncrease] IS NOT NULL AND BI.[IsVersionIncrease] = 1 AND BID.[ItemMasterId] > 0 THEN IMV.[PartDescription]
 				WHEN IMT.[ItemMasterId] IS NOT NULL THEN WOP.[RevisedPartDescription]
 				ELSE IM.[PartDescription]
 			END AS [PNDescription],
@@ -92,8 +97,10 @@ BEGIN
 		FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 		INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
 		INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOP.[ID] = WOF.[WorkOrderPartNoId]
-		INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] BID WITH(NOLOCK) ON WOP.[ID] = BID.[WorkOrderPartId]
-		INNER JOIN [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK) ON BID.[BillingInvoicingId] = BI.[BillingInvoicingId]
+		--INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] BID WITH(NOLOCK) ON WOP.[ID] = BID.[WorkOrderPartId]
+		--INNER JOIN [dbo].[WorkOrderBillingInvoicing] BI WITH(NOLOCK) ON BID.[BillingInvoicingId] = BI.[BillingInvoicingId]
+		INNER JOIN [dbo].[BillingInvoicingItems] BID WITH(NOLOCK) ON WOP.[ID] = BID.[SubReferenceId] AND BID.[ModuleId] = @WOModuleId
+		INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BID.[BillingInvoicingId] = BI.[BillingInvoicingId] AND BI.[ModuleId] = @WOModuleId
 		INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WOP.[ItemMasterId] = IM.[ItemMasterId]
 		 LEFT JOIN [dbo].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.[ConsumeUnitOfMeasureId] = IU.[UnitOfMeasureId]
 		 LEFT JOIN [dbo].[ItemMaster] IMT WITH(NOLOCK) ON WOP.[RevisedItemmasterid] = IMT.[ItemMasterId]
@@ -101,7 +108,7 @@ BEGIN
 		 LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 		 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 		 LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId]
-		 LEFT JOIN [dbo].[ItemMaster] IMV WITH(NOLOCK) ON BI.[ItemMasterId] = IMV.[ItemMasterId]
+		 LEFT JOIN [dbo].[ItemMaster] IMV WITH(NOLOCK) ON BID.[ItemMasterId] = IMV.[ItemMasterId]
 		WHERE WOP.[ID] = @WorkOrderPartId AND BI.[BillingInvoicingId] = @billingInvoicingId;
 
 	END TRY    

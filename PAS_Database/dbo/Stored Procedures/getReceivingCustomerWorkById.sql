@@ -15,7 +15,7 @@
  ** --   --------     -------		  --------------------------------                
 	1    20-Mar-2025		Shrey Chandegara		Created  	
 	2    16-Apr-2025		Abhishek Jirawla		Added Is Repair Management
-
+	3	 16-JUL-2025        Moin Bloch   		    Added IsBatchStock And Batch Number
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -187,7 +187,9 @@ AS BEGIN
 				im.IsReceivedDateAvailable,
 				im.IsTagDateAvailable,
 				rc.IsPiecePart,
-				rc.IsRepairManagement
+				rc.IsRepairManagement,
+				ISNULL(stk.IsBatchStock,0) IsBatchStock,
+				stk.BatchNumber
 			FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].[CustomerContact] cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId
@@ -200,6 +202,7 @@ AS BEGIN
 			LEFT JOIN [dbo].[WOInspectionChecklist] woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
 			LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+			LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON rc.StockLineId = stk.StockLineId
 			WHERE rc.ReceivingCustomerWorkId = @ReceivingCustomerWorkId;
 
 

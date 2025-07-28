@@ -13,6 +13,7 @@
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	4    11/12/2024	  AMIT GHEDIYA		Modified to get invoiceNo 
 	5    12/11/2024	  BHARGAV SALIA     Get SubTotal,SalesTax and OtherTax for the proforma view
+	6    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetProformaInvoicingSODetails]
 	@SalesOrderPartId BIGINT,
@@ -22,6 +23,9 @@ BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON;
 	BEGIN TRY
+			DECLARE @SOModuleId INT
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';	
+
 			IF(@soBillingInvoicingId > 0)
 			BEGIN
 				SELECT sop.SalesOrderId, 
@@ -43,7 +47,7 @@ SET NOCOUNT ON;
 					   sobi.CurrencyId,
 					   so.TypeId, 
 					   sotype.[Name] AS RevType, 
-					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
+					   ISNULL(sobii.QtyBilled, 0) AS NoofPieces,
 					   sobi.GrandTotal,
 					   sobi.Notes,
 					   ISNULL(sobi.SubTotal,0) AS SubTotal,
@@ -58,9 +62,9 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 				LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = sop.SalesOrderPartId
-				LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 1
-				LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 1
-				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND sobii.SOBillingInvoicingId = @soBillingInvoicingId;
+				LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.SubReferenceId = sop.SalesOrderPartId AND ISNULL(sobii.IsPerformaInvoice,0) = 1 AND sobii.[ModuleId] = @SOModuleId
+				LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.[ModuleId] = @SOModuleId
+				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND sobii.BillingInvoicingId = @soBillingInvoicingId;
 			END
 			ELSE
 			BEGIN
@@ -82,7 +86,7 @@ SET NOCOUNT ON;
 				   cf.CurrencyId,
 				   so.TypeId, 
 				   sotype.[Name] AS RevType, 
-				   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
+				   ISNULL(sobii.QtyBilled, 0) AS NoofPieces,
 				   sobi.GrandTotal,
 				   sobi.Notes
 			FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
@@ -94,8 +98,8 @@ SET NOCOUNT ON;
 			LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 			INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 			LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = sop.SalesOrderPartId
-			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 1
-			LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 1
+			LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.SubReferenceId = sop.SalesOrderPartId AND ISNULL(sobii.IsPerformaInvoice,0) = 1 AND sobii.[ModuleId] = @SOModuleId
+			LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.[ModuleId] = @SOModuleId
 			WHERE sop.SalesOrderPartId = @SalesOrderPartId;
 			END
 

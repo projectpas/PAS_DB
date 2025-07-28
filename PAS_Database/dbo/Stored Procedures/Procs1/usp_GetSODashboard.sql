@@ -18,6 +18,7 @@
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
     4   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	3   07-07-2025    Moin Bloch    Changed Old To New Billing Table
 
 EXECUTE   [dbo].[usp_GetSODashboard] 
 **************************************************************/
@@ -30,6 +31,10 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+	 
+	 DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
       SELECT
         ((SOBI.GrandTotal)) AS SalesAmt,
         (C.Name) AS Customer,
@@ -51,13 +56,13 @@ BEGIN
           WHEN SO.StatusId = 9 THEN 'Rejected'
         END AS 'Status'
       FROM dbo.SalesOrder AS SO WITH (NOLOCK)
-      INNER JOIN dbo.SalesOrderBillingInvoicing AS SOBI WITH (NOLOCK)
-        ON SO.salesorderid = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
+      INNER JOIN dbo.BillingInvoicing AS SOBI WITH (NOLOCK)
+        ON SO.salesorderid = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] = @SOModuleId
         LEFT JOIN dbo.Customer AS C WITH (NOLOCK)
           ON SOBI.CustomerId = C.CustomerId
         LEFT OUTER JOIN dbo.SalesOrderQuote AS SOQ WITH (NOLOCK)
           ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-        LEFT OUTER JOIN dbo.SalesOrderPartV1 AS SOP WITH (NOLOCK) ON SOBI.SalesOrderId = SOP.SalesOrderId
+        LEFT OUTER JOIN dbo.SalesOrderPartV1 AS SOP WITH (NOLOCK) ON SOBI.ReferenceId = SOP.SalesOrderId
         LEFT OUTER JOIN dbo.SalesOrderPartCost AS SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT OUTER JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON SOP.ItemMasterId = IM.ItemMasterId

@@ -19,6 +19,7 @@
 	3	 12/12/2024	  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
 	4	 02/14/2025   BHARGAV SALIYA	UTC Date Changes
 	5	 04/14/2025	  Devendra Shekh	Added changes for IsLaborTrackingTurnedOff
+	6    03/07/2025   Moin Bloch        Changed Old To New Billing Table
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetailsForStageChange]
@@ -38,6 +39,10 @@ BEGIN
 			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @EmployeeId; 
+
+		DECLARE @WOModuleId INT
+
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';		
 
 	BEGIN TRY
 	BEGIN TRANSACTION
@@ -128,11 +133,16 @@ BEGIN
 		SELECT @AvailableStatusID = AssetAvailableStatusId FROM dbo.AssetAvailableStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
 
 		SELECT @IsShippingCompleled = count(WorkOrderShippingId) FROM dbo.WorkOrderShippingItem WITH (NOLOCK) WHERE WorkOrderPartNumId = @workOrderPartNoId
-		SELECT @IsBillingCompleled = count(wobi.BillingInvoicingId) FROM DBO.WorkOrderBillingInvoicing wobi 
-				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
-				INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wobi.WorkOrderId AND wop.ID = wobii.WorkOrderPartId
-				INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced' AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
+		--SELECT @IsBillingCompleled = count(wobi.BillingInvoicingId) FROM DBO.WorkOrderBillingInvoicing wobi 
+		--		INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
+		--		INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wobi.WorkOrderId AND wop.ID = wobii.WorkOrderPartId
+		--		INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced' AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 
+		SELECT @IsBillingCompleled = count(wobi.BillingInvoicingId) FROM DBO.BillingInvoicing wobi WITH(NOLOCK)  
+				INNER JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.[ModuleId] = @WOModuleId
+				INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) ON wop.WorkOrderId = wobi.ReferenceId AND wop.ID = wobii.SubReferenceId AND wobi.[ModuleId] = @WOModuleId
+				INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced' AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
+				
 		IF (EXISTS (SELECT 1 FROM dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workflowWorkorderId and IsDeleted= 0))
 		BEGIN 
 			SELECT @IsLaborCompleled = COUNT(WL.WorkOrderLaborId)

@@ -1,4 +1,5 @@
-﻿/*****************************************************************************************           
+﻿
+/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems_SO]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items FOR SO Invoice SSRS
@@ -13,7 +14,10 @@
     1    05/JUN/2025   RAJESH GAMI   CREATED
 	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed 
 	3    22/JUN/2025   RAJESH GAMI   Charges Type Issue Fixed 
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 60,10
+	4    05/JUL/2025   RAJESH GAMI   added weight, and dimension fields for Commercial Invoice (Get from the Part table)
+	5   17/JUL/2025   RAJESH GAMI   SO: Freight Charges Amount Issue Fixed
+	6    17/JUL/2025   VISHAL SUTHAR Trimming the Notes field with "<p></p>" tag in the beginning and end.
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -57,10 +61,16 @@ BEGIN
 					SubReferenceId = ISNULL(stock.SalesOrderPartId, sop.SalesOrderPartId),
 					ItemMasterId = sop.ItemMasterId,
 					ConditionId = sop.ConditionId,
-					SerialNumber = UPPER(sl.SerialNumber),
+					SerialNumber = UPPER(ISNULL(sl.SerialNumber,'')),
 					PNumber = UPPER(im.PartNumber),
 					PNDescription = UPPER(im.PartDescription),
-					Notes = ISNULL(stock.Notes, sop.Notes),
+					--Notes = ISNULL(stock.Notes, sop.Notes),
+					Notes = CASE 
+					  WHEN LOWER(LEFT(ISNULL(stock.Notes, sop.Notes), 3)) = '<p>'
+						   AND LOWER(RIGHT(ISNULL(stock.Notes, sop.Notes), 4)) = '</p>'
+					  THEN SUBSTRING(ISNULL(stock.Notes, sop.Notes), 4, LEN(ISNULL(stock.Notes, sop.Notes)) - 7)
+					  ELSE ISNULL(stock.Notes, sop.Notes)
+					END,
 					UOM = UPPER(im.PurchaseUnitOfMeasure),
 					Cond = UPPER(c.Description),
 					QtyShipped = ISNULL(BII.QtyBilled,0),
@@ -68,11 +78,11 @@ BEGIN
 					UnitPrice = ISNULL(BII.UnitPrice, 0),
 					Amount = ISNULL(BII.PartCost, 0),
 					StockLineId = sl.StockLineId,
-					UPPER(ime.ExportECCN)ExportECCN,
-					UPPER(ime.HSCode)HSCode,
-					UPPER(sl.StockLineNumber)StockLineNumber,
-					UPPER(sl.ControlNumber)ControlNumber,
-					UPPER(sl.IdNumber)IdNumber,
+					ISNULL(UPPER(SOP.ECCN),'-')ExportECCN,
+					ISNULL(UPPER(SOP.HSCODE),'-')HSCode,
+					UPPER(ISNULL(sl.StockLineNumber,''))StockLineNumber,
+					UPPER(ISNULL(sl.ControlNumber,''))ControlNumber,
+					UPPER(ISNULL(sl.IdNumber,''))IdNumber,
 					ShipViaDetails = CASE 
 					--WHEN BI.IsPerformaInvoice = 1 THEN '-'
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
@@ -106,21 +116,25 @@ BEGIN
 										ELSE 'NA'
 									END,
 									BI.[BillingInvoicingId],
-									ROW_NUMBER() OVER (PARTITION BY BII.SubreferenceId,BII.ItemMasterId ORDER BY BI.BillingInvoicingId) as RowData
+									ROW_NUMBER() OVER (PARTITION BY BII.SubreferenceId,BII.ItemMasterId ORDER BY BI.BillingInvoicingId) as RowData,
+									ISNULL(CAST(SOP.[Weight] as NVARCHAR),'-') as [Weight],
+									ISNULL(CAST(SOP.SizeLength as NVARCHAR),'-') as [DimensionL],
+									ISNULL(CAST(SOP.SizeWidth as NVARCHAR),'-')  as DimensionW,
+									ISNULL(CAST(SOP.SizeHeight as NVARCHAR),'-')  as DimensionH
 				INTO #tmprRptInvoicingItem
 				FROM DBO.SalesOrder so WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON sop.SalesOrderPartId = BII.[SubReferenceId]
 				INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId]
 				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+				--LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 				LEFT JOIN DBO.SalesOrderStockLineV1 stock WITH (NOLOCK) ON sop.SalesOrderPartId = stock.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderPartCost sopc WITH (NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON stock.SalesOrderStocklineId = sosc.SalesOrderStocklineId
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId
 				WHERE BI.BillingInvoicingId = @BillingInvoicingId	 
-				UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
+				--UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
 				SELECT 
 						Freight,
 						MiscCharges,
@@ -147,6 +161,10 @@ BEGIN
 						ShipViaDetails,
 						MiscChargesDetails,
 						BillingInvoicingId,
+						[Weight],
+						[DimensionL],
+						DimensionW,
+						DimensionH,
 						ROW_NUMBER() OVER (ORDER BY BillingInvoicingId) AS ItemNo
 					FROM #tmprRptInvoicingItem
 					WHERE RowNo = 1;

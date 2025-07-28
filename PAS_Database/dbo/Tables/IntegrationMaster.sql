@@ -15,6 +15,13 @@
     [UpdatedDate]         DATETIME2 (7)  CONSTRAINT [DF_IntegrationMaster_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsDeleted]           BIT            CONSTRAINT [DF_IntegrationMaster_IsDeleted] DEFAULT ((0)) NULL,
     [IsActive]            BIT            CONSTRAINT [DF_Table_1_IsDeleted1] DEFAULT ((0)) NULL,
+    [AddressLine1]        VARCHAR (100)  NULL,
+    [AddressLine2]        VARCHAR (100)  NULL,
+    [City]                VARCHAR (50)   NULL,
+    [State]               VARCHAR (50)   NULL,
+    [PostalCode]          VARCHAR (20)   NULL,
+    [Country]             VARCHAR (100)  NULL,
+    [IsMRO]               BIT            DEFAULT ((0)) NULL,
     CONSTRAINT [PK_IntegrationMaster] PRIMARY KEY CLUSTERED ([IntegrationMasterId] ASC)
 );
 

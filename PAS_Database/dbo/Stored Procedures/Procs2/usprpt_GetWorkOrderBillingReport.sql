@@ -204,7 +204,7 @@ BEGIN
 		   --INSERT INTO #tmpBilling  
 		  ;WITH rptCTE (TotalRecordsCount, WorkOrderId, WOBillingInvoicingItemId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
 				 quotenum, receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
-				 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId) AS (  
+				 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId, rn) AS (  
 		  SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,  
 			   WO.WorkOrderId,  
 			   WOBIM.BillingInvoicingItemId,
@@ -230,6 +230,7 @@ BEGIN
 				 WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate)  
 				 WHEN RCW.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, RCW.ReceivedDate, GETDATE())  
 			   END AS 'tat',  
+				--0 AS 'tat',  
 			   UPPER(E.FirstName + ' ' + E.LastName) 'salesperson',  
 			   UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',  
 			   UPPER(MSD.Level1Name) AS level1,      UPPER(MSD.Level2Name) AS level2,     UPPER(MSD.Level3Name) AS level3,     UPPER(MSD.Level4Name) AS level4,     UPPER(MSD.Level5Name) AS level5,     UPPER(MSD.Level6Name) AS level6,     UPPER(MSD.Level7Name) AS level7,     UPPER(MSD.Level8Name) AS level8,     UPPER(MSD.Level9Name) AS level9,     UPPER(MSD.Level10Name) AS level10,  
@@ -237,7 +238,8 @@ BEGIN
 			   UPPER(WTG.CodeDescription) AS 'CodeDescription',  
 			   UPPER(WTS.[Description]) AS 'woStatus',  
 			   UPPER(WOBI.InvoiceStatus) AS 'invoiceStatus',  
-			   WO.MasterCompanyId AS masterCompanyId  
+			   WO.MasterCompanyId AS masterCompanyId,
+			   ROW_NUMBER() OVER (PARTITION BY WO.WorkOrderId, WOBIM.BillingInvoicingItemId ORDER BY WOS.ShipDate DESC) AS rn
 		  FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
 				INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
@@ -305,6 +307,7 @@ BEGIN
 				   WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate)  
 				   WHEN RCW.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, RCW.ReceivedDate, GETDATE())  
 				 END AS 'tat',  
+				 --0 AS 'tat',  
 				 UPPER(E.FirstName + ' ' + E.LastName) 'salesperson',  
 				 UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',  
 				 UPPER(MSD.Level1Name) AS level1,    
@@ -321,7 +324,8 @@ BEGIN
 				 UPPER(WTG.CodeDescription) as 'CodeDescription',  
 				 UPPER(WTS.Description) as 'woStatus',  
 				 UPPER('Credit Memo') as 'invoiceStatus',  
-				 WO.MasterCompanyId AS masterCompanyId  
+				 WO.MasterCompanyId AS masterCompanyId ,
+				 ROW_NUMBER() OVER (PARTITION BY WO.WorkOrderId, WOBIM.BillingInvoicingItemId ORDER BY WOS.ShipDate DESC) AS rn
 			FROM [dbo].[CreditMemo] CM WITH (NOLOCK)  
 				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.[IsDeleted] = 0 AND CMD.[IsActive] = 1 
 				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
@@ -367,7 +371,7 @@ BEGIN
 			 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId)   
 			 AS (SELECT DISTINCT TotalRecordsCount, WorkOrderId, WOBillingInvoicingItemId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, invoicenum, revenue,  
 			 quotenum, receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
-			 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId FROM rptCTE)  
+			 level9, level10, woStage, CodeDescription, woStatus, invoiceStatus, masterCompanyId FROM rptCTE where rn = 1)  
   
 		   ,WithTotal (masterCompanyId, TotalRevenue)   
 			 AS (SELECT masterCompanyId,   

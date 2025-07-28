@@ -20,8 +20,8 @@
 	5	 01/02/2024	 AMIT GHEDIYA	    added isperforma Flage for SO
 	6	 19/04/2024	 Devendra Shekh	    added isExchange to select
 	7	 19/04/2024	 Devendra Shekh	    added InvoiceTypeId to select and removed isExchange
-	8	 27/06/2024	 Moin Bloch	    added AcctingPeriodId 
-
+	8	 27/06/2024	 Moin Bloch	        added AcctingPeriodId 
+	9    07-07-2025  Moin Bloch         Changed Old To New Billing Table
 -- EXEC GetCreditMemoById 8  
   
 ************************/  
@@ -37,6 +37,12 @@ BEGIN
  Declare @WOInvoiceTypeId int = 0;
  Declare @SOInvoiceTypeId int = 0;
  Declare @ExchangeInvoiceTypeId int = 0;
+
+  DECLARE @WOModuleId INT
+  SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+  DECLARE @SOModuleId INT
+  SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
  SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
  SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -95,13 +101,13 @@ BEGIN
 	  ,CRMA.[ValidDate]  
 	  ,CRMA.[CreatedDate] 'RMAIssueDate'  
 	  ,CF.CurrencyId
-	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
+	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK) WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
 			WHEN ISNULL(CM.InvoiceTypeId, 0) = @ExchangeInvoiceTypeId THEN (SELECT ISNULL(ESB.PostedDate,NULL) FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESB WITH (NOLOCK) WHERE ESB.[SOBillingInvoicingId] = CM.[InvoiceId])
-			ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0)  
+			ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[BillingInvoicing] SB WITH (NOLOCK) WHERE SB.[BillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsPerformaInvoice],0) = 0)  
 			END AS 'PostedDate'   
       ,CASE WHEN CM.[IsWorkOrder]=1 THEN  STUFF((SELECT ', ' + WP.CustomerReference  
-			   FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)  
-			   INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId  
+			   FROM dbo.BillingInvoicing WI WITH (NOLOCK)  
+			   INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId AND WI.[ModuleId] = @WOModuleId
 			   WHERE WI.BillingInvoicingId = CM.[InvoiceId]  
 			   FOR XML PATH('')), 1, 1, '')   
 	   WHEN ISNULL(CM.InvoiceTypeId, 0) = @ExchangeInvoiceTypeId THEN STUFF((SELECT ', ' + ESO.CustomerReference  
@@ -111,18 +117,20 @@ BEGIN
 			   GROUP BY ESBI.ExchangeSalesOrderId,ESO.CustomerReference
 			   FOR XML PATH('')), 1, 1, '')   
        ELSE   
-			   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
-			   INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-			   WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
+			   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.BillingInvoicing SI WITH (NOLOCK)  
+			   INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.ReferenceId = SO.SalesOrderId  AND SI.[ModuleId] = @SOModuleId
+			   WHERE SI.BillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsPerformaInvoice],0) = 0
 			   FOR XML PATH('')), 1, 1, '')   
 			   END AS 'PORONum'  
-	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.WayBillRef,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
+	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(SABD.WayBillRef,NULL) FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK) 
+		    LEFT JOIN dbo.BillingInvoicingDetails SABD WITH (NOLOCK)  ON SABD.BillingInvoicingId = WB.BillingInvoicingId
+			WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
 			WHEN ISNULL(CM.InvoiceTypeId, 0) = @ExchangeInvoiceTypeId THEN '' 
 			ELSE   
-			(SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK)   
-			 LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId AND ISNULL(SABI.[IsProforma],0) = 0  
-			 LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192  
-										   WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0 )  
+			(SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[BillingInvoicing] SB WITH (NOLOCK)   
+			 LEFT JOIN dbo.BillingInvoicingItems SABI WITH (NOLOCK)  ON SB.BillingInvoicingId = SABI.BillingInvoicingId AND ISNULL(SABI.[IsPerformaInvoice],0) = 0  
+			 LEFT JOIN dbo.SalesOrderShipping SAOS WITH (NOLOCK)  ON SABI.ShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192  
+										   WHERE SB.[BillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsPerformaInvoice],0) = 0 )  
           END AS 'Awb' 
 	  ,ISNULL(CM.Amount,0) Amount,
 	  CM.[IsStandAloneCM]

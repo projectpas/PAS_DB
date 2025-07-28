@@ -20,7 +20,7 @@ DELETE from dbo.BillingInvoicingDetails
 
 EXEC CopyExistingBillingInvoicingDetails 2
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[CopyExistingSOBillingInvoicingDetails]
+CREATE    PROCEDURE [dbo].[CopyExistingSOBillingInvoicingDetails]
 @MasterCompanyId BIGINT = NULL
 AS
 BEGIN	
@@ -34,31 +34,21 @@ BEGIN
 		SET @ModuleId = 10; --Sales Order
 		SET @SubModuleId = 66; --Sales Order Part
 
-		--Select * from BillingInvoicing WHERE MasterCompanyId = 2
-		--Select * from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
-		--Select * from dbo.BillingInvoicingDetails
-		--Select NetSaleAmountPerUnit AS UNITPRiCE,  * from SalesOrderStockLineCost
-
 		--Insert Into Billing Invoice 
 		INSERT INTO dbo.BillingInvoicing(OldBillingInvoicingId,ModuleId,ReferenceId,CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,InvoiceTime,PrintDate,EmployeeId,CurrencyId,RevisionTypeId
 			,InvoiceStatusId,InvoiceStatus,InvoiceFilePath,RevType,VersionNo,CostPlusType,IsPerformaInvoice,IsVersionIncrease,PostedDate,SubTotal,OtherTax,SalesTax,DepositAmount,GrandTotal
 			,IsInvoicePosted,UsedDeposit,ProformaDeposit,RemainingAmount,Notes,WorkOrderShippingId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive
-			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice,CreditMemoUsed)
+			,IsDeleted,IsReversedJE,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,IsCreatedFromQuote,IsQuickBookGeneratedInvoice,CreditMemoUsed, IsStandardInvoicePosted)
 
 		SELECT SOBI.SOBillingInvoicingId,@ModuleId,SOBI.SalesOrderId,SOBI.CustomerId, InvoiceTypeId,InvoiceNo,InvoiceDate,NULL AS InvoiceTime,PrintDate,SOBI.EmployeeId,SOBI.CurrencyId,NULL AS RevisionTypeId,NULL,InvoiceStatus,InvoiceFilePath,
 			RevType,SOBI.VersionNo,NULL AS CostPlusType,IsProforma,SOBI.IsVersionIncrease,PostedDate,SOBI.SubTotal,SOBI.OtherTax,SOBI.SalesTax,SOBI.DepositAmount,SOBI.GrandTotal,			
-			CASE WHEN SOBI.InvoiceStatus = 'Invoiced' THEN 1 ELSE 0 END AS IsInvoicePosted,
-			UsedDeposit,ProformaDeposit,RemainingAmount
+			CASE WHEN UPPER(SOBI.InvoiceStatus) = 'INVOICED' THEN 1 ELSE 0 END AS IsInvoicePosted,
+			CASE WHEN ISNULL(ProformaDeposit, 0) > 0 THEN ISNULL(ProformaDeposit, 0) ELSE UsedDeposit END AS UsedDeposit,ProformaDeposit,RemainingAmount
 			,NULL AS Notes,NULL AS WorkOrderShippingId,ManagementStructureId,SOBI.MasterCompanyId,SOBI.CreatedBy,SOBI.UpdatedBy,SOBI.CreatedDate,SOBI.UpdatedDate,SOBI.IsActive,SOBI.IsDeleted,0,QuickBooksReferenceId,IsUpdated,LastSyncDate
-			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice, SOBI.CreditMemoUsed
+			,SyncToken,NULL AS isCreatedFromQuote,IsQuickBookGeneratedInvoice, SOBI.CreditMemoUsed, SOBI.IsBilling
 		FROM dbo.SalesOrderBillingInvoicing SOBI 
 		JOIN SalesOrder SO ON SOBI.SalesOrderId = SO.SalesOrderId
 		WHERE SOBI.MasterCompanyId = @MasterCompanyId
-
-
-		--SELECT top 100  * from dbo.SalesOrderBillingInvoicing where MasterCompanyId = 1 and IsVersionIncrease = 0 Order by 1 desc
-		--SELECT * from dbo.BillingInvoicingItems where MasterCompanyId = 2 and IsVersionIncrease = 0
-		--SELECT top 200 * from dbo.SalesOrderBillingInvoicingItem where MasterCompanyId = 1 and IsVersionIncrease = 0 Order by 1 desc
 
 		--Update InvoiceStatusId based on status and Path from item
 		UPDATE dbo.BillingInvoicing SET InvoiceStatusId = INS.InvoiceStatusId , InvoiceFilePath = SOBI.PDFPath
@@ -69,19 +59,23 @@ BEGIN
 
 		--Insert Into Billing Invoice Item
 		INSERT INTO dbo.BillingInvoicingItems(OldWOBillingInvoicingItemId,OldBillingInvoicingId,BillingInvoicingId,ModuleId,ReferenceId,SubModuleId,SubReferenceId,ItemMasterId,StocklineId,ConditionId,CostPlusType,
-		UnitPrice,QtyBilled,PartCost,IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
+		UnitPrice,
+		QtyBilled,
+		PartCost,
+		IsTotalCheck,TotalBillingCost,TotalBillingCostPercent,TotalBillingCostPlus,IsMaterialCheck,MaterialCost,MaterialCostPercent,MaterialCostPlus,IsLaborCheck,LaborCost,
 		LaborCostPercent,LaborCostPlus,IsFreightCheck,Freight,FreightCostPercent,FreightCostPlus,IsMiscChargesCheck,MiscCharges,MiscChargesCostPercent,MiscChargesCostPlus,
 		SubTotal,SalesTaxPercent,SalesTax,OtherTaxPercent,OtherTax,GrandTotal, RemainingAmount , PDFPath,VersionNo,IsVersionIncrease,IsPerformaInvoice,MasterCompanyId,CreatedBy,UpdatedBy,
 		CreatedDate,UpdatedDate,IsActive,IsDeleted,ShippingId, WorkFlowWorkOrderId, ShipDate)
 
 		SELECT DISTINCT SOBII.SOBillingInvoicingItemId,SOBII.SOBillingInvoicingId, BI.BillingInvoicingId,@ModuleId,BI.ReferenceId,@SubModuleId,SOBII.SalesOrderPartId,
-			SOP.ItemMasterId,
+			SOBII.ItemMasterId,
 			SOBII.StocklineId,
-			SOP.ConditionId,
+			SL.ConditionId,
 			BI.CostPlusType,
-			SOC.NetSaleAmountPerUnit AS UnitPrice,
+			SOBII.UnitPrice AS UnitPrice,
 			SOBII.NoofPieces, 
-			CASE WHEN SOBI.IsProforma = 1 THEN SOC.NetSaleAmount ELSE (SOBII.NoofPieces * SOC.NetSaleAmountPerUnit) END AS PartCost, 
+			SOBII.PartCost,
+			--CASE WHEN SOBI.IsProforma = 1 THEN SOC.NetSaleAmount ELSE (SOBII.NoofPieces * SOC.NetSaleAmountPerUnit) END AS PartCost, 
 			0 AS IsTotalCheck,  
 			CASE WHEN ISNULL(SOBII.SubTotal, 0) > 0 THEN SOBII.SubTotal ELSE SOBII.PartCost END AS TotalBillingCost,
 			NULL TotalBillingCostPercent,
@@ -103,24 +97,31 @@ BEGIN
 			SOBI.ShipDate
 		FROM dbo.SalesOrderBillingInvoicingItem SOBII 
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = @ModuleId
-			JOIN dbo.SalesOrderPartV1 SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
-			JOIN dbo.SalesOrderStocklineV1 SOST ON SOP.SalesOrderPartId = SOST.SalesOrderPartId
-			JOIN dbo.SalesOrderStockLineCost SOC ON SOST.SalesOrderStocklineId = SOC.SalesOrderStocklineId
+			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = 10
+			LEFT JOIN DBO.Stockline SL ON SOBII.StockLineId = SL.StockLineId
 		WHERE SOBII.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
-
+		
 
 		INSERT INTO BillingInvoicingDetails(BillingInvoicingId,SoldToCustomerId,SoldToSiteId,SoldToAttention,ShipToCustomerId,ShipToSiteId,ShipToAttention,
-			CustomerDomensticShippingShipViaId,WayBillRef,ShipAccountInfo)
+			ShipViaId,WayBillRef,ShipAccountInfo)
 		SELECT DISTINCT BII.BillingInvoicingId , SOBI.BillToCustomerId, SOBI.BillToSiteId,NULL,SOBI.ShipToCustomerId,SOBI.ShipToSiteId,SOBI.ShipToAttention,
-			NULL AS CustomerDomensticShippingShipViaId,NULL AS WayBillRef,NULL AS ShippingAccountInfo
+			NULL AS ShipViaId,NULL AS WayBillRef,NULL AS ShippingAccountInfo
 		FROM dbo.BillingInvoicingItems BII
 			JOIN dbo.BillingInvoicing BI ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BI.ModuleId = @ModuleId
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON BI.OldBillingInvoicingId = SOBI.SOBillingInvoicingId 
 			JOIN dbo.SalesOrderBillingInvoicingItem SOBII ON  SOBII.SoBillingInvoicingId = SOBI.SOBillingInvoicingId
 		WHERE BII.MasterCompanyId = @MasterCompanyId AND BII.ModuleId = @ModuleId
-		
 
+		--UPDATE SHIP VIA BASED on EXISTING DATA
+		UPDATE BillingInvoicingDetails SET ShipViaId = CASE WHEN ISNULL(SOS.ShipViaId, 0) > 0 THEN SOS.ShipViaId ELSE [cust_shipVia].ShipViaId END, 
+					ShipAccountInfo = CASE WHEN ISNULL(SOS.ShipViaId, 0) > 0 THEN SOS.ShippingAccountNo ELSE [cust_shipVia].ShippingAccountInfo END
+		FROM dbo.BillingInvoicingDetails BID WITH(NOLOCK) 
+			JOIN dbo.BillingInvoicing BI WITH(NOLOCK) ON BID.BillingInvoicingId = BI.BillingInvoicingId AND BI.ModuleId = @ModuleId
+			JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SO.SalesOrderId = BI.ReferenceId AND BI.ModuleId = @ModuleId
+			LEFT JOIN dbo.SalesOrderShipping SOS WITH(NOLOCK) ON SO.SalesOrderId = SOS.SalesOrderId
+			--LEFT JOIN dbo.ShippingVia SV WITH(NOLOCK) ON SOS.ShipViaId = sv.ShippingViaId
+			LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [SO].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
+		WHERE BI.ModuleId = @ModuleId AND BI.MasterCompanyId = @MasterCompanyId
 
 	END TRY    
 	BEGIN CATCH      

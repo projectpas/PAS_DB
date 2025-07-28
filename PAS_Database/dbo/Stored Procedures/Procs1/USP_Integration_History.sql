@@ -1,4 +1,19 @@
-﻿CREATE   PROCEDURE [dbo].[USP_Integration_History]
+﻿/*************************************************************           
+ ** File:   [USP_Integration_History]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:    
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------    ---------			--------------------------------          
+    1   22/07/2025    Amit Ghediya     Added Email field
+************************************************************************/
+CREATE   PROCEDURE [dbo].[USP_Integration_History]
 (
 	@ThirdPartInegrationId BIGINT,
 	@CreatedBy varchar(50)
@@ -7,12 +22,12 @@ AS
 BEGIN
 BEGIN TRY
 	INSERT INTO [DBO].[ThirdPartInegrationAudit]
-		([ThirdPartInegrationId], [LegalEntityId] ,[CageCode],[APIURL] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
+		([ThirdPartInegrationId], [LegalEntityId] ,[CageCode],[APIURL] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] , [IsEmail],[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
 		,[CreatedDate] , [UpdatedDate] ,[IsActive] ,[IsDeleted])
 
-	SELECT	[ThirdPartInegrationId], [LegalEntityId] ,[CageCode],[APIURL] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
+	SELECT	[ThirdPartInegrationId], [LegalEntityId] ,[CageCode],[APIURL] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[IsEmail],[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
 			,[CreatedDate] , [UpdatedDate] ,[IsActive] ,[IsDeleted] 
-		FROM [ThirdPartInegration] 
+		FROM [dbo].[ThirdPartInegration] WITH(NOLOCK)
 		WHERE ThirdPartInegrationId = @ThirdPartInegrationId
 END TRY
 BEGIN CATCH

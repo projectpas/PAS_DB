@@ -18,6 +18,7 @@
 	7	 11/08/2024	  AMIT GHEDIYA   Modified to get shipping weight & ShipSize etc in item table.
 	8    12/10/2024	  BHARGAV SALIA   Get SalesTotal,Freight,MiscCharges,SubTotal,SalesTax,OtherTax,GrandTotal for the standerd proforma view
 	9    01/july/2025 RAJESH GAMI	 Change the table as per new Billing Structure
+	10   02/july/2025 RAJESH GAMI	 Make changes for origin country id
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -33,10 +34,10 @@ SET NOCOUNT ON;
 		BEGIN
 			SELECT sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 					so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
-					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, sobi.CurrencyId,
+					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm,  so.FunctionalCurrencyId CurrencyId,
 					so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
-					BILLTOCOUNTRY.countries_id  AS OriginCountryId, 
-					SHIPTOCOUNTRY.countries_id AS ShipToCountryId, 
+					sobi.OriginCountryId  AS OriginCountryId, 
+					sobi.ShipToCountryid AS ShipToCountryId, 
 					--sobi.HSECCN AS HSECCN,
 				  	ime.ExportECCN AS ECCN,
 				  	ime.HSCODE AS HSCODE,
@@ -44,8 +45,8 @@ SET NOCOUNT ON;
 				  	ime.ExportSizeLength AS BillSizeLength,
 				  	ime.ExportSizeWidth AS BillSizeWidth,
 				  	ime.ExportSizeWidth AS BillSizeHeight,
-					sobi.EmployeeId AS SignEmpId,
-					sobi.CreatedDate AS SignEmpDate,
+					sobi.SignEmpId AS SignEmpId,
+					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo,
 					ISNULL(sobii.PartCost,0) AS SalesTotal,
 					ISNULL(sobii.Freight,0) AS Freight,
@@ -63,23 +64,14 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 				LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-				LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.ModuleId = @SOModuleId
-				LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ModuleId = @SOModuleId
+				LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ModuleId = @SOModuleId
+				LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.ModuleId = @SOModuleId
 				LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 
 				LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
-				LEFT JOIN [dbo].[Customer] BILLTOCUSTOMER WITH(NOLOCK) ON BID.[SoldToCustomerId] = BILLTOCUSTOMER.[CustomerId]		
-				LEFT JOIN [dbo].[CustomerBillingAddress] BILLTOSITE WITH(NOLOCK) ON BID.[SoldToSiteId] = BILLTOSITE.[CustomerBillingAddressId]
-				LEFT JOIN [dbo].[Address] BILLTOADDRESS WITH(NOLOCK) ON BILLTOSITE.[AddressId] = BILLTOADDRESS.[AddressId]
-				LEFT JOIN [dbo].[Countries] BILLTOCOUNTRY WITH(NOLOCK) ON BILLTOADDRESS.[CountryId] = BILLTOCOUNTRY.[countries_id]
 				
-				LEFT JOIN [dbo].[Customer] SHIPTOCUSTOMER WITH(NOLOCK) ON BID.ShipToCustomerId = BILLTOCUSTOMER.[CustomerId]		
-				LEFT JOIN [dbo].CustomerDomensticShipping CD WITH(NOLOCK) ON BID.ShipToCustomerId = CD.CustomerId
-				LEFT JOIN [dbo].[Address] SHIPTOADDRESS WITH(NOLOCK) ON CD.[AddressId] = SHIPTOADDRESS.[AddressId]
-				LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPTOADDRESS.CountryId = SHIPTOCOUNTRY.[countries_id]
-
 				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND sobii.BillingInvoicingId = @SOBillingInvoicingId AND sobi.ModuleId = @SOModuleId;
 		END
 		ELSE
@@ -119,10 +111,10 @@ SET NOCOUNT ON;
 			BEGIN
 				SELECT sop.SalesOrderId, sop.SalesOrderPartId, 0 AS SalesOrderShippingId, NULL AS ShipDate, so.SalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 					so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
-					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, sobi.CurrencyId,
+					so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, So.FunctionalCurrencyId CurrencyId,
 					so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.QtyBilled, 0)) as NoofPieces,
-					BILLTOCOUNTRY.countries_id  AS OriginCountryId, 
-					SHIPTOCOUNTRY.countries_id AS ShipToCountryId, 
+					sobi.OriginCountryId  AS OriginCountryId, 
+					sobi.ShipToCountryid AS ShipToCountryId, 
 					--sobi.HSECCN AS HSECCN,
 					--imei.ExportECCN + (CASE WHEN ISNULL(imei.HSCode,'') != '' THEN + '/' + imei.HSCode ELSE '' END) AS HSECCN,
 					sop.ECCN AS ECCN,
@@ -131,8 +123,8 @@ SET NOCOUNT ON;
 					sop.SizeLength AS BillSizeLength,
 					sop.SizeWidth AS BillSizeWidth,
 					sop.SizeHeight AS BillSizeHeight,
-					sobi.EmployeeId AS SignEmpId,
-					sobi.CreatedDate AS SignEmpDate,
+					sobi.SignEmpId AS SignEmpId,
+					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -143,22 +135,12 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 				LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-				LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND sobii.ModuleId = @SOModuleId
-				LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobii.BillingInvoicingId = sobi.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ModuleId = @SOModuleId
+				LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ModuleId = @SOModuleId
+				LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND sobii.ModuleId = @SOModuleId
 				LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 
 				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
 				LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
-
-				LEFT JOIN [dbo].[Customer] BILLTOCUSTOMER WITH(NOLOCK) ON BID.[SoldToCustomerId] = BILLTOCUSTOMER.[CustomerId]		
-				LEFT JOIN [dbo].[CustomerBillingAddress] BILLTOSITE WITH(NOLOCK) ON BID.[SoldToSiteId] = BILLTOSITE.[CustomerBillingAddressId]
-				LEFT JOIN [dbo].[Address] BILLTOADDRESS WITH(NOLOCK) ON BILLTOSITE.[AddressId] = BILLTOADDRESS.[AddressId]
-				LEFT JOIN [dbo].[Countries] BILLTOCOUNTRY WITH(NOLOCK) ON BILLTOADDRESS.[CountryId] = BILLTOCOUNTRY.[countries_id]
-				
-				LEFT JOIN [dbo].[Customer] SHIPTOCUSTOMER WITH(NOLOCK) ON BID.ShipToCustomerId = BILLTOCUSTOMER.[CustomerId]		
-				LEFT JOIN [dbo].CustomerDomensticShipping CD WITH(NOLOCK) ON BID.ShipToCustomerId = CD.CustomerId
-				LEFT JOIN [dbo].[Address] SHIPTOADDRESS WITH(NOLOCK) ON CD.[AddressId] = SHIPTOADDRESS.[AddressId]
-				LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPTOADDRESS.CountryId = SHIPTOCOUNTRY.[countries_id]
 
 				WHERE sop.SalesOrderPartId = @SalesOrderPartId;
 			END

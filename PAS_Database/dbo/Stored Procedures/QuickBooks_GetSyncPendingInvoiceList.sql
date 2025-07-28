@@ -15,6 +15,7 @@
 	2   28-Nov-2024		Devendra Shekh			Modified(Added [CreditTerms] to get TermQuickBooksReferenceId)
 	3   03-DEC-2024		Devendra Shekh			Modified(excluding Profoma Invoices)
 	4   17-DEC-2024		Devendra Shekh			Modified(added Changes to read TaxRateRef values from Percent table)
+	5   03-07-2025      Moin Bloch              Changed Old To New Billing Table
      
  EXECUTE [QuickBooks_GetSyncPendingInvoiceList] 1
 **************************************************************/ 
@@ -93,7 +94,7 @@ BEGIN
 			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
 			[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef])
 			SELECT	WOBI.BillingInvoicingId,
-					WOBII.WOBillingInvoicingItemId,
+					WOBII.BillingInvoicingItemId,
 					C.[Name] AS Customer,
 					C.Email AS CustomerEmail,
 					COALESCE(billToAddress.Line1, '') AS BillLine1,
@@ -109,7 +110,7 @@ BEGIN
 					'' AS Product,
 					IM.partnumber AS PartNumber,
 					IM.PartDescription,
-					WOBII.NoofPieces AS Quantity,
+					WOBII.QtyBilled AS Quantity,
 					ISNULL(WOBI.SalesTax, 0) AS SalesTax,
 					ISNULL(WOBI.OtherTax, 0) AS OtherTax,
 					CASE WHEN ISNULL(WOBI.SalesTax, 0) = 0 OR ISNULL(WOBI.SubTotal, 0) = 0 THEN 0 ELSE (ISNULL(WOBI.SalesTax, 0) * 100 / ISNULL(WOBI.SubTotal, 0)) END AS SalesTaxPercent,
@@ -134,19 +135,20 @@ BEGIN
 					CT.QuickBooksReferenceId,
 					P.TaxRateRef,
 					P.TxnTaxCodeRef
-			FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
-				JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+			FROM [dbo].[BillingInvoicingItems] WOBII WITH(NOLOCK) 
+				JOIN [dbo].[BillingInvoicing] WOBI WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN [dbo].[BillingInvoicingDetails] SOBD WITH(NOLOCK) ON WOBI.BillingInvoicingId = SOBD.BillingInvoicingId
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
-				JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.WorkOrderId
+				JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON WOBI.SoldToSiteId = billToSite.CustomerBillingAddressId
+				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBD.SoldToSiteId = billToSite.CustomerBillingAddressId
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON WOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
+				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBD.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
-				LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.TaxRate
+				LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
 				--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(WOBI.SalesTax,0) + ISNULL(WOBI.OtherTax,0))*100 / ISNULL(WOBI.SubTotal,0))
-			WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
+			WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND WOBI.[ModuleId] = @WOModuleId AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 			--)
 
 			--Inserting Sales Order Invoice Data
@@ -154,8 +156,8 @@ BEGIN
 			[DueDate], [Tags], [Product], [PartNumber], [PartDescription], [Quantity], [SalesTax], [OtherTax], [SalesTaxPercent], [OtherTaxPercent], [TotalTax], [SubTotal], [GrandTotal], [Deposit], [UnitPrice], 
 			[ShipLine1], [ShipLine2], [ShipLine3], [ShipCity], [ShipPostalCode], [CustomerQuickBooksReferenceId], [QuickBooksReferenceId], [MasterCompanyId], [UpdatedBy], [ModuleName], [ModuleId], [ReferenceModuleId],
 			[TermQuickBooksReferenceId], [TaxRateRef], [TxnTaxCodeRef])
-			SELECT	SOBI.SOBillingInvoicingId,
-					SOBII.SOBillingInvoicingItemId,
+			SELECT	SOBI.BillingInvoicingId,
+					SOBII.BillingInvoicingItemId,
 					C.[Name] AS Customer,
 					C.Email AS CustomerEmail,
 					COALESCE(billToAddress.Line1, '') AS BillLine1,
@@ -170,7 +172,7 @@ BEGIN
 					'' AS Product,
 					IM.partnumber AS PartNumber,
 					IM.PartDescription,
-					SOBII.NoofPieces AS Quantity,
+					SOBII.QtyBilled AS Quantity,
 					ISNULL(SOBI.SalesTax, 0) AS SalesTax,
 					ISNULL(SOBI.OtherTax, 0) AS OtherTax,
 					CASE WHEN ISNULL(SOBI.SalesTax, 0) = 0 OR ISNULL(SOBI.SubTotal, 0) = 0 THEN 0 ELSE (ISNULL(SOBI.SalesTax, 0) * 100 / ISNULL(SOBI.SubTotal, 0)) END AS SalesTaxPercent,
@@ -195,19 +197,20 @@ BEGIN
 					CT.QuickBooksReferenceId,
 					P.TaxRateRef,
 					P.TxnTaxCodeRef
-			FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
-				JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+			FROM [dbo].[BillingInvoicingItems] SOBII WITH(NOLOCK) 
+				JOIN [dbo].[BillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId
+				JOIN [dbo].[BillingInvoicingDetails] SOBD WITH(NOLOCK) ON SOBI.BillingInvoicingId = SOBD.BillingInvoicingId
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
-				JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SO.SalesOrderId= SOBI.SalesOrderId
+				JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SO.SalesOrderId= SOBI.ReferenceId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
-				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBI.BillToSiteId = billToSite.CustomerBillingAddressId
+				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBD.SoldToSiteId = billToSite.CustomerBillingAddressId
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
+				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBD.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
-				LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBI.TaxRate
+				LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 				--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))
-			WHERE ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsProforma, 0) = 0 
+			WHERE ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 
 
 			--Inserting Exchange Sales Order Invoice Data
 			INSERT INTO #InvoiceResults ([InvoiceId], [BillingInvoicingItemId], [CustomerName], [CustomerEmail], [BillLine1], [BillLine2], [BillLine3], [BillCity], [BillPostalCode], [PaymentTerms], [InvoiceDate], 

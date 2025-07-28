@@ -17,6 +17,7 @@
     2    01/08/2023  Satish Gohil    Modify(Remove Other tax calculation )   
 	3	 01/02/2024	 AMIT GHEDIYA	 added isperforma Flage for SO
 	4	 04/12/2024	  HEMANT SALIYA	  Corrected Join for Getting Correct Balance
+	5    07-07-2025   Moin Bloch      Changed Old To New Billing Table
 
 -- EXEC RPT_PrintCreditMemoCalculationData 190,1,1,546,77    
     
@@ -38,24 +39,32 @@ BEGIN
 			  @tmpTotalCharges DECIMAL(18,2),@tmpSubTotals DECIMAL(18,2),@tmpCustomerId BIGINT,@tmpSiteId BIGINT,@tmpSiteTax DECIMAL(18,2),    
 			  @tmpOtherSiteTax DECIMAL(18,2), @SalesTax DECIMAL(18,2), @OtherTax DECIMAL(18,2), @Freight DECIMAL(18,2), @Charges DECIMAL(18,2),
 			  @SubTotal DECIMAL(18,2), @PartsRevenue DECIMAL(18,2), @LaborRevenue DECIMAL(18,2), @RestockingFee DECIMAL(18,2);    
+
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+		DECLARE @SOModuleId INT
+		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
     
 	  --SEELCT AWB & NOTES    
 	  SELECT     
-		   @tmpAwb = (CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.WayBillRef,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK)     
-					   WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])    
+		   @tmpAwb = (CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WD.WayBillRef,NULL) 
+						FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK)     
+						LEFT JOIN [dbo].[BillingInvoicingDetails] WD WITH (NOLOCK) ON WB.BillingInvoicingId = WD.BillingInvoicingId
+					   WHERE WB.[BillingInvoicingId] = CM.[InvoiceId] AND WB.[ModuleId] = @WOModuleId)    
 					  ELSE     
-				       (SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK)     
-						LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId AND ISNULL(SABI.IsProforma,0) = 0   
-						LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192    
-					   WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0 )    
+				       (SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[BillingInvoicing] SB WITH (NOLOCK)     
+						LEFT JOIN dbo.BillingInvoicingItems SABI WITH (NOLOCK) ON SB.BillingInvoicingId = SABI.BillingInvoicingId AND ISNULL(SABI.IsPerformaInvoice,0) = 0 AND SABI.[ModuleId] = @SOModuleId
+						LEFT JOIN SalesOrderShipping SAOS WITH (NOLOCK) ON SABI.ShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192    
+					   WHERE SB.[BillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsPerformaInvoice],0) = 0 )    
 				  END) ,    
 		   @tmpNotes = ISNULL(CM.[Notes], ''),    
 		   @tmpTotalFreight = CM.[TotalFreight],    
 		   @tmpTotalCharges = CM.[TotalCharges]    
 	   FROM [dbo].[CreditMemo] CM WITH (NOLOCK)     
 		   INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MS WITH (NOLOCK) ON CM.CreditMemoHeaderId = MS.ReferenceID AND MS.ModuleID = @ModuleID    
-		   LEFT JOIN [dbo].[CustomerRMAHeader] CRMA ON CRMA.RMAHeaderId = CM.RMAHeaderId    
-		   OUTER APPLY (SELECT TOP 1 CreditMemoDetailId FROM  CreditMemoDetails CD WITH (NOLOCK) WHERE CD.CreditMemoHeaderId = CM.CreditMemoHeaderId) CR     
+		   LEFT JOIN [dbo].[CustomerRMAHeader] CRMA WITH (NOLOCK) ON CRMA.RMAHeaderId = CM.RMAHeaderId    
+		   OUTER APPLY (SELECT TOP 1 CreditMemoDetailId FROM  dbo.CreditMemoDetails CD WITH (NOLOCK) WHERE CD.CreditMemoHeaderId = CM.CreditMemoHeaderId) CR     
 	  WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId;    
 
 	  SELECT @SalesTax = SUM(ISNULL(CMD.SalesTax, 0)), @OtherTax = SUM(ISNULL(CMD.OtherTax, 0)), @Freight =  SUM(ISNULL(CMD.FreightRevenue, 0)), @RestockingFee = SUM(ISNULL(CMD.RestockingFee, 0)),
@@ -63,12 +72,12 @@ BEGIN
 	  FROM dbo.CreditMemoDetails CMD WITH (NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId GROUP BY CreditMemoHeaderId;
     
 	  --SELECT DESCRIPTION    
-	  SELECT @EmailTemplateTypeId = EmailTemplateTypeId from EmailTemplateType WHERE EmailTemplateType='CreditMemoPrintPDF';    
+	  SELECT @EmailTemplateTypeId = EmailTemplateTypeId from dbo.EmailTemplateType WITH(NOLOCK) WHERE EmailTemplateType='CreditMemoPrintPDF';    
     
-	  IF EXISTS (SELECT TOP 1 TermsConditionId FROM TermsCondition WHERE EmailTemplateTypeId = @EmailTemplateTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)    
+	  IF EXISTS (SELECT TOP 1 TermsConditionId FROM dbo.TermsCondition WITH(NOLOCK) WHERE EmailTemplateTypeId = @EmailTemplateTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)    
 	  BEGIN    
 			SELECT @tmpdescription = description     
-			FROM TermsCondition WITH(NOLOCK)    
+			FROM dbo.TermsCondition WITH(NOLOCK)    
 			WHERE EmailTemplateTypeId = @EmailTemplateTypeId AND MasterCompanyId = @MasterCompanyId;    
 	  END    
 	  ELSE    

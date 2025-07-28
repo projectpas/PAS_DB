@@ -28,8 +28,9 @@
 	15   17-01-2025   RAJESH GAMI		Modified to get Revised PN.     
 	16   13-03-2025   Vishal Suthar		Fixed issue with duplicate records     
 	17   05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
+	18   05-07-2025   BHARGAV SALIYA    get condition through the [SalesOrderPartV1] Join
 
--- EXEC [DBO].[GetSalesOrderPartView] 1603,0
+-- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT,
@@ -97,6 +98,7 @@ BEGIN
         part.CurrencyId,
         part.ConditionId,
         ISNULL(cp.Description, '') AS ConditionDescription,
+		--CASE WHEN ISNULL(cp.Description, '') = '' THEN ISNULL(cpart.Description, '') ELSE ISNULL(cp.Description, '') END AS ConditionDescription,
         ISNULL(qs.IdNumber, '') AS IdNumber,
         ISNULL(qs.TraceableToName, '') AS TraceableToName,
         ISNULL(qs.CertifiedBy, '') AS CertifiedBy,
@@ -170,13 +172,13 @@ BEGIN
 		WHERE sos.SalesOrderId = @SalesOrderId AND sopt.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
 		
 		(SELECT SUM(sobi.QtyBilled) FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) qtyInvoiced,
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) qtyInvoiced,
 		
 		(SELECT TOP 1 sob.InvoiceDate FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceDate,
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND  sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceDate,
 		
 		(SELECT TOP 1 sob.InvoiceNo FROM DBO.BillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.BillingInvoicingItems sobi WITH (NOLOCK) ON sob.BillingInvoicingId = sobi.BillingInvoicingId
-		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceNumber,
+		WHERE sob.ModuleId = @soModuleId AND sob.ReferenceId = @SalesOrderId AND sobi.StocklineId = stk.StockLineId AND sobi.SubReferenceId = part.SalesOrderPartId AND ISNULL(sob.IsActive,0) = 1 AND ISNULL(sob.IsDeleted,0) = 0 AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0) invoiceNumber,
 		
 		(SELECT TOP 1 sos.SOShippingNum FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
 		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) shipReference,
@@ -198,7 +200,8 @@ BEGIN
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
     LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
     LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
-    LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON Stk.ConditionId = cp.ConditionId
+    LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
+	--LEFT JOIN DBO.Condition cpart WITH (NOLOCK) ON part.ConditionId = cpart.ConditionId
 	LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

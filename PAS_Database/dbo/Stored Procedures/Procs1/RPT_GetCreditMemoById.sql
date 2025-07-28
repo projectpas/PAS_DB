@@ -16,7 +16,7 @@
     1    04/21/2023   Amit Ghediya    Created
     2    06/26/2023   Vishal Suthar   TRIM the PO/RO number
 	3	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
-     
+    4    07-07-2025   Moin Bloch      Changed Old To New Billing Table
 -- EXEC RPT_GetCreditMemoById 32
 
 ************************************************************************/
@@ -27,6 +27,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+
+	 DECLARE @WOModuleId INT
+	 SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
+	 DECLARE @SOModuleId INT
+	 SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
 	Declare @ModuleID int = 61
 	SELECT CM.[CreditMemoHeaderId]
@@ -80,10 +86,10 @@ BEGIN
       ,CM.[TotalCharges]
 	  ,CRMA.[ValidDate]
 	  ,CRMA.[CreatedDate] 'RMAIssueDate'
-	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) 
-	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])
-									ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) 
-	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0)
+	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK) 
+	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId] AND WB.[ModuleId] = @WOModuleId)
+									ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[BillingInvoicing] SB WITH (NOLOCK) 
+	                                      WHERE SB.[BillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsPerformaInvoice],0) = 0  AND SB.[ModuleId] = @SOModuleId)
 								    END AS 'PostedDate'	
 
       ,
@@ -91,51 +97,52 @@ BEGIN
 				CASE WHEN 
 					LEN(
 						STUFF((SELECT ', ' + WP.CustomerReference
-						FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
-						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
+						FROM dbo.BillingInvoicing WI WITH (NOLOCK)
+						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId AND WI.[ModuleId] = @WOModuleId
 						WHERE WI.BillingInvoicingId = CM.[InvoiceId]
 						FOR XML PATH('')), 1, 1, '')
 						) < 20 
 				THEN
 					STUFF((SELECT ', ' + WP.CustomerReference
-						FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
-						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
+						FROM dbo.BillingInvoicing WI WITH (NOLOCK)
+						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId AND WI.[ModuleId] = @WOModuleId
 						WHERE WI.BillingInvoicingId = CM.[InvoiceId]
 						FOR XML PATH('')), 1, 1, '')
 				ELSE
 					LEFT(STUFF((SELECT ', ' + WP.CustomerReference
-						FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
-						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
+						FROM dbo.BillingInvoicing WI WITH (NOLOCK)
+						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.ReferenceId=WP.WorkOrderId AND WI.[ModuleId] = @WOModuleId
 						WHERE WI.BillingInvoicingId = CM.[InvoiceId]
 						FOR XML PATH('')), 1, 1, ''), 20) + '....'
 				END
 		  ELSE 
 				CASE WHEN
 					LEN(
-				 TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
-						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
+				 TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.BillingInvoicing SI WITH (NOLOCK)
+						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.ReferenceId = SO.SalesOrderId
+						WHERE SI.BillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsPerformaInvoice],0) = 0 AND SI.[ModuleId] = @SOModuleId
 						FOR XML PATH('')), 1, 1, '')) 
 						) < 20
 				THEN
-					TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
-						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
+					TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.BillingInvoicing SI WITH (NOLOCK)
+						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.ReferenceId = SO.SalesOrderId
+						WHERE SI.BillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsPerformaInvoice],0) = 0 AND SI.[ModuleId] = @SOModuleId
 						FOR XML PATH('')), 1, 1, '')) 
 				ELSE
-					LEFT(TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
-						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
+					LEFT(TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.BillingInvoicing SI WITH (NOLOCK)
+						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.ReferenceId = SO.SalesOrderId
+						WHERE SI.BillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsPerformaInvoice],0) = 0 AND SI.[ModuleId] = @SOModuleId
 						FOR XML PATH('')), 1, 1, '')), 20) + '....'
 				END
 		 END AS 'PORONum'
-		, CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.WayBillRef,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) 
-	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])
+		, CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WD.WayBillRef,NULL) FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK) 
+											left join [dbo].[BillingInvoicingDetails] WD WITH (NOLOCK) ON WB.BillingInvoicingId = WD.BillingInvoicingId
+	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId] AND  WB.[ModuleId] = @WOModuleId)
 						    ELSE 
-								(SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) 
-									LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId AND ISNULL(SABI.[IsProforma],0) = 0
-									LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192
-	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0)
+								(SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[BillingInvoicing] SB WITH (NOLOCK) 
+									LEFT JOIN dbo.BillingInvoicingItems SABI ON SB.BillingInvoicingId = SABI.BillingInvoicingId AND ISNULL(SABI.[IsPerformaInvoice],0) = 0
+									LEFT JOIN dbo.SalesOrderShipping SAOS ON SABI.ShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192
+	                                      WHERE SB.[BillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsPerformaInvoice],0) = 0 AND SB.[ModuleId] = @SOModuleId)
 						    END AS 'Awb'	
 
   FROM [dbo].[CreditMemo] CM WITH (NOLOCK) 

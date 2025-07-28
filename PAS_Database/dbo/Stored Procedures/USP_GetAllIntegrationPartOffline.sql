@@ -12,6 +12,8 @@
  ** PR   Date         Author		Change Description            
  ** --   ----------  -----------	--------------------------------          
     1    23/01/2024  Rajesh Gami	Created
+	2    23-07-2025  Amit Ghediya   MOdify for get RFQ part is in our inventory or not (ItemMasterId)
+	3    23-07-2025  Devendra Shekh	Modify to get customerId and address Details
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAllIntegrationPartOffline]
@@ -44,8 +46,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			IF(@IsAll = 0) /***** Start: @IsAll = 0 ******/
 			BEGIN
 					IF(UPPER(@PortalType) = UPPER(@145Name))  /**** Start:  145 Integration ******/
-					BEGIN
-					
+					BEGIN					
 						   SELECT im.IntegrationMasterId,
 							im.PartNumber,
 							im.PartDescription,
@@ -68,9 +69,20 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							ofc.[Location] AS Location,
 							im.MasterCompanyId,
 							im.UpdatedBy,
-							im.UpdatedDate
+							im.UpdatedDate,
+							(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+							0 ChildItemMasterId,
+							IM.AddressLine1,
+							IM.AddressLine2,
+							IM.City,
+							IM.State,
+							IM.PostalCode,
+							IM.Country,
+							(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
+						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId
 
 				END   /**** End:  145 Integration ******/
@@ -93,9 +105,21 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							ils.ExchangeOption,
 							im.MasterCompanyId,
 							im.UpdatedBy,
-							im.UpdatedDate
+							im.UpdatedDate,
+							(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+							(CASE WHEN LOWER(TRIM(ILS.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) ChildItemMasterId,
+							IM.AddressLine1,
+							IM.AddressLine2,
+							IM.City,
+							IM.State,
+							IM.PostalCode,
+							IM.Country,
+							(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
+						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+						LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId AND (@ConditionIds IS NULL OR ILS.Condition IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))
 				END  /**** END:  ILS Integration ******/
 			END /***** End: @IsAll = 0 ******/
@@ -125,7 +149,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							ofc.TestTAT,
 							ofc.WebLink,
 							ofc.[Location] AS Location,
-
 							0 ILSChildPartId,
 						    '' AltPartNumber,
 							0 Qty,
@@ -133,12 +156,22 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							'' Condition,
 							'' Distance,
 							'' ExchangeOption,
-
 							im.MasterCompanyId,
 							im.UpdatedBy,
-							im.UpdatedDate
+							im.UpdatedDate,
+							(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+							0 ChildItemMasterId,
+							IM.AddressLine1,
+							IM.AddressLine2,
+							IM.City,
+							IM.State,
+							IM.PostalCode,
+							IM.Country,
+							(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
+						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @OneFourtyIntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId
 					
 					UNION ALL
@@ -173,9 +206,21 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							ils.ExchangeOption,
 							im.MasterCompanyId,
 							im.UpdatedBy,
-							im.UpdatedDate
+							im.UpdatedDate,
+							(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+							(CASE WHEN LOWER(TRIM(ILS.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) ChildItemMasterId,
+							IM.AddressLine1,
+							IM.AddressLine2,
+							IM.City,
+							IM.State,
+							IM.PostalCode,
+							IM.Country,
+							(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
+						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+						LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IlsIntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId AND (@ConditionIds IS NULL OR ILS.Condition IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))
 			END		
 		END

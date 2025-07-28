@@ -10,11 +10,14 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/JUN/2025   RAJESH GAMI   CREATED
-	2    18/JUN/2025   RAJESH GAMI   Proforma Amount Related Fixed   
---  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 75,10,245
+    1    05/JUN/2025   RAJESH GAMI		CREATED
+	2    18/JUN/2025   RAJESH GAMI		Proforma Amount Related Fixed  
+	3    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 	
+	4    07 JUL 2025   Devendra Shekh	Deposite Amount Calculation Issue Resolved
+	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
+--  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 4352,10,245
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
+CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @EmployeeId BIGINT = NULL
@@ -28,6 +31,7 @@ BEGIN
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+	DECLARE @ReferenceId BIGINT = NULL, @ProformaDepositAmount DECIMAL(18, 2) = 0;
 	
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
@@ -37,6 +41,12 @@ BEGIN
 		   LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 		   LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @EmployeeId; 
+
+		SELECT @ReferenceId = ReferenceId FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId
+
+		SELECT @ProformaDepositAmount = SUM(ISNULL(BI.DepositAmount, 0)) - SUM(ISNULL(BI.UsedDeposit, 0))  
+		FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)			
+		WHERE BI.[ReferenceId] = @ReferenceId AND BI.ModuleId  =  @ModuleId AND ISNULL(BI.IsPerformaInvoice, 0) = 1 
 	   		
 		IF(@ModuleId = @SOModuleId) /********* START: SALES ORDER ********/
 		BEGIN	
@@ -111,8 +121,8 @@ BEGIN
 					SO.[MasterCompanyId],
 					ISNULL(BI.[SalesTax], 0) [Tax],
 					ISNULL(BI.[OtherTax], 0) [OtherTax],
-					BI.InvoiceTypeId,
-					BI.[Notes] [Notes],
+					BI.InvoiceTypeId,					
+					REPLACE(REPLACE(ISNULL(BI.[Notes],''), '<p>', ''),'</p>','<br />') AS [Notes],
 					SO.SalesOrderNumber AS ReferenceNo,
 					SignEmpName = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),
 					SignEmpTitle = ISNULL(jt.Description,''),
@@ -155,7 +165,8 @@ BEGIN
 								)
 							ELSE ISNULL(BI.[SubTotal], 0)
 						END AS [SubTotal],
-					ISNULL(BI.[DepositAmount],0) [DepositAmount],
+					--ISNULL(BI.[DepositAmount],0) [DepositAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],
 					CASE WHEN BI.IsPerformaInvoice = 1 THEN 
 													(SELECT SUM(ISNULL(BII.PartCost,0)) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId) + ISNULL(BI.[SalesTax], 0)  + ISNULL(BI.[OtherTax], 0) 
 													+
@@ -180,15 +191,20 @@ BEGIN
 									) AS DistinctCharges 
 								)
 								ELSE  ISNULL(BI.[GrandTotal],0) END [GrandTotal],
-					ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
+					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
   				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),
-					CAST(dbo.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATETIME) [PrintDate]
+					 GETDATE() [PrintDate],
+					UPPER(inv.[Description]) InvoiceType,
+					oriCountry.countries_name OriginCountry,
+					destCountry.countries_name DestinationCountry
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BI.[ReferenceId] = SO.[SalesOrderId]
 				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON SO.[CustomerId] = CUST.[CustomerId]
 				INNER JOIN [dbo].[Address] CUSTADDRESS WITH(NOLOCK) ON CUST.[AddressId] = CUSTADDRESS.[AddressId]
+				INNER JOIN [dbo].InvoiceType inv WITH(NOLOCK) ON inv.InvoiceTypeId = BI.InvoiceTypeId
 				 LEFT JOIN [dbo].[CustomerContact] CUSTCONT WITH(NOLOCK) ON SO.[CustomerContactId] = CUSTCONT.[CustomerContactId]
 				 LEFT JOIN [dbo].[Contact] CONTACT WITH(NOLOCK) ON CUSTCONT.[ContactId] = CONTACT.[ContactId]
 				INNER JOIN [dbo].[Customer] BILLTOCUSTOMER WITH(NOLOCK) ON BID.[SoldToCustomerId] = BILLTOCUSTOMER.[CustomerId]		
@@ -197,16 +213,19 @@ BEGIN
 				 LEFT JOIN [dbo].[Countries] BILLTOCOUNTRY WITH(NOLOCK) ON BILLTOADDRESS.[CountryId] = BILLTOCOUNTRY.[countries_id]
 				INNER JOIN [dbo].[CustomerDomensticShipping] SHIPTOSITE WITH(NOLOCK) ON BID.[ShipToSiteId] = SHIPTOSITE.[CustomerDomensticShippingId]
 				INNER JOIN [dbo].[Address] SHIPTOADDRESS WITH(NOLOCK) ON SHIPTOSITE.[AddressId] = SHIPTOADDRESS.[AddressId]
+				LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPTOADDRESS.[CountryId] = SHIPTOCOUNTRY.[countries_id]
 				 LEFT JOIN [dbo].[Employee] SP WITH(NOLOCK) ON SO.[SalesPersonId] = SP.[EmployeeId]
 				 LEFT JOIN [dbo].[Countries] CONT WITH(NOLOCK) ON CUSTADDRESS.[CountryId] = CONT.[countries_id]
 				 LEFT JOIN [dbo].[Currency] CUR WITH(NOLOCK) ON SO.[FunctionalCurrencyId] = CUR.[CurrencyId]
 				 OUTER APPLY (SELECT TOP 1 * FROM [dbo].[SalesOrderShipping] s WITH(NOLOCK)	WHERE s.SalesOrderId = SO.SalesOrderId ORDER BY ISNULL(s.UpdatedDate, s.ShipDate) DESC ) SHIPPINGINFO
 				 --LEFT JOIN [dbo].[SalesOrderShipping] SHIPPINGINFO WITH(NOLOCK) ON SO.[SalesOrderId] = SHIPPINGINFO.[SalesOrderId]
-				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[CustomerDomensticShippingShipViaId] = SHIPINFOVIA.[ShippingViaId]
-				 LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
+				 LEFT JOIN [dbo].[ShippingVia] SHIPINFOVIA WITH(NOLOCK) ON BID.[ShipViaId] = SHIPINFOVIA.[ShippingViaId]
+				 --LEFT JOIN [dbo].[Countries] SHIPTOCOUNTRY WITH(NOLOCK) ON SHIPPINGINFO.[ShipToCountryId] = SHIPTOCOUNTRY.[countries_id]
 				LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 				LEFT JOIN	[dbo].[JobTitle] jt WITH(NOLOCK) ON emp.JobTitleId = jt.JobTitleId
 				LEFT JOIN  [dbo].AllShipVia posv WITH(NOLOCK) ON so.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @ModuleId
+				LEFT JOIN [dbo].[Countries] oriCountry WITH(NOLOCK) ON Bi.OriginCountryId = oriCountry.[countries_id]
+				LEFT JOIN [dbo].[Countries] destCountry WITH(NOLOCK) ON Bi.ShipToCountryId = destCountry.[countries_id]
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 		END  /*********END: SALES ORDER ********/		

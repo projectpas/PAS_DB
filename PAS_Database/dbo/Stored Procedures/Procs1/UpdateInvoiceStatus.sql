@@ -1,4 +1,19 @@
-﻿
+﻿/*************************************************************           
+ ** File:  [UpdateInvoiceStatus]           
+ ** Author:	  Moin Bloch
+ ** Description: 
+ ** Purpose:         
+ ** Date:   05/24/2023          
+ ** PARAMETERS: 
+ ** RETURN VALUE: 
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------     
+	1    05/24/2023    		            Created
+	2    07-07-2025     Moin Bloch      Changed Old To New Billing Table
+**************************************************************/
 CREATE   PROCEDURE [dbo].[UpdateInvoiceStatus]  
  @SalesOrderId bigint,  
  @SOBillingInvoicingId bigint  
@@ -9,9 +24,10 @@ SET NOCOUNT ON;
   
  BEGIN TRY 
 
-	UPDATE SalesOrderBillingInvoicing
-	SET invoicestatus = 'Reviewed'
-	WHERE SalesOrderId = @SalesOrderId AND SOBillingInvoicingId = @SOBillingInvoicingId
+	UPDATE dbo.BillingInvoicing
+	SET InvoiceStatus = 'Reviewed',
+		InvoiceStatusId = (SELECT InvoiceStatusId FROM dbo.InvoiceStatus WITH(NOLOCK) WHERE [Status] = 'Reviewed')
+	WHERE ReferenceId = @SalesOrderId AND BillingInvoicingId = @SOBillingInvoicingId
 
  END TRY      
  BEGIN CATCH        

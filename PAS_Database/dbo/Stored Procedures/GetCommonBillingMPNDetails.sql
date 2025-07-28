@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetCommonBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -22,9 +21,14 @@
 	9    25/06/2025   RAJESH GAMI    Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
 	10   26/06/2025   Moin Bloch     Fixed For Settlement IN WO
 	11   26/06/2025   Rajesh Gami     Fixed to not getting invoicing id while get the part detail call 
+	12	 05/07/2025   AbhishekJirawla Added ConditionName	
+	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
+	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
+	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only & Fix SalesTax Amount issue
+	16	 21/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge): frieght and charges are being included again
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetCommonBillingMPNDetails]
+CREATE       PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
 @SubReferenceId BIGINT=NULL,
 @SubReferenceIds VARCHAR(200)=NULL,
@@ -37,7 +41,8 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+		DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT;
+		DECLARE @IsFlatChargeUsed BIT = 0, @IsFlatFreightUsed BIT = 0, @FlatChargeStkId BIGINT =0, @FlatFreightStkId BIGINT =0, @UsedSubReferenceIdCharge BIGINT =0, @UsedSubReferenceIdFreight BIGINT =0, @IsPartUsedFreight BIT = 0,  @IsPartUsedCharge BIT = 0; 
 		DECLARE @FlatBillingMethodId INT = (select BillingMethodId from dbo.BillingMethod WITH(NOLOCK) WHERE Description = 'Flate Rate')
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -50,7 +55,7 @@ BEGIN
 		DECLARE @TotalCost DECIMAL(18,2) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,2) = 0, @OtherTaxAmount DECIMAL(18,2) = 0, @GrandTotal DECIMAL(18,2) = 0;
 		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 , @InvoiceStatusName varchar(50)='';
 		DECLARE @InvoiceStatusId BIGINT=0,@WorkOrderQuoteStatusId INT=0
-
+		PRint '1'
 		SELECT @InvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WHERE [Status]='Invoiced'
 		SELECT @WorkOrderQuoteStatusId = [WorkOrderQuoteStatusId] FROM [dbo].[WorkOrderQuoteStatus] WITH(NOLOCK) WHERE [Description] = 'Approved'
 
@@ -85,6 +90,7 @@ BEGIN
 				[ItemMasterId] BIGINT NULL,	
 				[StockLineId] BIGINT NULL,
 				[ConditionId] BIGINT NULL,
+				[ConditionName] NVARCHAR(200) NULL,
 				[UnitPrice] DECIMAL(18,2) NULL,	 
 				[QtyBilled] INT NULL, 
 				[PartCost] DECIMAL(18,2) NULL,	 
@@ -108,9 +114,13 @@ BEGIN
 				[StockLineNumber] VARCHAR(200) NULL,
 				[QuoteMethod] BIT NULL,
 				[ShippingId]  BIGINT NULL, 
-				[InvoiceStatusName] VARCHAR(50)
+				[InvoiceStatusName] VARCHAR(50),
+				IsFlatChargeUsed BIT DEFAULT 0,
+				IsFlatFreightUsed BIT DEFAULT 0,
+				FlatChargeStkId BIGINT NULL,
+				FlatFreightStkId BIGINT NULL
 			)
-
+			PRint '1'
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
 		BEGIN
 			SELECT @WorkOrderMPNMSModuleEnum = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN'
@@ -118,18 +128,34 @@ BEGIN
 			SELECT @CustomerId = WO.[CustomerId],@WorkOrderTypeId = [WorkOrderTypeId], @MasterCompanyId = WO.[MasterCompanyId] FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.[WorkOrderId] = @ReferenceId;
 			
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId]=@WorkOrderTypeId AND [MasterCompanyId]=@MasterCompanyId
-						
+			
+			DECLARE @FinalCondCert INT
+				SELECT @FinalCondCert = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Final Cond/Cert'
+				PRint '2'
 			IF(@IsProformaInvoice = 0)
 			BEGIN
 
 				IF(@IsCreatedFromQuote = 1)
 				BEGIN
-					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+									SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+									
+									 CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
+						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		wop.[PartNumber],
+									wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 					FROM [dbo].[WorkOrderQuote] woq WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderQuoteDetails] woqd WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woqd.[WorkOrderQuoteId] AND ISNULL(woqd.[IsVersionIncrease], 0) = 0
 					INNER JOIN [WorkOrderApproval] woa WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woa.WorkOrderQuoteId AND woqd.WOPartNoId = woa.WorkOrderPartNoId AND woa.ApprovalActionId = @WorkOrderQuoteStatusId AND woa.[IsDeleted] = 0
 					 LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woqd.WOPartNoId = wop.ID 
+				   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+				   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 					 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
 					WHERE wop.[WorkOrderId] = @ReferenceId 
@@ -143,26 +169,50 @@ BEGIN
 				BEGIN
 					IF(@AllowInvoiceBeforeShipping = 1)
 					BEGIN					
-						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+																	    CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
+						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		
+																	   wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 						LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
-						WHERE [WorkOrderId] = @ReferenceId 
+			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND ISNULL([IsFinishGood], 0) = 1					  
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
+						PRint '3'
 					END
 					ELSE
 					BEGIN
-						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+						INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+																	   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+																	    CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = BoI.[MasterCompanyId])
+						WHEN WOSD.[WorkOrderSettlementId] IS NOT NULL THEN WOSD.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 						INNER JOIN [dbo].[WorkOrderShippingItem] wos WITH(NOLOCK) ON wop.[ID] = wos.[WorkOrderPartNumId] AND wos.[IsDeleted] = 0 
 						 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
+			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOSD WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId] AND WOSD.[WorkOrderSettlementId] = @FinalCondCert
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND ISNULL([IsFinishGood], 0) = 1					
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
@@ -174,11 +224,22 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-															   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+															   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+															   CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
+						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
+						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
+						ELSE 
+							CASE 		WHEN COND.[ConditionId] IS NOT NULL THEN COND.[Description]
+								ELSE '' 
+							END
+						END [Cond],		wop.[PartNumber],wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 				LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 				LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId]
+			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 				WHERE wop.[WorkOrderId] = @ReferenceId 
 				  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 				  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
@@ -435,31 +496,58 @@ BEGIN
 		END /*END: WORK ORDER ********/
 		ELSE IF(@ModuleId = @SOModuleId) /****************** START: SALES ORDER ********************/
 		BEGIN
+			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 
+				  @SoFreightBillingMethodId = ISNULL(FreightBilingMethodId,0), @SoChargesBillingMethodId = ISNULL(ChargesBilingMethodId,0),
+				  @SoTotalCharges = ISNULL(TotalCharges,0), @SoTotalFreight = ISNULL(TotalFreight,0)
+			FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE SO.[SalesOrderId] = @ReferenceId;
+
+			IF(@SoChargesBillingMethodId = @FlatBillingMethodId)
+			BEGIN
 			
-			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
-				                                           SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],STK.[ConditionId],SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,STK.QtyOrder,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+				SELECT @FlatChargeStkId = ISNULL(StocklineId,0), @UsedSubReferenceIdCharge = ISNULL(SubReferenceId,0) FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @ModuleId 
+																			   AND ISNULL(IsVersionIncrease,0) = 0 
+																			   AND ISNULL(IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0)
+																			   AND ISNULL(MiscChargesCostPlus,0) > 0 
+
+				SET @IsFlatChargeUsed = CASE WHEN @FlatChargeStkId > 0 OR @UsedSubReferenceIdCharge > 0  THEN 1 ELSE 0 END
+				SET @IsPartUsedCharge = CASE WHEN ISNULL(@FlatChargeStkId,0) = 0 AND @UsedSubReferenceIdCharge > 0 THEN 1 ELSE 0 END;
+			END
+			IF(@SoFreightBillingMethodId = @FlatBillingMethodId)
+			BEGIN
+				SELECT @FlatFreightStkId = ISNULL(StocklineId,0), @UsedSubReferenceIdFreight = ISNULL(SubReferenceId,0)  FROM dbo.BillingInvoicingItems BII WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @ModuleId 
+																			   AND ISNULL(IsVersionIncrease,0) = 0 
+																			   AND ISNULL(IsPerformaInvoice,0) = ISNULL(@IsProformaInvoice,0)
+																			   AND ISNULL(FreightCostPlus,0) > 0 
+				SET @IsFlatFreightUsed = CASE WHEN @FlatFreightStkId > 0  OR @UsedSubReferenceIdFreight > 0 THEN 1 ELSE 0 END
+				SET @IsPartUsedFreight = CASE WHEN ISNULL(@FlatFreightStkId,0) = 0 AND @UsedSubReferenceIdFreight > 0 THEN 1 ELSE 0 END;
+			END
+
+			INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],SOStockLineId,QtyBilled,StockLineNumber,ShippingId) 
+				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
+								, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
+						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.QtyOrder ELSE STK.QtyOrder END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
+				 LEFT JOIN dbo.SalesOrderPartCost PC WITH (NOLOCK) ON SOP.SalesOrderPartId = PC.SalesOrderPartId 
 				 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
 				 LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId				
 				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+				 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON STK.[ConditionId] = COND.[ConditionId]
+				 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON SOP.[ConditionId] = con.[ConditionId]
 				  OUTER APPLY (
 					SELECT TOP 1 s.SalesOrderShippingId
 					FROM [dbo].[SalesOrderShippingItem] s
-					WHERE s.SalesOrderPartId = SOP.SalesOrderPartId
+					WHERE s.SalesOrderPartId = SOP.SalesOrderPartId AND s.MasterCompanyId = @MasterCompanyId
 					ORDER BY ISNULL(s.CreatedDate, s.UpdatedDate) DESC
 				) SHIPPINGINFO
-			WHERE SOP.SalesOrderId = @ReferenceId  
+			WHERE SOP.SalesOrderId = @ReferenceId and SOP.MasterCompanyId = @MasterCompanyId
 			  AND (@SubReferenceIds IS NULL OR SOP.SalesOrderPartId IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 			  AND ISNULL(SOP.IsDeleted,0) = 0 AND  (( (@IsProformaInvoice = 1 AND ISNULL(SOP.QtyReserved, 0) >= 0) OR (@IsProformaInvoice != 1 AND ISNULL(STK.QtyReserved, 0) > 0)) 
 			  OR ((SELECT SUM(ISNULL(sopi.QtyShipped,0)) FROM dbo.SalesOrderShippingItem sopi WITH(NOLOCK) WHERE  sopi.SalesOrderPartId = SOP.SalesOrderPartId and SOPI.IsActive = 1 AND ISNULL(SOPI.IsDeleted,0) = 0)) > 0
 			  )
 			ORDER BY SOP.SalesOrderPartId	
 
-			SELECT @CustomerId = SO.[CustomerId],@MasterCompanyId = SO.[MasterCompanyId], 
-				  @SoFreightBillingMethodId = ISNULL(FreightBilingMethodId,0), @SoChargesBillingMethodId = ISNULL(ChargesBilingMethodId,0),
-				  @SoTotalCharges = ISNULL(TotalCharges,0), @SoTotalFreight = ISNULL(TotalFreight,0)
-			FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE SO.[SalesOrderId] = @ReferenceId;
+			
 		    
 			SELECT @TotalRecords = COUNT(*), @MinId = MIN([PKID]) FROM #TempCommonPartNumberDetailsForBilling    
 
@@ -493,7 +581,11 @@ BEGIN
 					[OtherTax]  DECIMAL(18,2) NULL				
 				)		
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
-				SELECT TOP 1 @BillingInvoicingId = MAX(ISNULL(BI.BillingInvoicingId,0)), @BillingInvoicingItemId = MAX(ISNULL(BII.BillingInvoicingItemId,0)),@itemProformaGrandTotal = MAX(ISNULL(BII.GrandTotal,0)),@InvoiceStatusName = MAX(ISNULL(BI.InvoiceStatus,''))  FROM #TempCommonPartNumberDetailsForBilling cpd   
+				SELECT TOP 1 @BillingInvoicingId = MAX(ISNULL(BI.BillingInvoicingId,0)), 
+					@BillingInvoicingItemId = MAX(ISNULL(BII.BillingInvoicingItemId,0)),
+					@itemProformaGrandTotal = MAX(ISNULL(BII.GrandTotal,0)),
+					@InvoiceStatusName = MAX(ISNULL(BI.InvoiceStatus,''))  
+				FROM #TempCommonPartNumberDetailsForBilling cpd   
 							INNER JOIN dbo.BillingInvoicing BI WITH (NOLOCK) ON BI.ReferenceId = cpd.ReferenceId AND BI.ModuleId = @ModuleId 
 							INNER JOIN dbo.BillingInvoicingItems BII WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND BII.ItemMasterId = CPD.ItemMasterId 
 							AND (BII.ConditionId = CPD.ConditionId OR (cpd.ConditionId IS NULL))
@@ -508,18 +600,32 @@ BEGIN
 				BEGIN
 					SET @SOFreightAmount = ISNULL((SELECT SUM(ISNULL(BillingAmount,0)) FROM Dbo.SalesOrderFreight WHERE SalesOrderPartId = @ID AND ISNULL(IsDeleted,0) = 0),0.0)
 				END
-				--SET @UnitCost = (SELECT SUM(ISNULL(NetSaleAmountPerUnit,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
-				 SELECT @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId
-				--SET @PartsCost = (SELECT SUM(ISNULL(NetSaleAmount,0)) FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId)
-				--SET @PartsCost = ISNULL(@UnitCost,0.0) * ISNULL((Select QtyReserved From dbo.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderPartId = @ID),0.0)
+					IF(ISNULL(@SOStocklineId,0) >0)
+					BEGIN
+						SELECT  TOP 1  @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderStocklineCost WHERE SalesOrderStocklineId = @SOStocklineId
+					END
+					ELSE
+					BEGIN
+						SELECT TOP 1 @UnitCost = SUM(ISNULL(NetSaleAmountPerUnit,0)), @UnitCostExt = SUM(ISNULL(NetSaleAmount,0))  FROM dbo.SalesOrderPartCost WHERE SalesOrderPartId = @ID AND SalesOrderId = @ReferenceId
+					END
+		
 				DECLARE @stkShipped decimal(10,2) = ISNULL((Select SUM(ISNULL(QtyShipped,0)) From dbo.SalesOrderShippingItem SOS WITH(NOLOCK) INNER JOIN dbo.SOPickTicket SOPIC WITH(NOLOCK) on SOS.SOPickTicketId = SOPIC.SOPickTicketId
 															Where SOS.SalesOrderPartId =  @ID AND  SOS.IsActive = 1 AND ISNULL(SOS.IsDeleted,0) = 0 AND  SOPIC.SalesOrderPartStocklineId = @SOStocklineId),0.0)
-				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
+				DECLARE @stkReservedQty decimal(10,2) =  ISNULL((Select TOP 1 ISNULL(QtyReserved,0) From dbo.SalesOrderStocklineV1 WITH(NOLOCK) Where StockLineId = @stocklineID AND SalesOrderPartId =  @ID),0.0)
 				DECLARE @totalQtyShippedReserved decimal(10,2) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
-				PRINT @totalQtyShippedReserved
-				PRINT '@totalQtyShippedReserved'
-				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
-				SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
+		
+				--SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
+				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
+				IF(@SoFreightBillingMethodId = @FlatBillingMethodId AND @MinId > 1)
+				BEGIN
+					SET @SOFreightAmount = 0;
+				END
+				IF(@SoChargesBillingMethodId = @FlatBillingMethodId AND @MinId > 1)
+				BEGIN
+					SET @SOChargesAmount = 0;
+				END
+				SET @TotalCost =  @PartsCost + @SOChargesAmount + @SOFreightAmount;
+				--SET @TotalCost = CASE WHEN @IsProformaInvoice = 1 THEN @PartsCost ELSE @PartsCost + @SOChargesAmount + @SOFreightAmount END
 					
 				--IF(@IsProformaInvoice = 1)
 				--BEGIN
@@ -546,9 +652,22 @@ BEGIN
 				IF(@OtherTax > 0)
 				BEGIN
 					SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
-					SET @OtherTaxAmount = (@OtherTax / 100.00) * @TotalCost
+					SET @OtherTaxAmount =  (@OtherTax / 100.00) * @TotalCost
 				END
 				SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
+
+
+				--IF(@SalesTax > 0)
+				--BEGIN
+				--	SELECT @SalesTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @SalesTax;					
+				--	SET @SalesTaxAmount = CASE WHEN @IsProformaInvoice = 1 THEN (@SalesTax / 100.00) * (@TotalCost + @SOChargesAmount + @SOFreightAmount) ELSE (@SalesTax / 100.00) * @TotalCost END
+				--END
+				--IF(@OtherTax > 0)
+				--BEGIN
+				--	SELECT @OtherTaxPercent = [PercentId] FROM [dbo].[Percent] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [PercentValue] = @OtherTax;
+				--	SET @OtherTaxAmount =  CASE WHEN @IsProformaInvoice = 1 THEN (@OtherTax / 100.00) * (@TotalCost + @SOChargesAmount + @SOFreightAmount) ELSE  (@OtherTax / 100.00) * @TotalCost END
+				--END
+				--SET @GrandTotal = @TotalCost + ISNULL(@SalesTaxAmount,0) +  ISNULL(@OtherTaxAmount,0)
 
 				UPDATE #TempCommonPartNumberDetailsForBilling 
 					   SET 
@@ -556,8 +675,10 @@ BEGIN
 						   PartCost = CASE WHEN @IsProformaInvoice = 1 THEN @UnitCostExt ELSE @PartsCost END,
 						   [BillingInvoicingId] = @BillingInvoicingId,
 						   [BillingInvoicingItemId] = @BillingInvoicingItemId,
-						   [MiscCharges] = @SOChargesAmount,
-						   [FreightCost] = @SOFreightAmount,
+						   --[MiscCharges] = CASE WHEN @SoFreightBillingMethodId = @FlatBillingMethodId THEN (CASE WHEN [PKID] = 1 THEN @SOChargesAmount ELSE 0 END) ELSE @SOChargesAmount END,
+						   --[FreightCost] = CASE WHEN @SoChargesBillingMethodId = @FlatBillingMethodId THEN (CASE WHEN [PKID] = 1 THEN @SOFreightAmount ELSE 0 END) ELSE @SOFreightAmount END,
+						   [MiscCharges] = CASE WHEN @IsFlatChargeUsed = 1 THEN (CASE WHEN @IsPartUsedCharge = 1 THEN (CASE WHEN SubReferenceId = @UsedSubReferenceIdCharge THEN @SoTotalCharges ELSE 0 END) ELSE (CASE WHEN StockLineId = @FlatChargeStkId THEN @SoTotalCharges ELSE 0 END)END)  ELSE  @SOChargesAmount END,
+						   [FreightCost] = CASE WHEN @IsFlatFreightUsed = 1 THEN ( CASE WHEN @IsPartUsedFreight = 1 THEN (CASE WHEN SubReferenceId = @UsedSubReferenceIdFreight THEN @SoTotalFreight ELSE 0 END)  ELSE (CASE WHEN StockLineId = @FlatFreightStkId THEN @SoTotalFreight ELSE 0 END)END)  ELSE  @SOFreightAmount END, 
 						   [TotalCost] = ISNULL(@TotalCost,0),
 						   [SalesTaxPercent] = @SalesTaxPercent,
 						   [SalesTax] = ISNULL(@SalesTax,0),
@@ -566,7 +687,12 @@ BEGIN
 						   [OtherTax] = ISNULL(@OtherTax,0),
 						   [OtherTaxAmount] = ISNULL(@OtherTaxAmount,0),	
 						   [GrandTotal] = @GrandTotal,
-						   InvoiceStatusName = @InvoiceStatusName
+						   InvoiceStatusName = @InvoiceStatusName,
+						   IsFlatChargeUsed = @IsFlatChargeUsed,
+						   IsFlatFreightUsed = @IsFlatFreightUsed,
+						   FlatChargeStkId = @FlatChargeStkId,
+						   FlatFreightStkId = @FlatFreightStkId 
+
 					 WHERE [PKID] = @MinId;
 					 SET @MinId = @MinId + 1;
 			END /****** END OF WHILE LOOP ********/
@@ -575,7 +701,7 @@ BEGIN
 
 		/********** Final Get Query From the Temp Table *************/
 		SELECT  ROW_NUMBER() OVER (PARTITION BY SubReferenceId ORDER BY PKID) AS RowNum,* INTO #TempWithRowNum FROM #TempCommonPartNumberDetailsForBilling;
-		IF(@ModuleId = @SOModuleId AND @IsProformaInvoice = 0)
+		IF(@ModuleId = @SOModuleId)
 		BEGIN
 			UPDATE #TempWithRowNum SET MiscCharges = 0, FreightCost = 0, 
 									   TotalCost = CASE WHEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) >= 0 THEN (ISNULL(TotalCost,0) - (ISNULL(MiscCharges,0) + ISNULL(FreightCost,0))) ELSE 0 END  WHERE RowNum > 1

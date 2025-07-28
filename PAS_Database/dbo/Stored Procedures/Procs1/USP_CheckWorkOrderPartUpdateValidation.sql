@@ -14,6 +14,7 @@
  ** --   --------     -------		------------------------------------
     1    30/05/2023   VISHAL SUTHAR     Created
 	2	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO 
+	3    07/03/2025   Moin Bloch        Changed Old To New Billing Table
      
 -- EXEC USP_CheckWorkOrderPartUpdateValidation 3402, 20769, 'wfgjertyuh', 180, 11
 ************************************************************************/
@@ -30,6 +31,7 @@ BEGIN
 	SET NOCOUNT ON;	
 	BEGIN TRY
 		DECLARE @qtyissue INT = 0;
+		DECLARE @WOModuleId INT
 
 		IF OBJECT_ID(N'tempdb..#tmpWOErrorMessages') IS NOT NULL
 		BEGIN
@@ -44,6 +46,9 @@ BEGIN
 
 		IF NOT EXISTS (SELECT TOP 1 * FROM DBO.WorkOrderPartNumber WOP WITH (NOLOCK) WHERE ID = @WorkOrderPartNumberId AND WOP.ItemMasterId = @ItemMasterId AND WOP.ConditionId = @ConditionId)
 		BEGIN
+			
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+
 			SELECT @qtyissue = SUM(ISNULL(QuantityIssued, 0))
 			FROM DBO.WorkOrderMaterials WOM WITH(NOLOCK)
 			WHERE WOM.WorkOrderId = @WorkOrderId AND WOM.MasterCompanyId = @MasterCompanyId;
@@ -94,7 +99,12 @@ BEGIN
 				SELECT 'This part is already shipped' AS ErrorMessage;
 			END
 
-			IF EXISTS (SELECT TOP 1 * FROM DBO.WorkOrderBillingInvoicingItem WOB (NOLOCK) WHERE WOB.WorkOrderPartId = @WorkOrderPartNumberId AND MasterCompanyId = @MasterCompanyId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0)
+			--IF EXISTS (SELECT TOP 1 * FROM DBO.WorkOrderBillingInvoicingItem WOB (NOLOCK) WHERE WOB.WorkOrderPartId = @WorkOrderPartNumberId AND MasterCompanyId = @MasterCompanyId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0)
+			--BEGIN
+			--	INSERT INTO #tmpWOErrorMessages
+			--	SELECT 'This part is already invoiced' AS ErrorMessage;
+			--END
+			IF EXISTS (SELECT TOP 1 * FROM DBO.BillingInvoicingItems WOB (NOLOCK) WHERE WOB.[SubReferenceId] = @WorkOrderPartNumberId AND WOB.[ModuleId] = @WOModuleId AND WOB.[MasterCompanyId] = @MasterCompanyId AND ISNULL(WOB.[IsVersionIncrease], 0) = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0)
 			BEGIN
 				INSERT INTO #tmpWOErrorMessages
 				SELECT 'This part is already invoiced' AS ErrorMessage;

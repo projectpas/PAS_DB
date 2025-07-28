@@ -10,19 +10,21 @@
  ** --   --------			-------				--------------------------------            
     1    18-04-2025		Hemnat Saliya			Created
 	2    23-04-2025		Moin Bloch			    Fix For Analysis Revenue Amount
-	
+	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 		
 	exec dbo.usp_GetWorkOrderAndQuoteCostDetails 8374,8688
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetWorkOrderAndQuoteCostDetails]
-    @WorkOrderWorkflowId BIGINT,
-    @WorkOrderId BIGINT
+@WorkOrderWorkflowId BIGINT,
+@WorkOrderId BIGINT
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON;  
   
 	BEGIN TRY  
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 		DECLARE 
         @LabourCost DECIMAL(18,2) = 0,
@@ -125,7 +127,8 @@ BEGIN
 		END
 
 		-- Step 5: Revenue Source Check
-		IF(EXISTS (SELECT 1 FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsVersionIncrease, 0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0))  
+	  --IF(EXISTS (SELECT 1 FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ISNULL(IsVersionIncrease, 0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0))  
+		IF(EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @WorkOrderId AND [ModuleId] =@WOModuleId AND ISNULL([IsVersionIncrease], 0) = 0 AND ISNULL([IsPerformaInvoice],0) = 0))  
 		BEGIN
 			SELECT TOP 1 @WOPartNoId = WorkOrderPartNoId
 			FROM [dbo].WorkOrderWorkFlow WITH(NOLOCK)
@@ -192,8 +195,8 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-				  , @AdhocComments     VARCHAR(150)    = 'USP_GetWorkOrderBillingCostDetails'   
-				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@workorderid, '') + ''  
+				  , @AdhocComments     VARCHAR(150)    = 'usp_GetWorkOrderAndQuoteCostDetails'   				 
+				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))  
 				  , @ApplicationName VARCHAR(100) = 'PAS'  
 	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

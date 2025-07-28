@@ -58,7 +58,8 @@ BEGIN
 					 woc.ReferenceNo AS ReferenceNo,  
 					 ISNULL(gl.AccountName,'') AS GLAccountName,
 					 woc.UOMId,  
-					 um.ShortName AS 'UOM'
+					 um.ShortName AS 'UOM',
+					 woc.IsFromWorkFlow
 				 FROM [dbo].[SubWorkOrderCharges] woc WITH(NOLOCK)      
 				 JOIN [dbo].[Charge] ct  WITH(NOLOCK) ON woc.ChargesTypeId = ct.ChargeId  
 				 LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) ON woc.VendorId = v.VendorId       

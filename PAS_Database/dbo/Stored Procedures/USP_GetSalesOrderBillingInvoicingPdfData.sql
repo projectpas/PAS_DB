@@ -19,7 +19,8 @@
 	4	 19/09/2024   AMIT GHEDIYA		Get Cur from header for pdf.
 	5    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	6	 11/08/2024	  AMIT GHEDIYA		Modified to get shipping weight & ShipSize etc from item table.
-     
+    7    07-07-2025   Moin Bloch        Changed Old To New Billing Table commentd not in use
+
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
@@ -37,14 +38,17 @@ BEGIN
 	SELECT @Customer = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Customer';
 	SELECT @Vendor = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
 	SELECT @Company = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Company';
-	SELECT @SalesOrderId = [SalesOrderId] FROM dbo.SalesOrderBillingInvoicing WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SObillingInvoicingId;
+	SELECT @SalesOrderId = [ReferenceId] FROM dbo.BillingInvoicing WITH(NOLOCK) WHERE [BillingInvoicingId] = @SObillingInvoicingId;
 	DECLARE @moduleId BIGINT;
 	SET @moduleId = (SELECT ModuleId FROM dbo.module WHERE CodePrefix = 'SO');
+
+	DECLARE @SOModuleId INT
+	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
 	SELECT TOP 1 
 			1 AS ItemNo,
 			bi.InvoiceTypeId,
-			bi.SalesOrderId,
+			bi.ReferenceId SalesOrderId,
 			so.CustomerId,
 			cust.Name AS ClientName,
 			cust.Email AS CustEmail,
@@ -65,61 +69,69 @@ BEGIN
 			saos.ShipToState AS ShipToState,
 			saos.ShipToZip AS ShipToPostalCode,
 			shipToCountry.countries_name AS ShipToCountry,
-			bi.ShipToCustomerId,
-			bi.ShipToSiteId,
-			CASE WHEN bi.ShipToUserType = @Customer THEN shipToSites.SiteName
-				 WHEN bi.ShipToUserType = @Vendor THEN shipToSiteVendor.SiteName
-				 WHEN bi.ShipToUserType = @Company THEN shipToSiteCompany.SiteName
-				 ELSE ''
-			END AS ShipToSiteName,
+			bid.ShipToCustomerId,
+			bid.ShipToSiteId,
+			--CASE WHEN bi.ShipToUserType = @Customer THEN shipToSites.SiteName
+			--	 WHEN bi.ShipToUserType = @Vendor THEN shipToSiteVendor.SiteName
+			--	 WHEN bi.ShipToUserType = @Company THEN shipToSiteCompany.SiteName
+			--	 ELSE ''
+			--END AS ShipToSiteName,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToSite.SiteName
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToSiteVendor.SiteName
+			--	 WHEN bi.BillToUserType = @Company THEN billToSiteCompany.SiteName
+			--	 ELSE ''
+			--END AS BillToSiteName,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.Line1
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.Line1
+			--	 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.Line1
+			--	 ELSE ''
+			--END AS BillToAddressLine1,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.Line2
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.Line2
+			--	 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.Line2
+			--	 ELSE ''
+			--END AS BillToAddressLine2,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.City
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.City
+			--	 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.City
+			--	 ELSE ''
+			--END AS BillToCity,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.StateOrProvince
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.StateOrProvince
+			--	 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.StateOrProvince
+			--	 ELSE ''
+			--END AS BillToState,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.PostalCode
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.PostalCode
+			--	 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.PostalCode
+			--	 ELSE ''
+			--END AS BillToPostalCode,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToCountry.countries_name
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToCountryVendor.countries_name
+			--	 WHEN bi.BillToUserType = @Company THEN billToCountryCompany.countries_name
+			--	 ELSE ''
+			--END AS BillToCountry,
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToCustomer.[Name]
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToVendor.VendorName
+			--	 WHEN bi.BillToUserType = @Company THEN billToCompany.CompanyName
+			--	 ELSE ''
+			--END AS BillToNameOfCustomer,
 
-			CASE WHEN bi.BillToUserType = @Customer THEN billToSite.SiteName
-				 WHEN bi.BillToUserType = @Vendor THEN billToSiteVendor.SiteName
-				 WHEN bi.BillToUserType = @Company THEN billToSiteCompany.SiteName
-				 ELSE ''
-			END AS BillToSiteName,
-			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.Line1
-				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.Line1
-				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.Line1
-				 ELSE ''
-			END AS BillToAddressLine1,
-			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.Line2
-				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.Line2
-				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.Line2
-				 ELSE ''
-			END AS BillToAddressLine2,
-			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.City
-				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.City
-				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.City
-				 ELSE ''
-			END AS BillToCity,
-			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.StateOrProvince
-				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.StateOrProvince
-				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.StateOrProvince
-				 ELSE ''
-			END AS BillToState,
-			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.PostalCode
-				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.PostalCode
-				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.PostalCode
-				 ELSE ''
-			END AS BillToPostalCode,
-			CASE WHEN bi.BillToUserType = @Customer THEN billToCountry.countries_name
-				 WHEN bi.BillToUserType = @Vendor THEN billToCountryVendor.countries_name
-				 WHEN bi.BillToUserType = @Company THEN billToCountryCompany.countries_name
-				 ELSE ''
-			END AS BillToCountry,
-
-			CASE WHEN bi.BillToUserType = @Customer THEN billToCustomer.[Name]
-				 WHEN bi.BillToUserType = @Vendor THEN billToVendor.VendorName
-				 WHEN bi.BillToUserType = @Company THEN billToCompany.CompanyName
-				 ELSE ''
-			END AS BillToNameOfCustomer,
-
-			CASE WHEN bi.BillToUserType = @Customer THEN billToCustomer.Email
-				 WHEN bi.BillToUserType = @Vendor THEN billToVendor.VendorEmail
-				 WHEN bi.BillToUserType = @Company THEN ''
-				 ELSE ''
-			END AS BillToCustomerEmail,	   
+			--CASE WHEN bi.BillToUserType = @Customer THEN billToCustomer.Email
+			--	 WHEN bi.BillToUserType = @Vendor THEN billToVendor.VendorEmail
+			--	 WHEN bi.BillToUserType = @Company THEN ''
+			--	 ELSE ''
+			--END AS BillToCustomerEmail,
+			shipToSites.SiteName ShipToSiteName,
+			billToSite.SiteName BillToSiteName,
+			billToAddress.Line1 BillToAddressLine1,
+			billToAddress.Line2 BillToAddressLine2,
+			billToAddress.City BillToCity,
+			billToAddress.StateOrProvince BillToState,
+			billToAddress.PostalCode BillToPostalCode,
+			billToCountry.countries_name BillToCountry,
+			billToCustomer.[Name] BillToNameOfCustomer,
+			billToCustomer.Email BillToCustomerEmail,	
 			bi.InvoiceNo AS InvoiceNumber,
 			ISNULL(CONVERT(VARCHAR(19), bi.InvoiceDate, 121),'') AS DateAndTime,
 			ISNULL(CONVERT(VARCHAR,saos.NoOfContainer), '0') AS NoOfContainers,
@@ -149,8 +161,8 @@ BEGIN
 			END AS DueDate,
 			bi.InvoiceDate AS NewDateAndTime,
 			bi.InvoiceDate AS NewDueDate,
-			bi.ShipToUserType,
-			bi.BillToUserType,
+			'' ShipToUserType,
+			'' BillToUserType,
 			ShippingTerms = posv.ShippingTerms,
 			FunctionalCurrency = scur.Code,
 			SignEmpName = ISNULL(emps.FirstName,'') + ' ' + ISNULL(emps.LastName,''),
@@ -159,15 +171,16 @@ BEGIN
 			OriginCountry = originco.countries_name,
 			BillShipToCountry = shipingco.countries_name,
 			--HSECCN = sabi.HSECCN,
-			ECCN = ISNULL(sabi.ECCN,''),
-			HSCODE = ISNULL(sabi.HSCODE,''),
-			BillWeight = ISNULL(sabi.[Weight],0),
-			BillSizeLength = ISNULL(sabi.SizeLength,0),
-			BillSizeWidth = ISNULL(sabi.SizeWidth,0),
-			BillSizeHeight = ISNULL(sabi.SizeHeight,0)
-		FROM [dbo].[SalesOrderBillingInvoicing] bi WITH(NOLOCK)
-		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.SalesOrderId = so.SalesOrderId
+			ECCN = '', --ISNULL(sabi.ECCN,''),
+			HSCODE = '', --ISNULL(sabi.HSCODE,''),
+			BillWeight = 0, --ISNULL(sabi.[Weight],0),
+			BillSizeLength = 0, --ISNULL(sabi.SizeLength,0),
+			BillSizeWidth = 0,---ISNULL(sabi.SizeWidth,0),
+			BillSizeHeight = 0--ISNULL(sabi.SizeHeight,0)
+		FROM [dbo].[BillingInvoicing] bi WITH(NOLOCK)
+		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.ReferenceId = so.SalesOrderId
 		 LEFT JOIN  [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		 LEFT JOIN  [dbo].[BillingInvoicingDetails] bid WITH(NOLOCK) ON bid.BillingInvoicingId = bi.BillingInvoicingId AND bi.[ModuleId] = @SOModuleId
 		 LEFT JOIN  [dbo].[SalesOrderStocklineV1] sov WITH(NOLOCK) ON sop.SalesOrderPartId = sov.SalesOrderPartId
 		 LEFT JOIN  [dbo].[Customer] cust WITH(NOLOCK) ON bi.CustomerId = cust.CustomerId
 		 LEFT JOIN  [dbo].[Address] custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId
@@ -178,16 +191,16 @@ BEGIN
 		 LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 		 LEFT JOIN  [dbo].[Employee] emps WITH(NOLOCK) ON bi.SignEmpId = emps.EmployeeId
 		 LEFT JOIN	[dbo].[JobTitle] jt WITH(NOLOCK) ON emps.JobTitleId = jt.JobTitleId
-		 LEFT JOIN  [dbo].[Customer] soldToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId = soldToCustomer.CustomerId
-		 LEFT JOIN  [dbo].[CustomerDomensticShipping] shipToSites WITH(NOLOCK) ON bi.ShipToSiteId = shipToSites.CustomerDomensticShippingId AND bi.ShipToUserType = @Customer
-		 LEFT JOIN  [dbo].[VendorShippingAddress] shipToSiteVendor WITH(NOLOCK) ON bi.ShipToSiteId = shipToSiteVendor.VendorShippingAddressId AND bi.ShipToUserType = @Vendor
-		 LEFT JOIN  [dbo].[LegalEntityShippingAddress] shipToSiteCompany WITH(NOLOCK) ON bi.ShipToSiteId = shipToSiteCompany.LegalEntityShippingAddressId AND bi.ShipToUserType = @Company
-		 LEFT JOIN  [dbo].[Customer] billToCustomer WITH(NOLOCK) ON bi.BillToCustomerId = billToCustomer.CustomerId
-		 LEFT JOIN  [dbo].[Vendor] AS billToVendor WITH(NOLOCK) ON bi.BillToCustomerId = billToVendor.VendorId
-		 LEFT JOIN  [dbo].[LegalEntity] AS billToCompany WITH(NOLOCK) ON bi.BillToCustomerId = billToCompany.LegalEntityId
-		 LEFT JOIN  [dbo].[CustomerBillingAddress] AS billToSite WITH(NOLOCK) ON bi.BillToSiteId = billToSite.CustomerBillingAddressId
-		 LEFT JOIN  [dbo].[VendorBillingAddress] AS billToSiteVendor WITH(NOLOCK) ON bi.BillToSiteId = billToSiteVendor.VendorBillingAddressId
-		 LEFT JOIN  [dbo].[LegalEntityBillingAddress] AS billToSiteCompany WITH(NOLOCK) ON bi.BillToSiteId = billToSiteCompany.LegalEntityBillingAddressId
+		 LEFT JOIN  [dbo].[Customer] soldToCustomer WITH(NOLOCK) ON bid.SoldToCustomerId = soldToCustomer.CustomerId
+		 LEFT JOIN  [dbo].[CustomerDomensticShipping] shipToSites WITH(NOLOCK) ON bid.ShipToSiteId = shipToSites.CustomerDomensticShippingId --AND bid.ShipToUserType = @Customer
+		 LEFT JOIN  [dbo].[VendorShippingAddress] shipToSiteVendor WITH(NOLOCK) ON bid.ShipToSiteId = shipToSiteVendor.VendorShippingAddressId --AND bid.ShipToUserType = @Vendor
+		 LEFT JOIN  [dbo].[LegalEntityShippingAddress] shipToSiteCompany WITH(NOLOCK) ON bid.ShipToSiteId = shipToSiteCompany.LegalEntityShippingAddressId --AND bid.ShipToUserType = @Company
+		 LEFT JOIN  [dbo].[Customer] billToCustomer WITH(NOLOCK) ON bid.SoldToCustomerId = billToCustomer.CustomerId
+		 LEFT JOIN  [dbo].[Vendor] AS billToVendor WITH(NOLOCK) ON bid.SoldToCustomerId = billToVendor.VendorId
+		 LEFT JOIN  [dbo].[LegalEntity] AS billToCompany WITH(NOLOCK) ON bid.SoldToCustomerId = billToCompany.LegalEntityId
+		 LEFT JOIN  [dbo].[CustomerBillingAddress] AS billToSite WITH(NOLOCK) ON bid.SoldToSiteId = billToSite.CustomerBillingAddressId
+		 LEFT JOIN  [dbo].[VendorBillingAddress] AS billToSiteVendor WITH(NOLOCK) ON bid.SoldToSiteId = billToSiteVendor.VendorBillingAddressId
+		 LEFT JOIN  [dbo].[LegalEntityBillingAddress] AS billToSiteCompany WITH(NOLOCK) ON bid.SoldToSiteId = billToSiteCompany.LegalEntityBillingAddressId
 		 LEFT JOIN  [dbo].[Address] AS billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 		 LEFT JOIN  [dbo].[Address] AS billToAddressVendor WITH(NOLOCK) ON billToSiteVendor.AddressId = billToAddressVendor.AddressId
 		 LEFT JOIN  [dbo].[Address] AS billToAddressCompany WITH(NOLOCK) ON billToSiteCompany.AddressId = billToAddressCompany.AddressId
@@ -202,14 +215,14 @@ BEGIN
 		 LEFT JOIN  [dbo].[Currency] AS scur WITH(NOLOCK) ON so.FunctionalCurrencyId = scur.CurrencyId
 		 --LEFT JOIN  [dbo].[CreditTerms] AS ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sov.StockLineId = sl.StockLineId
-		 LEFT JOIN  [dbo].[SalesOrderBillingInvoicingItem] AS sabi WITH(NOLOCK) ON bi.SOBillingInvoicingId = sabi.SOBillingInvoicingId
-		 LEFT JOIN  [dbo].[SalesOrderShipping] AS saos WITH(NOLOCK) ON sabi.SalesOrderShippingId = saos.SalesOrderShippingId AND saos.SalesOrderId = @SalesOrderId
+		 LEFT JOIN  [dbo].[BillingInvoicingItems] AS sabi WITH(NOLOCK) ON bi.BillingInvoicingId = sabi.BillingInvoicingId
+		 LEFT JOIN  [dbo].[SalesOrderShipping] AS saos WITH(NOLOCK) ON sabi.ShippingId = saos.SalesOrderShippingId AND saos.SalesOrderId = @SalesOrderId
 		 LEFT JOIN  [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON saos.ShipviaId = sipVia.ShippingViaId
 		 LEFT JOIN  [dbo].[Countries] AS shipToCountry WITH(NOLOCK) ON saos.ShipToCountryId = shipToCountry.countries_id
 		 LEFT JOIN  [dbo].[PurchaseOrder] AS po WITH(NOLOCK) ON sl.PurchaseOrderId = po.PurchaseOrderId
 		 LEFT JOIN  [dbo].[RepairOrder] AS ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId
 		 LEFT JOIN  [dbo].AllShipVia posv WITH(NOLOCK) ON so.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @moduleId
-		 WHERE bi.SOBillingInvoicingId = @SOBillingInvoicingId AND bi.IsActive = 1 AND bi.IsDeleted = 0;
+		 WHERE bi.BillingInvoicingId = @SOBillingInvoicingId AND bi.[ModuleId] = @SOModuleId AND bi.IsActive = 1 AND bi.IsDeleted = 0;
 
  END TRY      
  BEGIN CATCH        

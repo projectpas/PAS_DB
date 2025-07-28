@@ -24,8 +24,8 @@
 	12   12/04-05/2024   AMIT GHEDIYA	   Create RMA/CM from SO : UnitPrice & Amount wrong issue.
 	13   01/02/2025   Abhishek Jirawla	Updating the part cost
 	14   14/04/2025   Devendra Shekh	removed duplicate AltPartNumber field for WOInv Select
-	15	 06-June-2025 AMIT GHEDIYA		Get WO/SO Billing data from new table.
-
+	16   07/04/2025   Moin Bloch        Changed Old To New Billing Tables
+	17   07-07-2025   Moin Bloch        Changed Old To New Billing Table
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_GetCustomerRMAPartsDetails]
@@ -118,6 +118,11 @@ BEGIN
 			 DECLARE @workOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder');
 			 DECLARE @salesOrderModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
 
+			 DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
+
+			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
+			SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 			IF(@Ispopup =1)
 			BEGIN
 				IF(@InvoiceTypeId = @SOInvoiceTypeId)
@@ -162,7 +167,7 @@ BEGIN
 						IM.ManufacturerName,
 						AltPartNumber=(  
 						 Select top 1  
-						A.PartNumber [AltPartNumberType] from [dbo].[SalesOrderBillingInvoicingItem] SOBIIA WITH (NOLOCK) 
+						A.PartNumber [AltPartNumberType] from [dbo].[BillingInvoicingItems] SOBIIA WITH (NOLOCK) 
 						OUTER APPLY(  
 						 SELECT   
 							STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 THEN ',' ELSE '' END + AI.partnumber  
@@ -173,12 +178,12 @@ BEGIN
 							 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 							 FOR XML PATH('')), 1, 1, '') PartNumber  
 						) A  
-						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.BillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
+						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.BillingInvoicingId =SOBII.BillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsPerformaInvoice,0) = 0
 						GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 						) 
 						,@SOInvoiceTypeId AS InvoiceTypeId
 					FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)
-						LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
+						LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0 AND SOBI.[ModuleId] =@SOModuleId
 						LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.ReferenceId AND SOPN.SalesOrderPartId = SOBII.SubReferenceId
 						LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId AND SOBII.StockLineId = STK.StockLineId
 						LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
@@ -319,7 +324,7 @@ BEGIN
 						IM.ManufacturerName,
 						AltPartNumber=(  
 						 SELECT TOP 1  
-						A.PartNumber [AltPartNumberType] from [dbo].[WorkOrderBillingInvoicingItem] WOBIIA WITH (NOLOCK) 
+						A.PartNumber [AltPartNumberType] from [dbo].[BillingInvoicingItems] WOBIIA WITH (NOLOCK) 
 						Outer Apply(  
 						 SELECT   
 							STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 then ',' ELSE '' END + AI.partnumber  
@@ -330,12 +335,12 @@ BEGIN
 							 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 							 FOR XML PATH('')), 1, 1, '') PartNumber  
 						) A  
-						WHERE WOBIIA.MasterCompanyId=WOBII.MasterCompanyId and WOBIIA.ItemMasterId = WOBII.ItemMasterId  and WOBIIA.BillingInvoicingId = WOBII.BillingInvoicingId AND ISNULL(WOBII.IsDeleted,0)=0
+						WHERE WOBIIA.MasterCompanyId=WOBII.MasterCompanyId AND WOBIIA.[ModuleId] =@WOModuleId and WOBIIA.ItemMasterId = WOBII.ItemMasterId  and WOBIIA.BillingInvoicingId = WOBII.BillingInvoicingId AND ISNULL(WOBII.IsDeleted,0)=0
 						GROUP BY WOBIIA.ItemMasterId, A.PartNumber  
 						) 
 						,@WOInvoiceTypeId AS InvoiceTypeId
 					FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK)
-						LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+						LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND WOBI.[ModuleId] =@WOModuleId
 						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId
 						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOMPN.WOPartNoId
 						LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId

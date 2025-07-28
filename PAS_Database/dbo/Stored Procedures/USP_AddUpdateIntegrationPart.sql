@@ -12,6 +12,9 @@
  ** PR   Date         Author		Change Description            
  ** --   ----------  -----------	--------------------------------          
     1    23/01/2024  Rajesh Gami	Created
+	2    23-07-2025  Amit Ghediya   MOdify for get RFQ part is in our inventory or not (ItemMasterId)
+	3    23-07-2025  Devendra Shekh	Modify to get customerId and address Details
+	4	 25-07-2025  Devendra Shekh	added IsMRO Field
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
@@ -39,7 +42,14 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
 	@Distance varchar(50) = NULL,
 	@ExchangeOption varchar(50) = NULL,	
 	@MasterCompanyId int,
-	@UserName varchar(256)
+	@UserName varchar(256),
+	@AddressLine1 varchar(100) = '',
+	@AddressLine2 varchar(100) = '',
+	@City varchar(50) = '',
+	@State varchar(50) = '',
+	@PostalCode varchar(50) = '',
+	@Country varchar(100) = '',
+	@IsMRO bit = null
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -89,7 +99,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							   ,[CreatedDate]
 							   ,[UpdatedDate]
 							   ,[IsDeleted]
-							   ,[IsActive])
+							   ,[IsActive]
+							   ,[AddressLine1]
+							   ,[AddressLine2]
+							   ,[City]
+							   ,[State]
+							   ,[PostalCode]
+							   ,[Country]
+							   ,[IsMRO]
+							   )
 							 VALUES
 								   (@PartNumber,
 								   @PartDescription,
@@ -104,7 +122,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   GETUTCDATE(),
 								   GETUTCDATE(),
 								   0,
-								   1 )
+								   1,
+								   @AddressLine1,
+								   @AddressLine2,
+								   @City,
+								   @State,
+								   @PostalCode,
+								   @Country,
+								   @IsMRO
+								   )
 						SET @LatestId = SCOPE_IDENTITY();
 
 						INSERT INTO #tempTableIntegration(ID)Values(@LatestId)
@@ -180,7 +206,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   ,[CreatedDate]
 								   ,[UpdatedDate]
 								   ,[IsDeleted]
-								   ,[IsActive])
+								   ,[IsActive]
+								   ,[AddressLine1]
+								   ,[AddressLine2]
+								   ,[City]
+								   ,[State]
+								   ,[PostalCode]
+								   ,[Country]
+								   ,[IsMRO]
+								   )
 								 VALUES
 									   (@PartNumber,
 									   @PartDescription,
@@ -195,7 +229,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 									   GETUTCDATE(),
 									   GETUTCDATE(),
 									   0,
-									   1 )
+									   1,
+									   @AddressLine1,
+								       @AddressLine2,
+									   @City,
+									   @State,
+									   @PostalCode,
+									   @Country,
+									   @IsMRO
+									   )
 							SET @LatestId = SCOPE_IDENTITY();
 							INSERT INTO #tempTableIntegration(ID)Values(@LatestId)
 
@@ -271,10 +313,23 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						ofc.TestPrice,
 						ofc.TestTAT,
 						ofc.WebLink,
-						ofc.[Location] AS Location
+						ofc.[Location] AS Location,
+						(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+						(CASE WHEN LOWER(TRIM(ILS.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) ChildItemMasterId,
+						IM.AddressLine1,
+						IM.AddressLine2,
+						IM.City,
+						IM.State,
+						IM.PostalCode,
+						IM.Country,
+						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId,
+						IM.IsMRO
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					LEFT JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
+					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
 				
@@ -305,7 +360,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							   ,[CreatedDate]
 							   ,[UpdatedDate]
 							   ,[IsDeleted]
-							   ,[IsActive])
+							   ,[IsActive]
+							   ,[AddressLine1]
+							   ,[AddressLine2]
+							   ,[City]
+							   ,[State]
+							   ,[PostalCode]
+							   ,[Country]
+							   ,[IsMRO]
+							   )
 							 VALUES
 								   (@PartNumber,
 								   @PartDescription,
@@ -320,7 +383,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   GETUTCDATE(),
 								   GETUTCDATE(),
 								   0,
-								   1 )
+								   1,
+								   @AddressLine1,
+								   @AddressLine2,
+								   @City,
+								   @State,
+								   @PostalCode,
+								   @Country,
+								   @IsMRO
+								   )
 						SET @LatestId = SCOPE_IDENTITY();
 
 						INSERT INTO #tempTableIntegration(ID)Values(@LatestId)
@@ -389,21 +460,42 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						ofc.[Location] AS Location,
 						im.MasterCompanyId,
 						im.UpdatedBy,
-						im.UpdatedDate
+						im.UpdatedDate,
+						(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+						0 ChildItemMasterId,
+						IM.AddressLine1,
+						IM.AddressLine2,
+						IM.City,
+						IM.State,
+						IM.PostalCode,
+						IM.Country,
+						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId,
+						IM.IsMRO
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
+					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
 			END   /**** End:  145 Integration ******/
 			ELSE IF(UPPER(@PortalType) = UPPER(@ILSName)) /**** Start:  ILS Integration ******/
 			BEGIN
 						SET @ExistOtherConCount = (SELECT COUNT(1) FROM DBO.ILSChildPartDetail WITH(NOLOCK) WHERE  IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition != @Condition AND MasterCompanyId = @MasterCompanyId)) 
-						DELETE FROM DBO.ILSChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition = @Condition AND MasterCompanyId = @MasterCompanyId)
+						--For MRO without Condition.
+						IF(@IsMRO > 0)
+						BEGIN 
+							 DELETE FROM DBO.ILSChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO)
+						END
+						ELSE
+						BEGIN 
+							 DELETE FROM DBO.ILSChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition = @Condition AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO)
+						END	
+						
 						PRINT @ExistOtherConCount
 						IF(@ExistOtherConCount = 0)
-						BEGIN
-							DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId
-
+						BEGIN 
+							DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO
+							
 							/******* Insert into IntegrationMaster Table ********/
 							INSERT INTO [dbo].[IntegrationMaster]
 								   ([PartNumber]
@@ -419,7 +511,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 								   ,[CreatedDate]
 								   ,[UpdatedDate]
 								   ,[IsDeleted]
-								   ,[IsActive])
+								   ,[IsActive]
+								   ,[AddressLine1]
+								   ,[AddressLine2]
+								   ,[City]
+								   ,[State]
+								   ,[PostalCode]
+								   ,[Country]
+								   ,[IsMRO]
+								   )
 								 VALUES
 									   (@PartNumber,
 									   @PartDescription,
@@ -434,15 +534,23 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 									   GETUTCDATE(),
 									   GETUTCDATE(),
 									   0,
-									   1 )
+									   1,
+									   @AddressLine1,
+									   @AddressLine2,
+									   @City,
+									   @State,
+									   @PostalCode,
+									   @Country,
+									   @IsMRO
+									   )
 							SET @LatestId = SCOPE_IDENTITY();
 							INSERT INTO #tempTableIntegration(ID)Values(@LatestId)
 
 						END
 						IF(@ExistOtherConCount > 0)
 						BEGIN
-							SET @IntegrationMasterId =  ISNULL((SELECT TOP 1 IntegrationMasterId FROM DBO.ILSChildPartDetail WITH(NOLOCK) WHERE  IntegrationMasterId = (SELECT TOP 1 IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition != @Condition AND MasterCompanyId = @MasterCompanyId)),0);
-							UPDATE DBO.IntegrationMaster SET RepairStation = @RepairStation, IsRepair =  (CASE WHEN ISNULL(@RepairStation,'') = '' THEN 0 ELSE 1 END), PhoneNumber = @PhoneNumber, UpdatedBy = @UserName, UpdatedDate = GETUTCDATE() WHERE IntegrationMasterId = @IntegrationMasterId; 
+							SET @IntegrationMasterId =  ISNULL((SELECT TOP 1 IntegrationMasterId FROM DBO.ILSChildPartDetail WITH(NOLOCK) WHERE  IntegrationMasterId = (SELECT TOP 1 IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND Condition != @Condition AND MasterCompanyId = @MasterCompanyId AND IsMRO = @IsMRO)),0);
+							UPDATE DBO.IntegrationMaster SET RepairStation = @RepairStation, IsRepair =  (CASE WHEN ISNULL(@RepairStation,'') = '' THEN 0 ELSE 1 END), PhoneNumber = @PhoneNumber, UpdatedBy = @UserName, UpdatedDate = GETUTCDATE() WHERE IntegrationMasterId = @IntegrationMasterId AND IsMRO = @IsMRO; 
 							INSERT INTO #tempTableIntegration(ID)Values(@IntegrationMasterId)
 							SET @LatestId = @IntegrationMasterId;
 						END
@@ -497,10 +605,23 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						ils.ExchangeOption,
 						im.MasterCompanyId,
 						im.UpdatedBy,
-						im.UpdatedDate
+						im.UpdatedDate,
+						(CASE WHEN LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(IMS.[partnumber])) THEN IMS.[ItemMasterId] ELSE 0 END) ItemMasterId,
+						(CASE WHEN LOWER(TRIM(ILS.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) ChildItemMasterId,
+						IM.AddressLine1,
+						IM.AddressLine2,
+						IM.City,
+						IM.State,
+						IM.PostalCode,
+						IM.Country,
+						(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(IM.RepairStation)) THEN CU.CustomerId ELSE 0 END) CustomerId,
+						IM.IsMRO
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
-					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
+					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
+					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration) AND IsMRO = @IsMRO
 				END  /**** End:  ILS Integration ******/
 			END	 /** END ELSE : @IntegrationPortalId IS NULL OR @IntegrationPortalId = 0**/	
 			

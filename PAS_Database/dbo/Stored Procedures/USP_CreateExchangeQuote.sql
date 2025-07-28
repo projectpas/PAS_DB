@@ -19,21 +19,21 @@
 exec [dbo].[USP_CreateExchangeQuote] @CustomerReference=N'',@OpenDate='2025-07-23 00:00:00',@QuoteExpireDate='2025-08-22 00:00:00',
 @PriorityId=3,@StatusId=1,@StatusChangeDate='2025-07-23 16:50:33.567',@CustomerId=77,@SalesPersonId=5,@CreatedBy=N'roza diaz',
 @MasterCompanyId=1,@ManagementStructureId=1,@EmployeeId=237,@ValidForDays=30,@CustomerServiceRepId=5,@Memo=N'',@Notes=N'',
-@ContractReference=N'',@FunctionalCurrencyId=1,@ReportCurrencyId=1,@ForeignExchangeRate=1.000000
+@ContractReference=N'',@FunctionalCurrencyId=1,@ReportCurrencyId=1,@ForeignExchangeRate=1.000000,@TypeId = 1 
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuote]
 	@CustomerReference VARCHAR(100),
-    	@OpenDate DATETIME,
-    	@QuoteExpireDate DATETIME,
+    @OpenDate DATETIME,
+    @QuoteExpireDate DATETIME,
 	@PriorityId INT,
 	@StatusId INT,
 	@StatusChangeDate DATETIME,
 	@CustomerId BIGINT,
 	@SalesPersonId BIGINT,
-    	@CreatedBy VARCHAR(256),
-    	@MasterCompanyId INT,
-    	@ManagementStructureId BIGINT,
+    @CreatedBy VARCHAR(256),
+    @MasterCompanyId INT,
+    @ManagementStructureId BIGINT,
 	@EmployeeId BIGINT,
 	@ValidForDays INT,
 	@CustomerServiceRepId BIGINT,
@@ -42,20 +42,22 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuote]
 	@ContractReference VARCHAR(100),
 	@FunctionalCurrencyId INT,
 	@ReportCurrencyId INT,
-	@ForeignExchangeRate DECIMAL(18,2)
+	@ForeignExchangeRate DECIMAL(18,2),
+	@TypeId INT
 AS	
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
 
-		DECLARE @ExchangeTypeId INT,@ExchangeType VARCHAR(50);
+		DECLARE @ExchangeType VARCHAR(50);
 		DECLARE @ExchangeQuotePrefix INT; 
 		DECLARE @CurrentNumber BIGINT;
 		DECLARE @ExchangeQuoteId BIGINT;
 
-		SELECT @ExchangeTypeId = [Id], @ExchangeType = [Name]
-		FROM [dbo].[ExchangeType] WITH(NOLOCK) WHERE [Name] = 'Exchange';
+
+		SELECT @ExchangeType = [Name]
+		FROM [dbo].[ExchangeType] WITH(NOLOCK) WHERE [Id] = @TypeId;
 
 		SELECT TOP 1 @ExchangeQuotePrefix = CodeTypeId FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'Exchange Quote';
 		PRINT @ExchangeQuotePrefix;
@@ -243,7 +245,7 @@ BEGIN
         )
         VALUES
         (
-			@ExchangeTypeId,
+			@TypeId,
 			@ExchangeType,
 			@ExchangeQuoteNumber,
 			@CustomerReference,

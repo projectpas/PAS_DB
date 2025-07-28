@@ -19,6 +19,7 @@
 	3	10/22/2024  AMIT GHEDIYA		Updated old table with new table.
 	4   11/13/2014  Abhishek Jirawla    Resolved error after adding new table details
     5	28/02/2025	Ayushi Patel		Cast openDate as a Date
+    6	25/07/2025	Ekta Chandegra		Add IsConvertedToSalesOrder false instead add from SalesOrderQuotePartV1 table 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DuplicateSalesOrderQuote]
 	@SalesOrderQuoteId BIGINT,
@@ -193,7 +194,7 @@ BEGIN
 						  [CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
 				   SELECT @NewID,[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],
 						  [CurrencyId],[PriorityId],@PartOpenStatus,[FxRate],[CustomerRequestDate],
-						  [PromisedDate],[EstimatedShipDate],[IsConvertedToSalesOrder],[IsNoQuote],[IsLotAssigned],
+						  [PromisedDate],[EstimatedShipDate],0,0,[IsLotAssigned],
 						  [LotId],[Notes],[SalesPriceExpiryDate],[MasterCompanyId],@Username,
 						  GETUTCDATE(),@Username,GETUTCDATE(),[IsActive],[IsDeleted]
 					  FROM [dbo].[SalesOrderQuotePartV1] WITH(NOLOCK)

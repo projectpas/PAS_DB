@@ -15,6 +15,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 4    02/05/2025  Hemant Saliya        Commented By Hemnat to Handle MTI Issue will work Later 05-02-2005
 ** 5	04/24/2025	Devendra Shekh		 Modify (Added [IsManualText] check for DistributionSetup)
 ** 6    03-07-2025  Moin Bloch           Changed Old To New Billing Table
+** 7    28-07-2025  Moin Bloch           Modify Fix For After Reopen CLOSED WO not able to create billing
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
@@ -172,7 +173,8 @@ AS
 					--WHERE BillingInvoicingId = @BillingInvoicingId
 
 					UPDATE dbo.BillingInvoicing SET 
-						InvoiceStatus = 'Pending', 
+						InvoiceStatus = 'Pending',
+						InvoiceStatusId = (SELECT [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Billed'),
 						InvoiceFilePath = '', 						
 						WorkOrderShippingId = Null,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						

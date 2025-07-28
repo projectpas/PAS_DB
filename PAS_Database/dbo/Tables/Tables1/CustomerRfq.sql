@@ -25,6 +25,7 @@
     [IsActive]            BIT           CONSTRAINT [DF_CustomerRfqIsActi_59FA5E80] DEFAULT ((1)) NOT NULL,
     [IsDeleted]           BIT           CONSTRAINT [DF_CustomerRfqIsDele_5AEE82B9] DEFAULT ((0)) NOT NULL,
     [IsQuote]             INT           NULL,
+    [IsMRO]               BIT           DEFAULT ((0)) NULL,
     CONSTRAINT [PK_CustomerRfq] PRIMARY KEY CLUSTERED ([CustomerRfqId] ASC),
     CONSTRAINT [FK_CustomerRfq_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

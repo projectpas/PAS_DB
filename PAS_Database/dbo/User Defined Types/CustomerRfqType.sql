@@ -15,9 +15,6 @@
     [LineDescription]     VARCHAR (250) NULL,
     [AltPartNumber]       VARCHAR (250) NULL,
     [Quantity]            INT           NULL,
-    [Condition]           VARCHAR (50)  NULL);
-
-
-
-
+    [Condition]           VARCHAR (50)  NULL,
+    [IsMRO]               BIT           NULL);
 

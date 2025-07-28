@@ -21,6 +21,7 @@
     [State]               VARCHAR (50)   NULL,
     [PostalCode]          VARCHAR (20)   NULL,
     [Country]             VARCHAR (100)  NULL,
+    [IsMRO]               BIT            DEFAULT ((0)) NULL,
     CONSTRAINT [PK_IntegrationMaster] PRIMARY KEY CLUSTERED ([IntegrationMasterId] ASC)
 );
 

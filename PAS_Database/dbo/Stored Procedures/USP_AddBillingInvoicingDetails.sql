@@ -23,11 +23,12 @@
 	10   30/06/2025   Rajesh Gami    Fixed to version increase issue 
 	11   02/07/2025   Rajesh Gami    Added Commercial InvoiceType Fields and Implement the functionality accordinlgy in the SO billing 
 	12   02/07/2025   Moin Bloch     Added DepositAmount
-	13    03 JUL 2025   RAJESH GAMI  Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
+	13   03 JUL 2025  RAJESH GAMI	 Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
+	14   28/07/2025   RAJESH GAMI     Implement the Update Revenue while generating the invoice(Update SO Stockline Cost)
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
-CREATE   PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
+CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
 -------------------------------------------BillingInvoicing-------------------------------------------
 @BillingInvoicingId BIGINT = NULL,  
 @ModuleId INT = NULL,
@@ -100,7 +101,8 @@ BEGIN
 	DECLARE @BilledInvoiceStatus VARCHAR(50), @InvoiceCodeTypeId INT,@ProformaInvoiceCodeTypeId INT,@VerCode INT
 	DECLARE @CurrentNo INT = 0, @TemplateBody VARCHAR(MAX)='',@PartNumber VARCHAR(50)='', @BillingInvoicingIdNew BIGINT = 0
 	DECLARE @RemainingAmount DECIMAL(18,2) = 0,@CustomerId BIGINT
-	
+	DECLARE @UnitSalePrice DECIMAL(18,2) = 0,@MarkUpPercentage  DECIMAL(18,2) = 0,@DiscountPercentage DECIMAL(18,2) = 0,@MarkUpAmount DECIMAL(18,2) = 0,@DiscountAmount DECIMAL(18,2) = 0,@PartQty INT = 0;
+	DECLARE @StocklineId BIGINT = 0, @SOStocklineId BIGINT = 0,@NetSalePrice DECIMAL(18,2) = 0, @SOStockLineCostId BIGINT = 0 , @QtyOrder INT = 0 , @NetSalePriceExtended  BIGINT = 0,@ChargesAmount AS DECIMAL(18, 4);
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
@@ -303,7 +305,12 @@ BEGIN
 			[UpdatedDate] [DATETIME2](7) NULL,
 			[IsActive] [BIT] NULL,
 			[IsDeleted] [BIT] NULL,
-			[ShippingId] [bigint] NULL
+			[ShippingId] [bigint] NULL,
+			[UnitSalePrice] [decimal](18, 2) NULL,
+			[MarkUpPercentage] [decimal](18, 2) NULL,
+			[DiscountPercentage] [decimal](18, 2) NULL,
+			[MarkUpAmount] [decimal](18, 2) NULL,
+			[DiscountAmount] [decimal](18, 2) NULL
 		)
 
 		SET @SubTotal = 0;
@@ -348,7 +355,8 @@ BEGIN
 					[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 					[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 					[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],
-					[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[ShippingId])
+					[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[ShippingId],
+					[UnitSalePrice],[MarkUpPercentage],[DiscountPercentage],[MarkUpAmount],[DiscountAmount])
 			SELECT  [BillingInvoicingItemId],[BillingInvoicingId],@ModuleId,[ReferenceId],[SubModuleId],
 					[SubReferenceId],[ItemMasterId],[StocklineId],[ConditionId],[CostPlusType],[UnitPrice],CASE WHEN  ISNULL([QtyBilled],0) = 0 THEN 1 ELSE [QtyBilled] END,
 					[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
@@ -356,7 +364,8 @@ BEGIN
 					[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 					[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 					[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],
-					[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],[ShippingId]
+					[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],[ShippingId],
+					[UnitSalePrice],[MarkUpPercentage],[DiscountPercentage],[MarkUpAmount],[DiscountAmount]
 			   FROM @tbl_BillingInvoicingItemsType
 
 		UPDATE #tmprAddBillingInvoicingDetailsTemp SET [SubModuleId] = @SOPartModuleId WHERE [ModuleId] = @SOModuleId;
@@ -371,7 +380,15 @@ BEGIN
 			 SELECT @BillingInvoicingId = ISNULL([BillingInvoicingId],0),
 			        @BillingInvoicingItemId = ISNULL([BillingInvoicingItemId],0),
 					@SubReferenceId = [SubReferenceId],
-					@ShippingId = ISNULL([ShippingId],0)
+					@ShippingId = ISNULL([ShippingId],0), 
+					@StocklineId = ISNULL(StocklineId,0),
+					@UnitSalePrice = ISNULL(UnitSalePrice,0),
+					@MarkUpPercentage = ISNULL(MarkUpPercentage,0),
+					@DiscountPercentage = ISNULL(DiscountPercentage,0),
+					@MarkUpAmount = ISNULL(MarkUpAmount,0),
+					@DiscountAmount = ISNULL(DiscountAmount,0),
+					@NetSalePrice = ISNULL(UnitPrice,0),
+					@NetSalePriceExtended =  ISNULL(PartCost,0)
 			  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId 
 
 			IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
@@ -490,6 +507,57 @@ BEGIN
 			BEGIN
 				DECLARE @SOBilledStatusId int = (select TOP 1 SOPartStatusId from SOPartStatus WHERE Description = 'Billed')
 				EXEC [dbo].[SP_SaveSOPartStatusByPartId] @SalesOrderPartId  = @SubReferenceId, @StatusId = @SOBilledStatusId
+
+				/************************* START : Update the SO Revenue While Generating the Invoice ***********************/
+				IF EXISTS (SELECT TOP 1 * FROM [DBO].[SalesOrderStockLineCost] WITH (NOLOCK) WHERE SalesOrderPartId = @SubReferenceId)
+				BEGIN
+
+					SELECT @ChargesAmount = ISNULL(SUM(C.BillingAmount), 0) FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK)
+					WHERE C.SalesOrderPartId = @SubReferenceId;
+
+					SELECT TOP 1 @SOStocklineId= ISNULL(SalesOrderStocklineId,0), @QtyOrder = ISNULL(QtyOrder,0)  FROM SalesOrderStocklineV1 SS WITH(NOLOCK) WHERE SS.SalesOrderPartId = @SubReferenceId AND SS.StockLineId = @StocklineId AND ISNULL(IsDeleted,0) = 0 AND SS.MasterCompanyId =@MasterCompanyId
+					--SET @SOStockLineCostId = (SELECT TOP 1 ISNULL(SalesOrderStockLineCostId,0)  FROM SalesOrderStockLineCost SSC WITH(NOLOCK) WHERE SSC.SalesOrderPartId = @SubReferenceId AND SSC.SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND SSC.MasterCompanyId =@MasterCompanyId)
+					UPDATE SalesOrderStockLineCost 
+						SET NetSaleAmount = CAST((@NetSalePrice * @QtyOrder) AS DECIMAL(18,4)), NetSaleAmountPerUnit =@NetSalePrice,
+							UnitSalesPrice = CAST(ISNULL(@UnitSalePrice, 0) AS DECIMAL(18,4)),
+							UnitSalesPriceExtended = CAST(ISNULL(@UnitSalePrice, 0) * ISNULL(@QtyOrder, 0) AS DECIMAL(18,4)),
+							MarkUpAmount = CAST((ISNULL(@UnitSalePrice, 0) * ISNULL(@QtyOrder, 0) * ISNULL(@MarkUpPercentage, 0)) / 100.0 AS DECIMAL(18,4))
+							WHERE SalesOrderPartId = @SubReferenceId AND SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId =@MasterCompanyId
+				
+					UPDATE SalesOrderStockLineCost 
+							SET DiscountAmount = CAST(((ISNULL(UnitSalesPriceExtended,0) +  ISNULL(MarkUpAmount,0)) * ISNULL(@DiscountPercentage, 0)) / 100.0 AS DECIMAL(18,4))
+							WHERE SalesOrderPartId = @SubReferenceId AND SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId =@MasterCompanyId
+
+					UPDATE SalesOrderStockLineCost 
+							SET MarginAmount = CAST((ISNULL(NetSaleAmount, 0) - ISNULL(UnitCostExtended, 0)) AS DECIMAL(18, 4)),
+								MarginPercentage = 
+									CASE 
+										WHEN ISNULL(NetSaleAmount, 0) = 0 THEN 0
+										ELSE CAST(((ISNULL(NetSaleAmount, 0) - ISNULL(UnitCostExtended, 0)) / ISNULL(NetSaleAmount, 0)) * 100 AS DECIMAL(18, 4))
+									END
+							WHERE SalesOrderPartId = @SubReferenceId AND SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId =@MasterCompanyId
+
+
+					UPDATE DBO.SalesOrderPartCost
+							SET 
+							UnitSalesPriceExtended = (SELECT SUM(SOSC.UnitSalesPriceExtended) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SubReferenceId),
+							UnitCostExtended = (SELECT SUM(ISNULL(SOSC.UnitCostExtended, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SubReferenceId),
+							NetSaleAmount = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SubReferenceId),
+							TotalRevenue = (SELECT SUM(ISNULL(SOSC.NetSaleAmount, 0)) + ISNULL(@ChargesAmount, 0) FROM DBO.SalesOrderStockLineCost SOSC WHERE SOSC.SalesOrderPartId = @SubReferenceId)
+							WHERE SalesOrderPartId = @SubReferenceId;
+				END
+				ELSE
+				BEGIN
+					SELECT @PartQty = QtyOrder FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SubReferenceId;
+					UPDATE DBO.SalesOrderPartCost
+						SET UnitSalesPriceExtended = ISNULL(UnitSalesPrice, 0) * @PartQty,
+						UnitCostExtended = ISNULL(UnitCost, 0) * @PartQty,
+						NetSaleAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount,
+						NetSaleAmountPerUnit = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount)/ (CASE WHEN @PartQty > 0 THEN @PartQty ELSE 1 END),
+						TotalRevenue = ((ISNULL((ISNULL(UnitSalesPrice, 0) * @PartQty), 0) + MarkUpAmount) - DiscountAmount) + ISNULL(@ChargesAmount, 0)
+						WHERE SalesOrderPartId = @SubReferenceId;
+				END
+				/***************************** END :  Update the SO Revenue While Generating the Invoice ***********************/
 			END
 
 			SET @MinId = @MinId + 1;

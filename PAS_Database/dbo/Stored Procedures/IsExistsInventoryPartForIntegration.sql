@@ -10,13 +10,15 @@
  ** PR     Date         Author		     	Change Description            
  ** --    --------     -------			-------------------------------          
     1     09-07-2025   Amit Ghediya		Created
+	2     25-07-2025   Amit Ghediya		Added MasterCompanyId
 
 EXEC [IsExistsInventoryPartForIntegration]  'A100,5360002916111,Part9,part7'
 
 **************************************************************/ 
 
 CREATE    PROCEDURE [dbo].[IsExistsInventoryPartForIntegration]
-	@PartString NVARCHAR(MAX) = NULL
+	@PartString NVARCHAR(MAX) = NULL,
+	@MasterCompanyId BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -25,7 +27,7 @@ BEGIN
 
 		DECLARE @AllowUser INT = 0;
 
-		IF EXISTS(SELECT TOP 1 ItemMasterId FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [partnumber] IN(SELECT item FROM SplitString(@PartString,',')))
+		IF EXISTS(SELECT TOP 1 ItemMasterId FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [MasterCompanyId] = @MasterCompanyId AND [partnumber] IN(SELECT item FROM SplitString(@PartString,',')))
 		BEGIN
 			 SET @AllowUser = 1;
 		END

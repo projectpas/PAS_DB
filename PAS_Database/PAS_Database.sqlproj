@@ -4102,6 +4102,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateVendorShipping.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetIntegrationCustomerById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateExchangeQuote.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEmployeeViewDetailsList.sql" />
     <Build Include="dbo\Tables\RepairOrderAssembly.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepaireOrderAssemplyDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteRepairOrderSubAssembly.sql" />

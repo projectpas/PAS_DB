@@ -49,7 +49,14 @@
     [UpdatedDate]             DATETIME2 (7)   NULL,
     [IsActive]                BIT             NULL,
     [IsDeleted]               BIT             NULL,
-    [ShippingId]              BIGINT          NULL);
+    [ShippingId]              BIGINT          NULL,
+    [UnitSalePrice]           DECIMAL (18, 2) NULL,
+    [MarkUpPercentage]        DECIMAL (18, 2) NULL,
+    [DiscountPercentage]      DECIMAL (18, 2) NULL,
+    [MarkUpAmount]            DECIMAL (18, 2) NULL,
+    [DiscountAmount]          DECIMAL (18, 2) NULL);
+
+
 
 
 

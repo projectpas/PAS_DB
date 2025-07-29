@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_CreateWorkOrderBillingPerformaInvoicing]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Create Performa Invoice For WO
@@ -78,7 +77,8 @@ BEGIN
 		DECLARE @IsCreateNewInvoice BIT = 0 , @CodeTypeId AS BIGINT = (Select TOP 1 CodeTypeId from DBO.CodeTypes WITH(NOLOCK) Where CodeType ='WOProformaInvoice');
 		DECLARE @UnitPrice DECIMAL(18, 2);
 		DECLARE @Freight BIT = 0;
-
+		DECLARE @WOModuleId INT
+		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		IF OBJECT_ID(N'tempdb..#tmpWorkOrderBillingInvoicingItem') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpWorkOrderBillingInvoicingItem
@@ -150,7 +150,7 @@ BEGIN
 				BEGIN
 					SELECT @WOPartIds = STRING_AGG(CAST(WorkOrderPartId AS NVARCHAR(MAX)), ',')	FROM #tmpWorkOrderPartIds;
 
-					EXEC dbo.USP_CheckWOInvoiceExistByWOBillId 	@BillingInvoicingId = @BillingInvoicingId, @WOPartIds = @WOPartIds, @IsProformaInvoice = 1,	@Result = @Result OUTPUT;
+					EXEC dbo.USP_CheckWOInvoiceExistByWOBillId 	@BillingInvoicingId = @BillingInvoicingId, @WOPartIds = @WOPartIds,@StocklineIds='',@ModuleId=@WOModuleId, @IsProformaInvoice = 1,	@Result = @Result OUTPUT;
 
 					SET @IsNewInvoice = @Result;
 

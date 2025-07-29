@@ -36,7 +36,7 @@
 	19	 24/04/2025   Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 	20   28/05/2025	  HEMANT SALIYA	    Updated for Remove Lot Id while create new stockline
 	21   30/05/2025	  Devendra Shekh	Modify(added case for RepairOrderUnitCost while create stockline)
-
+	22   30/07/2025	  RAJESH GAMI		Implemented: Return Stockline to Lot After Internal Repair Completion and Move to Finished Goods  (PN-13046)
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -93,7 +93,7 @@ BEGIN
 	DECLARE @CustomerWOTypeId INT= 0;
 	DECLARE @InternalWOTypeId INT= 0;
 	DECLARE @WOPartSerNumber VARCHAR(200) = '';  
-
+	DECLARE @LOTModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName = 'Lot')
     SET @ModuleID = 2; -- Stockline Module ID  
     SET @InternalWorkOrderTypeId = 2 -- Internal WO  
   
@@ -297,7 +297,7 @@ BEGIN
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],  
        CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,  
        [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
-	   NULL,[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
+	   LotId,[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
 	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
 	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm, @IntegrationPortal
    FROM [dbo].[Stockline] WITH(NOLOCK)  
@@ -306,7 +306,34 @@ BEGIN
     SELECT @NewStocklineId = SCOPE_IDENTITY()  
   
     UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNumber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId  
-  
+	
+	/***************************************************** START: INSERT INTO LOT (TRANS IN) ***********************************************************/
+	SET @LotId = ISNULL((SELECT TOP 1 LotId FROM DBO.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId),0)
+	IF(@LotId > 0)
+	BEGIN
+		DECLARE @LotDetails dbo.LotTransInOutDetailsType;
+		INSERT INTO @LotDetails ( LotTransInOutId, StockLineId, LotId, QtyToTransIn, QtyToTransOut, LotTransInOutDetails, UnitCost, ExtCost, IsTransOut, TransInMemo,TransOutMemo )
+		SELECT 0 as LotTransInOutId, @NewStocklineId,@LotId,1,0,0,
+			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,
+			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,
+			 0,'Trans In From Finish Good - '+CAST(@StocklineId AS VARCHAR),''		
+		FROM DBO.Stockline  WITH(NOLOCK) WHERE StockLineId =  @StocklineId
+
+		DECLARE @CreatedDate DATETIME = GETUTCDATE();
+		EXEC dbo.USP_Lot_AddUpdateLotTransInOutDetails
+			@tbl_LotTransInOutDetailsType = @LotDetails,
+			@LotTransInOutId = 0,
+			@MasterCompanyId = @MasterCompanyId,
+			@IsTransInOut = 0,
+			@IsInOut = 1,
+			@CreatedBy = @UpdateBy,
+			@UpdatedBy = @UpdateBy,
+			@CreatedDate = @CreatedDate,
+			@UpdatedDate = @CreatedDate;
+		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @LOTModuleId, @ReferenceId = @LotId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 11, @Qty = 1, @UpdatedBy = @UpdateBy;
+			PRINT 'Insert the History'
+	END
+	/***************************************************** START: INSERT INTO LOT (TRANS IN) ***********************************************************/
     EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  
 
 	DECLARE @IsStkTimeLife BIT
@@ -414,6 +441,13 @@ BEGIN
   BEGIN CATCH        
    IF @@trancount > 0  
     ROLLBACK TRAN;  
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

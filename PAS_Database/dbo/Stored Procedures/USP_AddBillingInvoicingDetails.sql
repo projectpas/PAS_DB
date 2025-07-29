@@ -25,6 +25,7 @@
 	12   02/07/2025   Moin Bloch     Added DepositAmount
 	13   03 JUL 2025  RAJESH GAMI	 Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
 	14   28/07/2025   RAJESH GAMI     Implement the Update Revenue while generating the invoice(Update SO Stockline Cost)
+	15   29/07/2025   RAJESH GAMI     Added stocklineIds while checking InvoiceNumber exist or not.(Only for SO)
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -133,11 +134,11 @@ BEGIN
 		PRINT '---------------Exchange----------------'
 	END
 
-	DECLARE @SubReferenceIds VARCHAR(MAX) = '';
+	DECLARE @SubReferenceIds VARCHAR(MAX) = '', @StocklineIds VARCHAR(MAX) = '' ;
 	DECLARE @TotalRecordI INT = 0,@MinIdI BIGINT = 1,@isCreateNewInvoice BIT=0
 
 	SELECT @SubReferenceIds = STRING_AGG([SubReferenceId], ',') FROM @tbl_BillingInvoicingItemsType WHERE [BillingInvoicingId] > 0
-	
+	SELECT @StocklineIds = ISNULL(STRING_AGG([StocklineId], ','), '') FROM @tbl_BillingInvoicingItemsType WHERE [BillingInvoicingId] > 0   AND StocklineId IS NOT NULL AND StocklineId <> 0;
 	IF OBJECT_ID(N'tempdb..#tmprAddBillingInvoicingDetailsTempForInvoiceNo') IS NOT NULL
 	BEGIN
 		DROP TABLE #tmprAddBillingInvoicingDetailsTempForInvoiceNo
@@ -165,7 +166,7 @@ BEGIN
 			    @IsPerformaInvoiceI = ISNULL([IsPerformaInvoice],0)
 		  FROM #tmprAddBillingInvoicingDetailsTempForInvoiceNo WHERE [PKID] = @MinIdI 
 
-		EXEC [dbo].[USP_CheckWOInvoiceExistByWOBillId] @BillingInvoicingIdI,@SubReferenceIds,@IsPerformaInvoiceI,@Result = @isNewInvoice OUTPUT
+		EXEC [dbo].[USP_CheckWOInvoiceExistByWOBillId] @BillingInvoicingIdI,@SubReferenceIds,@StocklineIds,@IsPerformaInvoiceI,@ModuleId,@Result = @isNewInvoice OUTPUT
 
 		IF(ISNULL(@isNewInvoice,0) = 0)
 		BEGIN

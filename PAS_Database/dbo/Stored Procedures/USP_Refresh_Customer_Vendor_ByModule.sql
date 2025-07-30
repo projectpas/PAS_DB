@@ -13,11 +13,11 @@
  ** --   --------		-------			--------------------------------              
     1    15 April 2025	RAJESH GAMI		CREATED 
     2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po,Non PO,VendorProformaInvoice,Exchange,SO,SOQ,Exchange Quote,Exchange,Speed Quote,CustomerRMA,Receiving Cust
- 
+    3    30 July  2025	Moin Bloch	    Fix For Sales Person
+
  EXEC [USP_WO_Refresh_Customer] 4291,8646
  EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 1122,0,6639,23,''
 ********************************************************************/ 
-
 CREATE PROCEDURE [dbo].[USP_Refresh_Customer_Vendor_ByModule]
 	@customerId BIGINT = 0,
 	@vendorId BIGINT = 0,
@@ -52,13 +52,24 @@ BEGIN
 				DECLARE @NonPOModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='NonPOInvoice')
 				DECLARE @VendorPaymentModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorPayment')
 				DECLARE @VendorProformaInvoiceModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorProformaInvoice')
+				
 				IF(@customerId > 0)
 				BEGIN
 					DECLARE @CustomerName VARCHAR(100) = (SELECT TOP 1 C.[Name]	FROM [dbo].[Customer] C WITH(NOLOCK)   WHERE CustomerId = @customerId)
 
+					DECLARE @PrimarySalesPersonId BIGINT = NULL,@CsrId BIGINT = NULL
+
+
+					SELECT @PrimarySalesPersonId = [PrimarySalesPersonId], @CsrId = [CsrId] FROM [dbo].[CustomerSales] WITH(NOLOCK) WHERE [CustomerId] = @customerId
+
 					IF(@moduleId = @WOModuleId) /***********>>>>>>> Work Order Customer Name REFRESH <<<<<<<************/
 					BEGIN
-						UPDATE [dbo].[Workorder] SET [CustomerName] = @CustomerName	  WHERE WorkorderId = @referenceId AND CustomerId = @customerId			
+						UPDATE [dbo].[Workorder] 
+						   SET [CustomerName] = @CustomerName,	
+						       [SalesPersonId] = @PrimarySalesPersonId,
+							   [CSRId] = @CsrId
+						 WHERE [WorkorderId] = @referenceId 
+						   AND [CustomerId] = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[Workorder] W WITH (NOLOCK) WHERE WorkorderId = @referenceId 
 					END
 
@@ -181,7 +192,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_Refresh_Customer_Vendor_ByModule' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@customerId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@customerId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

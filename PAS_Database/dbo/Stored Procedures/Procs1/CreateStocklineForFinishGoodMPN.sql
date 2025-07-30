@@ -330,8 +330,7 @@ BEGIN
 			@UpdatedBy = @UpdateBy,
 			@CreatedDate = @CreatedDate,
 			@UpdatedDate = @CreatedDate;
-		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @LOTModuleId, @ReferenceId = @LotId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 11, @Qty = 1, @UpdatedBy = @UpdateBy;
-			PRINT 'Insert the History'
+		--EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @LOTModuleId, @ReferenceId = @LotId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 11, @Qty = 1, @UpdatedBy = @UpdateBy;
 	END
 	/***************************************************** START: INSERT INTO LOT (TRANS IN) ***********************************************************/
     EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  

@@ -316,7 +316,7 @@ BEGIN
 		SELECT 0 as LotTransInOutId, @NewStocklineId,@LotId,1,0,0,
 			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,
 			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,
-			 0,'Trans In From Finish Good - '+CAST(@StocklineId AS VARCHAR),''		
+			 0,'Trans In From Finish Good - '+CAST(@WorkOrderNumber AS VARCHAR),''		
 		FROM DBO.Stockline  WITH(NOLOCK) WHERE StockLineId =  @StocklineId
 
 		DECLARE @CreatedDate DATETIME = GETUTCDATE();
@@ -330,8 +330,7 @@ BEGIN
 			@UpdatedBy = @UpdateBy,
 			@CreatedDate = @CreatedDate,
 			@UpdatedDate = @CreatedDate;
-		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @LOTModuleId, @ReferenceId = @LotId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 11, @Qty = 1, @UpdatedBy = @UpdateBy;
-			PRINT 'Insert the History'
+		--EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @LOTModuleId, @ReferenceId = @LotId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 11, @Qty = 1, @UpdatedBy = @UpdateBy;
 	END
 	/***************************************************** START: INSERT INTO LOT (TRANS IN) ***********************************************************/
     EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  

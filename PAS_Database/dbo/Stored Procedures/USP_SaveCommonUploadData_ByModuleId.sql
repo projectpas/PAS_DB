@@ -13,7 +13,9 @@
 	3    24-01-2025         Shrey Chandegara        Modify due to add functionality for Alternate Part
 	4    12-03-2025         Abhishek Jirawla        Update LedgerId for GLAccount
 	5	 28-July-2025		Ayushi Patel			Added Defaul value to NotNullable Fields of ItemMaster Table
-exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
+	6	 29-July-2025		Vishal Suthar			Added New Module "Stockline"
+
+exec USP_SaveCommonUploadData_ByModuleId @ModuleId=5,@UserName=N'ADMIN User',@MasterCompanyId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
@@ -52,11 +54,13 @@ BEGIN
 		DECLARE @ModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT;
     
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
+		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+
 		CREATE TABLE #uploadDataResults (
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 			[UploadModuleDataId] [bigint] NOT NULL,
@@ -95,7 +99,6 @@ BEGIN
 
 		WHILE(ISNULL(@TotalRecords, 0) >= ISNULL(@CurrentRecord, 0))
 		BEGIN
-
 			TRUNCATE TABLE #DynamicKeyValue;
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
@@ -111,19 +114,191 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
-			
+
+			DECLARE @Qty AS INT;
+			DECLARE @PurchaseUOMId AS BIGINT;
+			DECLARE @ManagementStructureId AS BIGINT;
+
+			IF (@ModuleId = 5) -- Stockline
+			BEGIN
+				DECLARE @StockLineNumber VARCHAR(100);
+				DECLARE @currentNo AS BIGINT = 0;
+				DECLARE @stockLineCurrentNo AS BIGINT;
+				DECLARE @CNCurrentNumber BIGINT;
+				DECLARE @ControlNumber VARCHAR(50);
+				DECLARE @IDNumber VARCHAR(50);
+				DECLARE @ItemMasterId AS BIGINT;
+				DECLARE @ManufacturerId AS BIGINT;
+
+				SELECT @ItemMasterId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
+				SELECT @ManufacturerId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId';
+				SELECT @Qty = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
+
+				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+                BEGIN
+                    DROP TABLE #tmpCodePrefixes
+                END
+
+                CREATE TABLE #tmpCodePrefixes
+                (
+                    ID BIGINT NOT NULL IDENTITY,
+                    CodePrefixId BIGINT NULL,
+                    CodeTypeId BIGINT NULL,
+                    CurrentNumber BIGINT NULL,
+                    CodePrefix VARCHAR(50) NULL,
+                    CodeSufix VARCHAR(50) NULL,
+                    StartsFrom BIGINT NULL,
+                )
+
+                INSERT INTO #tmpCodePrefixes
+                (
+                    CodePrefixId,
+                    CodeTypeId,
+                    CurrentNumber,
+                    CodePrefix,
+                    CodeSufix,
+                    StartsFrom
+                )
+                SELECT CodePrefixId,
+                        CP.CodeTypeId,
+                        CurrentNummber,
+                        CodePrefix,
+                        CodeSufix,
+                        StartsFrom
+                FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+                WHERE CT.CodeTypeId = (@CodeTypeId)
+                        AND CP.MasterCompanyId = @MasterCompanyId
+                        AND CP.IsActive = 1
+                        AND CP.IsDeleted = 0
+				UNION
+				SELECT CodePrefixId,
+                        CP.CodeTypeId,
+                        CurrentNummber,
+                        CodePrefix,
+                        CodeSufix,
+                        StartsFrom
+                FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+                WHERE CT.CodeTypeId IN (17, 9)
+                        AND CP.MasterCompanyId = @MasterCompanyId
+                        AND CP.IsActive = 1
+                        AND CP.IsDeleted = 0;
+
+				IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL
+                BEGIN
+                    DROP TABLE #tmpPNManufacturer
+                END
+
+                CREATE TABLE #tmpPNManufacturer
+                (
+                    ID BIGINT NOT NULL IDENTITY,
+                    ItemMasterId BIGINT NULL,
+                    ManufacturerId BIGINT NULL,
+                    StockLineNumber VARCHAR(100) NULL,
+                    CurrentStlNo BIGINT NULL,
+                    isSerialized BIT NULL
+                );
+                WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId)
+                AS (SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId 
+					FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1
+                    CROSS JOIN (SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2
+                    LEFT JOIN DBO.Stockline ac WITH (NOLOCK) ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
+                    WHERE ac.MasterCompanyId = @MasterCompanyId
+                    GROUP BY ac.ItemMasterId, ac.ManufacturerId
+                    HAVING COUNT(ac.ItemMasterId) > 0)
+
+                INSERT INTO #tmpPNManufacturer
+                (
+                    ItemMasterId,
+                    ManufacturerId,
+                    StockLineNumber,
+                    CurrentStlNo,
+                    isSerialized
+                )
+                SELECT CSTL.ItemMasterId,
+                    CSTL.ManufacturerId,
+                    StockLineNumber,
+                    ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo,
+                    IM.isSerialized
+                FROM CTE_Stockline CSTL
+				INNER JOIN DBO.Stockline STL WITH (NOLOCK)
+				INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
+				ON CSTL.StockLineId = STL.StockLineId
+                /* PN Manufacturer Combination Stockline logic */
+
+				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
+
+				IF (@currentNo <> 0)
+                BEGIN
+                    SET @stockLineCurrentNo = @currentNo + 1;
+                END
+                ELSE
+                BEGIN
+                    SET @stockLineCurrentNo = 1;
+                END
+
+                IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
+                BEGIN
+                    SET @StockLineNumber =
+                    (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@stockLineCurrentNo, 
+					(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30),
+					(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
+
+                    UPDATE DBO.ItemMaster
+                    SET CurrentStlNo = @stockLineCurrentNo
+                    WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
+                END
+
+				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
+                BEGIN
+                    SELECT @CNCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END
+                    FROM #tmpCodePrefixes WHERE CodeTypeId = 9;
+                    SET @ControlNumber =
+                    (
+                        SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CNCurrentNumber, 
+						(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 9),
+						(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
+                    )
+                END
+
+				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))  
+				BEGIN
+					SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(1,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))  
+				END
+				ELSE
+				BEGIN
+					ROLLBACK TRAN;
+				END
+
+				IF (ISNULL(@StockLineNumber, '') != '')
+				BEGIN
+					UPDATE #ImportFields SET FieldValue = @StockLineNumber WHERE FieldName = 'stocklinenumber';
+				END
+
+				IF (ISNULL(@ControlNumber, '') != '')
+				BEGIN
+					UPDATE #ImportFields SET FieldValue = @ControlNumber WHERE FieldName = 'controlnumber';
+				END
+
+				IF (ISNULL(@IDNumber, '') != '')
+				BEGIN
+					UPDATE #ImportFields SET FieldValue = @IDNumber WHERE FieldName = 'IdNumber';
+				END
+
+				SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId;
+				SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM DBO.ManagementStructure WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+			END
+
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
-
 				SELECT	@IsAutoGenerate = IsAutoGenerate FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
-				IF(ISNULL(@CodeTypeId, 0) > 0 AND ISNULL(@IsAutoGenerate, 0) = 1)
+				IF (ISNULL(@CodeTypeId, 0) > 0 AND ISNULL(@IsAutoGenerate, 0) = 1 AND @ModuleId <> 5)
 				BEGIN
 					-- Fetch CodeTypeData
 					SELECT TOP 1 * INTO #tmpCodePrefix	FROM DBO.CodePrefixes WITH (NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
-				
+					
 					-- Determine the current number
 					IF EXISTS (SELECT 1 FROM #tmpCodePrefix)
 					BEGIN
@@ -136,7 +311,7 @@ BEGIN
 							SET @CurrentNumber = (SELECT StartsFrom FROM #tmpCodePrefix) + 1;
 						END
 
-						 --Update CodeData with new current number
+						--Update CodeData with new current number
 						UPDATE CodePrefixes
 						SET CurrentNummber = @CurrentNumber
 						WHERE CodePrefixId = (SELECT CodePrefixId FROM #tmpCodePrefix);
@@ -158,6 +333,10 @@ BEGIN
 
 				SET @CurrentRow += 1;
 			END
+
+			UPDATE #ImportFields SET FieldValue = '0' WHERE FieldType = 'number' AND FieldValue = '';
+
+			SELECT * FROM #ImportFields;
 
 			SET @FieldValue = '';
 			SET @RefFieldName = '';
@@ -195,11 +374,16 @@ BEGIN
 				ItemMasterAssetTypeId,IsHotItem,IsAcquiredMethodBuy,MTBUR,NE,NS,OH,REP,SVC,MasterCompanyId,CreatedBy, UpdatedBy'
 				SET @FieldValue += '1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, '
 			END
+			ELSE IF(@ModuleId = @StocklineModule)
+			BEGIN
+				SET @RefFieldName += ' , PartNumber,Quantity,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,MasterCompanyId,CreatedBy,UpdatedBy'
+				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0, '
+			END
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
 			END
-			print @RefFieldName;
+			print @FieldValue;
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
@@ -218,6 +402,17 @@ BEGIN
 				SET @PartSourceVal = (select FieldValue from #DynamicKeyValue where FieldName = 'PartSource')
 
 				EXEC usp_UpdateItemMasterWithGLAccountNames @ModuleTableId ,@PartSourceVal, @MasterCompanyId
+			END
+
+			IF(@ModuleId = @StocklineModule)
+			BEGIN
+				DECLARE @StkManagementStructureModuleId BIGINT = 2;
+				DECLARE @ManagementStructureEntityId BIGINT = 0;
+
+                SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @ModuleTableId;
+
+				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
+				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
 			END
 
 			IF(ISNULL(@ChildTable, '') != '')

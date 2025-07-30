@@ -4114,6 +4114,7 @@
     <Build Include="dbo\Tables\IntegrationEmail.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailCounts.sql" />
+    <Build Include="dbo\Stored Procedures\usp_InsertIntegrationEmail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

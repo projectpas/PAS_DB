@@ -4109,6 +4109,9 @@
     <Build Include="dbo\Stored Procedures\USP_AddRepairOrderSubAssembly.sql" />
     <Build Include="dbo\Stored Procedures\usp_UpdateItemMasterWithGLAccountNames.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckVendorAdded.sql" />
+    <Build Include="dbo\Tables\IntegrationEmailSmtpConfigrationAudit.sql" />
+    <Build Include="dbo\Tables\IntegrationEmailSmtpConfigration.sql" />
+    <Build Include="dbo\Tables\IntegrationEmail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

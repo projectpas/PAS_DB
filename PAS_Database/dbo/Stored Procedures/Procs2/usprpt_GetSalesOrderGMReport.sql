@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderGMReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SalesOrder GM Report   
@@ -26,7 +27,7 @@
 	9	 26-DEC-2024	Abhishek Jirawla	Fixed report calculations
  	10   01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure  
 	11	 08/JUL/2025	Abhishek Jirawla	Changed Revenue to get Grand Total 
-
+	12	 30/JUL/2025	RAJESH GAMI			Fixed the DirectCost and their related issue
 EXECUTE   [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderGMReport] 
@@ -242,10 +243,14 @@ BEGIN
 		--ELSE 
 			--ISNULL(SOBII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0) 
 		--END AS 'rev',
-		ISNULL(SOSC.UnitCostExtended, 0) AS 'directcost', 
-		(ISNULL((ISNULL(SOSC.UnitCostExtended, 0) / NULLIF((SOBII.PartCost) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) * 100) AS 'dcofrevperc',   
-		ISNULL((ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.MiscCharges, 0) - ISNULL(SOSC.UnitCostExtended, 0)), 0) AS 'marginamt',  
-		ISNULL((((ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.MiscCharges, 0) - ISNULL(SOSC.UnitCostExtended, 0)) * 100) / NULLIF(ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) AS 'marginrevperc',
+		ISNULL(SOBII.MiscCharges, 0) + ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0) AS [directcost], 
+		--(ISNULL((ISNULL(SOSC.UnitCostExtended, 0) / NULLIF((SOBII.PartCost) + ISNULL(SOBII.MiscCharges, 0), 0)), 0) * 100) AS 'dcofrevperc', 
+		
+		(ISNULL(((ISNULL(SOSC.UnitCostExtended, 0) + ISNULL(SOBII.MiscCharges, 0)) / NULLIF( (ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)) , 0) ), 0) * 100) AS 'dcofrevperc',
+
+		--ISNULL((ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.MiscCharges, 0) - ISNULL(SOSC.UnitCostExtended, 0)), 0) AS 'marginamt', 
+		ISNULL( (( ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)) - (ISNULL(SOBII.MiscCharges, 0) + ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0))), 0) AS 'marginamt',
+		ISNULL(((		ISNULL( (( ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)) - (ISNULL(SOBII.MiscCharges, 0) + ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0))), 0) * 100) / NULLIF((ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)), 0)), 0) AS 'marginrevperc',
 		SOQ.salesorderquotenumber AS 'qtenum',  
 		UPPER(MSD.Level1Name) AS 'level1',  
 		UPPER(MSD.Level2Name) AS 'level2', 
@@ -282,7 +287,7 @@ BEGIN
 			INNER JOIN dbo.stockline STL WITH (NOLOCK) 
 				ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
 			LEFT JOIN dbo.SalesOrderStocklineCost SOSC WITH (NOLOCK)
-				ON SOSC.SalesOrderStocklineId = SOV.SalesOrderStocklineId AND SOSC.SalesOrderStocklineId = STL.StockLineId
+				ON SOSC.SalesOrderStocklineId = SOV.SalesOrderStocklineId --AND SOSC.SalesOrderStocklineId = STL.StockLineId
 			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) 
 				ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
@@ -446,10 +451,12 @@ BEGIN
 		AS (SELECT masterCompanyId, 
 		FORMAT(SUM(rev),'#,0.00') TotalRevenue,
 		FORMAT(SUM(directcost),'#,0.00') TotalDirectCost,
-		FORMAT(((SUM(directcost) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)) * 100),'#,0.00') TotalDCOfRevPerc,
+		--FORMAT(((SUM(directcost) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)) * 100),'#,0.00') TotalDCOfRevPerc,
+		FORMAT(((SUM(directcost) / NULLIF(SUM(rev), 0)) * 100),'#,0.00') TotalDCOfRevPerc,
 		FORMAT(SUM(marginamt),'#,0.00') TotalMarginAmt,
 		--FORMAT(((((NetSales) +  ISNULL(Charges.BillingAmount, 0) -  directcost) * 100) / NULLIF((NetSales) +  ISNULL(Charges.BillingAmount, 0), 0)),'#,0.00')+'%' TotalMarginRevPerc
-		FORMAT((((SUM(NetSales) +  SUM(ChargesBillingAmt) -  SUM(directcost)) * 100) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)),'#,0.00') TotalMarginRevPerc
+		--FORMAT((((SUM(NetSales) +  SUM(ChargesBillingAmt) -  SUM(directcost)) * 100) / NULLIF(SUM(NetSales) +  SUM(ChargesBillingAmt), 0)),'#,0.00') TotalMarginRevPerc
+		FORMAT(((SUM(marginamt)  * 100) / NULLIF(SUM(rev), 0)),'#,0.00') TotalMarginRevPerc
 		FROM FinalCTE
 		GROUP BY masterCompanyId)
 

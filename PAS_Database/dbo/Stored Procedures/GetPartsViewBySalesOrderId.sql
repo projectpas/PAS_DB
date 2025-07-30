@@ -21,7 +21,7 @@
     5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
 	6    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 	7    08-07-2025   Moin Bloch    Fix For Approval Status
-
+	8    30-07-2025   RAJESH GAMI   Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is.
 EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
@@ -173,14 +173,14 @@ BEGIN
 			-- Handle VersionNumber logic with appropriate SQL
 			--dbo.GenerateVersionNumber(so.Version) AS VersionNumber,
 			so.VersionNumber AS versionNumber,
-			SOPC.MiscCharges AS misc,
-			CASE WHEN so.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOCC.ExtendedCost), 0) FROM DBO.SalesOrderCharges SOCC WHERE SOCC.SalesOrderPartId = part.SalesOrderPartId) END AS miscCost,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE SOPC.MiscCharges END AS misc,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE CASE WHEN so.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOCC.ExtendedCost), 0) FROM DBO.SalesOrderCharges SOCC WHERE SOCC.SalesOrderPartId = part.SalesOrderPartId) END END AS miscCost,
 			--(part.QtyOrder * part.UnitSalesPricePerUnit) + part.TaxAmount + ISNULL(SUM(ch.BillingAmount), 0) AS TotalSales,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.NetSaleAmount ELSE SOPC.NetSaleAmount END AS totalSales,
-			CASE WHEN so.FreightBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOFF.Amount), 0) FROM DBO.SalesOrderFreight SOFF WHERE SOFF.SalesOrderPartId = part.SalesOrderPartId) END AS freightCost,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0)  ELSE CASE WHEN so.FreightBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOFF.Amount), 0) FROM DBO.SalesOrderFreight SOFF WHERE SOFF.SalesOrderPartId = part.SalesOrderPartId) END END AS freightCost,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.UnitSalesPrice ELSE SOPC.UnitSalesPrice END unitSalesPricePerUnit,
-			so.TotalCharges totalCharges,
-			so.TotalFreight totalFreight,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE so.TotalCharges END totalCharges,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0) ELSE  so.TotalFreight END totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
 			CASE WHEN sob.BillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.FreightCostPlus, 0) ELSE 

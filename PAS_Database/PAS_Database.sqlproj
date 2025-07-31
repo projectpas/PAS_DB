@@ -4119,7 +4119,7 @@
     <Build Include="dbo\Tables\IntegrationEmailAttachment.sql" />
     <Build Include="dbo\User Defined Types\IntegrationEmailAttachmentType.sql" />
     <Build Include="dbo\Stored Procedures\UpdateCustomerRfqQuoteReferenceId.sql" />
-
+    <Build Include="dbo\Stored Procedures\usp_GetQuotedRFQPartsDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

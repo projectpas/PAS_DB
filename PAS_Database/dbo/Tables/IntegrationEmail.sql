@@ -11,8 +11,6 @@
     [ModuleId]           INT            NOT NULL,
     [EmailStatus]        BIT            NULL,
     [HasAttachments]     BIT            NULL,
-    [AttachmentName]     NVARCHAR (320) NULL,
-    [AttachmentPath]     NVARCHAR (320) NULL,
     [EmailSection]       INT            NOT NULL,
     [MasterCompanyId]    INT            NOT NULL,
     [CreatedBy]          VARCHAR (256)  NOT NULL,
@@ -24,6 +22,8 @@
     CONSTRAINT [PK_IntegrationEmail] PRIMARY KEY CLUSTERED ([IntegrationEmailID] ASC),
     CONSTRAINT [FK_IntegrationEmail_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

@@ -16,32 +16,31 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/30/2025   Hemant Saliya Created
+	2    07/31/2025   Moin Bloch    Removed Attachment Fields
      
 --EXEC [usp_InsertIntegrationEmail] 
 **************************************************************/
 
-CREATE   PROCEDURE dbo.usp_InsertIntegrationEmail
-    @Subject           NVARCHAR(MAX),
-    @EmailBody         NVARCHAR(MAX),
-    @ToEmail           NVARCHAR(255),
-    @FromEmail         NVARCHAR(255),
-    @CC                NVARCHAR(255),
-    @BCC               NVARCHAR(255),
-    @ReferenceId       BIGINT = NULL,
-    @ModuleId          INT = NULL,
-    @EmailStatus       INT = NULL,
-    @MasterCompanyId   INT,
-    @CreatedBy         VARCHAR(100),
-    @UpdatedBy         VARCHAR(100),
-    @CreatedDate       DATETIME2,
-    @UpdatedDate       DATETIME2,
-    @IsActive          BIT        = 1,   -- default: true
-    @IsDeleted         BIT        = 0,   -- default: false
-    @AttachmentName    NVARCHAR(1000) = NULL,
-    @HasAttachments    BIT        = 0,
-    @AttachmentPath    NVARCHAR(1000) = NULL,
-    @EmailReadBy       NVARCHAR(255) = NULL,   
-	@EmailSection      INT = NULL
+CREATE   PROCEDURE [dbo].[usp_InsertIntegrationEmail]
+@Subject           VARCHAR(500) = NULL,
+@EmailBody         NVARCHAR(MAX) = NULL,
+@ToEmail           NVARCHAR(320) = NULL,
+@FromEmail         NVARCHAR(320) = NULL,
+@CC                NVARCHAR(320) = NULL,
+@BCC               NVARCHAR(320) = NULL,
+@ReferenceId       BIGINT = NULL,
+@ModuleId          INT = NULL,
+@EmailStatus       INT = NULL,
+@MasterCompanyId   INT,
+@CreatedBy         VARCHAR(100) = NULL,
+@UpdatedBy         VARCHAR(100) = NULL,
+@CreatedDate       DATETIME2 = NULL,
+@UpdatedDate       DATETIME2 = NULL,
+@IsActive          BIT        = 1,   -- default: true
+@IsDeleted         BIT        = 0,   -- default: false
+@HasAttachments    BIT        = 0,
+@EmailReadBy       NVARCHAR(320) = NULL,   
+@EmailSection      INT
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -49,51 +48,19 @@ BEGIN
 	BEGIN TRY  
         INSERT INTO dbo.IntegrationEmail
         (
-            Subject,
-            EmailBody,
-            ToEmail,
-            FromEmail,
-            CC,
-            BCC,
-            ReferenceId,
-            ModuleId,
-            EmailStatus,
-            MasterCompanyId,
-            CreatedBy,
-            UpdatedBy,
-            CreatedDate,
-            UpdatedDate,
-            IsActive,
-            IsDeleted,
-            AttachmentName,
-            HasAttachments,
-            AttachmentPath,
-            EmailReadBy,
-			[EmailSection]
+            [Subject],[EmailBody],[ToEmail],[FromEmail],
+            [CC],[BCC],[ReferenceId],[ModuleId],[EmailStatus],
+            [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
+            [UpdatedDate],[IsActive],[IsDeleted],[HasAttachments],
+			[EmailReadBy],[EmailSection]
         )
         VALUES
         (
-            @Subject,
-            @EmailBody,
-            @ToEmail,
-            @FromEmail,
-            @CC,
-            @BCC,
-            @ReferenceId,
-            @ModuleId,
-            @EmailStatus,
-            @MasterCompanyId,
-            @CreatedBy,
-            @UpdatedBy,
-            @CreatedDate,
-            @UpdatedDate,
-            @IsActive,
-            @IsDeleted,
-            @AttachmentName,
-            @HasAttachments,
-            @AttachmentPath,
-            @EmailReadBy,
-			@EmailSection
+            @Subject,@EmailBody,@ToEmail,@FromEmail,
+            @CC,@BCC,@ReferenceId,@ModuleId,@EmailStatus,
+            @MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,
+            @UpdatedDate,@IsActive,@IsDeleted,@HasAttachments,
+			@EmailReadBy,@EmailSection
         );
 
    END TRY

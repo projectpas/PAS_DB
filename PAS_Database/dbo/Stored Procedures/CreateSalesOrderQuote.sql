@@ -14,6 +14,7 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
     1     17/04/2025      Ekta Chandegra        Created  
+	2     31/07/2025      Amit Ghediya			Update for Add CustomerRFQId param for create from RFQ.
 
 
 -- exec dbo.CreateSalesOrderQuote @QuoteTypeId=1,@OpenDate='2025-04-23 00:00:00',@ValidForDays=30,
@@ -57,7 +58,8 @@ CREATE   PROCEDURE [dbo].[CreateSalesOrderQuote]
 	@ReportCurrencyId INT,
 	@ForeignExchangeRate DECIMAL(18,2),
 	@IsCopySOQData BIT,
-	@CopyOldSOQId BIGINT
+	@CopyOldSOQId BIGINT,
+	@CustomerRfqId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -69,9 +71,12 @@ BEGIN
 				DECLARE @SalesOrderQuotePrefix INT; 
 				DECLARE @CurrentNumber BIGINT;
 				DECLARE @Vesrion VARCHAR(50);
+				DECLARE @SOQModuleId INT = 0;
 
 				SELECT TOP 1 @SalesOrderQuotePrefix = CodeTypeId FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'Sales Order Quote';
-				PRINT @SalesOrderQuotePrefix;
+				
+				--Get Module for Update in CustomerRFQ table.
+				SELECT @SOQModuleId  = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) where [ModuleName] = 'SalesQuote';
 
 				DECLARE @AccountTypeId INT;
 				DECLARE @CustomerContactId BIGINT;
@@ -330,6 +335,12 @@ BEGIN
 								);
 							END
 						END
+					END
+
+					-- Update CustomerRfq for create SOQ from Received RFQ 
+					IF(ISNULL(@CustomerRfqId,0) > 0)
+					BEGIN
+						 EXEC [dbo].[UpdateCustomerRfqQuoteReferenceId] @CustomerRfqId,@SalesOrderQuoteId,@SOQModuleId
 					END
 				END
 			END

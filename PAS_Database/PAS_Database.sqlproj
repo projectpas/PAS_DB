@@ -4117,6 +4117,7 @@
     <Build Include="dbo\Stored Procedures\usp_InsertIntegrationEmail.sql" />
     <Build Include="dbo\Views\view_CustomerVendorCompanyList.sql" />
     <Build Include="dbo\Tables\IntegrationEmailAttachment.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateCustomerRfqQuoteReferenceId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

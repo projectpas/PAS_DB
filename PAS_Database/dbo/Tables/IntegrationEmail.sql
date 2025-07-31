@@ -12,6 +12,7 @@
     [EmailStatus]        BIT            NULL,
     [HasAttachments]     BIT            NULL,
     [EmailSection]       INT            NOT NULL,
+    [ReceivedDate]       DATETIME2 (7)  NULL,
     [MasterCompanyId]    INT            NOT NULL,
     [CreatedBy]          VARCHAR (256)  NOT NULL,
     [UpdatedBy]          VARCHAR (256)  NOT NULL,
@@ -22,8 +23,4 @@
     CONSTRAINT [PK_IntegrationEmail] PRIMARY KEY CLUSTERED ([IntegrationEmailID] ASC),
     CONSTRAINT [FK_IntegrationEmail_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
-
-
-
-
 

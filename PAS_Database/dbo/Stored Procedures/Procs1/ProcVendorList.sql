@@ -17,6 +17,7 @@
 	6    31/03/2025     AMIT GHEDIYA        Added IsTrackScoreCard flag & TrackScoreCard param for scorecard display in list.
 	7	 09-06-2025     Bhargav Saliya      Added @IsVendorAlsoCustomer Condition
 	8	 17-06-2025     Bhargav Saliya      select Is Vendor also a customer Flag and Customer Name
+	9	 30-07-2025     AMIT GHEDIYA		VendorId for select vendor data by id.
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[ProcVendorList]
@@ -26,6 +27,7 @@ CREATE       PROCEDURE [dbo].[ProcVendorList]
 @SortOrder int = NULL,
 @GlobalFilter varchar(50) = NULL,
 @StatusId int = NULL,
+@VendorId bigint = 0,
 @VendorName varchar(50) = NULL,
 @VendorCode varchar(50) = NULL,
 @VendorEmail varchar(50) = NULL,
@@ -104,6 +106,11 @@ BEGIN
 			SET @IsActive=NULL;
 		END
 
+		IF(ISNULL(@VendorId,0) = 0)
+		BEGIN
+			 SET @VendorId = NULL;
+		END
+
 		--BEGIN TRY
 		--BEGIN TRANSACTION
 		--BEGIN
@@ -143,6 +150,7 @@ BEGIN
 						     FOR XML PATH('')), 1, 1, '') ClassificationName) A
 			                
 		 	  WHERE ((V.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR V.IsActive = @IsActive))
+					 AND (@VendorId IS NULL OR V.VendorId = @VendorId)
 			         AND V.MasterCompanyId=@MasterCompanyId	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))	 AND (@IsVendorAlsoCustomer IS NULL OR V.IsVendorAlsoCustomer = @IsVendorAlsoCustomer)
 			), ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

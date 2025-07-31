@@ -21,7 +21,7 @@
 --EXEC [usp_InsertIntegrationEmail] 
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[usp_InsertIntegrationEmail]
+CREATE    PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @Subject           VARCHAR(500) = NULL,
 @EmailBody         NVARCHAR(MAX) = NULL,
 @ToEmail           NVARCHAR(320) = NULL,
@@ -41,6 +41,7 @@ CREATE   PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @HasAttachments    BIT        = 0,
 @EmailReadBy       NVARCHAR(320) = NULL,   
 @EmailSection      INT,
+@ReceivedDate      DATETIME2 = NULL,
 @tbl_IntegrationEmailAttachmentType IntegrationEmailAttachmentType READONLY
 AS
 BEGIN
@@ -56,7 +57,7 @@ BEGIN
             [CC],[BCC],[ReferenceId],[ModuleId],[EmailStatus],
             [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
             [UpdatedDate],[IsActive],[IsDeleted],[HasAttachments],
-			[EmailReadBy],[EmailSection]
+			[EmailReadBy],[EmailSection], [ReceivedDate]
         )
         VALUES
         (
@@ -64,7 +65,7 @@ BEGIN
             @CC,@BCC,@ReferenceId,@ModuleId,@EmailStatus,
             @MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,
             @UpdatedDate,@IsActive,@IsDeleted,@HasAttachments,
-			@EmailReadBy,@EmailSection
+			@EmailReadBy,@EmailSection, @ReceivedDate
         );
 
 		SET @IntegrationEmailID = SCOPE_IDENTITY();	  

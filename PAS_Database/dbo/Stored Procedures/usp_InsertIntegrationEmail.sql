@@ -40,12 +40,16 @@ CREATE   PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @IsDeleted         BIT        = 0,   -- default: false
 @HasAttachments    BIT        = 0,
 @EmailReadBy       NVARCHAR(320) = NULL,   
-@EmailSection      INT
+@EmailSection      INT,
+@tbl_IntegrationEmailAttachmentType IntegrationEmailAttachmentType READONLY
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON  
 	BEGIN TRY  
+		
+		DECLARE @IntegrationEmailID BIGINT = 0,@TotalRecord INT = 0
+
         INSERT INTO dbo.IntegrationEmail
         (
             [Subject],[EmailBody],[ToEmail],[FromEmail],
@@ -62,6 +66,22 @@ BEGIN
             @UpdatedDate,@IsActive,@IsDeleted,@HasAttachments,
 			@EmailReadBy,@EmailSection
         );
+
+		SET @IntegrationEmailID = SCOPE_IDENTITY();	  
+		
+		SELECT @TotalRecord = COUNT(*) FROM @tbl_IntegrationEmailAttachmentType
+
+		IF(@TotalRecord > 0)
+		BEGIN
+			INSERT INTO [dbo].[IntegrationEmailAttachment]
+					   ([IntegrationEmailID]
+					   ,[AttachmentName]
+					   ,[AttachmentPath])
+			    SELECT @IntegrationEmailID
+				       ,[AttachmentName]
+					   ,[AttachmentPath]
+				FROM @tbl_IntegrationEmailAttachmentType          
+		END
 
    END TRY
 	BEGIN CATCH	

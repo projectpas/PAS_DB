@@ -77,8 +77,6 @@ BEGIN
 		  ,IE.[ModuleId]
 		  ,IE.[EmailStatus]
 		  ,IE.[HasAttachments]
-		  ,IE.[AttachmentName]
-		  ,IE.[AttachmentPath]
 		  ,IE.[EmailSection]
 		  ,IE.[MasterCompanyId]
 		  ,IE.[CreatedBy]

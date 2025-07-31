@@ -20,7 +20,7 @@
 	7    08/May/2025  RAJESH GAMI       Change Remaining Cost Logic
 	8	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
 	9    07-07-2025   Moin Bloch        Changed Old To New Billing Table
-
+	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -1833,7 +1833,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
-				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer 
+				  Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer,IsCustomerStock
 				  --ORDER BY PoDate DESC
 
 				SELECT @Count = COUNT(*) FROM #OtherCostTbl

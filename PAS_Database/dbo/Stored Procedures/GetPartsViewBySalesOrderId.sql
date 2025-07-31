@@ -21,7 +21,7 @@
     5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
 	6    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 	7    08-07-2025   Moin Bloch    Fix For Approval Status
-	8    30-07-2025   RAJESH GAMI   Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is.
+	8    30-07-2025   RAJESH GAMI   Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is & Check the invoice is generated for the same SO or not.
 EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
@@ -35,9 +35,9 @@ BEGIN
     BEGIN TRANSACTION
       BEGIN	
 	  	
-		DECLARE @SOModuleId INT
+		DECLARE @SOModuleId INT; 
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
-
+		DECLARE @IsInvoiceGenerated BIT = CASE WHEN (SELECT TOP 1 BillingInvoicingId FROM DBO.BillingInvoicing WITH(NOLOCK) WHERE ModuleId = @SOModuleId AND ReferenceId = @SalesOrderId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0 ) > 0 THEN 1 ELSE 0 END
 		DECLARE @SentForInternalApproval INT = 1
         DECLARE @SubmitInternalApproval INT = 2
         DECLARE @SentForCustomerApproval INT = 3
@@ -192,7 +192,8 @@ BEGIN
 									AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
 					END
 				END AS freight,
-			0 AS sobillingInvoicingItemId
+			0 AS sobillingInvoicingItemId,
+			@IsInvoiceGenerated isInvoiceGenerated
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId

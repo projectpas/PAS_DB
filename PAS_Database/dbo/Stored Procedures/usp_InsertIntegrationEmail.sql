@@ -40,7 +40,8 @@ CREATE   PROCEDURE dbo.usp_InsertIntegrationEmail
     @AttachmentName    NVARCHAR(1000) = NULL,
     @HasAttachments    BIT        = 0,
     @AttachmentPath    NVARCHAR(1000) = NULL,
-    @EmailReadBy       NVARCHAR(255) = NULL   
+    @EmailReadBy       NVARCHAR(255) = NULL,   
+	@EmailSection      INT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -67,7 +68,8 @@ BEGIN
             AttachmentName,
             HasAttachments,
             AttachmentPath,
-            EmailReadBy
+            EmailReadBy,
+			[EmailSection]
         )
         VALUES
         (
@@ -90,7 +92,8 @@ BEGIN
             @AttachmentName,
             @HasAttachments,
             @AttachmentPath,
-            @EmailReadBy
+            @EmailReadBy,
+			@EmailSection
         );
 
    END TRY
@@ -114,5 +117,5 @@ BEGIN
 
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d',16,1,@ErrorLogID)
 		RETURN (1);
-	END CATCH
+	END CATCH
 END

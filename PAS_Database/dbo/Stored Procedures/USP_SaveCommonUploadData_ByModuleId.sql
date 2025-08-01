@@ -14,8 +14,7 @@
 	4    12-03-2025         Abhishek Jirawla        Update LedgerId for GLAccount
 	5	 28-July-2025		Ayushi Patel			Added Defaul value to NotNullable Fields of ItemMaster Table
 	6	 29-July-2025		Vishal Suthar			Added New Module "Stockline"
-
-exec USP_SaveCommonUploadData_ByModuleId @ModuleId=5,@UserName=N'ADMIN User',@MasterCompanyId=1
+exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
@@ -45,22 +44,23 @@ BEGIN
 		DECLARE @RefFieldName AS VARCHAR(MAX);
 		DECLARE @RefQuery AS NVARCHAR(MAX) = '';
 		DECLARE @ReferenceTable VARCHAR(100) = NULL;
+		DECLARE @ModuleParentTable VARCHAR(100) = NULL;
 		DECLARE @TotalRow BIGINT, @CurrentRow BIGINT;
 
 		DECLARE @IsAutoGenerate BIT = 0;
 		DECLARE @CodeTypeId BIGINT = 0;
 		DECLARE @CurrentNumber BIGINT;
 		DECLARE @AutoGenerateNumber NVARCHAR(50);
-		DECLARE @ModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
+		DECLARE @ModuleTableId BIGINT,@ParentModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
-		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT;
+		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT;
     
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
-
+		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		CREATE TABLE #uploadDataResults (
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 			[UploadModuleDataId] [bigint] NOT NULL,
@@ -86,7 +86,7 @@ BEGIN
 			[RecordStatus] [varchar](max) NULL
 		);
 
-		SELECT @ReferenceTable = ReferenceTable, @CodeTypeId = CodeTypeId, @ChildTable = ChildTable, @ReferenceColumnName = ReferenceColumnName  
+		SELECT @ReferenceTable = ReferenceTable, @CodeTypeId = CodeTypeId, @ChildTable = ChildTable, @ReferenceColumnName = ReferenceColumnName , @ModuleParentTable = ModuleParentTable , @ParentPrimaryColumnName = ParentPrimaryColumnName 
 		FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
 
 		INSERT INTO #uploadDataResults ([UploadModuleDataId], [ModuleId], [RecordData], [Description], [RecordStatus], [IsAdded], [IsError], [MasterCompanyId], 
@@ -99,6 +99,7 @@ BEGIN
 
 		WHILE(ISNULL(@TotalRecords, 0) >= ISNULL(@CurrentRecord, 0))
 		BEGIN
+
 			TRUNCATE TABLE #DynamicKeyValue;
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
@@ -109,12 +110,12 @@ BEGIN
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,  IMF.IsAutoGenerate, IMF.IsModuleTableColumn,
 						IMF.DropdownListType, IMF.DropdownListTable, IMF.DropdownListId, IMF.DropdownListValue, IMF.DropdownListValueId,
-						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus 
+						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus, IMF.ParentTableRereneceTypeId
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
-
+			
 			DECLARE @Qty AS INT;
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
@@ -292,13 +293,14 @@ BEGIN
 
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
+
 				SELECT	@IsAutoGenerate = IsAutoGenerate FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
-				IF (ISNULL(@CodeTypeId, 0) > 0 AND ISNULL(@IsAutoGenerate, 0) = 1 AND @ModuleId <> 5)
+				IF(ISNULL(@CodeTypeId, 0) > 0 AND ISNULL(@IsAutoGenerate, 0) = 1 AND @ModuleId <> 5)
 				BEGIN
 					-- Fetch CodeTypeData
 					SELECT TOP 1 * INTO #tmpCodePrefix	FROM DBO.CodePrefixes WITH (NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
-					
+				
 					-- Determine the current number
 					IF EXISTS (SELECT 1 FROM #tmpCodePrefix)
 					BEGIN
@@ -311,7 +313,7 @@ BEGIN
 							SET @CurrentNumber = (SELECT StartsFrom FROM #tmpCodePrefix) + 1;
 						END
 
-						--Update CodeData with new current number
+						 --Update CodeData with new current number
 						UPDATE CodePrefixes
 						SET CurrentNummber = @CurrentNumber
 						WHERE CodePrefixId = (SELECT CodePrefixId FROM #tmpCodePrefix);
@@ -333,11 +335,56 @@ BEGIN
 
 				SET @CurrentRow += 1;
 			END
-
+			
 			UPDATE #ImportFields SET FieldValue = '0' WHERE FieldType = 'number' AND FieldValue = '';
 
 			SELECT * FROM #ImportFields;
 
+			-----parent table insert Start-----
+
+			IF(ISNULL(@ModuleParentTable, '') != '')
+			BEGIN
+				SET @RefFieldName = '' -- reset for parent
+				SET @FieldValue = ''   -- reset for parent
+	
+				-- Add FK reference to main record
+				--SET @RefFieldName = @ReferenceColumnName -- FK field for parent
+				--SET @FieldValue = CAST(@ModuleTableId AS VARCHAR) + ','
+
+				-- Add fields where IsModuleTableColumn is NULL or something specific for parent (adjust condition if needed)
+				SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable;
+
+				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'        
+							WHEN FieldType = 'number' THEN ISNULL(FieldValue,'NULL') + ','   
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
+						
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'        
+							WHEN FieldType = 'number' THEN ISNULL(FieldValue,'NULL') + ','  
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
+				FROM #ImportFields        
+				WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable
+				print(@FieldValue)
+				-- Add audit trail
+				SET @RefFieldName += ', MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + ''''
+				SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
+				-- Final dynamic insert
+				SET @RefQuery = 'INSERT INTO ' + @ModuleParentTable + ' (' + @RefFieldName + ') VALUES (' + @FieldValue + ');'+ ' SET @ParentModuleTableId = SCOPE_IDENTITY()'; 
+				PRINT @RefQuery
+				EXEC sp_executesql @RefQuery, N'@ParentModuleTableId BIGINT OUTPUT',@ParentModuleTableId OUTPUT;
+				
+				--EXEC (@RefQuery)
+			END
+
+
+			-----parent table insert End-----
 			SET @FieldValue = '';
 			SET @RefFieldName = '';
 
@@ -379,6 +426,13 @@ BEGIN
 				SET @RefFieldName += ' , PartNumber,Quantity,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,MasterCompanyId,CreatedBy,UpdatedBy'
 				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0, '
 			END
+			ELSE IF(@ModuleId = @CustomerModule)
+				BEGIN
+					DECLARE @CustomerCode VARCHAR(120) = 'C-NEW';
+					SET @RefFieldName += ' , CustomerCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsCustomerAlsoVendor,IsPBHCustomer,RestrictPMA,RestrictDER,
+					IsCRMCustomer,Ismiscellaneous,MasterCompanyId,CreatedBy, UpdatedBy'
+					SET @FieldValue += '''' + @CustomerCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 1, 1, 0, 0, 1, 1, 0, 0, ';
+				END
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
@@ -403,7 +457,7 @@ BEGIN
 
 				EXEC usp_UpdateItemMasterWithGLAccountNames @ModuleTableId ,@PartSourceVal, @MasterCompanyId
 			END
-
+			
 			IF(@ModuleId = @StocklineModule)
 			BEGIN
 				DECLARE @StkManagementStructureModuleId BIGINT = 2;
@@ -413,6 +467,17 @@ BEGIN
 
 				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
 				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
+			END
+
+			IF(@ModuleId = @CustomerModule)
+			BEGIN
+				DECLARE @CustomerClassificationVal AS VARCHAR(200);
+				DECLARE @CustomerAffiliationVal AS VARCHAR(200);
+	
+				SET @CustomerClassificationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerClassificationId')
+				SET @CustomerAffiliationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerAffiliation')
+				
+				EXEC USP_UpdateCustomerDetails @ModuleTableId,@ModuleId,@CustomerClassificationVal,@CustomerAffiliationVal, @MasterCompanyId
 			END
 
 			IF(ISNULL(@ChildTable, '') != '')
@@ -506,5 +571,5 @@ BEGIN
 				@ApplicationName = @ApplicationName,    
 				@ErrorLogID = @ErrorLogID OUTPUT;    
 			RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
-	END CATCH    
+	END CATCH    
 END

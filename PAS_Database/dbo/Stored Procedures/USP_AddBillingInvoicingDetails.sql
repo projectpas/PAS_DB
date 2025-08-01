@@ -26,6 +26,7 @@
 	13   03 JUL 2025  RAJESH GAMI	 Change CustomerDomensticShippingShipViaId to ShipViaId  And Resolved issue while post the proforma
 	14   28/07/2025   RAJESH GAMI     Implement the Update Revenue while generating the invoice(Update SO Stockline Cost)
 	15   29/07/2025   RAJESH GAMI     Added stocklineIds while checking InvoiceNumber exist or not.(Only for SO)
+	16   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -87,6 +88,7 @@ CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @DestinationCountryId INT = NULL,
 @SignEmpId BIGINT = NULL,
 @SignEmpDate DATETIME2(7) = NULL,
+@ShippingTermsName VARCHAR(256) = NULL,
 -------------------------------------------BillingInvoicingItems-------------------------------------------
 @tbl_BillingInvoicingItemsType BillingInvoicingItemsType READONLY
 AS  
@@ -345,9 +347,9 @@ BEGIN
 
 		INSERT INTO [dbo].[BillingInvoicingDetails]
 				   ([BillingInvoicingId],[SoldToCustomerId],[SoldToSiteId],[SoldToAttention],[ShipToCustomerId]
-				   ,[ShipToSiteId],[ShipToAttention],[ShipViaId],[WayBillRef],[ShipAccountInfo])
+				   ,[ShipToSiteId],[ShipToAttention],[ShipViaId],[WayBillRef],[ShipAccountInfo],[ShippingTermsName])
 			VALUES (@BillingInvoicingIdNew, @SoldToCustomerId, @SoldToSiteId,@SoldToAttention, @ShipToCustomerId, 
-					@ShipToSiteId,@ShipToAttention, @ShipViaId,@WayBillRef, @ShipAccountInfo);
+					@ShipToSiteId,@ShipToAttention, @ShipViaId,@WayBillRef, @ShipAccountInfo,@ShippingTermsName);
 
 		INSERT INTO #tmprAddBillingInvoicingDetailsTemp([BillingInvoicingItemId],[BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],
 					[SubReferenceId],[ItemMasterId],[StocklineId],[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],

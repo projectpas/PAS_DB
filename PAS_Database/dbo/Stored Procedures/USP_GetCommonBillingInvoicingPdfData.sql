@@ -14,6 +14,7 @@
     2    21/05/2025   RAJESH GAMI       Implemented SO3    
 	3	 03 JUL 2025  RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
     4    04/07/2025   Abhishek Jirawla  Get Billing view
+    5    30/07/2025   Bhargav Saliya    Get Shipping Terms 
 --   EXEC [USP_GetCommonBillingInvoicingPdfData] 41,15
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingPdfData]
@@ -120,7 +121,8 @@ BEGIN
 					BI.RevType,
 					BI.InvoiceDate,
 					emp.FirstName+' '+emp.LastName AS Employee,
-					'' AS Stage
+					'' AS Stage,
+					BID.[ShippingTermsName] [ShipTermsName]
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BI.[ReferenceId] = WO.[WorkOrderId]
@@ -236,7 +238,8 @@ BEGIN
 					BI.RevType,
 					BI.InvoiceDate,
 					emp.FirstName+' '+emp.LastName AS Employee,
-					'' AS Stage
+					'' AS Stage,
+					BID.[ShippingTermsName] [ShipTermsName]
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BI.[ReferenceId] = SO.[SalesOrderId]
@@ -349,7 +352,8 @@ BEGIN
 					BI.RevType,
 					BI.InvoiceDate,
 					emp.FirstName+' '+emp.LastName AS Employee,
-					WOS.Code +'-'+WOS.Stage AS Stage
+					WOS.Code +'-'+WOS.Stage AS Stage,
+					BID.[ShippingTermsName] [ShipTermsName]
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BI.[ReferenceId] = WO.[WorkOrderId]
@@ -470,7 +474,8 @@ BEGIN
 					BI.RevType,
 					BI.InvoiceDate,
 					emp.FirstName+' '+emp.LastName AS Employee,
-					'' AS Stage
+					'' AS Stage,
+					BID.[ShippingTermsName] [ShipTermsName]
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BI.[ReferenceId] = SO.[SalesOrderId]

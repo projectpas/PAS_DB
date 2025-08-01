@@ -1,0 +1,73 @@
+﻿/***************************************************************  
+ ** File:   [USP_GetRFQSummarisedHistory]             
+ ** Author: Amit Ghediya
+ ** Description: Get RFQ Quote historical data. 
+ ** Purpose:   
+ ** Date:     01-08-2025  
+            
+ ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  				Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    01-08-2025		  Amit Ghediya				Created
+
+	exec [USP_GetRFQSummarisedHistory] 1,31
+*************************************************************/ 
+CREATE     PROCEDURE [dbo].[USP_GetRFQSummarisedHistory]
+    @MasterCompanyId BIGINT,
+	@CustomerRfqId BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
+    BEGIN TRY
+		SELECT RFQ.[CustomerRfqId],
+					RFQ.[RfqId], 
+					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
+					RFQ.[BuyerName] AS 'rfqFrom',
+					RFQ.[BuyerCompanyName] AS 'companyName',
+					RFQ.[BuyerCountry] AS 'country',
+					RFQ.[LinePartNumber] AS 'partNumber',
+					RFQ.[LineDescription] AS 'lineDescription',
+					RFQ.[BuyerAddress] AS 'rfqAddress',
+					RFQ.[BuyerCity] AS 'rfqCity',
+					RFQ.[BuyerCountry] AS 'rfqCountry',
+					RFQ.[BuyerState] AS 'rfqState',
+					RFQ.[BuyerZip] AS 'rfqZip',
+					RFQ.[IsQuote],
+					RFQ.[Type] AS 'PortalType',
+					RFQ.IntegrationPortalId AS IntegrationPortalId,
+					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
+					RFQ.[AltPartNumber] AS 'AltPartNumber',
+					RFQCD.[IlsPrice] AS 'IlsPrice',
+					RFQ.[Quantity] AS 'Quantity',
+					RFQ.[Condition] AS 'Condition',
+					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
+					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId
+				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
+				INNER JOIN dbo.CustomerRfqQuote RFQC WITH (NOLOCK) ON RFQC.[CustomerRfqId] = RFQ.[CustomerRfqId]
+				INNER JOIN dbo.CustomerRfqQuoteDetails RFQCD WITH (NOLOCK) ON RFQCD.[CustomerRfqQuoteId] = RFQC.[CustomerRfqQuoteId]
+				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
+				AND RFQ.CustomerRfqId = @CustomerRfqId
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorLogID INT,
+                @DatabaseName VARCHAR(100) = DB_NAME(),
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------- 
+                @AdhocComments VARCHAR(150) = 'USP_GetRFQSummarisedHistory',
+                @ProcedureParameters VARCHAR(3000) = '@customerRfqId = ' + CAST(@customerRfqId AS VARCHAR),
+                @ApplicationName VARCHAR(100) = 'PAS';
+ -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+        EXEC spLogException 
+            @DatabaseName = @DatabaseName,
+            @AdhocComments = @AdhocComments,
+            @ProcedureParameters = @ProcedureParameters,
+            @ApplicationName = @ApplicationName,
+            @ErrorLogID = @ErrorLogID OUTPUT;
+
+        RAISERROR ('Unexpected Error Occurred in USP_GetRFQSummarisedHistory. Error ID: %d', 16, 1, @ErrorLogID);
+        RETURN (1);
+    END CATCH
+END

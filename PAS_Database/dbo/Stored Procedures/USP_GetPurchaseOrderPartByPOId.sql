@@ -13,7 +13,7 @@
 ** 1    18-Oct-2024		RAJESH GAMI		    CREATED
    2    10-APR-2025     Moin Bloch          Updated [QuantityReceived] For StockLine Count
 
---EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 2671 ,NULL,NULL
+--EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7791 ,NULL,NULL
 **************************************************************/ 
 
 CREATE       PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
@@ -796,7 +796,7 @@ BEGIN
 				END
 	--------------- END : Sub Work Order Materials ----------------
 				
-				SELECT * FROM #mainReturnTable
+				SELECT * FROM #mainReturnTable ORDER BY PurchaseOrderPartRecordId;
 			END
 		COMMIT  TRANSACTION
 

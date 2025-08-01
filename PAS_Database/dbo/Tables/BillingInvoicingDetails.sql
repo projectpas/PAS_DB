@@ -10,9 +10,8 @@
     [ShipviaId]                 BIGINT        NULL,
     [WayBillRef]                VARCHAR (100) NULL,
     [ShipAccountInfo]           VARCHAR (200) NULL,
+    [ShippingTermsName]         VARCHAR (256) NULL,
     CONSTRAINT [PK_BillingInvoicingDetails] PRIMARY KEY CLUSTERED ([BillingInvoicingDetailsId] ASC),
     CONSTRAINT [FK_BillingInvoicingDetails_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
-
-
 

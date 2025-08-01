@@ -4120,6 +4120,7 @@
     <Build Include="dbo\User Defined Types\IntegrationEmailAttachmentType.sql" />
     <Build Include="dbo\Stored Procedures\UpdateCustomerRfqQuoteReferenceId.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetQuotedRFQPartsDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetRFQPriceSuggestionDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQSummarisedHistory.sql" />
   </ItemGroup>
   <ItemGroup>

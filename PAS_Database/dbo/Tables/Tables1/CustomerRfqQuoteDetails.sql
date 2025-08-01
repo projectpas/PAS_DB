@@ -27,6 +27,7 @@
     [IlsMinQty]                 INT             NULL,
     [IlsComment]                VARCHAR (MAX)   NULL,
     [IlsCondition]              VARCHAR (50)    NULL,
+    [ConditionId]               BIGINT          NULL,
     CONSTRAINT [PK_CustomerRfqQuoteDetails] PRIMARY KEY CLUSTERED ([CustomerRfqQuoteDetailsId] ASC),
     CONSTRAINT [FK_CustomerRfqQuoteDetails_CustomerRfqQuote] FOREIGN KEY ([CustomerRfqQuoteId]) REFERENCES [dbo].[CustomerRfqQuote] ([CustomerRfqQuoteId])
 );

@@ -10,7 +10,6 @@
     [IlsLeadTime]               VARCHAR (50)    NULL,
     [IlsMinQty]                 INT             NULL,
     [IlsComment]                VARCHAR (MAX)   NULL,
-    [IlsCondition]              VARCHAR (50)    NULL);
-
-
+    [IlsCondition]              VARCHAR (50)    NULL,
+    [ConditionId]               BIGINT          NULL);
 

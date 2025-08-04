@@ -18,7 +18,7 @@
 	4    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
 	5	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	7    03-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
+	7    01-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,

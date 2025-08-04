@@ -12,6 +12,7 @@
     2    06-Jan-2025		Devendra Shekh			Issue While Save Resolved
 	3    04-02-2025         Shrey Chandegara        Modified due to ItemMaster AlternatePart
 	4	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for ItemMasterModule too
+	5	 01-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for Customer too
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -57,11 +58,12 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT;
     
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -104,7 +106,7 @@ BEGIN
 
 		INSERT INTO #uploadDataResults([ModuleId], [UserName], [MasterCompanyId], [UploadRecord], [OriginalRecordData])
 		SELECT [ModuleId], [UserName], [MasterCompanyId], [UploadRecord], [UploadRecord] FROM @UploadData;
-
+		
 		SELECT @TotalRecords = MAX([RecordId]), @CurrentRecord = MIN([RecordId]) FROM #uploadDataResults;
 
 		SELECT @ReferenceTable = ReferenceTable FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
@@ -130,7 +132,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			--ORDER BY IMF.DisplaySortOrder ASC
-
+			
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			
 			WHILE(@TotalRow >= @CurrentRow)
@@ -154,7 +156,7 @@ BEGIN
 
 				SET @CurrentRow += 1;
 			END
-
+			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
@@ -167,7 +169,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			--SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
- 
+			
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
@@ -191,6 +193,7 @@ BEGIN
 					
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
 				END
+				
 				SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 				SET @CurrentRow += 1;
 			END
@@ -205,7 +208,7 @@ BEGIN
 				BEGIN
 					SELECT	@DuplicateRefeValue1 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef1;
 					SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef2;
-
+					
 					EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 					
 					IF(ISNULL(@IsDuplicate, 0) = 1)
@@ -214,16 +217,17 @@ BEGIN
 						SET DuplicateErrorMsg = CASE	WHEN @ModuleId = @AlterModule THEN 'Entered PN and Alterate PN Already Exits!'
 														WHEN @ModuleId = @GLModule THEN 'Entered Account Code Already Exits!'
 														WHEN @ModuleId = @ItemMasterModule THEN 'Entered PN And Manufacturer Already Exits!'
+														WHEN @ModuleId = @CustomerModule THEN 'Entered Name Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
-
+					
 
 				END
-
+				
 				SET @CurrentRow += 1;
 			END
-
+			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
@@ -236,7 +240,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
-
+			
 			--IF(ISNULL(@GlImportModuleId, 0) = ISNULL(@ModuleId, 0))
 			--BEGIN
 			--	--select * from #DynamicKeyValue
@@ -257,12 +261,12 @@ BEGIN
 			SET [Status] = ISNULL(STUFF(@Erorr, CHARINDEX(',', @Erorr), 1, ''), ''), [IsError] = CASE WHEN ISNULL(@Erorr, '') = '' THEN 0 ELSE 1 END,
 				[UploadRecord] = @json
 			WHERE RecordId = @CurrentRecord;
-
+			
 			INSERT INTO [dbo].[UploadModuleData] ([ModuleId], [OriginalRecordData], [RecordData], [Description], [RecordStatus], [IsAdded], [IsError], [MasterCompanyId], 
 						[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 			SELECT [ModuleId], [OriginalRecordData], [UploadRecord], '', [Status], 0, [IsError], [MasterCompanyId], [UserName], GETUTCDATE(), [UserName], GETUTCDATE(), 1, 0
 			FROM #uploadDataResults WHERE RecordId = @CurrentRecord;
-
+			
 			IF OBJECT_ID('tempdb..#TempDynamicData') IS NOT NULL
 				DROP TABLE #TempDynamicData
 

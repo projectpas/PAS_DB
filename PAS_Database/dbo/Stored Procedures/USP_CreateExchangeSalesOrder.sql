@@ -74,7 +74,7 @@ BEGIN
 			PRINT @ExchangeSalesOrderPrefix;
 
 			-- Fetch esoCodeData
-			SELECT TOP 1 * INTO #esoCodeData FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @ExchangeSalesOrderPrefix AND [MasterCompanyId] = @MasterCompanyId
+			SELECT TOP 1 * INTO #esoCodeData FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 AND [CodeTypeId] = @ExchangeSalesOrderPrefix AND [MasterCompanyId] = @MasterCompanyId
 
 			-- Determine the current number
 			IF EXISTS (SELECT 1 FROM #esoCodeData)

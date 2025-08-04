@@ -4126,6 +4126,8 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateCustomerDetails.sql" />
     <Build Include="dbo\Stored Procedures\AddCustomerShippingAddress.sql" />
     <Build Include="dbo\Stored Procedures\AddCustomerBillingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
+    <Build Include="dbo\Stored Procedures\usp_AssignEmployeeToRFQs.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

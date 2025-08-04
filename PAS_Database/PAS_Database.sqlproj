@@ -4120,12 +4120,12 @@
     <Build Include="dbo\User Defined Types\IntegrationEmailAttachmentType.sql" />
     <Build Include="dbo\Stored Procedures\UpdateCustomerRfqQuoteReferenceId.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetQuotedRFQPartsDetails.sql" />
-<<<<<<<<< Temporary merge branch 1
-    <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailAttachments.sql" />
-=========
+
     <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailAttachments.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQSummarisedHistory.sql" />
->>>>>>>>> Temporary merge branch 2
+    <Build Include="dbo\Stored Procedures\USP_UpdateCustomerDetails.sql" />
+    <Build Include="dbo\Stored Procedures\AddCustomerShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\AddCustomerBillingAddress.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

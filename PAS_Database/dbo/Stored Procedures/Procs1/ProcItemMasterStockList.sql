@@ -18,6 +18,7 @@
 	4    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
 	5	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	7    03-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -120,7 +121,8 @@ BEGIN
 					   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
 					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',	
 					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
-					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
+					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0
+					   OR ISNULL((SELECT COUNT(RepairOrderAssemblyId) from [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK)WHERE RAP.ItemMasterId = im.ItemMasterId),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
 					   im.IsActive,
 					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,					   
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',

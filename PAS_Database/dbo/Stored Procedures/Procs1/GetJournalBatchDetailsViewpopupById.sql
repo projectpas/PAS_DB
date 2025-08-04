@@ -52,7 +52,8 @@
  36	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
  37	  01/08/2024  Moin Bloch		     added IsReversedJE Flag
  38	  13/12/2024  Moin Bloch		     added Cycle Count Module
- 39	  26/Dec/2024 Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
+ 39	  26/12/2024  Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
+ 40	  04/08/2024  AMIT GHEDIYA		     Updated MJ Module MJE to MJB.
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -1684,7 +1685,7 @@ BEGIN
 				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 				 ORDER BY DS.DisplayNumber ASC;  
 			END 
-			IF(UPPER(@Module) = UPPER('MJE') OR UPPER(@Module) = UPPER('ManualJournal'))        
+			IF(UPPER(@Module) = UPPER('MJB') OR UPPER(@Module) = UPPER('ManualJournal'))        
 			BEGIN  		
 				DECLARE @ManualManagementStructureModuleId BIGINT = 0;
 

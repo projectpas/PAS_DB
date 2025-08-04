@@ -17,7 +17,8 @@
     2    18/09/2023  Bhargav Saliya  Added Fields PostedDate and Status 
 	3	 19/10/2023	 Nainshi Joshi    Added Field PostedBy
 	4	 30/10/2023	 Ayesha Sultana   Batch name retriving issue fix
-	5	 09/04/2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
+	5	 09/04/2025	 Ekta Chandegra	  Convert date using dbo.ConvertUTCtoLocal
+	6	 04/08/2024  AMIT GHEDIYA	  Added Field ReferenceNumber.
 ************************************************************************/    
 --[GetJournalBatchDetailsViewById]  826    
 CREATE        PROCEDURE [dbo].[GetJournalBatchDetailsViewById]      
@@ -68,8 +69,8 @@ BEGIN
 				  JBD.AccountingPeriod,
 				  (Cast(DBO.ConvertUTCtoLocal(JBD.PostedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as PostedDate,
 				  JBD.PostedBy,
-				  BS.Name AS [Status]
-  
+				  BS.Name AS [Status],
+				 (SELECT TOP 1 CBD.[ReferenceNumber] FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK) WHERE CBD.[JournalBatchDetailId] = JBD.[JournalBatchDetailId]) AS ReferenceNumber
 		  FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)      
 		  INNER JOIN BatchDetails JBD WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId       
 		  LEFT JOIN BatchStatus BS WITH(NOLOCK) ON JBD.StatusId = BS.ID      

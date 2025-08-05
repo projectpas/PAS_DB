@@ -34,7 +34,7 @@
 	20	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	21	 02/06/2025	 Abhishek Jirawla Fixed Name concat read script
   	22	 16/06/2025	 RAJESH GAMI	Implement new BILLING INVOICING table structure 
-	23	 31/07/2025	 RAJESH GAMI	Getting Freight and Charges Amount from the invoice table instead of SO Part tablpe.
+	23	 31/07/2025	 RAJESH GAMI	Fixed : Getting Freight and Charges Amount from the invoice table instead of SO Part table
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
@@ -289,7 +289,9 @@ BEGIN
 					 AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBI.[IsVersionIncrease],0) = 0  AND ISNULL(BII.IsPerformaInvoice,0) = 0 AND ISNULL(BII.[IsVersionIncrease],0) = 0
 
 					--SELECT @MiscChargesCost =SUM(ISNULL(MiscCharges,0)),@FreightCost =SUM(ISNULL(Freight,0)) FROM SalesOrderPartCost WHERE SalesOrderPartId in(SELECT SubReferenceId FROM #tmpSOPartIds)
-					SELECT @MiscChargesCost =SUM(ISNULL(MiscChargesCostPlus,0)),@FreightCost =SUM(ISNULL(FreightCostPlus,0)) FROM DBO.BillingInvoicingItems WITH(NOLOCK) WHERE ModuleId =@soModuleId AND SubReferenceId in(SELECT SubReferenceId FROM #tmpSOPartIds)
+					SELECT @MiscChargesCost =SUM(ISNULL(MiscChargesCostPlus,0)),@FreightCost =SUM(ISNULL(FreightCostPlus,0)) FROM DBO.BillingInvoicingItems WITH(NOLOCK) 
+					WHERE ModuleId =@soModuleId AND SubReferenceId in(SELECT SubReferenceId FROM #tmpSOPartIds)
+						  AND BillingInvoicingId = @InvoiceId AND ISNULL(IsPerformaInvoice,0) = 0  AND ISNULL([IsVersionIncrease],0) = 0
 					 SELECT @SalesTotal = SUM(ISNULL(PartCost,0))
 					 FROM [dbo].BillingInvoicing SOBI WITH(NOLOCK) 
 					 INNER JOIN dbo.BillingInvoicingItems BII WITH(NOLOCK) ON SOBI.BillingInvoicingId = BII.BillingInvoicingId

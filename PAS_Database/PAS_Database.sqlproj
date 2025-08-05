@@ -4121,7 +4121,6 @@
     <Build Include="dbo\Stored Procedures\UpdateCustomerRfqQuoteReferenceId.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetQuotedRFQPartsDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailAttachments.sql" />
-    <Build Include="dbo\Stored Procedures\usp_GetRFQPriceSuggestionDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQSummarisedHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateCustomerDetails.sql" />
     <Build Include="dbo\Stored Procedures\AddCustomerShippingAddress.sql" />
@@ -4130,6 +4129,8 @@
     <Build Include="dbo\Stored Procedures\usp_AssignEmployeeToRFQs.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateExchangeSalesOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartsView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailConfigration.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateIntegrationEmailConfigration.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

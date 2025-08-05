@@ -37,6 +37,7 @@
 	20   28/05/2025	  HEMANT SALIYA	    Updated for Remove Lot Id while create new stockline
 	21   30/05/2025	  Devendra Shekh	Modify(added case for RepairOrderUnitCost while create stockline)
 	22   30/07/2025	  RAJESH GAMI		Implemented: Return Stockline to Lot After Internal Repair Completion and Move to Finished Goods  (PN-13046)
+	23   01/Aug/2025  RAJESH GAMI		Trans Out the Old finish good stockline from the LOT (Stk Unit Cost trans out from LOT)
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -314,8 +315,8 @@ BEGIN
 		DECLARE @LotDetails dbo.LotTransInOutDetailsType;
 		INSERT INTO @LotDetails ( LotTransInOutId, StockLineId, LotId, QtyToTransIn, QtyToTransOut, LotTransInOutDetails, UnitCost, ExtCost, IsTransOut, TransInMemo,TransOutMemo )
 		SELECT 0 as LotTransInOutId, @NewStocklineId,@LotId,1,0,0,
-			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,
-			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + @MaterialsCost + @LaborCost ELSE [UnitCost] END,
+			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + ISNULL(@MaterialsCost,0) + ISNULL(@LaborCost,0) ELSE ISNULL([UnitCost],0) END,
+			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + ISNULL(@MaterialsCost,0) + ISNULL(@LaborCost,0) ELSE ISNULL([UnitCost],0) END,
 			 0,'Trans In From Finish Good - '+CAST(@WorkOrderNumber AS VARCHAR),''		
 		FROM DBO.Stockline  WITH(NOLOCK) WHERE StockLineId =  @StocklineId
 
@@ -330,6 +331,27 @@ BEGIN
 			@UpdatedBy = @UpdateBy,
 			@CreatedDate = @CreatedDate,
 			@UpdatedDate = @CreatedDate;
+
+			/****** Trans Out Old Stockline From The LOT ******/
+			DECLARE @TransOUtLotDetails dbo.LotTransInOutDetailsType;
+		INSERT INTO @TransOUtLotDetails ( LotTransInOutId, StockLineId, LotId, QtyToTransIn, QtyToTransOut, LotTransInOutDetails, UnitCost, ExtCost, IsTransOut, TransInMemo,TransOutMemo )
+		SELECT 0 as LotTransInOutId, @StocklineId,@LotId,1,1,0,
+			ISNULL([UnitCost],0),
+			 ISNULL([UnitCost],0),
+			 0,'','Trans Out From Finish Good - '+CAST(@WorkOrderNumber AS VARCHAR)		
+		FROM DBO.Stockline  WITH(NOLOCK) WHERE StockLineId =  @StocklineId
+
+		EXEC dbo.USP_Lot_AddUpdateLotTransInOutDetails
+			@tbl_LotTransInOutDetailsType = @TransOUtLotDetails,
+			@LotTransInOutId = 0,
+			@MasterCompanyId = @MasterCompanyId,
+			@IsTransInOut = 0,
+			@IsInOut = 0,
+			@CreatedBy = @UpdateBy,
+			@UpdatedBy = @UpdateBy,
+			@CreatedDate = @CreatedDate,
+			@UpdatedDate = @CreatedDate;
+
 		--EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @LOTModuleId, @ReferenceId = @LotId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = 11, @Qty = 1, @UpdatedBy = @UpdateBy;
 	END
 	/***************************************************** START: INSERT INTO LOT (TRANS IN) ***********************************************************/

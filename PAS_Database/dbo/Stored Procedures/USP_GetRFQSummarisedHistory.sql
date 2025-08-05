@@ -21,6 +21,21 @@ BEGIN
     SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
     BEGIN TRY
+
+		--Get AI price based on rfqId
+		CREATE TABLE #TempRFQDetails
+		(
+			customerRfqId INT,
+			rfqId BIGINT,
+			partNumber VARCHAR(100),
+			masterCompanyId INT,
+			ilsPrice DECIMAL(18, 2)
+		);
+
+		INSERT INTO #TempRFQDetails
+		EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId;
+		
+
 		SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
 					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
@@ -40,6 +55,10 @@ BEGIN
 					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
 					RFQ.[AltPartNumber] AS 'AltPartNumber',
 					RFQCD.[IlsPrice] AS 'IlsPrice',
+					RFQCD.[IlsPrice] AS 'QuotedPrice',
+					(SELECT ISNULL(ilsPrice,0) FROM #TempRFQDetails) AS 'AverageSuggestedPrice',
+					RFQCD.[PercentId] AS 'PercentId',
+					RFQCD.[PercentValue] AS 'PercentValue',
 					RFQ.[Quantity] AS 'Quantity',
 					RFQ.[Condition] AS 'Condition',
 					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
@@ -50,7 +69,10 @@ BEGIN
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
-				AND RFQ.CustomerRfqId = @CustomerRfqId
+				AND RFQ.CustomerRfqId = @CustomerRfqId;
+
+				-- Droped the temp table when done
+				DROP TABLE #TempRFQDetails;
     END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT,

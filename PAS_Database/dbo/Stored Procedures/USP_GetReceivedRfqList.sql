@@ -16,6 +16,7 @@
 	3    21-07-2025  Amit Ghediya        MOdify for get RFQ part is in our inventory or not (ItemMasterId,StockLineId)
 	4    21-07-2025  Devendra Shekh		 Modified (Added CustomerId to select)
 	5    31-07-2025  Amit Ghediya		 Modified (Added ModuleId,ReferenceId to select)
+	6    04-08-2025  Devendra Shekh		 Modified (Added EmployeeId,EmployeeName to select)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -34,12 +35,13 @@ CREATE     PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@Description [VARCHAR](250) = NULL,
 	@PortalType [VARCHAR](50) = NULL,
 	@MasterCompanyId INT,
-	@CreatedDate DATETIME=null,
-    @UpdatedDate  DATETIME=null,
-	@CreatedBy VARCHAR(50)=null,
-	@UpdatedBy VARCHAR(50)=null,
+	@CreatedDate DATETIME=NULL,
+    @UpdatedDate  DATETIME=NULL,
+	@CreatedBy VARCHAR(50)=NULL,
+	@UpdatedBy VARCHAR(50)=NULL,
 	@IsDeleted BIT = 0,
-	@IntegrationPortalId INT = null
+	@IntegrationPortalId INT = NULL,
+	@EmployeeName VARCHAR(100) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -91,10 +93,13 @@ BEGIN
 					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
 					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
 					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
-					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId
+					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
+					RFQ.EmployeeId,
+					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),
@@ -108,7 +113,8 @@ BEGIN
 							(PortalType like '%' +@GlobalFilter+'%') OR
 							(companyName like '%' +@GlobalFilter+'%') OR
 							(country like '%' +@GlobalFilter+'%') OR
-							(partNumber like '%'+@GlobalFilter+'%')
+							(partNumber like '%'+@GlobalFilter+'%') OR
+							(EmployeeName like '%'+@GlobalFilter+'%')
 							))
 							OR   
 							(@GlobalFilter='' AND (IsNull(@RfqId,'') ='' OR CAST(rfqId AS VARCHAR(20)) like '%' + CAST(@RfqId AS VARCHAR(20)) + '%') and 
@@ -121,6 +127,7 @@ BEGIN
 							(IsNull(@LinePartNumber,'') ='' OR partNumber like '%'+@LinePartNumber+'%') and
 							(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%'+ @CreatedBy+'%') and
 							(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and
+							(IsNull(@EmployeeName,'') ='' OR EmployeeName like '%'+ @EmployeeName +'%') and
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
 							)),
@@ -143,6 +150,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='Description')  THEN lineDescription END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='PortalType')  THEN PortalType END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='EmployeeName')  THEN EmployeeName END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
@@ -156,7 +164,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Description')  THEN lineDescription END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='PortalType')  THEN PortalType END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='PortalType')  THEN PortalType END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='EmployeeName')  THEN EmployeeName END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 

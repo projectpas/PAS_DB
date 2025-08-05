@@ -28,6 +28,7 @@
     [IsMRO]               BIT           DEFAULT ((0)) NULL,
     [ModuleId]            INT           NULL,
     [ReferenceId]         BIGINT        NULL,
+    [EmployeeId]          BIGINT        NULL,
     CONSTRAINT [PK_CustomerRfq] PRIMARY KEY CLUSTERED ([CustomerRfqId] ASC),
     CONSTRAINT [FK_CustomerRfq_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

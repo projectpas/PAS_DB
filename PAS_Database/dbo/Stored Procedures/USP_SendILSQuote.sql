@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06 Mar 2024  Rajesh Gami    Created
+	2    04 Aug 2025  Amit Ghediya   Update for add PercentId,PercentValue on fly.
      
 -- EXEC USP_SendILSQuote
 ************************************************************************/
@@ -30,9 +31,15 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-					DECLARE @GetCustomerRfqId BIGINT, @IsRecordExist BIT =0;
+					DECLARE @GetCustomerRfqId BIGINT, 
+						    @IsRecordExist BIT =0,
+							@PercentId BIGINT,
+							@PercentValue DECIMAL(18,2);
 
-					SELECT @GetCustomerRfqId = CustomerRfqId FROM CustomerRfq WHERE RfqId = @RfqId AND MasterCompanyId = @MasterCompanyId ;
+					SELECT @GetCustomerRfqId = CustomerRfqId FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE RfqId = @RfqId AND MasterCompanyId = @MasterCompanyId ;
+
+					--Get markup % on fly
+					SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
 					--SET @IsRecordExist = (CASE WHEN (SELECT COUNT(1) FROM DBO.CustomerRfqQuote WITH(NOLOCK) WHERE CustomerRfqId = @GetCustomerRfqId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0) > 0 THEN 1 ELSE 0 END)
 
@@ -66,10 +73,10 @@ BEGIN
 						INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 								   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue])
 						SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0
+							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue
 						 FROM @tbl_IlsRfqQuoteDetailsType WHERE ISNULL(CustomerRfqQuoteDetailsId,0) = 0;
 
 						------- Update Csutomer RFQ for Is Quote added ----------					 
@@ -95,10 +102,10 @@ BEGIN
 						INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 								   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue])
 						SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0
+							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue
 						 FROM @tbl_IlsRfqQuoteDetailsType;
 
 						 ------- Update Csutomer RFQ for Is Quote added ----------					 

@@ -14,8 +14,8 @@
 	4   19 May 2025   RAJESH GAMI	Remove remaining amount condition
 	5   28 May 2025   RAJESH GAMI   Corrected InvoiceAmount
 	6	13 Jun 2025	  RAJESH GAMI	Change the new billing invoicing table with old one (WO, SO)
-	8	04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing 
-** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',0,NULL,NULL,180,20,'',''
+	8	04 Jul 2025   RAJESH GAMI   Fixed: Select All Not Working for WO
+** EXEC [dbo].[GetInvoiceListForCSVExportByInvoicingIds] 15,'3659',1,NULL,NULL,180,20,'',''
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[GetInvoiceListForCSVExportByInvoicingIds]
 	@ModuleId INT,
@@ -84,7 +84,7 @@ SET NOCOUNT ON;
 					   ELSE (CAST(WOBI.InvoiceDate AS DATE)) END)) AS DueDate,
 					   WO.CreditTerms as Terms,
 					   '' as [Location],
-					   WO.Memo as Memo,
+					   REPLACE(REPLACE(ISNULL( WO.Memo,''), '<p>', ''),'</p>','') as Memo,
 					   WOP.RevisedPartNumber as Item,
 					   WOP.RevisedPartDescription as ItemDescription,
 					   ISNULL(WOP.Quantity,0) as ItemQuantity,
@@ -110,11 +110,11 @@ SET NOCOUNT ON;
 							(@ToDate IS NULL OR CAST(WOBI.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
 							(IsNull(@Status,'') ='' OR WOBI.InvoiceStatus like '%' + @Status+'%') 
 							AND
-							( (@ViewType ='invoice'AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
+							( (@ViewType ='invoice' 
 								AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 								AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(WOBI.IsPerformaInvoice,0) = 0)))
 							 OR
-							 ( (@ViewType !='invoice' AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
+							 ( (@ViewType !='invoice'
 							AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      )
 							) )
 						  ) 
@@ -137,7 +137,7 @@ SET NOCOUNT ON;
 					   ELSE (CAST(SOBI.InvoiceDate AS DATE)) END)) AS DueDate,
 					   SO.CreditTermName as Terms,
 					   '' as [Location],
-					   SOP.Notes as Memo,
+					  REPLACE(REPLACE(ISNULL( SOP.Notes,''), '<p>', ''),'</p>','') as Memo,
 					   SOP.PartNumber as Item,
 					   SOP.PartDescription as ItemDescription,
 					   ISNULL(SOBII.QtyBilled,0) as ItemQuantity,
@@ -218,7 +218,7 @@ SET NOCOUNT ON;
 					   ELSE (CAST(ESOBI.InvoiceDate AS DATE)) END)) AS DueDate,
 					   ESO.CreditTermName as Terms,
 					   '' as [Location],
-					   ESOP.Notes as Memo,
+					   REPLACE(REPLACE(ISNULL( ESOP.Notes,''), '<p>', ''),'</p>','') as Memo,
 					   ESOP.PartNumber as Item,
 					   ESOP.PartDescription as ItemDescription,
 					   1 as ItemQuantity,

@@ -4131,6 +4131,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartsView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailConfigration.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateIntegrationEmailConfigration.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorShippingFull.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

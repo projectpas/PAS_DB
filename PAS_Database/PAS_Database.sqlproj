@@ -4128,6 +4128,8 @@
     <Build Include="dbo\Stored Procedures\AddCustomerBillingAddress.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetCustomerRfqById.sql" />
     <Build Include="dbo\Stored Procedures\usp_AssignEmployeeToRFQs.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateExchangeSalesOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuotePartsView.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

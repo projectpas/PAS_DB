@@ -37,7 +37,7 @@
 	20   28/05/2025	  HEMANT SALIYA	    Updated for Remove Lot Id while create new stockline
 	21   30/05/2025	  Devendra Shekh	Modify(added case for RepairOrderUnitCost while create stockline)
 	22   30/07/2025	  RAJESH GAMI		Implemented: Return Stockline to Lot After Internal Repair Completion and Move to Finished Goods  (PN-13046)
-	23   01/Aug/2025  RAJESH GAMI		Trans Out the Old finish good stockline from the LOT
+	23   01/Aug/2025  RAJESH GAMI		Trans Out the Old finish good stockline from the LOT (Stk Unit Cost trans out from LOT)
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -336,8 +336,8 @@ BEGIN
 			DECLARE @TransOUtLotDetails dbo.LotTransInOutDetailsType;
 		INSERT INTO @TransOUtLotDetails ( LotTransInOutId, StockLineId, LotId, QtyToTransIn, QtyToTransOut, LotTransInOutDetails, UnitCost, ExtCost, IsTransOut, TransInMemo,TransOutMemo )
 		SELECT 0 as LotTransInOutId, @StocklineId,@LotId,1,1,0,
-			CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + ISNULL(@MaterialsCost,0) + ISNULL(@LaborCost,0) ELSE ISNULL([UnitCost],0) END,
-			 CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN ISNULL([UnitCost],0) + ISNULL(@MaterialsCost,0) + ISNULL(@LaborCost,0) ELSE ISNULL([UnitCost],0) END,
+			ISNULL([UnitCost],0),
+			 ISNULL([UnitCost],0),
 			 0,'','Trans Out From Finish Good - '+CAST(@WorkOrderNumber AS VARCHAR)		
 		FROM DBO.Stockline  WITH(NOLOCK) WHERE StockLineId =  @StocklineId
 

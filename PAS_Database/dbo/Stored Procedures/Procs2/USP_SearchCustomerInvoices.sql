@@ -51,6 +51,7 @@
 	35  15 Jul 2025	  Hemant Saliya     Remove the credit memo condition (Where we check the CM status and all)
 	36  15 Jul 2025	  Moin Bloch        added Customer Code
 	37  16 Jul 2025	  Devendra Shekh	added Condition for IsActive/IsDeleted check
+	38  05 Aug 2025   RAJESH GAMI       Implemented: Added new filter for creditmemo ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED' status consider under the INVOICED filter) 
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -551,8 +552,17 @@ BEGIN
 	  (ISNULL(@LastMSLevel,'') ='' OR AllMSlevels like '%' + @LastMSLevel+'%') AND
 	  (@FromDate IS NULL OR CAST(InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND
 	  (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
-	  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%') 
-      ))
+	  --(IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
+	   (
+						IsNull(@Status, '') = ''
+						OR (
+							@Status = 'Invoiced' AND IsCreditMemo = 1 AND InvoiceStatus IN ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED')
+					)
+					OR (
+						NOT (@Status = 'Invoiced' AND IsCreditMemo = 1) AND InvoiceStatus LIKE '%' + @Status + '%'
+				   )
+				)
+				))
 				   SELECT @Count = COUNT(InvoicingId), @InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt, 0)), @RemainingTotalAmount = SUM(ISNULL(RemainingAmount, 0)) FROM #TempResult   
   
 				   SELECT *, @Count As NumberOfItems, @InvoiceTotalAmount AS InvoiceTotalAmount, @RemainingTotalAmount AS RemainingTotalAmount
@@ -866,7 +876,16 @@ BEGIN
 				  (IsNull(@StockType,'') ='' OR StockType like '%' + @StockType+'%')   AND
 				 (@FromDate IS NULL OR CAST(InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND
 				 (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
-				  (IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
+				  --(IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
+				  (
+						IsNull(@Status, '') = ''
+						OR (
+							@Status = 'Invoiced' AND IsCreditMemo = 1 AND InvoiceStatus IN ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED')
+						)
+						OR (
+							NOT (@Status = 'Invoiced' AND IsCreditMemo = 1) AND InvoiceStatus LIKE '%' + @Status + '%'
+						)
+					)
 				  ))
 				   SELECT @Count = COUNT(InvoicingId), @InvoiceTotalAmount = SUM(ISNULL(InvoiceAmt, 0)), @RemainingTotalAmount = SUM(ISNULL(RemainingAmount, 0)) FROM #TempResults 
 

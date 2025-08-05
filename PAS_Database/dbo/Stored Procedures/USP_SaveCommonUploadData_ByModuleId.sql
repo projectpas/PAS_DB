@@ -14,6 +14,8 @@
 	4    12-03-2025         Abhishek Jirawla        Update LedgerId for GLAccount
 	5	 28-July-2025		Ayushi Patel			Added Defaul value to NotNullable Fields of ItemMaster Table
 	6	 29-July-2025		Vishal Suthar			Added New Module "Stockline"
+	7	 01-Aug-2025		Ayushi Patel			Added functionality to handle parent table , Added New Module "Customer"
+
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]

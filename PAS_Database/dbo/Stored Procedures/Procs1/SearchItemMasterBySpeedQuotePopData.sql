@@ -5,6 +5,8 @@
  ** Purpose		:   Get Item Master Details for speed quote popup.
  ** Date		:   19-may-2021
 
+ 1    19-may-2021		Deep Patel				Created
+ 2    05-08-2025		Moin Bloch	            Modified Get [ConditionId] From OVERHAULED,REPAIRED if [Code] 'OVERHAUL' and 'REPAIR' is not available
      
  EXECUTE [dbo].[SearchItemMasterBySpeedQuotePopData] 7,1
 **************************************************************/ 
@@ -20,15 +22,24 @@ BEGIN
 
 	IF(@mastercompanyid = 11)
 	BEGIN
-		SELECT @OHCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'OVERHAULED';
-		SELECT @REPCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'REPAIRED';
-		SELECT @BCCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'BC';	
+		SELECT @OHCondition  = [ConditionId] FROM [dbo].Condition WITH (NOLOCK)  WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'OVERHAULED';
+		SELECT @REPCondition = [ConditionId] FROM [dbo].Condition WITH (NOLOCK) WHERE  [MasterCompanyId] = @mastercompanyid AND [Code] = 'REPAIRED';
+		SELECT @BCCondition  = [ConditionId] FROM [dbo].Condition WITH (NOLOCK)  WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'BC';	
 	END
 	ELSE
 	BEGIN
-		SELECT @OHCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'OVERHAUL';
-		SELECT @REPCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'REPAIR';
-		SELECT @BCCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'BC';	
+		SELECT @OHCondition  = [ConditionId] FROM [dbo].Condition WITH (NOLOCK) WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'OVERHAUL';
+		SELECT @REPCondition = [ConditionId] FROM [dbo].Condition WITH (NOLOCK) WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'REPAIR';
+		SELECT @BCCondition  = [ConditionId] FROM [dbo].Condition WITH (NOLOCK) WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'BC';
+		
+		IF(@OHCondition IS NULL)
+		BEGIN
+			SELECT TOP 1 @OHCondition = [ConditionId] FROM [dbo].[Condition] WITH (NOLOCK) WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'OVERHAULED';
+		END
+		IF(@REPCondition IS NULL)
+		BEGIN
+			SELECT TOP 1 @REPCondition = [ConditionId] FROM [dbo].[Condition] WITH (NOLOCK) WHERE [MasterCompanyId] = @mastercompanyid AND [Code] = 'REPAIRED';
+		END
 	END
 
 	 BEGIN TRY
@@ -76,18 +87,18 @@ BEGIN
 					WHEN c.ConditionId = @REPCondition THEN im.TurnTimeRepairHours
 					ELSE 0 END AS TAT
 				FROM DBO.ItemMaster im WITH (NOLOCK)
-				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (Select ConditionId from Condition where MasterCompanyId=@mastercompanyid)
+				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId IN (SELECT [ConditionId] FROM [dbo].[Condition] WITH(NOLOCK) WHERE [MasterCompanyId]=@mastercompanyid)
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
 					AND sl.IsDeleted = 0  AND sl.isActive = 1
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN (SELECT partnumber, ItemMasterId FROM DBO.ItemMaster WITH (NOLOCK)) OEMPMA ON OEMPMA.ItemMasterId = im.IsOemPNId
-				LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
-							and imps.ConditionId = c.ConditionId
+				LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId
+							AND imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-					AND c.ConditionId in(@OHCondition, @REPCondition, @BCCondition)
+					AND c.ConditionId IN(@OHCondition, @REPCondition, @BCCondition)
 				GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId

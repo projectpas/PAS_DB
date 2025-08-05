@@ -15,6 +15,7 @@
 	3    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 	
 	4    07 JUL 2025   Devendra Shekh	Deposite Amount Calculation Issue Resolved
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
+	6    05 Aug 2025   Bhargav Saliya   Get Shipping Terms Name from BillingInvoiceDatails
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 4352,10,245
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -127,7 +128,7 @@ BEGIN
 					SignEmpName = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),
 					SignEmpTitle = ISNULL(jt.Description,''),
 					SignEmpDate = bi.CreatedDate,
-					ShippingTerms = posv.ShippingTerms,
+					ShippingTerms = BID.ShippingTermsName,
 					CASE 
 							WHEN BI.IsPerformaInvoice = 1 THEN 
 								(SELECT SUM(ISNULL(BII.PartCost, 0)) FROM dbo.BillingInvoicingItems BII WITH (NOLOCK) WHERE BII.BillingInvoicingId = BI.BillingInvoicingId)

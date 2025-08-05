@@ -20,7 +20,8 @@
 	6    08 JUL 2025   RAJESH GAMI  Fixed: When we revise the proforma that time getting error 
 	7    17 JUL 2025   RAJESH GAMI  Implement SO notes  
 	8    31 JUL 2025   BHARGAV Saliya  Handle [IsCustomerShipping] flage and Get AccountNo In SO
-   EXEC [dbo].[GetBillingInvoicingDetails] 841,1330,2,10,0,8999
+	9    05 Aug 2025   BHARGAV Saliya Fixed ShippingTerms Issue PN_13778
+   EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[GetBillingInvoicingDetails]
@@ -438,10 +439,10 @@ BEGIN
 						GETUTCDATE() AS [InvoiceDate],
 						null AS [PrintDate],
 						null AS ShipDate,
-						BID.ShipviaId,
+						[cust_shipVia].[ShipViaId],
 							sobi.InvoiceTypeId as InvoiceTypeId,@DefaultInvoiceTypeId DefaultInvoiceTypeId,
 						so.Notes Notes,
-						ISNULL(BID.[ShipAccountInfo], '') AS [ShipAccountInfo],
+						ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 						ISNULL([st].[Name], '') AS ShippingTermsName
 				  	FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				  	INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

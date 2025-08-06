@@ -35,17 +35,20 @@ BEGIN
 				--@PartNumber NVARCHAR(200) = '0856AE15',
 				@CustomerRfqId BIGINT = 0,
 				@RfqId BIGINT = 0,
+				@Condition VARCHAR(256),
+				@ConditionId BIGINT,
 				@CustomerRfqQuoteId BIGINT = 0,
 				@PartNumber NVARCHAR(200) = NULL,
+				@BuyerCompanyName NVARCHAR(200) = NULL,
 				@SalesOrderQuoteId BIGINT = 0,
 				@Condition_Code VARCHAR(100) = 'Rejected,Open,Cancelled',
 				@AiPercentValue DECIMAL(18,2) = 0,
 				@IsEnableDisableAIintegration BIT = 0,
-				@MasterCompanyId BIGINT = 0,
+				@MasterCompanyId INT = 0,
 				@UnitSalesPriceTotal DECIMAL(18,2) = 0,
 				@RecordsTotal INT = 0,
 				@PerUnitPrice DECIMAL(18,2) = 0,
-				@CreatedBy VARCHAR(100) = 'Admin';
+				@CreatedBy VARCHAR(256) = 'Admin';
 
 		--Get FROM SalesOrderQuotePart data for selected part
 		IF OBJECT_ID(N'tempdb..#tmpCustomerRfq') IS NOT NULL
@@ -58,23 +61,28 @@ BEGIN
 			ID BIGINT NOT NULL IDENTITY, 
 			CustomerRfqId BIGINT NULL,
 			RfqId BIGINT NULL,
+			Condition VARCHAR(256),
 			PartNumber VARCHAR(200) NULL,
+			BuyerCompanyName VARCHAR(200) NULL,
 			MasterCompanyId BIGINT NULL
 		)
 
-		INSERT INTO #tmpCustomerRfq (CustomerRfqId,RfqId,PartNumber,MasterCompanyId) 
-				  SELECT CRFQ.CustomerRfqId,CRFQ.RfqId,CRFQ.LinePartNumber,CRFQ.MasterCompanyId
+		INSERT INTO #tmpCustomerRfq (CustomerRfqId,RfqId,Condition,PartNumber,BuyerCompanyName,MasterCompanyId) 
+				  SELECT CRFQ.CustomerRfqId,CRFQ.RfqId,CRFQ.Condition,CRFQ.LinePartNumber,CRFQ.BuyerCompanyName,CRFQ.MasterCompanyId
 		FROM [DBO].[CustomerRfq] CRFQ WITH(NOLOCK)
 		WHERE CRFQ.[IsQuote] IS  NULL
+		AND ISNULL(CRFQ.[IsMRO],0) = 1
 		ORDER BY CRFQ.CustomerRfqId DESC
-
+		
 		SELECT  @MasterLoopID = MAX(ID) FROM #tmpCustomerRfq;
 		WHILE(@MasterLoopID > 0)
 		BEGIN
 			 SELECT @PartNumber = PartNumber,
+					@BuyerCompanyName = BuyerCompanyName,
 					@MasterCompanyId = MasterCompanyId,
 					@CustomerRfqId = CustomerRfqId,
-					@RfqId = RfqId
+					@RfqId = RfqId,
+					@Condition = Condition
 			 FROM #tmpCustomerRfq WITH(NOLOCK) 
 			 WHERE [ID] = @MasterLoopID;
 			 
@@ -146,6 +154,34 @@ BEGIN
 						 UPDATE [dbo].[CustomerRfq] 
 							SET IsQuote = 1
 						 WHERE [CustomerRfqId] = @CustomerRfqId;
+
+					 ------- END Update Csutomer RFQ for Is Quote added ----------
+
+					 ---------Create SOQ With part---------------------------------------------
+						--Declare type
+						DECLARE @RfqQuoteDetails IlsRfqQuoteDetailsType;
+					   
+					    SELECT @ConditionId = [ConditionId] FROM [DBO].[Condition] WITH(NOLOCK) WHERE  LOWER(TRIM([Description])) = LOWER(TRIM(@Condition)) AND MasterCompanyId= @MasterCompanyId;
+
+						INSERT  INTO @RfqQuoteDetails([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],
+														[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],
+														[IlsComment],[IlsCondition],[ConditionId])
+												SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,
+														[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],
+														NULL,NULL,@ConditionId
+												FROM [dbo].[CustomerRfqQuoteDetails] WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
+	
+						DECLARE @ItemMasterId BIGINT = 0,
+								@CustomerId BIGINT = 0;
+
+						SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
+						SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));
+
+						IF(ISNULL(@ItemMasterId,0) > 0)
+						BEGIN 
+							EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @RfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0
+						END
+					 ---------END Create SOQ With part---------------------------------------------
 				  END
 			 END
 

@@ -14,6 +14,7 @@
 	4	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for ItemMasterModule too
 	5	 01-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for Customer too
 	6	 05-Aug-2025		RAJESH GAMI				Fixed: Getting error when getting multiple values from [USP_GetDropdownValueId] 
+	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -163,6 +164,16 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN IMF.FieldName = 'CustomerPhone' 
+													AND (
+														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
+													)
+													THEN 'Phone must be at least 10 digits and contain digits only'
+												WHEN IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%_@__%.__%' 
+													)
+													THEN 'Email is not in a valid format'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 										ELSE ''
 										END,
@@ -229,6 +240,16 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+												WHEN IMF.FieldName = 'CustomerPhone' 
+													AND (
+														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
+													)
+													THEN 'Phone must be at least 10 digits and contain digits only'
+												WHEN IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%_@__%.__%' 
+													)
+													THEN 'Email is not in a valid format'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
 										ELSE ''
@@ -302,5 +323,5 @@ BEGIN
 				@ApplicationName = @ApplicationName,    
 				@ErrorLogID = @ErrorLogID OUTPUT;    
 			RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
-	END CATCH    
+	END CATCH    
 END

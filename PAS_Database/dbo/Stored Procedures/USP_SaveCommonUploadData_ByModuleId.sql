@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -14,7 +15,8 @@
 	4    12-03-2025         Abhishek Jirawla        Update LedgerId for GLAccount
 	5	 28-July-2025		Ayushi Patel			Added Defaul value to NotNullable Fields of ItemMaster Table
 	6	 29-July-2025		Vishal Suthar			Added New Module "Stockline"
-	7	 01-Aug-2025		Ayushi Patel			Added functionality to handle parent table , Added New Module "Customer" 
+	7	 01-Aug-2025		Ayushi Patel			Added functionality to handle parent table , Added New Module "Customer"
+	8	 06-Aug-2025		RAJESH GAMI				Stockline Module : Insert QuantityAvailable as same as QunatityOnHand
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -424,8 +426,8 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
-				SET @RefFieldName += ' , PartNumber,Quantity,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,MasterCompanyId,CreatedBy,UpdatedBy'
-				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0, '
+				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,MasterCompanyId,CreatedBy,UpdatedBy'
+				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0, '
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 				BEGIN

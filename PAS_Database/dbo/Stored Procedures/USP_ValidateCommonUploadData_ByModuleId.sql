@@ -1,11 +1,11 @@
-﻿/***************************************************************  
+﻿/*********************  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
  ** Date:  23-Dec-2024
             
   ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    23-Dec-2024		Devendra Shekh			Created
@@ -13,6 +13,8 @@
 	3    04-02-2025         Shrey Chandegara        Modified due to ItemMaster AlternatePart
 	4	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for ItemMasterModule too
 	5	 01-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for Customer too
+	6	 05-Aug-2025		RAJESH GAMI				Fixed: Getting error when getting multiple values from [USP_GetDropdownValueId] 
+	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -30,7 +32,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
 }')
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
-**************************************************************/
+**********************/
 CREATE   PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,
@@ -121,7 +123,7 @@ BEGIN
 			SELECT @UploadRecord = [UploadRecord] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
 			SELECT [key], [value] INTO #TempDynamicData FROM OPENJSON(@UploadRecord);
-
+			--SELECT * FROM #TempDynamicData -----R
 			INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], [value] FROM #TempDynamicData;
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,
@@ -132,7 +134,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			--ORDER BY IMF.DisplaySortOrder ASC
-			
+			--SELECT * FROM #ImportFields ----R
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			
 			WHILE(@TotalRow >= @CurrentRow)
@@ -145,10 +147,11 @@ BEGIN
 				BEGIN
 					DECLARE @DropdownListValueId VARCHAR(100) = NULL;
 					SET @DropdownLFieldValue = UPPER(TRIM(@DropdownLFieldValue))
-					EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
 					
+					EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
 					IF(ISNULL(@DropdownListValueId, '') != '')
 					BEGIN
+						SET @DropdownListValueId = (SELECT LEFT(@DropdownListValueId, CHARINDEX(',', @DropdownListValueId + ',') - 1))
 						UPDATE #ImportFields SET DropdownListValueId = CAST(@DropdownListValueId AS VARCHAR) WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
@@ -156,11 +159,21 @@ BEGIN
 
 				SET @CurrentRow += 1;
 			END
-			
+	
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN IMF.FieldName = 'CustomerPhone' 
+													AND (
+														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
+													)
+													THEN 'Phone must be at least 10 digits and contain digits only'
+												WHEN IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%@%._%' 
+													)
+													THEN 'Email is not in a valid format'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 										ELSE ''
 										END,
@@ -169,21 +182,19 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			--SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
-			
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
 				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue,@IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = ReferenceColumn
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
-
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '' AND ISNULL(@ColumnReferenceId, '') != '' AND ISNULL(@IsChekColumnReference, 0) = 1)
 				BEGIN
-					PRINT @CurrentRow
 					DECLARE @RSDropdownListValueId VARCHAR(100) = NULL;
 					SET @DropdownLFieldValue = UPPER(TRIM(@DropdownLFieldValue))
 					EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @RSDropdownListValueId OUTPUT;
 					IF(ISNULL(@RSDropdownListValueId, '') != '')
 					BEGIN
+					SET @RSDropdownListValueId = (SELECT LEFT(@RSDropdownListValueId, CHARINDEX(',', @RSDropdownListValueId + ',') - 1))
 						UPDATE #ImportFields SET DropdownListValueId = CAST(@RSDropdownListValueId AS VARCHAR) WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
 					ELSE
@@ -193,11 +204,9 @@ BEGIN
 					
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-				
 				SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 				SET @CurrentRow += 1;
 			END
-			  
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
@@ -231,6 +240,16 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+												WHEN IMF.FieldName = 'CustomerPhone' 
+													AND (
+														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
+													)
+													THEN 'Phone must be at least 10 digits and contain digits only'
+												WHEN IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%@%._%' 
+													)
+													THEN 'Email is not in a valid format'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
 										ELSE ''
@@ -247,13 +266,11 @@ BEGIN
 			--END
 
 			DECLARE @json VARCHAR(MAX);
-
 			-- Use STRING_AGG to build a JSON-like string
 			SET @json = (
-				SELECT STRING_AGG(CONCAT('"', FieldName, '": "', FieldValue, '"'), ', ')
-				FROM #DynamicKeyValue
-			);
-
+					SELECT STRING_AGG(CONCAT('"', FieldName, '": "', ISNULL(FieldValue, ''), '"'), ', ')
+					FROM #DynamicKeyValue
+				);
 			-- Wrap the result to form a valid JSON object
 			SET @json = '{' + @json + '}';
 
@@ -306,5 +323,5 @@ BEGIN
 				@ApplicationName = @ApplicationName,    
 				@ErrorLogID = @ErrorLogID OUTPUT;    
 			RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
-	END CATCH    
+	END CATCH    
 END

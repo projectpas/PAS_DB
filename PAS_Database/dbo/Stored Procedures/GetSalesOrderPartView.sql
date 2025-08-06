@@ -217,7 +217,7 @@ BEGIN
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
     AND ISNULL(part.IsDeleted,0) = 0
     AND ISNULL(rop.isAsset, 0) = 0
-	ORDER BY part.SalesOrderPartId;
+	ORDER BY part.CreatedDate DESC;
 
   END TRY
   BEGIN CATCH

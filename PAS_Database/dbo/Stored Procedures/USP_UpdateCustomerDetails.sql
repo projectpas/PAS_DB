@@ -31,14 +31,14 @@ BEGIN
 		SET @CustomerCode = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber + 1, (SELECT CodePrefix FROM #TempCodePrefix WHERE CodeTypeId = @CustomerCodeTypeId), (SELECT CodeSufix FROM #TempCodePrefix WHERE CodeTypeId = @CustomerCodeTypeId)))
         
 		DECLARE @CustomerClassificationId BIGINT;
-		DECLARE @CustomerAffiliationId BIGINT;
+		--DECLARE @CustomerAffiliationId BIGINT;
 		SET @CustomerClassificationId = @CustomerClassificationVal
 		INSERT INTO DBO.ClassificationMapping  ([ModuleId],[ReferenceId],[ClasificationId],[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])VALUES (@CustomerModuleId,@CustmerId,@CustomerClassificationId,'AUTO SCRIPT', GETUTCDATE(), 'AUTO SCRIPT', GETUTCDATE(), 1, 0);
-		SET @CustomerAffiliationId = (Select CustomerAffiliationId from DBO.CustomerAffiliation WITH (NOLOCK) WHERE Description = @CustomerAffiliationVal);
+		--SET @CustomerAffiliationId = (Select CustomerAffiliationId from DBO.CustomerAffiliation WITH (NOLOCK) WHERE Description = @CustomerAffiliationVal);
 		
         UPDATE c
         SET
-			c.CustomerAffiliationId = @CustomerAffiliationId,
+			--c.CustomerAffiliationId = @CustomerAffiliationId,
 			C.CustomerCode = @CustomerCode
 
         FROM dbo.Customer c WITH (NOLOCK)

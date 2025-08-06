@@ -11,15 +11,17 @@
     1    11-Dec-2024		Devendra Shekh			Created
 	2    06-Jan-2025		Devendra Shekh			Checking Equal Values instead similar
 	3    04-Feb-2025		SHREY CHANDEGARA		Modified due to ALternate part 
-
+	4	 06-Aug-2025		Ayushi Patel			Updated WHERE clause in dynamic SQL to include MasterCompanyId = 0
 DECLARE @FieldValueId VARCHAR(50);
 
 EXEC [dbo].[USP_GetDropdownValueId]
-    @DropdownListTable = 'CustomerType',
-    @DropdownListId = 'CustomerTypeId',
-    @DropdownListValue = 'CustomerTypeName',
-    @FieldValue = 'Customer,lead',
+    @DropdownListTable = 'CustomerAffiliation',
+    @DropdownListId = 'CustomerAffiliationId',
+    @DropdownListValue = 'Description',
+    @FieldValue = 'external',
     @MasterCompanyId = 1,
+	@ColumnReferenceName = '',
+	@IsChekColumnRef = '',
     @FieldValueId = @FieldValueId OUTPUT;
 
 SELECT @FieldValueId AS FieldValueId;
@@ -39,7 +41,11 @@ CREATE   PROCEDURE [dbo].[USP_GetDropdownValueId]
 )
 AS
 BEGIN
-    SET NOCOUNT ON;
+    SET NOCOUNT ON;    
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
+	BEGIN TRY    
+	
+	BEGIN TRANSACTION
 
     DECLARE @RefQuery AS NVARCHAR(MAX) = '';
 	DECLARE @AlterModule AS BIGINT;
@@ -55,7 +61,7 @@ BEGIN
 			IF(ISNULL(@MasterCompanyId, 0) > 0)
 			BEGIN
 				SET @RefQuery 
-				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' ) AS DropDownResult';
+				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)' + ' ) AS DropDownResult';
 			END
 			ELSE
 			BEGIN
@@ -65,5 +71,33 @@ BEGIN
 		END
 
     EXEC sp_executesql @RefQuery, N'@FieldValueId VARCHAR(250) OUTPUT', @FieldValueId OUTPUT;
-
+	COMMIT TRANSACTION
+	 
+	END TRY    
+	BEGIN CATCH  
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
+		IF @@trancount > 0
+			PRINT 'ROLLBACK'
+			ROLLBACK TRAN;
+			DECLARE @ErrorLogID int,    
+			@DatabaseName varchar(100) = DB_NAME()    
+			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+			,@AdhocComments varchar(150) = 'USP_GetDropdownValueId',    
+			@ProcedureParameters varchar(3000) = '@ModuleId = ''' + CAST(ISNULL(@ModuleId, '') AS varchar(100))    
+			+ '@MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100)),    
+			@ApplicationName varchar(100) = 'PAS'    
+		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+			EXEC spLogException @DatabaseName = @DatabaseName,    
+				@AdhocComments = @AdhocComments,    
+				@ProcedureParameters = @ProcedureParameters,    
+				@ApplicationName = @ApplicationName,    
+				@ErrorLogID = @ErrorLogID OUTPUT;    
+			RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
+	END CATCH    
 END;

@@ -4133,6 +4133,9 @@
     <Build Include="dbo\Stored Procedures\USP_CreateIntegrationEmailConfigration.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateOrUpdateVendorShippingFull.sql" />
     <Build Include="dbo\Tables\DataExtraction.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveEmailRFQ.sql" />
+    <Build Include="dbo\User Defined Types\RfqPartDetailType.sql" />
+    <Build Include="dbo\User Defined Types\RfqCustomerType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

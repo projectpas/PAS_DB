@@ -478,7 +478,7 @@ BEGIN
 				DECLARE @CustomerAffiliationVal AS VARCHAR(200);
 	
 				SET @CustomerClassificationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerClassificationId')
-				SET @CustomerAffiliationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerAffiliation')
+				SET @CustomerAffiliationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerAffiliationId')
 				
 				EXEC USP_UpdateCustomerDetails @ModuleTableId,@ModuleId,@CustomerClassificationVal,@CustomerAffiliationVal, @MasterCompanyId
 			END

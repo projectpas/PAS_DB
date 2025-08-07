@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -45,7 +44,8 @@ BEGIN
 				@RecordsTotal INT = 0,
 				@PerUnitPrice DECIMAL(18,2) = 0,
 				@CreatedBy VARCHAR(100) = 'Admin',
-				@WOModuleId INT;
+				@WOModuleId INT,
+				@IsAutoInternalQuote BIT;
 
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
@@ -84,7 +84,8 @@ BEGIN
 			 SELECT @AiPercentValue = ISNULL(SIS.[PercentValue],0), 
 					@IsEnableDisableAIintegration = ISNULL(SIS.[IsEnableDisableAIintegration],0),
 					@Year = ISNULL(YR.[YearName],0),
-					@Month = ISNULL(MON.[MonthNumber],0)
+					@Month = ISNULL(MON.[MonthNumber],0),
+					@IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
 			 FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
 			 INNER JOIN [DBO].[Years] YR WITH(NOLOCK) ON SIS.[YearId] = YR.[YearId]
 			 INNER JOIN [DBO].[Months] MON WITH(NOLOCK) ON SIS.[MonthId] = MON.[MonthId]

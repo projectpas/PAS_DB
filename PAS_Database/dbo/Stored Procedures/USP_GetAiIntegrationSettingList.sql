@@ -11,6 +11,7 @@ EXEC [USP_GetPNLabelSettingData]
 ** --   --------          -------         --------------------------------  
 ** 1	July-01-2025	BHARGAV SALIYA    Create
 ** 2	July-11-2025	BHARGAV SALIYA    Modified Two Fields YearId and MonthId
+** 3	Aug-07-2025	    Amit Ghediya      Modified add Fields IsAutoInternalQuote
 
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
@@ -33,6 +34,7 @@ BEGIN
 					,AI.[IsEnableDisableAIintegration]
 					,AI.[IsReviewRequired]
 					,AI.[IsAutoEmailSend]
+					,AI.[IsAutoInternalQuote]
 					,AI.[MasterCompanyId]
 					,AI.[CreatedBy]
 					,AI.[UpdatedBy]

@@ -14,7 +14,8 @@
     1    
     2    22-JUNE-2023     Devendra Shekh    made changes for total unitcost and extcost
 	3    22-JULY-2025     Moin Bloch        added Some New Fields
-	5    23-JULY-2025     Moin Bloch        modified Currency
+	4    23-JULY-2025     Moin Bloch        modified Currency
+	5    06-Aug-2025      Sahdev Saliya     Added New Fields(TagType,TaggedBy,TagDate)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReport]     
 @PageNumber int = 1,    
@@ -148,7 +149,7 @@ BEGIN TRY
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
 
      ;WITH rptCTE (TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
-				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto,
+				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto, tagtype, taggedbyname, tagdate,
 				 mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
 			     level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId,itemClassificationName,
 			     workOrderNum,subWorkOrderNo,daysFromReceiveDate,currencyName,customerName) AS (
@@ -178,7 +179,10 @@ BEGIN TRY
 		ISNULL(stl.PurchaseOrderExtendedCost , 0) 'extcost',    
 		UPPER(stl.Obtainfromname) 'obtainedfrom',    
         UPPER(stl.OwnerName) 'owner',    
-        UPPER(stl.TraceableToname) 'traceableto',    
+        UPPER(stl.TraceableToname) 'traceableto',
+		(ISNULL(stl.TagType,'')) 'tagtype',         
+		(ISNULL(stl.taggedbyname,'')) 'taggedbyname',        
+		stl.TagDate 'tagdate',     
         UPPER(stl.manufacturer) 'mfg',    
 		ISNULL(stl.UnitCost , 0) 'unitprice',    
 		ISNULL(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'extprice',    
@@ -252,11 +256,11 @@ BEGIN TRY
      AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))   
    )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
-				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto,
+				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto, tagtype, taggedbyname, tagdate,
 				 mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
 				level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId,itemClassificationName,workOrderNum,subWorkOrderNo,daysFromReceiveDate,currencyName,customerName) 
 			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,
-				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto,
+				 vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted, pounitcost, extcost, obtainedfrom, owner, traceableto, tagtype, taggedbyname, tagdate,
 				 mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rocost, rcvddate, receivernum, receiverrecon, poqty, masterCompanyId,itemClassificationName,workOrderNum,subWorkOrderNo,daysFromReceiveDate,currencyName,customerName FROM rptCTE)
 
@@ -274,7 +278,7 @@ BEGIN TRY
 					vendorname, vendorcode, qtyonhand, qtyreserved, qtyavail, qtyscrapped, qtyadjusted,
 					FORMAT(ISNULL(pounitcost,0) , 'N', 'en-us') 'pounitcost',    
 					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost', 
-					obtainedfrom, owner, traceableto, mfg,
+					obtainedfrom, owner, traceableto, tagtype, taggedbyname, tagdate, mfg,
 					FORMAT(ISNULL(unitprice,0) , 'N', 'en-us') 'unitprice',    
 					FORMAT(ISNULL(extprice,0) , 'N', 'en-us') 'extprice',    
 					level1, level2, level3, level4, level5, level6, level7, level8,

@@ -116,7 +116,7 @@ BEGIN
 							@RecordsTotal = COUNT(WQD.[WorkOrderQuoteDetailsId]),
 							@UnitSalesPriceTotal = ISNULL(SUM(
 								CASE 
-									WHEN ISNULL(WQD.QuoteMethod, 0) > 0 THEN CommonFlatRate 
+									WHEN ISNULL(WQD.QuoteMethod, 0) > 0 THEN WQD.CommonFlatRate 
 									ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
 									   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
 									   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 

@@ -17,6 +17,7 @@
 	4    21-07-2025  Devendra Shekh		 Modified (Added CustomerId to select)
 	5    31-07-2025  Amit Ghediya		 Modified (Added ModuleId,ReferenceId to select)
 	6    04-08-2025  Devendra Shekh		 Modified (Added EmployeeId,EmployeeName to select)
+	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -95,11 +96,13 @@ BEGIN
 					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
-					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName
+					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
+					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
+				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),

@@ -19,6 +19,7 @@
 	5	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	7    01-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
+	8	 07-Aug-2025	Ayushi Patel		 added condition for IsOEM
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -128,8 +129,9 @@ BEGIN
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
 					   StockType = (CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMA&DER'
 										 WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA' 
-					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER' 
-										 ELSE 'OEM'
+					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER'
+										 WHEN im.IsOEM = 1 THEN 'OEM' 
+										 ELSE ''
 									END),                       
 					   im.CreatedDate CreatedDates,
                        --im.UpdatedDate,

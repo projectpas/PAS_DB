@@ -9,7 +9,7 @@
  ***************************************************************  
  ** PR   Date         Author         Change Description  
  ** --   ----------   ------------   --------------------------------  
- ** 1    07-Aug-2025  Ayushi Patel   Created 
+ ** 1    07-Aug-2025  Ayushi Patel    Created 
  ***************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DeleteVendorContactByContactId]
     @ContactId BIGINT,
@@ -21,12 +21,12 @@ BEGIN
         BEGIN TRANSACTION;
 
         DECLARE @VendorContactId BIGINT, @VendorId BIGINT;
-		Declare @VendorModuleId BIGINT = (SELECT AttachmentModuleId FROM AttachmentModule where Name = 'Vendor')
+		Declare @VendorModuleId BIGINT = (SELECT AttachmentModuleId FROM DBO.AttachmentModule WITH(NOLOCK) where Name = 'Vendor')
         
-        IF EXISTS (SELECT 1 FROM VendorContact WITH(NOLOCK) WHERE ContactId = @ContactId AND IsDeleted = 0)
+        IF EXISTS (SELECT 1 FROM DBO.VendorContact WITH(NOLOCK) WHERE ContactId = @ContactId AND IsDeleted = 0)
         BEGIN
            
-            UPDATE VendorContact
+            UPDATE DBO.VendorContact
             SET 
                 IsDeleted = 1,
                 UpdatedBy = @UpdatedBy,
@@ -37,7 +37,7 @@ BEGIN
             SELECT 
                 @VendorContactId = VendorContactId,
                 @VendorId = VendorId
-            FROM VendorContact WITH(NOLOCK)
+            FROM DBO.VendorContact WITH(NOLOCK)
             WHERE ContactId = @ContactId;
 
            

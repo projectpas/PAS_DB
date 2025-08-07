@@ -4136,6 +4136,7 @@
     <Build Include="dbo\Stored Procedures\usp_SaveEmailRFQ.sql" />
     <Build Include="dbo\User Defined Types\RfqPartDetailType.sql" />
     <Build Include="dbo\User Defined Types\RfqCustomerType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateSalesOrderQuoteFromAI.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteVendorContactByContactId.sql" />
   </ItemGroup>
   <ItemGroup>

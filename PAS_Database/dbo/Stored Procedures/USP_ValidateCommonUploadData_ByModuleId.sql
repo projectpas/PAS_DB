@@ -1,11 +1,11 @@
-﻿/*********************  
+﻿/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
  ** Date:  23-Dec-2024
             
   ** Change History             
- **********************             
+ ********             
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    23-Dec-2024		Devendra Shekh			Created
@@ -15,7 +15,6 @@
 	5	 01-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for Customer too
 	6	 05-Aug-2025		RAJESH GAMI				Fixed: Getting error when getting multiple values from [USP_GetDropdownValueId] 
 	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
-	8    07-Aug-2025		Bhargav Saliya			Added validation: Vendor Phone must be at least 8 digits and digits only, Vendor Email must be in valid format
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -33,7 +32,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
 }')
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
-**********************/
+********/
 CREATE   PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,
@@ -170,17 +169,7 @@ BEGIN
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
 													THEN 'Phone must be at least 10 digits and contain digits only'
-												WHEN IMF.FieldName = 'Email' 
-													AND (
-														TMP.FieldValue NOT LIKE '%@%._%' 
-													)
-													THEN 'Email is not in a valid format'
-												WHEN IMF.FieldName = 'VendorPhone' 
-													AND (
-														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 8
-													)
-													THEN 'Enter Phone Number at least 8 digits and contain digits only'
-												WHEN IMF.FieldName = 'VendorEmail' 
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'Email' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
@@ -256,17 +245,7 @@ BEGIN
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
 													THEN 'Phone must be at least 10 digits and contain digits only'
-												WHEN IMF.FieldName = 'Email' 
-													AND (
-														TMP.FieldValue NOT LIKE '%@%._%' 
-													)
-													THEN 'Email is not in a valid format'
-												WHEN IMF.FieldName = 'VendorPhone' 
-													AND (
-														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 8
-													)
-													THEN 'PhoneEnter Phone Number at least 8 digits and contain digits only'
-												WHEN IMF.FieldName = 'VendorEmail' 
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'Email' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)

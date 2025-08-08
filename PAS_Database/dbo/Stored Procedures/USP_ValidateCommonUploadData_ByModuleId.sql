@@ -1,11 +1,11 @@
-﻿/*********************  
+﻿/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
  ** Date:  23-Dec-2024
             
   ** Change History             
- **********************             
+ ********             
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    23-Dec-2024		Devendra Shekh			Created
@@ -33,7 +33,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
 }')
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
-**********************/
+********/
 CREATE   PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,

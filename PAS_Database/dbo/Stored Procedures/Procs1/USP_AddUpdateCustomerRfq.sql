@@ -14,6 +14,7 @@
     1    13/02/2023  Amit Ghediya    Created
 	2	 22-02-2024  Rajesh Gami     Complete the Insert call
 	3	 25-07-2025  Devendra Shekh	 added IsMRO Field
+	4	 07-08-2025  Devendra Shekh	 changed [RfqId] Type to nvarchar
      
 -- EXEC USP_AddUpdateCustomerRfq
 ************************************************************************/
@@ -39,7 +40,7 @@ BEGIN
 					CREATE TABLE #tmpCustomerRfq
 					(
 						ID BIGINT NOT NULL IDENTITY, 
-						[RfqId] [BIGINT] NULL,
+						[RfqId] NVARCHAR(200) NULL,
 						[RfqCreatedDate] [DATETIME2](7) NULL,
 						[IntegrationPortalId] [int] NULL,
 						[Type] [VARCHAR](50) NULL,

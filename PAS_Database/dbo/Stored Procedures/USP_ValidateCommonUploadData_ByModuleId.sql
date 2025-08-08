@@ -15,6 +15,7 @@
 	5	 01-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for Customer too
 	6	 05-Aug-2025		RAJESH GAMI				Fixed: Getting error when getting multiple values from [USP_GetDropdownValueId] 
 	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
+	8    07-Aug-2025		Bhargav Saliya			Added validation: Vendor Phone must be at least 8 digits and digits only, Vendor Email must be in valid format
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -164,12 +165,22 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'CustomerPhone' 
+												WHEN IMF.FieldName = 'CustomerPhone' 
 													AND (
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
 													THEN 'Phone must be at least 10 digits and contain digits only'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'Email' 
+												WHEN IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%@%._%' 
+													)
+													THEN 'Email is not in a valid format'
+												WHEN IMF.FieldName = 'VendorPhone' 
+													AND (
+														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 8
+													)
+													THEN 'Enter Phone Number at least 8 digits and contain digits only'
+												WHEN IMF.FieldName = 'VendorEmail' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
@@ -240,12 +251,22 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'CustomerPhone' 
+												WHEN IMF.FieldName = 'CustomerPhone' 
 													AND (
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
 													THEN 'Phone must be at least 10 digits and contain digits only'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'Email' 
+												WHEN IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%@%._%' 
+													)
+													THEN 'Email is not in a valid format'
+												WHEN IMF.FieldName = 'VendorPhone' 
+													AND (
+														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 8
+													)
+													THEN 'PhoneEnter Phone Number at least 8 digits and contain digits only'
+												WHEN IMF.FieldName = 'VendorEmail' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)

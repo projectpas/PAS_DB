@@ -4147,6 +4147,7 @@
     <Build Include="dbo\Stored Procedures\usp_SaveEmailQuote.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetEmailCustomerRFQbyId.sql" />
     <Build Include="dbo\User Defined Types\EmailRfqQuoteDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateVendorDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -29,8 +29,8 @@ BEGIN
 		DECLARE @BillingAddressId INT = 1;
 		DECLARE @ShippingAddressId INT = 2;
 
-		DECLARE @VendorModuleId BIGINT = (SELECT ModuleId FROM Module WHERE ModuleName = 'Vendor');
-		DECLARE @ModuleId INT = (SELECT TOP 1 AttachmentModuleId FROM DBO.AttachmentModule WITH(NOLOCK) WHERE Name = 'Vendor');
+		DECLARE @VendorModuleId BIGINT = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Vendor');
+		DECLARE @ModuleId INT = (SELECT TOP 1 AttachmentModuleId FROM [dbo].AttachmentModule WITH(NOLOCK) WHERE Name = 'Vendor');
 
 		SELECT  @AddressId = AddressId
 			   ,@VendorCode = VendorCode
@@ -42,7 +42,7 @@ BEGIN
 			   ,@IsAddressForBilling = IsAddressForBilling
 			   ,@CreatedBy = CreatedBy
 			   ,@UpdatedBy = UpdatedBy
-		FROM Vendor WHERE VendorId = @VendorId and MasterCompanyId = @MasterCompanyId;
+		FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = @VendorId and MasterCompanyId = @MasterCompanyId;
 
 		SELECT @Address1 = Line1
 			  ,@Address2 = Line2
@@ -50,7 +50,7 @@ BEGIN
 			  ,@StateOrProvince = StateOrProvince
 			  ,@City = City
 			  ,@CountryId = CountryId
-		FROM [Address] WHERE AddressId = @AddressId and MasterCompanyId = @MasterCompanyId;
+		FROM [dbo].[Address] WITH(NOLOCK) WHERE AddressId = @AddressId and MasterCompanyId = @MasterCompanyId;
 		IF @VendorCode IS NULL OR UPPER(@VendorCode) = 'CREATING'
         BEGIN
             DECLARE @Number BIGINT = 0;
@@ -62,7 +62,7 @@ BEGIN
 				@CodePrefixId = CP.CodePrefixId,
 				@CodePrefix = CP.CodePrefix,
 				@CodeSufix = CP.CodeSufix
-			FROM dbo.CodeTypes CT WITH (NOLOCK)
+			FROM [dbo].CodeTypes CT WITH (NOLOCK)
 			INNER JOIN dbo.CodePrefixes CP WITH (NOLOCK) ON CT.CodeTypeId = CP.CodeTypeId
 			WHERE 
 				CT.IsActive = 1 AND CT.IsDeleted = 0 AND

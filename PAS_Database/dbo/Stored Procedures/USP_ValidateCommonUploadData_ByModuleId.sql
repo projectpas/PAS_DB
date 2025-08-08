@@ -165,7 +165,7 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
-												WHEN IMF.FieldName = 'CustomerPhone' 
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'CustomerPhone' 
 													AND (
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
@@ -251,7 +251,7 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-												WHEN IMF.FieldName = 'CustomerPhone' 
+												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'CustomerPhone' 
 													AND (
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)

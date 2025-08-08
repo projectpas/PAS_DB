@@ -21,6 +21,7 @@
 	8	 19/05/2025	  Abhishek Jirawla  Adding Is CustomerStock to details
 	9    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
+	11   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302)
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -161,7 +162,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			DECLARE @LOT_TransIn_LOT VARCHAR(100) = 'Trans In(Lot)'; DECLARE @LOT_TransIn_PO VARCHAR(100) = 'Trans In(PO)';	DECLARE @LOT_TransIn_RO VARCHAR(100) = 'Trans In(RO)';
 			DECLARE @LOT_TransIn_SO VARCHAR(100) = 'Trans In(SO)'; DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In(WO)'; DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
 			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out(PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out(RO)';
-			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)'; 
+			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)',@LOT_SO_Shipped VARCHAR(100) = 'Shipped'; 
 			DECLARE @LotTransIn VARCHAR(100) = 'Trans In',@LotTransOut VARCHAR(100) = 'Trans Out', @LotPO VARCHAR(100) = 'Purchase Order',@LotRO VARCHAR(100) = 'Repair Order',@LotSO VARCHAR(100) = 'Sales Order', @LotWO VARCHAR(100) = 'Work Order';
 			DECLARE @AppModuleId INT = 0;
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
@@ -645,7 +646,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId	 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
-				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(REPLACE(ltCal.Type,' ','')) NOT IN (UPPER(REPLACE(@LOT_TransOut_SO,' ','')), UPPER(REPLACE(@LOT_TransOut_RO,' ','')),UPPER(REPLACE(@LOT_TransOut_LOT,' ',''))))
+				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(REPLACE(ltCal.Type,' ','')) NOT IN (UPPER(REPLACE(@LOT_SO_Shipped,' ','')),UPPER(REPLACE(@LOT_TransOut_SO,' ','')), UPPER(REPLACE(@LOT_TransOut_RO,' ','')),UPPER(REPLACE(@LOT_TransOut_LOT,' ','')))) 
 				 AND (ISNULL(sl.QuantityAvailable,0) >= @AvailableQty)
 				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
@@ -1132,7 +1133,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ic.ItemClassificationCode ItemClassfication
 				,ig.Description AS ItemGroup
 				,c.Description AS Condition
-				,'SOLD' AS Status
+				,'INVOICED' AS Status
 				,So.CustomerName
 				,sobi.InvoiceDate
 				--,case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate

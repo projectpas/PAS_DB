@@ -20,6 +20,7 @@
 	4    11/12/2024   Vishal Suthar		Modified to fix the Qty Available
 	5    03/13/2025   Vishal Suthar		Fixed issue with higher ReadyToPick
 	6    05/20/2025   Vishal Suthar		Fixed issue with readytopick which is populating wrong when qdjusted the qty
+	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
@@ -113,6 +114,13 @@ BEGIN
 		LEFT JOIN DBO.SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
 		where sop.SalesOrderId=@SalesOrderId AND ((sopt.SOPickTicketId IS NULL AND sop.QtyReserved > 0) OR sopt.SOPickTicketId IS NOT NULL)
+		AND EXISTS (
+        SELECT 1
+        FROM DBO.SalesOrderApproval sao WITH(NOLOCK)
+        WHERE sao.SalesOrderId = sop.SalesOrderId
+          AND sao.SalesOrderPartId = sop.SalesOrderPartId
+          AND sao.ApprovalActionId = 5
+        )
 		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId

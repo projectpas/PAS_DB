@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -96,7 +97,7 @@ BEGIN
 										[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]) 
 		SELECT	[UploadModuleDataId], [ModuleId], [RecordData], [Description], [RecordStatus], [IsAdded], [IsError], [MasterCompanyId], [CreatedBy],
 				[CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
-		FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND MasterCompanyId = @MasterCompanyId;
+		FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND MasterCompanyId = @MasterCompanyId	;
 
 		SELECT @TotalRecords = MAX([RecordId]), @CurrentRecord = MIN([RecordId]) FROM #uploadDataResults;
 
@@ -109,7 +110,7 @@ BEGIN
 
 			SELECT [key], [value] INTO #TempDynamicData FROM OPENJSON(@UploadRecord);
 			select * from #TempDynamicData
-			INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], [value] FROM #TempDynamicData;
+			INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], TRIM([value]) FROM #TempDynamicData;
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,  IMF.IsAutoGenerate, IMF.IsModuleTableColumn,
 						IMF.DropdownListType, IMF.DropdownListTable, IMF.DropdownListId, IMF.DropdownListValue, IMF.DropdownListValueId,

@@ -30,6 +30,7 @@
     [ConditionId]               BIGINT          NULL,
     [PercentId]                 BIGINT          NULL,
     [PercentValue]              DECIMAL (18, 2) NULL,
+    [CustomerRfqPartMappingId]  BIGINT          NULL,
     CONSTRAINT [PK_CustomerRfqQuoteDetails] PRIMARY KEY CLUSTERED ([CustomerRfqQuoteDetailsId] ASC),
     CONSTRAINT [FK_CustomerRfqQuoteDetails_CustomerRfqQuote] FOREIGN KEY ([CustomerRfqQuoteId]) REFERENCES [dbo].[CustomerRfqQuote] ([CustomerRfqQuoteId])
 );

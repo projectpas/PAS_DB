@@ -12,11 +12,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    24/02/2023  Amit Ghediya    Created
+	2	 08/08/2025  Devendra Shekh changed [RfqId] Type to nvarchar
      
 -- EXEC USP_AddUpdateCustomerRfqNoQuote
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AddUpdateCustomerRfqNoQuote]
-	@RfqId BIGINT,
+	@RfqId NVARCHAR(250),
 	@MasterCompanyId INT,
 	@Note VARCHAR(250),
 	@IsQuote INT,

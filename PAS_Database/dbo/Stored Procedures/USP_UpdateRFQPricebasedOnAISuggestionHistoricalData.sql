@@ -48,7 +48,8 @@ BEGIN
 				@UnitSalesPriceTotal DECIMAL(18,2) = 0,
 				@RecordsTotal INT = 0,
 				@PerUnitPrice DECIMAL(18,2) = 0,
-				@CreatedBy VARCHAR(256) = 'Admin';
+				@CreatedBy VARCHAR(256) = 'Admin',
+				@IsAutoInternalQuote BIT;
 
 		--Get FROM SalesOrderQuotePart data for selected part
 		IF OBJECT_ID(N'tempdb..#tmpCustomerRfq') IS NOT NULL
@@ -90,7 +91,8 @@ BEGIN
 			 SELECT @AiPercentValue = ISNULL(SIS.[PercentValue],0), 
 					@IsEnableDisableAIintegration = ISNULL(SIS.IsEnableDisableAIintegration,0),
 					@Year = ISNULL(YR.[YearName],0),
-					@Month = ISNULL(MON.[MonthNumber],0)
+					@Month = ISNULL(MON.[MonthNumber],0),
+					@IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
 			 FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
 			 INNER JOIN [DBO].[Years] YR WITH(NOLOCK) ON SIS.[YearId] = YR.[YearId]
 			 INNER JOIN [DBO].[Months] MON WITH(NOLOCK) ON SIS.[MonthId] = MON.[MonthId]
@@ -177,7 +179,7 @@ BEGIN
 						SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 						SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));
 
-						IF(ISNULL(@ItemMasterId,0) > 0)
+						IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
 						BEGIN 
 							EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @RfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0
 						END

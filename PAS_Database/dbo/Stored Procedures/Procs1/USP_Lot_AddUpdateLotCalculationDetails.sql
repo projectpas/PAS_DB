@@ -13,7 +13,7 @@
  ** --   --------    ---------		--------------------------------          
     1    04/10/2023  Rajesh Gami    Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-     
+    3   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302)
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -82,7 +82,7 @@ BEGIN
 			[IsFromPreCostStk][bit] NULL
 		)
 		
-		IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR UPPER(@Type) = UPPER('PO') OR UPPER(@Type) = UPPER('RO') OR UPPER(@Type) = UPPER('SO') OR UPPER(@Type) = UPPER('WO') OR UPPER(@Type) = UPPER('Trans In (PO)') OR UPPER(@Type) = UPPER('Trans In (RO)') OR UPPER(@Type) = UPPER('Trans In (SO)') OR UPPER(@Type) = UPPER('Trans In (WO)') )
+		IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR UPPER(@Type) = UPPER('PO') OR UPPER(@Type) = UPPER('RO') OR UPPER(@Type) = UPPER('SO') OR UPPER(@Type) = UPPER('WO') OR UPPER(@Type) = UPPER('Trans In (PO)') OR UPPER(@Type) = UPPER('Trans In (RO)')OR UPPER(@Type) = UPPER('Shipped') OR UPPER(@Type) = UPPER('Trans In (SO)') OR UPPER(@Type) = UPPER('Trans In (WO)') )
 		BEGIN		
 
 			INSERT INTO #tmpLotCalculationDetailsType ([LotCalculationId], [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
@@ -103,11 +103,12 @@ BEGIN
 				INSERT INTO [DBO].[LotCalculationDetails]([LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
 												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
 												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
-												  MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],[PreCostStocklinePrice],[ExtPreCostStocklinePrice],[IsFromPreCostStk])
+												  MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],[PreCostStocklinePrice],[ExtPreCostStocklinePrice],[IsFromPreCostStk],SalesUnitPrice)
 				SELECT [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
-												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
+												  [RepairCost], [AdjustedLotCost], (CASE WHEN UPPER(@Type) = UPPER('Shipped') THEN 0 ELSE RepCost END), [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
 												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
-					@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],[PreCostStocklinePrice],[ExtPreCostStocklinePrice],[IsFromPreCostStk]
+					@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],[PreCostStocklinePrice],[ExtPreCostStocklinePrice],[IsFromPreCostStk],
+					(CASE WHEN UPPER(@Type) = UPPER('Shipped') THEN RepCost ELSE 0 END)
 				FROM #tmpLotCalculationDetailsType lot 
 				WHERE lot.ID = @count;
 
@@ -115,14 +116,18 @@ BEGIN
 
 				SELECT @UpdatedUnitCost = ISNULL(OriginalCost,0),@LastLotTransInOutId = ISNULL(LotTransInOutId,0), @LastQty = Qty FROM [DBO].[LotCalculationDetails] WITH (NOLOCK) WHERE LotCalculationId = @LatestId;
 				Select @LastStockLineId = ISNULL(StockLineId,0) From DBO.LotTransInOutDetails  WITH (NOLOCK) Where LotTransInOutId = @LastLotTransInOutId
-				IF(ISNULL(@LastOrignalCost,0) > 0)
+				
+				IF(UPPER(@Type) != UPPER('Shipped'))
 				BEGIN
-					SET @LastOrignalCost = @LastOrignalCost + @UpdatedUnitCost;
+					IF(ISNULL(@LastOrignalCost,0) > 0)
+					BEGIN
+						SET @LastOrignalCost = @LastOrignalCost + @UpdatedUnitCost;
+					END
+					ELSE
+					BEGIN
+						SET @LastOrignalCost =  @UpdatedUnitCost;
+					END		
 				END
-				ELSE
-				BEGIN
-					SET @LastOrignalCost =  @UpdatedUnitCost;
-				END		
 				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost WHERE LotCalculationId = @LatestId; 
 				
 				IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR (UPPER(@Type) = UPPER('Trans In (RO)') ))

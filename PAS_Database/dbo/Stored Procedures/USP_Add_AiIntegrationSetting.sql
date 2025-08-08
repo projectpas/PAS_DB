@@ -11,6 +11,7 @@ EXEC [USP_GetPNLabelSettingData]
 ** --   --------          -------         --------------------------------  
 ** 1	July-01-2025	BHARGAV SALIYA    Create
 ** 2	July-11-2025	BHARGAV SALIYA    Modified Two Fields YearId and MonthId
+** 3	Aug-07-2025	    Amit Ghediya      Modified add Fields IsAutoInternalQuote
 
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
@@ -22,6 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
 	@IsEnableDisableAIintegration BIT,
 	@IsReviewRequired BIT,
 	@IsAutoEmailSend BIT,
+	@IsAutoInternalQuote BIT,
 	@YearId bigint = 0,
 	@MonthId bigint = 0,
 	@PercentId bigint = 0
@@ -50,13 +52,14 @@ BEGIN
 				TARGET.IsEnableDisableAIintegration = @IsEnableDisableAIintegration,
 				TARGET.IsReviewRequired = @IsReviewRequired,
 				TARGET.IsAutoEmailSend = @IsAutoEmailSend,
+				TARGET.IsAutoInternalQuote = @IsAutoInternalQuote,
 				TARGET.PercentId = @PercentId,
 				TARGET.PercentValue = @PercentValue,
 				TARGET.UpdatedDate = GETUTCDATE(),
 				TARGET.UpdatedBy = @UpdatedBy
 		WHEN NOT MATCHED BY TARGET THEN
-			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId])
-			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId);
+			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend], [IsAutoInternalQuote],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId])
+			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@IsAutoInternalQuote,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId);
 
 		COMMIT TRANSACTION;
 	END TRY

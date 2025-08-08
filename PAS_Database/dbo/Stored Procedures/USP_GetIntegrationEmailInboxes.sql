@@ -21,8 +21,16 @@ BEGIN
  SET NOCOUNT ON;      
  BEGIN TRY      
     
-	    DECLARE	@Inbox INT = 1,@Draft INT = 2,@SentMail INT = 3,@Trash INT = 4
+	 DECLARE @EmailCount INT = 0,@Inbox INT = 1,@Draft INT = 2,@SentMail INT = 3,@Trash INT = 4
 
+	 SELECT @EmailCount = COUNT(IEC.[IntegrationEmailConfigId]) 		     
+	   FROM [dbo].[IntegrationEmailSmtpConfigration] IEC WITH(NOLOCK)	      
+	  WHERE IEC.[MasterCompanyId] = @MasterCompanyId
+		AND IEC.[IsDeleted] = 0
+		AND IEC.[IsActive] = 1
+
+	IF(@EmailCount > 1)
+	BEGIN
 		SELECT 'All' [SmtpUserEmail],
 		       'All' [UserName],
 			   (SELECT ISNULL(SUM(IE.[EmailSection]),0)  
@@ -47,6 +55,23 @@ BEGIN
 	  WHERE IEC.[MasterCompanyId] = @MasterCompanyId
 		AND IEC.[IsDeleted] = 0
 		AND IEC.[IsActive] = 1
+	END
+	ELSE
+	BEGIN
+		SELECT IEC.[SmtpUserEmail],
+		       LEFT(IEC.[SmtpUserEmail], CHARINDEX('@', IEC.[SmtpUserEmail]) - 1) [UserName],
+			   (SELECT ISNULL(SUM(CASE WHEN IE.[EmailSection] = @Inbox THEN 1 ELSE 0 END),0)  
+				   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
+				  WHERE IE.[EmailReadBy] = IEC.[SmtpUserEmail]
+					AND	IE.[MasterCompanyId] = @MasterCompanyId
+					AND IE.[IsDeleted] = 0
+					AND IE.[IsActive] = 1) [Inbox],
+				IEC.[MasterCompanyId]
+	   FROM [dbo].[IntegrationEmailSmtpConfigration] IEC WITH(NOLOCK)	      
+	  WHERE IEC.[MasterCompanyId] = @MasterCompanyId
+		AND IEC.[IsDeleted] = 0
+		AND IEC.[IsActive] = 1
+	END
 	          
  END TRY          
  BEGIN CATCH      

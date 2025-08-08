@@ -164,16 +164,21 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'CustomerPhone' 
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'CustomerPhone' 
 													AND (
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
 													THEN 'Phone must be at least 10 digits and contain digits only'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'Email' 
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'Email' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
 													THEN 'Email is not in a valid format'
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
+													AND (
+														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+													)
+													THEN 'QuantityOnHand must be a number greater than 0'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 										ELSE ''
 										END,
@@ -240,16 +245,21 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'CustomerPhone' 
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'CustomerPhone' 
 													AND (
 														TMP.FieldValue LIKE '%[^0-9]%' OR LEN(TMP.FieldValue) < 10
 													)
 													THEN 'Phone must be at least 10 digits and contain digits only'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND IMF.FieldName = 'Email' 
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'Email' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
 													THEN 'Email is not in a valid format'
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
+													AND (
+														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+													)
+													THEN 'QuantityOnHand must be a number greater than 0'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
 										ELSE ''

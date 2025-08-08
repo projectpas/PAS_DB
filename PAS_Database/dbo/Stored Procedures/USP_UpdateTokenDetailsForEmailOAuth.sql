@@ -47,8 +47,8 @@ BEGIN TRANSACTION
 	END
 	ELSE
 	BEGIN
-		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,AccessToken,RefreshToken,TokenExpiresIn,TokenCreatedAt,UpdatedDate)
-		VALUES (@EmployeeId,'','',0,@AccessToken,@RefreshToken,@ExpiresIn,GETDATE(),GETDATE())
+		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,EmailTypeId,AccessToken,RefreshToken,TokenExpiresIn,TokenCreatedAt,UpdatedDate)
+		VALUES (@EmployeeId,'','',0,CASE WHEN @Provider = 'google' THEN 4 ELSE 5 END,@AccessToken,@RefreshToken,@ExpiresIn,GETDATE(),GETDATE())
 	END
 
 	SELECT smtpsettingId from DBO.Usersmtpsetting WITH (NOLOCK) WHERE EmployeeId = @EmployeeId;

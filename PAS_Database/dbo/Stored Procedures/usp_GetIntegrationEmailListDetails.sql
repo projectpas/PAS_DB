@@ -21,9 +21,15 @@ SET NOCOUNT ON
 		BEGIN
 			SELECT	[IntegrationEmailID], [Subject], [EmailBody], [ToEmail], [FromEmail], [CC], [BCC], [EmailReadBy], [ReferenceId], [ModuleId], [EmailStatus], [HasAttachments],
 					[EmailSection], [ReceivedDate], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [CustomerRfqId]
-			FROM [dbo].[IntegrationEmail] WITH(NOLOCK) ORDER BY [IntegrationEmailID] DESC;
+			FROM [dbo].[IntegrationEmail] WITH(NOLOCK) 
+			WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(CustomerRfqId, 0) = 0
+			ORDER BY [IntegrationEmailID] DESC;
 
-			SELECT [IntegrationEmailAttachmentID], [IntegrationEmailID], [AttachmentName], [AttachmentPath]	FROM [dbo].[IntegrationEmailAttachment] WITH(NOLOCK);
+			SELECT [IntegrationEmailAttachmentID], IEA.[IntegrationEmailID], [AttachmentName], [AttachmentPath]
+			FROM [dbo].[IntegrationEmailAttachment] IEA WITH(NOLOCK) 
+			INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = IEA.IntegrationEmailID
+			WHERE IE.[IsActive] = 1 AND IE.[IsDeleted] = 0 AND ISNULL(IE.CustomerRfqId, 0) = 0
+			ORDER BY IEA.[IntegrationEmailID] DESC;
 		END
 	END TRY    
 	BEGIN CATCH      

@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/30/2025   Hemant Saliya Created
 	2    07/31/2025   Moin Bloch    Removed Attachment Fields
+	3    08/11/2025   Moin Bloch    Added  EmailPath Fields
      
 --EXEC [usp_InsertIntegrationEmail] 
 **************************************************************/
@@ -42,6 +43,7 @@ CREATE    PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @EmailReadBy       NVARCHAR(320) = NULL,   
 @EmailSection      INT,
 @ReceivedDate      DATETIME2 = NULL,
+@EmailPath         NVARCHAR(640) = NULL,
 @tbl_IntegrationEmailAttachmentType IntegrationEmailAttachmentType READONLY
 AS
 BEGIN
@@ -57,7 +59,7 @@ BEGIN
             [CC],[BCC],[ReferenceId],[ModuleId],[EmailStatus],
             [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
             [UpdatedDate],[IsActive],[IsDeleted],[HasAttachments],
-			[EmailReadBy],[EmailSection], [ReceivedDate]
+			[EmailReadBy],[EmailSection], [ReceivedDate],[EmailPath]
         )
         VALUES
         (
@@ -65,7 +67,7 @@ BEGIN
             @CC,@BCC,@ReferenceId,@ModuleId,@EmailStatus,
             @MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,
             @UpdatedDate,@IsActive,@IsDeleted,@HasAttachments,
-			@EmailReadBy,@EmailSection, @ReceivedDate
+			@EmailReadBy,@EmailSection, @ReceivedDate,@EmailPath
         );
 
 		SET @IntegrationEmailID = SCOPE_IDENTITY();	  

@@ -19,6 +19,7 @@
 	8	 06-Aug-2025		RAJESH GAMI				Stockline Module : Insert QuantityAvailable as same as QunatityOnHand
 	9	 07-Aug-2025		RAJESH GAMI				Fixed: Datetime upload issue
 	10	 01-Aug-2025		Bhargav Saliya			Added New Module "Vendor"
+	11	 11-Aug-2025		Ayushi Patel			inserted auto generate field into stockline
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -111,8 +112,19 @@ BEGIN
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
+			IF(@ModuleId = @StocklineModule)
+			BEGIN				
+				SET @UploadRecord = JSON_MODIFY(
+							JSON_MODIFY(
+								JSON_MODIFY(@UploadRecord, '$.stocklinenumber', ''),
+								'$.controlnumber', ''
+							),
+							'$.IdNumber', ''
+						);
+			END
+
 			SELECT [key], [value] INTO #TempDynamicData FROM OPENJSON(@UploadRecord);
-			select * from #TempDynamicData
+			
 			INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], TRIM([value]) FROM #TempDynamicData;
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,  IMF.IsAutoGenerate, IMF.IsModuleTableColumn,
@@ -127,7 +139,7 @@ BEGIN
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
 
-			IF (@ModuleId = 5) -- Stockline
+			IF (@ModuleId = @StocklineModule) -- Stockline
 			BEGIN
 				DECLARE @StockLineNumber VARCHAR(100);
 				DECLARE @currentNo AS BIGINT = 0;
@@ -234,7 +246,7 @@ BEGIN
                 /* PN Manufacturer Combination Stockline logic */
 
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
-
+		
 				IF (@currentNo <> 0)
                 BEGIN
                     SET @stockLineCurrentNo = @currentNo + 1;
@@ -243,7 +255,7 @@ BEGIN
                 BEGIN
                     SET @stockLineCurrentNo = 1;
                 END
-
+				
                 IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
                 BEGIN
                     SET @StockLineNumber =
@@ -255,7 +267,7 @@ BEGIN
                     SET CurrentStlNo = @stockLineCurrentNo
                     WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
                 END
-
+			
 				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                 BEGIN
                     SELECT @CNCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END
@@ -281,7 +293,6 @@ BEGIN
 				BEGIN
 					UPDATE #ImportFields SET FieldValue = @StockLineNumber WHERE FieldName = 'stocklinenumber';
 				END
-
 				IF (ISNULL(@ControlNumber, '') != '')
 				BEGIN
 					UPDATE #ImportFields SET FieldValue = @ControlNumber WHERE FieldName = 'controlnumber';
@@ -435,8 +446,11 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
-				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,MasterCompanyId,CreatedBy,UpdatedBy'
-				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0, '
+				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,MasterCompanyId,CreatedBy,UpdatedBy'
+				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0,'+ 
+				 '''' + CAST(@StockLineNumber AS VARCHAR(50)) + ''',' + 
+				'''' + CAST(@ControlNumber AS VARCHAR(50)) + ''',' + 
+				'''' + CAST(@IDNumber AS VARCHAR(50)) + ''','
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 				BEGIN

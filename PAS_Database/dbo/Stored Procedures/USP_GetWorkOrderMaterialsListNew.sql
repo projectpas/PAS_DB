@@ -24,7 +24,7 @@
     13  18-04-2025		Devendra Shekh		    Modified (Added total Material/stockline Parts Calculation)
     14  25-04-2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
     15  14-05-2025		Devendra Shekh		    Modified (Added ISNULL to qty fields)
-
+	16  11-08-2025		Rajesh Gami			    Fixed: Order related issue while copy materials from the Template
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -74,7 +74,7 @@ SET NOCOUNT ON
 
 				IF @Local_SortColumn IS NULL
 				BEGIN  
-					SET @Local_SortColumn = ('taskName')
+					SET @Local_SortColumn = ('recordId')
 				END
 
 				SELECT @MasterCompanyId = MasterCompanyId,@WoTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @Local_WorkOrderId;
@@ -530,7 +530,7 @@ SET NOCOUNT ON
 
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
 				BEGIN
-					--WorkOrderMaterial Data Insert
+					--WorkOrderMaterial Data Insert 
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin],
 								[PartStatusId], [Provision], [ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ItemMasterUnitCost], [ExtendedCost],
@@ -774,7 +774,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 					AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)	ORDER BY WOM.WorkOrderMaterialsId ASC
 
 					--WorkOrderMaterial Kit Data Insert
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -1012,10 +1012,11 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-						AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+						AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)	ORDER BY WOM.WorkOrderMaterialsKitId ASC
 				END
 				ELSE
 				BEGIN
+					--select * from #TMPWOMaterialResultListData
 					--WorkOrderMaterial Data Insert
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin],
@@ -1260,6 +1261,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+					ORDER BY WOM.WorkOrderMaterialsId ASC
 
 					--WorkOrderMaterial Kit Data Insert
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -1496,7 +1498,7 @@ SET NOCOUNT ON
 						LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.WOPartNoId = WOWF.WorkOrderPartNoId AND WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
-					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1) ORDER BY WOM.WorkOrderMaterialsKitId ASC
 				END
 
 				--	Calculating Total Material Parts and StockLine Parts	: Start
@@ -1567,8 +1569,9 @@ SET NOCOUNT ON
 			    OR (@IsDownload = 1 AND @IsParent = 1)
 				OR @IsDownload = 0
 				ORDER BY    
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC
-					,CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partNumber')  THEN partNumber END ASC,  
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='recordId')  THEN recordId END ASC,  
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC,
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partNumber')  THEN partNumber END ASC,  
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='alterPartNumber')  THEN alterPartNumber END ASC,  
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='partDescription')  THEN partDescription END ASC,  
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='manufacturerName')  THEN manufacturerName END ASC,  

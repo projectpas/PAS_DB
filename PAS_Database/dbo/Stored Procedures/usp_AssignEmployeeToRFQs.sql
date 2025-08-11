@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    04 Aug 2025	Devendra Shekh		Created
+	2    11 Aug 2025	Amit Ghediya		Added DateAssigned Date
      
 -- EXEC USP_SendOneFourtyFiveQuote
 ************************************************************************/
@@ -24,7 +25,8 @@ SET NOCOUNT ON;
 	BEGIN
 		UPDATE CRQ
 		SET
-			CRQ.EmployeeId = @EmployeeId
+			CRQ.EmployeeId = @EmployeeId,
+			CRQ.DateAssigned = GETUTCDATE()
 		FROM [dbo].[CustomerRfq] CRQ WITH(NOLOCK)
 		WHERE CRQ.CustomerRfqId IN (SELECT value FROM STRING_SPLIT(@CustomerRfqIds, ','));
 	END			

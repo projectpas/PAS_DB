@@ -20,7 +20,7 @@
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
 	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
-
+	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -659,8 +659,11 @@ SET NOCOUNT ON;
 									@IsDeferred BIT, @WorkflowMaterialListId BIGINT
 
 							DECLARE newmaterial_cursors CURSOR FOR
-							SELECT ItemMasterId, ConditionCodeId, Item, Figure, TaskId, Quantity, UnitCost, ExtendedCost, MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
-							FROM DBO.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
+							FROM DBO.WorkflowMaterial WM WITH (NOLOCK) 
+							LEFT JOIN DBO.WorkFlowTask WT WITH (NOLOCK)  ON WM.WorkflowId = WT.WorkFlowId  AND WM.TaskId = WT.TaskId
+							WHERE WM.WorkflowId = @WorkflowId
+							ORDER BY WT.[SequenceNumber] ASC
 
 							OPEN newmaterial_cursors
 							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
@@ -788,7 +791,8 @@ SET NOCOUNT ON;
 											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
 											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, @UnitCost, @ExtendedCost, 
 											   @Memo, @IsDeferred, @ProvisionId, @Figure, @Item, 1
-										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId;
+										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId
+										order by [Order]
 									END
 								END
 

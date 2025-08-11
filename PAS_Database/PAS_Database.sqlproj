@@ -4154,6 +4154,8 @@
     <Build Include="dbo\Stored Procedures\usp_GetRFQPriceSuggestionDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateIntegrationEmailConfigration.sql" />
     <Build Include="dbo\Stored Procedures\USP_EmployeeCertificationInsertList.sql" />
+    <Build Include="dbo\Tables\OpenAIRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveAIRequestLog.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

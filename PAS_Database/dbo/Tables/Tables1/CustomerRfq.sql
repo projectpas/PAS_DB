@@ -29,6 +29,9 @@
     [ModuleId]            INT            NULL,
     [ReferenceId]         BIGINT         NULL,
     [EmployeeId]          BIGINT         NULL,
+    [DateAssigned]        DATETIME       NULL,
+    [QuotedBy]            VARCHAR (256)  NULL,
+    [QuotedDate]          DATETIME       NULL,
     CONSTRAINT [PK_CustomerRfq] PRIMARY KEY CLUSTERED ([CustomerRfqId] ASC),
     CONSTRAINT [FK_CustomerRfq_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

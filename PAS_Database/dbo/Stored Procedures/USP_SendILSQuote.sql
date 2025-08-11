@@ -15,6 +15,7 @@
 	2    04 Aug 2025  Amit Ghediya   Update for add PercentId,PercentValue on fly.
 	3    06 Aug 2025  Amit Ghediya   Update for add SOQ & part auto.
 	4	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
+	5    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
      
 -- EXEC USP_SendILSQuote
 ************************************************************************/
@@ -111,7 +112,9 @@ BEGIN
 
 						 ------- Update Csutomer RFQ for Is Quote added ----------					 
 						 UPDATE [dbo].[CustomerRfq] 
-							SET IsQuote = 1
+							SET IsQuote = 1,
+							QuotedBy = @CreatedBy,
+							QuotedDate = GETUTCDATE()
 						 WHERE CustomerRfqId = @GetCustomerRfqId;
 
 

@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    05 Mar 2024  Rajesh Gami    Created
 	2	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
+	3    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
      
 -- EXEC USP_SendOneFourtyFiveQuote
 ************************************************************************/
@@ -99,7 +100,9 @@ BEGIN
 					 ------- Update Csutomer RFQ for Is Quote added ----------
 					 
 					 UPDATE [dbo].[CustomerRfq] 
-						SET IsQuote = 1
+						SET IsQuote = 1,
+						QuotedBy = @CreatedBy,
+						QuotedDate = GETUTCDATE()
 					 WHERE CustomerRfqId = @GetCustomerRfqId;
     END TRY    
 	BEGIN CATCH      

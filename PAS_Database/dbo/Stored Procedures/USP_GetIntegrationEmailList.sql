@@ -10,7 +10,8 @@
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
     1    29/07/2025   Moin Bloch   	    Created      
-    
+	2    11/08/2025   Moin Bloch   	    Added IsRead      
+
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
 CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailList]
@@ -22,6 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailList]
 @Subject VARCHAR(500) = NULL,
 @EmailBody NVARCHAR(MAX) = NULL, 
 @EmailSection INT = NULL,   
+@EmailReadBy NVARCHAR(640) = NULL, 
 @MasterCompanyId INT = NULL,      
 @EmployeeId BIGINT,      
 @IsDeleted BIT = NULL      
@@ -62,7 +64,13 @@ BEGIN
 	ELSE        
 	BEGIN         
 		SET @SortColumn = UPPER(@SortColumn)        
-	END      
+	END    
+	
+	IF @EmailReadBy = '' OR @EmailReadBy = 'All'
+	BEGIN         
+		SET @EmailReadBy = NULL
+	END  
+
 	
 	SELECT COUNT(1) OVER () AS [NumberOfItems]
 		  ,IE.[IntegrationEmailID]
@@ -84,10 +92,12 @@ BEGIN
 		  ,IE.[CreatedDate]
 		  ,IE.[UpdatedDate]
 		  ,IE.[IsActive]
-		  ,IE.[IsDeleted]		  
+		  ,IE.[IsDeleted]	
+		  ,ISNULL(IE.[IsRead],0) [IsRead]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
-    AND (IE.IsDeleted = @IsDeleted) 
+    AND (IE.IsDeleted = @IsDeleted) 	
+	AND (@EmailReadBy IS NULL OR IE.[EmailReadBy]=@EmailReadBy)   
     AND (IE.[EmailSection] = @EmailSection)) 				     
 	AND ((@GlobalFilter <>'' 
 	AND ((IE.[Subject] LIKE '%' +@GlobalFilter+'%') OR        

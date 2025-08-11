@@ -29,7 +29,7 @@
 	16   13-03-2025   Vishal Suthar		Fixed issue with duplicate records     
 	17   05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
 	18   05-07-2025   BHARGAV SALIYA    get condition through the [SalesOrderPartV1] Join
-
+	19   07-Aug-2025  RAJESH GAMI	    Getting LotNumber 
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -46,6 +46,7 @@ BEGIN
 	DECLARE @DefaultStatusId INT = 1;
 	DECLARE @DefaultStatusName VARCHAR(50) = 'OPEN';
 	DECLARE @soModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder')
+	DECLARE @LOTNumber VARCHAR(100)= ISNULL((SELECT LotNumber FROM dbo.LOT WITH(NOLOCK) WHERE LotId = (SELECT ISNULL(LotId,0) FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId)),'')
 	--Set SoPart null for all part for salesordor otherwise for perticular part only.
 	IF(ISNULL(@SoPartId,0) = 0)
 	BEGIN
@@ -190,7 +191,8 @@ BEGIN
 		CASE WHEN Stk.StockLineId IS NOT NULL THEN Stk.SizeHeight ELSE part.SizeHeight END SizeHeight,
 
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
-		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId
+		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
+		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId
@@ -217,7 +219,7 @@ BEGIN
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)
     AND ISNULL(part.IsDeleted,0) = 0
     AND ISNULL(rop.isAsset, 0) = 0
-	ORDER BY part.CreatedDate DESC;
+	ORDER BY part.SalesOrderPartId;
 
   END TRY
   BEGIN CATCH

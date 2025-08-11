@@ -14,6 +14,10 @@
     [IsDeleted]                    BIT             CONSTRAINT [DF_AiIntegrationSetting_IsDeleted] DEFAULT ((0)) NOT NULL,
     [YearId]                       BIGINT          NULL,
     [MonthId]                      BIGINT          NULL,
+    [IsAutoInternalQuote]          BIT             NULL,
+    [OpenAIAPIKeys]                NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_AiIntegrationSetting] PRIMARY KEY CLUSTERED ([AiIntegrationSettingId] ASC)
 );
+
+
 

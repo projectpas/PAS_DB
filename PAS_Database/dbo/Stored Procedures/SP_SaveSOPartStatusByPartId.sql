@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_SaveSOPartStatusByPartId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to save part status by part id
@@ -29,8 +28,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;	
 	BEGIN TRY
-	BEGIN TRANSACTION
-	BEGIN 
+	
 		IF(@SalesOrderPartId > 0 AND @StatusId >0)
 		BEGIN
 			DECLARE @SOID BIGINT = (SELECT TOP 1 SalesOrderId FROM DBO.SalesOrderPartV1 WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId);
@@ -49,13 +47,9 @@ BEGIN
 				EXEC [dbo].[SP_UpdateSOHeaderStatusBySOId] @SOID
 			END
 		END
-	END	
-	COMMIT  TRANSACTION
+
 	END TRY 
 	BEGIN CATCH      
-		IF @@trancount > 0
-		PRINT 'ROLLBACK'
-				ROLLBACK TRANSACTION;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'SP_SaveSOPartStatusByPartId' 

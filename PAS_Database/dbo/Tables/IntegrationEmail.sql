@@ -20,8 +20,11 @@
     [UpdatedDate]        DATETIME2 (7)  CONSTRAINT [DF_IntegrationEmail_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]           BIT            CONSTRAINT [DF_IntegrationEmail_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]          BIT            CONSTRAINT [DF_IntegrationEmail_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [IsProcessed]        BIT            NULL,
+    [CustomerRfqId]      BIGINT         NULL,
+    [IsRead]             BIT            DEFAULT ((0)) NULL,
     CONSTRAINT [PK_IntegrationEmail] PRIMARY KEY CLUSTERED ([IntegrationEmailID] ASC),
     CONSTRAINT [FK_IntegrationEmail_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

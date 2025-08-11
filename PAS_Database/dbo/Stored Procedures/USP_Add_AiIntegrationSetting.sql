@@ -11,6 +11,8 @@ EXEC [USP_GetPNLabelSettingData]
 ** --   --------          -------         --------------------------------  
 ** 1	July-01-2025	BHARGAV SALIYA    Create
 ** 2	July-11-2025	BHARGAV SALIYA    Modified Two Fields YearId and MonthId
+** 3	Aug-07-2025	    Amit Ghediya      Modified add Fields IsAutoInternalQuote
+** 4	Aug-11-2025	    Moin Bloch        Modified add Fields OpenAIAPIKeys
 
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
@@ -20,11 +22,13 @@ CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
 	@UpdatedBy VARCHAR(50),
 	@MasterCompanyId int,
 	@IsEnableDisableAIintegration BIT,
-	@IsReviewRequired BIT,
-	@IsAutoEmailSend BIT,
+	@IsReviewRequired BIT = NULL,
+	@IsAutoEmailSend BIT = NULL,
+	@IsAutoInternalQuote BIT = NULL,
 	@YearId bigint = 0,
 	@MonthId bigint = 0,
-	@PercentId bigint = 0
+	@PercentId bigint = 0,
+	@OpenAIAPIKeys NVARCHAR(MAX)=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -32,6 +36,21 @@ BEGIN
 
 	BEGIN TRY
 		BEGIN TRANSACTION;
+
+		IF(@IsReviewRequired = NULl)
+		BEGIN
+			SET @IsReviewRequired = 0;
+		END
+
+		IF(@IsAutoEmailSend = NULl)
+		BEGIN
+			SET @IsAutoEmailSend = 0;
+		END
+
+		IF(@IsAutoInternalQuote = NULl)
+		BEGIN
+			SET @IsAutoInternalQuote = 0;
+		END
 
 		DECLARE @PercentValue DECIMAL = NULL;
 		if(@PercentId > 0)
@@ -45,18 +64,20 @@ BEGIN
 			   AND TARGET.MasterCompanyId = SOURCE.MasterCompanyId
 		WHEN MATCHED THEN
 			UPDATE SET 
-				TARGET.YearId = @YearId,
-				TARGET.MonthId = @MonthId,
-				TARGET.IsEnableDisableAIintegration = @IsEnableDisableAIintegration,
-				TARGET.IsReviewRequired = @IsReviewRequired,
-				TARGET.IsAutoEmailSend = @IsAutoEmailSend,
-				TARGET.PercentId = @PercentId,
-				TARGET.PercentValue = @PercentValue,
-				TARGET.UpdatedDate = GETUTCDATE(),
-				TARGET.UpdatedBy = @UpdatedBy
+				TARGET.[YearId] = @YearId,
+				TARGET.[MonthId] = @MonthId,
+				TARGET.[IsEnableDisableAIintegration] = @IsEnableDisableAIintegration,
+				TARGET.[IsReviewRequired] = @IsReviewRequired,
+				TARGET.[IsAutoEmailSend] = @IsAutoEmailSend,
+				TARGET.[IsAutoInternalQuote] = @IsAutoInternalQuote,
+				TARGET.[PercentId] = @PercentId,
+				TARGET.[PercentValue] = @PercentValue,
+				TARGET.[OpenAIAPIKeys] = @OpenAIAPIKeys,
+				TARGET.[UpdatedDate] = GETUTCDATE(),
+				TARGET.[UpdatedBy] = @UpdatedBy
 		WHEN NOT MATCHED BY TARGET THEN
-			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId])
-			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId);
+			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend], [IsAutoInternalQuote],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId],[OpenAIAPIKeys])
+			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@IsAutoInternalQuote,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId,@OpenAIAPIKeys);
 
 		COMMIT TRANSACTION;
 	END TRY

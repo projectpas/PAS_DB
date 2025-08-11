@@ -24,10 +24,14 @@
     [QtyIssued]            INT             NULL,
     [QtyAvailable]         INT             NULL,
     [ReferenceNumber]      VARCHAR (100)   NULL,
+    [IsShipped]            BIT             DEFAULT ((0)) NULL,
+    [ShippedQty]           INT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_LotTransInOutDetails] PRIMARY KEY CLUSTERED ([LotTransInOutId] ASC),
     CONSTRAINT [FK_LotTransInOutDetails_Lot] FOREIGN KEY ([LotId]) REFERENCES [dbo].[Lot] ([LotId]),
     CONSTRAINT [FK_LotTransInOutDetails_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 

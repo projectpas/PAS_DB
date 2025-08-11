@@ -556,7 +556,7 @@ BEGIN
 	   (
 						IsNull(@Status, '') = ''
 						OR (
-							@Status = 'Invoiced' AND IsCreditMemo = 1 AND InvoiceStatus IN ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED')
+							@Status = 'Invoiced' AND IsCreditMemo = 1 AND InvoiceStatus IN ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED','Refund Requested','Refunded')
 					)
 					OR (
 						NOT (@Status = 'Invoiced' AND IsCreditMemo = 1) AND InvoiceStatus LIKE '%' + @Status + '%'
@@ -880,7 +880,7 @@ BEGIN
 				  (
 						IsNull(@Status, '') = ''
 						OR (
-							@Status = 'Invoiced' AND IsCreditMemo = 1 AND InvoiceStatus IN ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED')
+							@Status = 'Invoiced' AND IsCreditMemo = 1 AND InvoiceStatus IN ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED','Refund Requested','Refunded')
 						)
 						OR (
 							NOT (@Status = 'Invoiced' AND IsCreditMemo = 1) AND InvoiceStatus LIKE '%' + @Status + '%'

@@ -22,9 +22,12 @@
     [IsDeleted]          BIT            CONSTRAINT [DF_IntegrationEmail_IsDeleted] DEFAULT ((0)) NOT NULL,
     [CustomerRfqId]      BIGINT         NULL,
     [IsRead]             BIT            DEFAULT ((0)) NULL,
+    [EmailPath]          NVARCHAR (640) NULL,
     CONSTRAINT [PK_IntegrationEmail] PRIMARY KEY CLUSTERED ([IntegrationEmailID] ASC),
     CONSTRAINT [FK_IntegrationEmail_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

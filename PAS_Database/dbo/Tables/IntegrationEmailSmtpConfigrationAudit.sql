@@ -2,9 +2,9 @@
     [IntegrationEmailConfigAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [IntegrationEmailConfigId]      BIGINT         NOT NULL,
     [SmtpUserEmail]                 NVARCHAR (MAX) NOT NULL,
-    [smtpserver]                    NVARCHAR (500) NOT NULL,
-    [SmtpEmailPassword]             NVARCHAR (500) NOT NULL,
-    [SmtpPort]                      INT            NOT NULL,
+    [smtpserver]                    NVARCHAR (500) NULL,
+    [SmtpEmailPassword]             NVARCHAR (500) NULL,
+    [SmtpPort]                      INT            NULL,
     [UseSsl]                        BIT            NULL,
     [MasterCompanyId]               INT            NOT NULL,
     [CreatedBy]                     VARCHAR (256)  NOT NULL,
@@ -15,4 +15,6 @@
     [IsDeleted]                     BIT            NOT NULL,
     CONSTRAINT [PK_IntegrationEmailConfigrationAudit] PRIMARY KEY CLUSTERED ([IntegrationEmailConfigAuditId] ASC)
 );
+
+
 

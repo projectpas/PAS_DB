@@ -15,6 +15,9 @@
     [YearId]                       BIGINT          NULL,
     [MonthId]                      BIGINT          NULL,
     [IsAutoInternalQuote]          BIT             NULL,
+    [OpenAIAPIKeys]                NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_AiIntegrationSetting] PRIMARY KEY CLUSTERED ([AiIntegrationSettingId] ASC)
 );
+
+
 

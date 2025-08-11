@@ -10,7 +10,8 @@
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
     1    29/07/2025   Moin Bloch   	    Created      
-    
+	2    11/08/2025   Moin Bloch   	    Added IsRead      
+
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
 CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailList]
@@ -91,7 +92,8 @@ BEGIN
 		  ,IE.[CreatedDate]
 		  ,IE.[UpdatedDate]
 		  ,IE.[IsActive]
-		  ,IE.[IsDeleted]		  
+		  ,IE.[IsDeleted]	
+		  ,ISNULL(IE.[IsRead],0) [IsRead]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
     AND (IE.IsDeleted = @IsDeleted) 	

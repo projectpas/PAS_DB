@@ -1,9 +1,9 @@
 ﻿CREATE TABLE [dbo].[IntegrationEmailSmtpConfigration] (
     [IntegrationEmailConfigId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [SmtpUserEmail]            NVARCHAR (MAX) NOT NULL,
-    [smtpserver]               NVARCHAR (500) NOT NULL,
-    [SmtpEmailPassword]        NVARCHAR (500) NOT NULL,
-    [SmtpPort]                 INT            NOT NULL,
+    [smtpserver]               NVARCHAR (500) NULL,
+    [SmtpEmailPassword]        NVARCHAR (500) NULL,
+    [SmtpPort]                 INT            NULL,
     [UseSsl]                   BIT            NULL,
     [MasterCompanyId]          INT            NOT NULL,
     [CreatedBy]                VARCHAR (256)  NOT NULL,
@@ -14,4 +14,6 @@
     [IsDeleted]                BIT            CONSTRAINT [DF_IntegrationEmailSmtpConfigration_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_IntegrationEmailSmtpConfigration] PRIMARY KEY CLUSTERED ([IntegrationEmailConfigId] ASC)
 );
+
+
 

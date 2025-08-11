@@ -21,9 +21,9 @@ CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
 	@UpdatedBy VARCHAR(50),
 	@MasterCompanyId int,
 	@IsEnableDisableAIintegration BIT,
-	@IsReviewRequired BIT,
-	@IsAutoEmailSend BIT,
-	@IsAutoInternalQuote BIT,
+	@IsReviewRequired BIT = NULL,
+	@IsAutoEmailSend BIT = NULL,
+	@IsAutoInternalQuote BIT = NULL,
 	@YearId bigint = 0,
 	@MonthId bigint = 0,
 	@PercentId bigint = 0
@@ -34,6 +34,21 @@ BEGIN
 
 	BEGIN TRY
 		BEGIN TRANSACTION;
+
+		IF(@IsReviewRequired = NULl)
+		BEGIN
+			SET @IsReviewRequired = 0;
+		END
+
+		IF(@IsAutoEmailSend = NULl)
+		BEGIN
+			SET @IsAutoEmailSend = 0;
+		END
+
+		IF(@IsAutoInternalQuote = NULl)
+		BEGIN
+			SET @IsAutoInternalQuote = 0;
+		END
 
 		DECLARE @PercentValue DECIMAL = NULL;
 		if(@PercentId > 0)

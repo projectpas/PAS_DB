@@ -16,6 +16,7 @@
 	6	 05-Aug-2025		RAJESH GAMI				Fixed: Getting error when getting multiple values from [USP_GetDropdownValueId] 
 	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
 	8	 08-Aug-2025		Ayushi Patel			Removed customer phone validation
+	9	 11-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -175,7 +176,11 @@ BEGIN
 													AND (
 														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
 													)
-													THEN 'QuantityOnHand must be a number greater than 0'
+													THEN 'QuantityOnHand must be a whole number greater than 0'
+												WHEN ISNULL(TMP.FieldValue, '') != '' 
+													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
+													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
+												THEN IMF.FieldName + ' must be a valid number'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 										ELSE ''
 										END,
@@ -252,7 +257,11 @@ BEGIN
 													AND (
 														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
 													)
-													THEN 'QuantityOnHand must be a number greater than 0'
+													THEN 'QuantityOnHand must be a whole number greater than 0'
+												WHEN ISNULL(TMP.FieldValue, '') != '' 
+													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
+													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
+												THEN IMF.FieldName + ' must be a valid number'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
 										ELSE ''

@@ -1,4 +1,5 @@
-﻿/*************************************************************                 
+﻿
+/*************************************************************                 
  ** File:   [USP_GetIntegrationEmailList]                 
  ** Author:   Moin Bloch
  ** Description: Get Integration Email List         
@@ -24,7 +25,7 @@ CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailList]
 @EmailBody NVARCHAR(MAX) = NULL, 
 @EmailSection INT = NULL,   
 @EmailReadBy NVARCHAR(640) = NULL, 
-@MasterCompanyId INT = NULL,      
+@MasterCompanyId INT = NULL,  
 @EmployeeId BIGINT,      
 @IsDeleted BIT = NULL      
 AS      
@@ -101,18 +102,23 @@ BEGIN
 	AND (@EmailReadBy IS NULL OR IE.[EmailReadBy]=@EmailReadBy)   
     AND (IE.[EmailSection] = @EmailSection)) 				     
 	AND ((@GlobalFilter <>'' 
-	AND ((IE.[Subject] LIKE '%' +@GlobalFilter+'%') OR        
+	AND ((IE.[FromEmail] LIKE '%' +@GlobalFilter+'%') OR        
 		 (IE.[EmailBody] LIKE '%' +@GlobalFilter+'%'))) OR           
 	(@GlobalFilter='' AND 	
-	(ISNULL(@Subject,'') ='' OR [Subject] LIKE '%' + @Subject +'%') AND   
+	(ISNULL(@Subject,'') ='' OR [FromEmail] LIKE '%' + @Subject +'%') AND  
 	(ISNULL(@EmailBody,'') ='' OR [EmailBody] LIKE '%' + @EmailBody +'%')))         				
 	ORDER BY          
 	CASE WHEN (@SortOrder=1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END ASC,        
-	CASE WHEN (@SortOrder=1 AND @SortColumn='Subject')  THEN [Subject] END ASC,        
-	CASE WHEN (@SortOrder=1 AND @SortColumn='EmailBody')  THEN [EmailBody] END ASC,        				        
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC,       
+	CASE WHEN (@SortOrder=1 AND @SortColumn='FromEmail')  THEN [FromEmail] END ASC,   
+	CASE WHEN (@SortOrder=1 AND @SortColumn='Subject')  THEN [Subject] END ASC,   
+	CASE WHEN (@SortOrder=1 AND @SortColumn='EmailBody')  THEN [EmailBody] END ASC,   
+	CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN [CreatedDate] END ASC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC, 
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='FromEmail')  THEN [FromEmail] END DESC,   
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='Subject')  THEN [Subject] END DESC,        
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC				        
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN [CreatedDate] END DESC	
+
 	OFFSET @RecordFrom ROWS         
 	FETCH NEXT @PageSize ROWS ONLY   
 	    

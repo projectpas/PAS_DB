@@ -4152,7 +4152,7 @@
     <Build Include="dbo\Stored Procedures\USP_SendMultiILSQuote.sql" />
     <Build Include="dbo\User Defined Types\IlsRfqMultipleQuoteDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetRFQPriceSuggestionDetails.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_UpdateIntegrationEmailConfigration.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

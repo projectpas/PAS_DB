@@ -24,9 +24,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-	IF EXISTS(SELECT 1 FROM dbo.[OpenAIRequestLog])
+	IF EXISTS(SELECT 1 FROM dbo.[OpenAIRequestLog] WITH (NOLOCK))
 	BEGIN
-		DELETE FROM dbo.[OpenAIRequestLog] WHERE LogId NOT IN (SELECT TOP 200 LogId FROM dbo.[OpenAIRequestLog] ORDER BY LogId DESC)
+		DELETE FROM dbo.[OpenAIRequestLog] WHERE LogId NOT IN (SELECT TOP 200 LogId FROM dbo.[OpenAIRequestLog] WITH (NOLOCK) ORDER BY LogId DESC)
 	END
 
     INSERT INTO dbo.[OpenAIRequestLog] (IntegrationEmailID, RequestType, RequestUrl, RequestBody, ResponseStatusCode, ResponseBody, IsSuccess, CreatedDate)

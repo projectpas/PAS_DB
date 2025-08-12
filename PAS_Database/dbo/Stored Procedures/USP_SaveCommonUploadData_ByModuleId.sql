@@ -21,6 +21,7 @@
 	10	 01-Aug-2025		Bhargav Saliya			Added New Module "Vendor"
 	11	 11-Aug-2025		Ayushi Patel			inserted auto generate field into stockline
 	12	 12-Aug-2025		Ayushi Patel			Receive Date Changes
+	13	 12-Aug-2025		Ayushi Patel			ObtainFromType, OwnerType, TraceableToType Inserted as otherModuleType
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -450,16 +451,15 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
-				--SET @ReceivedDate = (select TOP  1 FieldValue from #DynamicKeyValue where FieldName = 'ReceivedDate')
-				--IF ISNULL(@ReceivedDate,'') = ''
-				--BEGIN
-				--	SET @ReceivedDate = GETDATE();
-				--END
-				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,MasterCompanyId,CreatedBy,UpdatedBy'
+				DECLARE @OtherModuleTypeId BIGINT = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'Others');
+				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,ObtainFromType,OwnerType,TraceableToType,MasterCompanyId,CreatedBy,UpdatedBy'
 				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0,'+ 
 				 '''' + CAST(@StockLineNumber AS VARCHAR(50)) + ''',' + 
 				'''' + CAST(@ControlNumber AS VARCHAR(50)) + ''',' + 
-				'''' + CAST(@IDNumber AS VARCHAR(50)) + ''','
+				'''' + CAST(@IDNumber AS VARCHAR(50)) + ''','+
+				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
+				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
+				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 				BEGIN

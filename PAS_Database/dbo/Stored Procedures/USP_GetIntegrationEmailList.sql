@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                 
+﻿/*************************************************************                 
  ** File:   [USP_GetIntegrationEmailList]                 
  ** Author:   Moin Bloch
  ** Description: Get Integration Email List         
@@ -11,7 +10,8 @@
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
     1    29/07/2025   Moin Bloch   	    Created      
-	2    11/08/2025   Moin Bloch   	    Added IsRead,EmailPath     
+	2    11/08/2025   Moin Bloch   	    Added IsRead,EmailPath,Subject 
+	3    12/08/2025   Moin Bloch   	    Added Subject 
 
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
@@ -98,11 +98,13 @@ BEGIN
 		  ,IE.[EmailPath]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
-    AND (IE.IsDeleted = @IsDeleted) 	
+    AND (IE.IsDeleted = 0) 	
+	AND (IE.[IsActive] = 1)
 	AND (@EmailReadBy IS NULL OR IE.[EmailReadBy]=@EmailReadBy)   
     AND (IE.[EmailSection] = @EmailSection)) 				     
 	AND ((@GlobalFilter <>'' 
-	AND ((IE.[FromEmail] LIKE '%' +@GlobalFilter+'%') OR        
+	AND ((IE.[FromEmail] LIKE '%' + @GlobalFilter+'%') OR        
+	     (IE.[Subject] LIKE '%' + @GlobalFilter+'%') OR        
 		 (IE.[EmailBody] LIKE '%' +@GlobalFilter+'%'))) OR           
 	(@GlobalFilter='' AND 	
 	(ISNULL(@Subject,'') ='' OR [FromEmail] LIKE '%' + @Subject +'%') AND  

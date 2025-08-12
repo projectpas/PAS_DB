@@ -9,7 +9,8 @@
  **************************************************************                 
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
-    1    07/08/2025   Moin Bloch   	    Created      
+    1    07/08/2025   Moin Bloch   	    Created  
+	2    12/08/2025   Moin Bloch   	    Added Trash 
     
 -- EXEC USP_GetIntegrationEmailInboxes 1
 **************************************************************/                   
@@ -71,7 +72,19 @@ BEGIN
 	  WHERE IEC.[MasterCompanyId] = @MasterCompanyId
 		AND IEC.[IsDeleted] = 0
 		AND IEC.[IsActive] = 1
+		
 	END
+
+	SELECT (SELECT ISNULL(SUM(CASE WHEN IE.[EmailSection] = @Trash THEN 1 ELSE 0 END),0)  
+				   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
+				  WHERE IE.[EmailReadBy] = IEC.[SmtpUserEmail]
+					AND	IE.[MasterCompanyId] = @MasterCompanyId
+					AND IE.[IsDeleted] = 0
+					AND IE.[IsActive] = 1) [Trash]				
+	   FROM [dbo].[IntegrationEmailSmtpConfigration] IEC WITH(NOLOCK)	      
+	  WHERE IEC.[MasterCompanyId] = @MasterCompanyId
+		AND IEC.[IsDeleted] = 0
+		AND IEC.[IsActive] = 1
 	          
  END TRY          
  BEGIN CATCH      

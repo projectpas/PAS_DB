@@ -18,6 +18,7 @@
     1    07/30/2025   Hemant Saliya Created
 	2    07/31/2025   Moin Bloch    Removed Attachment Fields
 	3    08/11/2025   Moin Bloch    Added  EmailPath Fields
+	4    08/12/2025   Moin Bloch    Added  condition for duplicate records
      
 --EXEC [usp_InsertIntegrationEmail] 
 **************************************************************/
@@ -53,6 +54,8 @@ BEGIN
 		
 		DECLARE @IntegrationEmailID BIGINT = 0,@TotalRecord INT = 0
 
+		IF NOT EXISTS(SELECT 1 FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [Subject]=@Subject AND [EmailBody] = @EmailBody AND [FromEmail]=@FromEmail AND [EmailReadBy]=@EmailReadBy)
+		BEGIN
         INSERT INTO dbo.IntegrationEmail
         (
             [Subject],[EmailBody],[ToEmail],[FromEmail],
@@ -84,6 +87,7 @@ BEGIN
 				       ,[AttachmentName]
 					   ,[AttachmentPath]
 				FROM @tbl_IntegrationEmailAttachmentType          
+		END
 		END
 
    END TRY

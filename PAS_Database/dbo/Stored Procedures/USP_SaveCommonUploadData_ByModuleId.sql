@@ -20,6 +20,7 @@
 	9	 07-Aug-2025		RAJESH GAMI				Fixed: Datetime upload issue
 	10	 01-Aug-2025		Bhargav Saliya			Added New Module "Vendor"
 	11	 11-Aug-2025		Ayushi Patel			inserted auto generate field into stockline
+	12	 12-Aug-2025		Ayushi Patel			Receive Date Changes
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -52,6 +53,7 @@ BEGIN
 		DECLARE @ReferenceTable VARCHAR(100) = NULL;
 		DECLARE @ModuleParentTable VARCHAR(100) = NULL;
 		DECLARE @TotalRow BIGINT, @CurrentRow BIGINT;
+		DECLARE @ReceivedDate DATETIME = 0;
 
 		DECLARE @IsAutoGenerate BIT = 0;
 		DECLARE @CodeTypeId BIGINT = 0;
@@ -355,6 +357,7 @@ BEGIN
 			END
 			
 			UPDATE #ImportFields SET FieldValue = '0' WHERE FieldType = 'number' AND FieldValue = '';
+			UPDATE #ImportFields SET FieldValue = GETDATE() WHERE FieldName = 'ReceivedDate' AND ISNULL(FieldValue,'') = '';
 
 			SELECT * FROM #ImportFields;
 
@@ -429,6 +432,7 @@ BEGIN
 						WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 			FROM #ImportFields        
 			WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+	
 
 			IF(@ModuleId = @AlterModule)
 			BEGIN
@@ -446,6 +450,11 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
+				--SET @ReceivedDate = (select TOP  1 FieldValue from #DynamicKeyValue where FieldName = 'ReceivedDate')
+				--IF ISNULL(@ReceivedDate,'') = ''
+				--BEGIN
+				--	SET @ReceivedDate = GETDATE();
+				--END
 				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,MasterCompanyId,CreatedBy,UpdatedBy'
 				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0,'+ 
 				 '''' + CAST(@StockLineNumber AS VARCHAR(50)) + ''',' + 
@@ -495,11 +504,18 @@ BEGIN
 			BEGIN
 				DECLARE @StkManagementStructureModuleId BIGINT = 2;
 				DECLARE @ManagementStructureEntityId BIGINT = 0;
-
+				DECLARE @StockLineModuleId BIGINT = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'StockLine');
+				DECLARE @StocklineHistoryActionId BIGINT = 1;
                 SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @ModuleTableId;
+				DECLARE @QuantityOnHand BIGINT = 0;
+				SET @QuantityOnHand = (select FieldValue from #DynamicKeyValue where FieldName = 'QuantityOnHand')
+				DECLARE @UpdatedBy AS VARCHAR(200);
+				SET @UpdatedBy = (select FieldValue from #DynamicKeyValue where FieldName = 'UpdatedBy')
 
+				--EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UpdatedBy;
 				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
 				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
+
 			END
 
 			IF(@ModuleId = @CustomerModule)

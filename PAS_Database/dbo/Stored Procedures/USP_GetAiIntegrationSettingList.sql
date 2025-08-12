@@ -11,6 +11,8 @@ EXEC [USP_GetPNLabelSettingData]
 ** --   --------          -------         --------------------------------  
 ** 1	July-01-2025	BHARGAV SALIYA    Create
 ** 2	July-11-2025	BHARGAV SALIYA    Modified Two Fields YearId and MonthId
+** 3	Aug-07-2025	    Amit Ghediya      Modified add Fields IsAutoInternalQuote
+** 4	Aug-11-2025	    Moin Bloch        Modified add Fields OpenAIAPIKeys
 
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
@@ -23,8 +25,8 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN 
+		--BEGIN TRANSACTION
+		--	BEGIN 
 				
 				SELECT 
 					 AI.AiIntegrationSettingId
@@ -33,6 +35,7 @@ BEGIN
 					,AI.[IsEnableDisableAIintegration]
 					,AI.[IsReviewRequired]
 					,AI.[IsAutoEmailSend]
+					,AI.[IsAutoInternalQuote]
 					,AI.[MasterCompanyId]
 					,AI.[CreatedBy]
 					,AI.[UpdatedBy]
@@ -42,11 +45,12 @@ BEGIN
 					,AI.[IsDeleted]
 					,AI.[PercentId]
 					,AI.[PercentValue]
+					,AI.[OpenAIAPIKeys]
 				FROM dbo.AiIntegrationSetting AI WITH(NOLOCK)
 				WHERE AI.MasterCompanyId = @MasterCompanyId
                 
-			END
-		COMMIT  TRANSACTION
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

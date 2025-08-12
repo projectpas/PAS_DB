@@ -28,6 +28,9 @@
     [IsAttach]          BIT            NULL,
     [EmailStatusId]     INT            DEFAULT ('1') NULL,
     [AttemptCount]      BIGINT         NULL,
+    [EmployeeId]        BIGINT         NULL,
     CONSTRAINT [PK_EmailAudit] PRIMARY KEY CLUSTERED ([EmailAuditId] ASC)
 );
+
+
 

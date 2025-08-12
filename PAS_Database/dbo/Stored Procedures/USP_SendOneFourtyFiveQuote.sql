@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_SendOneFourtyFiveQuote]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used Send One Fourty Five Quote Data Into Our Database
@@ -13,13 +12,15 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05 Mar 2024  Rajesh Gami    Created
+	2	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
+	3    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
      
 -- EXEC USP_SendOneFourtyFiveQuote
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_SendOneFourtyFiveQuote]
 	@tbl_CustomerRfqQuoteDetailsType CustomerRfqQuoteDetailsType READONLY,
 	@CustomerRfqId BIGINT,
-	@RfqId BIGINT,
+	@RfqId NVARCHAR(250),
 	@AddComment VARCHAR(250),
 	@IsAddCommentQuote BIT,
 	@FaaEasaRelease VARCHAR(250),
@@ -99,7 +100,9 @@ BEGIN
 					 ------- Update Csutomer RFQ for Is Quote added ----------
 					 
 					 UPDATE [dbo].[CustomerRfq] 
-						SET IsQuote = 1
+						SET IsQuote = 1,
+						QuotedBy = @CreatedBy,
+						QuotedDate = GETUTCDATE()
 					 WHERE CustomerRfqId = @GetCustomerRfqId;
     END TRY    
 	BEGIN CATCH      

@@ -17,6 +17,8 @@
  ** --   --------     -------		--------------------------------          
     1    07/30/2025   Hemant Saliya Created
 	2    07/31/2025   Moin Bloch    Removed Attachment Fields
+	3    08/11/2025   Moin Bloch    Added  EmailPath Fields
+	4    08/12/2025   Moin Bloch    Added  condition for duplicate records
      
 --EXEC [usp_InsertIntegrationEmail] 
 **************************************************************/
@@ -42,6 +44,7 @@ CREATE    PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @EmailReadBy       NVARCHAR(320) = NULL,   
 @EmailSection      INT,
 @ReceivedDate      DATETIME2 = NULL,
+@EmailPath         NVARCHAR(640) = NULL,
 @tbl_IntegrationEmailAttachmentType IntegrationEmailAttachmentType READONLY
 AS
 BEGIN
@@ -51,13 +54,15 @@ BEGIN
 		
 		DECLARE @IntegrationEmailID BIGINT = 0,@TotalRecord INT = 0
 
+		IF NOT EXISTS(SELECT 1 FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [Subject]=@Subject AND [EmailBody] = @EmailBody AND [FromEmail]=@FromEmail AND [EmailReadBy]=@EmailReadBy)
+		BEGIN
         INSERT INTO dbo.IntegrationEmail
         (
             [Subject],[EmailBody],[ToEmail],[FromEmail],
             [CC],[BCC],[ReferenceId],[ModuleId],[EmailStatus],
             [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
             [UpdatedDate],[IsActive],[IsDeleted],[HasAttachments],
-			[EmailReadBy],[EmailSection], [ReceivedDate]
+			[EmailReadBy],[EmailSection], [ReceivedDate],[EmailPath]
         )
         VALUES
         (
@@ -65,7 +70,7 @@ BEGIN
             @CC,@BCC,@ReferenceId,@ModuleId,@EmailStatus,
             @MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,
             @UpdatedDate,@IsActive,@IsDeleted,@HasAttachments,
-			@EmailReadBy,@EmailSection, @ReceivedDate
+			@EmailReadBy,@EmailSection, @ReceivedDate,@EmailPath
         );
 
 		SET @IntegrationEmailID = SCOPE_IDENTITY();	  
@@ -82,6 +87,7 @@ BEGIN
 				       ,[AttachmentName]
 					   ,[AttachmentPath]
 				FROM @tbl_IntegrationEmailAttachmentType          
+		END
 		END
 
    END TRY

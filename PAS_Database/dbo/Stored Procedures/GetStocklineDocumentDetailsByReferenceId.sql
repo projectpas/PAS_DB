@@ -11,8 +11,9 @@
  ** --    --------     -------			-------------------------------          
     1     30-06-2025   Amit Ghediya		Created
     2     18-07-2025   Vishal Suthar	Added module for exchange sales order
+    3     07-08-2025   Vishal Suthar	Added module for exchange quote, sales quote and vendor rma
 
-EXEC [GetStocklineDocumentDetailsByReferenceId]  124,1,71
+EXEC [GetStocklineDocumentDetailsByReferenceId]  1139,1,46
 
 **************************************************************/ 
 
@@ -35,6 +36,9 @@ BEGIN
 				@ItemMasterId BIGINT = 0,
 				@WorkOrderId BIGINT = 0,
 				@ESO_ModuleId INT = 0,
+				@ESOQuote_ModuleId INT = 0,
+				@SOQuote_ModuleId INT = 0,
+				@VendorRMA_ModuleId INT = 0,
 				@PartsStocklineId VARCHAR(MAX) = '';
 
 		SELECT @Stockline_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'StockLine';
@@ -42,6 +46,9 @@ BEGIN
 		SELECT @WO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'WorkOrder';
 		SELECT @RO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'RepairOrder';
 		SELECT @ESO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'ExchangeSalesOrder';
+		SELECT @ESOQuote_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'ExchangeQuote';
+		SELECT @SOQuote_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SalesQuote';
+		SELECT @VendorRMA_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'VendorRMA';
 
 		--Common Get FROM Stockline data
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderStockline') IS NOT NULL
@@ -112,6 +119,73 @@ BEGIN
 			 	  	   INSERT INTO #tmpSalesOrderStockline (StocklineId) 
 			 	  	   		SELECT StocklineId
 			 	  	   FROM #tmpSalesOrderStocklineV1 WITH(NOLOCK) WHERE [ID] = @ChildMasterLoopID
+			 	  	   
+			 	  	   SET @ChildMasterLoopID = @ChildMasterLoopID - 1;
+			 	  END
+			 	  
+			 	  SET @MasterLoopID = @MasterLoopID - 1;
+			 END
+
+			 SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') FROM #tmpSalesOrderStockline
+		END
+
+		--Sales Order Quote Part Stockline Documents
+		IF(@ModuleId = @SOQuote_ModuleId)
+		BEGIN
+			 --Sales Order Quote Separate DECLARE 
+			 DECLARE @SalesOrderQuotePartId BIGINT = 0;
+	
+			 --Get FROM SOPart data
+			 IF OBJECT_ID(N'tempdb..#tmpSalesOrderQuotePartV1') IS NOT NULL
+			 BEGIN
+			 	DROP TABLE #tmpSalesOrderQuotePartV1
+			 END
+			 		  	  
+			 CREATE TABLE #tmpSalesOrderQuotePartV1
+			 (
+			 	ID BIGINT NOT NULL IDENTITY, 
+			 	SalesOrderQuotePartId BIGINT NULL,
+			 	ItemMasterId BIGINT NULL
+			 )
+			 
+			 --Get FROM SOQPart Stockline data
+			 IF OBJECT_ID(N'tempdb..#tmpSalesOrderQuoteStocklineV1') IS NOT NULL
+			 BEGIN
+			 	DROP TABLE #tmpSalesOrderQuoteStocklineV1
+			 END
+			 		  	  
+			 CREATE TABLE #tmpSalesOrderQuoteStocklineV1
+			 (
+			 	ID BIGINT NOT NULL IDENTITY, 
+			 	StocklineId BIGINT NULL
+			 )		 
+			 
+			 INSERT INTO #tmpSalesOrderQuotePartV1 (SalesOrderQuotePartId,ItemMasterId) 
+				  SELECT SalesOrderQuotePartId,ItemMasterId
+			 FROM [DBO].[SalesOrderQuotePartV1] VRP WITH(NOLOCK) 
+			 WHERE VRP.SalesOrderQuoteId = @ReferenceId;
+
+			 SELECT  @MasterLoopID = MAX(ID) FROM #tmpSalesOrderQuotePartV1;
+			 WHILE(@MasterLoopID > 0)
+			 BEGIN
+			 	  SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId,
+			 	  	     @ItemMasterId = ItemMasterId
+			 	  FROM #tmpSalesOrderQuotePartV1 WITH(NOLOCK) WHERE [ID] = @MasterLoopID;
+			 	  
+			 	  --Truncate #tmpSalesOrderQuoteStocklineV1
+			 	  TRUNCATE TABLE #tmpSalesOrderQuoteStocklineV1;
+			 	  
+			 	  INSERT INTO #tmpSalesOrderQuoteStocklineV1 (StocklineId) 
+			 	  	   SELECT StocklineId
+			 	  FROM [DBO].[SalesOrderQuoteStocklineV1] SOST WITH(NOLOCK) 
+			 	  WHERE SOST.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			 	  
+			 	  SELECT  @ChildMasterLoopID = MAX(ID) FROM #tmpSalesOrderQuoteStocklineV1;
+			 	  WHILE(@ChildMasterLoopID > 0)
+			 	  BEGIN
+			 	  	   INSERT INTO #tmpSalesOrderStockline (StocklineId) 
+			 	  	   		SELECT StocklineId
+			 	  	   FROM #tmpSalesOrderQuoteStocklineV1 WITH(NOLOCK) WHERE [ID] = @ChildMasterLoopID
 			 	  	   
 			 	  	   SET @ChildMasterLoopID = @ChildMasterLoopID - 1;
 			 	  END
@@ -233,6 +307,82 @@ BEGIN
 			 END
 
 			 SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') FROM #tmpSalesOrderStockline
+		END
+
+		--Exchange Quote Part Stockline Documents
+		IF(@ModuleId = @ESOQuote_ModuleId)
+		BEGIN
+			 --Salesorder Separate DECLARE 
+			 DECLARE @ExchangeQuotePartId BIGINT = 0;
+	
+			 --Get FROM SOPart data
+			 IF OBJECT_ID(N'tempdb..#tmpExchSalesOrderQuotePartV1') IS NOT NULL
+			 BEGIN
+			 	DROP TABLE #tmpExchSalesOrderQuotePartV1
+			 END
+			 		  	  
+			 CREATE TABLE #tmpExchSalesOrderQuotePartV1
+			 (
+			 	ID BIGINT NOT NULL IDENTITY, 
+			 	ExchangeQuotePartId BIGINT NULL,
+			 	ItemMasterId BIGINT NULL
+			 )
+			 
+			 --Get FROM SOPart Stockline data
+			 IF OBJECT_ID(N'tempdb..#tmpExchSalesOrderQuoteStocklineV1') IS NOT NULL
+			 BEGIN
+			 	DROP TABLE #tmpExchSalesOrderQuoteStocklineV1
+			 END
+			 		  	  
+			 CREATE TABLE #tmpExchSalesOrderQuoteStocklineV1
+			 (
+			 	ID BIGINT NOT NULL IDENTITY, 
+			 	StocklineId BIGINT NULL
+			 )		 
+			 
+			 INSERT INTO #tmpExchSalesOrderQuotePartV1 (ExchangeQuotePartId,ItemMasterId) 
+				  SELECT ExchangeQuotePartId,ItemMasterId
+			 FROM [DBO].[ExchangeQuotePart] VRP WITH(NOLOCK) 
+			 WHERE VRP.ExchangeQuoteId = @ReferenceId;
+
+			 SELECT  @MasterLoopID = MAX(ID) FROM #tmpExchSalesOrderQuotePartV1;
+			 WHILE(@MasterLoopID > 0)
+			 BEGIN
+			 	  SELECT @ExchangeQuotePartId = ExchangeQuotePartId,
+			 	  	     @ItemMasterId = ItemMasterId
+			 	  FROM #tmpExchSalesOrderQuotePartV1 WITH(NOLOCK) WHERE [ID] = @MasterLoopID;
+			 	  
+			 	  --Truncate #tmpExchSalesOrderQuoteStocklineV1
+			 	  TRUNCATE TABLE #tmpExchSalesOrderQuoteStocklineV1;
+			 	  
+			 	  INSERT INTO #tmpExchSalesOrderQuoteStocklineV1 (StocklineId) 
+			 	  	   SELECT StocklineId
+			 	  FROM [DBO].[ExchangeQuotePart] SOST WITH(NOLOCK) 
+			 	  WHERE SOST.ExchangeQuotePartId = @ExchangeQuotePartId;
+			 	  
+			 	  SELECT  @ChildMasterLoopID = MAX(ID) FROM #tmpExchSalesOrderQuoteStocklineV1;
+			 	  WHILE(@ChildMasterLoopID > 0)
+			 	  BEGIN
+			 	  	   INSERT INTO #tmpSalesOrderStockline (StocklineId) 
+			 	  	   		SELECT StocklineId
+			 	  	   FROM #tmpExchSalesOrderQuoteStocklineV1 WITH(NOLOCK) WHERE [ID] = @ChildMasterLoopID
+			 	  	   
+			 	  	   SET @ChildMasterLoopID = @ChildMasterLoopID - 1;
+			 	  END
+			 	  
+			 	  SET @MasterLoopID = @MasterLoopID - 1;
+			 END
+
+			 SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') FROM #tmpSalesOrderStockline
+		END
+
+		--Vendor RMA Stockline Documents
+		IF(@ModuleId = @VendorRMA_ModuleId)
+		BEGIN
+			 SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') 
+			 FROM [DBO].[VendorRMADetail] WITH(NOLOCK) 
+			 WHERE VendorRMAId = @ReferenceId 
+			 AND MasterCompanyId = @MasterCompanyId
 		END
 
 		--For Common Select Doc for All Module (SO/WO/RO)

@@ -21,7 +21,8 @@ CREATE   Procedure [dbo].[USP_UpdateTokenDetailsForEmailOAuth]
 	@AccessToken VARCHAR(MAX) = NULL,
 	@RefreshToken VARCHAR(MAX) = NULL,
 	@ExpiresIn INT = NULL,
-	@Provider VARCHAR(100) = NULL
+	@Provider VARCHAR(100) = NULL,
+	@ConfigureFrom VARCHAR(50) = NULL
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -29,6 +30,10 @@ SET NOCOUNT ON
 
 BEGIN TRY
 BEGIN TRANSACTION
+
+	DECLARE @EmailSettings VARCHAR(50) = 'EmailSettings'
+	DECLARE @IntegrationEmailConfig VARCHAR(50) = 'IntegrationEmailConfig'
+
 	If EXISTS (SELECT TOP 1 1 FROM DBO.Usersmtpsetting WITH (NOLOCK) WHERE EmployeeId = @EmployeeId)
 	BEGIN
 		INSERT INTO DBO.UsersmtpsettingAudit (EmployeeId,smtpserver,emailpassword,portno,emailtype,verifyemail,CreatedDate,UpdatedDate)
@@ -47,8 +52,8 @@ BEGIN TRANSACTION
 	END
 	ELSE
 	BEGIN
-		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,AccessToken,RefreshToken,TokenExpiresIn,TokenCreatedAt,UpdatedDate)
-		VALUES (@EmployeeId,'','',0,@AccessToken,@RefreshToken,@ExpiresIn,GETDATE(),GETDATE())
+		INSERT INTO DBO.Usersmtpsetting (EmployeeId,smtpserver,emailpassword,portno,EmailTypeId,AccessToken,RefreshToken,TokenExpiresIn,TokenCreatedAt,UpdatedDate)
+		VALUES (@EmployeeId,'','',0,CASE WHEN @Provider = 'google' THEN 4 ELSE 5 END,@AccessToken,@RefreshToken,@ExpiresIn,GETDATE(),GETDATE())
 	END
 
 	SELECT smtpsettingId from DBO.Usersmtpsetting WITH (NOLOCK) WHERE EmployeeId = @EmployeeId;

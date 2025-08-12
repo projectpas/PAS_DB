@@ -4142,6 +4142,27 @@
     <Build Include="dbo\Tables\AIAutoQouteSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_AI_GetAutoQuoteSettingList.sql" />
     <Build Include="dbo\Stored Procedures\USP_AI_AddUpdateAutoQuoteSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteAnalysisListData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EmployeeUpdateforActiveStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetIntegrationEmailInboxes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteVendorContactByContactId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteCheckPaymentById.sql" />
+    <Build Include="dbo\Tables\OpenAIPrompt.sql" />
+    <Build Include="dbo\Tables\CustomerRfqPartMapping.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveEmailQuote.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetEmailCustomerRFQbyId.sql" />
+    <Build Include="dbo\User Defined Types\EmailRfqQuoteDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateVendorDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetIntegrationEmailListDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SendMultiILSQuote.sql" />
+    <Build Include="dbo\User Defined Types\IlsRfqMultipleQuoteDetailsType.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetRFQPriceSuggestionDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateIntegrationEmailConfigration.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EmployeeCertificationInsertList.sql" />
+    <Build Include="dbo\Tables\OpenAIRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveAIRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetMultipleRFQbyId.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -10,7 +10,9 @@
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
     1    29/07/2025   Moin Bloch   	    Created      
-    
+	2    11/08/2025   Moin Bloch   	    Added IsRead,EmailPath,Subject 
+	3    12/08/2025   Moin Bloch   	    Added Subject 
+
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
 CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailList]
@@ -22,7 +24,8 @@ CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailList]
 @Subject VARCHAR(500) = NULL,
 @EmailBody NVARCHAR(MAX) = NULL, 
 @EmailSection INT = NULL,   
-@MasterCompanyId INT = NULL,      
+@EmailReadBy NVARCHAR(640) = NULL, 
+@MasterCompanyId INT = NULL,  
 @EmployeeId BIGINT,      
 @IsDeleted BIT = NULL      
 AS      
@@ -62,7 +65,13 @@ BEGIN
 	ELSE        
 	BEGIN         
 		SET @SortColumn = UPPER(@SortColumn)        
-	END      
+	END    
+	
+	IF @EmailReadBy = '' OR @EmailReadBy = 'All'
+	BEGIN         
+		SET @EmailReadBy = NULL
+	END  
+
 	
 	SELECT COUNT(1) OVER () AS [NumberOfItems]
 		  ,IE.[IntegrationEmailID]
@@ -80,28 +89,38 @@ BEGIN
 		  ,IE.[EmailSection]
 		  ,IE.[MasterCompanyId]
 		  ,IE.[CreatedBy]
-		  ,IE.[UpdatedBy]
-		  ,IE.[CreatedDate]
+		  ,IE.[UpdatedBy]		  
+		  ,(CAST(DBO.ConvertUTCtoLocal(IE.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) [CreatedDate]
 		  ,IE.[UpdatedDate]
 		  ,IE.[IsActive]
-		  ,IE.[IsDeleted]		  
+		  ,IE.[IsDeleted]	
+		  ,ISNULL(IE.[IsRead],0) [IsRead]
+		  ,IE.[EmailPath]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
-    AND (IE.IsDeleted = @IsDeleted) 
+    AND (IE.IsDeleted = 0) 	
+	AND (IE.[IsActive] = 1)
+	AND (@EmailReadBy IS NULL OR IE.[EmailReadBy]=@EmailReadBy)   
     AND (IE.[EmailSection] = @EmailSection)) 				     
 	AND ((@GlobalFilter <>'' 
-	AND ((IE.[Subject] LIKE '%' +@GlobalFilter+'%') OR        
+	AND ((IE.[FromEmail] LIKE '%' + @GlobalFilter+'%') OR        
+	     (IE.[Subject] LIKE '%' + @GlobalFilter+'%') OR        
 		 (IE.[EmailBody] LIKE '%' +@GlobalFilter+'%'))) OR           
 	(@GlobalFilter='' AND 	
-	(ISNULL(@Subject,'') ='' OR [Subject] LIKE '%' + @Subject +'%') AND   
+	(ISNULL(@Subject,'') ='' OR [FromEmail] LIKE '%' + @Subject +'%') AND  
 	(ISNULL(@EmailBody,'') ='' OR [EmailBody] LIKE '%' + @EmailBody +'%')))         				
 	ORDER BY          
 	CASE WHEN (@SortOrder=1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END ASC,        
-	CASE WHEN (@SortOrder=1 AND @SortColumn='Subject')  THEN [Subject] END ASC,        
-	CASE WHEN (@SortOrder=1 AND @SortColumn='EmailBody')  THEN [EmailBody] END ASC,        				        
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC,       
+	CASE WHEN (@SortOrder=1 AND @SortColumn='FromEmail')  THEN [FromEmail] END ASC,   
+	CASE WHEN (@SortOrder=1 AND @SortColumn='Subject')  THEN [Subject] END ASC,   
+	CASE WHEN (@SortOrder=1 AND @SortColumn='EmailBody')  THEN [EmailBody] END ASC,   
+	CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN [CreatedDate] END ASC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC, 
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='FromEmail')  THEN [FromEmail] END DESC,   
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='Subject')  THEN [Subject] END DESC,        
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC				        
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN [CreatedDate] END DESC	
+
 	OFFSET @RecordFrom ROWS         
 	FETCH NEXT @PageSize ROWS ONLY   
 	    

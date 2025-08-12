@@ -9,10 +9,11 @@
  ** S NO	Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
  **	1		31-July-2025	Devendra Shekh		Created
+ **	2		12-Aug-2025		Devendra Shekh		changed @RfqId dataType to NVARCHAR(400)
  
 EXECUTE [dbo].[usp_GetRFQPriceSuggestionDetails] 6, 1   
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
+CREATE    PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
 @CustomerRfqId BIGINT = NULL,
 @MasterCompanyId INT = NULL
 AS
@@ -26,7 +27,7 @@ SET NOCOUNT ON
 			DECLARE @Year INT = 2025;
 
 			DECLARE	@IsMRO BIT, 
-					@RfqId BIGINT = 0,
+					@RfqId NVARCHAR(400),
 					@WOModuleId INT = 0,
 					@RecordsTotal INT = 0,
 					@IntegrationPortalId INT = 0,
@@ -47,7 +48,7 @@ SET NOCOUNT ON
 			(
 				ID BIGINT NOT NULL IDENTITY, 
 				CustomerRfqId BIGINT NULL,
-				RfqId BIGINT NULL,
+				RfqId NVARCHAR(400) NULL,
 				PartNumber VARCHAR(200) NULL,
 				MasterCompanyId BIGINT NULL,
 				IlsPrice DECIMAL(18, 2) NULL
@@ -70,11 +71,12 @@ SET NOCOUNT ON
 			--Check isMRO
 			IF(@IsMRO > 0)
 			BEGIN
+				--Get data from WO Billing
 				SELECT	@RecordsTotal = COUNT(WBI.[BillingInvoicingItemId]),
 						@UnitSalesPriceTotal = ISNULL(SUM(WBI.GrandTotal),0)
 				FROM [dbo].[BillingInvoicingItems] WBI WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WBI.[ReferenceId] = WO.[WorkOrderId]
-				INNER JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId]
+				LEFT JOIN [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WO.[WorkOrderId] = WOQ.[WorkOrderId]
 				INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WBI.[ItemMasterId] = IM.[ItemMasterId]
 				INNER JOIN [DBO].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.[Id] = WO.[WorkOrderStatusId]
 				WHERE WBI.[ModuleId] = @WOModuleId
@@ -83,8 +85,30 @@ SET NOCOUNT ON
 				AND YEAR(WOQ.[OpenDate]) >= @Year
 				AND ISNULL(WBI.[IsPerformaInvoice],0) = 0
 				AND ISNULL(WBI.[IsVersionIncrease],0) = 0
-				AND ISNULL(WOQ.WorkOrderQuoteId,0) > 0
 				AND WBI.[MasterCompanyId] = @MasterCompanyId
+
+				--Get data from WOQ
+				IF(@RecordsTotal = 0)
+				BEGIN
+					SELECT 
+						@RecordsTotal = COUNT(WQD.[WorkOrderQuoteDetailsId]),
+						@UnitSalesPriceTotal = ISNULL(SUM(
+							CASE 
+								WHEN ISNULL(WQD.QuoteMethod, 0) > 0 THEN WQD.CommonFlatRate 
+								ELSE ISNULL(WQD.MaterialFlatBillingAmount, 0) 
+								   + ISNULL(WQD.LaborFlatBillingAmount, 0) 
+								   + ISNULL(WQD.ChargesFlatBillingAmount, 0) 
+								   + ISNULL(WQD.FreightFlatBillingAmount, 0) 
+							END
+						),0)
+					FROM [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK)
+					JOIN [dbo].[WorkOrderQuote] WOQ ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId
+					INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WQD.[ItemMasterId] = IM.[ItemMasterId]
+					AND LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(@PartNumber))
+					AND MONTH(WOQ.[OpenDate]) >= @Month
+					AND YEAR(WOQ.[OpenDate]) >= @Year
+					AND WOQ.[MasterCompanyId] = @MasterCompanyId
+				END
 				  
 				IF(@RecordsTotal > 0)
 				BEGIN

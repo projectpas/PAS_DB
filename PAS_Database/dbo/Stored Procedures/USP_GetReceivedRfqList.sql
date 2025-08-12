@@ -17,7 +17,7 @@
 	4    21-07-2025  Devendra Shekh		 Modified (Added CustomerId to select)
 	5    31-07-2025  Amit Ghediya		 Modified (Added ModuleId,ReferenceId to select)
 	6    04-08-2025  Devendra Shekh		 Modified (Added EmployeeId,EmployeeName to select)
-	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber)
+	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber,QuotedBy,QuotedDate)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -31,6 +31,8 @@ CREATE     PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@RfqCreatedDate DATETIME=null,
 	@BuyerCompanyName [VARCHAR](250)= NULL,
 	@BuyerName [VARCHAR](250) = NULL,
+	@pnDescription [VARCHAR](250) = NULL,
+	@contact [VARCHAR](250) = NULL,
 	@BuyerCountry [VARCHAR](50) = NULL,
 	@LinePartNumber [VARCHAR](250) = NULL,
 	@Description [VARCHAR](250) = NULL,
@@ -42,7 +44,10 @@ CREATE     PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@UpdatedBy VARCHAR(50)=NULL,
 	@IsDeleted BIT = 0,
 	@IntegrationPortalId INT = NULL,
-	@EmployeeName VARCHAR(100) = NULL
+	@EmployeeName VARCHAR(100) = NULL,
+	@DateAssigned DATETIME=null,
+	@QuotedBy VARCHAR(50)=NULL,
+	@QuotedDate DATETIME=null
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -93,14 +98,21 @@ BEGIN
 					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
 					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
 					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
+					IM.PartDescription AS 'PnDescription',
 					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
+					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
-					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber
+					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
+					RFQ.[DateAssigned],
+					RFQ.[QuotedBy],
+					RFQ.[QuotedDate]
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
+				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
@@ -114,9 +126,14 @@ BEGIN
 							(rfqFrom like '%' +@GlobalFilter+'%') OR
 							(lineDescription like '%' +@GlobalFilter+'%') OR
 							(PortalType like '%' +@GlobalFilter+'%') OR
+							(PnDescription like '%' +@pnDescription+'%') OR
+							(Contact like '%' +@contact+'%') OR
 							(companyName like '%' +@GlobalFilter+'%') OR
 							(country like '%' +@GlobalFilter+'%') OR
 							(partNumber like '%'+@GlobalFilter+'%') OR
+							(DateAssigned like '%' +@GlobalFilter+'%') OR
+							(QuotedBy like '%' +@GlobalFilter+'%') OR
+							(QuotedDate like '%' +@GlobalFilter+'%') OR
 							(EmployeeName like '%'+@GlobalFilter+'%')
 							))
 							OR   
@@ -125,6 +142,13 @@ BEGIN
 							(IsNull(@BuyerName,'') ='' OR rfqFrom like  '%'+@BuyerName+'%') and
 							(IsNull(@Description,'') ='' OR lineDescription like  '%'+@Description+'%') and
 							(IsNull(@PortalType,'') ='' OR PortalType like  '%'+@PortalType+'%') and
+							(IsNull(@pnDescription,'') ='' OR PnDescription like  '%'+@pnDescription+'%') and
+							(IsNull(@contact,'') ='' OR Contact like  '%'+@contact+'%') and
+							(IsNull(@DateAssigned,'') ='' OR Cast(DateAssigned as date)=Cast(@DateAssigned as date)) and
+
+							(IsNull(@QuotedBy,'') ='' OR QuotedBy like '%'+ @QuotedBy+'%') and
+							(IsNull(@QuotedDate,'') ='' OR Cast(QuotedDate as date)=Cast(@QuotedDate as date)) and
+
 							(IsNull(@BuyerCompanyName,'') ='' OR companyName like '%'+@BuyerCompanyName+'%') and
 							(IsNull(@BuyerCountry,'') ='' OR country like '%'+ @BuyerCountry+'%') and
 							(IsNull(@LinePartNumber,'') ='' OR partNumber like '%'+@LinePartNumber+'%') and
@@ -143,6 +167,9 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQID')  THEN RfqId END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQCREATEDDATE')  THEN RfqcreatedDate END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='DateAssigned')  THEN DateAssigned END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedBy')  THEN QuotedBy END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedDate')  THEN QuotedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQFROM')  THEN rfqFrom END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='COMPANYNAME')  THEN companyName END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='COUNTRY')  THEN country END ASC,
@@ -153,11 +180,16 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='Description')  THEN lineDescription END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='PortalType')  THEN PortalType END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='PartDescription')  THEN PnDescription END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='Contact')  THEN Contact END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='EmployeeName')  THEN EmployeeName END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQCREATEDDATE')  THEN RfqcreatedDate END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='DateAssigned')  THEN DateAssigned END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedBy')  THEN QuotedBy END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedDate')  THEN QuotedDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQFROM')  THEN rfqFrom END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='COMPANYNAME')  THEN companyName END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='COUNTRY')  THEN country END DESC,
@@ -168,6 +200,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Description')  THEN lineDescription END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='PortalType')  THEN PortalType END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PnDescription END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='Contact')  THEN Contact END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='EmployeeName')  THEN EmployeeName END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

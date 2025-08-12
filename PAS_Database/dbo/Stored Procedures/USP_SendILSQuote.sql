@@ -14,6 +14,8 @@
     1    06 Mar 2024  Rajesh Gami    Created
 	2    04 Aug 2025  Amit Ghediya   Update for add PercentId,PercentValue on fly.
 	3    06 Aug 2025  Amit Ghediya   Update for add SOQ & part auto.
+	4	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
+	5    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
      
 -- EXEC USP_SendILSQuote
 ************************************************************************/
@@ -21,7 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_SendILSQuote]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
-	@RfqId BIGINT,
+	@RfqId NVARCHAR(250),
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200)
@@ -110,7 +112,9 @@ BEGIN
 
 						 ------- Update Csutomer RFQ for Is Quote added ----------					 
 						 UPDATE [dbo].[CustomerRfq] 
-							SET IsQuote = 1
+							SET IsQuote = 1,
+							QuotedBy = @CreatedBy,
+							QuotedDate = GETUTCDATE()
 						 WHERE CustomerRfqId = @GetCustomerRfqId;
 
 
@@ -118,17 +122,23 @@ BEGIN
 							DECLARE @ItemMasterId BIGINT = 0,
 									@CustomerId BIGINT = 0,
 									@PartNumber NVARCHAR(200) = NULL,
-									@BuyerCompanyName NVARCHAR(200) = NULL;
+									@BuyerCompanyName NVARCHAR(200) = NULL,
+									@IsAutoInternalQuote BIT;
 
 							SELECT @PartNumber = [LinePartNumber],
 								   @BuyerCompanyName = [BuyerCompanyName]
 							FROM [dbo].[CustomerRfq] WITH(NOLOCK) 
-							WHERE [CustomerRfqId] = @GetCustomerRfqId
+							WHERE [CustomerRfqId] = @GetCustomerRfqId;
+
+							--Get Ai Percent Value from Aisetting table mastercompany wise
+						    SELECT @IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
+						    FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
+						    WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
 
 							SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 							SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));
 
-							IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
+							IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
 							BEGIN
 								 EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @tbl_IlsRfqQuoteDetailsType,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0
 							END

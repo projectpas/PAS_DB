@@ -13,17 +13,24 @@
     
 -- EXEC USP_GetIntegrationEmailConfigration 1,0
 **************************************************************/                   
-create   PROCEDURE [dbo].[USP_UpdateIntegrationEmailConfigration] 
+CREATE   PROCEDURE [dbo].[USP_UpdateIntegrationEmailConfigration] 
 @IntegrationEmailID BIGINT = NULL,
-@IsRead INT = NULL
+@IsRead INT = NULL,
+@Opr INT = NULL
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
  SET NOCOUNT ON;      
- BEGIN TRY      
-  
-  		UPDATE [dbo].[IntegrationEmail] SET [IsRead] = @IsRead WHERE [IntegrationEmailID] = @IntegrationEmailID
-				          
+ BEGIN TRY 
+		DECLARE	@Trash INT = 4
+		IF(@Opr = 1)
+		BEGIN  
+  			UPDATE [dbo].[IntegrationEmail] SET [IsRead] = @IsRead WHERE [IntegrationEmailID] = @IntegrationEmailID
+		END	
+		IF(@Opr = 2)
+		BEGIN
+			UPDATE [dbo].[IntegrationEmail] SET [EmailSection] = @Trash WHERE [IntegrationEmailID] = @IntegrationEmailID 
+		END		
  END TRY          
  BEGIN CATCH      
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()       

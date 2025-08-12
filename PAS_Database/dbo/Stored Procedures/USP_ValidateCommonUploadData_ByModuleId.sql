@@ -17,6 +17,7 @@
 	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
 	8	 08-Aug-2025		Ayushi Patel			Removed customer phone validation
 	9	 11-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
+	10	 12-Aug-2025		Ayushi Patel			Added validation for Vendor Email
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -172,6 +173,11 @@ BEGIN
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
 													THEN 'Email is not in a valid format'
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'VendorEmail' 
+													AND (
+														TMP.FieldValue NOT LIKE '%@%._%' 
+													)
+													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
 														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
@@ -249,6 +255,11 @@ BEGIN
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 												
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'Email' 
+													AND (
+														TMP.FieldValue NOT LIKE '%@%._%' 
+													)
+													THEN 'Email is not in a valid format'
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'VendorEmail' 
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)

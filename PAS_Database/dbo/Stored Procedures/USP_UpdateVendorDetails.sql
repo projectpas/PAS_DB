@@ -84,7 +84,7 @@ BEGIN
 		IF @VendorClassificationId IS NOT NULL
 		BEGIN
 			INSERT INTO dbo.ClassificationMapping(ClasificationId,ModuleId,ReferenceId,IsActive,IsDeleted,CreatedDate,UpdatedDate,CreatedBy,UpdatedBy)
-			Values(CAST(@VendorClassificationId AS BIGINT),@VendorModuleId,@VendorId,1,0,GETUTCDATE(),GETUTCDATE(),@CreatedBy,@CreatedBy)
+			Values(CAST(@VendorClassificationId AS BIGINT),@ModuleId,@VendorId,1,0,GETUTCDATE(),GETUTCDATE(),@CreatedBy,@CreatedBy)
 		END
 
   --      --EXEC USP_CreateClassificationMappings @VendorClassificationId, 3, @VendorId, @CreatedBy;

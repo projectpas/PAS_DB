@@ -9,6 +9,7 @@
  ** S NO	Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
  **	1		31-July-2025	Devendra Shekh		Created
+ **	2		12-Aug-2025		Devendra Shekh		changed @RfqId dataType to NVARCHAR(400)
  
 EXECUTE [dbo].[usp_GetRFQPriceSuggestionDetails] 6, 1   
 **************************************************************/  
@@ -26,7 +27,7 @@ SET NOCOUNT ON
 			DECLARE @Year INT = 2025;
 
 			DECLARE	@IsMRO BIT, 
-					@RfqId BIGINT = 0,
+					@RfqId NVARCHAR(400),
 					@WOModuleId INT = 0,
 					@RecordsTotal INT = 0,
 					@IntegrationPortalId INT = 0,
@@ -47,7 +48,7 @@ SET NOCOUNT ON
 			(
 				ID BIGINT NOT NULL IDENTITY, 
 				CustomerRfqId BIGINT NULL,
-				RfqId BIGINT NULL,
+				RfqId NVARCHAR(400) NULL,
 				PartNumber VARCHAR(200) NULL,
 				MasterCompanyId BIGINT NULL,
 				IlsPrice DECIMAL(18, 2) NULL

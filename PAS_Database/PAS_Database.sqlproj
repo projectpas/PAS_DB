@@ -4156,6 +4156,7 @@
     <Build Include="dbo\Stored Procedures\USP_EmployeeCertificationInsertList.sql" />
     <Build Include="dbo\Tables\OpenAIRequestLog.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveAIRequestLog.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetMultipleRFQbyId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

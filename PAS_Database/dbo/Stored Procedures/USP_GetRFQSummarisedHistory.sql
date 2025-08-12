@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    01-08-2025		  Amit Ghediya				Created
+	2	 12-08-2025       Devendra Shekh			changed @RfqId dataType to NVARCHAR(400)
 
 	exec [USP_GetRFQSummarisedHistory] 1,31
 *************************************************************/ 
@@ -26,7 +27,7 @@ BEGIN
 		CREATE TABLE #TempRFQDetails
 		(
 			customerRfqId INT,
-			rfqId BIGINT,
+			rfqId NVARCHAR(400),
 			partNumber VARCHAR(100),
 			masterCompanyId INT,
 			ilsPrice DECIMAL(18, 2)

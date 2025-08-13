@@ -13,7 +13,7 @@
     2    07 Aug 2025	Devendra Shekh		Added Changes for PartDetails Insert and RFQNumber Generate
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
+CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
 	@IntegrationEmailID BIGINT = NULL,
     @tbl_RfqCustomerType dbo.RfqCustomerType READONLY,
     @tbl_RfqPartDetailType dbo.RfqPartDetailType READONLY
@@ -67,7 +67,7 @@ BEGIN
 				[IsDeleted] [BIT] NOT NULL,
 				[AltPartNumber] [VARCHAR](250) NULL,
 				[Quantity] [int] NULL,
-				[Condition] [varchar](50) NULL,
+				[Condition] [varchar](250) NULL,
 				[IsMRO] [bit] NULL,
 				[IntegrationEmailID] [bigint] NULL
 			)

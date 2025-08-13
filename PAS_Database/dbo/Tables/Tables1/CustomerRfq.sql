@@ -16,7 +16,7 @@
     [LineDescription]     VARCHAR (250)  NULL,
     [AltPartNumber]       VARCHAR (250)  NULL,
     [Quantity]            INT            NULL,
-    [Condition]           VARCHAR (50)   NULL,
+    [Condition]           VARCHAR (250)  NULL,
     [MasterCompanyId]     INT            NOT NULL,
     [CreatedBy]           VARCHAR (50)   NOT NULL,
     [CreatedDate]         DATETIME2 (7)  CONSTRAINT [DF_CustomerRfq_CreatedDate] DEFAULT (getutcdate()) NOT NULL,

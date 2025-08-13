@@ -18,6 +18,7 @@
 	5    31-07-2025  Amit Ghediya		 Modified (Added ModuleId,ReferenceId to select)
 	6    04-08-2025  Devendra Shekh		 Modified (Added EmployeeId,EmployeeName to select)
 	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber,QuotedBy,QuotedDate)
+	8    13-08-2025  Devendra Shekh		 Modified (Added Changes for Email Integration)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -74,6 +75,8 @@ BEGIN
 				BEGIN
 					Set @IntegrationPortalId = NULL
 				END
+
+				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
 			;With Result AS(
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
@@ -116,6 +119,54 @@ BEGIN
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
+				AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)
+				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+
+				UNION ALL
+
+				SELECT RFQ.[CustomerRfqId],
+					RFQ.[RfqId], 
+					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
+					RFQ.[BuyerName] AS 'rfqFrom',
+					RFQ.[BuyerCompanyName] AS 'companyName',
+					RFQ.[BuyerCountry] AS 'country',
+					CRPM.[PartNumber] AS 'partNumber',
+					CRPM.[PartDescription] AS 'lineDescription',
+					RFQ.[BuyerAddress] AS 'rfqAddress',
+					RFQ.[BuyerCity] AS 'rfqCity',
+					RFQ.[BuyerCountry] AS 'rfqCountry',
+					RFQ.[BuyerState] AS 'rfqState',
+					RFQ.[BuyerZip] AS 'rfqZip',
+					RFQ.[IsQuote],
+					RFQ.[Type] AS 'PortalType',
+					RFQ.IntegrationPortalId AS IntegrationPortalId,
+					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
+					CRPM.[AltPartNumber] AS 'AltPartNumber',
+					CRPM.[Quantity] AS 'Quantity',
+					CRPM.[Condition] AS 'Condition',
+					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
+					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
+					(CASE	WHEN LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
+					CASE WHEN ISNULL(IM.PartDescription, '') != '' THEN IM.PartDescription ELSE CRPM.PartDescription END AS 'PnDescription',
+					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
+					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
+					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
+					RFQ.EmployeeId,
+					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
+					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
+					RFQ.[DateAssigned],
+					RFQ.[QuotedBy],
+					RFQ.[QuotedDate]
+				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
+				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
+				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
+				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
+				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
+				LEFT JOIN dbo.CustomerRfqPartMapping CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
+				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
+				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
+				AND RFQ.IntegrationPortalId IN (@EmailPortalId)
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),
 				FinalResult AS (

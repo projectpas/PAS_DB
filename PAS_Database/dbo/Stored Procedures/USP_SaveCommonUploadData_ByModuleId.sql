@@ -22,6 +22,7 @@
 	11	 11-Aug-2025		Ayushi Patel			inserted auto generate field into stockline
 	12	 12-Aug-2025		Ayushi Patel			Receive Date Changes
 	13	 12-Aug-2025		Ayushi Patel			ObtainFromType, OwnerType, TraceableToType Inserted as otherModuleType
+	14	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -152,8 +153,17 @@ BEGIN
 				DECLARE @IDNumber VARCHAR(50);
 				DECLARE @ItemMasterId AS BIGINT;
 				DECLARE @ManufacturerId AS BIGINT;
-
+				select * from #DynamicKeyValue
 				SELECT @ItemMasterId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
+				SELECT @ManufacturerId = ManufacturerId from Manufacturer where Name = (select FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId') and MasterCompanyId=@MasterCompanyId;
+					IF @ManufacturerId IS NOT NULL 
+				BEGIN
+					-- Update the ManufacturerId in #DynamicKeyValue
+					UPDATE #DynamicKeyValue
+					SET FieldValue = @ManufacturerId
+					WHERE FieldName = 'ManufacturerId';
+				
+				END
 				SELECT @ManufacturerId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId';
 				SELECT @Qty = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
 
@@ -247,9 +257,11 @@ BEGIN
 				INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
 				ON CSTL.StockLineId = STL.StockLineId
                 /* PN Manufacturer Combination Stockline logic */
-
+				print @ItemMasterId
+				print @ManufacturerId
+				print '1'
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
-		
+				
 				IF (@currentNo <> 0)
                 BEGIN
                     SET @stockLineCurrentNo = @currentNo + 1;
@@ -270,7 +282,7 @@ BEGIN
                     SET CurrentStlNo = @stockLineCurrentNo
                     WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
                 END
-			
+				
 				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                 BEGIN
                     SELECT @CNCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END
@@ -282,7 +294,7 @@ BEGIN
 						(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                     )
                 END
-
+				
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))  
 				BEGIN
 					SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(1,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))  
@@ -291,7 +303,7 @@ BEGIN
 				BEGIN
 					ROLLBACK TRAN;
 				END
-
+				
 				IF (ISNULL(@StockLineNumber, '') != '')
 				BEGIN
 					UPDATE #ImportFields SET FieldValue = @StockLineNumber WHERE FieldName = 'stocklinenumber';
@@ -305,11 +317,18 @@ BEGIN
 				BEGIN
 					UPDATE #ImportFields SET FieldValue = @IDNumber WHERE FieldName = 'IdNumber';
 				END
+				IF (ISNULL(@ManufacturerId, '') != '')
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = @ManufacturerId
+					WHERE FieldName = 'ManufacturerId';
+				
+				END
 
 				SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId;
 				SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM DBO.ManagementStructure WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 			END
-
+			
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 
 			WHILE(@TotalRow >= @CurrentRow)
@@ -361,7 +380,7 @@ BEGIN
 			UPDATE #ImportFields SET FieldValue = GETDATE() WHERE FieldName = 'ReceivedDate' AND ISNULL(FieldValue,'') = '';
 
 			SELECT * FROM #ImportFields;
-
+			
 			-----parent table insert Start-----
 
 			IF(ISNULL(@ModuleParentTable, '') != '')
@@ -451,6 +470,7 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @StocklineModule)
 			BEGIN
+			
 				DECLARE @OtherModuleTypeId BIGINT = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'Others');
 				SET @RefFieldName += ' , PartNumber,Quantity,QuantityAvailable,PurchaseUnitOfMeasureId,ManagementStructureId,QuantityReserved,QuantityTurnIn,QuantityIssued,QuantityToReceive,PurchaseOrderUnitCost,RepairOrderUnitCost,RepairOrderExtendedCost,WorkOrderExtendedCost,ParentId,StockLineNumber,ControlNumber,IdNumber,ObtainFromType,OwnerType,TraceableToType,MasterCompanyId,CreatedBy,UpdatedBy'
 				SET @FieldValue += ''''','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@Qty AS VARCHAR(50)) +','+ CAST(@PurchaseUOMId AS VARCHAR(50)) +','+ CAST(@ManagementStructureId AS VARCHAR(50)) +',0,0,0,0,0,0,0,0,0,'+ 
@@ -460,6 +480,7 @@ BEGIN
 				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
 				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','+
 				CAST(@OtherModuleTypeId AS VARCHAR(50)) +','
+				
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 				BEGIN
@@ -478,19 +499,20 @@ BEGIN
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
+				
 			END
 			print @FieldValue;
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
-
+			
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 			SET @RefQuery = 'INSERT INTO ' + @ReferenceTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
-
+			
 			--select * from #ImportFields
 
 			PRINT @RefQuery
-
+			PRINT '12'
 			EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
-
+			PRINT '13'
 			IF(@ModuleId = @ItemMasterModule)
 			BEGIN
 				DECLARE @PartSourceVal AS VARCHAR(200);
@@ -511,11 +533,11 @@ BEGIN
 				SET @QuantityOnHand = (select FieldValue from #DynamicKeyValue where FieldName = 'QuantityOnHand')
 				DECLARE @UpdatedBy AS VARCHAR(200);
 				SET @UpdatedBy = (select FieldValue from #DynamicKeyValue where FieldName = 'UpdatedBy')
-
+				
 				--EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UpdatedBy;
 				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
 				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
-
+				
 			END
 
 			IF(@ModuleId = @CustomerModule)

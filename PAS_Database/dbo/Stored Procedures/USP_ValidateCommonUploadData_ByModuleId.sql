@@ -17,7 +17,7 @@
 	7    06-Aug-2025		Ayushi Patel			Added validation: Customer Phone must be at least 10 digits and digits only, Customer Email must be in valid format
 	8	 08-Aug-2025		Ayushi Patel			Removed customer phone validation
 	9	 11-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
-	10	 12-Aug-2025		Ayushi Patel			Added validation for Vendor Email
+	10	 13-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -63,12 +63,13 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT;
     
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
+		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -159,21 +160,39 @@ BEGIN
 					END
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-
+				
 				SET @CurrentRow += 1;
 			END
-	
+			
+			DECLARE @ManufacturerId VARCHAR(255)
+			DECLARE @ManufacturerName VARCHAR(255)
+			DECLARE @Manufacture VARCHAR(255)
+			if (@ModuleId = @StocklineModule)
+			BEGIN
+				-- Get ManufacturerId from #DynamicKeyValue
+				SELECT @ManufacturerId = FieldValue 
+				FROM #ImportFields 
+				WHERE FieldName = 'ManufacturerId'
+
+				-- Get ManufacturerName from ItemMaster (if PartNumber is selected)
+				IF EXISTS (SELECT 1 FROM #ImportFields WHERE DropdownListValue = 'PartNumber' AND ModuleId = @ModuleId)
+				BEGIN
+					SELECT @ManufacturerName = IM.ManufacturerName
+					FROM ItemMaster IM WITH (NOLOCK)
+					JOIN #ImportFields IMF ON IMF.DropdownListValueId = IM.ItemMasterId
+					WHERE IMF.ModuleId = @ModuleId
+					AND IMF.DropdownListValue = 'PartNumber'
+				END
+
+				SET @Manufacture = @ManufacturerId;
+				SET @ManufacturerId = @ManufacturerName;
+			END
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
-												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
-												
-												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'Email' 
-													AND (
-														TMP.FieldValue NOT LIKE '%@%._%' 
-													)
-													THEN 'Email is not in a valid format'
-												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'VendorEmail' 
+												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
@@ -187,6 +206,9 @@ BEGIN
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
+												
+												WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
+													AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 										ELSE ''
 										END,
@@ -194,6 +216,19 @@ BEGIN
 			FROM #ImportFields IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
+
+			if (@ModuleId = @StocklineModule)
+			BEGIN
+				IF @Manufacture IS NOT NULL AND
+				   LOWER(@Manufacture) <> LOWER(@ManufacturerName)
+				BEGIN
+					-- Update the ManufacturerId in #DynamicKeyValue
+					UPDATE #DynamicKeyValue
+					SET FieldValue = @ManufacturerName
+					WHERE FieldName = 'ManufacturerId';
+				
+				END
+			END
 			--SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
@@ -249,17 +284,31 @@ BEGIN
 				
 				SET @CurrentRow += 1;
 			END
+			if (@ModuleId = @StocklineModule)
+			BEGIN
+				-- Get ManufacturerId from #DynamicKeyValue
+				SELECT @ManufacturerId = FieldValue 
+				FROM #ImportFields 
+				WHERE FieldName = 'ManufacturerId'
 			
+				-- Get ManufacturerName from ItemMaster (if PartNumber is selected)
+				IF EXISTS (SELECT 1 FROM #ImportFields WHERE DropdownListValue = 'PartNumber' AND ModuleId = @ModuleId)
+				BEGIN
+					SELECT @ManufacturerName = IM.ManufacturerName
+					FROM ItemMaster IM WITH (NOLOCK)
+					JOIN #ImportFields IMF ON IMF.DropdownListValueId = IM.ItemMasterId
+					WHERE IMF.ModuleId = @ModuleId
+					AND IMF.DropdownListValue = 'PartNumber'
+				END
+
+				SET @Manufacture = @ManufacturerId;
+				SET @ManufacturerId = @ManufacturerName;
+			END
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 												
-												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'Email' 
-													AND (
-														TMP.FieldValue NOT LIKE '%@%._%' 
-													)
-													THEN 'Email is not in a valid format'
-												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'VendorEmail' 
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 
 													)
@@ -273,6 +322,9 @@ BEGIN
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
+
+												WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
+													AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
 										ELSE ''
@@ -283,6 +335,18 @@ BEGIN
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
 			
+			if (@ModuleId = @StocklineModule)
+			BEGIN
+				IF @Manufacture IS NOT NULL AND
+				   LOWER(@Manufacture) <> LOWER(@ManufacturerName)
+				BEGIN
+					-- Update the ManufacturerId in #DynamicKeyValue
+					UPDATE #DynamicKeyValue
+					SET FieldValue = @ManufacturerName
+					WHERE FieldName = 'ManufacturerId';
+				END
+			END
+			--SELECT * FROM #DynamicKeyValue
 			--IF(ISNULL(@GlImportModuleId, 0) = ISNULL(@ModuleId, 0))
 			--BEGIN
 			--	--select * from #DynamicKeyValue
@@ -301,6 +365,13 @@ BEGIN
 			SET [Status] = ISNULL(STUFF(@Erorr, CHARINDEX(',', @Erorr), 1, ''), ''), [IsError] = CASE WHEN ISNULL(@Erorr, '') = '' THEN 0 ELSE 1 END,
 				[UploadRecord] = @json
 			WHERE RecordId = @CurrentRecord;
+
+			if (@ModuleId = @StocklineModule)
+			BEGIN
+				UPDATE #uploadDataResults 
+				SET 
+					OriginalRecordData = JSON_MODIFY(OriginalRecordData, '$.ManufacturerId', @ManufacturerName) WHERE RecordId = @CurrentRecord;
+			END
 			
 			INSERT INTO [dbo].[UploadModuleData] ([ModuleId], [OriginalRecordData], [RecordData], [Description], [RecordStatus], [IsAdded], [IsError], [MasterCompanyId], 
 						[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])

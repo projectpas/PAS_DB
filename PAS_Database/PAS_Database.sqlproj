@@ -4162,7 +4162,7 @@
     <Build Include="dbo\Tables\OpenAIRequestLog.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveAIRequestLog.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetMultipleRFQbyId.sql" />
-
+    <Build Include="dbo\Functions\GetAveragePriceById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

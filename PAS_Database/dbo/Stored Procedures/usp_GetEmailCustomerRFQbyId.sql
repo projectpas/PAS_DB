@@ -37,7 +37,7 @@ SET NOCOUNT ON
 				PartDescription [varchar](250) NULL,
 				AltPartNumber [varchar](250) NULL,
 				Quantity [int] NULL,
-				Condition [varchar](50) NULL,
+				Condition [varchar](250) NULL,
 				MasterCompanyId [int] NULL,
 				CreatedBy [varchar](50) NULL,
 				CreatedDate [datetime2](7) NULL,

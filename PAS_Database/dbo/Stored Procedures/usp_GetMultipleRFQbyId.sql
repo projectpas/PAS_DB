@@ -9,8 +9,9 @@
  ** S NO	Date				Author				Change Description              
  ** --		--------			-------				--------------------------------            
  **	1		12-Aug-2025		Devendra Shekh			Created
+ **	2		13-Aug-2025		Devendra Shekh			Added Changes for Suggestion Price
  
-EXECUTE [dbo].[usp_GetMultipleRFQbyId] '164,163'
+EXECUTE [dbo].[usp_GetMultipleRFQbyId] '168,169'
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetMultipleRFQbyId]
 @CustomerRfqId VARCHAR(MAX) = NULL
@@ -21,14 +22,75 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN
 
+			DECLARE @TotalRow INT, @CurrentRow INT;
+			DECLARE @CustomerRfqPartMappingId BIGINT, @MasterCompanyId INT, @RowCustomerRfqId BIGINT, @PartNumber VARCHAR(250);
+
+			IF OBJECT_ID('tempdb..#tmpCustomerRfqPartMapping') IS NOT NULL
+				DROP TABLE #tmpCustomerRfqPartMapping;
+
+			CREATE TABLE #tmpCustomerRfqPartMapping (
+				Id [bigint] IDENTITY(1,1),
+				CustomerRfqPartMappingId [bigint] NULL,
+				CustomerRfqId [bigint] NULL,
+				Notes [varchar](max) NULL,
+				PartNumber [varchar](250) NULL,
+				PartDescription [varchar](250) NULL,
+				AltPartNumber [varchar](250) NULL,
+				Quantity [int] NULL,
+				Condition [varchar](50) NULL,
+				MasterCompanyId [int] NULL,
+				CreatedBy [varchar](50) NULL,
+				CreatedDate [datetime2](7) NULL,
+				UpdatedBy [varchar](50) NULL,
+				UpdatedDate [datetime2](7) NULL,
+				IsActive [bit] NULL,
+				IsDeleted [bit] NULL,
+				UnitPrice [decimal](18,2) NULL
+			);
+
+			IF OBJECT_ID('tempdb..#tmpRFQDetails') IS NOT NULL
+				DROP TABLE #tmpRFQDetails;
+
+			CREATE TABLE #tmpRFQDetails
+			(
+				customerRfqId INT,
+				rfqId NVARCHAR(400),
+				partNumber VARCHAR(100),
+				masterCompanyId INT,
+				ilsPrice DECIMAL(18, 2)
+			);
+
+			INSERT INTO #tmpCustomerRfqPartMapping
+			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], 0
+			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] IN (SELECT value FROM STRING_SPLIT(@CustomerRfqId, ','));
+
+			SELECT @TotalRow = MAX(Id), @CurrentRow = MIN(Id) FROM #tmpCustomerRfqPartMapping;
+			
+			WHILE(ISNULL(@TotalRow, 0) >= ISNULL(@CurrentRow, 0)) AND @TotalRow > 0
+			BEGIN
+				SELECT @CustomerRfqPartMappingId = CustomerRfqPartMappingId, @RowCustomerRfqId = CustomerRfqId, @MasterCompanyId = MasterCompanyId, @PartNumber = PartNumber FROM #tmpCustomerRfqPartMapping WHERE Id = @CurrentRow;
+
+				TRUNCATE TABLE #tmpRFQDetails;
+				--Get price based on rfqId
+				INSERT INTO #tmpRFQDetails
+				EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @RowCustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
+
+				UPDATE TMP
+				SET	TMP.UnitPrice = (SELECT ISNULL(ilsPrice,0) FROM #tmpRFQDetails)
+				FROM #tmpCustomerRfqPartMapping TMP WHERE Id = @CurrentRow
+				
+				SET @CurrentRow += 1;
+			END
+
 			SELECT	[CustomerRfqId], [RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 
 					[BuyerState], [BuyerZip], [LinePartNumber], [LineDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
 					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [IsQuote], [IsMRO], [ModuleId], [ReferenceId]
 			FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] IN (SELECT value FROM STRING_SPLIT(@CustomerRfqId, ','));
 
 			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
-			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] IN (SELECT value FROM STRING_SPLIT(@CustomerRfqId, ','));
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], UnitPrice
+			FROM #tmpCustomerRfqPartMapping;
 			
 		END
 	END TRY    

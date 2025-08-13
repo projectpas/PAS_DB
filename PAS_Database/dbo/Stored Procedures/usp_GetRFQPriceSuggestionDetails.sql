@@ -10,12 +10,14 @@
  ** --		--------		-------				--------------------------------            
  **	1		31-July-2025	Devendra Shekh		Created
  **	2		12-Aug-2025		Devendra Shekh		changed @RfqId dataType to NVARCHAR(400)
+ **	3		13-Aug-2025		Devendra Shekh		Added Changes for @CustomerRfqPartMappingId Param
  
 EXECUTE [dbo].[usp_GetRFQPriceSuggestionDetails] 6, 1   
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
 @CustomerRfqId BIGINT = NULL,
-@MasterCompanyId INT = NULL
+@MasterCompanyId INT = NULL,
+@CustomerRfqPartMappingId BIGINT NULL
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -54,8 +56,15 @@ SET NOCOUNT ON
 				IlsPrice DECIMAL(18, 2) NULL
 			)
 
-
-			SELECT @RfqId = [RfqId], @PartNumber = [LinePartNumber], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
+			IF(ISNULL(@CustomerRfqPartMappingId, 0) > 0)
+			BEGIN
+				SELECT @RfqId = [RfqId], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @PartNumber = [PartNumber] FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId AND [CustomerRfqPartMappingId] = @CustomerRfqPartMappingId;
+			END
+			ELSE 
+			BEGIN
+				SELECT @RfqId = [RfqId], @PartNumber = [LinePartNumber], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
+			END
 			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 			--Get Ai Percent Value from Aisetting table mastercompany wise

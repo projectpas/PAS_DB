@@ -257,9 +257,7 @@ BEGIN
 				INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
 				ON CSTL.StockLineId = STL.StockLineId
                 /* PN Manufacturer Combination Stockline logic */
-				print @ItemMasterId
-				print @ManufacturerId
-				print '1'
+				
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
 				
 				IF (@currentNo <> 0)
@@ -510,9 +508,9 @@ BEGIN
 			--select * from #ImportFields
 
 			PRINT @RefQuery
-			PRINT '12'
+			
 			EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
-			PRINT '13'
+			
 			IF(@ModuleId = @ItemMasterModule)
 			BEGIN
 				DECLARE @PartSourceVal AS VARCHAR(200);

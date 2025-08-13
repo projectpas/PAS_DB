@@ -1,6 +1,7 @@
 ﻿CREATE   FUNCTION dbo.GetAveragePriceById
 (
     @SalesOrderQuoteId BIGINT,
+	@PartNumber VARCHAR(256),
 	@MasterCompanyId INT = NULL
 )
 RETURNS DECIMAL(18, 2)
@@ -41,11 +42,12 @@ BEGIN
 				ON SQ.[StatusId] = SQS.[Id]
 			WHERE 
 				SQ.SalesOrderQuoteId = @SalesOrderQuoteId
+				AND TRIM(SQP.PartNumber) = TRIM(@PartNumber)
 				AND MONTH(SQ.[OpenDate]) >= @Month
 				AND YEAR(SQ.[OpenDate]) >= @Year
 				AND SQS.[Name] NOT IN (SELECT item FROM dbo.SplitString(@Status_Code, ','))
 				AND SQP.[MasterCompanyId] = @MasterCompanyId;
-
+			
 			-- Calculate per unit price
 			IF (@RecordsTotal > 0)
 			BEGIN

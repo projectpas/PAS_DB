@@ -122,7 +122,7 @@ BEGIN
 						'' AS 'PortalType',
 						0 AS IntegrationPortalId,
 						SOPC.UnitSalesPrice AS 'QuotedPrice',
-						(SELECT dbo.GetAveragePriceById(SQ.[SalesOrderQuoteId],SQ.[MasterCompanyId])) AS 'AverageSuggestedPrice',
+						(SELECT dbo.GetAveragePriceById(SQ.[SalesOrderQuoteId],@PartNumber,SQ.[MasterCompanyId])) AS 'AverageSuggestedPrice',
 						@PercentId AS 'PercentId',
 						@PercentValue AS 'PercentValue',
 						SQP.QtyQuoted AS 'Quantity',

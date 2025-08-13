@@ -12,8 +12,7 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
 	1     05/08/2025      Amit Ghediya			Created
-
-
+	1     13/08/2025      Rajesh Gami			Implemented SourceBy And MarketPlaceRef
 *********************************************************************************************/   
 CREATE     PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -23,7 +22,9 @@ CREATE     PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@EmployeeId BIGINT = 2,
 	@CustomerRfqId BIGINT,
 	@ItemMasterId BIGINT, --For part data,
-	@UnitSalesPriceTotal DECIMAL(18,2)
+	@UnitSalesPriceTotal DECIMAL(18,2),
+	@SourceBy VARCHAR(30) = NULL,
+	@MarketplaceRef VARCHAR(50) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -222,7 +223,7 @@ BEGIN
 					,[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode]
 					,[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2] 
 					,[ManagementStructureName3],[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight]
-					,[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate] 
+					,[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],SourceBy,MarketplaceRef 
 				)
 				SELECT
 					@QuoteTypeId,@OpenDate,@ValidForDays,@QuoteExpireDate,@AccountTypeId,@CustomerId,@CustomerContactId,NULL,
@@ -235,7 +236,7 @@ BEGIN
 					@CustomerWarningName,@ManagementStructureName,@CustomerContactName,@VersionNumber,@CustomerCode,
 					@CustomerContactEmail,NULL,@StatusName,NULL,NULL,
 					NULL,NULL,@EnforceEffectiveDate,@IsEnforceApproval,0,
-					0,0,0,@CurrencyId,@CurrencyId,@ForeignExchangeRate;
+					0,0,0,@CurrencyId,@CurrencyId,@ForeignExchangeRate,@SourceBy, @MarketplaceRef;
 
 				SELECT @SalesOrderQuoteId = SCOPE_IDENTITY();
 

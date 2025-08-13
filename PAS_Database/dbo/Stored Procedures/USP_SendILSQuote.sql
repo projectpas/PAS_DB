@@ -16,7 +16,7 @@
 	3    06 Aug 2025  Amit Ghediya   Update for add SOQ & part auto.
 	4	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
 	5    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
-     
+ 	6    13-08-2025   Rajesh Gami	 Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef
 -- EXEC USP_SendILSQuote
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SendILSQuote]
@@ -36,6 +36,8 @@ BEGIN
 					DECLARE @GetCustomerRfqId BIGINT, 
 						    @IsRecordExist BIT =0,
 							@PercentId BIGINT,
+							@SourceBy Varchar(30),
+							@MarketplaceRef Varchar(50),
 							@PercentValue DECIMAL(18,2);
 
 					SELECT @GetCustomerRfqId = CustomerRfqId FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE RfqId = @RfqId AND MasterCompanyId = @MasterCompanyId ;
@@ -126,7 +128,9 @@ BEGIN
 									@IsAutoInternalQuote BIT;
 
 							SELECT @PartNumber = [LinePartNumber],
-								   @BuyerCompanyName = [BuyerCompanyName]
+								   @BuyerCompanyName = [BuyerCompanyName],
+								   @SourceBy = ISNULL([Type],''),
+								   @MarketplaceRef = ISNULL(RfqId,'')
 							FROM [dbo].[CustomerRfq] WITH(NOLOCK) 
 							WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
@@ -140,7 +144,7 @@ BEGIN
 
 							IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
 							BEGIN
-								 EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @tbl_IlsRfqQuoteDetailsType,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0
+								 EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @tbl_IlsRfqQuoteDetailsType,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef
 							END
 													
 						---------END Create SOQ With part---------------------------------------------

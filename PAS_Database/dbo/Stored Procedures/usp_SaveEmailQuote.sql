@@ -13,7 +13,7 @@
  ** --   --------		-------				--------------------------------          
     1    08 Aug 2025	Devendra Shekh		Created
     2    13 Aug 2025	Devendra Shekh		Added Changes to Create SOQ
-     
+	3    13-08-2025		Rajesh Gami			Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef        
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -30,7 +30,7 @@ BEGIN
 	BEGIN TRY
 	BEGIN
 
-		DECLARE @GetCustomerRfqId BIGINT, @PercentId BIGINT, @PercentValue DECIMAL(18,2);
+		DECLARE @GetCustomerRfqId BIGINT, @PercentId BIGINT, @PercentValue DECIMAL(18,2),@SourceBy Varchar(30),@MarketplaceRef Varchar(50);
 
 		--Get markup % on fly
 		SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
@@ -97,7 +97,7 @@ BEGIN
 						@PartNumber NVARCHAR(200) = NULL,
 						@BuyerCompanyName NVARCHAR(200) = NULL;
 				--Create SOQ
-				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],	   @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,'') FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 				--Declare type
 				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
@@ -117,7 +117,7 @@ BEGIN
 
 				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
 				BEGIN
-					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0
+					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef
 				END
 			END
 		END

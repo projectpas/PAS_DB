@@ -63,8 +63,8 @@ BEGIN
 
         IF @SortColumn IS NULL
         BEGIN
-            SET @SortColumn = UPPER('CreatedDate');
-            SET @SortOrder = -1;
+            SET @SortColumn = UPPER('Sequence');
+            SET @SortOrder = 1;
         END
         ELSE
         BEGIN
@@ -116,6 +116,8 @@ BEGIN
         SELECT *, @Count AS NumberOfItems
         FROM #TempTbl
         ORDER BY
+		    CASE WHEN (@SortOrder = 1  AND @SortColumn = 'SEQUENCE') THEN Sequence END ASC,
+			CASE WHEN (@SortOrder = -1  AND @SortColumn = 'SEQUENCE') THEN Sequence END DESC,
             CASE WHEN (@SortOrder = 1  AND @SortColumn = 'QUOTESETTINGNAME') THEN QuoteSettingName END ASC,
             CASE WHEN (@SortOrder = -1 AND @SortColumn = 'QUOTESETTINGNAME') THEN QuoteSettingName END DESC,
             CASE WHEN (@SortOrder = 1  AND @SortColumn = 'QUOTESENDREVIEW') THEN QuoteSendReview END ASC,

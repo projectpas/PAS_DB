@@ -3,7 +3,7 @@
     [PartDescription]     VARCHAR (500)   NULL,
     [AlternatePart]       VARCHAR (100)   NULL,
     [Quantity]            INT             NULL,
-    [Condition]           VARCHAR (50)    NULL,
+    [Condition]           VARCHAR (250)   NULL,
     [Price]               DECIMAL (18, 2) NULL,
     [Currency]            VARCHAR (20)    NULL,
     [IsMRO]               BIT             NULL,

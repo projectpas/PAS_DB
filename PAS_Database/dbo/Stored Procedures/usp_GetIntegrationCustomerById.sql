@@ -13,7 +13,7 @@
     1    23-July-2025	Devendra Shekh			Created
     2    25-July-2025	Devendra Shekh			added IsMRO Field
 
--- EXEC usp_GetIntegrationCustomerById 9,2 
+-- EXEC usp_GetIntegrationCustomerById 1058,1 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetIntegrationCustomerById]
 @ReferenceId BIGINT = NULL,
@@ -36,7 +36,8 @@ BEGIN
 					[State] AS State, 
 					[PostalCode] AS PostalCode,				 
 					[Country] AS Country, 
-					[IsMRO] AS IsMRO 
+					[IsMRO] AS IsMRO, 
+					[PhoneNumber] AS CustomerPhone
 			FROM [dbo].[IntegrationMaster] WITH(NOLOCK)
 			WHERE [IntegrationMasterId] = @ReferenceId;
 		END
@@ -49,13 +50,14 @@ BEGIN
 					[BuyerState] AS State, 
 					[BuyerZip] AS PostalCode,				 
 					[BuyerCountry] AS Country,
-					[IsMRO] AS IsMRO 
+					[IsMRO] AS IsMRO, 
+					'' AS CustomerPhone
 			FROM [dbo].[CustomerRfq] WITH(NOLOCK)
 			WHERE [CustomerRfqId] = @ReferenceId;
 		END
 		ELSE IF(@SendRFQListType = @TypeId)
 		BEGIN
-			SELECT	'' AS CustomerName, '' AS AddressLine1, '' AS Address2, '' AS City, '' AS State, '' AS PostalCode, '' AS Country, 0 as [IsMRO]
+			SELECT	'' AS CustomerName, '' AS AddressLine1, '' AS Address2, '' AS City, '' AS State, '' AS PostalCode, '' AS Country, 0 as [IsMRO],'' AS CustomerPhone
 		END	
 
 	END TRY    

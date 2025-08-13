@@ -11,16 +11,17 @@
     1    03-Feb-2025		Devendra Shekh			Created
 	2	 24-Feb-2025		Abhishek Jirawla		Modified this SP to check when 1 reference is checked
 	3	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for @ItemMasterModule too
+	4	 13-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for @StockLineModule too
 DECLARE @IsDuplicate BIT;
 
 EXEC [dbo].[USP_ChekDuplicateValueForUpload]
-    @ChekDuplticateRef1 = 'accountCode',
-    @ChekDuplticateRef2 = '',
-    @DuplicateRefeValue1 = 'aswq134',
-    @DuplicateRefeValue2 = '',
-    @ReferenceTable = 'GLAccount',
+    @ChekDuplticateRef1 = 'SerialNumber',
+    @ChekDuplticateRef2 = 'PartNumber',
+    @DuplicateRefeValue1 = 'AY2',
+    @DuplicateRefeValue2 = 'PN-18712',
+    @ReferenceTable = 'Stockline',
     @MasterCompanyId = 1,
-    @ModuleId = 2,
+    @ModuleId = 5,
     @IsDuplicate = @IsDuplicate OUTPUT;
 
 SELECT @IsDuplicate AS IsDuplicateResult;
@@ -50,9 +51,10 @@ BEGIN
     DECLARE @Params AS NVARCHAR(MAX);
     DECLARE @AlterModule AS BIGINT;
 	DECLARE @ItemMasterModule AS BIGINT;
-    
+    DECLARE @StocklineModule AS BIGINT;
 	SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 	SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+	SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
     
 	SET @IsDuplicate = 0;
 
@@ -96,7 +98,7 @@ BEGIN
 			BEGIN
 				SET @IsDuplicate = 1;
 			END';
-    
+		
 		SET @Params = N'@MasterCompanyId INT, @DuplicateRefeValue1 VARCHAR(150), @DuplicateRefeValue2 VARCHAR(150), @IsDuplicate BIT OUTPUT';
     
 		EXEC sp_executesql @RefQuery, @Params, 
@@ -105,7 +107,7 @@ BEGIN
 			@DuplicateRefeValue2 = @DuplicateRefeValue2, 
 			@IsDuplicate = @IsDuplicate OUTPUT;
 
-		IF @ModuleId = @AlterModule OR @ModuleId = @ItemMasterModule
+		IF @ModuleId = @AlterModule OR @ModuleId = @ItemMasterModule OR @ModuleId = @StocklineModule
 		BEGIN
 			IF @IsDuplicate != 1
 			BEGIN
@@ -157,7 +159,7 @@ BEGIN
 			END';
     
 		SET @Params = N'@MasterCompanyId INT, @DuplicateRefeValue1 VARCHAR(150),@IsDuplicate BIT OUTPUT';
-    
+		
 		EXEC sp_executesql @RefQuery, @Params, 
 			@MasterCompanyId = @MasterCompanyId, 
 			@DuplicateRefeValue1 = @DuplicateRefeValue1,

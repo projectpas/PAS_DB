@@ -153,7 +153,11 @@ BEGIN
 				DECLARE @IDNumber VARCHAR(50);
 				DECLARE @ItemMasterId AS BIGINT;
 				DECLARE @ManufacturerId AS BIGINT;
-				select * from #DynamicKeyValue
+				DECLARE @isSerialized VARCHAR(50);
+				DECLARE @SerialNumber VARCHAR(50);
+				
+				SELECT @isSerialized = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isSerialized';
+				SELECT @SerialNumber = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SerialNumber';
 				SELECT @ItemMasterId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
 				SELECT @ManufacturerId = ManufacturerId from Manufacturer where Name = (select FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId') and MasterCompanyId=@MasterCompanyId;
 					IF @ManufacturerId IS NOT NULL 
@@ -163,6 +167,24 @@ BEGIN
 					SET FieldValue = @ManufacturerId
 					WHERE FieldName = 'ManufacturerId';
 				
+				END
+				IF LOWER(@isSerialized) = 'no'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = ' '  -- Set SerialNumber to blank
+					WHERE FieldName = 'SerialNumber';
+				END
+				IF LOWER(@isSerialized) = 'yes'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '1'  -- Set isSerialized to 1
+					WHERE FieldName = 'isSerialized';
+				END
+				ELSE IF LOWER(@isSerialized) = 'no'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '0'  -- Set isSerialized to 0
+					WHERE FieldName = 'isSerialized';
 				END
 				SELECT @ManufacturerId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId';
 				SELECT @Qty = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
@@ -322,7 +344,24 @@ BEGIN
 					WHERE FieldName = 'ManufacturerId';
 				
 				END
-
+				IF LOWER(@isSerialized) = 'no'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = ' '  -- Set SerialNumber to blank
+					WHERE FieldName = 'SerialNumber';
+				END
+				IF LOWER(@isSerialized) = 'yes'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '1'  -- Set isSerialized to 1
+					WHERE FieldName = 'isSerialized';
+				END
+				ELSE IF LOWER(@isSerialized) = 'no'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '0'  -- Set isSerialized to 0
+					WHERE FieldName = 'isSerialized';
+				END
 				SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId;
 				SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM DBO.ManagementStructure WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 			END

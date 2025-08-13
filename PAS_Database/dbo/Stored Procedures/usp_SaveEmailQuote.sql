@@ -12,6 +12,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    08 Aug 2025	Devendra Shekh		Created
+    2    13 Aug 2025	Devendra Shekh		Added Changes to Create SOQ
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
@@ -81,6 +82,44 @@ BEGIN
 			UPDATE [dbo].[CustomerRfq] 
 			SET IsQuote = 1
 			WHERE CustomerRfqId = @CustomerRfqId;
+
+			--Get Value from Aisetting table mastercompany wise
+			DECLARE @IsAutoInternalQuote BIT;
+
+			SELECT @IsAutoInternalQuote = ISNULL(SIS.[IsAutoInternalQuote],0)
+			FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
+			WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
+
+			IF(ISNULL(@IsAutoInternalQuote, 0) <> 0 AND ISNULL(@CustomerRfqId, 0) > 0 AND ISNULL(@CustomerRfqQuoteId, 0) > 0)
+			BEGIN
+				DECLARE @ItemMasterId BIGINT = 0,
+						@CustomerId BIGINT = 0,
+						@PartNumber NVARCHAR(200) = NULL,
+						@BuyerCompanyName NVARCHAR(200) = NULL;
+				--Create SOQ
+				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+
+				--Declare type
+				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
+
+				INSERT  INTO @EmailRfqQuoteDetails
+				([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId])
+				SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],NULL,NULL,ConditionId
+				FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
+
+				--Get Ai Percent Value from Aisetting table mastercompany wise
+				SELECT @IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
+				FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
+				WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
+
+				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId;						
+
+				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
+				BEGIN
+					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0
+				END
+			END
 		END
 	END			
     END TRY    

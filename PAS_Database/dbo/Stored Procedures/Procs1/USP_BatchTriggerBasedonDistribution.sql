@@ -31,6 +31,7 @@
 	16	 28/01/2025	 Devendra Shekh		Modify (Reverse Entry Issue Resolved)
 	17	 24/04/2025  Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 	18   08-07-2025     Moin Bloch      Changed Old To New Billing Table SP NOT IN USE
+	19   14-08-2025  Bhargav Saliya      set @JournalTypenameNew variable and used for BatchHeader Entry When Re-Open The Work Order
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -120,6 +121,7 @@ BEGIN
 		DECLARE @StocklineNumber VARCHAR(100)
 		DECLARE @UnEarnedAmount DECIMAL(18,2)=0
 		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @JournalTypenameNew VARCHAR(200) --Used when Re-Open WorkOrder and add Entry In [BatchHeader]
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE ID= @DistributionMasterId
@@ -882,7 +884,7 @@ BEGIN
 								SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 								SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 								print @CurrentNumber
-				          
+								
 								INSERT INTO [dbo].[BatchHeader]
 											([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
 								VALUES
@@ -1092,7 +1094,7 @@ BEGIN
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
-				          
+
 							INSERT INTO [dbo].[BatchHeader]
 										([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
 							VALUES
@@ -1368,7 +1370,7 @@ BEGIN
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
-				          
+
 							INSERT INTO [dbo].[BatchHeader]
 										([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
 							VALUES
@@ -1626,7 +1628,7 @@ BEGIN
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
-				          
+				         
 							INSERT INTO [dbo].[BatchHeader]
 										([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
 							VALUES
@@ -2642,11 +2644,11 @@ BEGIN
 							END
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 							SET @batch = CAST(@JournalTypeCode +' '+CAST(@batch AS VARCHAR(100)) AS VARCHAR(100))
-										          
+							SET @JournalTypenameNew = @JournalTypename + ' (REVERSED)'		          
 							INSERT INTO [dbo].[BatchHeader]
 										([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
 							VALUES
-										(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,0,0,0,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ModuleName);
+										(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypenameNew,0,0,0,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ModuleName);
             	        
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 

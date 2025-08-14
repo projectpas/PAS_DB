@@ -14,6 +14,7 @@
     1    08 Aug 2025	Devendra Shekh		Created
     2    13 Aug 2025	Devendra Shekh		Added Changes to Create SOQ
 	3    13-08-2025		Rajesh Gami			Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef        
+	4    14-08-2025		Devendra Shekh		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -22,7 +23,8 @@ CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@RfqId NVARCHAR(200) NULL,
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,
-	@CreatedBy VARCHAR(200)
+	@CreatedBy VARCHAR(200),
+	@QuoteSendReviewId INT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -117,7 +119,7 @@ BEGIN
 
 				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
 				BEGIN
-					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef
+					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
 				END
 			END
 		END

@@ -12,7 +12,8 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
 	1     05/08/2025      Amit Ghediya			Created
-	1     13/08/2025      Rajesh Gami			Implemented SourceBy And MarketPlaceRef
+	2     13/08/2025      Rajesh Gami			Implemented SourceBy And MarketPlaceRef
+	3     14/08/2025      Devendra Shekh		Added New Param @QuoteSendReviewId
 *********************************************************************************************/   
 CREATE     PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -24,7 +25,8 @@ CREATE     PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@ItemMasterId BIGINT, --For part data,
 	@UnitSalesPriceTotal DECIMAL(18,2),
 	@SourceBy VARCHAR(30) = NULL,
-	@MarketplaceRef VARCHAR(50) = NULL
+	@MarketplaceRef VARCHAR(50) = NULL,
+	@QuoteSendReviewId INT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

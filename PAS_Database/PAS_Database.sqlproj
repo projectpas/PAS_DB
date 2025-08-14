@@ -4164,6 +4164,7 @@
     <Build Include="dbo\Stored Procedures\usp_GetMultipleRFQbyId.sql" />
     <Build Include="dbo\Functions\GetAveragePriceById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQHistoryByPartNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetRFQHistoryByPartNumberCondition.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

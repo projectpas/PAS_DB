@@ -109,7 +109,8 @@ BEGIN
 						0 AS 'RfqId', 
 						Sq.CreatedDate AS 'RfqcreatedDate',
 						'' AS 'rfqFrom',
-						@CompanyName AS 'companyName',
+						--@CompanyName AS 'companyName',
+						CU.[Name] AS 'companyName',
 						'' AS 'country',
 						@PartNumber AS 'partNumber',
 						@lineDescription AS 'lineDescription',
@@ -140,6 +141,7 @@ BEGIN
 					LEFT JOIN [DBO].[MasterSalesOrderQuoteStatus] SQS WITH(NOLOCK) ON SQ.[StatusId] = SQS.[Id]
 					LEFT JOIN [DBO].[ItemMasterPurchaseSale] IMPS WITH(NOLOCK) ON SQP.[ConditionId] = IMPS.[ConditionId] AND SQP.[ItemMasterId] = IMPS.[ItemMasterId] AND IMPS.IsDeleted = 0 AND IMPS.IsActive = 1
 					LEFT JOIN [DBO].[Condition] CONS WITH(NOLOCK) ON SQP.[ConditionId] = CONS.[ConditionId]
+					LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON SQ.[CustomerId] = CU.[CustomerId]
 					WHERE SQP.MasterCompanyId = @MasterCompanyId 
 					AND SQS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
 					AND LOWER(TRIM(SQP.PartNumber)) = LOWER(TRIM(@PartNumber))

@@ -571,9 +571,9 @@ BEGIN
 				DECLARE @UpdatedBy AS VARCHAR(200);
 				SET @UpdatedBy = (select FieldValue from #DynamicKeyValue where FieldName = 'UpdatedBy')
 				
-				--EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UpdatedBy;
 				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
 				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
+				EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UpdatedBy;
 				
 			END
 

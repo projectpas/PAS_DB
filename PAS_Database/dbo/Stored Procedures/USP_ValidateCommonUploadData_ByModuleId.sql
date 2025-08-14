@@ -270,8 +270,17 @@ BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
 					END
-					EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
-					
+					IF(@ModuleId=@StocklineModule)
+					BEGIN
+						IF((ISNULL(@DuplicateRefeValue1, '') != '' AND ISNULL(@DuplicateRefeValue2, '') != ''))
+						BEGIN
+						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+						END
+					END
+					ELSE
+					BEGIN
+						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+					END
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 

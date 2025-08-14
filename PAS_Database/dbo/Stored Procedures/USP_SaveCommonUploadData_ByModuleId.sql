@@ -174,6 +174,12 @@ BEGIN
 					SET FieldValue = ' '  -- Set SerialNumber to blank
 					WHERE FieldName = 'SerialNumber';
 				END
+				IF LOWER(@isSerialized) = 'yes' and ISNULL(@SerialNumber,'') = ''
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = 'Default'  -- Set Default serialNumber
+					WHERE FieldName = 'SerialNumber';
+				END
 				IF LOWER(@isSerialized) = 'yes'
 				BEGIN
 					UPDATE #DynamicKeyValue
@@ -348,6 +354,12 @@ BEGIN
 				BEGIN
 					UPDATE #ImportFields
 					SET FieldValue = ' '  -- Set SerialNumber to blank
+					WHERE FieldName = 'SerialNumber';
+				END
+				IF LOWER(@isSerialized) = 'yes' and ISNULL(@SerialNumber,'') = ''
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = 'Default'  -- Set Default serialNumber
 					WHERE FieldName = 'SerialNumber';
 				END
 				IF LOWER(@isSerialized) = 'yes'

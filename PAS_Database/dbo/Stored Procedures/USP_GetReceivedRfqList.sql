@@ -58,7 +58,7 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 			DECLARE @RecordFrom INT,
-					@AautoSendQuote VARCHAR(50)= 'Aauto Send',
+					@AautoSendQuote VARCHAR(50)= 'Auto Send',
 					@ReviewRequired VARCHAR(50)= 'Review Required';
 
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;

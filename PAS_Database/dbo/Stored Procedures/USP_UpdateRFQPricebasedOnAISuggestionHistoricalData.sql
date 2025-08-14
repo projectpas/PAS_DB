@@ -12,8 +12,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
-	2    13-08-2025   Rajesh Gami	 Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef    
+    1    30/06/2025   HEMANT SALIYA		Created (Update RFQ Price Details based on AI suggestions)
+	2    13-08-2025   Rajesh Gami		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef
+	3    14-08-2025	  Devendra Shekh	Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId  
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData '','',1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]
@@ -48,6 +49,7 @@ BEGIN
 				@RecordsTotal INT = 0,
 				@PerUnitPrice DECIMAL(18,2) = 0,
 				@CreatedBy VARCHAR(256) = 'Admin',
+				@QuoteSendReviewId INT = 0,
 				@IsAutoInternalQuote BIT;
 
 		--Get FROM SalesOrderQuotePart data for selected part
@@ -186,7 +188,7 @@ BEGIN
 
 						IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
 						BEGIN 
-							EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @RfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef
+							EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @RfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
 						END
 					 ---------END Create SOQ With part---------------------------------------------
 				  END

@@ -11,5 +11,6 @@
     [IlsMinQty]                 INT             NULL,
     [IlsComment]                VARCHAR (MAX)   NULL,
     [IlsCondition]              VARCHAR (50)    NULL,
-    [ConditionId]               BIGINT          NULL);
+    [ConditionId]               BIGINT          NULL,
+    [ItemMasterId]              BIGINT          NULL);
 

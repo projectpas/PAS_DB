@@ -82,7 +82,10 @@ BEGIN
 
 			------- Update Csutomer RFQ for Is Quote added ----------					 
 			UPDATE [dbo].[CustomerRfq] 
-			SET IsQuote = 1
+			SET IsQuote = 1,
+				QuotedBy = @CreatedBy,
+				QuotedDate = GETUTCDATE(),
+				QuoteSendReviewId = @QuoteSendReviewId
 			WHERE CustomerRfqId = @CustomerRfqId;
 
 			--Get Value from Aisetting table mastercompany wise
@@ -98,6 +101,42 @@ BEGIN
 						@CustomerId BIGINT = 0,
 						@PartNumber NVARCHAR(200) = NULL,
 						@BuyerCompanyName NVARCHAR(200) = NULL;
+				
+				IF OBJECT_ID(N'tempdb..#tmpCustomerRfqQuoteDetails') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpCustomerRfqQuoteDetails
+				END
+
+				CREATE TABLE  #tmpCustomerRfqQuoteDetails (
+					[RowId] [bigint] IDENTITY(1,1) NOT NULL,
+					[CustomerRfqQuoteDetailsId] [bigint] NULL,
+					[CustomerRfqQuoteId] [bigint] NULL,
+					[IlsQty] [int] NULL,
+					[IlsTraceability] [varchar](50) NULL,
+					[IlsUom] [varchar](50) NULL,
+					[IlsPrice] [decimal](18, 2) NULL,
+					[IlsPriceType] [varchar](50) NULL,
+					[IlsTagDate] [datetime2](7) NULL,
+					[IlsLeadTime] [varchar](50) NULL,
+					[IlsMinQty] [int] NULL,
+					[IlsComment] [varchar](max) NULL,
+					[IlsCondition] [varchar](50) NULL,
+					[ConditionId] [bigint] NULL,
+					[CustomerRfqPartMappingId] [bigint] NULL,
+					[ItemMasterId] [bigint] NULL,
+				)
+
+				INSERT  INTO #tmpCustomerRfqQuoteDetails
+				([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[CustomerRfqPartMappingId],[ItemMasterId])
+				SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],NULL,NULL,ConditionId,[CustomerRfqPartMappingId],0
+				FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
+
+				UPDATE TMP
+				SET	TMP.ItemMasterId = IM.ItemMasterId
+				FROM #tmpCustomerRfqQuoteDetails TMP
+				LEFT JOIN dbo.[CustomerRfqPartMapping] CRPM WITH(NOLOCK) ON CRPM.CustomerRfqPartMappingId = TMP.CustomerRfqPartMappingId
+				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId
+				
 				--Create SOQ
 				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],	   @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,'') FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
@@ -105,9 +144,10 @@ BEGIN
 				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
 
 				INSERT  INTO @EmailRfqQuoteDetails
-				([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId])
-				SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],NULL,NULL,ConditionId
-				FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
+				([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
+				SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],NULL,NULL,ConditionId,[ItemMasterId]
+				FROM #tmpCustomerRfqQuoteDetails;
+				--FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
 
 				--Get Ai Percent Value from Aisetting table mastercompany wise
 				SELECT @IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)

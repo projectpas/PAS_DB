@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [USP_GetRFQHistoryByPartNumber]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get RFQ History By Part And Condition
@@ -12,12 +12,13 @@
  ** PR   Date         Author			Change Description            
  ** --   ----------  -----------		--------------------------------          
     1    13/08/2025  Moin Bloch		    Created
+	2    13/08/2025  Hemant Saliya	    Update for Get the single Price.
 
-  EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'NICKITEST-A','NE',1
-  EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'ABC123','',20
+  EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'NICKITEST-A','NE',1
+  EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'ABC123','NE',1
   
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetRFQHistoryByPartNumberCondition]
+CREATE OR ALTER    PROCEDURE [dbo].[USP_GetRFQHistoryByPartNumberCondition]
 	@PartNumber VARCHAR(50)=NULL,
 	@ConditionCode VARCHAR(100)=NULL,
 	@MasterCompanyId INT=NULL
@@ -93,6 +94,8 @@ BEGIN
 		
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmpRFQConditionResult    
 
+	PRINT 1
+
 	WHILE @MinId <= @TotalRecord
 	BEGIN
 		DECLARE @NewConditionId BIGINT=0,@Code VARCHAR(20)=''
@@ -114,16 +117,17 @@ BEGIN
 		  AND MONTH(SQ.[OpenDate]) >= @Month
 		  AND YEAR(SQ.[OpenDate]) >= @Year
 		  AND SQS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-		  AND SQP.[MasterCompanyId] = @MasterCompanyId;				
+		  AND SQP.[MasterCompanyId] = @MasterCompanyId;		
+		  
 		  IF(@RecordsTotalSOQ > 0)
 		  BEGIN
 	  		SET @PerUnitPriceSOQ  = ISNULL((@UnitSalesPriceTotalSOQ / @RecordsTotalSOQ),0);
 	  		--Check if PercentValue selected or not
-	  		IF(@MarkUpPercentValue > 0)
-	  		BEGIN
-	  			SET @FinalUnitPriceSOQ  = (@PerUnitPriceSOQ * @MarkUpPercentValue) / 100;
-	  			SET @PerUnitPriceSOQ = @PerUnitPriceSOQ + ISNULL(@FinalUnitPriceSOQ,0);
-	  		END
+	  		--IF(@MarkUpPercentValue > 0)
+	  		--BEGIN
+	  		--	SET @FinalUnitPriceSOQ  = (@PerUnitPriceSOQ * @MarkUpPercentValue) / 100;
+	  		--	SET @PerUnitPriceSOQ = @PerUnitPriceSOQ + ISNULL(@FinalUnitPriceSOQ,0);
+	  		--END
 		  END
 
 		------------------------------SO------------------------------
@@ -141,16 +145,17 @@ BEGIN
 		  AND MONTH(SO.[OpenDate]) >= @Month
 		  AND YEAR(SO.[OpenDate]) >= @Year
 		  AND SOS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-		  AND SP.[MasterCompanyId] = @MasterCompanyId;				
+		  AND SP.[MasterCompanyId] = @MasterCompanyId;	
+		  
 		  IF(@RecordsTotalSO > 0)
 		  BEGIN
 	  		SET @PerUnitPriceSO  = ISNULL((@UnitSalesPriceTotalSO / @RecordsTotalSO),0);
 	  		--Check if PercentValue selected or not
-	  		IF(@MarkUpPercentValue > 0)
-	  		BEGIN
-	  			SET @FinalUnitPriceSO  = (@PerUnitPriceSO * @MarkUpPercentValue) / 100;
-	  			SET @PerUnitPriceSO = @PerUnitPriceSO + ISNULL(@FinalUnitPriceSO,0);
-	  		END
+	  		--IF(@MarkUpPercentValue > 0)
+	  		--BEGIN
+	  		--	SET @FinalUnitPriceSO  = (@PerUnitPriceSO * @MarkUpPercentValue) / 100;
+	  		--	SET @PerUnitPriceSO = @PerUnitPriceSO + ISNULL(@FinalUnitPriceSO,0);
+	  		--END
 		  END
 	  
 		------------------------------Purchase And Sale------------------------------ 
@@ -183,7 +188,7 @@ BEGIN
 		BEGIN
 	  		SET @PerUnitPricePL  = ISNULL((@UnitSalesPriceTotalPL / @RecordsTotalPL),0);	  		  	
 		END			   	
-
+		--PRINT 2
 		SELECT @RecommendedPrice = MAX(v) FROM (VALUES (@CostPlusPrice),(@PerUnitPriceSO),(@PerUnitPriceSOQ),(@PerUnitPricePL)) AS t(v);
 	
 		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
@@ -196,11 +201,50 @@ BEGIN
 								   VALUES (@PartNumber, @Code, @CostPlusPrice,'Purchase Price + MArk Up')
 		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
 								   VALUES (@PartNumber, @Code, @RecommendedPrice,'Recommended Price')
+
+		IF OBJECT_ID(N'tempdb..#tmpRFQConditionResult') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpRFQConditionResult
+		END
+
+		CREATE TABLE #tmpResult
+		(
+			[ID] BIGINT NOT NULL IDENTITY, 
+			[PartNumber] VARCHAR(50) NULL,
+			[Condition] VARCHAR(50) NULL,
+			[UnitPrice] DECIMAL(18,2) NULL,
+			[Code] VARCHAR(50) NULL,
+			[Sequence] Int NULL,
+			[QuoteSendReviewId] Int NULL,
+			[QuoteSendReview] VARCHAR(50) NULL,
+
+		)
+		--PRINT 3
+		INSERT INTO #tmpResult(PartNumber, Condition, Code, UnitPrice, [Sequence], QuoteSendReviewId, QuoteSendReview)
+		SELECT @PartNumber,@Code, code,  
+			CASE WHEN Code = 'Price List' THEN @PerUnitPricePS
+				 WHEN Code = 'Avg Historical SO' THEN @PerUnitPriceSO
+				 WHEN Code = 'Avg Historical SOQ' THEN @PerUnitPriceSOQ
+				 WHEN Code = 'Purchase Price + Mark up' THEN @CostPlusPrice
+				 WHEN Code = 'Recommended Price' THEN @RecommendedPrice
+			ELSE 0 END,
+			[Sequence], QuoteSendReviewId, QuoteSendReview
+		FROM dbo.[AIAutoQouteSetting] WITH(NOLOCK)
+		WHERE MasterCompanyId = @MasterCompanyId
 	
 		SET @MinId = @MinId + 1
 	END			   	 		
 	
-	SELECT * from #tmpRFQHistoryResult
+	--SELECT *  FROM #tmpResult;
+	IF((SELECT MAX(UnitPrice) FROM #tmpResult) > 0)
+	BEGIN
+		SELECT TOP 1 * FROM #tmpResult WHERE ISNULL(UnitPrice, 0) > 0 Order by Sequence
+	END
+	ELSE 
+	BEGIN
+		SELECT TOP 1 * FROM #tmpResult Order by Sequence
+	END
+	--SELECT * from #tmpRFQHistoryResult
      
   END TRY
   BEGIN CATCH
@@ -220,5 +264,5 @@ BEGIN
                         @ErrorLogID = @ErrorLogID OUTPUT;
     RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
     RETURN (1);
-  END CATCH
+  END CATCH
 END

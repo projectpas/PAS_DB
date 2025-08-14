@@ -57,7 +57,10 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-			DECLARE @RecordFrom INT;
+			DECLARE @RecordFrom INT,
+					@AautoSendQuote VARCHAR(50)= 'Aauto Send',
+					@ReviewRequired VARCHAR(50)= 'Review Required';
+
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				IF @IsDeleted is null
 				BEGIN
@@ -111,7 +114,16 @@ BEGIN
 					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
 					RFQ.[DateAssigned],
 					RFQ.[QuotedBy],
-					RFQ.[QuotedDate]
+					RFQ.[QuotedDate],
+					CASE 
+						WHEN RFQ.IsQuote = 1 THEN  
+							CASE 
+								WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
+								WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
+								ELSE NULL 
+							END
+						ELSE NULL
+					END AS 'QuoteStatus'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
@@ -119,6 +131,7 @@ BEGIN
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
+				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)
 				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
@@ -157,7 +170,16 @@ BEGIN
 					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
 					RFQ.[DateAssigned],
 					RFQ.[QuotedBy],
-					RFQ.[QuotedDate]
+					RFQ.[QuotedDate],
+					CASE 
+						WHEN RFQ.IsQuote = 1 THEN  
+							CASE 
+								WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
+								WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
+								ELSE NULL 
+							END
+						ELSE NULL
+					END AS 'QuoteStatus'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
@@ -166,6 +188,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				LEFT JOIN dbo.CustomerRfqPartMapping CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND RFQ.IntegrationPortalId IN (@EmailPortalId)
 				--AND RFQ.IsQuote IS NOT NULL 

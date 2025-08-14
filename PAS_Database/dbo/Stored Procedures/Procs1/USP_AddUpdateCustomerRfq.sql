@@ -15,6 +15,7 @@
 	2	 22-02-2024  Rajesh Gami     Complete the Insert call
 	3	 25-07-2025  Devendra Shekh	 added IsMRO Field
 	4	 07-08-2025  Devendra Shekh	 changed [RfqId] Type to nvarchar
+	5    14/02/2023  Amit Ghediya    update for auto Quote
      
 -- EXEC USP_AddUpdateCustomerRfq
 ************************************************************************/
@@ -109,7 +110,11 @@ BEGIN
 						INNER JOIN [CustomerRfqQuote] rfqq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
 						WHERE rfqq.MasterCompanyId = @MasterCompanyId AND ISNULL(rfqq.IsDeleted,0) = 0
 
-					COMMIT;
+						
+					--Auto quote from sync
+					EXEC DBO.USP_AutoCreateILSQuoteSyc @MasterCompanyId
+
+					COMMIT;					
     END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

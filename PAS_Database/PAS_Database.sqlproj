@@ -4165,6 +4165,7 @@
     <Build Include="dbo\Functions\GetAveragePriceById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQHistoryByPartNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQHistoryByPartNumberCondition.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AutoCreateILSQuoteSyc.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

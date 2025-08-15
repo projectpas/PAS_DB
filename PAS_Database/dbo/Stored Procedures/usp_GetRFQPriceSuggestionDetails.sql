@@ -32,6 +32,7 @@ SET NOCOUNT ON
 					@RfqId NVARCHAR(400),
 					@WOModuleId INT = 0,
 					@RecordsTotal INT = 0,
+					@Condition VARCHAR(100) ='',
 					@IntegrationPortalId INT = 0,
 					@PartNumber NVARCHAR(256) = '',
 					@PerUnitPrice DECIMAL(18,2) = 0,
@@ -39,7 +40,10 @@ SET NOCOUNT ON
 					@AiPercentValue DECIMAL(18,2) = 0,
 					@IsEnableDisableAIintegration BIT = 0,
 					@UnitSalesPriceTotal DECIMAL(18,2) = 0,
-					@Condition_Code VARCHAR(100) = 'Rejected,Open,Cancelled';
+					@Condition_Code VARCHAR(100) = 'Rejected,Open,Cancelled',
+					@PartNo VARCHAR(150)=null,
+					@Con VARCHAR(100)=NULL,
+					@MAST INT =null;
 			
 			IF OBJECT_ID(N'tempdb..#tmpResult') IS NOT NULL
 			BEGIN
@@ -56,14 +60,30 @@ SET NOCOUNT ON
 				IlsPrice DECIMAL(18, 2) NULL
 			)
 
+			IF OBJECT_ID(N'tempdb..#RFQHistoryResultsetdata1') IS NOT NULL
+			BEGIN
+				DROP TABLE #RFQHistoryResultsetdata1
+			END
+
+			CREATE TABLE #RFQHistoryResultsetdata1 (
+				ID INT null,
+				PartNumber VARCHAR(50) null,
+				Condition VARCHAR(50) null,
+				UnitPrice DECIMAL(18,2) null,
+				Code VARCHAR(50) null,
+				[Sequence] INT null,
+				QuoteSendReviewId INT null,
+				QuoteSendReview VARCHAR(50) null
+			);
+
 			IF(ISNULL(@CustomerRfqPartMappingId, 0) > 0)
 			BEGIN
-				SELECT @RfqId = [RfqId], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @Condition = [Condition],@RfqId = [RfqId], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
 				SELECT @PartNumber = [PartNumber] FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId AND [CustomerRfqPartMappingId] = @CustomerRfqPartMappingId;
 			END
 			ELSE 
 			BEGIN
-				SELECT @RfqId = [RfqId], @PartNumber = [LinePartNumber], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @Condition = [Condition],@RfqId = [RfqId], @PartNumber = [LinePartNumber], @IsMRO = ISNULL([IsMRO], 0), @IntegrationPortalId = [IntegrationPortalId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId AND [MasterCompanyId] = @MasterCompanyId;
 			END
 			SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
@@ -131,6 +151,15 @@ SET NOCOUNT ON
 					END
 				END
 
+				SET @PartNo = CAST(@PartNumber AS VARCHAR(150));
+				SET @Con = CAST(@Condition AS VARCHAR(100));
+
+				--Call For get AI Price
+				INSERT INTO #RFQHistoryResultsetdata1
+				EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition]	@PartNo, @Con, @MasterCompanyId
+
+				SELECT @PerUnitPrice = [UnitPrice] FROM #RFQHistoryResultsetdata1;
+
 				--Saving Return Result Data
 				INSERT INTO #tmpResult([CustomerRfqId], [RfqId], [PartNumber], [MasterCompanyId], [IlsPrice])
 				VALUES (@CustomerRfqId, @RfqId, @PartNumber, @MasterCompanyId, @PerUnitPrice)
@@ -161,6 +190,15 @@ SET NOCOUNT ON
 					END
 				END
 
+				SET @PartNo = CAST(@PartNumber AS VARCHAR(150));
+				SET @Con = CAST(@Condition AS VARCHAR(100));
+
+				--Call For get AI Price
+				INSERT INTO #RFQHistoryResultsetdata1
+				EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition]	@PartNo, @Con, @MasterCompanyId;
+
+				SELECT @PerUnitPrice = [UnitPrice] FROM #RFQHistoryResultsetdata1;
+
 				--Saving Return Result Data
 				INSERT INTO #tmpResult([CustomerRfqId], [RfqId], [PartNumber], [MasterCompanyId], [IlsPrice])
 				VALUES (@CustomerRfqId, @RfqId, @PartNumber, @MasterCompanyId, @PerUnitPrice)
@@ -180,7 +218,7 @@ SET NOCOUNT ON
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'usp_GetRFQPriceSuggestionDetails' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@CustomerRfqId, '')+''
+            , @ProcedureParameters varchar(3000) = '@customerId = ''' + CAST(ISNULL(@CustomerRfqId, '') AS varchar(100))
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             EXEC spLogException 

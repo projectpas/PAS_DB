@@ -19,6 +19,7 @@
 	9	 11-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
 	10	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 	11	 15-Aug-2025		Ayushi Patel			Handle Part with multiple Manufacturer for stockline
+	12	 15-Aug-2025		Ayushi Patel			Qty OH must be one for Serialized Parts
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -244,6 +245,14 @@ BEGIN
 														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
+												WHEN IMF.FieldName = 'QuantityOnHand'
+													 AND (
+														 SELECT LOWER(FieldValue)
+														 FROM #DynamicKeyValue
+														 WHERE FieldName = 'isSerialized' 
+													 ) = 'yes'
+													 AND TRY_CAST(TMP.FieldValue AS INT) != 1
+													 THEN 'Qty OH must be one for Serialized Parts'
 												WHEN ISNULL(TMP.FieldValue, '') != '' 
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
@@ -415,6 +424,14 @@ BEGIN
 														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
+												    WHEN IMF.FieldName = 'QuantityOnHand'
+													 AND (
+														 SELECT LOWER(FieldValue)
+														 FROM #DynamicKeyValue
+														 WHERE FieldName = 'isSerialized' 
+													 ) = 'yes'
+													 AND TRY_CAST(TMP.FieldValue AS INT) != 1
+													 THEN 'Qty OH must be one for Serialized Parts'
 												WHEN ISNULL(TMP.FieldValue, '') != '' 
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL

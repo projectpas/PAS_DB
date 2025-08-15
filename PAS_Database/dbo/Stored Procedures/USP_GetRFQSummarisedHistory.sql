@@ -28,17 +28,17 @@ BEGIN
     BEGIN TRY
 
 		--Get AI price based on rfqId
-		CREATE TABLE #TempRFQDetails
-		(
-			customerRfqId INT,
-			rfqId NVARCHAR(400),
-			partNumber VARCHAR(100),
-			masterCompanyId INT,
-			ilsPrice DECIMAL(18, 2)
-		);
+		--CREATE TABLE #TempRFQDetails
+		--(
+		--	customerRfqId INT,
+		--	rfqId NVARCHAR(400),
+		--	partNumber VARCHAR(100),
+		--	masterCompanyId INT,
+		--	ilsPrice DECIMAL(18, 2)
+		--);
 
-		INSERT INTO #TempRFQDetails
-		EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
+		--INSERT INTO #TempRFQDetails
+		--EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
 		
 		--IF(ISNULL(@CustomerRfqPartMappingId, 0) > 0)
 		--BEGIN
@@ -169,7 +169,7 @@ BEGIN
 		--END
 
 		-- Droped the temp table when done
-		DROP TABLE #TempRFQDetails;
+		--DROP TABLE #TempRFQDetails;
     END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT,

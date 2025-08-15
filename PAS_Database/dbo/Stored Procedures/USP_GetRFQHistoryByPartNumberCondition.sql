@@ -18,7 +18,7 @@
   EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'ABC123','NE',1
   
 ************************************************************************/
-CREATE OR ALTER    PROCEDURE [dbo].[USP_GetRFQHistoryByPartNumberCondition]
+CREATE PROCEDURE [dbo].[USP_GetRFQHistoryByPartNumberCondition]
 	@PartNumber VARCHAR(50)=NULL,
 	@ConditionCode VARCHAR(100)=NULL,
 	@MasterCompanyId INT=NULL

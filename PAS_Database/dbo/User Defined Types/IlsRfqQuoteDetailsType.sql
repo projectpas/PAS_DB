@@ -12,5 +12,7 @@
     [IlsComment]                VARCHAR (MAX)   NULL,
     [IlsCondition]              VARCHAR (50)    NULL,
     [ConditionId]               BIGINT          NULL,
-    [ItemMasterId]              BIGINT          NULL);
+    [ItemMasterId]              BIGINT          NULL,
+    [PriorityId]                BIGINT          NULL,
+    [ExpirationDate]            DATETIME2 (7)   NULL);
 

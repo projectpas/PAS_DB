@@ -9,6 +9,7 @@
  ** S NO	Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
  **	1		08-Aug-2025		Devendra Shekh		Created
+ **	2		15-Aug-2025		Devendra Shekh		filtering out processed emails
  
 EXECUTE [dbo].[usp_GetIntegrationEmailListDetails]
 **************************************************************/  
@@ -22,13 +23,13 @@ SET NOCOUNT ON
 			SELECT	[IntegrationEmailID], [Subject], [EmailBody], [ToEmail], [FromEmail], [CC], [BCC], [EmailReadBy], [ReferenceId], [ModuleId], [EmailStatus], [HasAttachments],
 					[EmailSection], [ReceivedDate], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [CustomerRfqId]
 			FROM [dbo].[IntegrationEmail] WITH(NOLOCK) 
-			WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(CustomerRfqId, 0) = 0
+			WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(CustomerRfqId, 0) = 0 AND ISNULL(IsProcessed, 0) = 0
 			ORDER BY [IntegrationEmailID] DESC;
 
 			SELECT [IntegrationEmailAttachmentID], IEA.[IntegrationEmailID], [AttachmentName], [AttachmentPath]
 			FROM [dbo].[IntegrationEmailAttachment] IEA WITH(NOLOCK) 
 			INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = IEA.IntegrationEmailID
-			WHERE IE.[IsActive] = 1 AND IE.[IsDeleted] = 0 AND ISNULL(IE.CustomerRfqId, 0) = 0
+			WHERE IE.[IsActive] = 1 AND IE.[IsDeleted] = 0 AND ISNULL(IE.CustomerRfqId, 0) = 0 AND ISNULL(IE.IsProcessed, 0) = 0
 			ORDER BY IEA.[IntegrationEmailID] DESC;
 		END
 	END TRY    

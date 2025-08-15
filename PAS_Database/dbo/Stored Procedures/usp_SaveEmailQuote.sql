@@ -14,9 +14,10 @@
     1    08 Aug 2025	Devendra Shekh		Created
     2    13 Aug 2025	Devendra Shekh		Added Changes to Create SOQ
 	3    13-08-2025		Rajesh Gami			Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef        
-	4    14-08-2025		Devendra Shekh		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId      
+	4    14-08-2025		Devendra Shekh		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId   
+	5	 15-08-2025		Devendra Shekh		Removed @IsAutoInternalQuote, Added [QuoteSendReviewId] select
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
+CREATE     PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -36,6 +37,8 @@ BEGIN
 
 		--Get markup % on fly
 		SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+
+		SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_EmailRfqQuoteDetailsType);
 
 		IF(@CustomerRfqQuoteId > 0)
 		BEGIN
@@ -88,14 +91,7 @@ BEGIN
 				QuoteSendReviewId = @QuoteSendReviewId
 			WHERE CustomerRfqId = @CustomerRfqId;
 
-			--Get Value from Aisetting table mastercompany wise
-			DECLARE @IsAutoInternalQuote BIT;
-
-			SELECT @IsAutoInternalQuote = ISNULL(SIS.[IsAutoInternalQuote],0)
-			FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
-			WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
-
-			IF(ISNULL(@IsAutoInternalQuote, 0) <> 0 AND ISNULL(@CustomerRfqId, 0) > 0 AND ISNULL(@CustomerRfqQuoteId, 0) > 0)
+			IF(ISNULL(@CustomerRfqId, 0) > 0 AND ISNULL(@CustomerRfqQuoteId, 0) > 0)
 			BEGIN
 				DECLARE @ItemMasterId BIGINT = 0,
 						@CustomerId BIGINT = 0,
@@ -149,15 +145,10 @@ BEGIN
 				FROM #tmpCustomerRfqQuoteDetails;
 				--FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
 
-				--Get Ai Percent Value from Aisetting table mastercompany wise
-				SELECT @IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
-				FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
-				WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
-
 				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId;
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId;						
 
-				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
+				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 				BEGIN
 					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
 				END

@@ -22,7 +22,7 @@
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetReceivedRfqList]
+CREATE      PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@PageSize INT,
 	@PageNumber INT,
 	@SortColumn VARCHAR(50)=null,
@@ -123,7 +123,9 @@ BEGIN
 								ELSE NULL 
 							END
 						ELSE NULL
-					END AS 'QuoteStatus'
+					END AS 'QuoteStatus',
+					Expired = NULL,
+					DaysTillExpire = NULL
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
@@ -179,7 +181,9 @@ BEGIN
 								ELSE NULL 
 							END
 						ELSE NULL
-					END AS 'QuoteStatus'
+					END AS 'QuoteStatus',
+					Expired = NULL,
+					DaysTillExpire = NULL
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
@@ -320,6 +324,7 @@ BEGIN
 							csd.[IlsMinQty],
 							csd.[IlsComment],
 							csd.[IlsCondition],
+							csd.[ExpirationDate],
 
 							res.[CustomerRfqId],
 							res.[RfqId], 

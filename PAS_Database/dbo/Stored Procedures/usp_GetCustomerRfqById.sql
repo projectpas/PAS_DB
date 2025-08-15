@@ -10,6 +10,7 @@
  ** --		--------		-------				--------------------------------            
  **	1		01-Aug-2025		Devendra Shekh		Created
  **	2		07-Aug-2025		Devendra Shekh		Added [CustomerRfqPartMapping] select
+ **	3		14-Aug-2025		Bhargav Saliya		Added [PriorityId] and [ExpirationDate] 
  
 EXECUTE [dbo].[usp_GetCustomerRFQbyId] 3
 **************************************************************/  
@@ -37,7 +38,7 @@ SET NOCOUNT ON
 
 			SELECT	[CustomerRfqQuoteDetailsId], CRQD.[CustomerRfqQuoteId], [ServiceType], [QuotePrice], [QuoteTat], [Low], [Mid], [High], [AvgTat], [QuoteTatQty], [QuoteCond], [QuoteTrace],
 					CRQD.[CreatedBy], CRQD.[CreatedDate], CRQD.[UpdatedBy], CRQD.[UpdatedDate], CRQD.[IsActive], CRQD.[IsDeleted], [IlsQty], [IlsTraceability], [IlsUom], [IlsPrice], [IlsPriceType], [IlsTagDate], [IlsLeadTime],
-					[IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [PercentId], [PercentValue], [CustomerRfqPartMappingId]
+					[IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [PercentId], [PercentValue], [CustomerRfqPartMappingId], [PriorityId],[ExpirationDate]
 			FROM [dbo].[CustomerRfqQuoteDetails] CRQD WITH(NOLOCK)
 			INNER JOIN [dbo].[CustomerRfqQuote] CRQ WITH(NOLOCK) ON CRQ.[CustomerRfqQuoteId] = CRQD.[CustomerRfqQuoteId]
 			WHERE [CustomerRfqId] = @CustomerRfqId;

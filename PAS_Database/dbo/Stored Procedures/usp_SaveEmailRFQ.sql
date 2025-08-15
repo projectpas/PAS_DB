@@ -188,7 +188,7 @@ BEGIN
 
 			CREATE TABLE #tmpRFQPriceResult
 			(
-				[ID] BIGINT NOT NULL IDENTITY, 
+				[ID] BIGINT NULL, 
 				[PartNumber] VARCHAR(50) NULL,
 				[Condition] VARCHAR(50) NULL,
 				[UnitPrice] DECIMAL(18,2) NULL,

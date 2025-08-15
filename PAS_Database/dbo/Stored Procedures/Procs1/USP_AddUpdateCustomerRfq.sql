@@ -105,10 +105,10 @@ BEGIN
 						INNER JOIN [CustomerRfq] rfq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
 						WHERE rfqq.MasterCompanyId = @MasterCompanyId
 
-					UPDATE rfq SET rfq.IsQuote = 1
-						FROM [dbo].[CustomerRfq] rfq WITH(NOLOCK)
-						INNER JOIN [CustomerRfqQuote] rfqq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
-						WHERE rfqq.MasterCompanyId = @MasterCompanyId AND ISNULL(rfqq.IsDeleted,0) = 0
+					--UPDATE rfq SET rfq.IsQuote = 1
+					--	FROM [dbo].[CustomerRfq] rfq WITH(NOLOCK)
+					--	INNER JOIN [CustomerRfqQuote] rfqq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
+					--	WHERE rfqq.MasterCompanyId = @MasterCompanyId AND ISNULL(rfqq.IsDeleted,0) = 0
 
 						
 					--Auto quote from sync

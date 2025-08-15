@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   ----------  -----------		--------------------------------          
     1    13/08/2025  Moin Bloch		    Created
+	2    14/08/2025  Moin Bloch         Removed Markuppercent from SO,SOQ
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'NICKITEST-A',7,1
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'ABC123',7,20
@@ -138,11 +139,11 @@ BEGIN
 		  BEGIN
 	  		SET @PerUnitPriceSOQ  = ISNULL((@UnitSalesPriceTotalSOQ / @RecordsTotalSOQ),0);
 	  		--Check if PercentValue selected or not
-	  		IF(@MarkUpPercentValue > 0)
-	  		BEGIN
-	  			SET @FinalUnitPriceSOQ  = (@PerUnitPriceSOQ * @MarkUpPercentValue) / 100;
-	  			SET @PerUnitPriceSOQ = @PerUnitPriceSOQ + ISNULL(@FinalUnitPriceSOQ,0);
-	  		END
+	  		--IF(@MarkUpPercentValue > 0)
+	  		--BEGIN
+	  		--	SET @FinalUnitPriceSOQ  = (@PerUnitPriceSOQ * @MarkUpPercentValue) / 100;
+	  		--	SET @PerUnitPriceSOQ = @PerUnitPriceSOQ + ISNULL(@FinalUnitPriceSOQ,0);
+	  		--END
 		  END
 
 		------------------------------SO------------------------------
@@ -160,16 +161,17 @@ BEGIN
 		  AND MONTH(SO.[OpenDate]) >= @Month
 		  AND YEAR(SO.[OpenDate]) >= @Year
 		  AND SOS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-		  AND SP.[MasterCompanyId] = @MasterCompanyId;				
+		  AND SP.[MasterCompanyId] = @MasterCompanyId;	
+		  
 		  IF(@RecordsTotalSO > 0)
 		  BEGIN
 	  		SET @PerUnitPriceSO  = ISNULL((@UnitSalesPriceTotalSO / @RecordsTotalSO),0);
 	  		--Check if PercentValue selected or not
-	  		IF(@MarkUpPercentValue > 0)
-	  		BEGIN
-	  			SET @FinalUnitPriceSO  = (@PerUnitPriceSO * @MarkUpPercentValue) / 100;
-	  			SET @PerUnitPriceSO = @PerUnitPriceSO + ISNULL(@FinalUnitPriceSO,0);
-	  		END
+	  		--IF(@MarkUpPercentValue > 0)
+	  		--BEGIN
+	  		--	SET @FinalUnitPriceSO  = (@PerUnitPriceSO * @MarkUpPercentValue) / 100;
+	  		--	SET @PerUnitPriceSO = @PerUnitPriceSO + ISNULL(@FinalUnitPriceSO,0);
+	  		--END
 		  END
 	  
 		------------------------------Purchase And Sale------------------------------ 

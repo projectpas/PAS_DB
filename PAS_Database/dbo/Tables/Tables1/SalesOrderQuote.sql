@@ -43,7 +43,7 @@
     [IsActive]                 BIT             CONSTRAINT [SalesOrderQuote_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [QuoteParentId]            BIGINT          NULL,
     [QuoteTypeName]            VARCHAR (50)    NULL,
-    [AccountTypeName]          VARCHAR (256)    NULL,
+    [AccountTypeName]          VARCHAR (256)   NULL,
     [CustomerName]             VARCHAR (100)   NULL,
     [SalesPersonName]          VARCHAR (80)    NULL,
     [CustomerServiceRepName]   VARCHAR (80)    NULL,
@@ -53,11 +53,11 @@
     [EmployeeName]             VARCHAR (80)    NULL,
     [CurrencyName]             VARCHAR (50)    NULL,
     [CustomerWarningName]      VARCHAR (500)   NULL,
-    [ManagementStructureName]  VARCHAR (286)    NULL,
+    [ManagementStructureName]  VARCHAR (286)   NULL,
     [CustomerContactName]      VARCHAR (200)   NULL,
     [VersionNumber]            VARCHAR (50)    NULL,
-    [CustomerCode]             VARCHAR (100)    NULL,
-    [CustomerContactEmail]     VARCHAR (200)    NULL,
+    [CustomerCode]             VARCHAR (100)   NULL,
+    [CustomerContactEmail]     VARCHAR (200)   NULL,
     [CreditLimitName]          VARCHAR (50)    NULL,
     [StatusName]               VARCHAR (50)    NULL,
     [ManagementStructureName1] VARCHAR (50)    NULL,
@@ -75,6 +75,8 @@
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
     [LotId]                    BIGINT          NULL,
     [IsLotAssigned]            BIT             NULL,
+    [SourceBy]                 VARCHAR (30)    CONSTRAINT [DF_SalesOrderQuote_SourceBy] DEFAULT ('PAS') NULL,
+    [MarketplaceRef]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrderQuote] PRIMARY KEY CLUSTERED ([SalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuote_CreditTerms] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_SalesOrderQuote_CurrencyId] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -90,6 +92,8 @@
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteTypes] FOREIGN KEY ([QuoteTypeId]) REFERENCES [dbo].[MasterSalesOrderQuoteTypes] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 

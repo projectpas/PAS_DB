@@ -16,7 +16,8 @@
 	3	 22-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone 
 	4	 12-Mar-2025  Vishal Suthar		 Modified default sort column to SalesOrderQuoteId 
 	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
-	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
+	6    27-06-2025  Bhargav Saliya		 Add New Fields @NumberOfItemCount 
+	7    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return 
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -48,7 +49,9 @@ CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  @MasterCompanyId int = null,
  @EmployeeId bigint,
  @ManufacturerType varchar(50) = null,
- @NumberOfItemCount varchar(50)=null
+ @NumberOfItemCount varchar(50)=null,
+ @SourceBy varchar(50)=null,
+ @MarketplaceRef varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -127,7 +130,9 @@ BEGIN
 	  (Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
 	  (Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 	  SOQ.StatusId,SOQ.CreatedBy,SOQ.UpdatedBy,  
-      dbo.GenearteVersionNumber(SOQ.Version) AS 'VersionNumber',SOQ.IsNewVersionCreated,SOQ.CustomerReference,ISNULL(PartCount.Items,0) AS NumberOfItemCount
+      dbo.GenearteVersionNumber(SOQ.Version) AS 'VersionNumber',SOQ.IsNewVersionCreated,SOQ.CustomerReference,ISNULL(PartCount.Items,0) AS NumberOfItemCount, 
+	  CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END SourceBy, 
+	  ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) INNER JOIN MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
 	  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 	  LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
@@ -208,7 +213,7 @@ BEGIN
          M.VersionNumber,IsNull(M.SalesPrice,0) as 'QuoteAmount',M.IsNewVersionCreated,M.StatusId,M.CustomerReference,  
          PR.PriorityDescription as 'Priority',PR.PriorityType,M.SalesPerson,PT.PartNumber,PT.PartNumberType,PD.PartDescription,  
          PD.PartDescriptionType,M.CustomerTypeName as 'CustomerType',M.SalesOrderNumber,IsNULL(M.SoAmount,0) as 'SoAmount',M.CreatedDate,  
-         M.UpdatedDate,M.CreatedBy,M.UpdatedBy,MF.Manufacturer,MF.ManufacturerType,M.NumberOfItemCount   
+         M.UpdatedDate,M.CreatedBy,M.UpdatedBy,MF.Manufacturer,MF.ManufacturerType,M.NumberOfItemCount ,M.SourceBy, M.MarketplaceRef
          FROM Main M   
       LEFT JOIN PartCTE PT On M.SalesOrderQuoteId=PT.SalesOrderQuoteId  
       LEFT JOIN PartDescCTE PD on PD.SalesOrderQuoteId=M.SalesOrderQuoteId  
@@ -229,6 +234,8 @@ BEGIN
         (M.CustomerTypeName like '%' +@GlobalFilter+'%') OR   
         (M.CreatedBy like '%' +@GlobalFilter+'%') OR  
         (M.UpdatedBy like '%' +@GlobalFilter+'%') OR
+		(M.SourceBy like '%' +@GlobalFilter+'%') OR
+		(M.MarketplaceRef like '%' +@GlobalFilter+'%') OR
 		(M.NumberOfItemCount like '%' +@GlobalFilter+'%')
         ))  
         OR     
@@ -249,13 +256,15 @@ BEGIN
         (ISNULL(@VersionNumber,'') ='' OR M.VersionNumber LIKE '%'+@VersionNumber+'%') AND  
         (ISNULL(@CreatedBy,'') ='' OR M.CreatedBy LIKE '%'+@CreatedBy+'%') AND  
         (ISNULL(@UpdatedBy,'') ='' OR M.UpdatedBy LIKE '%'+@UpdatedBy+'%') AND  
+		(ISNULL(@SourceBy,'') ='' OR M.SourceBy LIKE '%'+@SourceBy+'%') AND  
+		(ISNULL(@MarketplaceRef,'') ='' OR M.MarketplaceRef LIKE '%'+@MarketplaceRef+'%') AND  
         (ISNULL(@CreatedDate,'') ='' OR Cast(M.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
         (ISNULL(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
 		(ISNULL(@NumberOfItemCount,'') ='' OR M.NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))  
         )), CTE_Count AS (SELECT COUNT(SalesOrderQuoteId) AS NumberOfItems FROM Result)  
       SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',QuoteAmount,IsNewVersionCreated,StatusId  
       ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  
-      CreatedDate,UpdatedDate,NumberOfItems,UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy',UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType',NumberOfItemCount FROM Result,CTE_Count  
+      CreatedDate,UpdatedDate,NumberOfItems,UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy',UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType',NumberOfItemCount,SourceBy,MarketplaceRef FROM Result,CTE_Count  
       ORDER BY    
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERQUOTEID')  THEN SalesOrderQuoteId END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
@@ -298,7 +307,11 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
-      CASE WHEN (@SortOrder=-1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END DESC
+      CASE WHEN (@SortOrder=-1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END DESC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='SOURCEBY')  THEN SourceBy END ASC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='SOURCEBY')  THEN SourceBy END DESC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='MarketplaceRef')  THEN MarketplaceRef END ASC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='MarketplaceRef')  THEN MarketplaceRef END DESC
       OFFSET @RecordFrom ROWS   
       FETCH NEXT @PageSize ROWS ONLY  
      END  

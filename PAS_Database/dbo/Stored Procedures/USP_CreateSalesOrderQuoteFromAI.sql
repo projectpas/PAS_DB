@@ -12,10 +12,10 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
 	1     05/08/2025      Amit Ghediya			Created
-
-
+	2     13/08/2025      Rajesh Gami			Implemented SourceBy And MarketPlaceRef
+	3     14/08/2025      Devendra Shekh		Added New Param @QuoteSendReviewId, Handled Multiple Part 
 *********************************************************************************************/   
-CREATE     PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
+CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerId BIGINT,
 	@MasterCompanyId INT,
@@ -23,7 +23,10 @@ CREATE     PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@EmployeeId BIGINT = 2,
 	@CustomerRfqId BIGINT,
 	@ItemMasterId BIGINT, --For part data,
-	@UnitSalesPriceTotal DECIMAL(18,2)
+	@UnitSalesPriceTotal DECIMAL(18,2),
+	@SourceBy VARCHAR(30) = NULL,
+	@MarketplaceRef VARCHAR(50) = NULL,
+	@QuoteSendReviewId INT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -222,7 +225,7 @@ BEGIN
 					,[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode]
 					,[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2] 
 					,[ManagementStructureName3],[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight]
-					,[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate] 
+					,[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],SourceBy,MarketplaceRef 
 				)
 				SELECT
 					@QuoteTypeId,@OpenDate,@ValidForDays,@QuoteExpireDate,@AccountTypeId,@CustomerId,@CustomerContactId,NULL,
@@ -235,7 +238,7 @@ BEGIN
 					@CustomerWarningName,@ManagementStructureName,@CustomerContactName,@VersionNumber,@CustomerCode,
 					@CustomerContactEmail,NULL,@StatusName,NULL,NULL,
 					NULL,NULL,@EnforceEffectiveDate,@IsEnforceApproval,0,
-					0,0,0,@CurrencyId,@CurrencyId,@ForeignExchangeRate;
+					0,0,0,@CurrencyId,@CurrencyId,@ForeignExchangeRate,@SourceBy, @MarketplaceRef;
 
 				SELECT @SalesOrderQuoteId = SCOPE_IDENTITY();
 
@@ -306,6 +309,7 @@ BEGIN
 							@RfqQuoteLoopID AS INT,
 							@MinRFQId AS INT,
 							@ILSQty INT,
+							@RFQItemMasterId BIGINT,
 							@NetSaleAmount DECIMAL(18,2) = 500;--Curruntly fix amount
 					
 						--Read all part which from RFQ
@@ -329,15 +333,16 @@ BEGIN
 							[IlsMinQty] [int] NULL,
 							[IlsComment] [varchar](max) NULL,
 							[IlsCondition] [varchar](50) NULL,
-							[ConditionId] [bigint] NULL
+							[ConditionId] [bigint] NULL,
+							[ItemMasterId] [bigint] NULL
 						)
 
 						INSERT  INTO #RfqQuoteDetail([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],
 														[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],
-														[IlsComment],[IlsCondition],[ConditionId])
+														[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
 												SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],
 														[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],
-														[IlsComment],[IlsCondition],[ConditionId]
+														[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId]
 												FROM @tbl_IlsRfqQuoteDetailsType;
 					--Create for SO Part
 					IF OBJECT_ID(N'tempdb..#SOQPartDetails') IS NOT NULL
@@ -397,7 +402,8 @@ BEGIN
 					BEGIN
 						SELECT @UnitSalesPriceTotal = [IlsPrice],
 							   @ConditionId = [ConditionId],
-							   @ILSQty = IlsQty
+							   @ILSQty = IlsQty,
+							   @RFQItemMasterId = CASE WHEN ISNULL(ItemMasterId, 0) > 0 THEN ItemMasterId ELSE @ItemMasterId END
 						FROM #RfqQuoteDetail WHERE ID = @MinRFQId;
 
 						--Set AI based Price
@@ -407,7 +413,7 @@ BEGIN
 						QtyRequested,QtyQuoted,QtyAvailable,QtyOH,CurrencyId,FxRate,GrossSaleAmount,DiscountAmount,NetSaleAmount,TaxAmount,UnitCostExtended,MarginAmount,
 						CustomerRequestDate,PromisedDate,EstimatedShipDate,UnitSalesPrice,MarkUpPercentage,DiscountPercentage,MarkUpAmount,SalesPriceExtended,UnitCost,
 						MarginPercentage,TaxPercentage,StatusName,AltOrEqType,Notes,MasterCompanyId,CreatedBy,IsNoQuote,IsLotAssigned,LotId)
-						SELECT 0,@SalesOrderQuoteId,@ItemMasterId,@ConditionId,@PriorityId,NULL,@ILSQty,@ILSQty,NULL,
+						SELECT 0,@SalesOrderQuoteId,@RFQItemMasterId,@ConditionId,@PriorityId,NULL,@ILSQty,@ILSQty,NULL,
 						@ILSQty,@ILSQty,0,0,@CurrencyId,1,0,0,@NetSaleAmount,0,0,@NetSaleAmount,
 						NULL,NULL,NULL,@NetSaleAmount,0,0,0,0,0,
 						0,0,NULL,NULL,'Created From AI',@MasterCompanyId,@CreatedBy,NULL,0,NULL;

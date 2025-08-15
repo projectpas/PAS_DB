@@ -44,7 +44,7 @@
     [IsActive]                 BIT             NOT NULL,
     [QuoteParentId]            BIGINT          NULL,
     [QuoteTypeName]            VARCHAR (50)    NULL,
-    [AccountTypeName]          VARCHAR (256)    NULL,
+    [AccountTypeName]          VARCHAR (256)   NULL,
     [CustomerName]             VARCHAR (100)   NULL,
     [SalesPersonName]          VARCHAR (80)    NULL,
     [CustomerServiceRepName]   VARCHAR (80)    NULL,
@@ -54,11 +54,11 @@
     [EmployeeName]             VARCHAR (80)    NULL,
     [CurrencyName]             VARCHAR (50)    NULL,
     [CustomerWarningName]      VARCHAR (500)   NULL,
-    [ManagementStructureName]  VARCHAR (286)    NULL,
+    [ManagementStructureName]  VARCHAR (286)   NULL,
     [CustomerContactName]      VARCHAR (200)   NULL,
     [VersionNumber]            VARCHAR (50)    NULL,
-    [CustomerCode]             VARCHAR (100)    NULL,
-    [CustomerContactEmail]     VARCHAR (200)    NULL,
+    [CustomerCode]             VARCHAR (100)   NULL,
+    [CustomerContactEmail]     VARCHAR (200)   NULL,
     [CreditLimitName]          VARCHAR (50)    NULL,
     [StatusName]               VARCHAR (50)    NULL,
     [ManagementStructureName1] VARCHAR (50)    NULL,
@@ -76,9 +76,13 @@
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
     [LotId]                    BIGINT          NULL,
     [IsLotAssigned]            BIT             NULL,
+    [SourceBy]                 VARCHAR (30)    NULL,
+    [MarketplaceRef]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrderQuoteAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteAudit_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

@@ -27,9 +27,12 @@
     [IsPNSNRestriction]              BIT           NULL,
     [DefaultConditionId]             INT           NULL,
     [IsEnforceAWBTrack]              BIT           NULL,
+    [ValidDays]                      INT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMaster] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingId] ASC),
     CONSTRAINT [FK_PurchaseOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

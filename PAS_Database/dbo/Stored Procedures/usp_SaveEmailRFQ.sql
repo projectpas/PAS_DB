@@ -11,6 +11,8 @@
  ** --   --------		-------				--------------------------------          
     1    06 Aug 2025	Devendra Shekh		Created
     2    07 Aug 2025	Devendra Shekh		Added Changes for PartDetails Insert and RFQNumber Generate
+    3    13 Aug 2025	Devendra Shekh		Added Changes To Process Send Quote Based on [AiIntegrationSetting]
+    4    14 Aug 2025	Devendra Shekh		Added Changes To for AutoQuotePrice
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -31,6 +33,8 @@ BEGIN
 			DECLARE @CreatedBy VARCHAR(50), @MasterCompanyId INT;
 			DECLARE @TotalRow INT, @CurrentRow INT = 1;
 			DECLARE @CodeTypeId BIGINT, @CurrentNumber BIGINT = 0, @RFQNumber NVARCHAR(200);
+			DECLARE @IsAutoEmailSend BIT;
+			DECLARE @EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType;
 
 			IF OBJECT_ID(N'tempdb..#tmpCodePrefix') IS NOT NULL
 			BEGIN
@@ -145,6 +149,114 @@ BEGIN
 		END
 
 		UPDATE [DBO].[IntegrationEmail] SET [CustomerRfqId] = @CustomerRfqId WHERE IntegrationEmailID = @IntegrationEmailID;
+
+		--Get Value from Aisetting table mastercompany wise
+		SELECT @IsAutoEmailSend = ISNULL(SIS.[IsAutoEmailSend],0)
+		FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
+		WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
+
+		--Save Send Quote
+		IF(ISNULL(@IsAutoEmailSend, 0) <> 0 AND ISNULL(@CustomerRfqId, 0) > 0)
+		BEGIN
+			DECLARE @TotalQuoteRow INT, @CurrentQuoteRow INT;
+			DECLARE @CustomerRfqPartMappingId BIGINT, @Condition VARCHAR(250), @PartNumber VARCHAR(250);
+			DECLARE @QuoteSendReviewId INT = 0, @UnitPrice DECIMAL(18,2) = 0;
+			
+			IF OBJECT_ID(N'tempdb..#tmpQuote') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpQuote
+			END
+
+			IF OBJECT_ID('tempdb..#tmpRFQDetails') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpRFQDetails;
+			END
+
+			CREATE TABLE #tmpRFQDetails
+			(
+				customerRfqId INT,
+				rfqId NVARCHAR(400),
+				partNumber VARCHAR(100),
+				masterCompanyId INT,
+				ilsPrice DECIMAL(18, 2)
+			);
+
+			IF OBJECT_ID(N'tempdb..#tmpRFQPriceResult') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpRFQPriceResult
+			END
+
+			CREATE TABLE #tmpRFQPriceResult
+			(
+				[ID] BIGINT NULL, 
+				[PartNumber] VARCHAR(50) NULL,
+				[Condition] VARCHAR(50) NULL,
+				[UnitPrice] DECIMAL(18,2) NULL,
+				[Code] VARCHAR(50) NULL,
+				[Sequence] Int NULL,
+				[QuoteSendReviewId] Int NULL,
+				[QuoteSendReview] VARCHAR(50) NULL,
+			)
+
+			SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId],
+					0 AS [ConditionId], 0 AS [Price]
+			INTO #tmpQuote
+			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+
+			SELECT @TotalQuoteRow = MAX(RowId), @CurrentQuoteRow = MIN(RowId) FROM #tmpQuote;
+
+			WHILE(@TotalQuoteRow >= @CurrentQuoteRow) AND ISNULL(@TotalQuoteRow, 0) > 0
+			BEGIN
+
+				SELECT @CustomerRfqPartMappingId = CustomerRfqPartMappingId, @PartNumber = PartNumber, @Condition = Condition FROM #tmpQuote WHERE RowId = @CurrentQuoteRow;
+
+				TRUNCATE TABLE #tmpRFQPriceResult
+
+				INSERT INTO #tmpRFQPriceResult
+				EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] @PartNumber, @Condition, @MasterCompanyId;
+
+				SELECT @UnitPrice = ISNULL(UnitPrice, 0), @QuoteSendReviewId = QuoteSendReviewId FROM #tmpRFQPriceResult;
+				 
+				UPDATE TMP
+				SET	TMP.[Price] = @UnitPrice,
+					TMP.ConditionId = A.ConditionId
+				FROM #tmpQuote TMP 
+				OUTER APPLY (
+					SELECT TOP 1 CD.ConditionId
+					FROM [dbo].[Condition] CD WITH(NOLOCK) 
+					WHERE CD.[Description] = TMP.Condition AND CD.MasterCompanyId = TMP.MasterCompanyId
+				) A
+				WHERE RowId = @CurrentQuoteRow;
+
+				--TRUNCATE TABLE #tmpRFQDetails;
+				----Get price based on rfqId
+				--INSERT INTO #tmpRFQDetails
+				--EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
+
+				--UPDATE TMP
+				--SET	TMP.[Price] = (SELECT ISNULL(ilsPrice,0) FROM #tmpRFQDetails),
+				--	TMP.ConditionId = A.ConditionId
+				--FROM #tmpQuote TMP 
+				--OUTER APPLY (
+				--	SELECT TOP 1 CD.ConditionId
+				--	FROM [dbo].[Condition] CD WITH(NOLOCK) 
+				--	WHERE CD.[Description] = TMP.Condition AND CD.MasterCompanyId = TMP.MasterCompanyId
+				--) A
+				--WHERE RowId = @CurrentQuoteRow;
+
+				SET @CurrentQuoteRow += 1;
+			END
+
+			INSERT INTO @EmailRfqQuoteDetailsType
+			(	[CustomerRfqQuoteDetailsId], [CustomerRfqQuoteId], [ServiceType], [QuotePrice], [QuoteTat], [Low], [Mid], [AvgTat], [QuoteTatQty], [QuoteCond], [QuoteTrace], [IlsQty],
+				[IlsTraceability], [IlsUom], [IlsPrice], [IlsPriceType], [IlsTagDate], [IlsLeadTime], [IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [CustomerRfqPartMappingId]
+			)
+			SELECT	0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', [Quantity],
+					'', '', [Price], '', NULL, '', 0, '', [Condition], [ConditionId], [CustomerRfqPartMappingId]
+			FROM #tmpQuote;
+
+			EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId;
+		END
 	END		
 	--COMMIT
 	END TRY	
@@ -153,7 +265,7 @@ BEGIN
 		--	ROLLBACK TRAN;
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-		, @AdhocComments     VARCHAR(150)    = 'usp_AssignEmployeeToRFQs' 
+		, @AdhocComments     VARCHAR(150)    = 'usp_SaveEmailRFQ' 
 		, @ProcedureParameters VARCHAR(3000) = '@EmployeeId = ''' + CAST(ISNULL(@IntegrationEmailID, '') as varchar(100))
 		, @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

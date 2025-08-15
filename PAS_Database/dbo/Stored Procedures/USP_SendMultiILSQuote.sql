@@ -17,7 +17,7 @@
    	4    14-08-2025   Devendra Shekh	Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SendMultiILSQuote]
+CREATE      PROCEDURE [dbo].[USP_SendMultiILSQuote]
 	@tbl_IlsRfqMultipleQuoteDetailsType IlsRfqMultipleQuoteDetailsType READONLY,
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,
@@ -158,7 +158,7 @@ BEGIN
 				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));						
 
-				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
+				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 				BEGIN
 						EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @RfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@GetCustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
 				END

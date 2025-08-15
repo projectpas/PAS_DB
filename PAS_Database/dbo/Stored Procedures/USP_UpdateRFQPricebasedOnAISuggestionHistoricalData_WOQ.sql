@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿ /************************************************************* 
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -45,7 +45,8 @@ BEGIN
 				@PerUnitPrice DECIMAL(18,2) = 0,
 				@CreatedBy VARCHAR(100) = 'Admin',
 				@WOModuleId INT,
-				@IsAutoInternalQuote BIT;
+				@IsAutoInternalQuote BIT,
+				@Condition VARCHAR(256);
 
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
@@ -61,11 +62,12 @@ BEGIN
 			CustomerRfqId BIGINT NULL,
 			RfqId BIGINT NULL,
 			PartNumber VARCHAR(200) NULL,
-			MasterCompanyId BIGINT NULL
+			MasterCompanyId BIGINT NULL,
+			Condition VARCHAR(256),
 		)
 
-		INSERT INTO #tmpCustomerRfq (CustomerRfqId,RfqId,PartNumber,MasterCompanyId) 
-				  SELECT CRFQ.CustomerRfqId,CRFQ.RfqId,CRFQ.LinePartNumber,CRFQ.MasterCompanyId
+		INSERT INTO #tmpCustomerRfq (CustomerRfqId,RfqId,PartNumber,MasterCompanyId,Condition) 
+				  SELECT CRFQ.CustomerRfqId,CRFQ.RfqId,CRFQ.LinePartNumber,CRFQ.MasterCompanyId,Condition
 		FROM [DBO].[CustomerRfq] CRFQ WITH(NOLOCK)
 		WHERE CRFQ.[IsQuote] IS  NULL
 		ORDER BY CRFQ.CustomerRfqId DESC
@@ -76,7 +78,8 @@ BEGIN
 			 SELECT @PartNumber = PartNumber,
 					@MasterCompanyId = MasterCompanyId,
 					@CustomerRfqId = CustomerRfqId,
-					@RfqId = RfqId
+					@RfqId = RfqId,
+					@Condition = Condition
 			 FROM #tmpCustomerRfq WITH(NOLOCK) 
 			 WHERE [ID] = @MasterLoopID;			 
 			 
@@ -138,12 +141,32 @@ BEGIN
 
 					   SET @PerUnitPrice  =  @UnitSalesPriceTotal / @RecordsTotal;
 
-					   --Check if PercentValue selected or not
-					   IF(@AiPercentValue > 0)
-					   BEGIN
-							SET @FinalUnitPrice  = (@PerUnitPrice * @AiPercentValue) / 100;
-							SET @PerUnitPrice = @PerUnitPrice + @FinalUnitPrice;
-					   END
+					  -- --Check if PercentValue selected or not
+					  -- IF(@AiPercentValue > 0)
+					  -- BEGIN
+							--SET @FinalUnitPrice  = (@PerUnitPrice * @AiPercentValue) / 100;
+							--SET @PerUnitPrice = @PerUnitPrice + @FinalUnitPrice;
+					  -- END
+
+					  CREATE TABLE #RFQHistoryResultTestdata (
+							ID INT,
+							PartNumber VARCHAR(50),
+							Condition VARCHAR(50),
+							UnitPrice DECIMAL(18,2),
+							Code VARCHAR(50),
+							[Sequence] INT,
+							QuoteSendReviewId INT,
+							QuoteSendReview VARCHAR(50)
+					  );
+
+					  --Call For get AI Price
+					  INSERT INTO #RFQHistoryResultTestdata
+					  EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] @PartNumber,@Condition,@MasterCompanyId;
+
+					  SELECT @PerUnitPrice = [UnitPrice] FROM #RFQHistoryResultTestdata;
+
+					  -- Clean up
+					  DROP TABLE #RFQHistoryResultTestdata;
 					   
 					   ---------------------------Start Insert into Rfq Quote table --------------------------------------------------
 						INSERT INTO [dbo].[CustomerRfqQuote]

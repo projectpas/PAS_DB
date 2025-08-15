@@ -18,9 +18,10 @@
 	5    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
  	6    13-08-2025   Rajesh Gami	 Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef
 	7    14-08-2025	  Devendra Shekh Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId  
+	8	 15-Aug-2025  Bhargav Saliya	Added [PriorityId] and [ExpirationDate] 
 -- EXEC USP_SendILSQuote
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SendILSQuote]
+CREATE     PROCEDURE [dbo].[USP_SendILSQuote]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -71,7 +72,9 @@ BEGIN
 								e.IlsComment=A.IlsComment,
 								e.IlsCondition=A.IlsCondition,
 								e.UpdatedBy=@CreatedBy,
-								e.UpdatedDate = GETUTCDATE()
+								e.UpdatedDate = GETUTCDATE(),
+								e.PriorityId = A.PriorityId,
+								e.ExpirationDate = A.ExpirationDate
 								FROM dbo.CustomerRfqQuoteDetails e
 								INNER JOIN @tbl_IlsRfqQuoteDetailsType a
 								ON e.CustomerRfqQuoteDetailsId = A.CustomerRfqQuoteDetailsId
@@ -79,10 +82,10 @@ BEGIN
 						INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 								   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue])
+									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue],[PriorityId],[ExpirationDate])
 						SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue
+							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue,[PriorityId],[ExpirationDate]
 						 FROM @tbl_IlsRfqQuoteDetailsType WHERE ISNULL(CustomerRfqQuoteDetailsId,0) = 0;
 
 						------- Update Csutomer RFQ for Is Quote added ----------					 
@@ -108,10 +111,10 @@ BEGIN
 						INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 								   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue])
+									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue],[PriorityId],[ExpirationDate])
 						SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
 									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId,	
-							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue
+							   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue,[PriorityId],[ExpirationDate]
 						 FROM @tbl_IlsRfqQuoteDetailsType;
 
 						 ------- Update Csutomer RFQ for Is Quote added ----------					 

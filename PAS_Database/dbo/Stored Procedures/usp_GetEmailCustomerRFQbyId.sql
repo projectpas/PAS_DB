@@ -10,6 +10,7 @@
  ** --		--------			-------				--------------------------------            
  **	1		08-Aug-2025		Devendra Shekh			Created
  **	2		13-Aug-2025		Devendra Shekh			Added Changes for Suggestion Price
+ **	3		15-Aug-2025		Devendra Shekh			Modified for Price Changes
  
 EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 172
 **************************************************************/  
@@ -23,7 +24,7 @@ SET NOCOUNT ON
 		BEGIN
 			
 			DECLARE @TotalRow INT, @CurrentRow INT;
-			DECLARE @CustomerRfqPartMappingId BIGINT, @MasterCompanyId INT, @PartNumber VARCHAR(250);
+			DECLARE @CustomerRfqPartMappingId BIGINT, @MasterCompanyId INT, @PartNumber VARCHAR(250), @Condition VARCHAR(250);
 
 			IF OBJECT_ID('tempdb..#tmpCustomerRfqPartMapping') IS NOT NULL
 				DROP TABLE #tmpCustomerRfqPartMapping;
@@ -48,17 +49,22 @@ SET NOCOUNT ON
 				UnitPrice [decimal](18,2) NULL
 			);
 
-			IF OBJECT_ID('tempdb..#tmpRFQDetails') IS NOT NULL
-				DROP TABLE #tmpRFQDetails;
+			IF OBJECT_ID(N'tempdb..#tmpResult') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpResult
+			END
 
-			CREATE TABLE #tmpRFQDetails
+			CREATE TABLE #tmpResult
 			(
-				customerRfqId INT,
-				rfqId NVARCHAR(400),
-				partNumber VARCHAR(100),
-				masterCompanyId INT,
-				ilsPrice DECIMAL(18, 2)
-			);			
+				[ID] BIGINT NULL, 
+				[PartNumber] VARCHAR(50) NULL,
+				[Condition] VARCHAR(50) NULL,
+				[UnitPrice] DECIMAL(18,2) NULL,
+				[Code] VARCHAR(50) NULL,
+				[Sequence] Int NULL,
+				[QuoteSendReviewId] Int NULL,
+				[QuoteSendReview] VARCHAR(50) NULL,
+			)
 
 			INSERT INTO #tmpCustomerRfqPartMapping
 			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
@@ -69,15 +75,14 @@ SET NOCOUNT ON
 			
 			WHILE(ISNULL(@TotalRow, 0) >= ISNULL(@CurrentRow, 0)) AND @TotalRow > 0
 			BEGIN
-				SELECT @CustomerRfqPartMappingId = CustomerRfqPartMappingId, @MasterCompanyId = MasterCompanyId, @PartNumber = PartNumber FROM #tmpCustomerRfqPartMapping WHERE Id = @CurrentRow;
+				SELECT @CustomerRfqPartMappingId = CustomerRfqPartMappingId, @MasterCompanyId = MasterCompanyId, @PartNumber = PartNumber, @Condition = Condition FROM #tmpCustomerRfqPartMapping WHERE Id = @CurrentRow;
 
-				TRUNCATE TABLE #tmpRFQDetails;
-				--Get price based on rfqId
-				INSERT INTO #tmpRFQDetails
-				EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
+				TRUNCATE TABLE #tmpResult
+				INSERT INTO #tmpResult
+				EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition]	@PartNumber, @Condition, @MasterCompanyId
 
 				UPDATE TMP
-				SET	TMP.UnitPrice = (SELECT ISNULL(ilsPrice,0) FROM #tmpRFQDetails)
+				SET	TMP.UnitPrice = (SELECT ISNULL(UnitPrice,0) FROM #tmpResult)
 				FROM #tmpCustomerRfqPartMapping TMP WHERE Id = @CurrentRow
 				
 				SET @CurrentRow += 1;

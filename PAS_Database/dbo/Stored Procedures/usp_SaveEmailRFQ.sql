@@ -13,6 +13,7 @@
     2    07 Aug 2025	Devendra Shekh		Added Changes for PartDetails Insert and RFQNumber Generate
     3    13 Aug 2025	Devendra Shekh		Added Changes To Process Send Quote Based on [AiIntegrationSetting]
     4    14 Aug 2025	Devendra Shekh		Added Changes To for AutoQuotePrice
+    5    15 Aug 2025	Devendra Shekh		Added Changes To check Part/Customer are in tables or not before quote
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -33,7 +34,7 @@ BEGIN
 			DECLARE @CreatedBy VARCHAR(50), @MasterCompanyId INT;
 			DECLARE @TotalRow INT, @CurrentRow INT = 1;
 			DECLARE @CodeTypeId BIGINT, @CurrentNumber BIGINT = 0, @RFQNumber NVARCHAR(200);
-			DECLARE @IsAutoEmailSend BIT;
+			DECLARE @ALlowProcessQuote BIT = 1;
 			DECLARE @EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType;
 
 			IF OBJECT_ID(N'tempdb..#tmpCodePrefix') IS NOT NULL
@@ -148,15 +149,10 @@ BEGIN
 			END
 		END
 
-		UPDATE [DBO].[IntegrationEmail] SET [CustomerRfqId] = @CustomerRfqId WHERE IntegrationEmailID = @IntegrationEmailID;
-
-		--Get Value from Aisetting table mastercompany wise
-		SELECT @IsAutoEmailSend = ISNULL(SIS.[IsAutoEmailSend],0)
-		FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
-		WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
+		UPDATE [DBO].[IntegrationEmail] SET [CustomerRfqId] = @CustomerRfqId, [IsProcessed] = 1 WHERE IntegrationEmailID = @IntegrationEmailID;
 
 		--Save Send Quote
-		IF(ISNULL(@IsAutoEmailSend, 0) <> 0 AND ISNULL(@CustomerRfqId, 0) > 0)
+		IF(ISNULL(@CustomerRfqId, 0) > 0)
 		BEGIN
 			DECLARE @TotalQuoteRow INT, @CurrentQuoteRow INT;
 			DECLARE @CustomerRfqPartMappingId BIGINT, @Condition VARCHAR(250), @PartNumber VARCHAR(250);
@@ -199,7 +195,7 @@ BEGIN
 			)
 
 			SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId],
-					0 AS [ConditionId], 0 AS [Price]
+					0 AS [ConditionId], 0 AS [Price], 0 AS [ItemMasterId], 0 AS [CustomerId]
 			INTO #tmpQuote
 			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
@@ -247,15 +243,31 @@ BEGIN
 				SET @CurrentQuoteRow += 1;
 			END
 
-			INSERT INTO @EmailRfqQuoteDetailsType
-			(	[CustomerRfqQuoteDetailsId], [CustomerRfqQuoteId], [ServiceType], [QuotePrice], [QuoteTat], [Low], [Mid], [AvgTat], [QuoteTatQty], [QuoteCond], [QuoteTrace], [IlsQty],
-				[IlsTraceability], [IlsUom], [IlsPrice], [IlsPriceType], [IlsTagDate], [IlsLeadTime], [IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [CustomerRfqPartMappingId]
-			)
-			SELECT	0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', [Quantity],
-					'', '', [Price], '', NULL, '', 0, '', [Condition], [ConditionId], [CustomerRfqPartMappingId]
-			FROM #tmpQuote;
+			UPDATE TMP
+			SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END,
+				TMP.CustomerId = CASE WHEN ISNULL(CS.CustomerId, 0) > 0 THEN CS.CustomerId ELSE 0 END
+			FROM #tmpQuote TMP
+			LEFT JOIN dbo.CustomerRfq RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
+			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId
+			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) AND CS.MasterCompanyId = TMP.MasterCompanyId
 
-			EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId;
+			IF EXISTS(SELECT 1 FROM #tmpQuote WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(CustomerId, 0) = 0)
+			BEGIN
+				SET @ALlowProcessQuote = 0;
+			END
+
+			IF(@ALlowProcessQuote > 0)
+			BEGIN
+				INSERT INTO @EmailRfqQuoteDetailsType
+				(	[CustomerRfqQuoteDetailsId], [CustomerRfqQuoteId], [ServiceType], [QuotePrice], [QuoteTat], [Low], [Mid], [AvgTat], [QuoteTatQty], [QuoteCond], [QuoteTrace], [IlsQty],
+					[IlsTraceability], [IlsUom], [IlsPrice], [IlsPriceType], [IlsTagDate], [IlsLeadTime], [IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [CustomerRfqPartMappingId]
+				)
+				SELECT	0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', [Quantity],
+						'', '', [Price], '', NULL, '', 0, '', [Condition], [ConditionId], [CustomerRfqPartMappingId]
+				FROM #tmpQuote;
+
+				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId;
+			END
 		END
 	END		
 	--COMMIT

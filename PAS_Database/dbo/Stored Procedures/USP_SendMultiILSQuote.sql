@@ -15,9 +15,10 @@
     2    12-08-2025   Devendra Shekh	Added Changes for Email Integration
    	3    13-08-2025   Rajesh Gami		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef      
    	4    14-08-2025   Devendra Shekh	Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId
+	5    15-08-2025   Devendra Shekh	added @IntegrationPortalId select
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SendMultiILSQuote]
+CREATE   PROCEDURE [dbo].[USP_SendMultiILSQuote]
 	@tbl_IlsRfqMultipleQuoteDetailsType IlsRfqMultipleQuoteDetailsType READONLY,
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,
@@ -47,13 +48,13 @@ BEGIN
 		DECLARE @ItemMasterId BIGINT = 0,
 				@CustomerId BIGINT = 0,
 				@PartNumber NVARCHAR(200) = NULL,
-				@BuyerCompanyName NVARCHAR(200) = NULL,
-				@IsAutoInternalQuote BIT;
+				@BuyerCompanyName NVARCHAR(200) = NULL;
 
 		--Get markup % on fly
 		SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
 		SELECT TOP 1 @IntegrationPortalId = IntegrationPortalId FROM @tbl_IlsRfqMultipleQuoteDetailsType;
+		SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_IlsRfqMultipleQuoteDetailsType);
 
 		--Read all part which from RFQ
 		IF OBJECT_ID(N'tempdb..#RfqMultiQuoteDetail') IS NOT NULL
@@ -78,7 +79,8 @@ BEGIN
 			[IlsCondition] [varchar](50) NULL,
 			[ConditionId] [bigint] NULL,
 			[IntegrationPortalId] [int] NULL,
-			[CustomerRfqPartMappingId] [bigint] NULL
+			[CustomerRfqPartMappingId] [bigint] NULL,
+			[ItemMasterId] [bigint] NULL,
 		)
 
 		INSERT	INTO #RfqMultiQuoteDetail
@@ -128,7 +130,10 @@ BEGIN
 
 				------- Update Csutomer RFQ for Is Quote added ----------					 
 				UPDATE [dbo].[CustomerRfq] 
-					SET [IsQuote] = 1
+					SET [IsQuote] = 1,
+						[QuotedBy] = @CreatedBy,
+						[QuotedDate] = GETUTCDATE(),
+						QuoteSendReviewId = @QuoteSendReviewId
 				WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
 				---------Create SOQ With part---------------------------------------------
@@ -150,15 +155,10 @@ BEGIN
 										FROM [dbo].[CustomerRfqQuoteDetails] WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
 
 
-				--Get Ai Percent Value from Aisetting table mastercompany wise
-				SELECT @IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
-				FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
-				WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
-
 				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));						
 
-				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
+				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 				BEGIN
 						EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @RfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@GetCustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
 				END
@@ -173,6 +173,7 @@ BEGIN
 		BEGIN
 
 			DECLARE @TotalRow INT, @CurrentRow INT = 0;
+			DECLARE @ALlowProcessQuote BIT = 1;
 
 			IF OBJECT_ID(N'tempdb..#RfqQuote') IS NOT NULL
 			BEGIN
@@ -232,29 +233,41 @@ BEGIN
 
 					----- Update Csutomer RFQ for Is Quote added ----------					 
 					UPDATE [dbo].[CustomerRfq] 
-					SET [IsQuote] = 1
+					SET [IsQuote] = 1,
+						[QuotedBy] = @CreatedBy,
+						[QuotedDate] = GETUTCDATE(),
+						QuoteSendReviewId = @QuoteSendReviewId
 					WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
 					---------Create SOQ With part---------------------------------------------
 					SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],  @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,'') FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
+					UPDATE TMP
+					SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END
+					FROM #RfqMultiQuoteDetail TMP
+					LEFT JOIN [dbo].CustomerRfqPartMapping RFQP WITH(NOLOCK) ON RFQP.[CustomerRfqPartMappingId] = TMP.[CustomerRfqPartMappingId]
+					LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(RFQP.PartNumber)) AND IM.MasterCompanyId = @MasterCompanyId
+
 					--Declare type
 					DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
 
 					INSERT  INTO @EmailRfqQuoteDetails
-					([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId])
-					SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],NULL,NULL,@ConditionId
-					FROM [dbo].[CustomerRfqQuoteDetails] WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
-
-					--Get Ai Percent Value from Aisetting table mastercompany wise
-					SELECT @IsAutoInternalQuote = ISNULL(SIS.IsAutoInternalQuote,0)
-					FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
-					WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
+					([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
+					SELECT RFQD.[CustomerRfqQuoteDetailsId],RFQD.[CustomerRfqQuoteId],RFQD.[IlsQty],NULL,NULL,RFQD.[IlsPrice],RFQD.[IlsPriceType],RFQD.[IlsTagDate],NULL,RFQD.[IlsMinQty],NULL,NULL,@ConditionId,[ItemMasterId]
+					FROM [dbo].[CustomerRfqQuoteDetails] RFQD
+					LEFT JOIN [dbo].CustomerRfqQuote QD WITH(NOLOCK) ON RFQD.CustomerRfqQuoteId = QD.CustomerRfqQuoteId
+					LEFT JOIN #RfqMultiQuoteDetail TMP ON QD.[CustomerRfqId] = TMP.[CustomerRfqId]
+					WHERE RFQD.[CustomerRfqQuoteId] = @CustomerRfqQuoteId AND TMP.ID = @MinRFQId;
 
 					SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 					SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));						
 
-					IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0 AND ISNULL(@IsAutoInternalQuote,0) > 0)
+					IF EXISTS(SELECT 1 FROM #RfqMultiQuoteDetail WHERE ISNULL(ItemMasterId, 0) = 0)
+					BEGIN
+						SET @ALlowProcessQuote = 0;
+					END
+
+					IF(ISNULL(@ALlowProcessQuote,0) > 0 AND ISNULL(@CustomerId,0) > 0)
 					BEGIN
 						EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@GetCustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
 					END

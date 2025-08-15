@@ -10,9 +10,9 @@
  ** --		--------			-------				--------------------------------            
  **	1		08-Aug-2025		Devendra Shekh			Created
  **	2		13-Aug-2025		Devendra Shekh			Added Changes for Suggestion Price
- **	3		15-Aug-2025		Devendra Shekh			Modified for Price Changes
+ **	3		15-Aug-2025		Devendra Shekh			Modified for Price Changes, Added QuoteSendReviewId
  
-EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 172
+EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 281
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
 @CustomerRfqId BIGINT = NULL
@@ -46,7 +46,8 @@ SET NOCOUNT ON
 				UpdatedDate [datetime2](7) NULL,
 				IsActive [bit] NULL,
 				IsDeleted [bit] NULL,
-				UnitPrice [decimal](18,2) NULL
+				UnitPrice [decimal](18,2) NULL,
+				QuoteSendReviewId [Int] NULL,
 			);
 
 			IF OBJECT_ID(N'tempdb..#tmpResult') IS NOT NULL
@@ -68,7 +69,7 @@ SET NOCOUNT ON
 
 			INSERT INTO #tmpCustomerRfqPartMapping
 			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], 0
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], 0, 0
 			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 			SELECT @TotalRow = MAX(Id), @CurrentRow = MIN(Id) FROM #tmpCustomerRfqPartMapping;
@@ -82,7 +83,8 @@ SET NOCOUNT ON
 				EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition]	@PartNumber, @Condition, @MasterCompanyId
 
 				UPDATE TMP
-				SET	TMP.UnitPrice = (SELECT ISNULL(UnitPrice,0) FROM #tmpResult)
+				SET	TMP.UnitPrice = (SELECT ISNULL(UnitPrice,0) FROM #tmpResult),
+					TMP.QuoteSendReviewId = (SELECT ISNULL(QuoteSendReviewId,0) FROM #tmpResult)
 				FROM #tmpCustomerRfqPartMapping TMP WHERE Id = @CurrentRow
 				
 				SET @CurrentRow += 1;
@@ -94,7 +96,7 @@ SET NOCOUNT ON
 			FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], UnitPrice
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [UnitPrice], [QuoteSendReviewId]
 			FROM #tmpCustomerRfqPartMapping;
 			
 		END

@@ -21,6 +21,7 @@
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
 	@tbl_CustomerRfqType CustomerRfqType READONLY,
+	@IsFromIls INT NULL,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200)
 AS
@@ -105,14 +106,20 @@ BEGIN
 						INNER JOIN [CustomerRfq] rfq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
 						WHERE rfqq.MasterCompanyId = @MasterCompanyId
 
-					--UPDATE rfq SET rfq.IsQuote = 1
-					--	FROM [dbo].[CustomerRfq] rfq WITH(NOLOCK)
-					--	INNER JOIN [CustomerRfqQuote] rfqq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
-					--	WHERE rfqq.MasterCompanyId = @MasterCompanyId AND ISNULL(rfqq.IsDeleted,0) = 0
 
-						
-					--Auto quote from sync
-					EXEC DBO.USP_AutoCreateILSQuoteSyc @MasterCompanyId
+					IF(ISNULL(@IsFromIls,0) = 0)
+					BEGIN
+						 UPDATE rfq SET rfq.IsQuote = 1
+						 FROM [dbo].[CustomerRfq] rfq WITH(NOLOCK)
+						 INNER JOIN [CustomerRfqQuote] rfqq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
+						 WHERE rfqq.MasterCompanyId = @MasterCompanyId AND ISNULL(rfqq.IsDeleted,0) = 0
+					END
+					ELSE
+					BEGIN
+						 --Auto quote from sync
+						 EXEC DBO.USP_AutoCreateILSQuoteSyc @MasterCompanyId
+					END
+					
 
 					COMMIT;					
     END TRY    

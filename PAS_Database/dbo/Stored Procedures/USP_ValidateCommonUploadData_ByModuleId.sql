@@ -18,6 +18,7 @@
 	8	 08-Aug-2025		Ayushi Patel			Removed customer phone validation
 	9	 11-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
 	10	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
+	11	 15-Aug-2025		Ayushi Patel			Handle Part with multiple Manufacturer for stockline
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -36,7 +37,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
-CREATE   PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
+CREATE    PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,
 	@MasterCompanyId INT = NULL, 
@@ -169,23 +170,64 @@ BEGIN
 			DECLARE @Manufacture VARCHAR(255)
 			if (@ModuleId = @StocklineModule)
 			BEGIN
-				-- Get ManufacturerId from #DynamicKeyValue
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
-				WHERE FieldName = 'ManufacturerId'
+				WHERE FieldName = 'ManufacturerId';
 
-				-- Get ManufacturerName from ItemMaster (if PartNumber is selected)
-				IF EXISTS (SELECT 1 FROM #ImportFields WHERE DropdownListValue = 'PartNumber' AND ModuleId = @ModuleId)
+				--  Check if 'PartNumber' is present in ImportFields
+				IF EXISTS (
+					SELECT 1 
+					FROM #ImportFields 
+					WHERE DropdownListValue = 'PartNumber' AND ModuleId = @ModuleId
+				)
 				BEGIN
-					SELECT @ManufacturerName = IM.ManufacturerName
-					FROM ItemMaster IM WITH (NOLOCK)
-					JOIN #ImportFields IMF ON IMF.DropdownListValueId = IM.ItemMasterId
+					--  Get all matching ManufacturerIds based on PartNumber(s)
+					DECLARE @MatchingManufacturerIds TABLE (ManufacturerId BIGINT, ManufacturerName NVARCHAR(200));
+
+					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName)
+					SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName
+					FROM ItemMaster IM
+					JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
 					WHERE IMF.ModuleId = @ModuleId
-					AND IMF.DropdownListValue = 'PartNumber'
+					  AND IMF.DropdownListValue = 'PartNumber';
+
+					--  Check how many different manufacturers were found
+					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
+					BEGIN
+						PRINT 'Multiple manufacturers found for PartNumber.';
+
+						--  If @ManufacturerId matches any from the list, do nothing
+						IF EXISTS (
+							SELECT 1 
+							FROM @MatchingManufacturerIds 
+							WHERE ManufacturerName = @ManufacturerId
+						)
+						BEGIN
+							PRINT 'Given ManufacturerId is valid. Keeping as is.';
+							SET @ManufacturerName = @ManufacturerId;
+						END
+						ELSE
+						BEGIN
+							--  Pick first manufacturer and set @ManufacturerName
+							SELECT TOP 1 
+								--@ManufacturerId = ManufacturerName,
+								@ManufacturerName = ManufacturerName
+							FROM @MatchingManufacturerIds
+							ORDER BY ManufacturerName ASC; 
+						END
+					END
+					ELSE
+					BEGIN
+						-- Only one manufacturer found — assign directly
+						SELECT TOP 1 
+							--@ManufacturerId = ManufacturerName,
+							@ManufacturerName = ManufacturerName
+						FROM @MatchingManufacturerIds;
+					END
 				END
 
-				SET @Manufacture = @ManufacturerId;
-				SET @ManufacturerId = @ManufacturerName;
+				--SET @Manufacture = @ManufacturerId;
+				--SET @ManufacturerId = @ManufacturerName;
 			END
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
@@ -207,8 +249,8 @@ BEGIN
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
 												
-												WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
-													AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
+												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
+												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
 										ELSE ''
 										END,
@@ -220,7 +262,7 @@ BEGIN
 			if (@ModuleId = @StocklineModule)
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
-				   LOWER(@Manufacture) <> LOWER(@ManufacturerName)
+				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
 				BEGIN
 					-- Update the ManufacturerId in #DynamicKeyValue
 					UPDATE #DynamicKeyValue
@@ -300,23 +342,64 @@ BEGIN
 			END
 			if (@ModuleId = @StocklineModule)
 			BEGIN
-				-- Get ManufacturerId from #DynamicKeyValue
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
-				WHERE FieldName = 'ManufacturerId'
-			
-				-- Get ManufacturerName from ItemMaster (if PartNumber is selected)
-				IF EXISTS (SELECT 1 FROM #ImportFields WHERE DropdownListValue = 'PartNumber' AND ModuleId = @ModuleId)
+				WHERE FieldName = 'ManufacturerId';
+
+				--  Check if 'PartNumber' is present in ImportFields
+				IF EXISTS (
+					SELECT 1 
+					FROM #ImportFields 
+					WHERE DropdownListValue = 'PartNumber' AND ModuleId = @ModuleId
+				)
 				BEGIN
-					SELECT @ManufacturerName = IM.ManufacturerName
-					FROM ItemMaster IM WITH (NOLOCK)
-					JOIN #ImportFields IMF ON IMF.DropdownListValueId = IM.ItemMasterId
+					--  Get all matching ManufacturerIds based on PartNumber(s)
+					--DECLARE @MatchingManufacturerIds TABLE (ManufacturerId BIGINT, ManufacturerName NVARCHAR(200));
+
+					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName)
+					SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName
+					FROM ItemMaster IM
+					JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
 					WHERE IMF.ModuleId = @ModuleId
-					AND IMF.DropdownListValue = 'PartNumber'
+					  AND IMF.DropdownListValue = 'PartNumber';
+
+					--  Check how many different manufacturers were found
+					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
+					BEGIN
+						PRINT 'Multiple manufacturers found for PartNumber.';
+
+						--  If @ManufacturerId matches any from the list, do nothing
+						IF EXISTS (
+							SELECT 1 
+							FROM @MatchingManufacturerIds 
+							WHERE ManufacturerName = @ManufacturerId
+						)
+						BEGIN
+							PRINT 'Given ManufacturerId is valid. Keeping as is.';
+							SET @ManufacturerName = @ManufacturerId;
+						END
+						ELSE
+						BEGIN
+							--  Pick first manufacturer and set @ManufacturerName
+							SELECT TOP 1 
+								--@ManufacturerId = ManufacturerName,
+								@ManufacturerName = ManufacturerName
+							FROM @MatchingManufacturerIds
+							ORDER BY ManufacturerName ASC;
+						END
+					END
+					ELSE
+					BEGIN
+						-- Only one manufacturer found — assign directly
+						SELECT TOP 1 
+							--@ManufacturerId = ManufacturerName,
+							@ManufacturerName = ManufacturerName
+						FROM @MatchingManufacturerIds;
+					END
 				END
 
-				SET @Manufacture = @ManufacturerId;
-				SET @ManufacturerId = @ManufacturerName;
+				--SET @Manufacture = @ManufacturerId;
+				--SET @ManufacturerId = @ManufacturerName;
 			END
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(TMP.[RecordStatus], '') != '' THEN TMP.[RecordStatus]
@@ -337,8 +420,8 @@ BEGIN
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
 
-												WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
-													AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
+												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
+												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
 										ELSE ''
@@ -352,7 +435,7 @@ BEGIN
 			if (@ModuleId = @StocklineModule)
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
-				   LOWER(@Manufacture) <> LOWER(@ManufacturerName)
+				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
 				BEGIN
 					-- Update the ManufacturerId in #DynamicKeyValue
 					UPDATE #DynamicKeyValue

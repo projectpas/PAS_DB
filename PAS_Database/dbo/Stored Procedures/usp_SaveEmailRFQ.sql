@@ -215,7 +215,7 @@ BEGIN
 				 
 				UPDATE TMP
 				SET	TMP.[Price] = @UnitPrice,
-					TMP.ConditionId = A.ConditionId
+					TMP.ConditionId = ISNULL(A.ConditionId, 0)
 				FROM #tmpQuote TMP 
 				OUTER APPLY (
 					SELECT TOP 1 CD.ConditionId

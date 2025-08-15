@@ -13,5 +13,6 @@
     [IlsCondition]             VARCHAR (50)    NULL,
     [ConditionId]              BIGINT          NULL,
     [IntegrationPortalId]      INT             NULL,
-    [CustomerRfqPartMappingId] BIGINT          NULL);
+    [CustomerRfqPartMappingId] BIGINT          NULL,
+    [QuoteSendReviewId]        BIGINT          NULL);
 

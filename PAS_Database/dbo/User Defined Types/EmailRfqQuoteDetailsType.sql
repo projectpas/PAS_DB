@@ -22,5 +22,6 @@
     [IlsComment]                VARCHAR (MAX)   NULL,
     [IlsCondition]              VARCHAR (MAX)   NULL,
     [ConditionId]               BIGINT          NULL,
-    [CustomerRfqPartMappingId]  BIGINT          NULL);
+    [CustomerRfqPartMappingId]  BIGINT          NULL,
+    [QuoteSendReviewId]         INT             NULL);
 

@@ -13,6 +13,7 @@
 	2	 12-08-2025       Devendra Shekh			changed @RfqId dataType to NVARCHAR(400)
 	3	 13-08-2025       Devendra Shekh			Added Changes for Email Integration
 	4	 13-08-2025       Amit Ghediya			    changed for get soq DATA FOR PART
+	5	 15-08-2025       Devendra Shekh		    changed for get soq DATA FOR PART for Email Integration
 
 	exec [USP_GetRFQSummarisedHistory] 1,31
 *************************************************************/ 
@@ -39,52 +40,52 @@ BEGIN
 		INSERT INTO #TempRFQDetails
 		EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
 		
-		IF(ISNULL(@CustomerRfqPartMappingId, 0) > 0)
-		BEGIN
-			SELECT	RFQ.[CustomerRfqId],
-					RFQ.[RfqId], 
-					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
-					RFQ.[BuyerName] AS 'rfqFrom',
-					RFQ.[BuyerCompanyName] AS 'companyName',
-					RFQ.[BuyerCountry] AS 'country',
-					CRPM.[PartNumber] AS 'partNumber',
-					CRPM.[PartDescription] AS 'lineDescription',
-					RFQ.[BuyerAddress] AS 'rfqAddress',
-					RFQ.[BuyerCity] AS 'rfqCity',
-					RFQ.[BuyerCountry] AS 'rfqCountry',
-					RFQ.[BuyerState] AS 'rfqState',
-					RFQ.[BuyerZip] AS 'rfqZip',
-					RFQ.[IsQuote],
-					RFQ.[Type] AS 'PortalType',
-					RFQ.IntegrationPortalId AS IntegrationPortalId,
-					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
-					CRPM.[AltPartNumber] AS 'AltPartNumber',
-					RFQCD.[IlsPrice] AS 'IlsPrice',
-					RFQCD.[IlsPrice] AS 'QuotedPrice',
-					(SELECT ISNULL(ilsPrice,0) FROM #TempRFQDetails) AS 'AverageSuggestedPrice',
-					RFQCD.[PercentId] AS 'PercentId',
-					RFQCD.[PercentValue] AS 'PercentValue',
-					RFQ.[Quantity] AS 'Quantity',
-					CON.[Description] AS 'Condition',
-					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
-					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
-					ISNULL(SOQ.SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
-					ISNULL(IMPS.SP_CalSPByPP_UnitSalePrice,0) AS PurchaseSalePrice
-				FROM dbo.CustomerRfqPartMapping CRPM WITH (NOLOCK)
-				INNER JOIN dbo.CustomerRfq RFQ WITH (NOLOCK) ON CRPM.[CustomerRfqId] = RFQ.[CustomerRfqId]
-				INNER JOIN dbo.CustomerRfqQuote RFQC WITH (NOLOCK) ON RFQC.[CustomerRfqId] = RFQ.[CustomerRfqId]
-				INNER JOIN dbo.CustomerRfqQuoteDetails RFQCD WITH (NOLOCK) ON RFQCD.[CustomerRfqQuoteId] = RFQC.[CustomerRfqQuoteId] AND RFQCD.CustomerRfqPartMappingId = CRPM.CustomerRfqPartMappingId
-				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsDeleted = 0 AND IM.IsActive = 1
-				LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH(NOLOCK) ON RFQCD.[ConditionId] = IMPS.[ConditionId] AND IM.[ItemMasterId] = IMPS.[ItemMasterId] AND IMPS.IsDeleted = 0 AND IMPS.IsActive = 1
-				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
-				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
-				LEFT JOIN dbo.Condition CON WITH(NOLOCK) ON RFQCD.[ConditionId] = CON.[ConditionId]
-				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
-				AND RFQ.CustomerRfqId = @CustomerRfqId
-				AND CRPM.CustomerRfqPartMappingId = @CustomerRfqPartMappingId
-		END 
-		ELSE
-		BEGIN
+		--IF(ISNULL(@CustomerRfqPartMappingId, 0) > 0)
+		--BEGIN
+		--	SELECT	RFQ.[CustomerRfqId],
+		--			RFQ.[RfqId], 
+		--			RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
+		--			RFQ.[BuyerName] AS 'rfqFrom',
+		--			RFQ.[BuyerCompanyName] AS 'companyName',
+		--			RFQ.[BuyerCountry] AS 'country',
+		--			CRPM.[PartNumber] AS 'partNumber',
+		--			CRPM.[PartDescription] AS 'lineDescription',
+		--			RFQ.[BuyerAddress] AS 'rfqAddress',
+		--			RFQ.[BuyerCity] AS 'rfqCity',
+		--			RFQ.[BuyerCountry] AS 'rfqCountry',
+		--			RFQ.[BuyerState] AS 'rfqState',
+		--			RFQ.[BuyerZip] AS 'rfqZip',
+		--			RFQ.[IsQuote],
+		--			RFQ.[Type] AS 'PortalType',
+		--			RFQ.IntegrationPortalId AS IntegrationPortalId,
+		--			RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
+		--			CRPM.[AltPartNumber] AS 'AltPartNumber',
+		--			RFQCD.[IlsPrice] AS 'IlsPrice',
+		--			RFQCD.[IlsPrice] AS 'QuotedPrice',
+		--			(SELECT ISNULL(ilsPrice,0) FROM #TempRFQDetails) AS 'AverageSuggestedPrice',
+		--			RFQCD.[PercentId] AS 'PercentId',
+		--			RFQCD.[PercentValue] AS 'PercentValue',
+		--			RFQ.[Quantity] AS 'Quantity',
+		--			CON.[Description] AS 'Condition',
+		--			ISNULL(RFQ.[ModuleId],0) AS ModuleId,
+		--			ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
+		--			ISNULL(SOQ.SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
+		--			ISNULL(IMPS.SP_CalSPByPP_UnitSalePrice,0) AS PurchaseSalePrice
+		--		FROM dbo.CustomerRfqPartMapping CRPM WITH (NOLOCK)
+		--		INNER JOIN dbo.CustomerRfq RFQ WITH (NOLOCK) ON CRPM.[CustomerRfqId] = RFQ.[CustomerRfqId]
+		--		INNER JOIN dbo.CustomerRfqQuote RFQC WITH (NOLOCK) ON RFQC.[CustomerRfqId] = RFQ.[CustomerRfqId]
+		--		INNER JOIN dbo.CustomerRfqQuoteDetails RFQCD WITH (NOLOCK) ON RFQCD.[CustomerRfqQuoteId] = RFQC.[CustomerRfqQuoteId] AND RFQCD.CustomerRfqPartMappingId = CRPM.CustomerRfqPartMappingId
+		--		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsDeleted = 0 AND IM.IsActive = 1
+		--		LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH(NOLOCK) ON RFQCD.[ConditionId] = IMPS.[ConditionId] AND IM.[ItemMasterId] = IMPS.[ItemMasterId] AND IMPS.IsDeleted = 0 AND IMPS.IsActive = 1
+		--		LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+		--		LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
+		--		LEFT JOIN dbo.Condition CON WITH(NOLOCK) ON RFQCD.[ConditionId] = CON.[ConditionId]
+		--		WHERE RFQ.MasterCompanyId = @MasterCompanyId 
+		--		AND RFQ.CustomerRfqId = @CustomerRfqId
+		--		AND CRPM.CustomerRfqPartMappingId = @CustomerRfqPartMappingId
+		--END 
+		--ELSE
+		--BEGIN
 			DECLARE @Status_Code VARCHAR(100) = 'Rejected,Open,Cancelled',
 				@CompanyName VARCHAR(256),
 				@PartNumber VARCHAR(256),
@@ -93,17 +94,36 @@ BEGIN
 				@PercentId BIGINT,
 				@PercentValue DECIMAL(18,2);
 		
-			SELECT TOP 1 @CompanyName = RFQ.[BuyerCompanyName],
+			IF(ISNULL(@CustomerRfqPartMappingId, 0) > 0)
+			BEGIN
+				SELECT TOP 1 @CompanyName = RFQ.[BuyerCompanyName],
+						@PartNumber = RFQP.[PartNumber],
+						@lineDescription = RFQP.PartDescription,
+						@ModuleId =ModuleId,
+						@PercentId =RFQCD.PercentId,
+						@PercentValue = RFQCD.PercentValue
+				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
+				INNER JOIN dbo.CustomerRfqPartMapping RFQP WITH (NOLOCK) ON RFQP.[CustomerRfqId] = RFQ.[CustomerRfqId]
+				LEFT JOIN dbo.CustomerRfqQuote RFQC WITH (NOLOCK) ON RFQC.[CustomerRfqId] = RFQ.[CustomerRfqId]
+				LEFT JOIN dbo.CustomerRfqQuoteDetails RFQCD WITH (NOLOCK) ON RFQCD.[CustomerRfqQuoteId] = RFQC.[CustomerRfqQuoteId] AND RFQCD.CustomerRfqPartMappingId = RFQP.CustomerRfqPartMappingId
+				WHERE  RFQ.CustomerRfqId = @CustomerRfqId
+				AND RFQP.CustomerRfqPartMappingId = @CustomerRfqPartMappingId
+				AND RFQ.MasterCompanyId = @MasterCompanyId;
+			END
+			ELSE
+			BEGIN
+				SELECT TOP 1 @CompanyName = RFQ.[BuyerCompanyName],
 					@PartNumber = RFQ.[LinePartNumber],
 					@lineDescription = LineDescription,
 					@ModuleId =ModuleId,
 					@PercentId =RFQCD.PercentId,
 					@PercentValue = RFQCD.PercentValue
-			FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
-			INNER JOIN dbo.CustomerRfqQuote RFQC WITH (NOLOCK) ON RFQC.[CustomerRfqId] = RFQ.[CustomerRfqId]
-			INNER JOIN dbo.CustomerRfqQuoteDetails RFQCD WITH (NOLOCK) ON RFQCD.[CustomerRfqQuoteId] = RFQC.[CustomerRfqQuoteId]
-			WHERE  RFQ.CustomerRfqId = @CustomerRfqId
-			AND RFQ.MasterCompanyId = @MasterCompanyId;
+				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
+				LEFT JOIN dbo.CustomerRfqQuote RFQC WITH (NOLOCK) ON RFQC.[CustomerRfqId] = RFQ.[CustomerRfqId]
+				LEFT JOIN dbo.CustomerRfqQuoteDetails RFQCD WITH (NOLOCK) ON RFQCD.[CustomerRfqQuoteId] = RFQC.[CustomerRfqQuoteId]
+				WHERE  RFQ.CustomerRfqId = @CustomerRfqId
+				AND RFQ.MasterCompanyId = @MasterCompanyId;
+			END
 
 			SELECT		@CustomerRfqId AS 'CustomerRfqId',
 						0 AS 'RfqId', 
@@ -145,7 +165,8 @@ BEGIN
 					WHERE SQP.MasterCompanyId = @MasterCompanyId 
 					AND SQS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
 					AND LOWER(TRIM(SQP.PartNumber)) = LOWER(TRIM(@PartNumber))
-		END
+					ORDER BY Sq.CreatedDate DESC
+		--END
 
 		-- Droped the temp table when done
 		DROP TABLE #TempRFQDetails;

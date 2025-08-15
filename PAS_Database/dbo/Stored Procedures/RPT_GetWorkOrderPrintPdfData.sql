@@ -18,8 +18,9 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 7    11 Feb 2025 RAJESH GAMI         Change the call function to store procedure (For the merge address) due to performance
 ** 8    17/02/2025  Moin Bloch          Updated (Added Publication PublicationNo)
 ** 9	13/May/2025 Bhargav Saliya	    Added IsDisplayFooter to select
+** 10	15/Aug/2025 Vishal Suthar	    Changed the condition to populate current serial number
 
-EXEC RPT_GetWorkOrderPrintPdfData 4398,3937
+EXEC RPT_GetWorkOrderPrintPdfData 9747,9850
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -83,7 +84,7 @@ BEGIN
 			UPPER(imt.partnumber) as IncomingPN,              
 			CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,        
 			CASE WHEN LEN(UPPER(imt.PartDescription)) > 15 then LEFT(UPPER(imt.PartDescription), 15) + '...' else  UPPER(imt.PartDescription) end as PNDesc,              
-			UPPER(sl.SerialNumber) as SerialNum,              
+			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
 			'' as TSN,              

@@ -75,7 +75,7 @@ BEGIN
 	
 	SELECT COUNT(1) OVER () AS [NumberOfItems]
 		  ,IE.[IntegrationEmailID]
-		  ,IE.[Subject]
+		  ,REPLACE(IE.[Subject],'(TRIAL VERSION)', '') [Subject]		  
 		  ,IE.[EmailBody]
 		  ,IE.[ToEmail]
 		  ,IE.[FromEmail]

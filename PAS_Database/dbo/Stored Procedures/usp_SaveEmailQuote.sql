@@ -16,10 +16,11 @@
 	3    13-08-2025		Rajesh Gami			Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef        
 	4    14-08-2025		Devendra Shekh		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId   
 	5	 15-08-2025		Devendra Shekh		Removed @IsAutoInternalQuote, Added [QuoteSendReviewId] select
-	6    15/08/2025     Moin Bloch          Added @SoqId OUTPUT Param
-	7	 18-08-2025		Bhargav Saliya		Added [ExpirationDate]
+	7    15/08/2025     Moin Bloch          Added @SoqId OUTPUT Param
+	8	 18-08-2025		Bhargav Saliya		Added [ExpirationDate]
+	9    18-08-2025     Devendra Shekh		Handling New Part Add While Updat
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[usp_SaveEmailQuote]
+CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -63,6 +64,17 @@ BEGIN
 				CRQ.[ExpirationDate] = TMP.[ExpirationDate]
 			FROM dbo.CustomerRfqQuoteDetails CRQ
 			INNER JOIN @tbl_EmailRfqQuoteDetailsType TMP ON CRQ.CustomerRfqQuoteDetailsId = TMP.CustomerRfqQuoteDetailsId
+
+			------------------- Customer RFQ Quote Details add ---------------------------------------------------------
+
+			INSERT INTO [dbo].[CustomerRfqQuoteDetails]
+			(	[CustomerRfqQuoteId], [ServiceType], IlsQty, IlsTraceability, IlsUom, IlsPrice,
+				IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
+				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PercentId], [PercentValue],[ExpirationDate])
+			SELECT	@CustomerRfqQuoteId, 0, IlsQty, IlsTraceability, IlsUom, IlsPrice,
+					IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
+					@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PercentId, @PercentValue,[ExpirationDate]
+			FROM @tbl_EmailRfqQuoteDetailsType WHERE ISNULL(CustomerRfqQuoteDetailsId, 0) = 0;
 		END
 		ELSE
 		BEGIN

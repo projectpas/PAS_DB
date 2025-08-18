@@ -23,5 +23,6 @@
     [IlsCondition]              VARCHAR (MAX)   NULL,
     [ConditionId]               BIGINT          NULL,
     [CustomerRfqPartMappingId]  BIGINT          NULL,
-    [QuoteSendReviewId]         INT             NULL);
+    [QuoteSendReviewId]         INT             NULL,
+    [ExpirationDate]            DATETIME2 (7)   NULL);
 

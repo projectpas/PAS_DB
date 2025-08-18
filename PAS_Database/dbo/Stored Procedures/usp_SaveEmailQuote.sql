@@ -16,9 +16,10 @@
 	3    13-08-2025		Rajesh Gami			Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef        
 	4    14-08-2025		Devendra Shekh		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId   
 	5	 15-08-2025		Devendra Shekh		Removed @IsAutoInternalQuote, Added [QuoteSendReviewId] select
-	7    15/08/2025     Moin Bloch          Added @SoqId OUTPUT Param
+	6    15/08/2025     Moin Bloch          Added @SoqId OUTPUT Param
+	7	 18-08-2025		Bhargav Saliya		Added [ExpirationDate]
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[usp_SaveEmailQuote]
+CREATE       PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -58,7 +59,8 @@ BEGIN
 				CRQ.IlsComment = TMP.IlsComment,
 				CRQ.IlsCondition = TMP.IlsCondition,
 				CRQ.UpdatedBy = @CreatedBy,
-				CRQ.UpdatedDate = GETUTCDATE()
+				CRQ.UpdatedDate = GETUTCDATE(),
+				CRQ.[ExpirationDate] = TMP.[ExpirationDate]
 			FROM dbo.CustomerRfqQuoteDetails CRQ
 			INNER JOIN @tbl_EmailRfqQuoteDetailsType TMP ON CRQ.CustomerRfqQuoteDetailsId = TMP.CustomerRfqQuoteDetailsId
 		END
@@ -78,10 +80,10 @@ BEGIN
 			INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 			(	[CustomerRfqQuoteId], [ServiceType], IlsQty, IlsTraceability, IlsUom, IlsPrice,
 				IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
-				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PercentId], [PercentValue])
+				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PercentId], [PercentValue],[ExpirationDate])
 			SELECT	@CustomerRfqQuoteId, 0, IlsQty, IlsTraceability, IlsUom, IlsPrice,
 					IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
-					@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PercentId, @PercentValue
+					@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PercentId, @PercentValue,[ExpirationDate]
 			FROM @tbl_EmailRfqQuoteDetailsType;
 
 			------- Update Csutomer RFQ for Is Quote added ----------					 

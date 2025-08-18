@@ -17,6 +17,7 @@
 	4    14-08-2025		Devendra Shekh		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId   
 	5	 15-08-2025		Devendra Shekh		Removed @IsAutoInternalQuote, Added [QuoteSendReviewId] select
 	7    15/08/2025     Moin Bloch          Added @SoqId OUTPUT Param
+	8    18/08/2025     Devendra Shekh		Handling New Part Add While Update
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -61,6 +62,17 @@ BEGIN
 				CRQ.UpdatedDate = GETUTCDATE()
 			FROM dbo.CustomerRfqQuoteDetails CRQ
 			INNER JOIN @tbl_EmailRfqQuoteDetailsType TMP ON CRQ.CustomerRfqQuoteDetailsId = TMP.CustomerRfqQuoteDetailsId
+
+			------------------- Customer RFQ Quote Details add ---------------------------------------------------------
+
+			INSERT INTO [dbo].[CustomerRfqQuoteDetails]
+			(	[CustomerRfqQuoteId], [ServiceType], IlsQty, IlsTraceability, IlsUom, IlsPrice,
+				IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
+				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PercentId], [PercentValue])
+			SELECT	@CustomerRfqQuoteId, 0, IlsQty, IlsTraceability, IlsUom, IlsPrice,
+					IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
+					@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PercentId, @PercentValue
+			FROM @tbl_EmailRfqQuoteDetailsType WHERE ISNULL(CustomerRfqQuoteDetailsId, 0) = 0;
 		END
 		ELSE
 		BEGIN

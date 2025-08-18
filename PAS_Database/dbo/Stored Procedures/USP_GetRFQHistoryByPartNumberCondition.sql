@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [USP_GetRFQHistoryByPartNumber]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get RFQ History By Part And Condition
@@ -16,6 +16,8 @@
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'NICKITEST-A','NE',1
   EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'ABC123','NE',1
+  EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] '1519M53G01','NE',1
+
   
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetRFQHistoryByPartNumberCondition]
@@ -191,16 +193,6 @@ BEGIN
 		--PRINT 2
 		SELECT @RecommendedPrice = MAX(v) FROM (VALUES (@CostPlusPrice),(@PerUnitPriceSO),(@PerUnitPriceSOQ),(@PerUnitPricePL)) AS t(v);
 	
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
-								   VALUES (@PartNumber, @Code, @PerUnitPricePS,'Price List')
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
-								   VALUES (@PartNumber, @Code, @PerUnitPriceSO,'Avg Historical SO')
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
-								   VALUES (@PartNumber, @Code, @PerUnitPriceSOQ,'Avg Historical SOQ')
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
-								   VALUES (@PartNumber, @Code, @CostPlusPrice,'Purchase Price + MArk Up')
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[UnitPrice],[Code])
-								   VALUES (@PartNumber, @Code, @RecommendedPrice,'Recommended Price')
 
 		IF OBJECT_ID(N'tempdb..#tmpRFQConditionResult') IS NOT NULL
 		BEGIN
@@ -222,7 +214,7 @@ BEGIN
 		--PRINT 3
 		INSERT INTO #tmpResult(PartNumber, Condition, Code, UnitPrice, [Sequence], QuoteSendReviewId, QuoteSendReview)
 		SELECT @PartNumber,@Code, code,  
-			CASE WHEN Code = 'Price List' THEN @PerUnitPricePS
+			CASE WHEN Code = 'Price List' THEN @PerUnitPricePL
 				 WHEN Code = 'Avg Historical SO' THEN @PerUnitPriceSO
 				 WHEN Code = 'Avg Historical SOQ' THEN @PerUnitPriceSOQ
 				 WHEN Code = 'Purchase Price + Mark up' THEN @CostPlusPrice

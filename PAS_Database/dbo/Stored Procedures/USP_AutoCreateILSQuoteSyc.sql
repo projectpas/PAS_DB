@@ -144,7 +144,9 @@ BEGIN
 					  -- END
 					   
 					   ---------------------------Start Insert into Rfq Quote table --------------------------------------------------
-						INSERT INTO [dbo].[CustomerRfqQuote]
+					  IF NOT EXISTS(SELECT TOP 1 CustomerRfqQuoteId FROM [dbo].[CustomerRfqQuote] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqIds )
+					  BEGIN
+						   INSERT INTO [dbo].[CustomerRfqQuote]
 											   ([CustomerRfqId] ,[RfqId] ,[AddComment] ,[IsAddCommentQuote] ,[FaaEasaRelease] ,[IsFaaEasaReleaseQuote] ,
 												[RpOh] ,[IsRpOhQuote] ,[LegalEntityId] ,[MasterCompanyId] ,	
 												[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
@@ -152,20 +154,28 @@ BEGIN
 										   '' ,0,1,@MasterCompanyId,
 										   @CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE()  ,1 ,0);
 
-						SELECT @CustomerRfqQuoteId = SCOPE_IDENTITY();	
-
+						 SET @CustomerRfqQuoteId = SCOPE_IDENTITY();	
+					 END
+					 
 					  ---------------------------End Insert into Rfq Quote table --------------------------------------------------
 
 					  -------------------Start Customer RFQ Quote Details add ---------------------------------------------------------
+					  IF(@CustomerRfqQuoteId > 0)
+					  BEGIN
+							IF NOT EXISTS(SELECT TOP 1 CustomerRfqQuoteId FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId AND [ConditionId] = @ConditionId)
+							BEGIN
+							
+								   INSERT INTO [dbo].[CustomerRfqQuoteDetails]
+						   				   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
+						   					IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition,	
+						   					[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [ConditionId])
+								   VALUES(@CustomerRfqQuoteId ,0 ,@Quantity ,0078 ,1 ,@PerUnitPrice ,
+											'Outright' ,GETUTCDATE() ,0 ,0 ,NULL,@Condition,	
+										  @CreatedBy,@CreatedBy,GETUTCDATE() ,GETUTCDATE() ,1 ,0,@ConditionId)
+							 END
+					  END
 
-						INSERT INTO [dbo].[CustomerRfqQuoteDetails]
-								   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
-									IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition,	
-									[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [ConditionId])
-						VALUES(@CustomerRfqQuoteId ,0 ,@Quantity ,0078 ,1 ,@PerUnitPrice ,
-									'Outright' ,GETUTCDATE() ,0 ,0 ,NULL,@Condition,	
-							   @CreatedBy,@CreatedBy,GETUTCDATE() ,GETUTCDATE() ,1 ,0,@ConditionId)
-
+					  
 					  -------------------End Customer RFQ Quote Details add ---------------------------------------------------------
 
 					  ------- Update Csutomer RFQ for Is Quote added ----------					 

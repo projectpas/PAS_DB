@@ -20,7 +20,7 @@
 	4    03/30/2025   HEMANT SALIYA		Resolved Issue Does not Copied Work flow direction sub child.
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
 	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
-	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template
+	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -158,7 +158,7 @@ SET NOCOUNT ON;
 
 						IF (@IsTaskAllreadyCopied <> 1 AND @IsTaskBasedWO = 1)
 						BEGIN
-							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkFlowTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkFlowTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0)
 							BEGIN
 								IF(@IsTaskBasedWO > 0)
 								BEGIN
@@ -211,7 +211,7 @@ SET NOCOUNT ON;
 												1 AS IsFromWorkFlow
 											FROM dbo.WorkFlowTask WFT WITH (NOLOCK) 
 												JOIN dbo.Task T WITH (NOLOCK) ON WFT.TaskId = T.TaskId
-											WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId       
+											WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId  AND ISNULL(WFT.IsDeleted, 0) = 0      
 
 											SELECT @WorkOrderTasksId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -235,7 +235,7 @@ SET NOCOUNT ON;
 												T.IsPrintTechnician AS IsPrintTechnician
 											FROM dbo.WorkFlowTask WFT WITH (NOLOCK) 
 												JOIN dbo.Task T WITH (NOLOCK) ON WFT.TaskId = T.TaskId
-											WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId
+											WHERE WorkflowId = @WorkflowId AND WFT.TaskId = @WorkFlowTasksId  AND ISNULL(WFT.IsDeleted, 0) = 0
 										END
 
 										SET @TaskCount = @TaskCount + 1;
@@ -252,7 +252,7 @@ SET NOCOUNT ON;
 						IF (@IsChargesAllreadyCopied <> 1 AND @Charges = 'Charges')
 						BEGIN
 							PRINT 'Start Charges';
-							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 )
 							BEGIN
 								--For Task Based WO
 								IF(@IsTaskBasedWO > 0)
@@ -275,7 +275,7 @@ SET NOCOUNT ON;
 									)
 									
 									INSERT INTO #tmpWorkflowChargesTask(TaskId, WorkflowId)
-									SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowChargesList WFC WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+									SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowChargesList WFC WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 
 
 									SELECT @ChargesTotalCounts = COUNT(ID) FROM #tmpWorkflowChargesTask;
 
@@ -311,7 +311,7 @@ SET NOCOUNT ON;
 												1 AS IsFromWorkFlow
 											FROM dbo.WorkflowChargesList WFC WITH (NOLOCK) 
 												JOIN dbo.Task T WITH (NOLOCK) ON WFC.TaskId = T.TaskId
-											WHERE WorkflowId = @WorkflowId AND WFC.TaskId = @ChargesWorkFlowTaskId       
+											WHERE WorkflowId = @WorkflowId AND WFC.TaskId = @ChargesWorkFlowTaskId AND ISNULL(WFC.IsDeleted, 0) = 0      
 
 											SELECT @WorkOrderChargesTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -335,7 +335,7 @@ SET NOCOUNT ON;
 												T.IsPrintTechnician AS IsPrintTechnician
 											FROM dbo.WorkflowChargesList WFC WITH (NOLOCK) 
 												JOIN dbo.Task T WITH (NOLOCK) ON WFC.TaskId = T.TaskId
-											WHERE WorkflowId = @WorkflowId AND WFC.TaskId = @ChargesWorkFlowTaskId  
+											WHERE WorkflowId = @WorkflowId AND WFC.TaskId = @ChargesWorkFlowTaskId  AND ISNULL(WFC.IsDeleted, 0) = 0 
 										END
 										
 										INSERT INTO DBO.WorkOrderCharges (CreatedBy,CreatedDate,IsActive,IsDeleted,ChargesTypeId,MasterCompanyId,Quantity,UpdatedBy,UpdatedDate,VendorId,
@@ -359,7 +359,7 @@ SET NOCOUNT ON;
 											@WorkOrderChargesTaskId AS TaskId,
 											ISNULL(UnitCost, 0) AS UnitCost,
 											'' AS ReferenceNo
-										FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @ChargesWorkFlowTaskId  ;
+										FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @ChargesWorkFlowTaskId AND ISNULL(IsDeleted, 0) = 0  ;
 										
 										SET @ChargesCount = @ChargesCount + 1;
 									END
@@ -388,7 +388,7 @@ SET NOCOUNT ON;
 										TaskId AS TaskId,
 										ISNULL(UnitCost, 0) AS UnitCost,
 										'' AS ReferenceNo
-									FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+									FROM DBO.WorkflowChargesList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ;
 
 								END
 
@@ -429,7 +429,7 @@ SET NOCOUNT ON;
 								)
 								
 								INSERT INTO #tmpWorkflowToolsTask(TaskId, WorkflowId)
-								SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowEquipmentList WFC WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+								SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowEquipmentList WFC WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0
 
 								SELECT @ToolsTotalCounts = COUNT(ID) FROM #tmpWorkflowToolsTask;
 
@@ -464,7 +464,7 @@ SET NOCOUNT ON;
 											1 AS IsFromWorkFlow
 										FROM dbo.WorkflowEquipmentList WFE WITH (NOLOCK) 
 											JOIN dbo.Task T WITH (NOLOCK) ON WFE.TaskId = T.TaskId
-										WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @ToolsWorkFlowTaskId       
+										WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @ToolsWorkFlowTaskId AND ISNULL(WFE.IsDeleted, 0) = 0      
 
 										SELECT @ToolsWorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -488,7 +488,7 @@ SET NOCOUNT ON;
 											T.IsPrintTechnician AS IsPrintTechnician
 										FROM dbo.WorkflowEquipmentList WFE WITH (NOLOCK) 
 											JOIN dbo.Task T WITH (NOLOCK) ON WFE.TaskId = T.TaskId
-										WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @ToolsWorkFlowTaskId  
+										WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @ToolsWorkFlowTaskId AND ISNULL(WFE.IsDeleted, 0) = 0  
 									END
 
 									--SELECT 'INSERT: WorkOrderAssets'
@@ -507,7 +507,7 @@ SET NOCOUNT ON;
 										@workOrderId AS WorkOrderId,
 										@WorkFlowWorkOrderId AS WorkFlowWorkOrderId,
 										@ToolsWorkOrderTaskId AS TaskId
-									FROM DBO.WorkflowEquipmentList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @ToolsWorkFlowTaskId ;
+									FROM DBO.WorkflowEquipmentList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @ToolsWorkFlowTaskId  AND ISNULL(WFE.IsDeleted, 0) = 0;
 
 									UPDATE woa
 									SET woa.IsFromWorkFlow = 1
@@ -522,7 +522,7 @@ SET NOCOUNT ON;
 							END
 							ELSE
 							BEGIN
-								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowEquipmentList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowEquipmentList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0)
 								BEGIN
 									INSERT INTO DBO.WorkOrderAssets (AssetRecordId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,MasterCompanyId,Quantity,WorkOrderId,
 									WorkFlowWorkOrderId,TaskId)
@@ -539,7 +539,7 @@ SET NOCOUNT ON;
 										@workOrderId AS WorkOrderId,
 										@WorkFlowWorkOrderId AS WorkFlowWorkOrderId,
 										wfe.TaskId AS TaskId
-									FROM DBO.WorkflowEquipmentList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+									FROM DBO.WorkflowEquipmentList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(WFE.IsDeleted, 0) = 0;
 
 									UPDATE woa
 									SET woa.IsFromWorkFlow = 1
@@ -553,7 +553,7 @@ SET NOCOUNT ON;
 
 						IF (@IsExpertiseAlreadyCopied <> 1 AND @Labor = 'Labor')
 						BEGIN
-							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0)
 							BEGIN
 								INSERT INTO DBO.WorkOrderExpertise (CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,WorkOrderId,MasterCompanyId,ExpertiseTypeId,EstimatedHours,
 								WorkFlowWorkOrderId,TaskId)
@@ -570,7 +570,7 @@ SET NOCOUNT ON;
 									wfe.EstimatedHours AS EstimatedHours,
 									@WorkFlowWorkOrderId AS WorkFlowWorkOrderId,
 									wfe.TaskId AS TaskId
-								FROM DBO.WorkflowExpertiseList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+								FROM DBO.WorkflowExpertiseList wfe WITH (NOLOCK) WHERE WorkflowId = @WorkflowId  AND ISNULL(IsDeleted, 0) = 0;
 
 								UPDATE woe
 								SET woe.IsFromWorkFlow = 1
@@ -590,7 +590,7 @@ SET NOCOUNT ON;
 							DECLARE @ItemMasterId BIGINT, @PartNumber NVARCHAR(MAX)
 
 							DECLARE material_cursors CURSOR FOR
-							SELECT ItemMasterId FROM DBO.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId;
+							SELECT ItemMasterId FROM DBO.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0;
 
 							OPEN material_cursors
 							FETCH NEXT FROM material_cursors INTO @ItemMasterId
@@ -662,7 +662,7 @@ SET NOCOUNT ON;
 							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
 							FROM DBO.WorkflowMaterial WM WITH (NOLOCK) 
 							LEFT JOIN DBO.WorkFlowTask WT WITH (NOLOCK)  ON WM.WorkflowId = WT.WorkFlowId  AND WM.TaskId = WT.TaskId
-							WHERE WM.WorkflowId = @WorkflowId
+							WHERE WM.WorkflowId = @WorkflowId AND ISNULL(WM.IsDeleted, 0) = 0
 							ORDER BY WT.[SequenceNumber] ASC
 
 							OPEN newmaterial_cursors
@@ -705,7 +705,7 @@ SET NOCOUNT ON;
 												1 AS IsFromWorkFlow
 											FROM dbo.WorkflowMaterial WFM WITH (NOLOCK) 
 												JOIN dbo.Task T WITH (NOLOCK) ON WFM.TaskId = T.TaskId
-											WHERE WorkflowId = @WorkflowId AND WFM.TaskId = @TaskId       
+											WHERE WorkflowId = @WorkflowId AND WFM.TaskId = @TaskId  AND ISNULL(WFM.IsDeleted, 0) = 0      
 
 											SELECT @MaterialsWorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -729,7 +729,7 @@ SET NOCOUNT ON;
 												T.IsPrintTechnician AS IsPrintTechnician
 											FROM dbo.WorkflowMaterial WFM WITH (NOLOCK) 
 												JOIN dbo.Task T WITH (NOLOCK) ON WFM.TaskId = T.TaskId
-											WHERE WorkflowId = @WorkflowId AND WFM.TaskId = @TaskId  
+											WHERE WorkflowId = @WorkflowId AND WFM.TaskId = @TaskId  AND ISNULL(WFM.IsDeleted, 0) = 0
 										END
 								
 									SELECT TOP 1 @WorkOrderMaterialsId = WorkOrderMaterialsId
@@ -791,7 +791,7 @@ SET NOCOUNT ON;
 											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
 											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, @UnitCost, @ExtendedCost, 
 											   @Memo, @IsDeferred, @ProvisionId, @Figure, @Item, 1
-										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId
+										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId  AND ISNULL(WFM.IsDeleted, 0) = 0
 										order by [Order]
 									END
 								END
@@ -838,7 +838,7 @@ SET NOCOUNT ON;
 							BEGIN								
 								SELECT @WorkOrderLaborHeaderId = WorkOrderLaborHeaderId FROM DBO.WorkOrderLaborHeader WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId =  @WorkFlowWorkOrderId
 								
-								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0)
 								BEGIN
 									IF(@IsTaskBasedWO > 0)
 									BEGIN
@@ -878,7 +878,7 @@ SET NOCOUNT ON;
 													1 AS IsFromWorkFlow
 												FROM dbo.WorkflowExpertiseList WFE WITH (NOLOCK) 
 													JOIN dbo.Task T WITH (NOLOCK) ON WFE.TaskId = T.TaskId
-												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId       
+												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId  AND ISNULL(WFE.IsDeleted, 0) = 0      
 
 												SELECT @LaborWorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -901,7 +901,7 @@ SET NOCOUNT ON;
 													T.IsPrintTechnician AS IsPrintTechnician
 												FROM dbo.WorkflowExpertiseList WFE WITH (NOLOCK) 
 													JOIN dbo.Task T WITH (NOLOCK) ON WFE.TaskId = T.TaskId
-												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId 
+												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId  AND ISNULL(WFE.IsDeleted, 0) = 0
 
 											END
 
@@ -938,7 +938,7 @@ SET NOCOUNT ON;
 												GETUTCDATE() AS StatusChangedDate
 											FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK) 
 												JOIN dbo.Task T ON T.TaskId = wfe.TaskId 
-											WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId ;
+											WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId AND ISNULL(WFE.IsDeleted, 0) = 0;
 
 											UPDATE woe
 											SET woe.IsFromWorkFlow = 1
@@ -986,7 +986,7 @@ SET NOCOUNT ON;
 												GETUTCDATE() AS StatusChangedDate
 											FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK) 
 												JOIN dbo.Task T ON T.TaskId = wfe.TaskId 
-											WHERE WorkflowId = @WorkflowId;
+											WHERE WorkflowId = @WorkflowId  AND ISNULL(wfe.IsDeleted, 0) = 0;
 
 											UPDATE woe
 											SET woe.IsFromWorkFlow = 1
@@ -1000,7 +1000,7 @@ SET NOCOUNT ON;
 							ELSE 
 							BEGIN
 								DECLARE @ExpertiseId BIGINT;
-								SELECT TOP 1 @ExpertiseId = CAST(wfe.ExpertiseTypeId AS INT) FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK) WHERE WorkflowId = @WorkflowId;
+								SELECT TOP 1 @ExpertiseId = CAST(wfe.ExpertiseTypeId AS INT) FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK) WHERE WorkflowId = @WorkflowId  AND ISNULL(IsDeleted, 0) = 0;
 
 								INSERT INTO dbo.workOrderLaborHeader(WorkOrderId,WorkFlowWorkOrderId,DataEnteredBy,HoursorClockorScan,WorkOrderHoursType,
 										MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,ExpertiseId,EmployeeId,WOPartNoId)
@@ -1010,14 +1010,14 @@ SET NOCOUNT ON;
 
 								SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
 
-								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId  AND ISNULL(IsDeleted, 0) = 0)
 								BEGIN
 									IF(@IsTaskBasedWO > 0)
 									BEGIN
 										DELETE FROM #tmpWorkflowLaborTask
 
 										INSERT INTO #tmpWorkflowLaborTask(TaskId, WorkflowId)
-										SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowExpertiseList WFE WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+										SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowExpertiseList WFE WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0
 
 										SELECT @LaborTotalCounts = COUNT(ID) FROM #tmpWorkflowLaborTask;
 
@@ -1052,7 +1052,7 @@ SET NOCOUNT ON;
 													1 AS IsFromWorkFlow
 												FROM dbo.WorkflowExpertiseList WFE WITH (NOLOCK) 
 													JOIN dbo.Task T WITH (NOLOCK) ON WFE.TaskId = T.TaskId
-												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId       
+												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId AND ISNULL(wfe.IsDeleted, 0) = 0       
 
 												SELECT @LaborWorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -1076,7 +1076,7 @@ SET NOCOUNT ON;
 													T.IsPrintTechnician AS IsPrintTechnician
 												FROM dbo.WorkflowExpertiseList WFE WITH (NOLOCK) 
 													JOIN dbo.Task T WITH (NOLOCK) ON WFE.TaskId = T.TaskId
-												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId 
+												WHERE WorkflowId = @WorkflowId AND WFE.TaskId = @LaborWorkFlowTaskId  AND ISNULL(wfe.IsDeleted, 0) = 0
 
 											END
 
@@ -1113,7 +1113,7 @@ SET NOCOUNT ON;
 												GETUTCDATE() AS StatusChangedDate
 											FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK)  
 												JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = wfe.TaskId 
-											WHERE WorkflowId = @WorkflowId AND wfe.TaskId = @LaborWorkFlowTaskId;
+											WHERE WorkflowId = @WorkflowId AND wfe.TaskId = @LaborWorkFlowTaskId  AND ISNULL(wfe.IsDeleted, 0) = 0;
 
 											UPDATE woe
 											SET woe.IsFromWorkFlow = 1
@@ -1161,7 +1161,7 @@ SET NOCOUNT ON;
 											GETUTCDATE() AS StatusChangedDate
 										FROM DBO.WorkflowExpertiseList wfe WITH(NOLOCK)  
 											JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = wfe.TaskId 
-										WHERE WorkflowId = @WorkflowId;
+										WHERE WorkflowId = @WorkflowId  AND ISNULL(wfe.IsDeleted, 0) = 0;
 
 										UPDATE woe
 										SET woe.IsFromWorkFlow = 1
@@ -1176,7 +1176,7 @@ SET NOCOUNT ON;
 						
 						IF (@IsDirectionsAllreadyCopied <> 1 AND @Directions = 'Directions' AND @IsTaskBasedWO = 1)
 						BEGIN
-							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId)
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkflowDirection WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0)
 							BEGIN
 								DECLARE @WorkOrderTaskId BIGINT;
 								DECLARE @TotalCounts INT = 0;
@@ -1196,7 +1196,7 @@ SET NOCOUNT ON;
 								)
 									
 								INSERT INTO #tmpWorkflowDirectionTask(TaskId, WorkflowId)
-								SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowDirection WFD WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+								SELECT DISTINCT TaskId, WorkflowId FROM dbo.WorkflowDirection WFD WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsDeleted, 0) = 0
 
 								SELECT @TotalCounts = COUNT(ID) FROM #tmpWorkflowDirectionTask;
 
@@ -1231,7 +1231,7 @@ SET NOCOUNT ON;
 											1 AS IsFromWorkFlow
 										FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
 											JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
-										WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId            -- Here Need to add condition for Parent Task 										
+										WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId AND ISNULL(WFd.IsDeleted, 0) = 0          -- Here Need to add condition for Parent Task 										
 
 										SELECT @WorkOrderTaskId = SCOPE_IDENTITY(); --Need to check for Multiple Records
 
@@ -1254,7 +1254,7 @@ SET NOCOUNT ON;
 											T.IsPrintTechnician AS IsPrintTechnician
 										FROM dbo.WorkflowDirection WFD WITH (NOLOCK) 
 											JOIN dbo.Task T WITH (NOLOCK) ON WFD.TaskId = T.TaskId
-										WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId       -- Here Need to add condition for Parent Task
+										WHERE WorkflowId = @WorkflowId AND ISNULL(WFD.IsTaskDetails, 0) = 1 AND WFD.TaskId = @WorkFlowTaskId   AND ISNULL(WFD.IsDeleted, 0) = 0     -- Here Need to add condition for Parent Task
 									END
 
 									IF OBJECT_ID(N'tempdb..#tmpWorkflowDirection') IS NOT NULL

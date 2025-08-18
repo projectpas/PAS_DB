@@ -16,6 +16,7 @@
    	3    13-08-2025   Rajesh Gami		Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef      
    	4    14-08-2025   Devendra Shekh	Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId
 	5    15-08-2025   Devendra Shekh	added @IntegrationPortalId select
+	6    15/08/2025   Moin Bloch        Added @SoqId OUTPUT Param
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SendMultiILSQuote]
@@ -28,7 +29,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-
+	    DECLARE @SalesOrderQuoteId BIGINT = 0;
 		DECLARE @GetCustomerRfqId BIGINT, 
 				@IsRecordExist BIT = 0,
 				@PercentId BIGINT,
@@ -269,7 +270,7 @@ BEGIN
 
 					IF(ISNULL(@ALlowProcessQuote,0) > 0 AND ISNULL(@CustomerId,0) > 0)
 					BEGIN
-						EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@GetCustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
+						EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@GetCustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
 					END
 												
 					-------END Create SOQ With part---------------------------------------------
@@ -279,6 +280,9 @@ BEGIN
 				SET @CurrentRow += 1;
 			END			
 		END
+
+		SELECT @SalesOrderQuoteId AS SOQID
+
     END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

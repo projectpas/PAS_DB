@@ -9,20 +9,22 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06 Mar 2024  Rajesh Gami    Created
-	2    04 Aug 2025  Amit Ghediya   Update for add PercentId,PercentValue on fly.
-	3    06 Aug 2025  Amit Ghediya   Update for add SOQ & part auto.
-	4	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
-	5    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
- 	6    13-08-2025   Rajesh Gami	 Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef
-	7    14-08-2025	  Devendra Shekh Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId  
-	8	 15-Aug-2025  Bhargav Saliya	Added [PriorityId] and [ExpirationDate] 
-	9    18-Aug-2025  Amit Ghediya    Update RFQ SOQ Price.
+ ** PR   Date          Author			 Change Description            
+ ** --   --------      -------			 --------------------------------          
+    1    06 Mar 2024   Rajesh Gami		 Created
+	2    04 Aug 2025   Amit Ghediya		 Update for add PercentId,PercentValue on fly.
+	3    06 Aug 2025   Amit Ghediya		 Update for add SOQ & part auto.
+	4	 07 Aug 2025   Devendra Shekh	 changed [RfqId] Type to nvarchar
+	5    11-08-2025    Amit Ghediya		 Modified (Added QuotedBy,QuotedDate)
+ 	6    13-08-2025    Rajesh Gami		 Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @SourceBy,@MarketPlaceRef
+	7    14-08-2025	   Devendra Shekh	 Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId  
+	8	 15-Aug-2025   Bhargav Saliya	 Added [PriorityId] and [ExpirationDate] 
+	9    15/08/2025    Moin Bloch        Added @SoqId OUTPUT Param
+	10   18-Aug-2025   Amit Ghediya      Update RFQ SOQ Price.
+
 -- EXEC USP_SendILSQuote
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SendILSQuote]
+CREATE       PROCEDURE [dbo].[USP_SendILSQuote]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -35,6 +37,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+				   DECLARE @SalesOrderQuoteId BIGINT = 0;
 
 					DECLARE @GetCustomerRfqId BIGINT, 
 						    @IsRecordExist BIT =0,
@@ -153,11 +156,11 @@ BEGIN
 
 							IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 							BEGIN
-								 EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @tbl_IlsRfqQuoteDetailsType,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId
-							END
-													
+								 EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @tbl_IlsRfqQuoteDetailsType,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
+							END					
 						---------END Create SOQ With part---------------------------------------------
 					END
+					SELECT @SalesOrderQuoteId AS SOQID
 				
     END TRY    
 	BEGIN CATCH      

@@ -99,7 +99,7 @@ BEGIN
 				BEGIN
 					 SELECT @IlsPrice = [IlsPrice],
 					 	   @ConditionId = [ConditionId],
-					 	   @ILSQty = IlsQty
+					 	   @ILSQty = [IlsQty]
 					 FROM #RfqQuoteDetail WHERE ID = @MinRFQId;
 					 
 					 IF OBJECT_ID(N'tempdb..#SOQPartDetails') IS NOT NULL
@@ -154,16 +154,24 @@ BEGIN
 
 					 --Get SOQ Added in RFQ
 					 SELECT @RefrenceId = [ReferenceId], @RFQModuleId = [ModuleId],@LinePartNumber = LinePartNumber FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+
+					 --Get ItemasterId based on RFQ part
+					 SELECT @RFQItemMasterId = [ItemMasterId] 
+					 FROM [dbo].[ItemMaster] WITH(NOLOCK) 
+					 WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@LinePartNumber));
 					 
 					 IF(ISNULL(@RefrenceId,0) > 0 AND @RFQModuleId = @ModuleId)
 					 BEGIN						
-						  IF EXISTS(SELECT TOP 1 SalesOrderQuotePartId FROM [dbo].[SalesOrderQuotePartv1] WITH(NOLOCK) WHERE [SalesOrderQuoteId] = @RefrenceId AND [ConditionId] = @ConditionId)
+						  IF EXISTS(SELECT TOP 1 SalesOrderQuotePartId FROM [dbo].[SalesOrderQuotePartv1] WITH(NOLOCK) WHERE [SalesOrderQuoteId] = @RefrenceId AND [ItemMasterId] = @RFQItemMasterId AND [ConditionId] = @ConditionId)
 						  BEGIN
-							   SELECT @QtyQuoted = [QtyQuoted],
-									  @SalesOrderQuotePartId = [SalesOrderQuotePartId] 
+							   SELECT @SalesOrderQuotePartId = [SalesOrderQuotePartId] 
 							   FROM [dbo].[SalesOrderQuotePartv1] WITH(NOLOCK) 
 							   WHERE [SalesOrderQuoteId] = @RefrenceId 
+							   AND [ItemMasterId] = @RFQItemMasterId
 							   AND [ConditionId] = @ConditionId;
+
+							   --Set ILs Qty as Part Qty
+							   SET @QtyQuoted = @ILSQty;
 
 							   DECLARE @SalesPrice_U AS decimal(18,4);
 							   DECLARE @MarkUpAmt_U AS decimal(18,4);
@@ -179,6 +187,12 @@ BEGIN
 							   SET @NetSalesAmt_U = @GrossAmt_U - (@DiscAmt_U);
 							   SET @NetSalesPerUnitAmt_U = ((@SalesPrice_U) + ISNULL(@MarkUpAmount, 0)) - (ISNULL(@DiscountAmount, 0));
 							   
+							   --Update qty in part table
+							   UPDATE [dbo].[SalesOrderQuotePartV1]
+							   SET QtyRequested = @ILSQty,
+							   QtyQuoted = @ILSQty
+							   WHERE [SalesOrderQuotePartId] = @SalesOrderQuotePartId
+
 							   --Update Price in existing records
 							   UPDATE [DBO].[SalesOrderQuotePartCost]
 							   SET UnitSalesPrice = @SalesPrice_U,
@@ -192,11 +206,9 @@ BEGIN
 							   WHERE [SalesOrderQuotePartId] = @SalesOrderQuotePartId
 						  END
 						  ELSE
-						  BEGIN
-								--Get ItemasterId based on RFQ part
-							    SELECT @RFQItemMasterId = [ItemMasterId] 
-								FROM [dbo].[ItemMaster] WITH(NOLOCK) 
-								WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@LinePartNumber));
+						  BEGIN							
+								--Set ILs Qty as Part Qty
+							    SET @QtyQuoted = @ILSQty;
 
 								--Get Part Status
 								SELECT @SOQPartStatus = [SOPartStatusId] FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';

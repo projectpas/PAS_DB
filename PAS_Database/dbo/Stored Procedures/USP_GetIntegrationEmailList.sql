@@ -96,7 +96,9 @@ BEGIN
 		  ,IE.[IsDeleted]	
 		  ,ISNULL(IE.[IsRead],0) [IsRead]
 		  ,IE.[EmailPath]
-  FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	      
+		  ,CR.[RfqId]
+  FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	    
+  LEFT JOIN [dbo].[CustomerRfq] CR WITH(NOLOCK) ON IE.[CustomerRfqId] = CR.[CustomerRfqId]
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
     AND (IE.IsDeleted = 0) 	
 	AND (IE.[IsActive] = 1)
@@ -104,7 +106,8 @@ BEGIN
     AND (IE.[EmailSection] = @EmailSection)) 				     
 	AND ((@GlobalFilter <>'' 
 	AND ((IE.[FromEmail] LIKE '%' + @GlobalFilter+'%') OR        
-	     (IE.[Subject] LIKE '%' + @GlobalFilter+'%') OR        
+	     (IE.[Subject] LIKE '%' + @GlobalFilter+'%') OR   
+		 (CR.[RfqId] LIKE '%' + @GlobalFilter+'%') OR   
 		 (IE.[EmailBody] LIKE '%' +@GlobalFilter+'%'))) OR           
 	(@GlobalFilter='' AND 	
 	(ISNULL(@Subject,'') ='' OR [FromEmail] LIKE '%' + @Subject +'%') AND  
@@ -114,12 +117,14 @@ BEGIN
 	CASE WHEN (@SortOrder=1 AND @SortColumn='FromEmail')  THEN [FromEmail] END ASC,   
 	CASE WHEN (@SortOrder=1 AND @SortColumn='Subject')  THEN [Subject] END ASC,   
 	CASE WHEN (@SortOrder=1 AND @SortColumn='EmailBody')  THEN [EmailBody] END ASC,   
-	CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN [CreatedDate] END ASC,
+	CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN IE.[CreatedDate] END ASC,
+	CASE WHEN (@SortOrder=1  AND @SortColumn='RfqId') THEN [RfqId] END ASC,
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC, 
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='FromEmail')  THEN [FromEmail] END DESC,   
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='Subject')  THEN [Subject] END DESC,        
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC,
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN [CreatedDate] END DESC	
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN IE.[CreatedDate] END DESC,	
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='RfqId')  THEN [RfqId] END DESC	
 
 	OFFSET @RecordFrom ROWS         
 	FETCH NEXT @PageSize ROWS ONLY   

@@ -15,6 +15,7 @@
 	2     13/08/2025      Rajesh Gami			Implemented SourceBy And MarketPlaceRef
 	3     14/08/2025      Devendra Shekh		Added New Param @QuoteSendReviewId, Handled Multiple Part 
 	4     15/08/2025      Moin Bloch            Added @SoqId OUTPUT Param
+	5     18/08/2025      Moin Bloch            Added @LeadSourceId For SOQ
 *********************************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -79,6 +80,7 @@ BEGIN
 				DECLARE @CurrencyId INT = 0;
 				DECLARE @ForeignExchangeRate DECIMAL(18,2) = 1;
 				DECLARE @ManagementStructureId BIGINT = 1;
+				DECLARE @Type VARCHAR(50)=NULL
 
 				SET @OpenDate = (SELECT CAST(GETUTCDATE() AS DATE));
 				SET @QuoteExpireDate = (SELECT CAST(DATEADD(DAY, 30, GETUTCDATE()) AS DATE));
@@ -214,6 +216,17 @@ BEGIN
 				@PriorityId = DefaultPriorityId
 				FROM [dbo].[SalesOrderQuoteSettings] SOQS WITH(NOLOCK)
 				WHERE IsActive = 1 AND IsDeleted = 0 AND MasterCompanyId = @MasterCompanyId 
+							   
+
+				IF(ISNULL(@CustomerRfqId,0) > 0)
+				BEGIN
+					SELECT @Type = [Type] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId
+
+					IF @Type IS NOT NULL 
+					BEGIN
+						SELECT @LeadSourceId = [LeadSourceId] FROM [dbo].[LeadSource] WITH(NOLOCK) WHERE [LeadSources] = @Type AND [MasterCompanyId] = @MasterCompanyId						
+					END
+				END
 
 				INSERT INTO [dbo].[SalesOrderQuote]
 				(

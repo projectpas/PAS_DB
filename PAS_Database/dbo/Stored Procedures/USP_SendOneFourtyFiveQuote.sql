@@ -14,10 +14,11 @@
     1    05 Mar 2024  Rajesh Gami    Created
 	2	 07 Aug 2025  Devendra Shekh changed [RfqId] Type to nvarchar
 	3    11-08-2025   Amit Ghediya	 Modified (Added QuotedBy,QuotedDate)
+	4	 18-08-2025		Bhargav Saliya		Added [ExpirationDate]
      
 -- EXEC USP_SendOneFourtyFiveQuote
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SendOneFourtyFiveQuote]
+CREATE       PROCEDURE [dbo].[USP_SendOneFourtyFiveQuote]
 	@tbl_CustomerRfqQuoteDetailsType CustomerRfqQuoteDetailsType READONLY,
 	@CustomerRfqId BIGINT,
 	@RfqId NVARCHAR(250),
@@ -91,10 +92,10 @@ BEGIN
 					INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 							   ([CustomerRfqQuoteId] ,[ServiceType] ,[QuotePrice] ,[QuoteTat] ,[Low] ,[Mid] ,
 								[High] ,[AvgTat] ,[QuoteTatQty] ,[QuoteCond] ,[QuoteTrace] ,	
-								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[ExpirationDate])
 					SELECT @CustomerRfqQuoteId ,[ServiceType] ,[QuotePrice] ,[QuoteTat] ,[Low] ,[Mid] ,
 						   [High] ,[AvgTat] ,[QuoteTatQty] ,[QuoteCond] ,[QuoteTrace] ,
-						   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0
+						   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0,[ExpirationDate]
 					 FROM @tbl_CustomerRfqQuoteDetailsType;
 
 					 ------- Update Csutomer RFQ for Is Quote added ----------

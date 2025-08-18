@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -25,7 +24,7 @@
 	14	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
+CREATE     PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@MasterCompanyId INT = NULL, 
 	@UserName VARCHAR(256) = NULL
@@ -319,6 +318,7 @@ BEGIN
 						(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 9),
 						(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                     )
+					update CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId
                 END
 				
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))  

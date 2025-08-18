@@ -1,4 +1,4 @@
-﻿/*********************             
+﻿/*****************************************************************************************             
  ** File:   [USP_CreateSalesOrderQuoteFromAI]             
  ** Author:  Amit Ghediya 
  ** Description: This stored procedure is used to create SO quote automatically from AI
@@ -14,6 +14,7 @@
 	1     05/08/2025      Amit Ghediya			Created
 	2     13/08/2025      Rajesh Gami			Implemented SourceBy And MarketPlaceRef
 	3     14/08/2025      Devendra Shekh		Added New Param @QuoteSendReviewId, Handled Multiple Part 
+	4     15/08/2025      Moin Bloch            Added @SoqId OUTPUT Param
 *********************************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -26,7 +27,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@UnitSalesPriceTotal DECIMAL(18,2),
 	@SourceBy VARCHAR(30) = NULL,
 	@MarketplaceRef VARCHAR(50) = NULL,
-	@QuoteSendReviewId INT = NULL
+	@QuoteSendReviewId INT = NULL,
+	@SoqId BIGINT = 0 OUTPUT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -631,7 +633,7 @@ BEGIN
 					---------------------------End Part Add----------------------------------------
 				END
 			END
-
+			SET @SoqId = @SalesOrderQuoteId
 			SELECT @SalesOrderQuoteId AS SalesOrderQuoteId
 			COMMIT TRANSACTION
 	END TRY

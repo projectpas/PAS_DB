@@ -13,8 +13,16 @@
     [UpdatedDate]                   DATETIME2 (7)  NOT NULL,
     [IsActive]                      BIT            NOT NULL,
     [IsDeleted]                     BIT            NOT NULL,
+    [AuthTypeId]                    INT            NULL,
+    [EmployeeId]                    BIGINT         NULL,
+    [AccessToken]                   VARCHAR (MAX)  NULL,
+    [RefreshToken]                  VARCHAR (MAX)  NULL,
+    [TokenExpiresIn]                INT            NULL,
+    [TokenCreatedAt]                DATETIME2 (7)  NULL,
     CONSTRAINT [PK_IntegrationEmailConfigrationAudit] PRIMARY KEY CLUSTERED ([IntegrationEmailConfigAuditId] ASC)
 );
+
+
 
 
 

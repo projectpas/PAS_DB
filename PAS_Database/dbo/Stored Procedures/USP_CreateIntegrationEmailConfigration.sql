@@ -38,13 +38,13 @@ BEGIN
 			(
 				[SmtpUserEmail], [smtpserver], [SmtpEmailPassword], [SmtpPort], [UseSsl],
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
-				[IsActive],[IsDeleted]
+				[IsActive],[IsDeleted],[AuthTypeId]
 			)
 			VALUES
 			(
 				@SmtpUserEmail, @SmtpServer, @SmtpEmailPassword, @SmtpPort, @UseSsl,
 				@MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(),
-				1, 0
+				1, 0, 1
 			);
 
 			SELECT SCOPE_IDENTITY() AS IntegrationEmailConfigId;

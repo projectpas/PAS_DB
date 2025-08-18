@@ -195,7 +195,7 @@ BEGIN
 			)
 
 			SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId],
-					0 AS [ConditionId], 0 AS [Price], 0 AS [ItemMasterId], 0 AS [CustomerId]
+					0 AS [ConditionId], 0 AS [Price], 0 AS [ItemMasterId], 0 AS [CustomerId], 0 AS QuoteSendReviewId
 			INTO #tmpQuote
 			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
@@ -215,7 +215,8 @@ BEGIN
 				 
 				UPDATE TMP
 				SET	TMP.[Price] = @UnitPrice,
-					TMP.ConditionId = ISNULL(A.ConditionId, 0)
+					TMP.ConditionId = ISNULL(A.ConditionId, 0),
+					TMP.QuoteSendReviewId = ISNULL(@QuoteSendReviewId, 0)
 				FROM #tmpQuote TMP 
 				OUTER APPLY (
 					SELECT TOP 1 CD.ConditionId
@@ -260,10 +261,10 @@ BEGIN
 			BEGIN
 				INSERT INTO @EmailRfqQuoteDetailsType
 				(	[CustomerRfqQuoteDetailsId], [CustomerRfqQuoteId], [ServiceType], [QuotePrice], [QuoteTat], [Low], [Mid], [AvgTat], [QuoteTatQty], [QuoteCond], [QuoteTrace], [IlsQty],
-					[IlsTraceability], [IlsUom], [IlsPrice], [IlsPriceType], [IlsTagDate], [IlsLeadTime], [IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [CustomerRfqPartMappingId]
+					[IlsTraceability], [IlsUom], [IlsPrice], [IlsPriceType], [IlsTagDate], [IlsLeadTime], [IlsMinQty], [IlsComment], [IlsCondition], [ConditionId], [CustomerRfqPartMappingId], [QuoteSendReviewId]
 				)
 				SELECT	0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', [Quantity],
-						'', '', [Price], '', NULL, '', 0, '', [Condition], [ConditionId], [CustomerRfqPartMappingId]
+						'', '', [Price], '', NULL, '', 0, '', [Condition], [ConditionId], [CustomerRfqPartMappingId], [QuoteSendReviewId]
 				FROM #tmpQuote;
 
 				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId;

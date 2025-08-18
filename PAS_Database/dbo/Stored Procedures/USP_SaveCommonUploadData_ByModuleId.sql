@@ -318,7 +318,7 @@ BEGIN
 						(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 9),
 						(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                     )
-					update CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId
+					update dbo.CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId
                 END
 				
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))  
@@ -585,7 +585,7 @@ BEGIN
 				
 				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
 				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
-				EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UpdatedBy;
+				EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UserName;
 				
 			END
 

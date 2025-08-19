@@ -3,7 +3,7 @@
     [RfqCreatedDate]      DATETIME2 (7) NULL,
     [IntegrationPortalId] INT           NULL,
     [Type]                VARCHAR (50)  NULL,
-    [Notes]               VARCHAR (100) NULL,
+    [Notes]               VARCHAR (MAX) NULL,
     [BuyerName]           VARCHAR (250) NULL,
     [BuyerCompanyName]    VARCHAR (250) NULL,
     [BuyerAddress]        VARCHAR (250) NULL,

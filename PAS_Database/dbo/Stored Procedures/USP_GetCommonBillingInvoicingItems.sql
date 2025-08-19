@@ -15,6 +15,7 @@
 	3    10/06/2025   Moin Bloch    Added CustomerId
 	4    07/07/2025   Abhishek Jirawla Updated Manufacturer
 	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
+	6    19/08/2025   Moin Bloch    Added Percent value for view
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -152,6 +153,11 @@ BEGIN
 						END [ConditionName]								
 				  ,WO.[Notes]
 				  ,MN.Name [Manufacturer]
+				  ,ISNULL(TBP.[PercentValue],0) [TotalBillingCostPercentValue]
+				  ,ISNULL(MCP.[PercentValue],0) [MaterialCostPercentValue]
+				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
+				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
+				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[ID]
@@ -162,6 +168,13 @@ BEGIN
 			  LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 			  LEFT JOIN dbo.[Percent] salePer WITH(NOLOCK) ON BII.SalesTaxPercent = salePer.PercentId
 			  LEFT JOIN dbo.[Percent] otherPer WITH(NOLOCK) ON BII.OtherTaxPercent = otherPer.PercentId
+			  LEFT JOIN dbo.[Percent] TBP WITH(NOLOCK) ON BII.TotalBillingCostPercent = TBP.PercentId
+			  LEFT JOIN dbo.[Percent] MCP WITH(NOLOCK) ON BII.MaterialCostPercent = MCP.PercentId
+			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
+			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
+			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
+
+
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
 		  		  
 		END 
@@ -273,6 +286,11 @@ BEGIN
 				  ,COND.Description [ConditionName]								
 				  ,WO.[Notes]
 				  ,MN.Name [Manufacturer]
+				  ,ISNULL(TBP.[PercentValue],0) [TotalBillingCostPercentValue]
+				  ,ISNULL(MCP.[PercentValue],0) [MaterialCostPercentValue]
+				  ,ISNULL(LCP.[PercentValue],0) [LaborCostPercentValue]
+				  ,ISNULL(FCP.[PercentValue],0) [FreightCostPercentValue]
+				  ,ISNULL(MSP.[PercentValue],0) [MiscChargesCostPercentValue]
 			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 			  INNER JOIN [dbo].[SalesOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[SalesOrderId]
 			  INNER JOIN [dbo].[SalesOrderPartV1] WOP WITH(NOLOCK) ON BII.[SubReferenceId] = WOP.[SalesOrderPartId]
@@ -281,6 +299,11 @@ BEGIN
 			  LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON BII.ConditionId = COND.[ConditionId]
 			  LEFT JOIN dbo.[Percent] salePer WITH(NOLOCK) ON BII.SalesTaxPercent = salePer.PercentId
 			  LEFT JOIN dbo.[Percent] otherPer WITH(NOLOCK) ON BII.OtherTaxPercent = otherPer.PercentId
+			  LEFT JOIN dbo.[Percent] TBP WITH(NOLOCK) ON BII.TotalBillingCostPercent = TBP.PercentId
+			  LEFT JOIN dbo.[Percent] MCP WITH(NOLOCK) ON BII.MaterialCostPercent = MCP.PercentId
+			  LEFT JOIN dbo.[Percent] LCP WITH(NOLOCK) ON BII.LaborCostPercent = LCP.PercentId
+			  LEFT JOIN dbo.[Percent] FCP WITH(NOLOCK) ON BII.FreightCostPercent = FCP.PercentId
+			  LEFT JOIN dbo.[Percent] MSP WITH(NOLOCK) ON BII.MiscChargesCostPercent = MSP.PercentId
 			  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId;
 		END
 	END TRY    

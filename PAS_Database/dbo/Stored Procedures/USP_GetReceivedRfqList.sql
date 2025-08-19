@@ -19,6 +19,7 @@
 	6    04-08-2025  Devendra Shekh		 Modified (Added EmployeeId,EmployeeName to select)
 	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber,QuotedBy,QuotedDate)
 	8    13-08-2025  Devendra Shekh		 Modified (Added Changes for Email Integration, Added RefrenceQuoteNumber to Param)
+	9    19-08-2025  Devendra Shekh		 Modified (Added DisableRow Field to select)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -116,16 +117,15 @@ BEGIN
 					RFQ.[QuotedBy],
 					RFQ.[QuotedDate],
 					CASE 
-						WHEN RFQ.IsQuote = 1 THEN  
-							CASE 
-								WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
-								WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
-								ELSE NULL 
-							END
+						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
+															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
+															ELSE 'YES'	END
+						WHEN RFQ.IsQuote = 2 THEN 'No Quote' 
 						ELSE NULL
 					END AS 'QuoteStatus',
 					Expired = NULL,
-					DaysTillExpire = NULL
+					DaysTillExpire = NULL,
+					DisableRow = CASE WHEN ISNULL(RFQ.IsQuote, 0) > 0 THEN 1 ELSE 0 END
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
@@ -174,16 +174,19 @@ BEGIN
 					RFQ.[QuotedBy],
 					RFQ.[QuotedDate],
 					CASE 
-						WHEN RFQ.IsQuote = 1 THEN  
-							CASE 
-								WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
-								WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
-								ELSE NULL 
-							END
+						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
+															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
+															ELSE 'YES'	END
+						WHEN RFQ.IsQuote = 2 THEN 'No Quote' 
 						ELSE NULL
 					END AS 'QuoteStatus',
 					Expired = NULL,
-					DaysTillExpire = NULL
+					DaysTillExpire = NULL,
+					CASE 
+						WHEN RFQ.IsQuote = 1 AND ISNULL(RFQ.ReferenceId, 0) > 0 THEN 1
+						WHEN RFQ.IsQuote = 2 THEN 1
+						ELSE 0
+					END AS 'DisableRow'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1

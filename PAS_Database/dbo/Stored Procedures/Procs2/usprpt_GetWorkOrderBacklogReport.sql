@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogReport]               
  ** Author:   Hemant      
  ** Description: Get Data for WorkOrderBacklog Report    
@@ -20,9 +21,10 @@
  3 16-06-2023   Hemant made changes to do total   
  4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
  5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
+ 6 19/08/2025   Fixed the arrangement of inserted values
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
-CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
+CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
  @PageNumber INT = 1,    
  @PageSize INT = NULL,    
  @mastercompanyid INT,    
@@ -164,9 +166,9 @@ BEGIN
     ISNULL(SL.purchaseorderunitcost, 0) 'unitcost',    
     RCW.StocklineId,    
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN ISNULL(WOC.partscost, 0) ELSE CAST(ISNULL(WOC.partscost, 0) AS VARCHAR(20)) END 'partscost',     
-    ISNULL(WOC.LaborCost, 0) 'laborcost',    
-    ISNULL(WOC.ChargesCost, 0) + ISNULL(WOC.FreightCost, 0) 'misccharge',    
+    ISNULL(WOC.LaborCost, 0) 'laborcost',  
     ISNULL(WOC.OverHeadCost, 0) 'overheadcost',    
+    ISNULL(WOC.ChargesCost, 0) + ISNULL(WOC.FreightCost, 0) 'misccharge',   
     ISNULL(WOC.OtherCost, 0) 'othercost',    
     (ISNULL(SL.PurchaseOrderUnitCost, 0) + ISNULL(WOC.PartsCost, 0) + ISNULL(WOC.LaborCost, 0) + ISNULL(WOC.OverHeadCost, 0) + ISNULL(WOC.OtherCost, 0)) 'total',    
     (ISNULL(SL.PurchaseOrderUnitCost, 0) + ISNULL(WOC.PartsCost, 0) + ISNULL(WOC.LaborCost, 0) + ISNULL(WOC.OverHeadCost, 0) + ISNULL(WOC.OtherCost, 0)) 'netwip',       

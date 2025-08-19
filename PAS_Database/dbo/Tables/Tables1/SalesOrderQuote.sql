@@ -75,7 +75,7 @@
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
     [LotId]                    BIGINT          NULL,
     [IsLotAssigned]            BIT             NULL,
-    [SourceBy]                 VARCHAR (30)    CONSTRAINT [DF_SalesOrderQuote_SourceBy] DEFAULT ('PAS') NULL,
+    [SourceBy]                 VARCHAR (30)    NULL,
     [MarketplaceRef]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrderQuote] PRIMARY KEY CLUSTERED ([SalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuote_CreditTerms] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -92,6 +92,8 @@
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteTypes] FOREIGN KEY ([QuoteTypeId]) REFERENCES [dbo].[MasterSalesOrderQuoteTypes] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 

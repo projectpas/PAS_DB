@@ -15,6 +15,7 @@
  ** --    --------         -------              --------------------------------            
     1     17/04/2025      Ekta Chandegra        Created  
 	2     31/07/2025      Amit Ghediya			Update for Add CustomerRFQId param for create from RFQ.
+	3     19/08/2025      BHARGAV SALIYA		Added @SourceBy  and @MarketplaceRef
 
 
 -- exec dbo.CreateSalesOrderQuote @QuoteTypeId=1,@OpenDate='2025-04-23 00:00:00',@ValidForDays=30,
@@ -59,7 +60,9 @@ CREATE   PROCEDURE [dbo].[CreateSalesOrderQuote]
 	@ForeignExchangeRate DECIMAL(18,2),
 	@IsCopySOQData BIT,
 	@CopyOldSOQId BIGINT,
-	@CustomerRfqId BIGINT
+	@CustomerRfqId BIGINT,
+	@SourceBy VARCHAR(50),
+	@MarketplaceRef VARCHAR(50)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -105,6 +108,7 @@ BEGIN
 				DECLARE @StatusName VARCHAR(50);
 				DECLARE @IsEnforceApproval BIT;
 				DECLARE @EnforceEffectiveDate DATETIME;
+				--DECLARE @SourceBy VARCHAR(50);
 
 				IF @CustomerServiceRepId = 0 
 				BEGIN
@@ -130,7 +134,11 @@ BEGIN
 				BEGIN
 					SET @QuoteParentId = NULL
 				END
-					
+				
+				IF @SourceBy IS NULL 
+				BEGIN
+					SET @SourceBy = 'PAS';
+				END
 
 				-- Fetch soqCodeData
 				SELECT TOP 1 * INTO #soqCodeData FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @SalesOrderQuotePrefix AND [MasterCompanyId] = @MasterCompanyId
@@ -266,7 +274,7 @@ BEGIN
 					,[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode]
 					,[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2] 
 					,[ManagementStructureName3],[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight]
-					,[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate] 
+					,[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[SourceBy],[MarketplaceRef] 
 				)
 				SELECT
 					@QuoteTypeId,@OpenDate,@ValidForDays,@QuoteExpireDate,@AccountTypeId,@CustomerId,@CustomerContactId,@CustomerReference,
@@ -279,7 +287,7 @@ BEGIN
 					@CustomerWarningName,@ManagementStructureName,@CustomerContactName,@VersionNumber,@CustomerCode,
 					@CustomerContactEmail,NULL,@StatusName,NULL,NULL,
 					NULL,NULL,@EnforceEffectiveDate,@IsEnforceApproval,@TotalFreight,
-					@TotalCharges,@FreightBilingMethodId,@ChargesBilingMethodId,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate;
+					@TotalCharges,@FreightBilingMethodId,@ChargesBilingMethodId,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@SourceBy,@MarketplaceRef;
 
 				SELECT @SalesOrderQuoteId = SCOPE_IDENTITY();
 

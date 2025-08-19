@@ -18,7 +18,8 @@
 	5	 15-08-2025		Devendra Shekh		Removed @IsAutoInternalQuote, Added [QuoteSendReviewId] select
 	7    15/08/2025     Moin Bloch          Added @SoqId OUTPUT Param
 	8	 18-08-2025		Bhargav Saliya		Added [ExpirationDate]
-	9    18-08-2025     Devendra Shekh		Handling New Part Add While Updat
+	9    18-08-2025     Devendra Shekh		Handling New Part Add While Update
+   10    18-Aug-2025    Amit Ghediya        Update RFQ SOQ Price.
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -75,6 +76,17 @@ BEGIN
 					IlsPriceType, IlsTagDate, IlsLeadTime, IlsMinQty, IlsComment, IlsCondition, ConditionId, [CustomerRfqPartMappingId],	
 					@CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PercentId, @PercentValue,[ExpirationDate]
 			FROM @tbl_EmailRfqQuoteDetailsType WHERE ISNULL(CustomerRfqQuoteDetailsId, 0) = 0;
+
+			--Declare type
+			DECLARE @IlsRfqQuoteDetailsTypes IlsRfqQuoteDetailsType;
+
+			INSERT  INTO @IlsRfqQuoteDetailsTypes
+			([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
+			SELECT [CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],NULL,NULL,[IlsPrice],[IlsPriceType],[IlsTagDate],NULL,[IlsMinQty],NULL,NULL,ConditionId,0
+			FROM @tbl_EmailRfqQuoteDetailsType;
+
+			------Update RFQ SOQ Data--------------------------
+			EXEC [dbo].[USP_UpdateRFQQuoteDetails] @IlsRfqQuoteDetailsTypes,@CustomerRfqQuoteId,@CustomerRfqId,@RfqId,@MasterCompanyId,@CreatedBy
 		END
 		ELSE
 		BEGIN

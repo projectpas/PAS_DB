@@ -11,6 +11,7 @@
  ** --   --------     -------  ------	--------------------------                
     1    04/08/2025   Moin Bloch   	    Created
     2    15/08/2025   Vishal Suthar   	Added new columns AuthTypeId and EmployeeId
+    3    19/08/2025   BHARGAV SALIYA  	Added CASE to get [AuthType]
     
 -- EXEC USP_GetIntegrationEmailConfigration 1,0,1
 **************************************************************/                   
@@ -41,6 +42,10 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[AuthTypeId]
 			  ,[EmployeeId]
+			  ,CASE WHEN ISNULL(AuthTypeId,'') = 1 THEN 'Basic SMTP'
+					WHEN ISNULL(AuthTypeId,'') = 2 THEN 'Google OAuth 2.0'
+					WHEN ISNULL(AuthTypeId,'') = 3 THEN 'Microsoft OAuth 2.0'
+					ELSE '' END AS AuthType
 		FROM [dbo].[IntegrationEmailSmtpConfigration] IE WITH(NOLOCK)      
 		WHERE IE.[MasterCompanyId] = @MasterCompanyId
 		AND IE.[IsDeleted] = 0

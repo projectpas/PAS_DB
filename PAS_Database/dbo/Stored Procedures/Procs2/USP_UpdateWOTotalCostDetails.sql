@@ -48,6 +48,11 @@ SET NOCOUNT ON
 				DECLARE @KitCost DECIMAL(18,2);
 				DECLARE @WOModuleId INT
 
+				IF (@MasterCompanyId IS NULL OR @MasterCompanyId = 0)
+				BEGIN
+					SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId
+				END
+
 				IF OBJECT_ID(N'tempdb..#WOCostDetails') IS NOT NULL
 				BEGIN
 				DROP TABLE #WOCostDetails 

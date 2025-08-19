@@ -19,7 +19,7 @@
     1    02/22/2021   Hemant Saliya		Created
     2    03/29/2023   Vishal Suthar		Modified to handle WO Material KIT changes
 	3    01/31/2024	  Devendra Shekh	added isperforma Flage for WOInvoice
-    4    06/12/2025   Moin Bloch	Changed Old Billing Table To New one
+    4    06/12/2025   Moin Bloch	    Changed Old Billing Table To New one
      
  EXECUTE USP_UpdateWOTotalCostDetails 281,195, 10576
 
@@ -54,6 +54,11 @@ SET NOCOUNT ON
 				IF OBJECT_ID(N'tempdb..#WOCostDetails') IS NOT NULL
 				BEGIN
 				DROP TABLE #WOCostDetails 
+				END
+				
+				IF(@MasterCompanyId IS NULL OR @MasterCompanyId = 0)
+				BEGIN
+					SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId
 				END
 				
 				CREATE TABLE #WOCostDetails 

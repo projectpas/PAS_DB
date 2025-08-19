@@ -12,8 +12,16 @@
     [UpdatedDate]              DATETIME2 (7)  CONSTRAINT [DF_IntegrationEmailSmtpConfigration_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                 BIT            CONSTRAINT [DF_IntegrationEmailSmtpConfigration_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                BIT            CONSTRAINT [DF_IntegrationEmailSmtpConfigration_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [AuthTypeId]               INT            NULL,
+    [EmployeeId]               BIGINT         NULL,
+    [AccessToken]              VARCHAR (MAX)  NULL,
+    [RefreshToken]             VARCHAR (MAX)  NULL,
+    [TokenExpiresIn]           INT            NULL,
+    [TokenCreatedAt]           DATETIME2 (7)  NULL,
     CONSTRAINT [PK_IntegrationEmailSmtpConfigration] PRIMARY KEY CLUSTERED ([IntegrationEmailConfigId] ASC)
 );
+
+
 
 
 

@@ -9,14 +9,15 @@
  **************************************************************                 
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
-    1    04/08/2025   Moin Bloch   	    Created      
+    1    04/08/2025   Moin Bloch   	    Created
+    2    15/08/2025   Vishal Suthar   	Added new columns AuthTypeId and EmployeeId
     
 -- EXEC USP_GetIntegrationEmailConfigration 1,0,1
 **************************************************************/                   
 CREATE   PROCEDURE [dbo].[USP_GetIntegrationEmailConfigration] 
-@MasterCompanyId INT = NULL,
-@IntegrationEmailConfigId INT = NULL,
-@Opr INT = NULL
+	@MasterCompanyId INT = NULL,
+	@IntegrationEmailConfigId INT = NULL,
+	@Opr INT = NULL
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
@@ -38,11 +39,12 @@ BEGIN
 			  ,[UpdatedDate]
 			  ,[IsActive]
 			  ,[IsDeleted]
-		  FROM [dbo].[IntegrationEmailSmtpConfigration] IE WITH(NOLOCK)      
-	  WHERE IE.[MasterCompanyId] = @MasterCompanyId
+			  ,[AuthTypeId]
+			  ,[EmployeeId]
+		FROM [dbo].[IntegrationEmailSmtpConfigration] IE WITH(NOLOCK)      
+		WHERE IE.[MasterCompanyId] = @MasterCompanyId
 		AND IE.[IsDeleted] = 0
 		AND IE.[IsActive] = 1   
-
 	END
 	IF(@Opr = 2)
 	BEGIN

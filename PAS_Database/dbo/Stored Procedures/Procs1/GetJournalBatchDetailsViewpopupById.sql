@@ -54,8 +54,9 @@
  38	  13/12/2024  Moin Bloch		     added Cycle Count Module
  39	  26/12/2024  Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
  40	  04/08/2024  AMIT GHEDIYA		     Updated MJ Module MJE to MJB.
+ 41	 19/08/2025  BHARGAV SALIYA	  Added Case for [JournalTypeName].
 
- EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
+ EXEC [GetJournalBatchDetailsViewpopupById] 2666,0,'WO'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
@@ -91,7 +92,8 @@ BEGIN
 					  ,WBD.[PiecePNId]  
 					  ,WBD.[PiecePN]  					 
 					  ,JBD.[JournalTypeId]  
-					  ,JBD.[JournalTypeName]  
+					  --,JBD.[JournalTypeName]  
+					  ,CASE WHEN ISNULL(BD.IsReversedJE, 0) = 1 THEN UPPER(JBD.[JournalTypeName]) + ' (REVERSED)' ELSE UPPER(JBD.[JournalTypeName]) END  AS [JournalTypeName]
 					  ,JBD.[IsDebit]  
 					  ,JBD.[DebitAmount]  
 					  ,JBD.[CreditAmount]  

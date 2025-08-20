@@ -19,6 +19,7 @@
 	4	 30/10/2023	 Ayesha Sultana   Batch name retriving issue fix
 	5	 09/04/2025	 Ekta Chandegra	  Convert date using dbo.ConvertUTCtoLocal
 	6	 04/08/2024  AMIT GHEDIYA	  Added Field ReferenceNumber.
+	7	 19/08/2025  BHARGAV SALIYA	  Added Case for [JournalTypeName].
 ************************************************************************/    
 --[GetJournalBatchDetailsViewById]  826    
 CREATE        PROCEDURE [dbo].[GetJournalBatchDetailsViewById]      
@@ -58,7 +59,8 @@ BEGIN
 				  ISNULL(JBD.CreditAmount,0) as CreditAmount,
 				  JBD.JournalTypeNumber,
 				  (Cast(DBO.ConvertUTCtoLocal(JBD.EntryDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate,
-				  JBD.JournalTypeName,  
+				  CASE WHEN ISNULL(JBD.IsReversedJE, 0) = 1 THEN UPPER(JBD.[JournalTypeName]) + ' (REVERSED)' ELSE UPPER(JBD.[JournalTypeName]) END  AS [JournalTypeName],
+				  --JBD.JournalTypeName,  
 				  JT.JournalTypeCode,
 				  JBD.StatusId,
 				  (Cast(DBO.ConvertUTCtoLocal(JBH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as CreatedDate,

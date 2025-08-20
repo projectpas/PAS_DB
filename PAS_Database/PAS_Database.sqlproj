@@ -4167,10 +4167,12 @@
     <Build Include="dbo\Stored Procedures\USP_GetRFQHistoryByPartNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRFQHistoryByPartNumberCondition.sql" />
     <Build Include="dbo\Stored Procedures\USP_AutoCreateILSQuoteSyc.sql" />
+    <Build Include="dbo\Stored Procedures\ProcStockListFromExpiredDays.sql" />
     <Build Include="dbo\Stored Procedures\usp_UpdateIntegrationEmailStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTokenDetailsForReadEmailOAuth.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateRFQQuoteDetails.sql" />
     <Build Include="dbo\Tables\IntegrationPortalMaster.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

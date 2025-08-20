@@ -20,7 +20,7 @@
 	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber,QuotedBy,QuotedDate)
 	8    13-08-2025  Devendra Shekh		 Modified (Added Changes for Email Integration, Added RefrenceQuoteNumber to Param)
 	9    19-08-2025  Devendra Shekh		 Modified (Added DisableRow Field to select)
-	10	 20-08-2025  Devendra Shekh		 Modified (Duplicate Part Data Issue Resolved)
+	10	 20-08-2025  Devendra Shekh		 Modified (Duplicate Part Data Issue Resolved) 
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/

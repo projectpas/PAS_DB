@@ -20,7 +20,7 @@
 	7    06-08-2025  Amit Ghediya		 Modified (Added RefrenceQuoteNumber,QuotedBy,QuotedDate)
 	8    13-08-2025  Devendra Shekh		 Modified (Added Changes for Email Integration, Added RefrenceQuoteNumber to Param)
 	9    19-08-2025  Devendra Shekh		 Modified (Added DisableRow Field to select)
-	10	 20-08-2025  Devendra Shekh		 Modified (Duplicate Part Data Issue Resolved)
+	10	 20-08-2025  Devendra Shekh		 Modified (Duplicate Part Data Issue Resolved) 
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -83,7 +83,13 @@ BEGIN
 				END
 
 				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
-			;With Result AS(
+			;With ItemResult AS (
+				SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
+				FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
+				WHERE RIM.[MasterCompanyId] = @MasterCompanyId
+				GROUP BY RIM.partnumber, RIM.MasterCompanyId
+			),			
+			Result AS(
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
 					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
@@ -129,17 +135,18 @@ BEGIN
 					DisableRow = CASE WHEN ISNULL(RFQ.IsQuote, 0) > 0 THEN 1 ELSE 0 END
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN ItemResult IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
-				OUTER APPLY (
-					SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
-					FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
-					WHERE RFQ.[LinePartNumber] = RIM.[partnumber] AND RFQ.[MasterCompanyId] = RIM.[MasterCompanyId]
-				) IM
+				--OUTER APPLY (
+				--	SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
+				--	FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
+				--	WHERE RFQ.[LinePartNumber] = RIM.[partnumber] AND RFQ.[MasterCompanyId] = RIM.[MasterCompanyId]
+				--) IM
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)
 				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
@@ -201,12 +208,13 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				LEFT JOIN dbo.CustomerRfqPartMapping CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN ItemResult IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
-				OUTER APPLY (
-					SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
-					FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
-					WHERE RFQ.[LinePartNumber] = RIM.[partnumber] AND RFQ.[MasterCompanyId] = RIM.[MasterCompanyId]
-				) IM
+				--OUTER APPLY (
+				--	SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
+				--	FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
+				--	WHERE RFQ.[LinePartNumber] = RIM.[partnumber] AND RFQ.[MasterCompanyId] = RIM.[MasterCompanyId]
+				--) IM
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND RFQ.IntegrationPortalId IN (@EmailPortalId)
 				--AND RFQ.IsQuote IS NOT NULL 

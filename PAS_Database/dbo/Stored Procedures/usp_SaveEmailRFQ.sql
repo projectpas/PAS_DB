@@ -14,6 +14,7 @@
     3    13 Aug 2025	Devendra Shekh		Added Changes To Process Send Quote Based on [AiIntegrationSetting]
     4    14 Aug 2025	Devendra Shekh		Added Changes To for AutoQuotePrice
     5    15 Aug 2025	Devendra Shekh		Added Changes To check Part/Customer are in tables or not before quote
+	6    19 Aug 2025	Moin Bloch		    Returns CustomerRfqId
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -268,8 +269,12 @@ BEGIN
 				FROM #tmpQuote;
 
 				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId;
+
+
 			END
 		END
+
+		SELECT @CustomerRfqId AS [CUSTOMERRFQID]
 	END		
 	--COMMIT
 	END TRY	

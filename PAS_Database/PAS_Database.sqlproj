@@ -4174,7 +4174,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesQuoteIdFromCustomerRfq.sql" />
     <Build Include="dbo\User Defined Types\CustomerRfqIdListType.sql" />
     <Build Include="dbo\Tables\IntegrationPortalMaster.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_UpdateCustomerRFQ.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -20,6 +20,7 @@
 	8	 18-08-2025		Bhargav Saliya		Added [ExpirationDate]
 	9    18-08-2025     Devendra Shekh		Handling New Part Add While Update
    10    18-Aug-2025    Amit Ghediya        Update RFQ SOQ Price.
+   11    21-Aug-2025    Devendra Shekh		Checking customerId in CustomerRFQ for @CustomerId
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -122,6 +123,7 @@ BEGIN
 			BEGIN
 				DECLARE @ItemMasterId BIGINT = 0,
 						@CustomerId BIGINT = 0,
+						@RfqCustomerId BIGINT = 0,
 						@PartNumber NVARCHAR(200) = NULL,
 						@BuyerCompanyName NVARCHAR(200) = NULL;
 				
@@ -161,7 +163,7 @@ BEGIN
 				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId
 				
 				--Create SOQ
-				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],	   @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,'') FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],	   @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 				--Declare type
 				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
@@ -174,6 +176,7 @@ BEGIN
 
 				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId;
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId;						
+				SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
 				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 				BEGIN

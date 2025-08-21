@@ -21,6 +21,7 @@
 	8    13-08-2025  Devendra Shekh		 Modified (Added Changes for Email Integration, Added RefrenceQuoteNumber to Param)
 	9    19-08-2025  Devendra Shekh		 Modified (Added DisableRow Field to select)
 	10	 20-08-2025  Devendra Shekh		 Modified (Duplicate Part Data Issue Resolved) 
+	11	 21-08-2025  Devendra Shekh		 Modified (Added one more Case for CustomerId) 
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -114,7 +115,7 @@ BEGIN
 					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
 					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
 					IM.PartDescription AS 'PnDescription',
-					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
+					(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
@@ -136,7 +137,7 @@ BEGIN
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
-				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId])
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
@@ -177,7 +178,7 @@ BEGIN
 					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
 					(CASE	WHEN LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
 					CASE WHEN ISNULL(IM.PartDescription, '') != '' THEN IM.PartDescription ELSE CRPM.PartDescription END AS 'PnDescription',
-					(CASE WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
+					(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
@@ -201,7 +202,7 @@ BEGIN
 						ELSE 0
 					END AS 'DisableRow'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
-				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]
+				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (RFQ.[BuyerCompanyName] = CU.[Name] AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId])
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]

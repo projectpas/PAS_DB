@@ -21,6 +21,7 @@
 	8	 15-Aug-2025   Bhargav Saliya	 Added [PriorityId] and [ExpirationDate] 
 	9    15/08/2025    Moin Bloch        Added @SoqId OUTPUT Param
 	10   18-Aug-2025   Amit Ghediya      Update RFQ SOQ Price.
+	11	 21-Aug-2025   Devendra Shekh	 Checking customerId in CustomerRFQ for @CustomerId
 
 -- EXEC USP_SendILSQuote
 ************************************************************************/
@@ -135,6 +136,7 @@ BEGIN
 						 ---------Create SOQ With part---------------------------------------------
 							DECLARE @ItemMasterId BIGINT = 0,
 									@CustomerId BIGINT = 0,
+									@RfqCustomerId BIGINT = 0,
 									@PartNumber NVARCHAR(200) = NULL,
 									@BuyerCompanyName NVARCHAR(200) = NULL,
 									@IsAutoInternalQuote BIT;
@@ -142,7 +144,8 @@ BEGIN
 							SELECT @PartNumber = [LinePartNumber],
 								   @BuyerCompanyName = [BuyerCompanyName],
 								   @SourceBy = ISNULL([Type],''),
-								   @MarketplaceRef = ISNULL(RfqId,'')
+								   @MarketplaceRef = ISNULL(RfqId,''),
+								   @RfqCustomerId = [CustomerId]
 							FROM [dbo].[CustomerRfq] WITH(NOLOCK) 
 							WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
@@ -153,6 +156,7 @@ BEGIN
 
 							SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 							SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));
+							SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
 							IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 							BEGIN

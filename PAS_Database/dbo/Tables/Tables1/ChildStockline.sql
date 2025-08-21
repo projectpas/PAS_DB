@@ -119,8 +119,8 @@
     [SubWOPartNoId]                       BIGINT          NULL,
     [IsOemPNId]                           BIGINT          NULL,
     [PurchaseUnitOfMeasureId]             BIGINT          NOT NULL,
-    [ObtainFromName]                      VARCHAR (50)    NULL,
-    [OwnerName]                           VARCHAR (50)    NULL,
+    [ObtainFromName]                      VARCHAR (100)   NULL,
+    [OwnerName]                           VARCHAR (100)   NULL,
     [TraceableToName]                     VARCHAR (50)    NULL,
     [Level1]                              VARCHAR (100)   NULL,
     [Level2]                              VARCHAR (100)   NULL,
@@ -191,6 +191,8 @@
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ChildStockline] PRIMARY KEY CLUSTERED ([ChildStockLineId] ASC)
 );
+
+
 
 
 

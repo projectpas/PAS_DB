@@ -17,6 +17,7 @@
    	4    14-08-2025   Devendra Shekh	Pass the new parameter (USP_CreateSalesOrderQuoteFromAI) @QuoteSendReviewId
 	5    15-08-2025   Devendra Shekh	added @IntegrationPortalId select
 	6    15/08/2025   Moin Bloch        Added @SoqId OUTPUT Param
+	7	 21-08-2025   Devendra Shekh	Checking customerId in CustomerRFQ for @CustomerId
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SendMultiILSQuote]
@@ -48,6 +49,7 @@ BEGIN
 
 		DECLARE @ItemMasterId BIGINT = 0,
 				@CustomerId BIGINT = 0,
+				@RfqCustomerId BIGINT = 0,
 				@PartNumber NVARCHAR(200) = NULL,
 				@BuyerCompanyName NVARCHAR(200) = NULL;
 
@@ -138,9 +140,11 @@ BEGIN
 				WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
 				---------Create SOQ With part---------------------------------------------
-				SELECT @PartNumber = [LinePartNumber],
-						@BuyerCompanyName = [BuyerCompanyName],  @SourceBy = ISNULL([Type],''),
-							   @MarketplaceRef = ISNULL(RfqId,'')
+				SELECT	@PartNumber = [LinePartNumber],
+						@BuyerCompanyName = [BuyerCompanyName],
+						@SourceBy = ISNULL([Type],''),
+						@MarketplaceRef = ISNULL(RfqId,''),
+						@RfqCustomerId = [CustomerId]
 				FROM [dbo].[CustomerRfq] WITH(NOLOCK) 
 				WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
@@ -157,7 +161,8 @@ BEGIN
 
 
 				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
-				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));						
+				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));	
+				SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
 				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 				BEGIN
@@ -241,7 +246,7 @@ BEGIN
 					WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
 					---------Create SOQ With part---------------------------------------------
-					SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],  @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,'') FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @GetCustomerRfqId;
+					SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],  @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
 					UPDATE TMP
 					SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END
@@ -261,7 +266,8 @@ BEGIN
 					WHERE RFQD.[CustomerRfqQuoteId] = @CustomerRfqQuoteId AND TMP.ID = @MinRFQId;
 
 					SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
-					SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));						
+					SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));	
+					SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
 					IF EXISTS(SELECT 1 FROM #RfqMultiQuoteDetail WHERE ISNULL(ItemMasterId, 0) = 0)
 					BEGIN

@@ -19,11 +19,12 @@
 	3   23/01/2025 Bhargav Saliya Adding StockLine module to the list
 	4   24/01/2025 Bhargav Saliya Add EmployeeId
 	5   28/01/2025 Devendra Shekh	Modified (Handling Null @CurrntEmpTimeZoneDesc )
+	6   22/08/2025 Devendra Shekh	Modified (added LegalEntity join for @CurrntEmpTimeZoneDesc)
      
 **************************************************************/
 
  --EXEC [USP_CheckLegalEntity_Exist] 22,184425,207
-CREATE   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
+CREATE     PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
 @ReferenceId bigint,
@@ -36,9 +37,16 @@ BEGIN
 		BEGIN TRY
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
-				SELECT @CurrntEmpTimeZoneDesc = ISNULL(ETZ.[Description],'') FROM [dbo].[Employee] E WITH(NOLOCK)
-				INNER JOIN [dbo].TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-				WHERE E.EmployeeId = @EmployeeId
+				SELECT 
+					@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE E.EmployeeId = @EmployeeId;
 
 
 		BEGIN TRANSACTION

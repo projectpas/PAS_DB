@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------          
     1    13/06/2025   Amit Ghediya		Created
     2    03/07/2025   Vishal Suthar     WorkFlowId was missing in the update section for Template
+    3    22/08/2025   Devendra Shekh    Save SettlementDetails Issue Resolved and set SCOPE_IDENTITY for Insert New PartNumber
      
 -- EXEC [InsertSubWorkOrderPartNumber] 
 ************************************************************************/
@@ -310,9 +311,14 @@ BEGIN
 					PDFPath,islocked,IsFinishGood,RevisedConditionId,NULL,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO,0,
 					RevisedSerialNumber,PublicationNo,@TraverIdString
 				FROM #tmpSubWorkOrderParts WHERE [ID] = @MasterLoopID
+
+				SET @SubWOPartNoId = SCOPE_IDENTITY();
 				
 				--Call ReserveReleaseSubWorkOrderStockline 
 				EXEC USP_Reserve_ReleaseSubWorkOrderStockline @WorkOrderId,@SubWorkOrderId,@WorkOrderMaterialsId,@StockLineId,@SubWOPartNoId,@Quantity,1,@UpdatedById,0
+				
+				--Save Settlement Details
+				EXEC [dbo].[USP_SaveSubWorkOrderSettlementDetails] @WorkOrderId, @SubWOPartNoId,@SubWorkOrderId,@MasterCompanyId,@CreatedBy
 			END
 
 			IF NOT EXISTS (SELECT 1 FROM [dbo].[SubWorkOrderMaterialMapping] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId AND SubWorkOrderId = @SubWorkOrderId)

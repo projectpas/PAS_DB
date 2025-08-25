@@ -4176,6 +4176,7 @@
     <Build Include="dbo\Tables\IntegrationPortalMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateCustomerRFQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmailAddressForOAuth.sql" />
+    <Build Include="dbo\Stored Procedures\CheckWorkOrderForRestore.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

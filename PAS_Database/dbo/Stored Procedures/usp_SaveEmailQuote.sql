@@ -21,6 +21,7 @@
 	9    18-08-2025     Devendra Shekh		Handling New Part Add While Update
    10    18-Aug-2025    Amit Ghediya        Update RFQ SOQ Price.
    11    21-Aug-2025    Devendra Shekh		Checking customerId in CustomerRFQ for @CustomerId
+   12	 22-Aug-2025    Devendra Shekh		Modified (set @QuoteReviewRequiredId based on Review Required)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -39,11 +40,20 @@ BEGIN
 	BEGIN
 	    DECLARE @SalesOrderQuoteId BIGINT = 0;
 		DECLARE @GetCustomerRfqId BIGINT, @PercentId BIGINT, @PercentValue DECIMAL(18,2),@SourceBy Varchar(30),@MarketplaceRef Varchar(50);
+		DECLARE @QuoteReviewRequiredId BIGINT = 0, @Code VARCHAR(50) = 'Review Required', @CreateSOQ BIT = 1;
 
 		--Get markup % on fly
 		SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
-		SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_EmailRfqQuoteDetailsType);
+		SELECT @QuoteReviewRequiredId = QuoteSendReviewId FROM [dbo].[QuoteSendReview] WITH(NOLOCK) WHERE [Code] = @Code;
+		IF EXISTS(SELECT 1 FROM @tbl_EmailRfqQuoteDetailsType WHERE ISNULL([QuoteSendReviewId], 0) = @QuoteReviewRequiredId OR ISNULL([QuoteSendReviewId], 0) = 0)
+		BEGIN
+			SET @QuoteSendReviewId = @QuoteReviewRequiredId;
+		END
+		ELSE
+		BEGIN
+			SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_EmailRfqQuoteDetailsType);
+		END
 
 		IF(@CustomerRfqQuoteId > 0)
 		BEGIN
@@ -163,7 +173,7 @@ BEGIN
 				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId
 				
 				--Create SOQ
-				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName],	   @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName], @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 				--Declare type
 				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
@@ -178,12 +188,19 @@ BEGIN
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId;						
 				SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
-				IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
+				IF EXISTS(SELECT 1 FROM #tmpCustomerRfqQuoteDetails WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(ConditionId, 0) = 0)
+				BEGIN
+					SET @CreateSOQ = 0;
+				END
+
+				IF(ISNULL(@CreateSOQ,0) > 0 AND ISNULL(@CustomerId,0) > 0)
 				BEGIN
 					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
 				END
 			END
 		END
+
+		SET @SalesOrderQuoteId = CASE WHEN @QuoteSendReviewId = @QuoteReviewRequiredId THEN 0 ELSE @SalesOrderQuoteId END;
 
 		SELECT @SalesOrderQuoteId AS SOQID
 	END			

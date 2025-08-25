@@ -15,6 +15,7 @@
     4    14 Aug 2025	Devendra Shekh		Added Changes To for AutoQuotePrice
     5    15 Aug 2025	Devendra Shekh		Added Changes To check Part/Customer are in tables or not before quote
 	6    19 Aug 2025	Moin Bloch		    Returns CustomerRfqId
+	7    22 Aug 2025	Devendra Shekh		Modified (added to No Quote if condition not matched or QuoteSendReviewId is 0)
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -222,7 +223,7 @@ BEGIN
 				OUTER APPLY (
 					SELECT TOP 1 CD.ConditionId
 					FROM [dbo].[Condition] CD WITH(NOLOCK) 
-					WHERE CD.[Description] = TMP.Condition AND CD.MasterCompanyId = TMP.MasterCompanyId
+					WHERE ((LOWER(TRIM(CD.[Description])) = LOWER(TRIM(TMP.Condition))) OR (LOWER(TRIM(CD.[Code])) = LOWER(TRIM(TMP.Condition)))) AND CD.MasterCompanyId = TMP.MasterCompanyId
 				) A
 				WHERE RowId = @CurrentQuoteRow;
 
@@ -249,11 +250,11 @@ BEGIN
 			SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END,
 				TMP.CustomerId = CASE WHEN ISNULL(CS.CustomerId, 0) > 0 THEN CS.CustomerId ELSE 0 END
 			FROM #tmpQuote TMP
-			LEFT JOIN dbo.CustomerRfq RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
+			LEFT JOIN dbo.[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
 			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId
-			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) AND CS.MasterCompanyId = TMP.MasterCompanyId
+			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId
 
-			IF EXISTS(SELECT 1 FROM #tmpQuote WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(CustomerId, 0) = 0)
+			IF EXISTS(SELECT 1 FROM #tmpQuote WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(CustomerId, 0) = 0 OR ISNULL(ConditionId, 0) = 0 OR ISNULL(QuoteSendReviewId, 0) = 0)
 			BEGIN
 				SET @ALlowProcessQuote = 0;
 			END

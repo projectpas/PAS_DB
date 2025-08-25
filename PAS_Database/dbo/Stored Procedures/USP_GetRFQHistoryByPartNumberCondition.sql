@@ -13,6 +13,7 @@
  ** --   ----------  -----------		--------------------------------          
     1    13/08/2025  Moin Bloch		    Created
 	2    13/08/2025  Hemant Saliya	    Update for Get the single Price.
+	3    22/08/2025  Devendra Shekh		Modified (set QuoteSendReviewId to 0 if no UnitPrice > 0)
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'NICKITEST-A','NE',1
   EXEC [dbo].[USP_GetRFQHistoryByPartNumberCondition] 'ABC123','NE',1
@@ -234,6 +235,7 @@ BEGIN
 	END
 	ELSE 
 	BEGIN
+		UPDATE #tmpResult SET QuoteSendReviewId = 0, QuoteSendReview ='';
 		SELECT TOP 1 * FROM #tmpResult Order by Sequence
 	END
 	--SELECT * from #tmpRFQHistoryResult

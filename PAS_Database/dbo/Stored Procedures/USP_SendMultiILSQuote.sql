@@ -18,6 +18,7 @@
 	5    15-08-2025   Devendra Shekh	added @IntegrationPortalId select
 	6    15/08/2025   Moin Bloch        Added @SoqId OUTPUT Param
 	7	 21-08-2025   Devendra Shekh	Checking customerId in CustomerRFQ for @CustomerId
+	8	 22-08-2025   Devendra Shekh	Modified (set @QuoteReviewRequiredId based on Review Required)
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SendMultiILSQuote]
@@ -53,11 +54,14 @@ BEGIN
 				@PartNumber NVARCHAR(200) = NULL,
 				@BuyerCompanyName NVARCHAR(200) = NULL;
 
+		DECLARE @QuoteReviewRequiredId BIGINT = 0, @Code VARCHAR(50) = 'Review Required', @CreateSOQ BIT = 1;
+
 		--Get markup % on fly
 		SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
 		SELECT TOP 1 @IntegrationPortalId = IntegrationPortalId FROM @tbl_IlsRfqMultipleQuoteDetailsType;
-		SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_IlsRfqMultipleQuoteDetailsType);
+
+		SELECT @QuoteReviewRequiredId = QuoteSendReviewId FROM [dbo].[QuoteSendReview] WITH(NOLOCK) WHERE [Code] = @Code;		
 
 		--Read all part which from RFQ
 		IF OBJECT_ID(N'tempdb..#RfqMultiQuoteDetail') IS NOT NULL
@@ -99,9 +103,16 @@ BEGIN
 			WHILE (@MinRFQId <= @RfqQuoteLoopID)
 			BEGIN
 
-				SELECT @GetCustomerRfqId = [CustomerRfqId],
-						@Condition = [IlsCondition]
-				FROM #RfqMultiQuoteDetail WHERE [ID] = @MinRFQId;
+				SELECT @GetCustomerRfqId = [CustomerRfqId], @Condition = [IlsCondition] FROM #RfqMultiQuoteDetail WHERE [ID] = @MinRFQId;
+
+				IF EXISTS(SELECT 1 FROM @tbl_IlsRfqMultipleQuoteDetailsType WHERE (ISNULL([QuoteSendReviewId], 0) = @QuoteReviewRequiredId OR ISNULL([QuoteSendReviewId], 0) = 0) AND [CustomerRfqId] = @GetCustomerRfqId)
+				BEGIN
+					SET @QuoteSendReviewId = @QuoteReviewRequiredId;
+				END
+				ELSE
+				BEGIN
+					SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_IlsRfqMultipleQuoteDetailsType WHERE [CustomerRfqId] = @GetCustomerRfqId);
+				END
 
 				--Get Condition 
 				SELECT @ConditionId = [ConditionId] 
@@ -180,6 +191,7 @@ BEGIN
 
 			DECLARE @TotalRow INT, @CurrentRow INT = 0;
 			DECLARE @ALlowProcessQuote BIT = 1;
+			DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
 
 			IF OBJECT_ID(N'tempdb..#RfqQuote') IS NOT NULL
 			BEGIN
@@ -199,11 +211,16 @@ BEGIN
 			SELECT [CustomerRfqId], [RfqId], [IntegrationPortalId]
 			FROM #RfqMultiQuoteDetail
 			GROUP BY [CustomerRfqId], [RfqId], [IntegrationPortalId];
-
+			
 			SELECT @TotalRow = MAX(ID), @CurrentRow = MIN(ID) FROM #RfqQuote;
 
-			WHILE (@TotalRow >= @CurrentRow)
+			WHILE (@TotalRow >= @CurrentRow) AND @TotalRow > 0
 			BEGIN
+				
+				DELETE FROM @EmailRfqQuoteDetails;
+
+				SELECT @GetCustomerRfqId = [CustomerRfqId] FROM #RfqQuote WHERE ID = @CurrentRow;
+
 				--------------------------- Insert into Rfq Quote table --------------------------------------------------
 				INSERT INTO [dbo].[CustomerRfqQuote]
 				([CustomerRfqId] ,[RfqId] ,[AddComment] ,[IsAddCommentQuote] ,[FaaEasaRelease] ,[IsFaaEasaReleaseQuote] ,[RpOh] ,[IsRpOhQuote] ,[LegalEntityId] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
@@ -217,25 +234,31 @@ BEGIN
 				([CustomerRfqId],[RfqId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[IntegrationPortalId],[CustomerRfqPartMappingId])
 				SELECT [CustomerRfqId],[RfqId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[IntegrationPortalId],[CustomerRfqPartMappingId]
 				FROM @tbl_IlsRfqMultipleQuoteDetailsType
-				WHERE [CustomerRfqId] = (SELECT [CustomerRfqId] FROM #RfqQuote WHERE ID = @CurrentRow);
-				
-				SELECT @RfqQuoteLoopID = MAX(ID), @MinRFQId = MIN(ID) FROM #RfqMultiQuoteDetail;
+				WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
-				WHILE (@MinRFQId <= @RfqQuoteLoopID)
+				IF EXISTS(SELECT 1 FROM @tbl_IlsRfqMultipleQuoteDetailsType WHERE (ISNULL([QuoteSendReviewId], 0) = @QuoteReviewRequiredId OR ISNULL([QuoteSendReviewId], 0) = 0) AND [CustomerRfqId] = @GetCustomerRfqId)
 				BEGIN
+					SET @QuoteSendReviewId = @QuoteReviewRequiredId;
+				END
+				ELSE
+				BEGIN
+					SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_IlsRfqMultipleQuoteDetailsType WHERE [CustomerRfqId] = @GetCustomerRfqId);
+				END
+				
+				--SELECT @RfqQuoteLoopID = MAX(ID), @MinRFQId = MIN(ID) FROM #RfqMultiQuoteDetail;
 
-					SELECT @GetCustomerRfqId = [CustomerRfqId],	@Condition = [IlsCondition]	FROM #RfqMultiQuoteDetail WHERE [ID] = @MinRFQId;
+				--WHILE (@MinRFQId <= @RfqQuoteLoopID)
+				--BEGIN
 
-					--Get Condition 
-					SELECT @ConditionId = [ConditionId]	FROM [DBO].[Condition] WITH(NOLOCK)	WHERE  LOWER(TRIM([Description])) = LOWER(TRIM(@Condition))	AND MasterCompanyId= @MasterCompanyId;				
+					--SELECT @GetCustomerRfqId = [CustomerRfqId] FROM #RfqMultiQuoteDetail WHERE [ID] = @MinRFQId;
 
 					----------------- Customer RFQ Quote Details add ---------------------------------------------------------
 					INSERT INTO [dbo].[CustomerRfqQuoteDetails]
 					([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition ,ConditionId ,[CreatedBy] ,[UpdatedBy] ,
 					[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PercentId], [PercentValue],[CustomerRfqPartMappingId])
-					SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, @ConditionId, @CreatedBy, @CreatedBy ,
+					SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition, ConditionId, @CreatedBy, @CreatedBy ,
 							GETUTCDATE() ,GETUTCDATE() ,1 ,0, @PercentId, @PercentValue,[CustomerRfqPartMappingId]
-					FROM #RfqMultiQuoteDetail WHERE ID = @MinRFQId;
+					FROM #RfqMultiQuoteDetail WHERE [CustomerRfqId] = @GetCustomerRfqId;
 
 					----- Update Csutomer RFQ for Is Quote added ----------					 
 					UPDATE [dbo].[CustomerRfq] 
@@ -252,20 +275,17 @@ BEGIN
 					SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END
 					FROM #RfqMultiQuoteDetail TMP
 					LEFT JOIN [dbo].CustomerRfqPartMapping RFQP WITH(NOLOCK) ON RFQP.[CustomerRfqPartMappingId] = TMP.[CustomerRfqPartMappingId]
-					LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(RFQP.PartNumber)) AND IM.MasterCompanyId = @MasterCompanyId
-
-					--Declare type
-					DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
+					LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(RFQP.PartNumber)) AND IM.MasterCompanyId = @MasterCompanyId					
 
 					INSERT  INTO @EmailRfqQuoteDetails
 					([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
-					SELECT RFQD.[CustomerRfqQuoteDetailsId],RFQD.[CustomerRfqQuoteId],RFQD.[IlsQty],NULL,NULL,RFQD.[IlsPrice],RFQD.[IlsPriceType],RFQD.[IlsTagDate],NULL,RFQD.[IlsMinQty],NULL,NULL,@ConditionId,[ItemMasterId]
+					SELECT RFQD.[CustomerRfqQuoteDetailsId],RFQD.[CustomerRfqQuoteId],RFQD.[IlsQty],NULL,NULL,RFQD.[IlsPrice],RFQD.[IlsPriceType],RFQD.[IlsTagDate],NULL,RFQD.[IlsMinQty],NULL,NULL,TMP.ConditionId,[ItemMasterId]
 					FROM [dbo].[CustomerRfqQuoteDetails] RFQD
 					LEFT JOIN [dbo].CustomerRfqQuote QD WITH(NOLOCK) ON RFQD.CustomerRfqQuoteId = QD.CustomerRfqQuoteId
-					LEFT JOIN #RfqMultiQuoteDetail TMP ON QD.[CustomerRfqId] = TMP.[CustomerRfqId]
-					WHERE RFQD.[CustomerRfqQuoteId] = @CustomerRfqQuoteId AND TMP.ID = @MinRFQId;
+					LEFT JOIN #RfqMultiQuoteDetail TMP ON QD.[CustomerRfqId] = TMP.[CustomerRfqId] AND RFQD.[CustomerRfqPartMappingId] = TMP.[CustomerRfqPartMappingId]
+					WHERE RFQD.[CustomerRfqQuoteId] = @CustomerRfqQuoteId --AND TMP.ID = @MinRFQId;
 
-					SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
+					--SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
 					SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));	
 					SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
@@ -280,8 +300,8 @@ BEGIN
 					END
 												
 					-------END Create SOQ With part---------------------------------------------
-					SET @MinRFQId = @MinRFQId + 1;
-				END
+					--SET @MinRFQId = @MinRFQId + 1;
+				--END
 
 				SET @CurrentRow += 1;
 			END			

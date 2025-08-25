@@ -23,8 +23,10 @@ BEGIN
 		DECLARE @TotalRecord INT = 0;   
 		DECLARE @MinId BIGINT = 1;  
 		DECLARE @ModuleId INT = 0;   
+		DECLARE @QuoteReviewRequiredId BIGINT = 0, @Code VARCHAR(50) = 'Review Required';
 
-		SELECT @ModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote'
+		SELECT @ModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
+		SELECT @QuoteReviewRequiredId = QuoteSendReviewId FROM [dbo].[QuoteSendReview] WITH(NOLOCK) WHERE [Code] = @Code;				
 
 		IF OBJECT_ID(N'tempdb..#tmpCustomerRfqIdFromCustomerRfq') IS NOT NULL
 		BEGIN
@@ -48,7 +50,9 @@ BEGIN
 		)				   
 
 		INSERT INTO #tmpCustomerRfqIdFromCustomerRfq ([CustomerRfqId])
-		SELECT [CustomerRfqId] FROM @tbl_CustomerRfqIdListType
+		SELECT TMP.[CustomerRfqId] FROM @tbl_CustomerRfqIdListType TMP
+		INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.CustomerRfqId = RFQ.CustomerRfqId
+		WHERE RFQ.QuoteSendReviewId != @QuoteReviewRequiredId;
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmpCustomerRfqIdFromCustomerRfq    
 

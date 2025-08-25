@@ -22,10 +22,11 @@
 	9    15/08/2025    Moin Bloch        Added @SoqId OUTPUT Param
 	10   18-Aug-2025   Amit Ghediya      Update RFQ SOQ Price.
 	11	 21-Aug-2025   Devendra Shekh	 Checking customerId in CustomerRFQ for @CustomerId
+	12	 25-Aug-2025   Devendra Shekh	 Modified (Changes for @QuoteSendReviewId)
 
 -- EXEC USP_SendILSQuote
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_SendILSQuote]
+CREATE         PROCEDURE [dbo].[USP_SendILSQuote]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
@@ -48,7 +49,19 @@ BEGIN
 							@QuoteSendReviewId INT = 0,
 							@PercentValue DECIMAL(18,2);
 
+					DECLARE @QuoteReviewRequiredId BIGINT = 0, @Code VARCHAR(50) = 'Review Required';
+
 					SELECT @GetCustomerRfqId = CustomerRfqId FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE RfqId = @RfqId AND MasterCompanyId = @MasterCompanyId ;
+
+					SELECT @QuoteReviewRequiredId = QuoteSendReviewId FROM [dbo].[QuoteSendReview] WITH(NOLOCK) WHERE [Code] = @Code;
+					IF EXISTS(SELECT 1 FROM @tbl_IlsRfqQuoteDetailsType WHERE ISNULL([QuoteSendReviewId], 0) = @QuoteReviewRequiredId OR ISNULL([QuoteSendReviewId], 0) = 0)
+					BEGIN
+						SET @QuoteSendReviewId = @QuoteReviewRequiredId;
+					END
+					ELSE
+					BEGIN
+						SET @QuoteSendReviewId = (SELECT TOP 1 [QuoteSendReviewId] FROM @tbl_IlsRfqQuoteDetailsType);
+					END
 
 					--Get markup % on fly
 					SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
@@ -95,7 +108,10 @@ BEGIN
 
 						------- Update Csutomer RFQ for Is Quote added ----------					 
 						 UPDATE [dbo].[CustomerRfq] 
-							SET IsQuote = 1
+							SET IsQuote = 1,
+								QuotedBy = @CreatedBy,
+								QuotedDate = GETUTCDATE(),
+								QuoteSendReviewId = @QuoteSendReviewId
 						 WHERE CustomerRfqId = @GetCustomerRfqId;
 
 						------Update RFQ SOQ Data--------------------------
@@ -128,8 +144,9 @@ BEGIN
 						 ------- Update Csutomer RFQ for Is Quote added ----------					 
 						 UPDATE [dbo].[CustomerRfq] 
 							SET IsQuote = 1,
-							QuotedBy = @CreatedBy,
-							QuotedDate = GETUTCDATE()
+								QuotedBy = @CreatedBy,
+								QuotedDate = GETUTCDATE(),
+								QuoteSendReviewId = @QuoteSendReviewId
 						 WHERE CustomerRfqId = @GetCustomerRfqId;
 
 
@@ -164,6 +181,8 @@ BEGIN
 							END					
 						---------END Create SOQ With part---------------------------------------------
 					END
+
+					SET @SalesOrderQuoteId = CASE WHEN @QuoteSendReviewId = @QuoteReviewRequiredId THEN 0 ELSE @SalesOrderQuoteId END;
 					SELECT @SalesOrderQuoteId AS SOQID
 				
     END TRY    

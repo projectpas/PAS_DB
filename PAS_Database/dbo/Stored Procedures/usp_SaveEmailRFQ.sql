@@ -16,12 +16,14 @@
     5    15 Aug 2025	Devendra Shekh		Added Changes To check Part/Customer are in tables or not before quote
 	6    19 Aug 2025	Moin Bloch		    Returns CustomerRfqId
 	7    22 Aug 2025	Devendra Shekh		Modified (added to No Quote if condition not matched or QuoteSendReviewId is 0)
+	8    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
+CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
 	@IntegrationEmailID BIGINT = NULL,
     @tbl_RfqCustomerType dbo.RfqCustomerType READONLY,
-    @tbl_RfqPartDetailType dbo.RfqPartDetailType READONLY
+    @tbl_RfqPartDetailType dbo.RfqPartDetailType READONLY,
+	@EmployeeId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -33,7 +35,7 @@ BEGIN
 
 		IF EXISTS(SELECT 1 FROM @tbl_RfqPartDetailType)
 		BEGIN
-			DECLARE @CreatedBy VARCHAR(50), @MasterCompanyId INT;
+			DECLARE @CreatedBy VARCHAR(100), @MasterCompanyId INT;
 			DECLARE @TotalRow INT, @CurrentRow INT = 1;
 			DECLARE @CodeTypeId BIGINT, @CurrentNumber BIGINT = 0, @RFQNumber NVARCHAR(200);
 			DECLARE @ALlowProcessQuote BIT = 1;
@@ -82,6 +84,11 @@ BEGIN
 			SELECT @CreatedBy = [CreatedBy], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [IntegrationEmailID] = @IntegrationEmailID;
 			SELECT TOP 1 @CodeTypeId = CodeTypeId FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'CustomerRFQ';
 			SELECT TOP 1 * INTO #tmpCodePrefix FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0 AND [CodeTypeId] = @CodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
+
+			IF(ISNULL(@EmployeeId, 0) > 0)
+			BEGIN
+				SELECT @CreatedBy = CONCAT(FirstName, ' ' , LastName) FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId;
+			END
 			
 			-- Determine the current number
 			IF EXISTS (SELECT 1 FROM #tmpCodePrefix)
@@ -269,7 +276,7 @@ BEGIN
 						'', '', [Price], '', NULL, '', 0, '', [Condition], [ConditionId], [CustomerRfqPartMappingId], [QuoteSendReviewId]
 				FROM #tmpQuote;
 
-				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId;
+				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId, @EmployeeId;
 
 
 			END
@@ -285,7 +292,7 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 		, @AdhocComments     VARCHAR(150)    = 'usp_SaveEmailRFQ' 
-		, @ProcedureParameters VARCHAR(3000) = '@EmployeeId = ''' + CAST(ISNULL(@IntegrationEmailID, '') as varchar(100))
+		, @ProcedureParameters VARCHAR(3000) = '@IntegrationEmailID = ''' + CAST(ISNULL(@IntegrationEmailID, '') as varchar(100))
 		, @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException 

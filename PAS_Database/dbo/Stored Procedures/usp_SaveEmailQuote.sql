@@ -22,6 +22,7 @@
    10    18-Aug-2025    Amit Ghediya        Update RFQ SOQ Price.
    11    21-Aug-2025    Devendra Shekh		Checking customerId in CustomerRFQ for @CustomerId
    12	 22-Aug-2025    Devendra Shekh		Modified (set @QuoteReviewRequiredId based on Review Required)
+   13    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -31,7 +32,8 @@ CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200),
-	@QuoteSendReviewId INT = NULL
+	@QuoteSendReviewId INT = NULL,
+	@EmployeeId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -44,6 +46,12 @@ BEGIN
 
 		--Get markup % on fly
 		SELECT @PercentId = [PercentId],@PercentValue = [PercentValue] FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+		SET @EmployeeId = CASE WHEN ISNULL(@EmployeeId, 0) > 0 THEN @EmployeeId ELSE 2 END;
+
+		IF(ISNULL(@LegalEntityId, 0) = 0 AND ISNULL(@EmployeeId, 0) > 0)
+		BEGIN
+			SELECT @LegalEntityId = [LegalEntityId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId;
+		END
 
 		SELECT @QuoteReviewRequiredId = QuoteSendReviewId FROM [dbo].[QuoteSendReview] WITH(NOLOCK) WHERE [Code] = @Code;
 		IF EXISTS(SELECT 1 FROM @tbl_EmailRfqQuoteDetailsType WHERE ISNULL([QuoteSendReviewId], 0) = @QuoteReviewRequiredId OR ISNULL([QuoteSendReviewId], 0) = 0)
@@ -195,7 +203,7 @@ BEGIN
 
 				IF(ISNULL(@CreateSOQ,0) > 0 AND ISNULL(@CustomerId,0) > 0)
 				BEGIN
-					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
+					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,@EmployeeId,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
 				END
 			END
 		END

@@ -14,5 +14,6 @@
     [ConditionId]               BIGINT          NULL,
     [ItemMasterId]              BIGINT          NULL,
     [PriorityId]                BIGINT          NULL,
-    [ExpirationDate]            DATETIME2 (7)   NULL);
+    [ExpirationDate]            DATETIME2 (7)   NULL,
+    [QuoteSendReviewId]         BIGINT          NULL);
 

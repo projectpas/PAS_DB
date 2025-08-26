@@ -25,7 +25,7 @@ BEGIN
 			m.[Name],
 			ISNULL(m.[Comments], '') AS Comments,
 			ISNULL(m.[IsActive], 0) AS IsActive,
-			m.[IsDeleted], 0) AS IsDeleted,
+			ISNULL(m.[IsDeleted], 0) AS IsDeleted,
 			m.[MasterCompanyId]
 		FROM [DBO].[Manufacturer] AS m WITH (NOLOCK)
 		WHERE ISNULL(m.[IsDeleted], 0) = 0 AND m.[MasterCompanyId] = @MasterCompanyId

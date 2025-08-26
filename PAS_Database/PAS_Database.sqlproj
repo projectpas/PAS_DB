@@ -4183,6 +4183,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddUpdateManufacturerPost.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCertificationList.sql" />
     <Build Include="dbo\Stored Procedures\CheckWorkOrderForRestore.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeMemo.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

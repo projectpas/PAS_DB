@@ -20,6 +20,7 @@
 	10	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 	11	 15-Aug-2025		Ayushi Patel			Handle Part with multiple Manufacturer for stockline
 	12	 15-Aug-2025		Ayushi Patel			Qty OH must be one for Serialized Parts
+	13	 26-Aug-2025		RAJESH GAMI				Validate the PRice Master
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -66,7 +67,7 @@ BEGIN
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT;
-    
+		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
@@ -107,7 +108,7 @@ BEGIN
 			[IsError] [bit] NULL,
 			[Status] [varchar](MAX) NULL
 		);
-		
+		PRINT @ModuleId
 		DELETE FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND [MasterCompanyId] = @MasterCompanyId;
 		
 		SELECT @GlImportModuleId = [ImportModuleId] FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'GLACCOUNT';
@@ -169,7 +170,7 @@ BEGIN
 			DECLARE @ManufacturerId VARCHAR(255)
 			DECLARE @ManufacturerName VARCHAR(255)
 			DECLARE @Manufacture VARCHAR(255)
-			if (@ModuleId = @StocklineModule)
+			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
@@ -268,7 +269,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 
-			if (@ModuleId = @StocklineModule)
+			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
 				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
@@ -311,7 +312,6 @@ BEGIN
 			BEGIN
 				SELECT	@ChekDuplticateRef1 = ChekDuplticateRef1, @ChekDuplticateRef2 = ChekDuplticateRef2, @DropdownListTable = DropdownListTable				
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
-
 				IF((ISNULL(@ChekDuplticateRef1, '') != '' OR ISNULL(@ChekDuplticateRef2, '') != ''))
 				BEGIN
 					SELECT	@DuplicateRefeValue1 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = @ChekDuplticateRef1;
@@ -321,6 +321,7 @@ BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
 					END
+				
 					IF(@ModuleId=@StocklineModule)
 					BEGIN
 						IF((ISNULL(@DuplicateRefeValue1, '') != '' AND ISNULL(@DuplicateRefeValue2, '') != ''))
@@ -332,6 +333,7 @@ BEGIN
 					BEGIN
 						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 					END
+				PRINT @IsDuplicate
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 
@@ -340,6 +342,7 @@ BEGIN
 														WHEN @ModuleId = @ItemMasterModule THEN 'Entered PN And Manufacturer Already Exits!'
 														WHEN @ModuleId = @CustomerModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @StocklineModule THEN 'Entered Serial Number Already Exits for This PartNumber'
+														WHEN @ModuleId = @PriceMasterModule THEN 'Part and Condition mapping already exists'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -349,7 +352,7 @@ BEGIN
 				
 				SET @CurrentRow += 1;
 			END
-			if (@ModuleId = @StocklineModule)
+			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
@@ -449,7 +452,7 @@ BEGIN
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
 			
-			if (@ModuleId = @StocklineModule)
+			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
 				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
@@ -480,7 +483,7 @@ BEGIN
 				[UploadRecord] = @json
 			WHERE RecordId = @CurrentRecord;
 
-			if (@ModuleId = @StocklineModule)
+			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				UPDATE #uploadDataResults 
 				SET 

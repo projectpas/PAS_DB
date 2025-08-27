@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:		 [USP_UpdateLegalEntitySettings]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Update LegalEntity Settings.
@@ -10,9 +11,10 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    11-July-2025		Divyesh Kathiriya	Created    
+	2    26-Aug-2025        Sahdev Saliya       Added New Field EmployeeId
  
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_UpdateLegalEntitySettings]
+CREATE   PROCEDURE [DBO].[USP_UpdateLegalEntitySettings]
 @LegalEntityId BIGINT,
 @CurrencyFormatId BIGINT = Null,
 @DecimalPrecisionId BIGINT = Null,
@@ -21,7 +23,8 @@ Create   PROCEDURE [DBO].[USP_UpdateLegalEntitySettings]
 @TextTransformId BIGINT = Null,
 @TimeZoneId BIGINT = Null,
 @EnableLockScreen BIT = Null,
-@TimeoutInMinutes INT = Null
+@TimeoutInMinutes INT = Null,
+@EmployeeId BIGINT = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -39,7 +42,8 @@ BEGIN
 					[TextTransformId] = @TextTransformId,
 					[TimeZoneId] = @TimeZoneId,
 					[EnableLockScreen] = @EnableLockScreen,
-					[TimeoutInMinutes] = @TimeoutInMinutes
+					[TimeoutInMinutes] = @TimeoutInMinutes,
+				    [EmployeeId] = @EmployeeId
 				WHERE [LegalEntityId] = @LegalEntityId;	
 		END
 	

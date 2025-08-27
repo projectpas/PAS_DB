@@ -18,6 +18,7 @@
 	6    10/06/2025	  Devendra Shekh   added @AllowPrintReleaseForm
 	7    01/07/2025	  Devendra Shekh   added New Field : MPNPartNumber
 	8    03/07/2025   Moin Bloch       Changed Old To New Billing Table
+	9    26/08/2025   Moin Bloch	   added RevisedSerialNumber 
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -976,7 +977,8 @@ BEGIN
 						@PartDescription = CASE WHEN wop.[RevisedPartDescription] IS NOT NULL AND wop.[RevisedPartDescription] <> '' THEN wop.[RevisedPartDescription] ELSE im.[PartDescription] END,						
 						@Condition = con.[Description],
 						@StockLineNumber = sl.[StockLineNumber],
-						@SerialNumber = CASE WHEN wop.[RevisedSerialNumber] IS NOT NULL AND wop.[RevisedSerialNumber] <> '' THEN wop.[RevisedSerialNumber] ELSE sl.[SerialNumber] END,
+						--@SerialNumber = CASE WHEN wop.[RevisedSerialNumber] IS NOT NULL AND wop.[RevisedSerialNumber] <> '' THEN wop.[RevisedSerialNumber] ELSE sl.[SerialNumber] END,
+						@SerialNumber = sl.[SerialNumber],
 						@ReceivedDate = ISNULL(wop.[ReceivedDate], GETUTCDATE()),
 						@ReceivingNumber = ISNULL(rc.[ReceivingNumber], ''),
 						@Reference = wop.[CustomerReference],						

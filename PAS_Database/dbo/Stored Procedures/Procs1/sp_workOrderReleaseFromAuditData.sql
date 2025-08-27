@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    03/16/2021   Hemant Saliya Created
     2    02/14/2025   Bhargav Saliya  UTC Date Changes
+	3    08/25/2025   Moin Bloch      Updated For Get [FormStatus]
 
      
  EXECUTE [sp_workOrderReleaseFromAuditData] 198
@@ -80,6 +81,7 @@ BEGIN
 				  ,wro.[trackingNo]
 				  ,wro.[OrganizationAddress]
 				  ,wro.[is8130from]
+				  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 			FROM [dbo].[Work_ReleaseFrom_8130Audit] wro WITH(NOLOCK)
 			WHERE wro.ReleaseFromId=@ReleaseFromId
 

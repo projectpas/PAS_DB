@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_ILS_ADDSendILSRFQ]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to add ISL RFQ data into our database
@@ -12,9 +11,10 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------    ---------		--------------------------------          
-    1   08/Feb/2024    Rajesh Gami    Created
+    1   08/Feb/2024    Rajesh Gami		Created
+    2   26/Aug/2025    Devendra Shekh	added VendorName ILSRFQPart Insert
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
+CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@tbl_ILSRFQPartType ILSRFQPartType READONLY,
 	@ThirdPartyRFQId BIGINT =NULL,
 	@RFQId varchar(50) = NULL,
@@ -68,9 +68,9 @@ BEGIN
 			   /**** Insert Into the ISL RFQ Part Table If not inserted****/
 				   INSERT INTO [dbo].[ILSRFQPart]
 				   ([ILSRFQDetailId],[PartNumber],[AltPartNumber],[Exchange],[Description],[Qty],[RequestedQty],[Condition],[IsEmail],[IsFax]
-				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive])
+				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive],[VendorName])
 				   SELECT @ILSRFQDetailId,PartNumber,AltPartNumber,Exchange,Description,Qty,RequestedQty,Condition,IsEmail,IsFax
-				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1	  
+				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1,[VendorName]	  
 				   FROM @tbl_ILSRFQPartType WHERE  ISNULL(ILSRFQPartId,0) = 0
 			END
 			ELSE
@@ -97,9 +97,9 @@ BEGIN
 				   /**** Insert Into the ISL RFQ Part Table ****/
 				   INSERT INTO [dbo].[ILSRFQPart]
 				   ([ILSRFQDetailId],[PartNumber],[AltPartNumber],[Exchange],[Description],[Qty],[RequestedQty],[Condition],[IsEmail],[IsFax]
-				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive])
+				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive],[VendorName])
 				   SELECT @LatestILSRFQDetailId,PartNumber,AltPartNumber,Exchange,Description,Qty,RequestedQty,Condition,IsEmail,IsFax
-				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1	  
+				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1, VendorName	  
 				   FROM @tbl_ILSRFQPartType
 			END
 			

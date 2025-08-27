@@ -9,7 +9,6 @@
     [RequestedQty]   INT           NULL,
     [Condition]      VARCHAR (20)  NULL,
     [IsEmail]        BIT           NULL,
-    [IsFax]          BIT           NULL);
-
-
+    [IsFax]          BIT           NULL,
+    [VendorName]     VARCHAR (150) NULL);
 

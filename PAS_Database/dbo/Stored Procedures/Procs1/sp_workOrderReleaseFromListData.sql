@@ -22,6 +22,7 @@
 	9    12/31/2024   Devendra Shekh Updated For Get FormType and WOFormType Name
 	10   02/12/2025   Moin Bloch     Updated For Get Is813013aeOr14ae
 	11   02/14/2025   Bhargav Saliya UTC Date Changes
+	12   08/25/2025   Moin Bloch     Updated For Get [FormStatus]
 	
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
@@ -110,6 +111,7 @@ BEGIN
 					  ,wro.[FormTypeId]
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
 				      ,wro.Is813013aeOr14ae
+					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -176,6 +178,7 @@ BEGIN
 					  ,wro.[FormTypeId]
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
 				      ,wro.Is813013aeOr14ae
+					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  

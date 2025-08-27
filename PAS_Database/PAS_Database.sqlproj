@@ -4176,6 +4176,12 @@
     <Build Include="dbo\Tables\IntegrationPortalMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateCustomerRFQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmailAddressForOAuth.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ItemMasterStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterAuditDataByID.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllManufacturers.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteItemMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateManufacturerPost.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCertificationList.sql" />
     <Build Include="dbo\Stored Procedures\CheckWorkOrderForRestore.sql" />
   </ItemGroup>
   <ItemGroup>

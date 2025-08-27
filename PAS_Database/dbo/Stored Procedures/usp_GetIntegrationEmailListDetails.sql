@@ -11,10 +11,12 @@
  **	1		08-Aug-2025		Devendra Shekh		Created
  **	2		15-Aug-2025		Devendra Shekh		filtering out processed emails
  **	3		18-Aug-2025		Devendra Shekh		filtering out Process failed emails
+ **	4		26-Aug-2025		Devendra Shekh		added @MasterCompanyId Param
  
 EXECUTE [dbo].[usp_GetIntegrationEmailListDetails]
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetIntegrationEmailListDetails]
+@MasterCompanyId INT = NULL
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -22,17 +24,18 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN
 			DECLARE  @PendingeEmailStatus INT = 1, @InProgressEmailStatus INT = 2, @CompletedEmailStatus INT = 3, @FailedEmailStatus INT = 4;
+			SET @MasterCompanyId = CASE WHEN ISNULL(@MasterCompanyId,0) = 0 THEN NULL ELSE @MasterCompanyId END;
 
 			SELECT	[IntegrationEmailID], [Subject], [EmailBody], [ToEmail], [FromEmail], [CC], [BCC], [EmailReadBy], [ReferenceId], [ModuleId], [EmailStatus], [HasAttachments],
 					[EmailSection], [ReceivedDate], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [CustomerRfqId], [IsProcessed], [EmailStatusId], [AttemptCount]
 			FROM [dbo].[IntegrationEmail] WITH(NOLOCK) 
-			WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(CustomerRfqId, 0) = 0 AND ISNULL(IsProcessed, 0) = 0 AND ISNULL(EmailStatusId, 0) != @FailedEmailStatus
+			WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(CustomerRfqId, 0) = 0 AND ISNULL(IsProcessed, 0) = 0 AND ISNULL(EmailStatusId, 0) != @FailedEmailStatus AND (@MasterCompanyId IS NULL OR @MasterCompanyId = MasterCompanyId)
 			ORDER BY [IntegrationEmailID] DESC;
 
 			SELECT [IntegrationEmailAttachmentID], IEA.[IntegrationEmailID], [AttachmentName], [AttachmentPath]
 			FROM [dbo].[IntegrationEmailAttachment] IEA WITH(NOLOCK) 
 			INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = IEA.IntegrationEmailID
-			WHERE IE.[IsActive] = 1 AND IE.[IsDeleted] = 0 AND ISNULL(IE.CustomerRfqId, 0) = 0 AND ISNULL(IE.IsProcessed, 0) = 0 AND ISNULL(IE.EmailStatusId, 0) != @FailedEmailStatus
+			WHERE IE.[IsActive] = 1 AND IE.[IsDeleted] = 0 AND ISNULL(IE.CustomerRfqId, 0) = 0 AND ISNULL(IE.IsProcessed, 0) = 0 AND ISNULL(IE.EmailStatusId, 0) != @FailedEmailStatus AND (@MasterCompanyId IS NULL OR @MasterCompanyId = IE.MasterCompanyId)
 			ORDER BY IEA.[IntegrationEmailID] DESC;
 		END
 	END TRY    

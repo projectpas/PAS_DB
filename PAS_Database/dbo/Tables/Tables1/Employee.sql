@@ -50,12 +50,15 @@
     [TwoFactorAuthentication]            BIT             DEFAULT ((0)) NOT NULL,
     [TwoFactorAuthenticationType]        INT             NULL,
     [TwoFactorAuthenticatorKey]          NVARCHAR (100)  NULL,
+    [IsScrapCertification]               BIT             NULL,
     CONSTRAINT [PK_Employee] PRIMARY KEY CLUSTERED ([EmployeeId] ASC),
     CONSTRAINT [FK__Employee__LegalE__3FC721DF] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_Employee_JobTitle] FOREIGN KEY ([JobTitleId]) REFERENCES [dbo].[JobTitle] ([JobTitleId]),
     CONSTRAINT [FK_Employee_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Employee_Station] FOREIGN KEY ([StationId]) REFERENCES [dbo].[EmployeeStation] ([EmployeeStationId])
 );
+
+
 
 
 

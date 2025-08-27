@@ -23,8 +23,11 @@
     [PrintInWOQ]             BIT           NULL,
     [IsPrintInspector]       BIT           NULL,
     [IsPrintTechnician]      BIT           NULL,
+    [IsPrintAdmin]           BIT           NULL,
     CONSTRAINT [PK_WorkOrderTaskDetails] PRIMARY KEY CLUSTERED ([WorkOrderTaskDetailsId] ASC)
 );
+
+
 
 
 

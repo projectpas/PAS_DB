@@ -4189,8 +4189,10 @@
     <Build Include="dbo\Functions\GetApprovalActionId.sql" />
     <Build Include="dbo\Functions\GetActionStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOQuoteApprovalList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_GetStocklineHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\GetApproveRejectDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetEmailApprovalCode.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -4191,6 +4191,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWOQuoteApprovalList.sql" />
     <Build Include="dbo\Stored Procedures\GetApproveRejectDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\GetEmailApprovalCode.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMapped.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

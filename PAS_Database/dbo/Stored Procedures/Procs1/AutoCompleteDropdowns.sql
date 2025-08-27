@@ -31,6 +31,7 @@
 	14	 01/Mar/2025  Devendra Shekh	Modified (For Task Table - Order By Description ASC)
 	15   14/Apr/2025  Moin Bloch	    Modified (Added field IsOEM for ItemMaster Table)
 	16   28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
+	17   26/08/2025   Moin Bloch	    Modified (Added field IsPrintAdmin for Task Table)	
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
@@ -105,11 +106,11 @@ AS BEGIN
             END
             ELSE IF(@TableName='Task')BEGIN
                      IF(@Parameter4=1)BEGIN
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
                          UNION
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY [Sequence] ASC
@@ -373,11 +374,11 @@ AS BEGIN
             END
             ELSE IF(@TableName='Task')BEGIN
                      IF(@Parameter4=1)BEGIN
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
                          UNION
-                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
                          FROM dbo.Task WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY [Sequence] ASC

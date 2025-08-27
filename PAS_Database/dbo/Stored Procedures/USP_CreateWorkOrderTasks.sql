@@ -14,9 +14,11 @@
  **************************************************************             
  ** PR   Date			Author			Change Description              
  ** --   --------		-------			-----------------------
-    1    12/17/2024		Vishal Suthar		Created
-	2    12/Feb/2025	RAJESH GAMI			Added IsPrintInspector,IsPrintTechnician
-	3    12/Feb/2025	Devendra Shekh		Skipping insert for #DefaultTask if @TaskTypes is Empty 
+    1    12/17/2024		Vishal Suthar	Created
+	2    12/Feb/2025	RAJESH GAMI		Added IsPrintInspector,IsPrintTechnician
+	3    12/Feb/2025	Devendra Shekh	Skipping insert for #DefaultTask if @TaskTypes is Empty 
+	4    14/July/2025	Vishal Suthar	Added IsPrintAdmin flag
+
 -- EXEC [USP_CreateWorkOrderTasks] 44
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderTasks]
@@ -88,9 +90,9 @@ BEGIN
 				SELECT @WorkOrderTaskId = SCOPE_IDENTITY();
 
 				INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],
-				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PrintInWO],[PrintInWOQ],IsPrintInspector,IsPrintTechnician)
+				[Descrepancy],[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PrintInWO],[PrintInWOQ],IsPrintInspector,IsPrintTechnician,IsPrintAdmin)
 				SELECT @WorkOrderTaskId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-				T.Descrepancy,T.Resolution,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,T.IsPrintInWO,T.IsPrintInWOQ,T.IsPrintInspector,T.IsPrintTechnician
+				T.Descrepancy,T.Resolution,NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,T.IsPrintInWO,T.IsPrintInWOQ,T.IsPrintInspector,T.IsPrintTechnician,T.IsPrintAdmin
 				FROM DBO.Task T WITH (NOLOCK) WHERE TaskId IN (SELECT TaskId FROM #DefaultTask WHERE ID = @LoopID);
 
 				-- Add Entry in History Table

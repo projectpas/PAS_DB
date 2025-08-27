@@ -13,6 +13,7 @@
  ** --   --------    ---------		--------------------------------          
     1   08/Feb/2024    Rajesh Gami		Created
     2   26/Aug/2025    Devendra Shekh	added VendorName ILSRFQPart Insert
+    3   27/Aug/2025    Devendra Shekh	added @PriceType Param
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@tbl_ILSRFQPartType ILSRFQPartType READONLY,
@@ -33,7 +34,8 @@ CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@DeliverToAddress VARCHAR(MAX) = NULL,
 	@BuyerComment VARCHAR(MAX) = NULL,
 	@MasterCompanyId INT,
-	@CreatedBy VARCHAR(200)
+	@CreatedBy VARCHAR(200),
+	@PriceType VARCHAR(50) = NULL
 AS
 BEGIN
 	  SET NOCOUNT ON;
@@ -51,7 +53,7 @@ BEGIN
 			BEGIN
 				UPDATE [dbo].[ThirdPartyRFQ] SET [PortalRFQId] = UPPER(@PortalRFQId), Name = @Name,[IntegrationRFQStatusId] = @StatusId,[Status] = @StatusName
 												 ,[UpdatedDate] = GETUTCDATE(),[UpdatedBy] = @CreatedBy WHERE ThirdPartyRFQId = @ThirdPartyRFQId
-				UPDATE [dbo].[ILSRFQDetail] SET  [PriorityId] = @PriorityId, Priority = @Priority, QuoteWithinDays = @QuoteWithinDays, DeliverByDate = @DeliverByDate
+				UPDATE [dbo].[ILSRFQDetail] SET  [PriorityId] = @PriorityId, Priority = @Priority, QuoteWithinDays = @QuoteWithinDays, DeliverByDate = @DeliverByDate, [PriceType] = @PriceType
 												 ,PreparedBy = @PreparedBy ,DeliverToAddress = @DeliverToAddress, BuyerComment = @BuyerComment, UpdatedBy = @CreatedBy, UpdatedDate = GETUTCDATE()
 												 WHERE ThirdPartyRFQId = @ThirdPartyRFQId
 				set @ILSRFQDetailId = (SELECT TOP 1 ILSRFQDetailId FROM [dbo].[ILSRFQDetail] WHERE ThirdPartyRFQId = @ThirdPartyRFQId)
@@ -85,10 +87,10 @@ BEGIN
 				   SET @LatestThirdPartyRFQId = SCOPE_IDENTITY();
 				   /**** Insert data into the ILS RFQ Detail table *****/
 				   INSERT INTO [dbo].[ILSRFQDetail]
-					   ([ThirdPartyRFQId],[PriorityId],[Priority],[RequestedQty],[QuoteWithinDays],[DeliverByDate],[PreparedBy],[AttachmentId],[DeliverToAddress] ,[BuyerComment]
+					   ([ThirdPartyRFQId],[PriorityId],[Priority],[RequestedQty],[QuoteWithinDays],[DeliverByDate],[PreparedBy],[AttachmentId],[DeliverToAddress] ,[BuyerComment], [PriceType]
 					   ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsDeleted]  ,[IsActive])
 				   VALUES
-					   (@LatestThirdPartyRFQId,@PriorityId,@Priority,@RequestedQty,@QuoteWithinDays ,@DeliverByDate ,@PreparedBy ,@AttachmentId ,@DeliverToAddress ,@BuyerComment
+					   (@LatestThirdPartyRFQId,@PriorityId,@Priority,@RequestedQty,@QuoteWithinDays ,@DeliverByDate ,@PreparedBy ,@AttachmentId ,@DeliverToAddress ,@BuyerComment, @PriceType
 					   ,@MasterCompanyId ,@CreatedBy ,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,0 ,1)
 			
 				   SET @LatestILSRFQDetailId = SCOPE_IDENTITY();

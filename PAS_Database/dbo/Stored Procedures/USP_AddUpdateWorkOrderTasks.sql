@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_AddUpdateWorkOrderTasks]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -15,6 +14,7 @@
     3    02/06/2025   Ekta Chandegra Added Task Resolution History for Add and Update instead of Descrepancy
     4    10/Feb/2025  RAJESH GAMI    Added @IsPrintInspector,@IsPrintTechnician
 	5    24/Apr/2025  RAJESH GAMI    add the WorkOrderPartNumberId where condition while adding the Sequence Number (We need to increase Sequence By Part No Id)
+	6    10/Feb/2025  Moin Bloch     Added @@IsPrintAdmin
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@WorkOrderTaskId BIGINT,
@@ -41,7 +41,8 @@ CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@PrintInWO BIT = NULL,
 	@PrintInWOQ BIT = NULL,
 	@IsPrintInspector BIT = NULL,
-	@IsPrintTechnician BIT = NULL
+	@IsPrintTechnician BIT = NULL,
+	@IsPrintAdmin BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -70,9 +71,9 @@ BEGIN
 		SET @InsertedWorkOrderTaskId = SCOPE_IDENTITY();
 
 		INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],[Descrepancy],
-		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted], [PrintInWO], [PrintInWOQ],IsPrintInspector,IsPrintTechnician)
+		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted], [PrintInWO], [PrintInWOQ],IsPrintInspector,IsPrintTechnician,[IsPrintAdmin])
 		SELECT @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
-		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ,@IsPrintInspector,@IsPrintTechnician;
+		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ,@IsPrintInspector,@IsPrintTechnician,@IsPrintAdmin;
 
 		-- Add Entry in History Table
 		SET @StatusCode = 'CreateWorkOrderTask';
@@ -105,7 +106,8 @@ BEGIN
 		[PrintInWO] = @PrintInWO,
 		[PrintInWOQ] = @PrintInWOQ,
 		IsPrintInspector = @IsPrintInspector,
-		[IsPrintTechnician] = @IsPrintTechnician
+		[IsPrintTechnician] = @IsPrintTechnician,
+		[IsPrintAdmin] = @IsPrintAdmin
 		WHERE WorkOrderTaskId = @WorkOrderTaskId;
 
 		-- Add Entry in History Table

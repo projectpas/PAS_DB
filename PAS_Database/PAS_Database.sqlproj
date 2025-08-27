@@ -4184,6 +4184,9 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCertificationList.sql" />
     <Build Include="dbo\Stored Procedures\CheckWorkOrderForRestore.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeMemo.sql" />
+    <Build Include="dbo\Tables\RankingAudit.sql" />
+    <Build Include="dbo\Tables\Ranking.sql" />
+    <Build Include="dbo\Views\vw_RankingAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    30-April-2025		Divyesh Kathiriya	Created
+	2    26-Aug-2025        Sahdev Saliya       Added New Field EmployeeId
     
  -- EXEC [USP_GetLegalEntityDataById] @LegalEntityId=34
 **************************************************************/
@@ -77,7 +78,8 @@ BEGIN
 			ISNULL(le.[LongDateTimeFormatId], 0) AS LongDateFormatId,
 			ISNULL(le.[TextTransformId], 0) AS TextTransformId,
 			ISNULL(le.[EnableLockScreen], 0) AS EnableLockScreen,
-			ISNULL(le.[TimeoutInMinutes], 0) AS TimeoutInMinutes,	
+			ISNULL(le.[TimeoutInMinutes], 0) AS TimeoutInMinutes,
+			ISNULL(le.[EmployeeId], 0) AS EmployeeId,	
 			(SELECT STRING_AGG(mp.[TagName], ',') FROM [LegalEntityTagNameMapping] mp WITH (NOLOCK) WHERE mp.[LegalEntityId] = le.[LegalEntityId]) AS TagNames
 		FROM [DBO].[LegalEntity] le WITH (NOLOCK) 	
 		LEFT JOIN [DBO].[Address] ad WITH (NOLOCK) ON le.[AddressId] = ad.[AddressId]

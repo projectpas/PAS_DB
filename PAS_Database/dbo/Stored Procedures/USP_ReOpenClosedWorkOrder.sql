@@ -16,6 +16,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 5	04/24/2025	Devendra Shekh		 Modify (Added [IsManualText] check for DistributionSetup)
 ** 6    03-07-2025  Moin Bloch           Changed Old To New Billing Table
 ** 7    28-07-2025  Moin Bloch           Modify Fix For After Reopen CLOSED WO not able to create billing
+** 8    26-08-2025  Bhargav Saliya       Fix WorkOrderStatus isues For After Reopen CLOSED WO
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
@@ -55,7 +56,7 @@ AS
 	DECLARE @8130WorkOrderSettlementId BIGINT; --Fixed for Final Condition Changed
 	DECLARE @ShippingWorkOrderSettlementId BIGINT = 10; --Fixed for Parts Shipped
 	DECLARE @BillingWorkOrderSettlementId BIGINT = 11; --Fixed for Parts Invoiced
-	DECLARE @WorkOrderStatusId INT;
+	DECLARE @WorkOrderStatusId INT,@WorkOrderStatus varchar(256);
 	DECLARE @WorkOrderStageId INT;
 	DECLARE @ClosedWorkOrderStatusId INT;
 	DECLARE @WorkOrderNum VARCHAR(200);
@@ -78,7 +79,7 @@ AS
 			SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
-			SELECT @WorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE [Status] = 'OPEN'
+			SELECT @WorkOrderStatusId = id,@WorkOrderStatus = [Description] FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE [Status] = 'OPEN'
 
 			SELECT @ClosedWorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE StatusCode = 'CLOSED'
 			SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
@@ -194,7 +195,7 @@ AS
 					--WHERE BillingInvoicingId = @BillingInvoicingId
 				END 
 
-				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, isLocked = 0, WorkOrderStatusId = @WorkOrderStatusId, WorkOrderStageId = @WorkOrderStageId WHERE ID = @workOrderPartNoId;
+				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, isLocked = 0, WorkOrderStatusId = @WorkOrderStatusId,WorkOrderStatus = @WorkOrderStatus, WorkOrderStageId = @WorkOrderStageId WHERE ID = @workOrderPartNoId;
 
 				UPDATE dbo.WorkOrder 
 					SET WorkOrderStatusId = CASE WHEN ISNULL(WorkOrderStatusId, 0) = @ClosedWorkOrderStatusId THEN @WorkOrderStatusId ELSE WorkOrderStatusId END

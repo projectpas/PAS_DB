@@ -77,6 +77,7 @@
     [IsLotAssigned]            BIT             NULL,
     [SourceBy]                 VARCHAR (30)    NULL,
     [MarketplaceRef]           VARCHAR (50)    NULL,
+    [ApprovalCode]             VARCHAR (200)   NULL,
     CONSTRAINT [PK_SalesOrderQuote] PRIMARY KEY CLUSTERED ([SalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuote_CreditTerms] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_SalesOrderQuote_CurrencyId] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -92,6 +93,8 @@
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteTypes] FOREIGN KEY ([QuoteTypeId]) REFERENCES [dbo].[MasterSalesOrderQuoteTypes] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 

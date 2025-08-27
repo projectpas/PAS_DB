@@ -23,7 +23,7 @@
 	13	 12-Aug-2025		Ayushi Patel			ObtainFromType, OwnerType, TraceableToType Inserted as otherModuleType
 	14	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 	15 	 26-Aug-2025        Divyesh Kathiriya		Added New Module "Publication"
-
+	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE      PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -61,16 +61,17 @@ BEGIN
 		DECLARE @UtcNow DATETIME2(7) = GETUTCDATE();
 		DECLARE @GetDate DATE = GETDATE();
 		DECLARE @PublicationMSId BIGINT;
-
+		DECLARE @isPriceDataExist BIT = 0, @ItemMasterPurchaseSaleId BIGINT = 0
 		DECLARE @IsAutoGenerate BIT = 0;
 		DECLARE @CodeTypeId BIGINT = 0;
 		DECLARE @CurrentNumber BIGINT;
-		DECLARE @AutoGenerateNumber NVARCHAR(50);
+		DECLARE @AutoGenerateNumber NVARCHAR(50),@PartNumber NVARCHAR(150) ='';
 		DECLARE @ModuleTableId BIGINT,@ParentModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT;
-    
+		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
+		DECLARE @ItemMasterId BIGINT = 0;
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
@@ -124,6 +125,8 @@ BEGIN
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
+			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END;
+
 			IF(@ModuleId = @StocklineModule)
 			BEGIN				
 				SET @UploadRecord = JSON_MODIFY(
@@ -145,7 +148,7 @@ BEGIN
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
-			WHERE IMF.[ModuleId] = @ModuleId
+			WHERE IMF.[ModuleId] = @ModuleId  AND NOT (@ModuleId = @PriceMasterModule AND IMF.FieldName = 'ManufacturerId' );
 			
 			DECLARE @Qty AS INT;
 			DECLARE @PurchaseUOMId AS BIGINT;
@@ -159,7 +162,6 @@ BEGIN
 				DECLARE @CNCurrentNumber BIGINT;
 				DECLARE @ControlNumber VARCHAR(50);
 				DECLARE @IDNumber VARCHAR(50);
-				DECLARE @ItemMasterId AS BIGINT;
 				DECLARE @ManufacturerId AS BIGINT;
 				DECLARE @isSerialized VARCHAR(50);
 				DECLARE @SerialNumber VARCHAR(50);
@@ -562,6 +564,29 @@ BEGIN
 				SET @RefFieldName += ' , Description, EntryDate, CreatedDate, UpdatedDate, EmployeeId, VerifiedStatus, Sequence, PublishedById, PublishedByRefId, PublishedByOthers, ManagementStructureIds, MasterCompanyId, CreatedBy, UpdatedBy ';
 				SET @FieldValue   += ''''', @GetDate, @UtcNow, @UtcNow, @EmployeeId, 0, 1, 4, 0, ''Others'', ' + CAST(@PublicationMSId AS VARCHAR(50)) + ',';
 			END	
+			ELSE IF(@ModuleId = @PriceMasterModule)
+			BEGIN
+				DECLARE @SP_FSP_UOMId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_UOMId')
+				DECLARE @SP_FSP_CurrencyId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_CurrencyId');
+				DECLARE @SP_FSP_FlatPriceAmount DECIMAL(10,2) = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice');
+				DECLARE @SalePriceType Varchar(20)='Flat'
+				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
+				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
+				SELECT TOP 1 @PartNumber =  ISNULL(partnumber,'') FROM ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId
+				SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
+				SET @isPriceDataExist = (CASE WHEN @ItemMasterPurchaseSaleId > 0 THEN 1 ELSE 0 END);
+				SET @RefFieldName += ' , PartNumber,IsActive, IsDeleted,SalePriceSelectId,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_BaseSalePrice,SP_CalSPByPP_MarkUpPercOnListPrice,PP_PurchaseDiscAmount,SP_FSP_FXRatePerc, PP_FXRatePerc,PP_LastListPriceDate,PP_LastPurchaseDiscDate, CreatedDate, UpdatedDate,SP_FSP_UOMId,SP_FSP_CurrencyId,SalePriceSelectName,SP_FSP_FlatPriceAmount,SP_FSP_LastFlatPriceDate, MasterCompanyId, CreatedBy, UpdatedBy ';
+				SET @FieldValue += '''' + @PartNumber + ''',1,0,1,0,0,0,0,1.00,1.00, '''
+										+ CONVERT(VARCHAR(30), @GetDate, 126) + ''',''' 
+										+ CONVERT(VARCHAR(30), @GetDate, 126) + ''',''' 
+										+ CONVERT(VARCHAR(30), @UtcNow, 126) + ''',''' 
+										+ CONVERT(VARCHAR(30), @UtcNow, 126) + ''',' 
+										+ CAST(@SP_FSP_UOMId AS VARCHAR(50)) + ',' 
+										+ CAST(@SP_FSP_CurrencyId AS VARCHAR(50)) + ','''
+										+ @SalePriceType + ''',' 
+										+ CAST(@SP_FSP_FlatPriceAmount AS VARCHAR(30)) + ','  
+										+ '''' + CONVERT(VARCHAR(30), @GetDate, 126) + '''' + ',';
+			END	
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
@@ -571,10 +596,42 @@ BEGIN
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 			
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
-			SET @RefQuery = 'INSERT INTO ' + @ReferenceTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
+			
+			IF(@ModuleId = @PriceMasterModule AND @isPriceDataExist = 1)
+			BEGIN
+					PRINT 'Update the record'
+					DECLARE @UpdateFields NVARCHAR(MAX) = '';
+						
+						;WITH Fields AS (
+							SELECT LTRIM(RTRIM(value)) AS FieldName,
+								   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
+							FROM STRING_SPLIT(@RefFieldName, ',')
+						),
+						Vals AS (
+							SELECT LTRIM(RTRIM(value)) AS FieldValue,
+								   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
+							FROM STRING_SPLIT(@FieldValue, ',')
+						),
+						Pairs AS (
+							SELECT f.FieldName, v.FieldValue
+							FROM Fields f
+							JOIN Vals v ON f.rn = v.rn
+							WHERE f.FieldName NOT IN ('CreatedDate','CreatedBy') 
+						)
+
+						SELECT @UpdateFields = STRING_AGG(f.FieldName + ' = ' + f.FieldValue, ', ')
+						FROM Pairs f;
+
+						SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
+			END
+			ELSE
+			BEGIN
+				SET @RefQuery = 'INSERT INTO ' + @ReferenceTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
+			END
+
 			
 			--select * from #ImportFields
-
+			PRINT '----------Final Query @RefQuery--------------'
 			PRINT @RefQuery
 
 			IF(@ModuleId = @PublicationModule)
@@ -583,9 +640,29 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
+				IF(@ModuleId = @PriceMasterModule)
+				BEGIN
+					IF(@isPriceDataExist = 1)
+					BEGIN
+						EXEC sp_executesql @RefQuery
+						SET @ModuleTableId = @ItemMasterPurchaseSaleId;
+					END 
+					ELSE
+					BEGIN
+						EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
+					END
+				END
+				ELSE
+				BEGIN
+					EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
+				END
+		
 			END
 			
+			IF(@ModuleId = @PriceMasterModule AND @ItemMasterId >0)
+			BEGIN
+				EXEC UpdateItemMasterPurchaseSaleDetails @ItemMasterId
+			END
 			
 			
 			IF(@ModuleId = @ItemMasterModule)

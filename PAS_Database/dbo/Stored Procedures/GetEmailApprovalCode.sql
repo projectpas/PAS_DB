@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File: [InsertEmailApproval]           
+ ** File: [GetEmailApprovalCode]           
  ** Author:  Amit Ghediya
- ** Description: This stored procedure is used to insert EmailApproval
+ ** Description: This stored procedure is used to check approvalcode is match with email send time generate
  ** Purpose:         
- ** Date:   16/07/2025    
+ ** Date:   27/08/2025    
           
  ** PARAMETERS: 
          
@@ -13,13 +13,13 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    16/07/2025   Amit Ghediya     Created
+    1    27/08/2025   Amit Ghediya     Created
      
--- EXEC [InsertEmailApproval] 
+-- EXEC [GetEmailApprovalCode] 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[InsertEmailApproval]
-	@EmailApproval EmailApprovalType READONLY,
+CREATE   PROCEDURE [dbo].[GetEmailApprovalCode]
+	@RefrenceId BIGINT,
 	@ApprovalCode VARCHAR(200) = NULL
 AS
 BEGIN
@@ -28,21 +28,16 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		DECLARE @RefrenceId BIGINT = 0;
-
-		INSERT INTO [DBO].[EmailApproval] ([PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[ModuleId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
-										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId])
-									SELECT [PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[ModuleId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
-										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId] 
-		FROM @EmailApproval;
-
-		SET @RefrenceId =  (SELECT TOP 1 [RefrenceId] FROM @EmailApproval);
-
-		--Add ApprovalCode for Email Authentication
+		DECLARE @return BIT = 0;
 		IF(@RefrenceId > 0)
 		BEGIN
-			 UPDATE [DBO].[SalesorderQuote] SET ApprovalCode = @ApprovalCode WHERE [SalesOrderQuoteId]  = @RefrenceId;
+			 IF EXISTS (SELECT SalesOrderQuoteId FROM [DBO].[SalesorderQuote] WHERE [SalesOrderQuoteId]  = @RefrenceId AND [ApprovalCode] = @ApprovalCode)
+			 BEGIN
+				  SET @return = 1;
+			 END
 		END
+
+		SELECT @return AS CodeExists
 
 	END
 	COMMIT  TRANSACTION
@@ -53,7 +48,7 @@ BEGIN
 				ROLLBACK TRANSACTION;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'InsertEmailApproval' 
+              , @AdhocComments     VARCHAR(150)    = 'GetEmailApprovalCode' 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW---------------------------------------------------------------------
               exec spLogException 

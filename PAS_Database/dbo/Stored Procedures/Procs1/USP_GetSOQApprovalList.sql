@@ -12,11 +12,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author    Change Description            
- ** --   --------     -------		--------------------------------          
-    1    10/08/2021   Vishal Suthar  Created
-	2    09/12/2024   Moin Bloch     Alter set QtyRequested When stk line is null
-	2    21/jul/2025  Bhargav Saliya Select UOM
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/08/2021   Vishal Suthar		Created
+	2    09/12/2024   Moin Bloch		Alter set QtyRequested When stk line is null
+	3    21/jul/2025  Bhargav Saliya	Select UOM
+	4    22/Aug/2025  Amit Ghediya		Select Condition
 
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
@@ -263,7 +264,8 @@ BEGIN
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) END) AS TotalSales,
 			soq.IsEnforceApproval,
 			soq.EnforceEffectiveDate,
-			ISNULL(UPPER(um.ShortName), '') AS UomName
+			ISNULL(UPPER(um.ShortName), '') AS UomName,
+			ISNULL(UPPER(cond.[Description]),'') AS Condition
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.SalesOrderQuotePartV1 soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
 		INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
@@ -272,6 +274,7 @@ BEGIN
 		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
+		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON soqp.ConditionId = cond.ConditionId
 		WHERE soq.IsDeleted = 0 AND soqp.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	  END

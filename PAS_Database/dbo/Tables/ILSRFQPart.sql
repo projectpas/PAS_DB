@@ -17,6 +17,7 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_ILSRFQPart_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [DF_ILSRFQPart_IsDeleted] DEFAULT ((0)) NULL,
     [IsActive]        BIT           CONSTRAINT [DF_ILSRFQPart_IsActive] DEFAULT ((0)) NULL,
+    [VendorName]      VARCHAR (150) NULL,
     CONSTRAINT [PK_ILSRFQPart] PRIMARY KEY CLUSTERED ([ILSRFQPartId] ASC),
     CONSTRAINT [FK_ILSRFQPart_ILSRFQDetail] FOREIGN KEY ([ILSRFQDetailId]) REFERENCES [dbo].[ILSRFQDetail] ([ILSRFQDetailId])
 );

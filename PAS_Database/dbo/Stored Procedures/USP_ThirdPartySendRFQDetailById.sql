@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_ThirdPartySendRFQDetailById]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Third Party Send RFQ Detail By Id
@@ -12,7 +10,8 @@
  **************************************************************           
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
-    1    16/02/2024   Rajesh Gami     Created
+    1    16/02/2024   Rajesh Gami		Created
+	2    26/08/2025	  Devendra Shekh	added VendorName (removed transaction)
 **************************************************************
  EXEC USP_ThirdPartySendRFQDetailById 1,1 
 **************************************************************/
@@ -22,10 +21,10 @@ CREATE     PROCEDURE [dbo].[USP_ThirdPartySendRFQDetailById]
 @MasterCompanyId int = 0
 AS
 BEGIN
-  SET NOCOUNT ON;
-  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-  BEGIN TRY
-  BEGIN TRANSACTION
+SET NOCOUNT ON;
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	BEGIN TRY
+  --BEGIN TRANSACTION
 	BEGIN
 		
 		IF (@ThirdPartyRFQId >0)
@@ -66,21 +65,22 @@ BEGIN
                        part.UpdatedDate,
 					   Upper(part.CreatedBy) CreatedBy,
                        Upper(part.UpdatedBy) UpdatedBy,
-					   part.MasterCompanyId
+					   part.MasterCompanyId,
+					   part.VendorName
 			    FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
-			    WHERE  tr.ThirdPartyRFQId = @ThirdPartyRFQId AND part.MasterCompanyId = @MasterCompanyId
+			    WHERE tr.ThirdPartyRFQId = @ThirdPartyRFQId AND part.MasterCompanyId = @MasterCompanyId
 					   --AND part.ILSRFQPartId = @ILSRFQPartId 
 		END
 		
 	END
-	COMMIT  TRANSACTION
-  END TRY
-  BEGIN CATCH
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
+	--COMMIT  TRANSACTION
+	END TRY
+	BEGIN CATCH
+		--IF @@trancount > 0
+		--	PRINT 'ROLLBACK'
+		--	ROLLBACK TRAN;
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
@@ -88,12 +88,12 @@ BEGIN
             @ProcedureParameters varchar(3000) = '@ILSRFQPartId = ''' + CAST(ISNULL(@ILSRFQPartId, '') AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-    EXEC spLogException @DatabaseName = @DatabaseName,
+		EXEC spLogException @DatabaseName = @DatabaseName,
                         @AdhocComments = @AdhocComments,
                         @ProcedureParameters = @ProcedureParameters,
                         @ApplicationName = @ApplicationName,
                         @ErrorLogID = @ErrorLogID OUTPUT;
-    RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
-    RETURN (1);
-  END CATCH
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+		RETURN (1);
+	END CATCH
 END

@@ -27,8 +27,8 @@ BEGIN
 	DECLARE @CurrentSerialNumber VARCHAR(100);
 	DECLARE @RevisedSerialNumber VARCHAR(100);
 
-	SELECT @MasterCompanyId = MasterCompanyId, @CurrentSerialNumber = CurrentSerialNumber FROM DBO.WorkOrderPartNumber WITH (NOLOCK) 
-	WHERE WorkOrderId = @ReferenceId;
+	SELECT @MasterCompanyId = MasterCompanyId, @CurrentSerialNumber = CurrentSerialNumber, @RevisedSerialNumber = RevisedSerialNumber 
+	FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE WorkOrderId = @ReferenceId;
 
 	IF @RevisedSerialNumber IS NOT NULL
 	BEGIN

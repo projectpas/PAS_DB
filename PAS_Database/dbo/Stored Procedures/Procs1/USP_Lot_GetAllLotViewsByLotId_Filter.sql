@@ -22,6 +22,7 @@
 	9    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
 	11   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
+	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -313,9 +314,18 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
-				SELECT * INTO #TempResult FROM  Result
-				WHERE
-				 (
+
+				SELECT t.*
+						INTO #TempResult
+						FROM Result t
+						JOIN (
+							SELECT StockLineId, MAX(CreatedDate) AS MaxDate
+							FROM Result
+							GROUP BY StockLineId
+						) x ON t.StockLineId = x.StockLineId
+						   AND t.CreatedDate = x.MaxDate
+						WHERE
+						(
 					(@GlobalFilter <>'' AND (
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
 					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
@@ -432,6 +442,127 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					AND (IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')					
 					)
 				  )
+
+
+				--SELECT * INTO #TempResult FROM  Result
+				--WHERE
+				-- (
+				--	(@GlobalFilter <>'' AND (
+				--	(LotNumber LIKE '%' + @GlobalFilter + '%') OR
+				--	(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
+				--	(LotName LIKE '%' + @GlobalFilter + '%') OR
+				--	(Partnumber LIKE '%' + @GlobalFilter + '%') OR
+				--	([Description] LIKE '%' + @GlobalFilter + '%') OR
+				--	(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
+				--	(SerialNum LIKE '%' + @GlobalFilter + '%') OR
+				--	(ItemClassfication like '%' + @GlobalFilter + '%') OR
+				--	(ItemGroup like '%' + @GlobalFilter + '%') OR
+				--	(Condition LIKE '%' + @GlobalFilter + '%') OR
+				--	(Uom LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(Qty AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(TransUnitCost LIKE '%' + @GlobalFilter + '%') OR
+				--	(UnitCost LIKE '%' + @GlobalFilter + '%') OR
+				--	(ExtCost like '%' + @GlobalFilter + '%') OR
+				--	(RepairCost like '%' + @GlobalFilter + '%') OR
+				--	(TotalCost like '%' + @GlobalFilter + '%') OR
+				--	(UnitSalesPrice like '%' + @GlobalFilter + '%') OR
+				--	(WONum like '%' + @GlobalFilter + '%') OR
+				--	(ExtPrice like '%' + @GlobalFilter + '%') OR
+				--	(MarginAmt like '%' + @GlobalFilter + '%') OR
+				--	(Margin like '%' + @GlobalFilter + '%') OR
+				--	(HowAcquired like '%' + @GlobalFilter + '%') OR
+				--	(AcquiredRef like '%' + @GlobalFilter + '%') OR
+				--	(PoNum like '%' + @GlobalFilter + '%') OR
+				--	(RoNum like '%' + @GlobalFilter + '%') OR
+				--	(WoNum like '%' + @GlobalFilter + '%') OR
+				--	(QuoteNum like '%' + @GlobalFilter + '%') OR
+				--	(SoNum like '%' + @GlobalFilter + '%') OR
+				--	(Vendor like '%' + @GlobalFilter + '%') OR
+				--	(CustomerName like '%' + @GlobalFilter + '%') OR
+				--	(InvoiceNum like '%' + @GlobalFilter + '%') OR
+				--	(LastMSLevel like '%' + @GlobalFilter + '%') OR			
+				--	(Memo like '%' + @GlobalFilter + '%') OR	
+				--	(VendorCode like '%' + @GlobalFilter + '%') OR
+				--	(ReferenceNum like '%' + @GlobalFilter + '%') OR
+				--	(ControlNumber like '%' + @GlobalFilter + '%') OR
+				--	(IdNumber like '%' + @GlobalFilter + '%') OR
+				--	(TraceableToName like '%' + @GlobalFilter + '%') OR
+				--	(TaggedByName like '%' + @GlobalFilter + '%') OR
+				--	(TagDate like '%' + @GlobalFilter + '%') OR
+				--	(InvoiceDate like '%' + @GlobalFilter + '%') OR
+				--	(InitialPOCost like '%' + @GlobalFilter + '%') OR
+				--	(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
+				--	(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
+				--	(Adjustment like '%' + @GlobalFilter + '%') OR
+				--		(ManufacturerName like '%' + @GlobalFilter + '%') OR	
+				--	([Status] like '%' + @GlobalFilter + '%')
+				--	))
+				--	OR
+				--	(@GlobalFilter = '' AND 
+	
+				--	(ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
+				--	(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
+				--	(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
+				--	(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
+				--	(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
+				--	(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
+				--	(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
+				--	(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
+				--	(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
+				--	(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
+
+				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) LIKE @TransUnitCost) AND
+				--	(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
+				--	(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(10)) = @ExtCost) AND
+				--	(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @RepairCost) AND
+				--	(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(10)) = @TotalCost) AND
+				--	(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
+				--	--(ISNULL(@LastPODate,'') ='' OR CAST(LastPODate AS Date) = CAST(@LastPODate AS date)) AND
+				--	(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(10)) LIKE @ExtPrice) AND
+				--	(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(10)) LIKE @MarginAmt) AND
+				--	(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(10)) LIKE @Margin) AND
+
+				--	(ISNULL(@HowAcquired,'') ='' OR HowAcquired LIKE '%' + @HowAcquired + '%') AND
+				--	(ISNULL(@AcquiredRef,'') ='' OR AcquiredRef LIKE '%' + @AcquiredRef + '%') AND
+				--	(ISNULL(@PoNum,'') ='' OR PoNum LIKE '%' + @PoNum + '%') AND
+				--	(ISNULL(@RoNum,'') ='' OR RoNum LIKE '%' + @RoNum + '%') AND
+				--	(ISNULL(@WoNum,'') ='' OR WoNum LIKE '%' + @WoNum + '%') AND
+				--	(ISNULL(@QuoteNum,'') ='' OR QuoteNum LIKE '%' + @QuoteNum + '%') AND
+				--	(ISNULL(@SoNum,'') ='' OR SoNum LIKE '%' + @SoNum + '%') AND
+				--	(ISNULL(@Vendor,'') ='' OR Vendor LIKE '%' + @Vendor + '%') AND
+				--	(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND
+				--	(ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE '%' + @InvoiceNum + '%') AND
+				--	(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
+				--	(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
+				--	(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
+				--	(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND
+				--	(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+				--	(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
+					
+				--	(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
+				--	(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
+				--	(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
+				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
+				--	(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
+				--	(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
+				--	(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
+				--	(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
+				--	(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
+				--	(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
+				--	(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
+				--	(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
+				--	(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
+				--	(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+				--	(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
+				--	(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS Date) = CAST(@InvoiceDate AS date)) AND
+				--	(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(10)) LIKE @UnitSalePrice) 
+				--	AND (IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')					
+				--	)
+				--  )
 
 				SELECT @Count = COUNT(*) FROM #TempResult
 			

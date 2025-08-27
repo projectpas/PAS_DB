@@ -4184,6 +4184,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCertificationList.sql" />
     <Build Include="dbo\Stored Procedures\CheckWorkOrderForRestore.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeMemo.sql" />
+    <Build Include="dbo\Stored Procedures\GetApproveRejectDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -4184,6 +4184,11 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCertificationList.sql" />
     <Build Include="dbo\Stored Procedures\CheckWorkOrderForRestore.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeMemo.sql" />
+    <Build Include="dbo\Functions\RevenuePercentage.sql" />
+    <Build Include="dbo\Functions\GetInternalStatusId.sql" />
+    <Build Include="dbo\Functions\GetApprovalActionId.sql" />
+    <Build Include="dbo\Functions\GetActionStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOQuoteApprovalList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

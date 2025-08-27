@@ -54,9 +54,10 @@
  38	  13/12/2024  Moin Bloch		     added Cycle Count Module
  39	  26/12/2024  Rajesh Gami		     added Vendor Proforma Invoice, Return InvoiceNo
  40	  04/08/2024  AMIT GHEDIYA		     Updated MJ Module MJE to MJB.
- 41	 19/08/2025  BHARGAV SALIYA	  Added Case for [JournalTypeName].
+ 41	  19/08/2025  BHARGAV SALIYA	     Added Case for [JournalTypeName].
+ 42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
 
- EXEC [GetJournalBatchDetailsViewpopupById] 2666,0,'WO'  
+ EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
@@ -1757,6 +1758,21 @@ BEGIN
 					ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
 					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10,
 					CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					,0   [MPNPartId]  
+					,''  [MPNName]  
+					,0   [PiecePNId]  
+					,''  [PiecePN]  
+					,JBD.[JournalTypeId]  
+					,JBD.[JournalTypeName]  
+					,0 [Qty]
+					,0 [UnitPrice]
+					,0 [LaborHrs]
+					,0 [DirectLaborCost]
+					,0 [OverheadCost]
+					,'' [ExpertiseName]
+					,'' [EmployeeName]
+					,'' [LotNumber]
+					,CASE WHEN BD.[IsReversedJE] = 1 THEN 1 ELSE 0 END AS [IsReversedJE]
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  

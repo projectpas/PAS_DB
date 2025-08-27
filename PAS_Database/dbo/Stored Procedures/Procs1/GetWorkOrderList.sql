@@ -29,6 +29,7 @@
 	13   25/06/2025   HEMANT SALIYA			Optimize SP to reduce wating time
 	14   18/07/2025   Vishal Suthar			Added DISTINCT in the final resultset which was populating duplicate entry
 	15   24/07/2025   Devendra Shekh		added WOPartId for MPN View
+	16   26/08/2025   Moin Bloch		    added RevisedSerialNumber 
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -39,45 +40,46 @@
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
  -- Add the parameters for the stored procedure here  
-	 @PageNumber int,  
-	 @PageSize int,  
-	 @SortColumn varchar(50)=null,  
-	 @SortOrder int,  
-	 @StatusID int,  
-	 @GlobalFilter varchar(50) = '',  
-	 @ViewType varchar(50) = null,  
-	 @WorkOrderNum varchar(50)=null,  
-	 @PartNumber varchar(50)=null,  
-	 @PartDescription varchar(50)=null,  
-	 @WorkScope varchar(50)=null,  
-	 @Priority varchar(50)=null,  
-	 @CustomerName varchar(50)=null,  
-	 @CustomerAffiliation varchar(50)=null,  
-	 @Stage varchar(200)=null,  
-	 @WorkOrderStatus bigint=null,      
-	 @OpenDate datetime=null,  
-	 @CustReqDate datetime=null,  
-	 @PromiseDate datetime=null,  
-	 @EstShipDate datetime=null,  
-	 @ShipDate datetime=null,  
-	 @CreatedDate datetime=null,  
-	 @UpdatedDate  datetime=null,  
-	 @CreatedBy  varchar(50)=null,  
-	 @UpdatedBy  varchar(50)=null,  
-	 @IsDeleted bit= null,  
-	 @MasterCompanyId varchar(200)=null,  
-	 @EmployeeId varchar(200)=null,   
-	 @WorkOrderStatusType varchar(200)=null,  
-	 @WorkOrderType varchar(50)=null,  
-	 @TechName  varchar(50)=null,  
-	 @TechStation  varchar(50)=null, 
-	 @SerialNumber  varchar(50)=null,  
-	 @CustRef varchar(50)=null,
+	 @PageNumber INT,  
+	 @PageSize INT,  
+	 @SortColumn VARCHAR(50)=NULL,  
+	 @SortOrder INT,  
+	 @StatusID INT,  
+	 @GlobalFilter VARCHAR(50) = '',  
+	 @ViewType VARCHAR(50) = NULL,  
+	 @WorkOrderNum VARCHAR(50)=NULL,  
+	 @PartNumber VARCHAR(50)=NULL,  
+	 @PartDescription VARCHAR(50)=NULL,  
+	 @WorkScope VARCHAR(50)=NULL,  
+	 @Priority VARCHAR(50)=NULL,  
+	 @CustomerName VARCHAR(50)=NULL,  
+	 @CustomerAffiliation VARCHAR(50)=NULL,  
+	 @Stage VARCHAR(200)=NULL,  
+	 @WorkOrderStatus BIGINT=NULL,      
+	 @OpenDate DATETIME=NULL,  
+	 @CustReqDate DATETIME=NULL,  
+	 @PromiseDate DATETIME=NULL,  
+	 @EstShipDate DATETIME=NULL,  
+	 @ShipDate DATETIME=NULL,  
+	 @CreatedDate DATETIME=NULL,  
+	 @UpdatedDate  DATETIME=NULL,  
+	 @CreatedBy  VARCHAR(50)=NULL,  
+	 @UpdatedBy  VARCHAR(50)=NULL,  
+	 @IsDeleted BIT= NULL,  
+	 @MasterCompanyId VARCHAR(200)=NULL,  
+	 @EmployeeId VARCHAR(200)=NULL,   
+	 @WorkOrderStatusType VARCHAR(200)=NULL,  
+	 @WorkOrderType VARCHAR(50)=NULL,  
+	 @TechName  VARCHAR(50)=NULL,  
+	 @TechStation  VARCHAR(50)=NULL, 
+	 @SerialNumber  VARCHAR(50)=NULL,  
+	 @RevisedSerialNumber VARCHAR(50)=NULL,  
+	 @CustRef VARCHAR(50)=NULL,
 	 @MSModuleID INT=12,
-	 @ManufacturerName varchar(50)=null,
-	 @IsSubWorkOrder varchar(50) = NULL,
-	 @MPNQuoteStatus varchar(50) = NULL,
-	 @ApprovedAmount varchar(50) = NULL
+	 @ManufacturerName VARCHAR(50)=NULL,
+	 @IsSubWorkOrder VARCHAR(50) = NULL,
+	 @MPNQuoteStatus VARCHAR(50) = NULL,
+	 @ApprovedAmount VARCHAR(50) = NULL
 
 AS  
 BEGIN  
@@ -86,10 +88,10 @@ BEGIN
  BEGIN TRY  
   --BEGIN TRANSACTION  
   -- BEGIN   
-    DECLARE @RecordFrom int;  
-    DECLARE @IsActive bit=1  
-    DECLARE @Count Int;  
-    DECLARE @WorkOrderStatusId int;    
+    DECLARE @RecordFrom INT;  
+    DECLARE @IsActive BIT=1  
+    DECLARE @Count INT;  
+    DECLARE @WorkOrderStatusId INT;    
   
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
@@ -102,7 +104,7 @@ BEGIN
     END  
   
     SET @RecordFrom = (@PageNumber-1)*@PageSize;  
-    IF @IsDeleted is null  
+    IF @IsDeleted IS NULL  
     BEGIN  
 		SET @IsDeleted = 0;
     END    
@@ -119,11 +121,11 @@ BEGIN
   
     IF @SortColumn IS NULL
     BEGIN  
-		SET @SortColumn = Upper('CreatedDate')
+		SET @SortColumn = UPPER('CreatedDate')
     END
     ELSE
     BEGIN   
-		SET @SortColumn=Upper(@SortColumn)  
+		SET @SortColumn=UPPER(@SortColumn)  
     END  
   
     IF @StatusID = 0  
@@ -136,7 +138,7 @@ BEGIN
     END   
     ELSE IF @StatusID = 2  
     BEGIN   
-		SET @IsActive = null  
+		SET @IsActive = NULL  
     END
 
 	DECLARE @WOApprovalDesc VARCHAR(200);  
@@ -177,51 +179,52 @@ BEGIN
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
 		CREATE TABLE #TempResult (
-			WorkOrderNum NVARCHAR(100),
-			WorkOrderId NVARCHAR(100),
-			CustomerId NVARCHAR(100),
-			PartNos NVARCHAR(100),
-			PartNoType NVARCHAR(100),
-			PNDescription NVARCHAR(500),
-			PNDescriptionType NVARCHAR(500),
-			ManufacturerName NVARCHAR(200),
-			ManufacturerNameType NVARCHAR(200),
-			WorkScope NVARCHAR(200),
-			WorkScopeType NVARCHAR(200),
-			Priority NVARCHAR(50),
-			PriorityType NVARCHAR(50),
-			CustomerName NVARCHAR(200),
-			CustomerType NVARCHAR(100),
-			Stage NVARCHAR(100),
-			StageType NVARCHAR(100),
-			WorkOrderStatus NVARCHAR(100),
-			WorkOrderStatusType NVARCHAR(100),
-			OpenDate DATE,
-			CustomerRequestDate DATE,
-			CustomerRequestDateType DATE,
-			PromisedDate DATE,
-			PromisedDateType DATE,
-			EstimatedShipDate DATE,
-			EstimatedShipDateType DATE,
-			EstimatedCompletionDateType NVARCHAR(50),
-			EstimatedCompletionDate DATE,
-			CreatedDate DATETIME,
-			UpdatedDate DATETIME,
-			CreatedBy NVARCHAR(100),
-			UpdatedBy NVARCHAR(100),
-			IsActive BIT,
-			IsDeleted BIT,
-			WorkOrderStatusId INT,
-			WorkOrderType NVARCHAR(100),
-			TechName NVARCHAR(100),
-			TechStation NVARCHAR(100),
-			SerialNumber NVARCHAR(100),
-			CustomerReference NVARCHAR(100),
-			CustomerReferenceType NVARCHAR(100),
-			IsSubWorkOrder NVARCHAR(10),
-			MPNQuoteStatus NVARCHAR(100),
-			ApprovedAmount NVARCHAR(100),
-			WOPartId NVARCHAR(100)
+			[WorkOrderNum] NVARCHAR(100),
+			[WorkOrderId] NVARCHAR(100),
+			[CustomerId] NVARCHAR(100),
+			[PartNos] NVARCHAR(100),
+			[PartNoType] NVARCHAR(100),
+			[PNDescription] NVARCHAR(500),
+			[PNDescriptionType] NVARCHAR(500),
+			[ManufacturerName] NVARCHAR(200),
+			[ManufacturerNameType] NVARCHAR(200),
+			[WorkScope] NVARCHAR(200),
+			[WorkScopeType] NVARCHAR(200),
+			[Priority] NVARCHAR(50),
+			[PriorityType] NVARCHAR(50),
+			[CustomerName] NVARCHAR(200),
+			[CustomerType] NVARCHAR(100),
+			[Stage] NVARCHAR(100),
+			[StageType] NVARCHAR(100),
+			[WorkOrderStatus] NVARCHAR(100),
+			[WorkOrderStatusType] NVARCHAR(100),
+			[OpenDate] DATE,
+			[CustomerRequestDate] DATE,
+			[CustomerRequestDateType] DATE,
+			[PromisedDate] DATE,
+			[PromisedDateType] DATE,
+			[EstimatedShipDate] DATE,
+			[EstimatedShipDateType] DATE,
+			[EstimatedCompletionDateType] NVARCHAR(50),
+			[EstimatedCompletionDate] DATE,
+			[CreatedDate] DATETIME,
+			[UpdatedDate] DATETIME,
+			[CreatedBy] NVARCHAR(100),
+			[UpdatedBy] NVARCHAR(100),
+			[IsActive] BIT,
+			[IsDeleted] BIT,
+			[WorkOrderStatusId] INT,
+			[WorkOrderType] NVARCHAR(100),
+			[TechName] NVARCHAR(100),
+			[TechStation] NVARCHAR(100),
+			[SerialNumber] NVARCHAR(100),
+			[RevisedSerialNumber] NVARCHAR(100),
+			[CustomerReference] NVARCHAR(100),
+			[CustomerReferenceType] NVARCHAR(100),
+			[IsSubWorkOrder] NVARCHAR(10),
+			[MPNQuoteStatus] NVARCHAR(100),
+			[ApprovedAmount] NVARCHAR(100),
+			[WOPartId] NVARCHAR(100)
 		);
 
 		-- 2. Create the index for faster filtering/sorting
@@ -237,78 +240,77 @@ BEGIN
 	 --  ,
 	   Result AS(  
        SELECT   
-			UPPER(WO.WorkOrderNum) AS WorkOrderNum,
-			UPPER(WO.WorkOrderId) AS WorkOrderId,
-			UPPER(WO.CustomerId) AS CustomerId,
+			UPPER(WO.[WorkOrderNum]) AS [WorkOrderNum],
+			UPPER(WO.[WorkOrderId]) AS [WorkOrderId],
+			UPPER(WO.[CustomerId]) AS [CustomerId],
 			--CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNos,
-			UPPER(ISNULL(NULLIF(WPN.RevisedPartNumber, ''), WPN.PartNumber)) AS PartNos,
+			UPPER(ISNULL(NULLIF(WPN.[RevisedPartNumber], ''), WPN.[PartNumber])) AS [PartNos],
 			--CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNoType,
-			UPPER(ISNULL(NULLIF(WPN.RevisedPartNumber, ''), WPN.PartNumber)) AS PartNoType,
+			UPPER(ISNULL(NULLIF(WPN.[RevisedPartNumber], ''), WPN.[PartNumber])) AS [PartNoType],
 			--CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescription,
-			UPPER(ISNULL(NULLIF(WPN.RevisedPartDescription, ''), WPN.PartDescription)) AS PNDescription,
+			UPPER(ISNULL(NULLIF(WPN.[RevisedPartDescription], ''), WPN.[PartDescription])) AS [PNDescription],
 			--CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescriptionType,
-			UPPER(ISNULL(NULLIF(WPN.RevisedPartDescription, ''), WPN.PartDescription)) AS PNDescriptionType,
-			UPPER(WPN.ManufacturerName) AS ManufacturerName,  
-			UPPER(WPN.ManufacturerName) AS ManufacturerNameType,  
-			UPPER(WPN.WorkScope) AS WorkScope,
-			UPPER(WPN.WorkScope) AS WorkScopeType,
-			UPPER(WPN.Priority) AS Priority,
-			UPPER(WPN.Priority) As PriorityType,
-			UPPER(WO.CustomerName) AS CustomerName,
-			UPPER(WO.CustomerType) AS CustomerType,
-			UPPER(WPN.WorkOrderStage) AS Stage,  
-			UPPER(WPN.WorkOrderStage) AS StageType,  
-			UPPER(WPN.WorkOrderStatus) AS WorkOrderStatus,  
-			UPPER(WPN.WorkOrderStatus) AS WorkOrderStatusType,  
-			CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.OpenDate) AS DATE) END OpenDate, 
+			UPPER(ISNULL(NULLIF(WPN.[RevisedPartDescription], ''), WPN.[PartDescription])) AS [PNDescriptionType],
+			UPPER(WPN.[ManufacturerName]) AS [ManufacturerName],  
+			UPPER(WPN.[ManufacturerName]) AS [ManufacturerNameType],  
+			UPPER(WPN.[WorkScope]) AS [WorkScope],
+			UPPER(WPN.[WorkScope]) AS [WorkScopeType],
+			UPPER(WPN.[Priority]) AS [Priority],
+			UPPER(WPN.[Priority]) As [PriorityType],
+			UPPER(WO.[CustomerName]) AS [CustomerName],
+			UPPER(WO.[CustomerType]) AS [CustomerType],
+			UPPER(WPN.[WorkOrderStage]) AS [Stage],  
+			UPPER(WPN.[WorkOrderStage]) AS [StageType],  
+			UPPER(WPN.[WorkOrderStatus]) AS [WorkOrderStatus],  
+			UPPER(WPN.[WorkOrderStatus]) AS [WorkOrderStatusType],  
+			CASE WHEN CAST(WO.[OpenDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[OpenDate]) AS DATE) END [OpenDate], 
 			--CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATE)) END OpenDate, 
-			WPN.CustomerRequestDate,  
-			WPN.CustomerRequestDate AS CustomerRequestDateType,  
-			WPN.PromisedDate,  
-			WPN.PromisedDate AS PromisedDateType,  
-			WPN.EstimatedShipDate,  
-			WPN.EstimatedShipDate AS EstimatedShipDateType,  
-			LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
-			LWS.EstimatedCompletionDate AS EstimatedCompletionDate,
+			WPN.[CustomerRequestDate],  
+			WPN.[CustomerRequestDate] AS [CustomerRequestDateType],  
+			WPN.[PromisedDate],  
+			WPN.[PromisedDate] AS [PromisedDateType],  
+			WPN.[EstimatedShipDate],  
+			WPN.[EstimatedShipDate] AS [EstimatedShipDateType],  
+			LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDateType],
+			LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDate],
 			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDate,  
 			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDateType,  
-			WO.CreatedDate,
-			CASE WHEN CAST(WO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.UpdatedDate) AS DATE) END UpdatedDate,
+			WO.[CreatedDate],
+			CASE WHEN CAST(WO.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[UpdatedDate]) AS DATE) END [UpdatedDate],
 			--CASE WHEN CAST(WO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WO.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END UpdatedDate,
-			UPPER(WO.CreatedBy) AS CreatedBy,
-			UPPER(WO.UpdatedBy) AS UpdatedBy,
-			WO.IsActive,  
-			WO.IsDeleted,  
-			WPN.WorkOrderStatusId,  
-			UPPER(WO.WorkOrderType) AS WorkOrderType,
-			UPPER(WPN.TechName) AS TechName,
-			UPPER(WPN.EmployeeStation) AS TechStation,
-			--UPPER(STL.SerialNumber) AS SerialNumber,
-			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END AS SerialNumber,
-			UPPER(WPN.CustomerReference) AS CustomerReference,
-			UPPER(WPN.CustomerReference) AS CustomerReferenceType
-			,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder,
-			UPPER(wqs.Description) AS MPNQuoteStatus,
-			CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-			ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
-			WPN.ID as WOPartId
-			FROM dbo.WorkOrder WO WITH(NOLOCK)  
-			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
-			--LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			UPPER(WO.[CreatedBy]) AS [CreatedBy],
+			UPPER(WO.[UpdatedBy]) AS [UpdatedBy],
+			WO.[IsActive],  
+			WO.[IsDeleted],  
+			WPN.[WorkOrderStatusId],  
+			UPPER(WO.[WorkOrderType]) AS [WorkOrderType],
+			UPPER(WPN.[TechName]) AS [TechName],
+			UPPER(WPN.[EmployeeStation]) AS [TechStation],			
+			UPPER(WPN.[CurrentSerialNumber]) AS [SerialNumber],		
+			CASE WHEN ISNULL(WPN.[RevisedSerialNumber], '') != '' THEN UPPER(WPN.[RevisedSerialNumber]) ELSE UPPER(WPN.[CurrentSerialNumber]) END AS [RevisedSerialNumber],
+			UPPER(WPN.[CustomerReference]) AS [CustomerReference],
+			UPPER(WPN.[CustomerReference]) AS [CustomerReferenceType]
+			,ISNULL(SWO.[IsSubWorkOrder], 'No') AS [IsSubWorkOrder],
+			UPPER(wqs.[Description]) AS [MPNQuoteStatus],
+			CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate] , 0) ELSE  
+			ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
+			WPN.[ID] AS [WOPartId]
+			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
+			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			OUTER APPLY (
-				SELECT TOP 1 FORMAT(ShipDate, 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
-				FROM dbo.WorkOrderShipping WITH (NOLOCK)
-				WHERE WorkOrderId = WO.WorkOrderId
-				ORDER BY ShipDate DESC
+				SELECT TOP 1 FORMAT([ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate]
+				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
+				WHERE [WorkOrderId] = WO.[WorkOrderId]
+				ORDER BY [ShipDate] DESC
 			) AS LWS
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
 			OUTER APPLY (
-				SELECT TOP 1 'Yes' AS IsSubWorkOrder
-				FROM dbo.SubWorkOrder SWO WITH(NOLOCK)
+				SELECT TOP 1 'Yes' AS [IsSubWorkOrder]
+				FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK)
 				WHERE 
-					SWO.WorkOrderId = WO.WorkOrderId
-					AND SWO.WorkOrderPartNumberId = WPN.ID
-					AND ISNULL(SWO.IsDeleted, 0) = 0
+					SWO.[WorkOrderId] = WO.[WorkOrderId]
+					AND SWO.[WorkOrderPartNumberId] = WPN.[ID]
+					AND ISNULL(SWO.[IsDeleted], 0) = 0
 			) AS SWO
 			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
@@ -321,14 +323,14 @@ BEGIN
 			--LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
 			--LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
 			--LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.WorkOrderId = WPN.WorkOrderId
-			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 AND ISNULL(IsVersionIncrease, 0) = 0 
-			LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.workorderquoteid = WOQD.workorderquoteid
-			LEFT JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
-		WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))  
+			LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
+			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
+			LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
+		WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus))  
         ),
 		QuoteResult AS (
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
-				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber], 
+				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
 				[CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus],
 				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId]
 			FROM Result
@@ -341,244 +343,247 @@ BEGIN
 			   [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate],
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
 			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
-			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],
+			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
 			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId]
 		FROM QuoteResult
         WHERE (  
         (@GlobalFilter <>'' AND 
 			(  
-			(WorkOrderNum like '%' +@GlobalFilter+'%') OR  
-			(WorkOrderType like '%' +@GlobalFilter+'%') OR  
-			(PartNos like '%' +@GlobalFilter+'%') OR  
-			(PNDescription like '%' +@GlobalFilter+'%') OR
-			(ManufacturerName like '%' +@GlobalFilter+'%') OR  
-			(WorkScope like '%' +@GlobalFilter+'%') OR  
-			(Priority like '%' +@GlobalFilter+'%') OR    
-			(CustomerName like '%' +@GlobalFilter+'%' ) OR   
-			(CustomerType like '%' +@GlobalFilter+'%') OR  
-			(Stage like '%' +@GlobalFilter+'%') OR  
-			(TechName like '%' +@GlobalFilter+'%') OR  
-			(TechStation like '%' +@GlobalFilter+'%') OR  
-			(WorkOrderStatus like '%'+@GlobalFilter+'%') OR  
-			(WorkOrderStatusType like '%'+@GlobalFilter+'%') OR  
-			(CreatedBy like '%' +@GlobalFilter+'%') OR  
-			(UpdatedBy like '%' +@GlobalFilter+'%') OR  
-			(SerialNumber like '%' +@GlobalFilter+'%') OR  
-			(CustomerReference like '%' +@GlobalFilter+'%') OR
-			(MPNQuoteStatus like '%' +@GlobalFilter+'%') OR
-			(ApprovedAmount like '%' +@GlobalFilter+'%') OR
-			(IsSubWorkOrder like '%' + @GlobalFilter +'%')
+			([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR  
+			([WorkOrderType] LIKE '%' +@GlobalFilter+'%') OR  
+			([PartNos] LIKE '%' +@GlobalFilter+'%') OR  
+			([PNDescription] LIKE '%' +@GlobalFilter+'%') OR
+			([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR  
+			([WorkScope] LIKE '%' +@GlobalFilter+'%') OR  
+			([Priority] LIKE '%' +@GlobalFilter+'%') OR    
+			([CustomerName] LIKE '%' +@GlobalFilter+'%' ) OR   
+			([CustomerType] LIKE '%' +@GlobalFilter+'%') OR  
+			([Stage] LIKE '%' +@GlobalFilter+'%') OR  
+			([TechName] LIKE '%' +@GlobalFilter+'%') OR  
+			([TechStation] LIKE '%' +@GlobalFilter+'%') OR  
+			([WorkOrderStatus] LIKE '%'+@GlobalFilter+'%') OR  
+			([WorkOrderStatusType] LIKE '%'+@GlobalFilter+'%') OR  
+			([CreatedBy] LIKE '%' +@GlobalFilter+'%') OR  
+			([UpdatedBy] LIKE '%' +@GlobalFilter+'%') OR  
+			([SerialNumber] LIKE '%' +@GlobalFilter+'%') OR  
+			([RevisedSerialNumber] LIKE '%' +@GlobalFilter+'%') OR  			
+			([CustomerReference] LIKE '%' +@GlobalFilter+'%') OR
+			([MPNQuoteStatus] LIKE '%' +@GlobalFilter+'%') OR
+			([ApprovedAmount] LIKE '%' +@GlobalFilter+'%') OR
+			([IsSubWorkOrder] LIKE '%' + @GlobalFilter +'%')
 			)
 		)  
         OR     
-        (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
-        (IsNull(@PartNumber,'') ='' OR PartNos like '%' + @PartNumber+'%') AND  
-        (IsNull(@PartDescription,'') ='' OR PNDescription like '%' + @PartDescription+'%') AND 
-		(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
-        (IsNull(@WorkScope,'') ='' OR WorkScope like '%' + @WorkScope+'%') AND  
-        (IsNull(@WorkOrderType,'') ='' OR WorkOrderType like '%' + @WorkOrderType+'%') AND  
-        (IsNull(@Priority,'') ='' OR Priority like '%' + @Priority+'%') AND  
-        (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
-        (IsNull(@CustomerAffiliation,'') ='' OR CustomerType like '%' + @CustomerAffiliation+'%') AND  
-        (IsNull(@Stage,'') ='' OR Stage like '%' + @Stage+'%') AND  
-        (IsNull(@TechName,'') ='' OR TechName like '%' + @TechName+'%') AND  
-        (IsNull(@TechStation,'') ='' OR TechStation like '%' + @TechStation+'%') AND  
-        (IsNull(@WorkOrderStatusType,'') ='' OR WorkOrderStatusType like '%' + @WorkOrderStatusType+'%') AND  
-        (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-        (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-        --(IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND  
-		(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS date)=CAST(@OpenDate AS date)) AND 
-        (IsNull(@CustReqDate,'') ='' OR Cast(CustomerRequestDate as Date)=Cast(@CustReqDate as date)) AND  
-        (IsNull(@PromiseDate,'') ='' OR Cast(PromisedDate as Date)=Cast(@PromiseDate as date)) AND  
-        (IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND  
-        (IsNull(@ShipDate,'') ='' OR Cast(EstimatedCompletionDate as Date)=Cast(@ShipDate as date)) AND       
-        (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
-        (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND  
-        (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND  
-        (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%') AND
-        (IsNull(@MPNQuoteStatus,'') ='' OR MPNQuoteStatus like '%' + @MPNQuoteStatus+'%') AND
-        (IsNull(@ApprovedAmount,'') ='' OR ApprovedAmount like '%' + @ApprovedAmount+'%') AND
-		(ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder LIKE '%' + @IsSubWorkOrder + '%') 
+        (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
+        (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%') AND  
+        (ISNULL(@PartDescription,'') ='' OR [PNDescription] LIKE '%' + @PartDescription+'%') AND 
+		(ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND  
+        (ISNULL(@WorkScope,'') ='' OR [WorkScope] LIKE '%' + @WorkScope+'%') AND  
+        (ISNULL(@WorkOrderType,'') ='' OR [WorkOrderType] LIKE '%' + @WorkOrderType+'%') AND  
+        (ISNULL(@Priority,'') ='' OR [Priority] LIKE '%' + @Priority+'%') AND  
+        (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND  
+        (ISNULL(@CustomerAffiliation,'') ='' OR [CustomerType] LIKE '%' + @CustomerAffiliation+'%') AND  
+        (ISNULL(@Stage,'') ='' OR [Stage] LIKE '%' + @Stage+'%') AND  
+        (ISNULL(@TechName,'') ='' OR [TechName] LIKE '%' + @TechName+'%') AND  
+        (ISNULL(@TechStation,'') ='' OR [TechStation] LIKE '%' + @TechStation+'%') AND  
+        (ISNULL(@WorkOrderStatusType,'') ='' OR [WorkOrderStatusType] LIKE '%' + @WorkOrderStatusType+'%') AND  
+        (ISNULL(@CreatedBy,'') ='' OR [CreatedBy] LIKE '%' + @CreatedBy+'%') AND  
+        (ISNULL(@UpdatedBy,'') ='' OR [UpdatedBy] LIKE '%' + @UpdatedBy+'%') AND  
+		(ISNULL(@OpenDate,'') ='' OR CAST([OpenDate] AS DATE)=CAST(@OpenDate AS DATE)) AND 
+        (ISNULL(@CustReqDate,'') ='' OR CAST([CustomerRequestDate] AS DATE)=Cast(@CustReqDate AS DATE)) AND  
+        (ISNULL(@PromiseDate,'') ='' OR CAST([PromisedDate] AS DATE)=Cast(@PromiseDate AS DATE)) AND  
+        (ISNULL(@EstShipDate,'') ='' OR CAST([EstimatedShipDate] AS DATE)=CAST(@EstShipDate AS DATE)) AND  
+        (ISNULL(@ShipDate,'') ='' OR CAST([EstimatedCompletionDate] AS DATE)=CAST(@ShipDate AS DATE)) AND       
+        (ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE)=CAST(@CreatedDate AS DATE)) AND  
+        (ISNULL(@UpdatedDate,'') ='' OR CAST([UpdatedDate] AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
+        (ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber+'%') AND  
+		(ISNULL(@RevisedSerialNumber,'') ='' OR [RevisedSerialNumber] LIKE '%' + @RevisedSerialNumber+'%') AND  		
+        (ISNULL(@CustRef,'') ='' OR [CustomerReference] LIKE '%' + @CustRef+'%') AND
+        (ISNULL(@MPNQuoteStatus,'') ='' OR [MPNQuoteStatus] LIKE '%' + @MPNQuoteStatus+'%') AND
+        (ISNULL(@ApprovedAmount,'') ='' OR [ApprovedAmount] LIKE '%' + @ApprovedAmount+'%') AND
+		(ISNULL(@IsSubWorkOrder,'') ='' OR [IsSubWorkOrder] LIKE '%' + @IsSubWorkOrder + '%') 
 
         ))  
   
         SELECT @Count = COUNT(CustomerId) from #TempResult     
   
-        SELECT *, @Count As NumberOfItems FROM #TempResult  
+        SELECT *, @Count AS NumberOfItems FROM #TempResult  
         ORDER BY    
-        CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNos END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='partNoType')  THEN partNoType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='pnDescriptionType')  THEN pnDescriptionType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='workScopeType')  THEN workScopeType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='customerRequestDateType')  THEN customerRequestDateType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='promisedDateType')  THEN promisedDateType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='estimatedShipDateType')  THEN estimatedShipDateType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='estimatedCompletionDateType')  THEN estimatedCompletionDateType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='stageType')  THEN stageType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='workOrderStatusType')  THEN workOrderStatusType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='PriorityType')  THEN PriorityType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='CustomerType')  THEN CustomerType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC, 
-        CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='WORKSCOPE')  THEN WorkScope END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN Priority END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERAFFILICATION')  THEN CustomerType END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='STAGE')  THEN Stage END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='TECHNAME')  THEN TechName END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='TECHSTATION')  THEN TechStation END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='CUSTREQDATE')  THEN CustomerRequestDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='PROMISEDATE')  THEN PromisedDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='ESTSHIPDATE')  THEN EstimatedShipDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='SHIPDDATE')  THEN EstimatedCompletionDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER') THEN SerialNumber END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='MPNQUOTESTATUS') THEN MPNQuoteStatus END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='APPROVEDAMOUNT') THEN ApprovedAmount END ASC,  
-        CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERREFERENCE') THEN CustomerReference END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='partNoType')  THEN [partNoType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='workScopeType')  THEN [workScopeType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='promisedDateType')  THEN [promisedDateType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='estimatedShipDateType')  THEN [estimatedShipDateType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='estimatedCompletionDateType')  THEN [estimatedCompletionDateType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='stageType')  THEN [stageType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='workOrderStatusType')  THEN [workOrderStatusType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='PriorityType')  THEN [PriorityType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CustomerType')  THEN [CustomerType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='WorkOrderType')  THEN [WorkOrderType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN [PNDescription] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='ManufacturerName')  THEN [ManufacturerName] END ASC, 
+        CASE WHEN (@SortOrder=1 AND @SortColumn='WORKORDERNUM')  THEN [WorkOrderNum] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='WORKSCOPE')  THEN [WorkScope] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='PRIORITY')  THEN [Priority] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERNAME')  THEN [CustomerName] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERAFFILICATION')  THEN [CustomerType] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='STAGE')  THEN [Stage] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='TECHNAME')  THEN [TechName] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='TECHSTATION')  THEN [TechStation] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='WORKORDERSTATUS')  THEN [WorkOrderStatus] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='OPENDATE')  THEN [OpenDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTREQDATE')  THEN [CustomerRequestDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='PROMISEDATE')  THEN [PromisedDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='ESTSHIPDATE')  THEN [EstimatedShipDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='SHIPDDATE')  THEN [EstimatedCompletionDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN [UpdatedDate] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN [CreatedBy] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN [UpdatedBy] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='SERIALNUMBER') THEN [SerialNumber] END ASC, 
+		CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDSERIALNUMBER') THEN [RevisedSerialNumber] END ASC, 		
+        CASE WHEN (@SortOrder=1 AND @SortColumn='MPNQUOTESTATUS') THEN [MPNQuoteStatus] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='APPROVEDAMOUNT') THEN [ApprovedAmount] END ASC,  
+        CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERREFERENCE') THEN [CustomerReference] END ASC,  
   
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNos END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='partNoType')  THEN partNoType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='pnDescriptionType')  THEN pnDescriptionType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='workScopeType')  THEN workScopeType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='customerRequestDateType')  THEN customerRequestDateType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='promisedDateType')  THEN promisedDateType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='estimatedShipDateType')  THEN estimatedShipDateType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='estimatedCompletionDateType')  THEN estimatedCompletionDateType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='stageType')  THEN stageType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='PriorityType')  THEN PriorityType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerType')  THEN CustomerType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='workOrderStatusType')  THEN workOrderStatusType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC, 
-        CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='WORKSCOPE')  THEN WorkScope END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN Priority END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERAFFILICATION')  THEN CustomerType END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='STAGE')  THEN Stage END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='TECHNAME')  THEN TechName END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='TECHSTATION')  THEN TechStation END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTREQDATE')  THEN CustomerRequestDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='PROMISEDATE')  THEN PromisedDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='ESTSHIPDATE')  THEN EstimatedShipDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='SHIPDDATE')  THEN EstimatedCompletionDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='MPNQUOTESTATUS')  THEN MPNQuoteStatus END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='APPROVEDAMOUNT')  THEN ApprovedAmount END DESC,  
-        CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERREFERENCE')  THEN CustomerReference END DESC  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='partNoType')  THEN [partNoType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='workScopeType')  THEN [workScopeType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='promisedDateType')  THEN [promisedDateType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='estimatedShipDateType')  THEN [estimatedShipDateType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='estimatedCompletionDateType')  THEN [estimatedCompletionDateType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='stageType')  THEN [stageType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='PriorityType')  THEN [PriorityType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerType')  THEN [CustomerType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderStatusType')  THEN [workOrderStatusType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkOrderType')  THEN [WorkOrderType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN [PNDescription] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN [ManufacturerName] END DESC, 
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERNUM')  THEN [WorkOrderNum] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKSCOPE')  THEN [WorkScope] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='PRIORITY')  THEN [Priority] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME')  THEN [CustomerName] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERAFFILICATION')  THEN [CustomerType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='STAGE')  THEN [Stage] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='TECHNAME')  THEN [TechName] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='TECHSTATION')  THEN [TechStation] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERSTATUS')  THEN [WorkOrderStatus] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN [OpenDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTREQDATE')  THEN [CustomerRequestDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='PROMISEDATE')  THEN [PromisedDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='ESTSHIPDATE')  THEN [EstimatedShipDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='SHIPDDATE')  THEN [EstimatedCompletionDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN [UpdatedDate] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN [CreatedBy] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN [UpdatedBy] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBER')  THEN [SerialNumber] END DESC, 
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDSERIALNUMBER') THEN [RevisedSerialNumber] END DESC, 		
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='MPNQUOTESTATUS')  THEN [MPNQuoteStatus] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='APPROVEDAMOUNT')  THEN [ApprovedAmount] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERREFERENCE')  THEN [CustomerReference] END DESC  
   
         OFFSET @RecordFrom ROWS   
         FETCH NEXT @PageSize ROWS ONLY  
        END  
       ELSE  
-       BEGIN     
-       print  'Step 2';  
+       BEGIN            
 	     ;WITH LatestWorkOrderShipping AS (
-				SELECT	WorkOrderId,
-						FORMAT(MAX(ShipDate), 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
+				SELECT	[WorkOrderId],
+						FORMAT(MAX([ShipDate]), 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate]
 				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
-				GROUP BY WorkOrderId
+				GROUP BY [WorkOrderId]
 		 ),
 		 Main AS(  
          SELECT DISTINCT   
-				UPPER(WO.WorkOrderNum) AS WorkOrderNum,
-				WO.WorkOrderId,
-				WO.MasterCompanyId,
-				WO.CustomerId,  
-				UPPER(WO.CustomerName) AS CustomerName,
-				UPPER(WO.CustomerType) AS CustomerType,
-				CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE  CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.OpenDate) AS DATE) END OpenDate,
+				UPPER(WO.[WorkOrderNum]) AS [WorkOrderNum],
+				WO.[WorkOrderId],
+				WO.[MasterCompanyId],
+				WO.[CustomerId],  
+				UPPER(WO.[CustomerName]) AS [CustomerName],
+				UPPER(WO.[CustomerType]) AS [CustomerType],
+				CASE WHEN CAST(WO.[OpenDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE  CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[OpenDate]) AS DATE) END [OpenDate],
 				--CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATE))END OpenDate,
 
-				WO.CreatedDate,
-				CASE WHEN CAST(WO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE  CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.UpdatedDate) AS DATE) END UpdatedDate,
-				UPPER(WO.CreatedBy) AS CreatedBy,
-				UPPER(WO.UpdatedBy) AS UpdatedBy,
-				WO.IsActive,
-				WO.IsDeleted,
-				WO.WorkOrderType AS 'WorkOrderType',
-				LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
-				LWS.EstimatedCompletionDate AS EstimatedCompletionDate
-				,ISNULL(SWO.IsSubWorkOrder, 'No') AS IsSubWorkOrder
+				WO.[CreatedDate],
+				CASE WHEN CAST(WO.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE  CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[UpdatedDate]) AS DATE) END [UpdatedDate],
+				UPPER(WO.[CreatedBy]) AS [CreatedBy],
+				UPPER(WO.[UpdatedBy]) AS [UpdatedBy],
+				WO.[IsActive],
+				WO.[IsDeleted],
+				WO.[WorkOrderType] AS 'WorkOrderType',
+				LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDateType],
+				LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDate]
+				,ISNULL(SWO.[IsSubWorkOrder], 'No') AS [IsSubWorkOrder]
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
-			FROM dbo.WorkOrder WO WITH (NOLOCK)   
+			FROM [dbo].[WorkOrder] WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
-			LEFT JOIN LatestWorkOrderShipping LWS WITH (NOLOCK) ON WO.WorkOrderId = LWS.WorkOrderId
+			LEFT JOIN LatestWorkOrderShipping LWS WITH (NOLOCK) ON WO.[WorkOrderId] = LWS.[WorkOrderId]
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
 			OUTER APPLY (
-				SELECT TOP 1 'Yes' AS IsSubWorkOrder
-				FROM dbo.SubWorkOrder SWO WITH(NOLOCK)
+				SELECT TOP 1 'Yes' AS [IsSubWorkOrder]
+				FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK)
 				WHERE 
-					SWO.WorkOrderId = WO.WorkOrderId
+					SWO.[WorkOrderId] = WO.[WorkOrderId]
 					--AND SWO.WorkOrderPartNumberId = WPN.ID
-					AND ISNULL(SWO.IsDeleted, 0) = 0
+					AND ISNULL(SWO.[IsDeleted], 0) = 0
 			) AS SWO
-			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
+			WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted]=@IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
 			))
 			, WorkOrderPartCount AS (
-			SELECT WorkOrderId, COUNT(WorkOrderId) AS PartCount
-			FROM dbo.WorkOrderPartNumber WITH (NOLOCK)
-			GROUP BY WorkOrderId	
+			SELECT [WorkOrderId], COUNT([WorkOrderId]) AS PartCount
+			FROM [dbo].[WorkOrderPartNumber] WITH (NOLOCK)
+			GROUP BY [WorkOrderId]
 			)
 
 			SELECT DISTINCT   
-			  WorkOrderNum, WO.WorkOrderId, WO.CustomerId, WO.CustomerName, CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate, WO.CreatedBy, WO.UpdatedBy, WO.IsActive, WO.IsDeleted, WorkOrderType,
+			  [WorkOrderNum], WO.[WorkOrderId], WO.[CustomerId], WO.[CustomerName], [CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate], WO.[CreatedBy], WO.[UpdatedBy], WO.[IsActive], WO.[IsDeleted], [WorkOrderType],
 			  --(CASE WHEN ((SELECT COUNT(WOPN.WorkOrderId) FROM dbo.WorkOrderPartNumber WOPN WHERE WOPN.WorkOrderId = WO.WorkOrderId) > 1 ) Then 'Multiple' ELse  'Single' End) AS 'RowStatus',
-			  CASE WHEN WOPC.PartCount > 1 THEN 'Multiple' ELSE 'Single' END AS 'RowStatus',
-			  MAX(WPN.PartNumber)  as 'PartNumberType',
-			  MAX(WPN.PartNumber)  as 'PartNumber',
-			  MAX(WPN.PartDescription)  as 'PartDescriptionType',
-			  MAX(WPN.PartDescription)  as 'PartDescription',
-			  MAX(WPN.ManufacturerName)  as 'ManufacturerNameType',
-			  MAX(WPN.ManufacturerName)  as 'ManufacturerName',
-			  MAX(WPN.WorkScope)  as 'WorkScopeType',
-			  MAX(WPN.WorkScope)  as 'WorkScopeDescription',
-			  MAX(WPN.Priority)  as 'PriorityType',
-			  MAX(WPN.Priority)  as 'PriorityDescription',
-			  MAX(WPN.WorkOrderStage)  as 'StageType',
-			  MAX(WPN.WorkOrderStage)  as 'WOStageDescription',
-			  MAX(WPN.WorkOrderStatus)  as 'WorkOrderStatusType',
-			  MAX(WPN.WorkOrderStatus)  as 'WorkOrderStatus',
-			  MAX(FORMAT(WPN.CustomerRequestDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'CustomerRequestDateType',
-			  MAX(FORMAT(WPN.CustomerRequestDate, 'yyyy-MM-ddTHH:mm:ss') )  as 'CustomerRequestDate',
-			  MAX(FORMAT(WPN.PromisedDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'PromisedDateType',
-			  MAX(FORMAT(WPN.PromisedDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'PromisedDate',
-			  MAX(FORMAT(WPN.EstimatedShipDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedShipDateType',
-			  MAX(FORMAT(WPN.EstimatedShipDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedShipDate',
-			  WO.EstimatedCompletionDateType,
-			  WO.EstimatedCompletionDate,
-			  WO.IsSubWorkOrder,
-			  MAX(WPN.TechName)  as 'TechNameType',
-			  MAX(WPN.TechName)  as 'TechName',
-			  MAX(WPN.EmployeeStation)  as 'TechStationType',
-			  MAX(WPN.EmployeeStation)  as 'TechStation',
-			  MAX(WPN.CustomerReference)  as 'CustomerReferenceType',
-			  MAX(WPN.CustomerReference)  as 'CustomerReference',
-			  MAX(CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END) AS SerialNumber,
-			  MAX(UPPER(wqs.Description)) AS MPNQuoteStatus,
-			  MAX(CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-					ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0),0) ,0) END AS VARCHAR) ) 'ApprovedAmount'
+			  CASE WHEN WOPC.[PartCount] > 1 THEN 'Multiple' ELSE 'Single' END AS 'RowStatus',
+			  MAX(WPN.[PartNumber])  AS 'PartNumberType',
+			  MAX(WPN.[PartNumber])  AS 'PartNumber',
+			  MAX(WPN.[PartDescription])  AS 'PartDescriptionType',
+			  MAX(WPN.[PartDescription])  AS 'PartDescription',
+			  MAX(WPN.[ManufacturerName])  AS 'ManufacturerNameType',
+			  MAX(WPN.[ManufacturerName])  AS 'ManufacturerName',
+			  MAX(WPN.[WorkScope])  AS 'WorkScopeType',
+			  MAX(WPN.[WorkScope])  AS 'WorkScopeDescription',
+			  MAX(WPN.[Priority])  AS 'PriorityType',
+			  MAX(WPN.[Priority])  AS 'PriorityDescription',
+			  MAX(WPN.[WorkOrderStage])  AS 'StageType',
+			  MAX(WPN.[WorkOrderStage])  AS 'WOStageDescription',
+			  MAX(WPN.[WorkOrderStatus])  AS 'WorkOrderStatusType',
+			  MAX(WPN.[WorkOrderStatus])  AS 'WorkOrderStatus',
+			  MAX(FORMAT(WPN.[CustomerRequestDate], 'yyyy-MM-ddTHH:mm:ss'))  AS 'CustomerRequestDateType',
+			  MAX(FORMAT(WPN.[CustomerRequestDate], 'yyyy-MM-ddTHH:mm:ss') )  AS 'CustomerRequestDate',
+			  MAX(FORMAT(WPN.[PromisedDate], 'yyyy-MM-ddTHH:mm:ss'))  AS 'PromisedDateType',
+			  MAX(FORMAT(WPN.[PromisedDate], 'yyyy-MM-ddTHH:mm:ss'))  AS 'PromisedDate',
+			  MAX(FORMAT(WPN.[EstimatedShipDate], 'yyyy-MM-ddTHH:mm:ss'))  AS 'EstimatedShipDateType',
+			  MAX(FORMAT(WPN.[EstimatedShipDate], 'yyyy-MM-ddTHH:mm:ss'))  AS 'EstimatedShipDate',
+			  WO.[EstimatedCompletionDateType],
+			  WO.[EstimatedCompletionDate],
+			  WO.[IsSubWorkOrder],
+			  MAX(WPN.[TechName])  AS 'TechNameType',
+			  MAX(WPN.[TechName])  AS 'TechName',
+			  MAX(WPN.[EmployeeStation])  AS 'TechStationType',
+			  MAX(WPN.[EmployeeStation])  AS 'TechStation',
+			  MAX(WPN.[CustomerReference])  AS 'CustomerReferenceType',
+			  MAX(WPN.[CustomerReference])  AS 'CustomerReference',
+			  MAX(UPPER(WPN.[CurrentSerialNumber])) AS [SerialNumber],
+			  MAX(CASE WHEN ISNULL(WPN.[RevisedSerialNumber], '') != '' THEN UPPER(WPN.[RevisedSerialNumber]) ELSE UPPER(WPN.[CurrentSerialNumber]) END) AS [RevisedSerialNumber],			  
+			  MAX(UPPER(wqs.[Description])) AS [MPNQuoteStatus],
+			  MAX(CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate], 0) ELSE  
+					ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) ) 'ApprovedAmount'
 					--ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR)) 'ApprovedAmount'
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
-			  JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
-			  JOIN WorkOrderPartCount WOPC WITH (NOLOCK) ON WO.WorkOrderId = WOPC.WorkOrderId
+			  JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]
+			  JOIN WorkOrderPartCount WOPC WITH (NOLOCK) ON WO.[WorkOrderId] = WOPC.[WorkOrderId]
 			  --LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
 			  --LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
 			  --LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId
@@ -586,115 +591,118 @@ BEGIN
 			  --LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WPN.WorkOrderStatusId  = WOST.Id
 			  --LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
 			  --LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
-				LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1 AND ISNULL(IsVersionIncrease, 0) = 0 
-				LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.workorderquoteid = WOQD.workorderquoteid
-				LEFT JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
-          WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
-				AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))
-		  GROUP BY	WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy, WO.UpdatedBy,
-					WO.IsActive,WO.IsDeleted,WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate, WO.IsSubWorkOrder,WOPC.PartCount
+				LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
+				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
+				LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
+          WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
+				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus))
+		  GROUP BY	WO.[WorkOrderNum],WO.[WorkOrderId],WO.[CustomerId],WO.[CustomerName],WO.[CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate],WO.[CreatedBy], WO.[UpdatedBy],
+					WO.[IsActive],WO.[IsDeleted],WO.[WorkOrderType], WO.[EstimatedCompletionDateType],  WO.[EstimatedCompletionDate], WO.[IsSubWorkOrder],WOPC.[PartCount]
 
-         SELECT DISTINCT WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted, WorkOrderType,
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartNumberType) End)  as 'PartNumberType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartNumber) End)  as 'PartNumber',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartDescriptionType) End)  as 'PartDescriptionType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartDescription) End)  as 'PartDescription',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(ManufacturerNameType) End)  as 'ManufacturerNameType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(ManufacturerName) End)  as 'ManufacturerName',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkScopeType) End)  as 'WorkScopeType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkScopeDescription) End)  as 'WorkScopeDescription',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PriorityType) End)  as 'PriorityType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PriorityDescription) End)  as 'PriorityDescription',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(StageType) End)  as 'StageType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WOStageDescription) End)  as 'WOStageDescription',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkOrderStatusType) End)  as 'WorkOrderStatusType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkOrderStatus) End)  as 'WorkOrderStatus',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerRequestDateType) End)  as 'CustomerRequestDateType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerRequestDate)  End)  as 'CustomerRequestDate',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PromisedDateType) End)  as 'PromisedDateType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PromisedDate) End)  as 'PromisedDate',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedShipDateType) End)  as 'EstimatedShipDateType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedShipDate) End)  as 'EstimatedShipDate',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedCompletionDateType) End)  as 'EstimatedCompletionDateType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedCompletionDate) End)  as 'EstimatedCompletionDate',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(IsSubWorkOrder) End)  as 'IsSubWorkOrder',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechNameType) End)  as 'TechNameType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechName) End)  as 'TechName',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechStationType) End)  as 'TechStationType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechStation) End)  as 'TechStation',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerReferenceType) End)  as 'CustomerReferenceType',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerReference) End)  as 'CustomerReference',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(SerialNumber) End)  as 'SerialNumber',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(MPNQuoteStatus) End)  as 'MPNQuoteStatus',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(ApprovedAmount) End)  as 'ApprovedAmount'
+         SELECT DISTINCT [WorkOrderNum], [WorkOrderId], [CustomerId], [CustomerName], [CustomerType], [OpenDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderType],
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartNumberType]) END)  AS 'PartNumberType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartNumber]) END)  AS 'PartNumber',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartDescriptionType]) END)  AS 'PartDescriptionType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartDescription]) END)  AS 'PartDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ManufacturerNameType]) END)  AS 'ManufacturerNameType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ManufacturerName]) END)  AS 'ManufacturerName',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([WorkScopeType]) END)  AS 'WorkScopeType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([WorkScopeDescription]) END)  AS 'WorkScopeDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PriorityType]) END)  AS 'PriorityType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PriorityDescription]) END)  AS 'PriorityDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([StageType]) END)  AS 'StageType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([WOStageDescription]) END)  AS 'WOStageDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([WorkOrderStatusType]) END)  AS 'WorkOrderStatusType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([WorkOrderStatus]) END)  AS 'WorkOrderStatus',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([CustomerRequestDateType]) END)  AS 'CustomerRequestDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([CustomerRequestDate])  END)  AS 'CustomerRequestDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PromisedDateType]) END)  AS 'PromisedDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PromisedDate]) END)  AS 'PromisedDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([EstimatedShipDateType]) END)  AS 'EstimatedShipDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([EstimatedShipDate]) END)  AS 'EstimatedShipDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([EstimatedCompletionDateType]) END)  AS 'EstimatedCompletionDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([EstimatedCompletionDate]) END)  AS 'EstimatedCompletionDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([IsSubWorkOrder]) END)  AS 'IsSubWorkOrder',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([TechNameType]) END)  AS 'TechNameType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([TechName]) END)  AS 'TechName',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([TechStationType]) END)  AS 'TechStationType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([TechStation]) END)  AS 'TechStation',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([CustomerReferenceType]) END)  AS 'CustomerReferenceType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([CustomerReference]) END)  AS 'CustomerReference',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([SerialNumber]) END)  AS 'SerialNumber',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([RevisedSerialNumber]) END)  AS 'RevisedSerialNumber',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([MPNQuoteStatus]) END)  AS 'MPNQuoteStatus',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ApprovedAmount]) END)  AS 'ApprovedAmount'
 		  INTO #finalTemp FROM #TempWOPartResult 
-		  GROUP BY	 WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted
-					,WorkOrderType, WorkOrderType, EstimatedCompletionDateType,  EstimatedCompletionDate, IsSubWorkOrder, RowStatus
+		  GROUP BY	 [WorkOrderNum], [WorkOrderId], [CustomerId], [CustomerName], [CustomerType], [OpenDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],[IsActive], [IsDeleted]
+					,[WorkOrderType], [WorkOrderType], [EstimatedCompletionDateType],  [EstimatedCompletionDate], [IsSubWorkOrder], [RowStatus]
   																																			  
-          ;WITH Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PartNumber) AS PartNos, UPPER(PartNumberType) AS PartNoType, UPPER(PartNumberType) AS PartNumberType, UPPER(PartDescription) AS PNDescription, UPPER(PartDescriptionType) AS PNDescriptionType, UPPER(ManufacturerName) AS ManufacturerName, UPPER(ManufacturerNameType) AS ManufacturerNameType,
-              CustomerId, UPPER(CustomerName) AS CustomerName, UPPER(CustomerType) AS CustomerType, UPPER(WorkScopeDescription) AS WorkScope, UPPER(WorkScopeType) AS WorkScopeType,
-              UPPER(PriorityDescription) AS Priority, UPPER(PriorityType) PriorityType, UPPER(WOStageDescription) AS Stage, UPPER(StageType) StageType, UPPER(WorkOrderStatus) WorkOrderStatus,
-              UPPER(WorkOrderStatusType) WorkOrderStatusType, OpenDate, UPPER(CreatedBy) CreatedBy, UPPER(UpdatedBy) UpdatedBy, CreatedDate, UpdatedDate, CustomerRequestDate,   
+          ;WITH Result AS( SELECT DISTINCT M.[WorkOrderId], UPPER([WorkOrderNum]) AS [WorkOrderNum], UPPER([WorkOrderType]) AS [WorkOrderType], UPPER([PartNumber]) AS [PartNos], UPPER([PartNumberType]) AS [PartNoType], UPPER([PartNumberType]) AS [PartNumberType], UPPER([PartDescription]) AS [PNDescription], UPPER([PartDescriptionType]) AS [PNDescriptionType], UPPER([ManufacturerName]) AS [ManufacturerName], UPPER([ManufacturerNameType]) AS [ManufacturerNameType],
+              [CustomerId], UPPER([CustomerName]) AS [CustomerName], UPPER([CustomerType]) AS [CustomerType], UPPER([WorkScopeDescription]) AS [WorkScope], UPPER([WorkScopeType]) AS [WorkScopeType],
+              UPPER([PriorityDescription]) AS [Priority], UPPER([PriorityType]) [PriorityType], UPPER([WOStageDescription]) AS [Stage], UPPER([StageType]) [StageType], UPPER([WorkOrderStatus]) [WorkOrderStatus],
+              UPPER([WorkOrderStatusType]) [WorkOrderStatusType], [OpenDate], UPPER([CreatedBy]) [CreatedBy], UPPER([UpdatedBy]) [UpdatedBy], [CreatedDate], [UpdatedDate], [CustomerRequestDate],   
               CustomerRequestDateType, PromisedDate, PromisedDateType, EstimatedShipDate, EstimatedShipDateType,   
-              EstimatedCompletionDate, EstimatedCompletionDateType, IsSubWorkOrder, UPPER(TechName) TechName, UPPER(TechNameType) TechNameType, UPPER(TechStation) TechStation, UPPER(TechStationType) TechStationType, 
-			  UPPER(CustomerReference) CustomerReference, UPPER(CustomerReferenceType) CustomerReferenceType, SerialNumber, MPNQuoteStatus, 
+              [EstimatedCompletionDate], [EstimatedCompletionDateType], [IsSubWorkOrder], UPPER([TechName]) [TechName], UPPER([TechNameType]) [TechNameType], UPPER([TechStation]) [TechStation], UPPER([TechStationType]) [TechStationType], 
+			  UPPER([CustomerReference]) [CustomerReference], UPPER([CustomerReferenceType]) [CustomerReferenceType], [SerialNumber],[RevisedSerialNumber], [MPNQuoteStatus], 
 			  CASE WHEN [MPNQuoteStatus] = 'Multiple' THEN [ApprovedAmount] WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount]
           FROM #finalTemp M   
           ),  
-         ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)  
-          SELECT * INTO #TempResult1 from  Result  
+         ResultCount AS(SELECT COUNT([WorkOrderId]) AS totalItems FROM Result)  
+          SELECT * INTO #TempResult1 FROM  Result  
           WHERE (  
            (@GlobalFilter <>'' AND (  
-           (WorkOrderNum like '%' +@GlobalFilter+'%') OR  
-           (WorkOrderType like '%' +@GlobalFilter+'%') OR  
-           (PartNos like '%' +@GlobalFilter+'%') OR  
-           (PNDescription like '%' +@GlobalFilter+'%') OR
-		   (ManufacturerName like '%' +@GlobalFilter+'%') OR 
-           (WorkScope like '%' +@GlobalFilter+'%') OR  
-           (Priority like '%' +@GlobalFilter+'%') OR    
-           (CustomerName like '%' +@GlobalFilter+'%' ) OR   
-           (CustomerType like '%' +@GlobalFilter+'%') OR  
-           (Stage like '%' +@GlobalFilter+'%') OR  
-           (TechName like '%' +@GlobalFilter+'%') OR  
-           (WorkOrderStatus like '%'+@GlobalFilter+'%') OR  
-           (CreatedBy like '%' +@GlobalFilter+'%') OR  
-           (WorkOrderStatusType like '%'+@GlobalFilter+'%') OR  
-           (UpdatedBy like '%' +@GlobalFilter+'%') OR  
-           (SerialNumber like '%' +@GlobalFilter+'%') OR  
-           (CustomerReference like '%' + @GlobalFilter +'%') OR
-		   (MPNQuoteStatus like '%' +@GlobalFilter+'%') OR
-		   (ApprovedAmount like '%' +@GlobalFilter+'%') OR
-		   (IsSubWorkOrder like '%' + @GlobalFilter +'%')
+           ([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR  
+           ([WorkOrderType] LIKE '%' +@GlobalFilter+'%') OR  
+           ([PartNos] LIKE '%' +@GlobalFilter+'%') OR  
+           ([PNDescription] LIKE '%' +@GlobalFilter+'%') OR
+		   ([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR 
+           ([WorkScope] LIKE '%' +@GlobalFilter+'%') OR  
+           ([Priority] LIKE '%' +@GlobalFilter+'%') OR    
+           ([CustomerName] LIKE '%' +@GlobalFilter+'%' ) OR   
+           ([CustomerType] LIKE '%' +@GlobalFilter+'%') OR  
+           ([Stage] LIKE '%' +@GlobalFilter+'%') OR  
+           ([TechName] LIKE '%' +@GlobalFilter+'%') OR  
+           ([WorkOrderStatus] LIKE '%'+@GlobalFilter+'%') OR  
+           ([CreatedBy] LIKE '%' +@GlobalFilter+'%') OR  
+           ([WorkOrderStatusType] LIKE '%'+@GlobalFilter+'%') OR  
+           ([UpdatedBy] LIKE '%' +@GlobalFilter+'%') OR  
+           ([SerialNumber] LIKE '%' +@GlobalFilter+'%') OR  
+		   ([RevisedSerialNumber] LIKE '%' +@GlobalFilter+'%') OR  		   
+           ([CustomerReference] LIKE '%' + @GlobalFilter +'%') OR
+		   ([MPNQuoteStatus] LIKE '%' +@GlobalFilter+'%') OR
+		   ([ApprovedAmount] LIKE '%' +@GlobalFilter+'%') OR
+		   ([IsSubWorkOrder] LIKE '%' + @GlobalFilter +'%')
            ))  
            OR     
-           (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
-           (IsNull(@PartNumber,'') ='' OR PartNos like '%' + @PartNumber+'%') AND  
-           (IsNull(@WorkOrderType,'') ='' OR WorkOrderType like '%' + @WorkOrderType+'%') AND  
-           (IsNull(@PartDescription,'') ='' OR PNDescription like '%' + @PartDescription+'%') AND
-		   (IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
-           (IsNull(@WorkScope,'') ='' OR WorkScope like '%' + @WorkScope+'%') AND  
-           (IsNull(@Priority,'') ='' OR Priority like '%' + @Priority+'%') AND  
-           (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
-           (IsNull(@CustomerAffiliation,'') ='' OR CustomerType like '%' + @CustomerAffiliation+'%') AND  
-           (IsNull(@Stage,'') ='' OR Stage like '%' + @Stage+'%') AND  
-           (IsNull(@TechName,'') ='' OR TechName like '%' + @TechName+'%') AND  
-           (IsNull(@TechStation,'') ='' OR TechStation like '%' + @TechStation+'%') AND  
-           (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-           (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-           --(IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND 
-		   (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS date)=CAST(@OpenDate AS date)) AND
-           (IsNull(@CustReqDate,'') ='' OR Cast(CustomerRequestDate as Date)=Cast(@CustReqDate as date)) AND  
-           (IsNull(@PromiseDate,'') ='' OR Cast(PromisedDate as Date)=Cast(@PromiseDate as date)) AND  
-           (IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND  
-           (IsNull(@ShipDate,'') ='' OR Cast(EstimatedCompletionDate as Date)=Cast(@ShipDate as date)) AND       
-           (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
-           (IsNull(@WorkOrderStatusType,'') ='' OR WorkOrderStatusType like '%' + @WorkOrderStatusType+'%') AND  
-           (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND  
-		   (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
-           (IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%') AND  
-           (IsNull(@MPNQuoteStatus,'') ='' OR MPNQuoteStatus like '%' + @MPNQuoteStatus+'%') AND  
-           (IsNull(@ApprovedAmount,'') ='' OR ApprovedAmount like '%' + @ApprovedAmount+'%') AND  
-		   (ISNULL(@IsSubWorkOrder,'') ='' OR IsSubWorkOrder LIKE '%' + @IsSubWorkOrder + '%') 
+           (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
+           (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%') AND  
+           (ISNULL(@WorkOrderType,'') ='' OR [WorkOrderType] LIKE '%' + @WorkOrderType+'%') AND  
+           (ISNULL(@PartDescription,'') ='' OR [PNDescription] LIKE '%' + @PartDescription+'%') AND
+		   (ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND  
+           (ISNULL(@WorkScope,'') ='' OR [WorkScope] LIKE '%' + @WorkScope+'%') AND  
+           (ISNULL(@Priority,'') ='' OR [Priority] LIKE '%' + @Priority+'%') AND  
+           (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND  
+           (ISNULL(@CustomerAffiliation,'') ='' OR [CustomerType] LIKE '%' + @CustomerAffiliation+'%') AND  
+           (ISNULL(@Stage,'') ='' OR [Stage] LIKE '%' + @Stage+'%') AND  
+           (ISNULL(@TechName,'') ='' OR [TechName] LIKE '%' + @TechName+'%') AND  
+           (ISNULL(@TechStation,'') ='' OR [TechStation] LIKE '%' + @TechStation+'%') AND  
+           (ISNULL(@CreatedBy,'') ='' OR [CreatedBy] LIKE '%' + @CreatedBy+'%') AND  
+           (ISNULL(@UpdatedBy,'') ='' OR [UpdatedBy] LIKE '%' + @UpdatedBy+'%') AND  
+           --(ISNULL(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND 
+		   (ISNULL(@OpenDate,'') ='' OR CAST([OpenDate] AS DATE)=CAST(@OpenDate AS DATE)) AND
+           (ISNULL(@CustReqDate,'') ='' OR CAST([CustomerRequestDate] AS DATE)=CAST(@CustReqDate AS DATE)) AND  
+           (ISNULL(@PromiseDate,'') ='' OR CAST([PromisedDate] AS DATE)=CAST(@PromiseDate AS DATE)) AND  
+           (ISNULL(@EstShipDate,'') ='' OR CAST([EstimatedShipDate] AS DATE)=CAST(@EstShipDate AS DATE)) AND  
+           (ISNULL(@ShipDate,'') ='' OR CAST([EstimatedCompletionDate] AS DATE)=CAST(@ShipDate AS DATE)) AND       
+           (ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE)=CAST(@CreatedDate AS DATE)) AND  
+           (ISNULL(@WorkOrderStatusType,'') ='' OR [WorkOrderStatusType] LIKE '%' + @WorkOrderStatusType+'%') AND  
+           (ISNULL(@UpdatedDate,'') ='' OR CAST([UpdatedDate] AS DATE)=CAST(@UpdatedDate AS DATE)) AND  
+		   (ISNULL(@SerialNumber,'') ='' OR [SerialNumber] LIKE '%' + @SerialNumber+'%') AND
+		   (ISNULL(@RevisedSerialNumber,'') ='' OR [RevisedSerialNumber] LIKE '%' + @RevisedSerialNumber+'%') AND
+           (ISNULL(@CustRef,'') ='' OR [CustomerReference] LIKE '%' + @CustRef+'%') AND  
+           (ISNULL(@MPNQuoteStatus,'') ='' OR [MPNQuoteStatus] LIKE '%' + @MPNQuoteStatus+'%') AND  
+           (ISNULL(@ApprovedAmount,'') ='' OR [ApprovedAmount] LIKE '%' + @ApprovedAmount+'%') AND  
+		   (ISNULL(@IsSubWorkOrder,'') ='' OR [IsSubWorkOrder] LIKE '%' + @IsSubWorkOrder + '%') 
 
            ))  
   
@@ -702,82 +710,84 @@ BEGIN
   
          SELECT *, @Count As NumberOfItems FROM #TempResult1  
          ORDER BY    
-         CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNos END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='partNoType')  THEN partNoType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='pnDescriptionType')  THEN pnDescriptionType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='workScopeType')  THEN workScopeType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='customerRequestDateType')  THEN customerRequestDateType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='promisedDateType')  THEN promisedDateType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='estimatedShipDateType')  THEN estimatedShipDateType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='estimatedCompletionDateType')  THEN estimatedCompletionDateType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='stageType')  THEN stageType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='workOrderStatusType')  THEN workOrderStatusType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='PriorityType')  THEN PriorityType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='CustomerType')  THEN CustomerType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='WORKSCOPE')  THEN WorkScope END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN Priority END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERAFFILICATION')  THEN CustomerType END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='STAGE')  THEN Stage END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='TECHNAME')  THEN TechName END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='TECHSTATION')  THEN TechStation END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='CUSTREQDATE')  THEN CustomerRequestDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='PROMISEDATE')  THEN PromisedDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='ESTSHIPDATE')  THEN EstimatedShipDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='SHIPDDATE')  THEN EstimatedCompletionDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
-         CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERREFERENCE')  THEN CustomerReference END ASC,  
-		 CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='MPNQUOTESTATUS')  THEN MPNQuoteStatus END ASC, 
-		 CASE WHEN (@SortOrder=1 and @SortColumn='APPROVEDAMOUNT')  THEN ApprovedAmount END ASC, 
-         CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC, 
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='partNoType')  THEN [partNoType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='workScopeType')  THEN [workScopeType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='promisedDateType')  THEN [promisedDateType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='estimatedShipDateType')  THEN [estimatedShipDateType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='estimatedCompletionDateType')  THEN [estimatedCompletionDateType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='stageType')  THEN [stageType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='workOrderStatusType')  THEN [workOrderStatusType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PriorityType')  THEN [PriorityType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CustomerType')  THEN [CustomerType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='WorkOrderType')  THEN [WorkOrderType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN [PNDescription] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='WORKORDERNUM')  THEN [WorkOrderNum] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='WORKSCOPE')  THEN [WorkScope] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PRIORITY')  THEN [Priority] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERNAME')  THEN [CustomerName] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERAFFILICATION')  THEN [CustomerType] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='STAGE')  THEN [Stage] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='TECHNAME')  THEN [TechName] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='TECHSTATION')  THEN [TechStation] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='WORKORDERSTATUS')  THEN [WorkOrderStatus] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='OPENDATE')  THEN [OpenDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTREQDATE')  THEN [CustomerRequestDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='PROMISEDATE')  THEN [PromisedDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='ESTSHIPDATE')  THEN [EstimatedShipDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='SHIPDDATE')  THEN [EstimatedCompletionDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN [UpdatedDate] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN [CreatedBy] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN [UpdatedBy] END ASC,  
+         CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERREFERENCE')  THEN [CustomerReference] END ASC,  
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='SERIALNUMBER')  THEN [SerialNumber] END ASC, 
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDSERIALNUMBER')  THEN [RevisedSerialNumber] END ASC, 
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='MPNQUOTESTATUS')  THEN [MPNQuoteStatus] END ASC, 
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='APPROVEDAMOUNT')  THEN [ApprovedAmount] END ASC, 
+         CASE WHEN (@SortOrder=1 AND @SortColumn='ManufacturerName')  THEN [ManufacturerName] END ASC, 
 
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNos END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='partNoType')  THEN partNoType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='pnDescriptionType')  THEN pnDescriptionType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='workScopeType')  THEN workScopeType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='customerRequestDateType')  THEN customerRequestDateType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='promisedDateType')  THEN promisedDateType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='estimatedShipDateType')  THEN estimatedShipDateType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='estimatedCompletionDateType')  THEN estimatedCompletionDateType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='stageType')  THEN stageType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='PriorityType')  THEN PriorityType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerType')  THEN CustomerType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='workOrderStatusType')  THEN workOrderStatusType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC, 
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='WORKSCOPE')  THEN WorkScope END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN Priority END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERAFFILICATION')  THEN CustomerType END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='STAGE')  THEN Stage END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='TECHNAME')  THEN TechName END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='TECHSTATION')  THEN TechStation END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTREQDATE')  THEN CustomerRequestDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='PROMISEDATE')  THEN PromisedDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='ESTSHIPDATE')  THEN EstimatedShipDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='SHIPDDATE')  THEN EstimatedCompletionDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC,
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='MPNQUOTESTATUS')  THEN MPNQuoteStatus END DESC,
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='APPROVEDAMOUNT')  THEN ApprovedAmount END DESC,
-		 CASE WHEN (@SortOrder=-1 and @SortColumn='ISSUBWORKORDER')  THEN IsSubWorkOrder END DESC
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='partNoType')  THEN [partNoType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='workScopeType')  THEN [workScopeType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='promisedDateType')  THEN [promisedDateType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='estimatedShipDateType')  THEN [estimatedShipDateType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='estimatedCompletionDateType')  THEN [estimatedCompletionDateType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='stageType')  THEN [stageType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PriorityType')  THEN [PriorityType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerType')  THEN [CustomerType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderStatusType')  THEN [workOrderStatusType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkOrderType')  THEN [WorkOrderType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN [PNDescription] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN [ManufacturerName] END DESC, 
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERNUM')  THEN [WorkOrderNum] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKSCOPE')  THEN [WorkScope] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PRIORITY')  THEN [Priority] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME')  THEN [CustomerName] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERAFFILICATION')  THEN [CustomerType] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='STAGE')  THEN [Stage] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='TECHNAME')  THEN [TechName] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='TECHSTATION')  THEN [TechStation] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERSTATUS')  THEN [WorkOrderStatus] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN [OpenDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTREQDATE')  THEN [CustomerRequestDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='PROMISEDATE')  THEN [PromisedDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='ESTSHIPDATE')  THEN [EstimatedShipDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='SHIPDDATE')  THEN [EstimatedCompletionDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN [UpdatedDate] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN [CreatedBy] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN [UpdatedBy] END DESC,  
+         CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerReference')  THEN [CustomerReference] END DESC,
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBER')  THEN [SerialNumber] END DESC,
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDSERIALNUMBER')  THEN [RevisedSerialNumber] END DESC, 
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='MPNQUOTESTATUS')  THEN [MPNQuoteStatus] END DESC,
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='APPROVEDAMOUNT')  THEN [ApprovedAmount] END DESC,
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSUBWORKORDER')  THEN [IsSubWorkOrder] END DESC
   
          OFFSET @RecordFrom ROWS   
          FETCH NEXT @PageSize ROWS ONLY  
@@ -785,12 +795,12 @@ BEGIN
   
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
-    DROP TABLE #TempResult   
+		DROP TABLE #TempResult   
     END  
   
     IF OBJECT_ID(N'tempdb..#TempResult1') IS NOT NULL  
     BEGIN  
-    DROP TABLE #TempResult1  
+		DROP TABLE #TempResult1  
     END  
   
   -- END  

@@ -62,6 +62,9 @@
     [IsDisplayFooter]                  BIT            NULL,
     [IsPNSNWarning]                    BIT            NULL,
     [IsPNSNRestriction]                BIT            NULL,
+    [IsAllowEmployeeToMoreTask]        BIT            DEFAULT ((0)) NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
+
+
 

@@ -13,8 +13,9 @@
     1    28/Jan/2025	Rajesh Gami     Created
     2    25/Mar/2025	Devendra Shekh	added new field: WorkOrderFormTypeId
 	3    02/Apr/2025	Moin Bloch   	added new field: OemPN
+	4	 28-Aug-2025	Bhargav saliya	added new field Ranking
 **************************************************************
- EXEC USP_GetItemMasterDetailById 20754
+ EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
 @ItemMasterId bigint =0
@@ -27,16 +28,26 @@ BEGIN
 	BEGIN
 		IF (@ItemMasterId >0)
 		BEGIN
-		    WITH CTE_IntegrationPortal AS (
-						SELECT
-							iM.ItemMasterId,
-							STRING_AGG(CAST(ip.[Description] AS NVARCHAR(MAX)), ',') AS integrationPortal,
-							STRING_AGG(mp.IntegrationPortalId, ',') AS IntegrationPortalStringIds
-						FROM dbo.ItemMaster iM WITH(NOLOCK)
-						LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
-						LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
-						WHERE mp.IntegrationPortalId IS NOT NULL GROUP BY iM.ItemMasterId
-					),
+			WITH CTE_IntegrationPortal AS (
+				SELECT
+					iM.ItemMasterId,
+					STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking,
+					STRING_AGG(mp.RankingId, ',') AS RankingIds
+				FROM dbo.ItemMaster iM WITH(NOLOCK)
+				left JOIN dbo.ItemMasterRanking mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+				left JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
+				WHERE mp.RankingId IS NOT NULL GROUP BY iM.ItemMasterId
+			),
+		   -- WITH CTE_IntegrationPortal AS (
+					--	SELECT
+					--		iM.ItemMasterId,
+					--		STRING_AGG(CAST(ip.[Description] AS NVARCHAR(MAX)), ',') AS integrationPortal,
+					--		STRING_AGG(mp.IntegrationPortalId, ',') AS IntegrationPortalStringIds
+					--	FROM dbo.ItemMaster iM WITH(NOLOCK)
+					--	LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+					--	LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
+					--	WHERE mp.IntegrationPortalId IS NOT NULL GROUP BY iM.ItemMasterId
+					--),
 			CTE_InventoryGLSetting AS (
 					SELECT
 						gl.InventoryGLSettingId,
@@ -117,8 +128,8 @@ BEGIN
 						COALESCE(iM.LocationName, '') AS LocationName,
 						COALESCE(iM.ShelfName, '') AS ShelfName,
 						COALESCE(iM.BinName, '') AS BinName,
-						itp.integrationPortal,
-								itp.IntegrationPortalStringIds,
+						itp.Ranking AS integrationPortal,
+								itp.RankingIds AS IntegrationPortalStringIds,
 						COALESCE(iM.Priority, '') AS priority,
 						COALESCE(iM.ItemClassificationName, '') AS ItemClassification,
 						COALESCE(iM.ItemGroup, '') AS itemGroup,

@@ -1,5 +1,5 @@
 ﻿/*********************           
- ** File:   [USP_AssemplyDetailsByAssemplyId]           
+ ** File:   [ProcItemMasterStockList]          
  ** Author:  
  ** Description: 
  ** Purpose:         
@@ -20,6 +20,7 @@
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	7    01-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
 	8	 07-Aug-2025	Ayushi Patel		 added condition for IsOEM
+	9	 21-Aug-2025	Bhargav saliya		 added Ranking
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -109,8 +110,18 @@ BEGIN
 		BEGIN
 			SET @IsHazardousMaterial=NULL;
 		END
+		;WITH CTE_IntegrationPortal AS (
+			SELECT
+				iM.ItemMasterId,
+				STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking,
+				STRING_AGG(mp.RankingId, ',') AS RankingIds
+			FROM dbo.ItemMaster iM WITH(NOLOCK)
+			INNER JOIN dbo.ItemMasterRanking mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
+			INNER JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
+			WHERE mp.RankingId IS NOT NULL GROUP BY iM.ItemMasterId
+		),
 		
-		;WITH Result AS(
+		 Result AS(
 				SELECT DISTINCT im.ItemMasterId,
 				       im.PartNumber,
 					   im.PartDescription,
@@ -139,11 +150,14 @@ BEGIN
 					   (Cast(DBO.ConvertUTCtoLocal(im.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 					   im.CreatedBy,
                        im.UpdatedBy,	
-					   im.IsDeleted
-			   FROM dbo.ItemMaster im WITH (NOLOCK)		
+					   im.IsDeleted,
+					   itp.Ranking as RankingsName
+			   FROM dbo.ItemMaster im WITH (NOLOCK)	
+			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
 					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))		
-			), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
+			),
+			ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
@@ -175,9 +189,9 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					--(ISNULL(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@CreatedDate AS date)) AND
-          (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS date)=CAST(@CreatedDate AS date))AND
+					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS date)=CAST(@CreatedDate AS date))AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
-				   )
+	)
 
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult			
 

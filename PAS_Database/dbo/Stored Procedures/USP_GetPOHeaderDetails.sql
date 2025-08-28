@@ -12,6 +12,7 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
     1    01-04-2025     Ayushi Patel			      Created
+    2    28-08-2025     Devendra Shekh			      Modified (added SourceBy, MarketplaceRef)
 
 	USP_GetPOHeaderDetails 12345
 **************************************************************/
@@ -78,7 +79,9 @@ BEGIN
                 ISNULL(po.LotId, 0) AS LotId,
                 ISNULL(po.FunctionalCurrencyId, 0) AS FunctionalCurrencyId,
                 ISNULL(po.ReportCurrencyId, 0) AS ReportCurrencyId,
-                ISNULL(po.ForeignExchangeRate, 0) AS ForeignExchangeRate
+                ISNULL(po.ForeignExchangeRate, 0) AS ForeignExchangeRate,
+                ISNULL(po.SourceBy, '') AS SourceBy,
+                ISNULL(po.MarketplaceRef, '') AS MarketplaceRef
             FROM dbo.PurchaseOrder po WITH (NOLOCK)
             LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK)
                 ON po.PurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @moduleId

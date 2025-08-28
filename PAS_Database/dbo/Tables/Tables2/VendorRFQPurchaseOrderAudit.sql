@@ -47,6 +47,8 @@
     [FunctionalCurrencyId]          INT             NULL,
     [ReportCurrencyId]              INT             NULL,
     [ForeignExchangeRate]           DECIMAL (18, 2) NULL,
+    [SourceBy]                      VARCHAR (50)    NULL,
+    [MarketplaceRef]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderAudit] PRIMARY KEY CLUSTERED ([VendorRFQPurchaseOrderAuditId] ASC)
 );
 

@@ -34,6 +34,8 @@
     [UpdatedDate]        DATETIME2 (7)   CONSTRAINT [DF_VendorRFQPart_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsDeleted]          BIT             CONSTRAINT [DF__VendorRFQPart__IsDeleted] DEFAULT ((0)) NULL,
     [IsActive]           BIT             CONSTRAINT [DF__VendorRFQPart__IsActive] DEFAULT ((1)) NULL,
+    [ModuleId]           BIGINT          NULL,
+    [ReferenceId]        BIGINT          NULL,
     CONSTRAINT [PK_VendorRFQPart] PRIMARY KEY CLUSTERED ([VendorRFQPartId] ASC)
 );
 

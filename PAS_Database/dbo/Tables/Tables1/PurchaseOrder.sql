@@ -60,6 +60,8 @@
     [IsUpdated]                BIT             NULL,
     [LastSyncDate]             DATETIME2 (7)   NULL,
     [SyncToken]                VARCHAR (200)   NULL,
+    [SourceBy]                 VARCHAR (50)    NULL,
+    [MarketplaceRef]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_PurchaseOrder] PRIMARY KEY CLUSTERED ([PurchaseOrderId] ASC),
     CONSTRAINT [FK_PurchaseOrder_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_PurchaseOrder_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),

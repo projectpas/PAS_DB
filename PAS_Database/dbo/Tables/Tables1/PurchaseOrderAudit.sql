@@ -61,6 +61,8 @@
     [IsUpdated]                BIT             NULL,
     [LastSyncDate]             DATETIME2 (7)   NULL,
     [SyncToken]                VARCHAR (200)   NULL,
+    [SourceBy]                 VARCHAR (50)    NULL,
+    [MarketplaceRef]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_PurchaseOrderAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderAuditId] ASC)
 );
 

@@ -16,6 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    22-April-2025   Bhargav Saliya		Created
+	2    28-Aug-2025     Devendra Shekh		Modified (added SourceBy, MarketplaceRef)
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRFQPurchaseOrderDetails]
     @VendorRFQPurchaseOrderId BIGINT
@@ -77,7 +78,9 @@ BEGIN
 			po.TotalCharges,
 			CASE WHEN po.FunctionalCurrencyId > 0 THEN po.FunctionalCurrencyId ELSE 0 END AS FunctionalCurrencyId,
 			CASE WHEN po.ReportCurrencyId > 0 THEN po.ReportCurrencyId ELSE 0 END AS ReportCurrencyId,
-			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate
+			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
+			ISNULL(po.SourceBy, '') AS SourceBy,
+			ISNULL(po.MarketplaceRef, '') AS MarketplaceRef
 		FROM [dbo].[VendorRFQPurchaseOrder] po WITH(NOLOCK)
 		LEFT JOIN [dbo].[PurchaseOrderManagementStructureDetails] msd WITH(NOLOCK) ON po.VendorRFQPurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @MSModuleId 
 		WHERE po.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId

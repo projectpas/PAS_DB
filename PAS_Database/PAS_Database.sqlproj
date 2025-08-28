@@ -4200,6 +4200,7 @@
     <Build Include="dbo\Tables\Ranking.sql" />
     <Build Include="dbo\Tables\ItemMasterRanking.sql" />
     <Build Include="dbo\Views\vw_RankingAudit.sql" />
+    <Build Include="dbo\Stored Procedures\usp_UpdateVendorRFQReference.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

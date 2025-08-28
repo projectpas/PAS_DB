@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -23,7 +24,7 @@
 	13	 12-Aug-2025		Ayushi Patel			ObtainFromType, OwnerType, TraceableToType Inserted as otherModuleType
 	14	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 	15 	 26-Aug-2025        Divyesh Kathiriya		Added New Module "Publication"
-	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented
+	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented &Resolved issue
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE      PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -50,7 +51,8 @@ BEGIN
 
 		IF OBJECT_ID('tempdb..#tmpCodePrefix') IS NOT NULL
 			DROP TABLE #tmpCodePrefix
-
+		
+		DECLARE @ItemMasterModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'ItemMaster')
 		DECLARE @FieldValue AS VARCHAR(MAX);   
 		DECLARE @RefFieldName AS VARCHAR(MAX);
 		DECLARE @RefQuery AS NVARCHAR(MAX) = '';
@@ -494,27 +496,61 @@ BEGIN
 			SET @RefFieldName = '';
 
 			SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 1;
-
-			SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
-				(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-						WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
-						--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
-						--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
-						WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
-						WHEN FieldType = 'number' THEN ISNULL(FieldValue,'NULL') + ','   
-						WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
-						WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
+			
+			IF(@ModuleId = @PriceMasterModule)
+			BEGIN 
+				DECLARE @PP_UnitPurchasePrice DECIMAL(10,2) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_UnitPurchasePrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_UnitPurchasePrice') END;
+				IF(@PP_UnitPurchasePrice = 0)
+				BEGIN
+					DECLARE @PP_VendorListPrice VARCHAR(20) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_VendorListPrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_VendorListPrice') END;
+					UPDATE #ImportFields SET FieldValue = @PP_VendorListPrice WHERE FieldName = 'PP_UnitPurchasePrice'
+				END
+				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','   
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
 						
-				(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
-						WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
-						--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
-						--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'		
-						WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
-						WHEN FieldType = 'number' THEN ISNULL(FieldValue,'NULL') + ','  
-						WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
-						WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
-			FROM #ImportFields        
-			WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'		
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','  
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
+				FROM #ImportFields        
+				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+	
+			END
+			ELSE
+			BEGIN 
+					SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number' THEN ISNULL(FieldValue,'NULL') + ','   
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
+						
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END)        
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'
+							--WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),'		
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number' THEN ISNULL(FieldValue,'NULL') + ','  
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
+				FROM #ImportFields        
+				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+			END
+
 	
 
 			IF(@ModuleId = @AlterModule)
@@ -568,7 +604,8 @@ BEGIN
 			BEGIN
 				DECLARE @SP_FSP_UOMId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_UOMId')
 				DECLARE @SP_FSP_CurrencyId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_CurrencyId');
-				DECLARE @SP_FSP_FlatPriceAmount DECIMAL(10,2) = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice');
+				
+				DECLARE @SP_FSP_FlatPriceAmount DECIMAL(10,2) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') END;
 				DECLARE @SalePriceType Varchar(20)='Flat'
 				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
 				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
@@ -645,11 +682,17 @@ BEGIN
 					IF(@isPriceDataExist = 1)
 					BEGIN
 						EXEC sp_executesql @RefQuery
+						Update DBO.ItemMasterPurchaseSale SET PP_PurchaseDiscPerc = NULL,PP_PurchaseDiscAmount =0, SP_CalSPByPP_MarkUpPercOnListPrice = 0, SP_CalSPByPP_MarkUpAmount =0,
+						SP_CalSPByPP_SaleDiscPerc = NULL, SP_CalSPByPP_SaleDiscAmount=0, PP_PurchaseDiscPercValue=NULL,SP_CalSPByPP_SaleDiscPercValue =NULL, SP_CalSPByPP_MarkUpPercOnListPriceValue = NULL
+						WHERE ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId
 						SET @ModuleTableId = @ItemMasterPurchaseSaleId;
+						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ItemMasterPurchaseSaleId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ItemMasterPurchaseSaleId
 					END 
 					ELSE
 					BEGIN
 						EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
+						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
+
 					END
 				END
 				ELSE

@@ -16,6 +16,7 @@
 	3     14/08/2025      Devendra Shekh		Added New Param @QuoteSendReviewId, Handled Multiple Part 
 	4     15/08/2025      Moin Bloch            Added @SoqId OUTPUT Param
 	5     18/08/2025      Moin Bloch            Added @LeadSourceId For SOQ
+	6     28/08/2025      Devendra Shekh		removed Text (Created From AI)
 *********************************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -246,7 +247,7 @@ BEGIN
 					@QuoteTypeId,@OpenDate,@ValidForDays,@QuoteExpireDate,@AccountTypeId,@CustomerId,@CustomerContactId,NULL,
 					@ContractReference,@SalesPersonId,NULL,@CustomerServiceRepId,@ProbabilityId,@LeadSourceId,@CreditLimit,
 					@CreditTermId,@EmployeeId,@RestrictPMA,@RestrictDER,NULL,NULL,@CustomerWarningId,NULL,
-					'Created From AI',@MasterCompanyId,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),0,@StatusId,GETUTCDATE(),
+					'',@MasterCompanyId,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),0,@StatusId,GETUTCDATE(),
 					@ManagementStructureId,@Vesrion,NULL,0,0,@SalesOrderNumber,NULL,
 					0,1,NULL,@QuoteTypeName,@AccountTypeName,@CustomerName,@SalesPersonName,
 					@CustomerServiceRepName,@ProbabilityName,@LeadSourceName,@CreditTermName,@EmployeeName,NULL,
@@ -431,7 +432,7 @@ BEGIN
 						SELECT 0,@SalesOrderQuoteId,@RFQItemMasterId,@ConditionId,@PriorityId,NULL,@ILSQty,@ILSQty,NULL,
 						@ILSQty,@ILSQty,0,0,@CurrencyId,1,0,0,@NetSaleAmount,0,0,@NetSaleAmount,
 						NULL,NULL,NULL,@NetSaleAmount,0,0,0,0,0,
-						0,0,NULL,NULL,'Created From AI',@MasterCompanyId,@CreatedBy,NULL,0,NULL;
+						0,0,NULL,NULL,'',@MasterCompanyId,@CreatedBy,NULL,0,NULL;
 
 						SET @MinRFQId = @MinRFQId + 1;
 					END

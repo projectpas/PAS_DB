@@ -19,8 +19,11 @@
     [IsPrintInWOQ]      BIT            NULL,
     [IsPrintInspector]  BIT            NULL,
     [IsPrintTechnician] BIT            NULL,
+    [IsPrintAdmin]      BIT            NULL,
     PRIMARY KEY CLUSTERED ([TaskId] ASC)
 );
+
+
 
 
 

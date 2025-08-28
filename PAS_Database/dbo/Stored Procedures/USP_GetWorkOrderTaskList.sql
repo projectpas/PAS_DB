@@ -14,6 +14,8 @@
 	3   10/Feb/2025  RAJESH GAMI		Added Return IsPrintInspector,IsPrintTechnician
 	4   10/Feb/2025  Devendra Shekh		Added WorkOrderTaskDetailsId to select
 	5	04/Mar/2025	 Bhargav Saliya		UTC Date Changes
+	6	14/Jul/2025  Vishal Suthar		Added IsPrintAdmin flag
+	7	27/Aug/2025  Moin Bloch		    Added OldIsPrintAdmin flag
 
 EXEC USP_GetWorkOrderTaskList 4670
 **************************************************************/
@@ -68,10 +70,14 @@ BEGIN
 			ISNULL(WOTD.PrintInWOQ,0) PrintInWOQ,
 			ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
 			ISNULL(WOTD.IsPrintTechnician,0)IsPrintTechnician,
+			ISNULL(WOTD.IsPrintAdmin, 0) IsPrintAdmin,
+			ISNULL(TSK.IsPrintTechnician,0) OldIsPrintTechnician,
+			ISNULL(TSK.IsPrintAdmin, 0) OldIsPrintAdmin,
 			WOTD.WorkOrderTaskDetailsId,
 				CASE WHEN EXISTS (SELECT TOP 1 1 FROM DBO.Attachment ATT WITH (NOLOCK) INNER JOIN DBO.AttachmentModule ATTM WITH (NOLOCK) ON ATTM.AttachmentModuleId = ATT.ModuleId WHERE ATTM.[Name] = 'WorkOrderTask' AND ATT.ReferenceId = WOT.WorkOrderTaskId) THEN 1 ELSE 0 END AS IsDocumentAdded
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+			LEFT JOIN  dbo.Task TSK WITH(NOLOCK) ON TSK.TaskId = WOT.TaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOT.WorkOrderPartNumberId,0) = @WorkOrderPartNumberId
 			)
 			SELECT * INTO #LeafTempTbl FROM CTE
@@ -109,10 +115,14 @@ BEGIN
 			ISNULL(WOTD.PrintInWOQ,0) PrintInWOQ,
 			ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
 			ISNULL(WOTD.IsPrintTechnician,0)IsPrintTechnician,
+			ISNULL(WOTD.IsPrintAdmin, 0) IsPrintAdmin,
+			ISNULL(TSK.IsPrintTechnician,0) OldIsPrintTechnician,
+			ISNULL(TSK.IsPrintAdmin, 0) OldIsPrintAdmin,
 			WOTD.WorkOrderTaskDetailsId,
 				CASE WHEN EXISTS (SELECT TOP 1 1 FROM DBO.Attachment ATT WITH (NOLOCK) INNER JOIN DBO.AttachmentModule ATTM WITH (NOLOCK) ON ATTM.AttachmentModuleId = ATT.ModuleId WHERE ATTM.[Name] = 'WorkOrderTask' AND ATT.ReferenceId = WOT.WorkOrderTaskId) THEN 1 ELSE 0 END AS IsDocumentAdded
 			FROM dbo.WorkOrderTask WOT WITH(NOLOCK)
 			INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH(NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+			LEFT JOIN  dbo.Task TSK WITH(NOLOCK) ON TSK.TaskId = WOT.TaskId
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
 			)
 

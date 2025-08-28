@@ -22,13 +22,14 @@
 	5    11-FEB-2025   RAJESH GAMI		implemented IsPrintInspector IsPrintTechnician in traver print
 	6    03-MAR-2025   RAJESH GAMI		Sequence Number Change
 	7    03-MAR-2025   Vishal Suthar	Fixed an issue with sequence number
+	8	 27-Aug-2025   Moin Bloch		Added IsPrintAdmin flag
 
--- EXEC [USP_GetLaborMainTaskList] 8394,8759
+-- EXEC [USP_GetLaborMainTaskList] 9805,9807
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetLaborMainTaskList]
- @WorkFlowWorkOrderId bigint,
- @WorkOrderId bigint
+ @WorkFlowWorkOrderId BIGINT,
+ @WorkOrderId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -38,33 +39,33 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN  
 
-				declare @DataEnteredBy bigint =0
+				DECLARE @DataEnteredBy BIGINT =0
 				DECLARE @Traveler_setupid AS BIGINT = 0;
 				DECLARE @WorkOrderPartId AS BIGINT = 0;
 				DECLARE @WorkScopeId AS BIGINT = 0;
 				DECLARE @ItemMasterId AS BIGINT = 0;
-				declare @IstravelerTask bit =0
-			    declare @highestSequence bigint =0, @IsWorkOrderFormType BIT =0;
+				DECLARE @IstravelerTask BIT =0
+			    DECLARE @highestSequence BIGINT =0, @IsWorkOrderFormType BIT =0;
                 
-				select top 1 @WorkOrderPartId=WorkOrderPartNoId from WorkOrderWorkFlow  where WorkFlowWorkOrderId=@WorkFlowWorkOrderId
-                select top 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler from WorkOrderPartNumber  where ID=@WorkOrderPartId
-				SELECT @IsWorkOrderFormType = ISNULL(WorkOrderFormTypeId,0) FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
-			     IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0))
+				SELECT TOP 1 @WorkOrderPartId=WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId=@WorkFlowWorkOrderId
+                SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartId
+				SELECT @IsWorkOrderFormType = ISNULL(WorkOrderFormTypeId,0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
+			     IF(EXISTS (SELECT 1 FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId=@ItemMasterId AND ISNULL(IsVersionIncrease,0)=0))
 				 BEGIN
-				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId=@ItemMasterId and IsVersionIncrease=0
+				    SELECT TOP 1 @Traveler_setupid= Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId=@ItemMasterId AND ISNULL(IsVersionIncrease,0)=0
 				 
-					select  top 1 @highestSequence= Sequence from Traveler_Setup_Task    where  Traveler_setupid =@Traveler_setupid order by Sequence desc
+					SELECT TOP 1 @highestSequence= [Sequence] FROM [dbo].[Traveler_Setup_Task] WITH(NOLOCK) WHERE  Traveler_setupid =@Traveler_setupid ORDER BY [Sequence] DESC
 				 END
-				 else IF(EXISTS (SELECT 1 FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0))
+				 else IF(EXISTS (SELECT 1 FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND ISNULL(IsVersionIncrease,0)=0))
 				 BEGIN
-				    SELECT top 1 @Traveler_setupid= Traveler_setupid FROM Traveler_Setup WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0
+				    SELECT TOP 1 @Traveler_setupid= Traveler_setupid FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND ISNULL(IsVersionIncrease,0)=0
 
-					select  top 1 @highestSequence= Sequence from Traveler_Setup_Task    where  Traveler_setupid =@Traveler_setupid order by Sequence desc
+					SELECT TOP 1 @highestSequence= [Sequence] FROM [dbo].[Traveler_Setup_Task] WITH(NOLOCK) WHERE Traveler_setupid =@Traveler_setupid ORDER BY [Sequence] DESC
 				 END
 				 IF OBJECT_ID(N'tempdb..#TMPFinalData') IS NOT NULL    
-					BEGIN    
-						DROP TABLE #TMPFinalData
-					END
+				 BEGIN    
+					DROP TABLE #TMPFinalData
+				 END
 
 				 IF(@IsWorkOrderFormType = 1)
 				 BEGIN
@@ -163,14 +164,15 @@ BEGIN
 						0 as WorkOrderLaborId,
 						wl.[TaskId],
 						ISNULL(WOTD.IsPrintInspector,0) IsPrintInspector,
-						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician
+						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician,
+						ISNULL(WOTD.IsPrintAdmin,0) IsPrintAdmin
 					INTO #TempTable
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
-					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
-					INNER JOIN dbo.WorkOrderTask WOT WITH (NOLOCK) on wl.TaskId = WOT.WorkOrderTaskId
-					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
-					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
-					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
+					INNER JOIN [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK) ON wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
+					INNER JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON wl.TaskId = WOT.WorkOrderTaskId
+					INNER JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
+					 LEFT JOIN [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
+					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId AND wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
 					ORDER BY SequenceNumber, WorkOrderTaskInstructionId
 
 				;WITH RecursiveCTE AS (				
@@ -226,7 +228,7 @@ BEGIN
 					SrNo,
 					1 as IsWorkOrderFormType,
 					IsIncludeInPrint,
-					IsPrintInspector,IsPrintTechnician
+					IsPrintInspector,IsPrintTechnician,IsPrintAdmin
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
 				ORDER BY SequenceNumber, WorkOrderTaskInstructionId;
@@ -236,11 +238,11 @@ BEGIN
 				 BEGIN
 					SELECT 
 					wl.[TaskId]
-					,Max([TaskInstruction]) as TaskInstruction
-					,Max(UPPER(T.Description)) as Task
-					,Max(WorkOrderLaborId) as WorkOrderLaborId
-					,Max(Isnull(TTS.Sequence,9999)) as Sequence,
-					 Max(@highestSequence) as HighestSequence,
+					,MAX([TaskInstruction]) as TaskInstruction
+					,MAX(UPPER(T.[Description])) as Task
+					,MAX(WorkOrderLaborId) as WorkOrderLaborId
+					,MAX(ISNULL(TTS.[Sequence],9999)) as [Sequence],
+					 MAX(@highestSequence) as HighestSequence,
 					0 as  WorkOrderTaskId ,
 					0 as  WorkOrderId,
 					0 as  SequenceNumber,
@@ -270,13 +272,14 @@ BEGIN
 					0 as IsWorkOrderFormType,
 					0 as IsIncludeInPrint,
 					CASE WHEN MAX(CAST(ISNULL(T.IsPrintInspector,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintInspector,
-					CASE WHEN MAX(CAST(ISNULL(T.IsPrintTechnician,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintTechnician
+					CASE WHEN MAX(CAST(ISNULL(T.IsPrintTechnician,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintTechnician,
+					CASE WHEN MAX(CAST(ISNULL(T.IsPrintAdmin,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintAdmin
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
-					Inner Join WorkOrderLaborHeader wlh WITH(NOLOCK)  on wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
-					Left Join Task T WITH(NOLOCK) on T.TaskId= wl.TaskId
-					Left Join Traveler_Setup_Task TTS WITH(NOLOCK) on TTS.TaskId= wl.TaskId and Traveler_SetupId= @Traveler_setupid
-					where wl.IsDeleted=0 and wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId and wlh.WorkOrderId =@WorkOrderId 
-					group by  wl.[TaskId] order by SequenceNumber, WorkOrderTaskInstructionId asc
+					INNER JOIN [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK)  ON wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
+					LEFT JOIN [dbo].[Task] T WITH(NOLOCK) ON T.TaskId= wl.TaskId
+					LEFT JOIN [dbo].[Traveler_Setup_Task] TTS WITH(NOLOCK) ON TTS.TaskId= wl.TaskId AND Traveler_SetupId= @Traveler_setupid
+					where wl.IsDeleted=0 AND wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId AND wlh.WorkOrderId =@WorkOrderId 
+					GROUP BY  wl.[TaskId] ORDER BY SequenceNumber, WorkOrderTaskInstructionId ASC
 				 END				
                 
 			END
@@ -290,8 +293,8 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetLaborMainTaskList' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkFlowWorkOrderId, '') + ''
+              , @AdhocComments     VARCHAR(150)    = 'USP_GetLaborMainTaskList'               
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@WorkFlowWorkOrderId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

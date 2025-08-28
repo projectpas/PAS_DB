@@ -1,4 +1,21 @@
-﻿--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
+﻿/*************************************************************   
+** Author:  <Hemant Saliya>  
+** Create date: <05/10/2023>  
+** Description: <Re-Open Closed WO>  
+  
+Exec [USP_ReOpenClosedWorkOrder] 
+************************************************************** 
+** Change History 
+**************************************************************   
+** PR   Date        Author				Change Description  
+** --   --------    -------				--------------------------------
+** 1											
+** 2   26-08-2025  Bhargav Saliya       Added Case for @IsScrapCertification
+
+exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
+
+**************************************************************/ 
+--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
 --EXEC AutoCompleteDropdownsEmployeeByMS '',1,200,'0',7899,2
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByMS]
 @Parameter3 VARCHAR(50) = Null,
@@ -6,7 +23,8 @@ CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByMS]
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
 @ManagementStructureId bigint = 0,
-@masterCompanyId bigint
+@masterCompanyId bigint,
+@IsScrapCertification BIT
 
 AS
 BEGIN
@@ -73,15 +91,29 @@ BEGIN
 		ELSE
 		BEGIN
 		IF(@Parameter4 = 1)
-		BEGIN		
-			SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
-            FROM dbo.Employee E WITH(NOLOCK) 
-			WHERE E.MasterCompanyId = @masterCompanyId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
-			UNION 
-			SELECT DISTINCT  EmployeeId AS Value,FirstName + ' ' + LastName AS Label
-            FROM dbo.Employee  WITH(NOLOCK) 
-				WHERE EmployeeId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-				ORDER BY Label				
+		BEGIN	
+			IF(@IsScrapCertification = 1)
+			BEGIN
+				SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee E WITH(NOLOCK) 
+				WHERE E.MasterCompanyId = @masterCompanyId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%')) AND E.IsScrapCertification = @IsScrapCertification
+				UNION 
+				SELECT DISTINCT  EmployeeId AS Value,FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee  WITH(NOLOCK) 
+					WHERE EmployeeId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+					ORDER BY Label
+			END
+			ELSE
+			BEGIN
+				SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee E WITH(NOLOCK) 
+				WHERE E.MasterCompanyId = @masterCompanyId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
+				UNION 
+				SELECT DISTINCT  EmployeeId AS Value,FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee  WITH(NOLOCK) 
+					WHERE EmployeeId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+					ORDER BY Label
+			END
 		END
 		ELSE
 		BEGIN

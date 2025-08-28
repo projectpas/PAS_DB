@@ -17,6 +17,7 @@
 	6    19 Aug 2025	Moin Bloch		    Returns CustomerRfqId
 	7    22 Aug 2025	Devendra Shekh		Modified (added to No Quote if condition not matched or QuoteSendReviewId is 0)
 	8    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
+	9    27 Aug 2025	Devendra Shekh		Modified (price decimal issue when autoquote resolved)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -165,7 +166,7 @@ BEGIN
 		BEGIN
 			DECLARE @TotalQuoteRow INT, @CurrentQuoteRow INT;
 			DECLARE @CustomerRfqPartMappingId BIGINT, @Condition VARCHAR(250), @PartNumber VARCHAR(250);
-			DECLARE @QuoteSendReviewId INT = 0, @UnitPrice DECIMAL(18,2) = 0;
+			DECLARE @QuoteSendReviewId INT = 0, @UnitPrice DECIMAL(18,2) = 0, @DefaultUnitPrice DECIMAL(18,2) = 0;
 			
 			IF OBJECT_ID(N'tempdb..#tmpQuote') IS NOT NULL
 			BEGIN
@@ -204,7 +205,7 @@ BEGIN
 			)
 
 			SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId],
-					0 AS [ConditionId], 0 AS [Price], 0 AS [ItemMasterId], 0 AS [CustomerId], 0 AS QuoteSendReviewId
+					0 AS [ConditionId], @DefaultUnitPrice AS [Price], 0 AS [ItemMasterId], 0 AS [CustomerId], 0 AS QuoteSendReviewId
 			INTO #tmpQuote
 			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
@@ -277,8 +278,6 @@ BEGIN
 				FROM #tmpQuote;
 
 				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId, @EmployeeId;
-
-
 			END
 		END
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usprpt_GetWorkOrderMarginReport]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used Get Work Order Margin Report Data  
@@ -31,7 +32,7 @@
 13    02-MAY-2025  Hemant Saliya		Updated for Get Revised Part number  & Handle Duplicate Part Issue
 14    28-MAY-2025  Hemant Saliya		Updated for Flat rate Amount Correction
 15    20-June-2025 Devendra Shekh		Billing Table Changes
-
+16    28-Aug-2025  RAJESH GAMI			Added the OtherCost (Charges)
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
 @PageNumber INT = 1,      
@@ -188,7 +189,7 @@ BEGIN
 			 ;WITH rptCTE (TotalRecordsCount,WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 				receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
 				grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
-				 level9, level10, masterCompanyId)  
+				 level9, level10, masterCompanyId,otherCost)  
 				 AS ( SELECT DISTINCT    
 						COUNT(1) OVER () AS TotalRecordsCount,    
 						WO.WorkOrderId, 
@@ -232,7 +233,7 @@ BEGIN
 						UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',      
 						UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5,        
 						UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8, UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,  
-						WO.MasterCompanyId AS masterCompanyId  
+						WO.MasterCompanyId AS masterCompanyId ,ISNULL(WOC.ChargesCost, 0) otherCost
 					FROM DBO.WorkOrder WO WITH (NOLOCK)      
 						 INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId      
 						 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
@@ -312,7 +313,7 @@ BEGIN
 					UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',      
 					UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5,        
 					UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8, UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,  
-					WO.MasterCompanyId AS masterCompanyId  
+					WO.MasterCompanyId AS masterCompanyId ,ISNULL(WOC.ChargesCost, 0) otherCost 
 			 FROM DBO.CreditMemo CM WITH (NOLOCK)    
 				  INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				  LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
@@ -353,19 +354,20 @@ BEGIN
 			,FinalCTE(TotalRecordsCount, WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 			receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
 			grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
-			   level9, level10, masterCompanyId)   
+			   level9, level10, masterCompanyId,otherCost)   
 			 AS (SELECT DISTINCT TotalRecordsCount, WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 			receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
 			grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
-			   level9, level10, masterCompanyId FROM rptCTE)  
+			   level9, level10, masterCompanyId,otherCost FROM rptCTE)  
   
-		   ,WithTotal (masterCompanyId, TotalRevenue, TotalPartscost, TotalLaborcost, TotalOverheadcost, TotalDirectcost, TotalMargin, TotalPartsrevper, TotalLaborrevper, TotalOhcostper, TotalDirectCostPerc, TotalMarginPerc)   
+		   ,WithTotal (masterCompanyId, TotalRevenue, TotalPartscost, TotalLaborcost, TotalOverheadcost, TotalDirectcost,TotalOthercost, TotalMargin, TotalPartsrevper, TotalLaborrevper, TotalOhcostper, TotalDirectCostPerc, TotalMarginPerc)   
 			 AS (SELECT masterCompanyId,   
 					FORMAT(SUM(revenue), 'N', 'en-us') TotalRevenue,  
 					FORMAT(SUM(partscost), 'N', 'en-us') TotalPartscost,  
 					FORMAT(SUM(laborcost), 'N', 'en-us') TotalLaborcost,  
 					FORMAT(SUM(overheadcost), 'N', 'en-us') TotalOverheadcost,  
 					FORMAT(SUM(directcost), 'N', 'en-us') TotalDirectcost,  
+					FORMAT(SUM(otherCost), 'N', 'en-us') TotalOthercost,  
 					FORMAT(SUM(margin), 'N', 'en-us') TotalMargin,  
 					CASE WHEN SUM(revenue) = 0 THEN FORMAT(0, 'N', 'en-us') ELSE FORMAT((SUM(partscost) / SUM(revenue)) * 100, 'N', 'en-us') END TotalPartsrevper,  
 					CASE WHEN SUM(revenue) = 0 THEN FORMAT(0, 'N', 'en-us') ELSE FORMAT((SUM(laborcost) / SUM(revenue)) * 100, 'N', 'en-us') END TotalLaborrevper,  
@@ -381,7 +383,8 @@ BEGIN
 				 FORMAT(ISNULL(partscost,0) , 'N', 'en-us') 'partscost',      
 				 FORMAT(ISNULL(laborcost,0) , 'N', 'en-us') 'laborcost',      
 				 FORMAT(ISNULL(overheadcost,0) , 'N', 'en-us') 'overheadcost',      
-				 FORMAT(ISNULL(directcost,0) , 'N', 'en-us') 'directcost',    
+				 FORMAT(ISNULL(directcost,0) , 'N', 'en-us') 'directcost',   
+				 FORMAT(ISNULL(otherCost,0) , 'N', 'en-us') 'otherCost',   
 				 FORMAT(ISNULL(margin,0) , 'N', 'en-us') 'margin',      
 				 FORMAT(ISNULL(partsrevper,0) , 'N', 'en-us') 'partsrevper',      
 				 FORMAT(ISNULL(laborrevper,0) , 'N', 'en-us') 'laborrevper',      
@@ -395,6 +398,7 @@ BEGIN
 				 WC.TotalLaborcost,  
 				 WC.TotalOverheadcost,  
 				 WC.TotalDirectcost,  
+				 WC.TotalOthercost,  
 				 WC.TotalMargin,  
 				 WC.TotalPartsrevper,  
 				 WC.TotalLaborrevper,  

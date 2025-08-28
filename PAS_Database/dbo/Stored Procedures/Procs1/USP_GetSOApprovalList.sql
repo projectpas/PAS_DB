@@ -18,6 +18,7 @@
     2    01/04/2022   Vishal Suthar Added Internal Sent fields
     3    09/27/2024   Vishal Suthar Modified the query to use new so part tables
 	4    21/jul/2025  Bhargav Saliya  Select UOM
+	5    28/Aug/2025  Amit Ghediya		Select Condition
 
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
@@ -264,7 +265,8 @@ BEGIN
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderId = so.SalesOrderId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderPartId = sop.SalesOrderPartId) END) AS TotalSales,
 			so.IsEnforceApproval,
 			so.EnforceEffectiveDate,
-			ISNULL(um.ShortName, '') AS UomName
+			ISNULL(um.ShortName, '') AS UomName,
+			ISNULL(UPPER(cond.[Description]),'') AS Condition
 		FROM DBO.SalesOrder so WITH (NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 sop ON so.SalesOrderId = sop.SalesOrderId
 		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
@@ -273,6 +275,7 @@ BEGIN
 		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
+		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 		WHERE so.IsDeleted = 0 AND sop.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId;
 
 	  END

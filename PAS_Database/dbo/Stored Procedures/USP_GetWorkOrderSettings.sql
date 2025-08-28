@@ -18,6 +18,7 @@
 	 2	  05-MAY-2025		Divyesh Kathiriya		Add EnforceMpnPickTicketConfirmation Flag
 	 3	  13-MAY-2025		Bhargav Saliya			Added IsDisplayFooter to select 
 	 4	  23-MAY-2025		Devendra Shekh			Added isPNSNWarning, isPNSNRestriction to select 
+	 5	  28-Aug-2025		Moin Bloch			    Added IsAllowEmployeeToMoreTask
 
 	 EXEC [dbo].[USP_GetWorkOrderSettings] 167,225
 ****************************************************************************************/
@@ -108,7 +109,8 @@ BEGIN
 					ISNULL(wos.EnforceMpnPickTicketConfirmation, 0) AS enforceMpnPickTicketConfirmation,
 					Isnull(wos.isDisplayFooter,0) as isDisplayFooter,
 					ISNULL(wos.IsPNSNWarning, 0) AS isPNSNWarning,
-					ISNULL(wos.IsPNSNRestriction, 0) AS isPNSNRestriction
+					ISNULL(wos.IsPNSNRestriction, 0) AS isPNSNRestriction,
+					ISNULL(wos.IsAllowEmployeeToMoreTask, 0) AS isAllowEmployeeToMoreTask
 				FROM [DBO].[WorkOrderSettings] wos WITH(NOLOCK)
 				LEFT JOIN [DBO].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 				LEFT JOIN [DBO].[Condition] c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

@@ -12,12 +12,14 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    08/20/2025   Vishal Suthar		Created
+	2    29/08/2025   Devendra Shekh	added param @AuthTypeId, and Set SMPT details to null 
      
 -- EXEC USP_UpdateEmailAddressForOAuth
 ************************************************************************/
 CREATE   Procedure [dbo].[USP_UpdateEmailAddressForOAuth]
 	@IntegrationEmailConfigId BIGINT = 0,
-	@EmailId VARCHAR(100) = NULL
+	@EmailId VARCHAR(100) = NULL,
+	@AuthTypeId INT = 0
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -26,7 +28,12 @@ SET NOCOUNT ON
 BEGIN TRY
 	UPDATE DBO.IntegrationEmailSmtpConfigration 
 	SET SmtpUserEmail = @EmailId,
-	UpdatedDate = GETDATE()
+		UpdatedDate = GETDATE(),
+		AuthTypeId = @AuthTypeId,
+		smtpserver = NULL,
+		SmtpEmailPassword = NULL,
+		SmtpPort = NULL,
+		UseSsl = 0
 	WHERE IntegrationEmailConfigId = @IntegrationEmailConfigId
 END TRY    
 BEGIN CATCH      

@@ -20,6 +20,7 @@
 	3    21 JAN 2025  RAJESH GAMI			Updated to print only Task which has PrintInWO is enabled
 	4    21 JAN 2025  RAJESH GAMI			Added workOrderPartNoId in the parameter and functional
 	5    03-MAR-2025   RAJESH GAMI			Sequence Number Change
+	6	 29-Aug-2025   Moin Bloch		    Added IsPrintAdmin flag
 -- EXEC  [dbo].[RPT_GetCommonWorkOrderFormTypePrintView] 4769
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderFormTypePrintView]
@@ -72,7 +73,9 @@ BEGIN
 						ISNULL(WOTI.InspectorName, '') AS ChildInspectorName,
 						WOTI.InspectorUpdatedDate AS ChildInspectorUpdatedDate,
 						ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
-						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ
+						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ,
+						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician,
+						ISNULL(WOTD.IsPrintAdmin,0) IsPrintAdmin
 					FROM dbo.WorkOrderTask WOT WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWO,0) = 1
@@ -166,6 +169,8 @@ BEGIN
 					ChildInspectorUpdatedDate,
 					PrintInWO,
 					PrintInWOQ,
+					IsPrintTechnician,
+					IsPrintAdmin,
 					SrNo
 				FROM RecursiveCTE
 				ORDER BY SequenceNumber;

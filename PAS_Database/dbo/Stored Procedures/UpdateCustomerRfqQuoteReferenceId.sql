@@ -10,7 +10,8 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    31/07/2025   Amit Ghediya		 Created         
+    1    31/07/2025   Amit Ghediya		 Created    
+	2    29/08/2025   Amit Ghediya		 Update for so create from RFQ.
 
 	EXEC [dbo].[UpdateCustomerRfqQuoteReferenceId] 31
 **************************************************************/ 
@@ -26,21 +27,29 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 			DECLARE @SpeedQuoteModuleId BIGINT = 0,
-					@SalesQuoteModuleId BIGINT = 0;
+					@SalesQuoteModuleId BIGINT = 0,
+					@SalesOrderModuleId BIGINT = 0;
 
 			SELECT @SpeedQuoteModuleId  = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SpeedQuote';
 			SELECT @SalesQuoteModuleId  = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) where [ModuleName] = 'SalesQuote';
+			SELECT @SalesOrderModuleId  = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) where [ModuleName] = 'SalesOrder';
 
 			--Update for SOQ
 			IF(ISNULL(@ModuleId,0) = @SalesQuoteModuleId)
 			BEGIN
-				 UPDATE CustomerRfq SET [ModuleId] = @SalesQuoteModuleId , [ReferenceId] = @QuoteReferenceId WHERE CustomerRfqId = @CustomerRfqId;
+				 UPDATE [DBO].[CustomerRfq] SET [ModuleId] = @SalesQuoteModuleId , [ReferenceId] = @QuoteReferenceId WHERE [CustomerRfqId] = @CustomerRfqId;
 			END
 
 			--Update for SQ
 			IF(ISNULL(@ModuleId,0) = @SpeedQuoteModuleId)
 			BEGIN
-				 UPDATE CustomerRfq SET [ModuleId] = @SpeedQuoteModuleId , [ReferenceId] = @QuoteReferenceId WHERE CustomerRfqId = @CustomerRfqId;
+				 UPDATE [DBO].[CustomerRfq] SET [ModuleId] = @SpeedQuoteModuleId , [ReferenceId] = @QuoteReferenceId WHERE [CustomerRfqId] = @CustomerRfqId;
+			END
+
+			--Update for SO
+			IF(ISNULL(@ModuleId,0) = @SalesOrderModuleId)
+			BEGIN
+				 UPDATE [DBO].[CustomerRfq] SET [ModuleId] = @SalesOrderModuleId , [ReferenceId] = @QuoteReferenceId WHERE [CustomerRfqId] = @CustomerRfqId;
 			END
 			
 	END

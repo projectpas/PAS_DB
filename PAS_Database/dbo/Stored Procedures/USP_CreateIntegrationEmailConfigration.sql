@@ -10,6 +10,7 @@
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
     1    04/08/2025   Moin Bloch   	    Created      
+    2    29/08/2025   Devendra Shekh	added param @AuthTypeId      
     
 -- EXEC [USP_CreateIntegrationEmailConfigration] 1,0,1
 **************************************************************/                   
@@ -24,7 +25,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateIntegrationEmailConfigration]
 @CreatedBy         VARCHAR(256) = NULL,
 @UpdatedBy         VARCHAR(256) = NULL,
 @IsActive          BIT = NULL,
-@IsDeleted         BIT = NULL
+@IsDeleted         BIT = NULL,
+@AuthTypeId		   INT = NULL
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
@@ -60,7 +62,8 @@ BEGIN
                    [UpdatedBy]         = @UpdatedBy,
                    [UpdatedDate]       = GETUTCDATE(),
                    [IsActive]          = 1,
-                   [IsDeleted]         = 0
+                   [IsDeleted]         = 0,
+                   [AuthTypeId]         = @AuthTypeId
              WHERE [IntegrationEmailConfigId] = @IntegrationEmailConfigId;	
 			 
 			 SELECT @IntegrationEmailConfigId AS IntegrationEmailConfigId;

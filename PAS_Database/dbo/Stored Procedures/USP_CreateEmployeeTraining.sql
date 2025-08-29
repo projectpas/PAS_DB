@@ -45,10 +45,6 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-
-        DECLARE @CreatedDate DATETIME = GETUTCDATE();
-        DECLARE @UpdatedDate DATETIME = GETUTCDATE();
-
         INSERT INTO EmployeeTraining
         (   EmployeeId, 
 			AircraftManufacturerId, 
@@ -91,12 +87,12 @@ BEGIN
 			@MasterCompanyId, 
 			@CreatedBy,
 			@UpdatedBy,
-			@CreatedDate,
-            @UpdatedDate,
+			GETUTCDATE(),
+            GETUTCDATE(),
 			@IsActive, 
 			@IsDeleted );
 		
-        IF (@AircraftModelIds IS NOT NULL AND LEN(@AircraftModelIds) > 0)
+		IF ( ISNULL(@AircraftModelIds, 0) > 0)
         BEGIN
             ;WITH CTE_AircraftModels AS
             (
@@ -123,8 +119,8 @@ BEGIN
                 @MasterCompanyId,
                 @CreatedBy,
                 @UpdatedBy,
-                @CreatedDate,
-                @UpdatedDate,
+                GETUTCDATE(),
+                GETUTCDATE(),
                 @IsActive,
                 @IsDeleted
             FROM CTE_AircraftModels AC;

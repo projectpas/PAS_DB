@@ -28,7 +28,13 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		DECLARE @RefrenceId BIGINT = 0;
+		DECLARE @RefrenceId BIGINT = 0,
+				@ModuleId BIGINT = 0,
+				@SOQModuleId BIGINT = 0,
+				@SOModuleId BIGINT = 0;
+
+		SELECT @SOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
+		SELECT @SOModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
 		INSERT INTO [DBO].[EmailApproval] ([PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[ModuleId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
 										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId])
@@ -36,14 +42,21 @@ BEGIN
 										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId] 
 		FROM @EmailApproval;
 
-		SET @RefrenceId =  (SELECT TOP 1 [RefrenceId] FROM @EmailApproval);
+		SELECT TOP 1 @RefrenceId = [RefrenceId], @ModuleId = [ModuleId] FROM @EmailApproval;
 
 		--Add ApprovalCode for Email Authentication
 		IF(@RefrenceId > 0)
 		BEGIN
-			 UPDATE [DBO].[SalesorderQuote] SET ApprovalCode = @ApprovalCode WHERE [SalesOrderQuoteId]  = @RefrenceId;
-		END
+			IF(@SOQModuleId = @ModuleId)
+			BEGIN
+				 UPDATE [DBO].[SalesorderQuote] SET [ApprovalCode] = @ApprovalCode WHERE [SalesOrderQuoteId]  = @RefrenceId;
+			END
 
+			IF(@SOModuleId = @ModuleId)
+			BEGIN
+				 UPDATE [DBO].[Salesorder] SET [ApprovalCode] = @ApprovalCode WHERE [SalesOrderId]  = @RefrenceId;
+			END			 
+		END
 	END
 	COMMIT  TRANSACTION
 	END TRY 

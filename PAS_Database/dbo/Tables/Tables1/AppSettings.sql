@@ -102,6 +102,8 @@
     [MicrosoftOAuthClientId]          VARCHAR (500)   NULL,
     [MicrosoftOAuthClientSecret]      VARCHAR (200)   NULL,
     [OpenAIAPIKeys]                   VARCHAR (1000)  NULL,
+    [EncryptParseNum]                 NVARCHAR (200)  NULL,
+    [EncryptParseVer]                 NVARCHAR (200)  NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
 

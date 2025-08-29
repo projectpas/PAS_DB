@@ -20,7 +20,8 @@
 
 CREATE   PROCEDURE [dbo].[GetEmailApprovalCode]
 	@RefrenceId BIGINT,
-	@ApprovalCode VARCHAR(200) = NULL
+	@ApprovalCode VARCHAR(200) = NULL,
+	@ModuleId INT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -28,12 +29,29 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		DECLARE @return BIT = 0;
+		DECLARE @return BIT = 0,
+				@SOQModuleId BIGINT = 0,
+				@SOModuleId BIGINT = 0;
+
+		SELECT @SOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
+		SELECT @SOModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
 		IF(@RefrenceId > 0)
 		BEGIN
-			 IF EXISTS (SELECT SalesOrderQuoteId FROM [DBO].[SalesorderQuote] WHERE [SalesOrderQuoteId]  = @RefrenceId AND [ApprovalCode] = @ApprovalCode)
+			 IF(@SOQModuleId = @ModuleId)
 			 BEGIN
-				  SET @return = 1;
+				  IF EXISTS (SELECT [SalesOrderQuoteId] FROM [DBO].[SalesorderQuote] WITH(NOLOCK) WHERE [SalesOrderQuoteId]  = @RefrenceId AND [ApprovalCode] = @ApprovalCode)
+				  BEGIN
+				 	   SET @return = 1;
+				  END
+			 END
+			 
+			 IF(@SOModuleId = @ModuleId)
+			 BEGIN
+				  IF EXISTS (SELECT [SalesOrderId] FROM [DBO].[Salesorder] WITH(NOLOCK) WHERE [SalesOrderId]  = @RefrenceId AND [ApprovalCode] = @ApprovalCode)
+				  BEGIN
+				 	   SET @return = 1;
+				  END
 			 END
 		END
 

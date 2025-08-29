@@ -18,6 +18,7 @@
 	7    22 Aug 2025	Devendra Shekh		Modified (added to No Quote if condition not matched or QuoteSendReviewId is 0)
 	8    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
 	9    27 Aug 2025	Devendra Shekh		Modified (price decimal issue when autoquote resolved)
+	10	 27 Aug 2025	Devendra Shekh		Modified (select employee from LegalEntity or Employee Table if @EmployeeId is null or 0)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -85,6 +86,18 @@ BEGIN
 			SELECT @CreatedBy = [CreatedBy], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [IntegrationEmailID] = @IntegrationEmailID;
 			SELECT TOP 1 @CodeTypeId = CodeTypeId FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'CustomerRFQ';
 			SELECT TOP 1 * INTO #tmpCodePrefix FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE ISNULL([IsActive],0) = 1 AND ISNULL([IsDeleted],0) = 0 AND [CodeTypeId] = @CodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
+
+			IF(ISNULL(@EmployeeId, 0) = 0)
+			BEGIN
+				IF EXISTS(SELECT 1 FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(EmployeeId, 0) > 0)
+				BEGIN
+					SET @EmployeeId = (SELECT TOP 1 EmployeeId FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(EmployeeId, 0) > 0)
+				END
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Employee] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 AND UPPER(TRIM([FirstName])) = 'ADMIN')
+				BEGIN
+					SET @EmployeeId = (SELECT TOP 1 EmployeeId FROM [dbo].[Employee] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 AND UPPER(TRIM([FirstName])) = 'ADMIN')
+				END
+			END
 
 			IF(ISNULL(@EmployeeId, 0) > 0)
 			BEGIN

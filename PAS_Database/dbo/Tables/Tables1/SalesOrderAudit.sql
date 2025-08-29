@@ -77,17 +77,8 @@
     [ReportCurrencyId]              INT             NULL,
     [ForeignExchangeRate]           DECIMAL (18, 2) NULL,
     [EnforcePickTicketConfirmation] BIT             NULL,
+    [ApprovalCode]                  VARCHAR (200)   NULL,
     CONSTRAINT [PK_SalesOrderAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrderAudit_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
-
-
-
-
-
-
-
-
-
-
 

@@ -13,7 +13,10 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_History_UpdatedDate] DEFAULT (getutcdate()) NULL,
     [SubModuleId]     BIGINT        NULL,
     [SubRefferenceId] BIGINT        NULL,
+    [Activity]        VARCHAR (30)  NULL,
     CONSTRAINT [PK_History] PRIMARY KEY CLUSTERED ([HistoryId] ASC),
     CONSTRAINT [FK_History_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

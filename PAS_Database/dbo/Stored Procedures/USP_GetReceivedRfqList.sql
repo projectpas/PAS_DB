@@ -128,7 +128,6 @@ BEGIN
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
-					--ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
 					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
 						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
 					RFQ.[DateAssigned],
@@ -194,7 +193,6 @@ BEGIN
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
-					--ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
 					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
 						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
 					RFQ.[DateAssigned],

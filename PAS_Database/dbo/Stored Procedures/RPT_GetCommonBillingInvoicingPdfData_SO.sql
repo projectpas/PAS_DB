@@ -16,7 +16,8 @@
 	4    07 JUL 2025   Devendra Shekh	Deposite Amount Calculation Issue Resolved
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	6    05 Aug 2025   Bhargav Saliya   Get Shipping Terms Name from BillingInvoiceDatails
---  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 4352,10,245
+	7    29 Aug 2025   RAJESH GAMI		Get date byb employee/legalentity
+--  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 9060,10,55
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -114,9 +115,9 @@ BEGIN
 					ISNULL(SO.[CustomerReference], '') [CustomerReference],
 					CUST.[CustomerPhone] [CustToPhone],
 					CASE WHEN BI.[PostedDate] IS NOT NULL THEN FORMAT(DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate]), 'MM/dd/yyyy') ELSE '' END [DueDate],
-					BI.[InvoiceDate] [NewDateAndTime],
+					case when CAST(BI.[InvoiceDate] as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal(BI.[InvoiceDate], @CurrntEmpTimeZoneDesc) as datetime2))end [NewDateAndTime],
 					SHIPPINGINFO.[ShipDate] [NewShipDate],
-					DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate]) [NewDueDate],
+					case when CAST((DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate])) as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal((DATEADD(DAY, ISNULL(SO.[NetDays],0), BI.[InvoiceDate])), @CurrntEmpTimeZoneDesc) as datetime2))end [NewDueDate],
 					ISNULL(BI.[IsPerformaInvoice], 0) [IsProformaInvoice],
 					0 [WorkFlowWorkOrderId],  
 					SO.[MasterCompanyId],
@@ -196,7 +197,7 @@ BEGIN
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
   				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),
-					 GETDATE() [PrintDate],
+					case when CAST(GETUTCDATE() as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) as datetime2))end [PrintDate],
 					UPPER(inv.[Description]) InvoiceType,
 					oriCountry.countries_name OriginCountry,
 					destCountry.countries_name DestinationCountry

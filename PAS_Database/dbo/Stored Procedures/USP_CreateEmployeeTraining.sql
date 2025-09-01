@@ -92,7 +92,7 @@ BEGIN
 			@IsActive, 
 			@IsDeleted );
 		
-		IF ( ISNULL(@AircraftModelIds, 0) > 0)
+		IF (LEN(@AircraftModelIds) > 0)
         BEGIN
             ;WITH CTE_AircraftModels AS
             (

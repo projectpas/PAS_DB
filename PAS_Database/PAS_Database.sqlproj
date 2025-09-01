@@ -4204,6 +4204,9 @@
     <Build Include="dbo\Stored Procedures\usp_UpdateVendorRFQReference.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEmployeeTraining.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReportV2.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_MostQuotedPart.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_LMarginUnit.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_HMarginUnit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

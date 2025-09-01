@@ -4204,6 +4204,7 @@
     <Build Include="dbo\Stored Procedures\usp_UpdateVendorRFQReference.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEmployeeTraining.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReportV2.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateExchangeQuoteVersion.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

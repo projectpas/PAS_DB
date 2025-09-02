@@ -22,6 +22,7 @@
 	6    07-07-2025   Moin Bloch    Changed Old To New Billing Table
 	7    08-07-2025   Moin Bloch    Fix For Approval Status
 	8    30-07-2025   RAJESH GAMI   Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is & Check the invoice is generated for the same SO or not.
+	9    01-09-2025   BHARGAV SALIYA   Fixed: Quote Number Binded issue in Analysis tab.
 EXEC [dbo].[GetPartsViewBySalesOrderId]  753
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
@@ -203,7 +204,8 @@ BEGIN
 		INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 		LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON part.ItemMasterId = imx.ItemMasterId
 		LEFT JOIN DBO.[Condition] cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
-		LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON so.SalesOrderQuoteId = q.SalesOrderQuoteId
+		LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+		LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
 		LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN DBO.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
 		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId

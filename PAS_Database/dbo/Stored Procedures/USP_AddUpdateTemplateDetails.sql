@@ -9,9 +9,10 @@
  ** PR   Date				Author  					Change Description
  ** --   --------			-------					--------------------------------
     1    09-April-2025	   Devendra Shekh				Created
+	2    02-Sep-2025       Sahdev Saliya                Added New Field Verified, VerifiedBy And VerifiedDate
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
+CREATE     PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
 	@tbl_WorkFlowType WorkFlowType READONLY,
 	@tbl_WorkflowChargesListType WorkflowChargesListType READONLY,
 	@tbl_WorkflowDirectionType WorkflowDirectionType READONLY,
@@ -159,14 +160,17 @@ BEGIN
 					[Target].[WorkScope] = @WorkScopeCode,
 					[Target].[Currency] = @CurrencyCode,
 					[Target].[WFParentId] = [Source].[WFParentId],
-					[Target].[IsVersionIncrease] = @IsVersionIncrease
+					[Target].[IsVersionIncrease] = @IsVersionIncrease,
+					[Target].[Verified] = [Source].[Verified],
+					[Target].[VerifiedBy] = [Source].[VerifiedBy],
+					[Target].[VerifiedDate] = [Source].[VerifiedDate]
 
 			WHEN NOT MATCHED THEN
 				INSERT (
 					[WorkflowDescription], [Version], [WorkScopeId], [ItemMasterId], [PartNumberDescription], [CustomerId], [CurrencyId], [WorkflowExpirationDate], [IsCalculatedBERThreshold], [IsFixedAmount], [FixedAmount], [IsPercentageOfNew], [CostOfNew],
 					[PercentageOfNew], [IsPercentageOfReplacement], [CostOfReplacement], [PercentageOfReplacement], [Memo], [ManagementStructureId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
-					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope], [Currency], [WFParentId], [IsVersionIncrease]
+					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope], [Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate]
 				)
 				VALUES (
 					[Source].[WorkflowDescription], @Version, [Source].[WorkScopeId], [Source].[ItemMasterId], [Source].[PartNumberDescription], [Source].[CustomerId], [Source].[CurrencyId], [Source].[WorkflowExpirationDate],
@@ -174,7 +178,7 @@ BEGIN
 					[Source].[PercentageOfReplacement], [Source].[Memo], [Source].[ManagementStructureId], @MasterCompanyId, [Source].[CreatedBy], @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, [Source].[PartNumber], @CustomerName, [Source].[FlatRate],
 					[Source].[BERThresholdAmount], @WorkFlowNumber, [Source].[CustomerCode], [Source].[OtherCost], [Source].[WorkflowCreateDate], [Source].[ChangedPartNumberId], [Source].[PercentageOfMaterial], [Source].[PercentageOfExpertise],
 					[Source].[PercentageOfCharges], [Source].[PercentageOfOthers], [Source].[PercentageOfTotal], [Source].[RevisedPartNumber], [Source].[ChangedPartNumberDescription], [Source].[ChangedPartNumber], @WorkScopeCode, @CurrencyCode,
-					[Source].[WFParentId], 0
+					[Source].[WFParentId], 0, [Source].[Verified], [Source].[VerifiedBy], [Source].[VerifiedDate]
 				);
 
 				IF(ISNULL(@workFlowMainId, 0) = 0)

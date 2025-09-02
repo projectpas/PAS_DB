@@ -21,7 +21,7 @@
 	6    05/05/2024  HEMANT SALIYA		Added Customer ReOpen WO ,Change & Part Number Change
 	7    18/10/2023  Devendra Shekh		added new status code REOPENEDFINISHEDGOODS    
 	8    17/01/2025  Vishal Suthar		added new status code CreateWorkOrderTask, UpdateWorkOrderTaskDescrepancy and UpdateWorkOrderTaskResolution    
-         
+    9    01/09/2025  Moin Bloch		    Updated Added New Field [Activity]
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_History]    
@@ -49,8 +49,8 @@ BEGIN
   DECLARE @ApproverName VARCHAR(256);    
   DECLARE @WorkOrderNum VARCHAR(256);    
     
-  SELECT @TemplateBody = TemplateBody FROM HistoryTemplate WHERE TemplateCode = @StatusCode;    
-  SELECT @WorkOrderNum = WorkOrderNum FROM WorkOrder WHERE WorkOrderId = @RefferenceId;    
+  SELECT @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode;    
+  SELECT @WorkOrderNum = [WorkOrderNum] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @RefferenceId;    
   
   IF (@StatusCode = 'Traveler' OR @StatusCode = 'Freight' OR @StatusCode  = 'Charges' OR @StatusCode = 'MaterialPickticketConfirmed' OR @StatusCode = 'MaterialPicket' OR @StatusCode = 'MPNPickticketConfirmed' OR @StatusCode = 'MPNPickticket' OR @StatusCode = 'Settlement' OR @StatusCode = 'SettlementOutGoing' OR @StatusCode = 'FinishedGoods' OR @StatusCode = 'CloseWO' OR 
   @StatusCode = 'Releasefrom' OR @StatusCode = 'ReleasefromChange' OR @StatusCode = 'ReleasefromisLocked' OR @StatusCode = 'Shipping' OR @StatusCode = 'Invoicing' OR @StatusCode = 'ShippingPost' OR @StatusCode = 'AddKit' OR @StatusCode = 'CreateWorkOrder' OR @StatusCode = 'UpdateWorkScope' OR 
@@ -73,7 +73,8 @@ BEGIN
        ,[CreatedBy]    
        ,[CreatedDate]    
        ,[UpdatedBy]    
-       ,[UpdatedDate])    
+       ,[UpdatedDate]
+	   ,[Activity])    
     VALUES    
        (@ModuleId    
        ,@RefferenceId    
@@ -87,22 +88,24 @@ BEGIN
        ,@CreatedBy    
        ,GETUTCDATE()    
        ,@CreatedBy    
-       ,GETUTCDATE())    
+       ,GETUTCDATE()
+	   ,@StatusCode)    
   END    
   END TRY        
  BEGIN CATCH    
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
         , @AdhocComments     VARCHAR(150)    = 'USP_History'     
-        ,@ProcedureParameters VARCHAR(3000) = '@OldValue = ''' + CAST(ISNULL(@OldValue, '') AS varchar(100))      
-   + '@OldValue = ''' + CAST(ISNULL(@OldValue, '') as varchar(100))       
-   + '@NewValue = ''' + CAST(ISNULL(@NewValue, '') as varchar(100))       
-   + '@HistoryText = ''' + CAST(ISNULL(@HistoryText, '') as varchar(100))       
-   + '@StatusCode = ''' + CAST(ISNULL(@StatusCode, '') as varchar(100))        + '@MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, '') as varchar(100))       
-   + '@CreatedBy = ''' + CAST(ISNULL(@CreatedBy, '') as varchar(100))       
-   + '@CreatedDate = ''' + CAST(ISNULL(@CreatedDate, '') as varchar(100))       
-   + '@UpdatedBy = ''' + CAST(ISNULL(@UpdatedBy, '') as varchar(100))       
-   + '@UpdatedDate = ''' + CAST(ISNULL(@UpdatedDate, '') as varchar(100))       
+        ,@ProcedureParameters VARCHAR(3000) = '@OldValue = ''' + CAST(ISNULL(@OldValue, '') AS VARCHAR(100))      
+   + '@OldValue = ''' + CAST(ISNULL(@OldValue, '') AS VARCHAR(100))       
+   + '@NewValue = ''' + CAST(ISNULL(@NewValue, '') AS VARCHAR(100))       
+   + '@HistoryText = ''' + CAST(ISNULL(@HistoryText, '') AS VARCHAR(100))       
+   + '@StatusCode = ''' + CAST(ISNULL(@StatusCode, '') AS VARCHAR(100))        
+   + '@MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))       
+   + '@CreatedBy = ''' + CAST(ISNULL(@CreatedBy, '') AS VARCHAR(100))       
+   + '@CreatedDate = ''' + CAST(ISNULL(@CreatedDate, '') AS VARCHAR(100))       
+   + '@UpdatedBy = ''' + CAST(ISNULL(@UpdatedBy, '') AS VARCHAR(100))       
+   + '@UpdatedDate = ''' + CAST(ISNULL(@UpdatedDate, '') AS VARCHAR(100))       
         , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
         exec spLogException     

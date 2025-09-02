@@ -23,6 +23,7 @@
 	10	 20-08-2025  Devendra Shekh		 Modified (Duplicate Part Data Issue Resolved) 
 	11	 21-08-2025  Devendra Shekh		 Modified (Added one more Case for CustomerId) 
 	12	 26-08-2025  Devendra Shekh		 Modified (Added LOWER/TRIM for PartNumber and Customer for Join) 
+	13   01-09-2025  Amit Ghediya		 Modified (Update RefrenceQuoteNumber field selection)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -63,7 +64,13 @@ BEGIN
 			BEGIN
 			DECLARE @RecordFrom INT,
 					@AautoSendQuote VARCHAR(50)= 'Auto Send',
-					@ReviewRequired VARCHAR(50)= 'Review Required';
+					@ReviewRequired VARCHAR(50)= 'Review Required',
+					@SoqModuleId INT,
+					@SoModuleId INT;
+
+				--Get module id
+				SELECT @SoqModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
+				SELECT @SoModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				IF @IsDeleted is null
@@ -121,7 +128,8 @@ BEGIN
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
-					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
+					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
+						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
 					RFQ.[DateAssigned],
 					RFQ.[QuotedBy],
 					RFQ.[QuotedDate],
@@ -143,6 +151,7 @@ BEGIN
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
+				LEFT JOIN dbo.SalesOrder SO WITH(NOLOCK) ON RFQ.[ReferenceId] = SO.[SalesOrderId] AND RFQ.[MasterCompanyId] = SO.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
 				--OUTER APPLY (
 				--	SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
@@ -184,7 +193,8 @@ BEGIN
 					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
-					ISNULL(SalesOrderQuoteNumber,'') AS RefrenceQuoteNumber,
+					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
+						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
 					RFQ.[DateAssigned],
 					RFQ.[QuotedBy],
 					RFQ.[QuotedDate],
@@ -208,6 +218,7 @@ BEGIN
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
+				LEFT JOIN dbo.SalesOrder SO WITH(NOLOCK) ON RFQ.[ReferenceId] = SO.[SalesOrderId] AND RFQ.[MasterCompanyId] = SO.[MasterCompanyId]
 				LEFT JOIN dbo.CustomerRfqPartMapping CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]

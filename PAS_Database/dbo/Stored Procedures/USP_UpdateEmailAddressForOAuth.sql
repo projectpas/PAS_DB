@@ -12,7 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    08/20/2025   Vishal Suthar		Created
-	2    29/08/2025   Devendra Shekh	added param @AuthTypeId, and Set SMPT details to null 
+	2    29/08/2025   Devendra Shekh	added param @AuthTypeId, and Set SMPT details to '' 
      
 -- EXEC USP_UpdateEmailAddressForOAuth
 ************************************************************************/
@@ -30,9 +30,9 @@ BEGIN TRY
 	SET SmtpUserEmail = @EmailId,
 		UpdatedDate = GETDATE(),
 		AuthTypeId = @AuthTypeId,
-		smtpserver = NULL,
-		SmtpEmailPassword = NULL,
-		SmtpPort = NULL,
+		smtpserver = '',
+		SmtpEmailPassword = '',
+		SmtpPort = 0,
 		UseSsl = 0
 	WHERE IntegrationEmailConfigId = @IntegrationEmailConfigId
 END TRY    

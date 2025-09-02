@@ -4207,6 +4207,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_MostQuotedPart.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_LMarginUnit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_HMarginUnit.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderLaborTracking.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

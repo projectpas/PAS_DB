@@ -105,12 +105,11 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			ISNULL(SOBII.GrandTotal,0) AS totalRevenues,
-			ISNULL(CST.PartsCost,0) AS partsCosts,
-			ISNULL(CST.LaborCost,0) AS laborOverheads,
-			(ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCosts,
-			(ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0)+ ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCosts,
-			(ISNULL(SOBII.GrandTotal,0) - (ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmounts,
+			(ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) AS totalRevenues,
+			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0)) AS partsCosts,
+			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCosts,
+			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCosts,
+			((ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmounts,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -125,11 +124,12 @@ BEGIN
        FROM 
 			DBO.BillingInvoicingItems AS SOBII WITH (NOLOCK)  
 			INNER JOIN DBO.BillingInvoicing AS SOBI WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId and ISNULL(SOBI.IsVersionIncrease,0)=0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0  
-			LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
-			LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			INNER JOIN DBO.SalesOrderStocklineV1 SSV WITH(NOLOCK) ON SOBII.SubReferenceId = SSV.SalesOrderPartId AND SSV.StockLineId = SOBII.StocklineId
+			INNER JOIN DBO.SalesOrderStockLineCost CST WITH (NOLOCK) ON SOBII.SubReferenceId = CST.SalesOrderPartId  AND SSV.SalesOrderStocklineId = CST.SalesOrderStocklineId
+			INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
+			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOBII.SubReferenceId = SOP.SalesOrderPartId
 			LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId   
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MsModuleID AND MSD.ReferenceID = SO.SalesOrderId
-			INNER JOIN DBO.WorkOrderMPNCostDetails CST WITH (NOLOCK) ON SOBII.SubReferenceId = CST.WOPartNoId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
@@ -153,7 +153,7 @@ BEGIN
 		SELECT * INTO #TempSOOperatingFinal FROM (SELECT * FROM #TempWOOperating main) as res
 		
 		SELECT * INTO #tmpBeforeFinalResult FROM 
-					(SELECT pn,pnDescription,ItemMasterId ,SUM(totalRevenues) AS totalRevenue,SUM(partsCosts) AS partsCost,SUM(laborOverheads) AS laborOverhead,SUM(otherCosts) AS otherCost,SUM(totalCosts) AS totalCost,SUM(marginAmounts) AS marginAmount
+					(SELECT pn,pnDescription,ItemMasterId ,SUM(totalRevenues) AS totalRevenue,SUM(partsCosts) AS partsCost,SUM(otherCosts) AS otherCost,SUM(totalCosts) AS totalCost,SUM(marginAmounts) AS marginAmount
 					 FROM #TempSOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) as result
 
 
@@ -163,13 +163,11 @@ BEGIN
 				 ItemMasterId,
 				 totalRevenue, 
 				 partsCost,
-				 laborOverhead,
 				 otherCost,
 				 totalCost,
 				 marginAmount,				
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((marginAmount/totalRevenue)*100))) END) as margin,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((partsCost/totalRevenue)*100))) END) as partsOrRev,
-				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((laborOverhead/totalRevenue)*100))) END) as laborOrRev,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((otherCost/totalRevenue)*100))) END) as otherOrRev,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((totalCost/totalRevenue)*100))) END) as totalCostOrRev
 				 

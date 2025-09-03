@@ -25,7 +25,7 @@ BEGIN
 	BEGIN
 		DECLARE @IsExists INT = 0, @VendorId BIGINT = 0;
 
-		IF EXISTS (SELECT TOP 1 [VendorId] FROM [DBO].[Vendor] WITH(NOLOCK) WHERE LTRIM(RTRIM([VendorName])) = LTRIM(RTRIM(@VendorName)) AND [MasterCompanyId] = @MasterCompanyId)
+		IF EXISTS (SELECT TOP 1 [VendorId] FROM [DBO].[Vendor] WITH(NOLOCK) WHERE LTRIM(RTRIM([VendorName])) = LTRIM(RTRIM(@VendorName)) AND [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0 AND [IsActive] = 1)
 		BEGIN
 			 SET @VendorId = (SELECT TOP 1 [VendorId] FROM [DBO].[Vendor] WITH(NOLOCK) WHERE LTRIM(RTRIM([VendorName])) = LTRIM(RTRIM(@VendorName)) AND [MasterCompanyId] = @MasterCompanyId)
 			 SET @IsExists = 1;

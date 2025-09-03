@@ -1,7 +1,7 @@
 ﻿/********************************************************************             
- ** File:   [dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit]             
+ ** File:   [dbo.GetSOOperatingMetricReport_HMarginUnitUnitByIMId]             
  ** Author:  Rajesh Gami    
- ** Description: Get Data for SalesOrder Operating Metric Report LOW Margin to High Margin
+ ** Description: Get Data for SalesOrder Operating Metric Report Highest Margin to Low Margin By Item
  ** Purpose:           
  ** Date:   01-Sep-2025         
             
@@ -15,7 +15,7 @@
  ** --   --------         -------          --------------------------------            
     1    01-Sep-2025  Rajesh Gami   Created  
 ***********************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_LMarginUnit] 
+CREATE       PROCEDURE [dbo].[GetSOOperatingMetricReport_HMarginUnitUnitByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -26,7 +26,7 @@ BEGIN
   SET NOCOUNT ON;  
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
 		SET @PageSize = 50;
-		DECLARE @Count VARCHAR(10)='50',@Sql NVARCHAR(MAX);  
+		DECLARE @Sql NVARCHAR(MAX);  
 		DECLARE @customerid varchar(40) = NULL,  
 		@fromdate datetime,  
 		@todate datetime, 
@@ -62,9 +62,7 @@ BEGIN
 		@customerid=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @customerid end,
 		
-		@Count=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='defaultRecord' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Count end,
-		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)' 
+		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='itemMasterId' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @itemMasterId end,
 
 		@marginSortBy=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='marginSortBy' 
@@ -92,12 +90,10 @@ BEGIN
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end
 	  FROM
 		  @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
-		  SET @Count = COALESCE(NULLIF(@Count, 0), 50);
 
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 	  SELECT * INTO #TempWOOperating FROM
-
       (SELECT 
 			UPPER(Customer.Name) 'customer',  
 			SO.CustomerId CustomerId,
@@ -105,11 +101,11 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			(ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) AS totalRevenues,
-			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0)) AS partsCosts,
-			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCosts,
-			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCosts,
-			((ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmounts,
+			(ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) AS totalRevenue,
+			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0)) AS partsCost,
+			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCost,
+			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCost,
+			((ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmount,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -120,7 +116,12 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
-			SOBI.BillingInvoicingId
+			SOBI.BillingInvoicingId,
+			CN.[Description] AS 'condition',
+			SO.SalesOrderNumber AS 'salesOrderNum',
+			SOBI.InvoiceDate AS 'invoiceDate',
+			SO.OpenDate AS 'openDate',
+			SO.SalesOrderId as 'salesOrderId'
        FROM 
 			DBO.BillingInvoicingItems AS SOBII WITH (NOLOCK)  
 			INNER JOIN DBO.BillingInvoicing AS SOBI WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId and ISNULL(SOBI.IsVersionIncrease,0)=0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0  
@@ -153,8 +154,8 @@ BEGIN
 		SELECT * INTO #TempSOOperatingFinal FROM (SELECT * FROM #TempWOOperating main) as res
 		
 		SELECT * INTO #tmpBeforeFinalResult FROM 
-					(SELECT pn,pnDescription,ItemMasterId ,SUM(totalRevenues) AS totalRevenue,SUM(partsCosts) AS partsCost,SUM(otherCosts) AS otherCost,SUM(totalCosts) AS totalCost,SUM(marginAmounts) AS marginAmount
-					 FROM #TempSOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) as result
+					(SELECT pn,pnDescription,ItemMasterId ,totalRevenue, partsCost,otherCost,totalCost,marginAmount,condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,CustomerId
+					 FROM #TempSOOperatingFinal ) as result
 
 
 		SELECT * INTO #tmpFinalResult FROM
@@ -165,7 +166,7 @@ BEGIN
 				 partsCost,
 				 otherCost,
 				 totalCost,
-				 marginAmount,				
+				 marginAmount,	condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,CustomerId,			
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((marginAmount/totalRevenue)*100))) END) as margin,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((partsCost/totalRevenue)*100))) END) as partsOrRev,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((otherCost/totalRevenue)*100))) END) as otherOrRev,
@@ -173,19 +174,15 @@ BEGIN
 				 
 		 FROM #tmpBeforeFinalResult) as result
 
-		/********** Get data from low margin to high margin***********/
-		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
+		/********** Get data from high margin to low margin***********/
 		IF(@marginSortBy = 'marginPer')
 		BEGIN
-			SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by Margin ASC'
-
+			SELECT * FROM #tmpFinalResult ORDER by margin DESC
 		END
 		ELSE
 		BEGIN
-			SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by marginAmount ASC'
+			SELECT * FROM #tmpFinalResult ORDER by marginAmount DESC
 		END
-			PRINT @Sql
-			EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
 		
 
   END TRY  
@@ -201,7 +198,7 @@ BEGIN
     DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            @AdhocComments varchar(150) = '[dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit]',  
+            @AdhocComments varchar(150) = '[dbo.GetSOOperatingMetricReport_HMarginUnitUnitByIMId]',  
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100)) +  
             '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) +  
             '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)) +  

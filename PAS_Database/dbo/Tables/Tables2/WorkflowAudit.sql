@@ -48,6 +48,11 @@
     [Currency]                     VARCHAR (100)   NULL,
     [WFParentId]                   BIGINT          NULL,
     [IsVersionIncrease]            BIT             NULL,
+    [Verified]                     BIT             NULL,
+    [VerifiedBy]                   VARCHAR (256)   NULL,
+    [VerifiedDate]                 DATETIME2 (7)   NULL,
     CONSTRAINT [PK_WorkflowAudit] PRIMARY KEY CLUSTERED ([WorkflowAuditId] ASC)
 );
+
+
 

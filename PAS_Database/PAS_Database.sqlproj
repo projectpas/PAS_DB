@@ -4207,6 +4207,8 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_MostQuotedPart.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_LMarginUnit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_HMarginUnit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchItemAircraftMappingData.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderLaborTracking.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorRFQ.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_MostSold.sql" />
     <Build Include="dbo\Stored Procedures\GetSOOperatingMetricReport_QuotedUnitByIMId.sql" />

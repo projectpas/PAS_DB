@@ -8,25 +8,27 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    01/05/2025   Moin Bloch    Created
-    2    12/05/2025   RAJESH GAMI    Added SO Part Details Code
-	3    11/06/2025   RAJESH GAMI    Fix the getting wrong invoicingId (SO)
-	4    17/06/2025   RAJESH GAMI    Fix the Shipping Related issue AND Proforma amount related issue
-	5    17/06/2025   Moin Bloch     Add QuoteMethod
-	6    19/06/2025   RAJESH GAMI    Change the logic that freight and charges add only on first stockline (Partition by SOPartId) in SO
-	7    23/06/2025   Moin Bloch     checked IsFinishGood IN WO
-	8    23/06/2025   Moin Bloch     Added WorkOrderShippingId IN WO
-	9    25/06/2025   RAJESH GAMI    Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
-	10   26/06/2025   Moin Bloch     Fixed For Settlement IN WO
-	11   26/06/2025   Rajesh Gami     Fixed to not getting invoicing id while get the part detail call 
-	12	 05/07/2025   AbhishekJirawla Added ConditionName	
-	13	 09/07/2025   RAJESH GAMI	Added MasterCompanyId in the SO Shipping table
-	14	 17/07/2025   RAJESH GAMI	Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
-	15	 17/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge) Display on on first part only & Fix SalesTax Amount issue
-	16	 21/07/2025   RAJESH GAMI	Fixed : Flat Rate(Freight and Charge): frieght and charges are being included again
-	17	 28/07/2025   RAJESH GAMI	Get Unit Sales PRice, Markup% and Amount, Discount% & Amount for the SO
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/05/2025   Moin Bloch		Created
+    2    12/05/2025   RAJESH GAMI		Added SO Part Details Code
+	3    11/06/2025   RAJESH GAMI		Fix the getting wrong invoicingId (SO)
+	4    17/06/2025   RAJESH GAMI		Fix the Shipping Related issue AND Proforma amount related issue
+	5    17/06/2025   Moin Bloch		Add QuoteMethod
+	6    19/06/2025   RAJESH GAMI		Change the logic that freight and charges add only on first stockline (Partition by SOPartId) in SO
+	7    23/06/2025   Moin Bloch		checked IsFinishGood IN WO
+	8    23/06/2025   Moin Bloch		Added WorkOrderShippingId IN WO
+	9    25/06/2025   RAJESH GAMI		Fixed the INVOICE status stockline coming at the list. (Remove invoiced stockline from the list)
+	10   26/06/2025   Moin Bloch		Fixed For Settlement IN WO
+	11   26/06/2025   Rajesh Gami		Fixed to not getting invoicing id while get the part detail call 
+	12	 05/07/2025   Abhishek Jirawla	Added ConditionName	
+	13	 09/07/2025   RAJESH GAMI		Added MasterCompanyId in the SO Shipping table
+	14	 17/07/2025   RAJESH GAMI		Fixed : Getting wrong QTY and Price (In case of Without STK proforma)
+	15	 17/07/2025   RAJESH GAMI		Fixed : Flat Rate(Freight and Charge) Display on on first part only & Fix SalesTax Amount issue
+	16	 21/07/2025   RAJESH GAMI		Fixed : Flat Rate(Freight and Charge): frieght and charges are being included again
+	17	 28/07/2025   RAJESH GAMI		Get Unit Sales PRice, Markup% and Amount, Discount% & Amount for the SO
+	18	 02/09/2025   Vishal Suthar		Added DISTINCT in the SELECT Statement
+
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonBillingMPNDetails]
@@ -145,7 +147,7 @@ BEGIN
 				IF(@IsCreatedFromQuote = 1)
 				BEGIN
 					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-									SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+									SELECT DISTINCT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
 									
 									 CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
 						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 

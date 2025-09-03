@@ -108,7 +108,7 @@ BEGIN
 		SET @sourceByName = (select Top 1 CODE From dbo.IntegrationPortalMaster WITH(NOLOCK) WHERE IntegrationPortalMasterId = CAST(@sourceById as INT))
 		PRINT @sourceByName
 	 END
-	 SELECT * INTO #TempWOOperating FROM
+	 SELECT * INTO #TempSOOperating FROM
       (SELECT 
 			UPPER(Customer.[Name]) 'customer',  
 			SO.CustomerId CustomerId,
@@ -116,7 +116,7 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			CASE WHEN WBI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE ISNULL(WOBIT.GrandTotal,0) END AS revenue,
+			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) END AS revenue,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -129,12 +129,11 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10
        FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 			INNER JOIN dbo.SalesOrderPartCost SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId
-			--INNER JOIN dbo.SalesOrderStockLineCost SOStk WITH (NOLOCK) ON SOP.SalesOrderPartId = SOStk.SalesOrderPartId
 	   		INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 			INNER JOIN [dbo].[SalesOrderQuote] SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
-			LEFT JOIN [dbo].[BillingInvoicingItems] AS WOBIT WITH (NOLOCK) ON SOP.SalesOrderPartId = WOBIT.SubReferenceId AND ISNULL(WOBIT.IsVersionIncrease,0)=0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0  AND WOBIT.[ModuleId] = @SOModuleId
-			LEFT JOIN [dbo].[BillingInvoicing] AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  AND WBI.InvoiceStatus = 'Invoiced' AND WBI.[ModuleId] = @SOModuleId
+			LEFT JOIN [dbo].[BillingInvoicingItems] AS SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND ISNULL(SOBII.IsPerformaInvoice, 0) = 0  AND SOBII.[ModuleId] = @SOModuleId
+			LEFT JOIN [dbo].[BillingInvoicing] AS BI WITH (NOLOCK) ON SOBII.BillingInvoicingId = BI.BillingInvoicingId and BI.IsVersionIncrease=0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0  AND BI.InvoiceStatus = 'Invoiced' AND BI.[ModuleId] = @SOModuleId
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
@@ -155,13 +154,13 @@ BEGIN
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) AS a
 
-		SELECT * INTO #TempWOOperatingFinal FROM
-		 (SELECT * FROM #TempWOOperating main) AS res
+		SELECT * INTO #TempSOOperatingFinal FROM
+		 (SELECT * FROM #TempSOOperating main) AS res
 
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT MAX(ROW_NUMBER) AS timesQuoted,SUM(revenue) AS totalRevenue, CONVERT(DECIMAL(18,2),(SUM(revenue)/MAX(ROW_NUMBER))) AS averageRevenue,pn,pnDescription,ItemMasterId
 		 
-		 FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) AS result
+		 FROM #TempSOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) AS result
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesQuoted DESC'
 

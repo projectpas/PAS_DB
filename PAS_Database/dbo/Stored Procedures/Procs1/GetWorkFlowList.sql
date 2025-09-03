@@ -19,6 +19,7 @@
 	5    11/03/2025   Sahdev Saliya  Added New Field TemplateDescription
 	6    20/03/2025   Ekta Chandegra Convert date using dbo.ConvertUTCtoLocal
 	7    18-04-2025   Shrey Chandegara  Modifed due to datefilter issue
+	8    02-08-2025   Sahdev Saliya   Added New Field Verified, VerifiedBy And VerifiedDate
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
@@ -133,7 +134,10 @@ BEGIN
 					(Cast(DBO.ConvertUTCtoLocal(wf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 					wf.UpdatedBy,
 					CASE WHEN wf.IsVersionIncrease IS NULL THEN CASE WHEN WFParentId IS NULL THEN 0 ELSE 1 END ELSE wf.IsVersionIncrease END AS IsVersionIncrease
-					,im.ManufacturerName ManufacturerName
+					,im.ManufacturerName ManufacturerName,
+					wf.Verified,
+					wf.VerifiedBy,
+					wf.VerifiedDate
 					FROM Workflow wf WITH (NOLOCK)
 					INNER JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
 					LEFT JOIN dbo.Customer c WITH (NOLOCK) on c.CustomerId =  wf.CustomerId

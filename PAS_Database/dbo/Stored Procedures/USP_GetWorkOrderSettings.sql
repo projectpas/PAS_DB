@@ -20,7 +20,7 @@
 	 4	  23-MAY-2025		Devendra Shekh			Added isPNSNWarning, isPNSNRestriction to select 
 	 5	  28-Aug-2025		Moin Bloch			    Added IsAllowEmployeeToMoreTask
 
-	 EXEC [dbo].[USP_GetWorkOrderSettings] 167,225
+	 EXEC [dbo].[USP_GetWorkOrderSettings] 1,1
 ****************************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetWorkOrderSettings]
 	@WorkOrderTypeId BIGINT,
@@ -94,17 +94,17 @@ BEGIN
 					wos.cmmWarningAtReceiving,
 					wos.cmmWarningAtShipping,
 					wos.cmmRestrictionAtShipping,
-					wos.byPassCMMSettingAtShipping,
+					CASE WHEN ISNULL(wos.CMMWarningAtShipping, 0) = 0 AND ISNULL(wos.CMMRestrictionAtShipping, 0) = 0 THEN 1 ELSE wos.byPassCMMSettingAtShipping END byPassCMMSettingAtShipping,
 					wos.capesRestrictionAtShipping,
 					wos.capesWarningAtReceiving,
 					wos.capesWarningAtShipping,
-					wos.byPassCapesSettingAtShipping,
+					CASE WHEN ISNULL(wos.capesWarningAtShipping, 0) = 0 AND ISNULL(wos.capesRestrictionAtShipping, 0) = 0 THEN 1 ELSE wos.byPassCapesSettingAtShipping END byPassCapesSettingAtShipping,
 					wos.workOrderFormTypeId,
 					wos.taskTypes,
 					wos.isWoAlwaysOrOndemandId,
 					wos.is813013aeOr14ae,
-					wos.byPassCMMSettingAtReceiving,
-					wos.byPassCapesSettingAtReceiving,
+					CASE WHEN ISNULL(wos.CMMWarningAtReceiving, 0) = 0 AND ISNULL(wos.CMMRestrictionAtReceiving, 0) = 0 THEN 1 ELSE wos.byPassCMMSettingAtReceiving END byPassCMMSettingAtReceiving,
+					CASE WHEN ISNULL(wos.capesWarningAtReceiving, 0) = 0 AND ISNULL(wos.capesRestrictionAtReceiving, 0) = 0 THEN 1 ELSE wos.byPassCapesSettingAtReceiving END byPassCapesSettingAtReceiving,
 					wos.isFlatRate,
 					ISNULL(wos.EnforceMpnPickTicketConfirmation, 0) AS enforceMpnPickTicketConfirmation,
 					Isnull(wos.isDisplayFooter,0) as isDisplayFooter,

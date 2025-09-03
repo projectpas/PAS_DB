@@ -14,12 +14,14 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** 3    05/02/2024  Devendra Shekh  duplicate mpn for multiple wo mpn, issue resolved
 ** 4	18 Sep 2024 Bhargav Saliya  address convert into single string value
 ** 5    17/02/2025  Moin Bloch      Updated (Added Publication PublicationNo)
-EXEC RPT_GetSubWorkOrderPrintPdfData 208,186
+** 6    02/09/2025  Moin Bloch      Updated (Added EmployeeId Parameter)
+EXEC RPT_GetSubWorkOrderPrintPdfData 177,179,2
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetSubWorkOrderPrintPdfData]              
 	@SubWorkorderId BIGINT,              
-	@SubWOPartNoId BIGINT              
+	@SubWOPartNoId BIGINT, 
+	@EmployeeId BIGINT = NULL
 AS              
 	BEGIN              
 	 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED              
@@ -31,7 +33,16 @@ AS
 			DECLARE @WorkScopeId AS BIGINT = 0;            
 			DECLARE @ItemMasterId AS BIGINT = 0;         
 			DECLARE @WOPartNoId AS BIGINT = 0;  
-			DECLARE @TravelerName AS varchar(250) = 0;            
+			DECLARE @TravelerName AS varchar(250) = 0;  
+			
+			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+			SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) 
+			  FROM [dbo].[Employee] E WITH (NOLOCK) 
+				   LEFT JOIN [dbo].[TimeZone] ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+				   LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+				   LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE E.EmployeeId = @EmployeeId;
    
 			SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId = SubWorkOrderScopeId FROM dbo.SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId 
 			--SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
@@ -55,7 +66,7 @@ AS
 				'1' as NoofItem,              
 				UPPER(wo.CreatedBy) as Preparedby,              
 				UPPER(SWOPN.CustomerReference) as ronum,            
-				getdate() as DatePrinted,              
+				CASE WHEN @EmployeeId > 0 THEN CAST(dbo.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATETIME) ELSE GETUTCDATE() END [DatePrinted],					
 				wo.CreatedDate as workreqDate,      
 				CASE WHEN LEN(wo.notes) > 1370 THEN LEFT(wo.notes,1370) + '...' ELSE wo.notes END AS notes,    
 				p.Description as Priority,              
@@ -150,37 +161,37 @@ AS
 				   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
 				   FOR XML PATH('')              
 				   ), 1, 1, '')              
-			FROM dbo.SubWorkOrder SWO WITH(NOLOCK) 
-				INNER JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
-				INNER JOIN Dbo.WorkOrder wo WITH(NOLOCK) ON SWO.WorkOrderId = wo.WorkOrderId             
-				INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = SWO.WorkOrderPartNumberId
-				LEFT JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderPartNoId = wop.ID --and wf.WorkOrderPartNoId=@workOrderPartNoId    
-				LEFT JOIN Dbo.WorkOrderQuote woq WITH(NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0              
-				LEFT JOIN Dbo.WorkOrderShipping shippingInfo WITH(NOLOCK) on shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=wop.ID              
-				LEFT JOIN Dbo.CustomerBillingAddress  billToSiteatt WITH(NOLOCK) on shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId              
-				LEFT JOIN Dbo.CustomerDomensticShipping  shipToSiteatt WITH(NOLOCK) on shippingInfo.ShipToSiteId = shipToSiteatt.CustomerDomensticShippingId              
-				LEFT JOIN Dbo.Customer billToCustomer WITH(NOLOCK) on wo.CustomerId = billToCustomer.CustomerId              
-				LEFT JOIN Dbo.CustomerBillingAddress  billToSite WITH(NOLOCK) on wo.CustomerId = billToSite.CustomerId and billToSite.IsPrimary=1              
-				LEFT JOIN Dbo.Address billToAddress WITH(NOLOCK) on billToSite.AddressId = billToAddress.AddressId              
-				LEFT JOIN Dbo.Countries billToCountry WITH(NOLOCK) on billToCountry.countries_id = billToAddress.CountryId              
-				LEFT JOIN Dbo.CustomerDomensticShipping shipToSite WITH(NOLOCK) on wo.CustomerId = shipToSite.CustomerId and shipToSite.IsPrimary=1              
-				LEFT JOIN Dbo.Address shipToAddress WITH(NOLOCK) on shipToSite.AddressId = shipToAddress.AddressId              
-				LEFT JOIN Dbo.Countries shipToCountry WITH(NOLOCK) on shipToAddress.CountryId = shipToCountry.countries_id              
-				LEFT JOIN Dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = SWOPN.ItemMasterId              
-				LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
-				LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
-				LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = SWOPN.StockLineId              
-				LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = SWOPN.TechnicianId              
-				LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = SWOPN.SubWorkOrderStageId              
-				LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
+			FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK) 
+				INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
+				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON SWO.WorkOrderId = wo.WorkOrderId             
+				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.ID = SWO.WorkOrderPartNumberId
+				 LEFT JOIN [dbo].[WorkOrderWorkFlow] wf WITH(NOLOCK) ON wf.WorkOrderPartNoId = wop.ID --and wf.WorkOrderPartNoId=@workOrderPartNoId    
+				 LEFT JOIN [dbo].[WorkOrderQuote] woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0              
+				 LEFT JOIN [dbo].[WorkOrderShipping] shippingInfo WITH(NOLOCK) ON shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=wop.ID              
+				 LEFT JOIN [dbo].[CustomerBillingAddress]  billToSiteatt WITH(NOLOCK) ON shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId              
+				 LEFT JOIN [dbo].[CustomerDomensticShipping]  shipToSiteatt WITH(NOLOCK) ON shippingInfo.ShipToSiteId = shipToSiteatt.CustomerDomensticShippingId              
+				 LEFT JOIN [dbo].[Customer] billToCustomer WITH(NOLOCK) ON wo.CustomerId = billToCustomer.CustomerId              
+				 LEFT JOIN [dbo].[CustomerBillingAddress]  billToSite WITH(NOLOCK) ON wo.CustomerId = billToSite.CustomerId and billToSite.IsPrimary=1              
+				 LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId              
+				 LEFT JOIN [dbo].[Countries] billToCountry WITH(NOLOCK) ON billToCountry.countries_id = billToAddress.CountryId              
+				 LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON wo.CustomerId = shipToSite.CustomerId and shipToSite.IsPrimary=1              
+				 LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId              
+				 LEFT JOIN [dbo].[Countries] shipToCountry WITH(NOLOCK) ON shipToAddress.CountryId = shipToCountry.countries_id              
+				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = SWOPN.ItemMasterId              
+				 LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
+				 LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
+				 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = SWOPN.StockLineId              
+				 LEFT JOIN [dbo].[Employee] el WITH(NOLOCK) ON el.EmployeeId = SWOPN.TechnicianId              
+				 LEFT JOIN [dbo].[WorkOrderStage] ws WITH(NOLOCK) ON ws.WorkOrderStageId = SWOPN.SubWorkOrderStageId              
+				 LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
 				--LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
-				LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = SWOPN.ConditionId            
+				 LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON con.ConditionId = SWOPN.ConditionId            
 				--LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = SWOPN.CMMId        
 				--LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
-				LEFT JOIN dbo.SubWorkOrderSettlementDetails swosc WITH(NOLOCK) on SWOPN.SubWorkOrderId = swosc.SubWorkOrderId AND SWOPN.SubWOPartNoId = swosc.SubWOPartNoId AND swosc.WorkOrderSettlementId = 9        
-				LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = swosc.RevisedItemmasterid    
-				LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
-				LEFT JOIN Dbo.WorkScope WSP WITH(NOLOCK) on WSP.WorkScopeId = SWOPN.SubWorkOrderScopeId 
+				 LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] swosc WITH(NOLOCK) ON SWOPN.SubWorkOrderId = swosc.SubWorkOrderId AND SWOPN.SubWOPartNoId = swosc.SubWOPartNoId AND swosc.WorkOrderSettlementId = 9        
+				 LEFT JOIN [dbo].[ItemMaster] rimt WITH(NOLOCK) ON rimt.ItemMasterId = swosc.RevisedItemmasterid    
+				 LEFT JOIN [dbo].[WorkOrderSettings] wost WITH(NOLOCK) ON wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
+				 LEFT JOIN [dbo].[WorkScope] WSP WITH(NOLOCK) ON WSP.WorkScopeId = SWOPN.SubWorkOrderScopeId 
 			WHERE SWO.SubWorkOrderId = @SubWorkorderId AND SWOPN.SubWOPartNoId = @SubWOPartNoId              
 	  -- END              
 	  --COMMIT  TRANSACTION              
@@ -188,14 +199,14 @@ AS
   END TRY                  
   BEGIN CATCH                    
    IF @@trancount > 0              
-    PRINT 'ROLLBACK'              
-    ROLLBACK TRAN;              
+    --PRINT 'ROLLBACK'              
+    --ROLLBACK TRAN;              
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()              
              
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------              
               , @AdhocComments     VARCHAR(150)    = 'RPT_GetSubWorkOrderPrintPdfData'              
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SubWorkOrderId, '') + '''              
-                @Parameter2 = ' + ISNULL(@SubWOPartNoId ,'') +''              
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SubWorkOrderId, '') AS VARCHAR(100))
+			                                       + '@Parameter2 = ''' + CAST(ISNULL(@SubWOPartNoId, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'              
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------              
              

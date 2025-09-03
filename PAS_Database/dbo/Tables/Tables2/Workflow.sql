@@ -47,12 +47,17 @@
     [Currency]                     VARCHAR (100)   NULL,
     [WFParentId]                   BIGINT          NULL,
     [IsVersionIncrease]            BIT             NULL,
+    [Verified]                     BIT             NULL,
+    [VerifiedBy]                   VARCHAR (256)   NULL,
+    [VerifiedDate]                 DATETIME2 (7)   NULL,
     CONSTRAINT [PK_Process] PRIMARY KEY CLUSTERED ([WorkflowId] ASC),
     FOREIGN KEY ([ChangedPartNumberId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK__Workflow__WorkSc__6BDB799E] FOREIGN KEY ([WorkScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId]),
     CONSTRAINT [FK_WorkFlow_WFParentId] FOREIGN KEY ([WFParentId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

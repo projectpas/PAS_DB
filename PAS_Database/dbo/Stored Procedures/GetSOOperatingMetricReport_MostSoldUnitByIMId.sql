@@ -109,7 +109,7 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) END AS grandTotal,
+			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal,0)) END AS grandTotal,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -124,7 +124,8 @@ BEGIN
 			SO.SalesOrderNumber AS 'salesOrderNum',
 			BI.InvoiceDate AS 'invoiceDate',
 			SO.OpenDate AS 'openDate',
-			SO.SalesOrderId as 'salesOrderId'
+			SO.SalesOrderId as 'salesOrderId',
+			SOBII.StocklineId
        FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 			INNER JOIN dbo.SalesOrderPartCost SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId
 	   		INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
@@ -151,7 +152,7 @@ BEGIN
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) AS a
 
-		SELECT * FROM #TempSOOperating ORDER BY invoiceDate desc
+		SELECT t.*,stk.StockLineNumber FROM #TempSOOperating t LEFT JOIN dbo.Stockline stk WITH(NOLOCK) ON t.StocklineId = stk.StockLineId ORDER BY t.invoiceDate desc
 
   END TRY  
   

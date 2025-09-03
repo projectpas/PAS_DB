@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿
+
+/*************************************************************           
  ** File:   [usp_CreateWorkFlowHeaderData]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -12,10 +14,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04-April-2025   BHARGAV SALIYA    Created
-    
+    2    02-Sep-2025     SAHDEV SALIYA     Added New Field Verified, VerifiedBy And VerifiedDate
+
 --   EXEC [usp_SaveWorkFlowData] 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usp_CreateWorkFlowHeaderData]
+CREATE     PROCEDURE [dbo].[usp_CreateWorkFlowHeaderData]
 @MasterCompanyId INT,
 @VersionNum VARCHAR(256),
 @IsVersionIncrease BIT = NULL,
@@ -94,7 +97,10 @@ BEGIN
 			[WorkScope] NVARCHAR(100) NULL,
 			[Currency] NVARCHAR(100) NULL,
 			[WFParentId] BIGINT NULL,
-			[IsVersionIncrease] BIT NULL
+			[IsVersionIncrease] BIT NULL,
+			[Verified] BIT NULL,
+			[VerifiedBy] VARCHAR(256) NULL,
+			[VerifiedDate] DATETIME NULL
 		);
 
 		-- Generate Work Flow version
@@ -165,7 +171,7 @@ BEGIN
 			[BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate],
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
-			[Currency], [WFParentId], [IsVersionIncrease]
+			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate]
 		)
 		SELECT 
 			[WorkflowDescription], @NewVersionNum, [WorkScopeId], [ItemMasterId],
@@ -177,7 +183,7 @@ BEGIN
 			[BERThresholdAmount], @WorkFlowNum, [CustomerCode], [OtherCost], [WorkflowCreateDate],
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
-			[Currency], [WFParentId], [IsVersionIncrease]
+			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate]
 		FROM @tbl_WorkFloaddItemsType temp where temp.[WorkflowId] = 0;  
 
 		set @WorkFlowid = SCOPE_IDENTITY();
@@ -206,5 +212,5 @@ BEGIN
 		, @ErrorLogID                    = @ErrorLogID OUTPUT ;  
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
 		RETURN(1);  
-	END CATCH 
+	END CATCH 
 END

@@ -46,5 +46,10 @@
     [WorkScope]                    NVARCHAR (100)  NULL,
     [Currency]                     NVARCHAR (100)  NULL,
     [WFParentId]                   BIGINT          NULL,
-    [IsVersionIncrease]            BIT             NULL);
+    [IsVersionIncrease]            BIT             NULL,
+    [Verified]                     BIT             NULL,
+    [VerifiedBy]                   VARCHAR (256)   NULL,
+    [VerifiedDate]                 DATETIME2 (7)   NULL);
+
+
 

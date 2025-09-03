@@ -4208,6 +4208,13 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_LMarginUnit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_HMarginUnit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateVendorRFQ.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_MostSold.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOOperatingMetricReport_QuotedUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOOperatingMetricReport_MostSoldUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOOperatingMetricReport_LMarginUnitUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\GetSOOperatingMetricReport_HMarginUnitUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\usp_validateCustomerCredit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllItemMasterStockdata.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

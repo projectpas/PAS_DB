@@ -167,6 +167,9 @@
     [LastSyncDate]                      DATETIME2 (7)   NULL,
     [SyncToken]                         VARCHAR (200)   NULL,
     [WorkOrderFormTypeId]               INT             NULL,
+    [WorkOrderType]                     VARCHAR (256)   NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
+
+
 

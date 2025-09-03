@@ -13,13 +13,13 @@
  ** --   --------			-------				--------------------------------          
     1    09/01/2025		  Ekta Chandegra		  Created
 
-exec [dbo].[USP_CreateExchangeQuoteVersion] @CurrentExchangeQuoteId=132,@CustomerReference=N'',
+exec [dbo].[USP_CreateExchangeQuoteVersion] @CurrentExchangeQuoteId=130,@CustomerReference=N'',
 @PriorityId=3,@SalesPersonId=73,@CreatedBy=N'roza diaz',@MasterCompanyId=1,@ManagementStructureId=1,
 @EmployeeId=237,@CustomerContactId=124,@CustomerSeviceRepId=14,@Memo=N'',@Notes=N'',@FunctionalCurrencyId=1,
 @ReportCurrencyId=1,@ForeignExchangeRate=1.000000
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuoteVersion]
+ CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuoteVersion]
 	@CurrentExchangeQuoteId BIGINT,
 	@CustomerReference VARCHAR(100),
 	@PriorityId INT,
@@ -78,7 +78,6 @@ BEGIN
 			OldAttachmentId BIGINT,
 			NewAttachmentId BIGINT
 		);
-
 
 		INSERT INTO [dbo].[ExchangeQuote]
            ([Type]
@@ -347,7 +346,7 @@ BEGIN
 			sb.PeriodicBillingAmount,
 			sb.Cogs,
 			sb.CogsAmount
-		FROM ExchangeQuoteScheduleBilling sb WITH(NOLOCK)
+		FROM [dbo].[ExchangeQuoteScheduleBilling] sb WITH(NOLOCK)
 		WHERE sb.ExchangeQuoteId = @CurrentExchangeQuoteId;
 
 		----------------------------------------------------------------
@@ -483,13 +482,23 @@ BEGIN
 		   AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0;
 
 		 ----------------------------------------------------------------
-		 -- 7. Copy Documents (Corrected)
+		 -- 7. Copy Documents
 		 ----------------------------------------------------------------
-
 		INSERT INTO [dbo].[Attachment]
-			([ModuleId], [ReferenceId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [SubModuleId], [SubReferenceId])
+			([ModuleId], 
+			 [ReferenceId], 
+			 [MasterCompanyId], 
+			 [CreatedBy], 
+			 [CreatedDate], 
+			 [UpdatedBy], 
+			 [UpdatedDate], 
+			 [IsActive], 
+			 [IsDeleted], 
+			 [SubModuleId], 
+			 [SubReferenceId])
 		OUTPUT inserted.SubReferenceId, inserted.AttachmentId
 		INTO @AttachmentMap (OldAttachmentId, NewAttachmentId)
+		
 		SELECT
 			A.[ModuleId],
 			@NewExchangeQuoteId,
@@ -507,7 +516,22 @@ BEGIN
 
 		-- Now, copy AttachmentDetails using the map. This part is correct.
 		INSERT INTO [dbo].[AttachmentDetails]
-			([AttachmentId], [FileName], [Description], [Link], [FileFormat], [FileSize], [FileType], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [Name], [Memo], [TypeId])
+			([AttachmentId], 
+			 [FileName], 
+			 [Description], 
+			 [Link], 
+			 [FileFormat], 
+			 [FileSize], 
+			 [FileType], 
+			 [CreatedDate], 
+			 [UpdatedDate], 
+			 [CreatedBy], 
+			 [UpdatedBy],
+			 [IsActive], 
+			 [IsDeleted],
+			 [Name], 
+			 [Memo], 
+			 [TypeId])
 		SELECT
 			map.NewAttachmentId,
 			AD.[FileName],
@@ -531,7 +555,26 @@ BEGIN
 
 		-- Let's refine the final INSERT
 		INSERT INTO [dbo].[CommonDocumentDetails]
-			([ModuleId], [ReferenceId], [AttachmentId], [DocName], [DocMemo], [DocDescription], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [DocumentTypeId], [ExpirationDate], [ReferenceIndex], [ModuleType], [SubModuleId], [SubReferenceId])
+			([ModuleId], 
+			 [ReferenceId], 
+			 [AttachmentId], 
+			 [DocName], 
+			 [DocMemo], 
+			 [DocDescription], 
+			 [MasterCompanyId], 
+			 [CreatedBy], 
+			 [UpdatedBy], 
+			 [CreatedDate], 
+			 [UpdatedDate],
+			 [IsActive],
+			 [IsDeleted], 
+			 [DocumentTypeId],
+			 [ExpirationDate], 
+			 [ReferenceIndex],
+			 [ModuleType], 
+			 [SubModuleId], 
+			 [SubReferenceId]
+			)
 		SELECT
 			CDD.[ModuleId],
 			@NewExchangeQuoteId,
@@ -558,13 +601,169 @@ BEGIN
 		WHERE CDD.ReferenceId = @CurrentExchangeQuoteId AND CDD.ModuleId = @ExchangeQuoteAttachmentModuleId AND CDD.IsDeleted = 0;
         
 		----------------------------------------------------------------
-		-- 8. Copy Address
+		-- 8. Copy Email
+		----------------------------------------------------------------
+		IF OBJECT_ID('tempdb..#tempEmail') IS NOT NULL
+        DROP TABLE #tempEmail
+		
+		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId,* INTO #tempEmail
+		FROM [dbo].[Email] e WITH(NOLOCK)
+		WHERE e.ReferenceId = @CurrentExchangeQuoteId AND e.ModuleId = @ExchangeQuoteModuleId
+		AND ISNULL(e.IsActive,0) = 1 AND  ISNULL(e.IsDeleted,0) = 0;
+
+		DECLARE @TotalRow INT, @CurrentRow INT,@NewAttachmentId BIGINT,@OldAttachmentId BIGINT;
+
+		SELECT @TotalRow = MAX(RowId),
+			   @CurrentRow = MIN(RowId)
+		FROM #tempEmail;
+
+		WHILE (@CurrentRow <= @TotalRow AND @TotalRow > 0)
+		BEGIN
+			
+			SELECT @OldAttachmentId = AttachmentId FROM #tempEmail WHERE RowId = @CurrentRow
+			IF(ISNULL(@OldAttachmentId,0) > 0)
+			BEGIN
+				INSERT INTO [dbo].[Attachment](
+					 [ModuleId], 
+					 [ReferenceId], 
+					 [MasterCompanyId], 
+					 [CreatedBy], 
+					 [CreatedDate], 
+					 [UpdatedBy], 
+					 [UpdatedDate], 
+					 [IsActive], 
+					 [IsDeleted], 
+					 [SubModuleId], 
+					 [SubReferenceId])
+			   SELECT 
+				     [ModuleId], 
+					 @NewExchangeQuoteId, 
+					 @MasterCompanyId, 
+					 @CreatedBy, 
+					 GETUTCDATE(), 
+					 @CreatedBy, 
+					 GETUTCDATE(), 
+					 1, 
+					 0, 
+					 [SubModuleId], 
+					 [SubReferenceId]
+			    FROM [dbo].[Attachment]
+				WHERE AttachmentId = @OldAttachmentId;
+
+				SET @NewAttachmentId = SCOPE_IDENTITY();
+
+				INSERT INTO [dbo].[AttachmentDetails]
+					([AttachmentId], 
+					 [FileName], 
+					 [Description], 
+					 [Link], 
+					 [FileFormat], 
+					 [FileSize], 
+					 [FileType], 
+					 [CreatedDate], 
+					 [UpdatedDate], 
+					 [CreatedBy], 
+					 [UpdatedBy],
+					 [IsActive], 
+					 [IsDeleted],
+					 [Name], 
+					 [Memo], 
+					 [TypeId])
+				SELECT
+					@NewAttachmentId,
+					AD.[FileName],
+					AD.[Description],
+					AD.[Link],
+					AD.[FileFormat],
+					AD.[FileSize],
+					AD.[FileType],
+					GETUTCDATE(),
+					GETUTCDATE(),
+					@CreatedBy,
+					@CreatedBy,
+					1,
+					0,
+					AD.[Name],
+					AD.[Memo],
+					AD.[TypeId]
+				FROM [dbo].[AttachmentDetails] AD WITH(NOLOCK)
+				WHERE AD.AttachmentId = @OldAttachmentId
+			END
+			ELSE
+			BEGIN
+				SET @NewAttachmentId = NULL;
+			END
+				INSERT INTO [dbo].[Email]
+					([EmailTypeId]
+					,[Subject]
+					,[ContactById]
+					,[ContactDate]
+					,[EmailBody]
+					,[ToEmail]
+					,[FromEmail]
+					,[AttachmentId]
+					,[ModuleId]
+					,[ReferenceId]
+					,[MasterCompanyId]
+					,[CreatedBy]
+					,[UpdatedBy]
+					,[CreatedDate]
+					,[UpdatedDate]
+					,[IsActive]
+					,[IsDeleted]
+					,[BCC]
+					,[CC]
+					,[CustomerContactId]
+					,[WorkOrderPartNo]
+					,[Type]
+					,[EmailStatus]
+					,[EmailSentTime]
+					,[IsAttach]
+					,[EmailStatusId]
+					,[AttemptCount]
+					,[EmployeeId])
+				SELECT 
+					 e.[EmailTypeId]
+					,e.[Subject]
+					,e.[ContactById]
+					,e.[ContactDate]
+					,e.[EmailBody]
+					,e.[ToEmail]
+					,e.[FromEmail]
+					,@NewAttachmentId
+					,e.[ModuleId]
+					,@NewExchangeQuoteId
+					,@MasterCompanyId
+					,@CreatedBy
+					,@CreatedBy
+					,GETUTCDATE()
+					,GETUTCDATE()
+					,1
+					,0
+					,e.[BCC]
+					,e.[CC]
+					,e.[CustomerContactId]
+					,e.[WorkOrderPartNo]
+					,e.[Type]
+					,e.[EmailStatus]
+					,e.[EmailSentTime]
+					,e.[IsAttach]
+					,e.[EmailStatusId]
+					,e.[AttemptCount]
+					,@EmployeeId
+				FROM #tempEmail e WHERE RowId = @CurrentRow
+			
+			SET @CurrentRow = @CurrentRow + 1;
+		END
+
+		----------------------------------------------------------------
+		-- 9. Copy Address
 		----------------------------------------------------------------
 		 INSERT INTO [dbo].[AllAddress]
 			 ([ReffranceId]
 			 ,[ModuleId]
 			 ,[UserType]
-			 ,[UserTypeName]
+			 ,[UserTypeName] 
 			 ,[UserId]
 			 ,[UserName]
 			 ,[SiteId]
@@ -594,7 +793,7 @@ BEGIN
 			 ,[IsDeleted]
 			 ,[IsPrimary])
 		SELECT
-			[ReffranceId]
+			 @NewExchangeQuoteId
 			,[ModuleId]
 			,[UserType]
 			,[UserTypeName]
@@ -619,80 +818,15 @@ BEGIN
 			,[CountryId]
 			,[Country]
 			,[MasterCompanyId]
-			,[CreatedBy]
-			,[UpdatedBy]
-			,[CreatedDate]
-			,[UpdatedDate]
-			,[IsActive]
-			,[IsDeleted]
-			,[IsPrimary]
-		FROM [dbo].[AllAddress] WITH(NOLOCK)
-		WHERE ReffranceId = @CurrentExchangeQuoteId AND ModuleId = @ExchangeQuoteModuleId 
-		AND ISNULL(IsActive,0) = 1 AND  ISNULL(IsDeleted,0) = 0;
-
-		----------------------------------------------------------------
-		-- 9. Copy Email
-		----------------------------------------------------------------
-		INSERT INTO [dbo].[Email]
-			([EmailTypeId]
-			,[Subject]
-			,[ContactById]
-			,[ContactDate]
-			,[EmailBody]
-			,[ToEmail]
-			,[FromEmail]
-			,[AttachmentId]
-			,[ModuleId]
-			,[ReferenceId]
-			,[MasterCompanyId]
-			,[CreatedBy]
-			,[UpdatedBy]
-			,[CreatedDate]
-			,[UpdatedDate]
-			,[IsActive]
-			,[IsDeleted]
-			,[BCC]
-			,[CC]
-			,[CustomerContactId]
-			,[WorkOrderPartNo]
-			,[Type]
-			,[EmailStatus]
-			,[EmailSentTime]
-			,[IsAttach]
-			,[EmailStatusId]
-			,[AttemptCount]
-			,[EmployeeId])
-		SELECT 
-			[EmailTypeId]
-			,[Subject]
-			,[ContactById]
-			,[ContactDate]
-			,[EmailBody]
-			,[ToEmail]
-			,[FromEmail]
-			,[AttachmentId]
-			,[ModuleId]
-			,@NewExchangeQuoteId
-			,[MasterCompanyId]
-			,[CreatedBy]
-			,[UpdatedBy]
+			,@CreatedBy
+			,@CreatedBy
 			,GETUTCDATE()
 			,GETUTCDATE()
 			,1
 			,0
-			,[BCC]
-			,[CC]
-			,[CustomerContactId]
-			,[WorkOrderPartNo]
-			,[Type]
-			,[EmailStatus]
-			,[EmailSentTime]
-			,[IsAttach]
-			,[EmailStatusId]
-			,[AttemptCount]
-			,[EmployeeId]
-		FROM [dbo].[Email] WITH(NOLOCK)
-		WHERE ReferenceId = @CurrentExchangeQuoteId AND ModuleId = @ExchangeQuoteModuleId
+			,[IsPrimary]
+		FROM [dbo].[AllAddress] WITH(NOLOCK)
+		WHERE ReffranceId = @CurrentExchangeQuoteId AND ModuleId = @ExchangeQuoteModuleId 
 		AND ISNULL(IsActive,0) = 1 AND  ISNULL(IsDeleted,0) = 0;
 
 		----------------------------------------------------------------

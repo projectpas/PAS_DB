@@ -16,6 +16,7 @@
     1    10-04-2024  Shrey Chandegara		Created
 	2    16 OCT 2024	HEMANT SALIYA		UPDATE Open Date Changes   
 	3    18 OCT 2024	HEMANT SALIYA		UPDATE For TAT Calculation 
+	4    03 SEP 2025	Devendra Shekh		WO Stage Count Issue Resolved 
 
 EXEC GetWOQPartsMonthlyYearlyDashboardData 1, 2, '2024-10-18',10,1
 ************************************************************************/
@@ -176,10 +177,11 @@ BEGIN
 						COUNT(WOP.ID) AS CountOfOrders
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
 						INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.WorkableBacklog, 0) = 1
+						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.WorkableBacklog, 0) = 1 
 					WHERE CONVERT(DATE, WO.OpenDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate  AND WOP.MasterCompanyId = @MasterCompanyId
+						AND WO.IsDeleted = 0 and WO.IsActive = 1
 					GROUP BY  WS.Stage,WOP.WorkOrderStageId
 					)
 					INSERT INTO #tmpTop10WOStage (Stage, TotalPartCount)

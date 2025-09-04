@@ -4219,6 +4219,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetAllItemMasterStockdata.sql" />
     <Build Include="dbo\Stored Procedures\USP_ItemMasterAircraftPost.sql" />
     <Build Include="dbo\User Defined Types\ItemMasterAircraftMappingType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateExchangeQuoteVersion.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_NotQuotedPart.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -4217,6 +4217,8 @@
     <Build Include="dbo\Stored Procedures\GetSOOperatingMetricReport_HMarginUnitUnitByIMId.sql" />
     <Build Include="dbo\Stored Procedures\usp_validateCustomerCredit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllItemMasterStockdata.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ItemMasterAircraftPost.sql" />
+    <Build Include="dbo\User Defined Types\ItemMasterAircraftMappingType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

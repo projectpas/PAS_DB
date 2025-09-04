@@ -15,9 +15,7 @@
  EXEC USP_CheckVendorAdded 'AMETEK MRO',1 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CheckVendorAdded] 
-	@ILSRFQDetailId BIGINT = 0,
-	@ItemId BIGINT = 0,
-	@ItemSupplierPartId BIGINT = 0,
+	@VendorName VARCHAR(150) = NULL,
 	@MasterCompanyId int = 0
 AS
 BEGIN
@@ -27,7 +25,7 @@ BEGIN
 	BEGIN
 		DECLARE @IsExists INT = 0, @VendorId BIGINT = 0;
 
-		SELECT @VendorId = [VendorId] FROM [DBO].[VendorRFQPart] WITH(NOLOCK) WHERE [ILSRFQDetailId] = @ILSRFQDetailId AND [ItemId] = @ItemId AND [ItemSupplierPartId] = @ItemSupplierPartId AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT TOP 1 @VendorId = [VendorId] FROM [DBO].[VendorRFQPart] WITH(NOLOCK) WHERE VendorName = @VendorName AND [MasterCompanyId] = @MasterCompanyId;
 
 		IF(ISNULL(@VendorId,0) > 0 )
 		BEGIN

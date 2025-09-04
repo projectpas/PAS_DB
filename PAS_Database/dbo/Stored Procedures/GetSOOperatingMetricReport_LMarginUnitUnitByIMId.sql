@@ -101,11 +101,11 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			(ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) AS totalRevenue,
+			(ISNULL(SOBII.GrandTotal,0)) AS totalRevenue,
 			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0)) AS partsCost,
 			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCost,
 			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCost,
-			((ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmount,
+			((ISNULL(SOBII.GrandTotal,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmount,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -121,7 +121,8 @@ BEGIN
 			SO.SalesOrderNumber AS 'salesOrderNum',
 			SOBI.InvoiceDate AS 'invoiceDate',
 			SO.OpenDate AS 'openDate',
-			SO.SalesOrderId as 'salesOrderId'
+			SO.SalesOrderId as 'salesOrderId',
+			SOBII.StocklineId
        FROM 
 			DBO.BillingInvoicingItems AS SOBII WITH (NOLOCK)  
 			INNER JOIN DBO.BillingInvoicing AS SOBI WITH (NOLOCK) ON SOBII.BillingInvoicingId = SOBI.BillingInvoicingId and ISNULL(SOBI.IsVersionIncrease,0)=0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0  
@@ -154,8 +155,8 @@ BEGIN
 		SELECT * INTO #TempSOOperatingFinal FROM (SELECT * FROM #TempWOOperating main) as res
 		
 		SELECT * INTO #tmpBeforeFinalResult FROM 
-					(SELECT pn,pnDescription,ItemMasterId ,totalRevenue, partsCost,otherCost,totalCost,marginAmount,condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,CustomerId
-					 FROM #TempSOOperatingFinal ) as result
+					(SELECT pn,t.pnDescription,t.ItemMasterId ,totalRevenue, partsCost,otherCost,totalCost,marginAmount,t.condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,t.CustomerId,stk.StockLineNumber
+					 FROM #TempSOOperatingFinal t LEFT JOIN dbo.Stockline stk WITH(NOLOCK) ON t.StocklineId = stk.StockLineId ) as result
 
 
 		SELECT * INTO #tmpFinalResult FROM
@@ -166,7 +167,7 @@ BEGIN
 				 partsCost,
 				 otherCost,
 				 totalCost,
-				 marginAmount,	condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,CustomerId,			
+				 marginAmount,	condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,CustomerId,StockLineNumber,			
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((marginAmount/totalRevenue)*100))) END) as margin,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((partsCost/totalRevenue)*100))) END) as partsOrRev,
 				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((otherCost/totalRevenue)*100))) END) as otherOrRev,

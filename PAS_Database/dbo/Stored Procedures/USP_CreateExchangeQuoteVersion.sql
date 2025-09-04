@@ -647,7 +647,7 @@ BEGIN
 					 0, 
 					 [SubModuleId], 
 					 [SubReferenceId]
-			    FROM [dbo].[Attachment]
+			    FROM [dbo].[Attachment] WITH(NOLOCK)
 				WHERE AttachmentId = @OldAttachmentId;
 
 				SET @NewAttachmentId = SCOPE_IDENTITY();

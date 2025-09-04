@@ -14,6 +14,7 @@
  ** PR   Date         Author				Change Description              
  ** --   --------     -------			--------------------------------            
     1    28/04/2025  Amit Ghediya			Created  
+	2    04/09/2025  Moin Bloch		    Updated Added History
        
 -- EXEC USP_DeleteWorkOrderMaterials 129,'AMIT GHEDIYA'  
 ************************************************************************/  
@@ -26,10 +27,30 @@ BEGIN
 	 SET NOCOUNT ON;  
 	 BEGIN TRANSACTION;
 	 BEGIN TRY  
+			DECLARE @WorkOrderModuleID INT = 0
+			DECLARE @DeleteWOMaterial VARCHAR(50)='DeleteWorkOrderMaterials'
+			DECLARE @TemplateBody VARCHAR(MAX)=''
+			DECLARE @ItemMasterId BIGINT = 0
+			DECLARE @PartNumber VARCHAR(50) = NULL
+			DECLARE @WorkOrderNum VARCHAR(50) = NULL
+			DECLARE @CreatedDate DATETIME2(7) = GETUTCDATE()
+			DECLARE @MasterCompanyId INT = 1
+			DECLARE @WorkFlowWorkOrderId BIGINT=0
+			DECLARE @WOPartNoId BIGINT=0
 	  
 			DECLARE @WorkOrderId BIGINT,
 					@POId BIGINT,
 					@QtyReservedIssued INT;
+
+			SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';	
+		    
+			SELECT @WorkOrderId = [WorkOrderId], @WorkFlowWorkOrderId = [WorkFlowWorkOrderId], @ItemMasterId = [ItemMasterId] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId;
+
+			SELECT @WOPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+							
+			SELECT @WorkOrderNum = [WorkOrderNum], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+	
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
 			
 			--Update StockLine
 			IF EXISTS(SELECT TOP 1 StockLineId FROM [DBO].[StockLine] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId)
@@ -116,6 +137,19 @@ BEGIN
 				END
 			END
 			
+			-- History Template--							
+			SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @DeleteWOMaterial;	
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', @WorkOrderNum)
+			SET @TemplateBody = REPLACE(@TemplateBody, '##MPN##', @PartNumber)
+		
+			EXEC [dbo].[USP_History] @WorkOrderModuleID,@WorkOrderId,0,@WOPartNoId,'','',@TemplateBody,@DeleteWOMaterial,@MasterCompanyId,@UpdatedBy,@CreatedDate,@UpdatedBy,@CreatedDate
+			
+			IF OBJECT_ID(N'tempdb..#TempWOtbl') IS NOT NULL
+			BEGIN
+				DROP TABLE #TempWOtbl 
+			END
+
 		 COMMIT TRANSACTION;
 	 END TRY      
      BEGIN CATCH        
@@ -125,7 +159,7 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 --		--------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
 		         , @AdhocComments     VARCHAR(150)    = 'USP_DeleteWorkOrderMaterials'   
-		         , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderMaterialsId, '') + ''  
+				 , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderMaterialsId, '') AS VARCHAR(100))  
 		         , @ApplicationName VARCHAR(100) = 'PAS'  
 --		--------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
 		         exec spLogException   

@@ -166,7 +166,7 @@ BEGIN
            ,[CustomerId]
            ,[CustomerName]
            ,[CustomerCode]
-           ,[CustomerContactId]
+           ,@CustomerContactId
            ,[CreditLimit]
            ,[CreditTermId]
            ,[CreditLimitName]

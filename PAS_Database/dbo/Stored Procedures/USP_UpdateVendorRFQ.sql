@@ -26,12 +26,14 @@ BEGIN
 	BEGIN TRY
 	BEGIN
 
+		DECLARE @VendorName VARCHAR(150) ='';
+		SELECT @VendorName = [VendorName] FROM [dbo].[VendorRFQPart] WITH(NOLOCK) WHERE ItemSupplierPartId = @ItemSupplierPartId;
+
 		UPDATE VRFQP
 		SET	
 			VRFQP.VendorId = @VendorId
 		FROM [dbo].[VendorRFQPart] VRFQP WITH(NOLOCK)
-		WHERE VRFQP.ILSRFQDetailId = @ILSRFQDetailId
-		AND VRFQP.ItemSupplierPartId = @ItemSupplierPartId;
+		WHERE VRFQP.VendorName = @VendorName;
 		
 	END
 	END TRY    

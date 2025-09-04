@@ -11,6 +11,7 @@
  ** PR   Date         Author            Change Description            
  ** --   --------     -------           ---------------------------     
     1    12/08/2025   RAJESH GAMI       Created for AIAutoQuoteSetting table
+	2    04/09/2025   Devendra Shekh    Added New fiels: [Code], [YearId], [MonthId], [PercentId], [PercentValue]
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AI_GetAutoQuoteSettingList]
@@ -84,7 +85,12 @@ BEGIN
 				case when CAST(AI.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(AI.[CreatedDate], @CurrntEeTimeZoneDesc) as Date))end CreatedDate,
 				case when CAST(AI.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(AI.UpdatedDate, @CurrntEeTimeZoneDesc) as Date))end UpdatedDate,
                 ISNULL(AI.IsDeleted,0)IsDeleted,
-                ISNULL(AI.IsActive,0)IsActive
+                ISNULL(AI.IsActive,0)IsActive,
+				AI.Code,
+				AI.YearId,
+				AI.MonthId,
+				AI.PercentId,
+				AI.PercentValue
             FROM dbo.AIAutoQouteSetting AI WITH (NOLOCK)
             WHERE AI.MasterCompanyId = @MasterCompanyId
 				  AND ISNULL(AI.IsDeleted, 0) = 0

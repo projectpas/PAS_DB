@@ -1,9 +1,9 @@
 ﻿/*************************************************************             
- ** File:   [dbo.usprpt_GetSOOperatingMetricReport_MostSold]             
+ ** File:   [dbo.usprpt_GetSOOperatingMetricReport_NotQuotedPart]             
  ** Author:  Rajesh Gami    
- ** Description: Get Data for Salesorder Operating Metric Report by Most SOLD SO
+ ** Description: Get Data for Salesorder Operating Metric Report by NOT Quoted Part
  ** Purpose:           
- ** Date:   01-Sep-2025         
+ ** Date:   04-Sep-2025         
             
  ** PARAMETERS:             
            
@@ -14,10 +14,9 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    01-Sep-2025  Rajesh Gami   Created 
-	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
+    1    04-Sep-2025  Rajesh Gami   Created 
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_MostSold] 
+CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_NotQuotedPart] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -29,10 +28,8 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
 		SET @PageSize = 50;
 		DECLARE @Count VARCHAR(10)='50',@Sql NVARCHAR(MAX);  
-		DECLARE @customerid varchar(40) = NULL,  @quoteId varchar(40) = NULL,  @sourceById varchar(40) = NULL , @sourceByName varchar(40) = NULL,  
-		@fromdate datetime,  
-		@todate datetime, 
-		@itemMasterId varchar(40) = NULL,
+		DECLARE @customerName varchar(MAX) = NULL,  @sourceById varchar(40) = NULL , @sourceByName varchar(40) = NULL,  
+		@fromdate datetime,@todate datetime, @partNumber varchar(max) = NULL,@noQuoteId INT =2,
 		@level1 VARCHAR(MAX) = NULL,
 		@level2 VARCHAR(MAX) = NULL,
 		@level3 VARCHAR(MAX) = NULL,
@@ -49,11 +46,6 @@ BEGIN
   BEGIN TRY  
     --BEGIN TRANSACTION  
   
-      DECLARE @ModuleID INT = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SALESORDER')
-	  DECLARE @SOModuleId INT
-
-	  SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
-
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
@@ -61,14 +53,17 @@ BEGIN
 		@todate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date' 
 		then convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) else @todate end,
 		
-		@customerid=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @customerid end,
+		@customerName=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @customerName end,
+		
+		@sourceById=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Quote Source' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @sourceById end,
 
 		@Count=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='defaultRecord' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Count end,
 		
-		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @itemMasterId end,
+		@partNumber=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @partNumber end,
 
 		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,
@@ -96,67 +91,39 @@ BEGIN
 	 
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
-	 PRINT @sourceById
-	 print '@sourceById'
-	 if(ISNULL(@sourceById,'0') != '0' )
-	 BEGIN
-		SET @sourceByName = (select Top 1 CODE From dbo.IntegrationPortalMaster WITH(NOLOCK) WHERE IntegrationPortalMasterId = CAST(@sourceById as INT))
-		PRINT @sourceByName
-	 END
+
+	
 	 SELECT * INTO #TempSOOperating FROM
       (SELECT 
-			UPPER(Customer.[Name]) 'customer',  
-			SO.CustomerId CustomerId,
-			ROW_NUMBER() OVER(Partition by IM.ItemMasterId ORDER BY IM.PartNumber) AS ROW_NUMBER,
-			IM.ItemMasterId,
-			UPPER(IM.PartNumber) 'pn',  
-			UPPER(IM.PartDescription) 'pnDescription',  
-			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.SubTotal,0)) END AS revenue,
-			UPPER(MSD.Level1Name) AS level1,  
-			UPPER(MSD.Level2Name) AS level2, 
-			UPPER(MSD.Level3Name) AS level3, 
-			UPPER(MSD.Level4Name) AS level4, 
-			UPPER(MSD.Level5Name) AS level5, 
-			UPPER(MSD.Level6Name) AS level6, 
-			UPPER(MSD.Level7Name) AS level7, 
-			UPPER(MSD.Level8Name) AS level8, 
-			UPPER(MSD.Level9Name) AS level9, 
-			UPPER(MSD.Level10Name) AS level10
-       FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
-			INNER JOIN dbo.SalesOrderPartCost SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId
-	   		INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
-			INNER JOIN [dbo].[BillingInvoicingItems] AS SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND ISNULL(SOBII.IsPerformaInvoice, 0) = 0  AND SOBII.[ModuleId] = @SOModuleId
-			INNER JOIN [dbo].[BillingInvoicing] AS BI WITH (NOLOCK) ON SOBII.BillingInvoicingId = BI.BillingInvoicingId and BI.IsVersionIncrease=0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0  AND BI.InvoiceStatus = 'Invoiced' AND BI.[ModuleId] = @SOModuleId
-			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
-			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
-			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
-			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-		  
+			 UPPER(rfq.BuyerName) 'customer',  
+			CASE WHEN eRFQ.CustomerRfqPartMappingId IS NULL THEN UPPER(rfq.LinePartNumber) ELSE UPPER(eRFQ.PartNumber) END AS 'pn',  
+			CASE WHEN eRFQ.CustomerRfqPartMappingId IS NULL THEN UPPER(rfq.LineDescription) ELSE UPPER(eRFQ.PartDescription) END AS 'pnDescription',  
+			'' as 'type',
+			CASE WHEN eRFQ.CustomerRfqPartMappingId IS NULL THEN UPPER(rfq.Condition) ELSE UPPER(eRFQ.Condition) END AS 'condition',  
+			CASE WHEN eRFQ.CustomerRfqPartMappingId IS NULL THEN rfq.Quantity ELSE eRFQ.Quantity END AS 'qty',  
+			rfq.RFQID as 'rfqReference',
+			ipm.Code as 'sourceBy',
+			rfQuote.UpdatedDate
+       FROM dbo.CustomerRfq rfq WITH (NOLOCK)
+			LEFT JOIN dbo.CustomerRfqQuote rfQuote WITH (NOLOCK) ON rfq.RfqId = rfQuote.RfqId
+			LEFT JOIN dbo.CustomerRfqPartMapping eRFQ WITH(NOLOCK) ON rfq.CustomerRfqId = eRFQ.CustomerRfqId
+			LEFT JOIN dbo.IntegrationPortalMaster ipm WITH(NOLOCK) On ipm.IntegrationPortalMasterId = rfq.IntegrationPortalId
 		  WHERE 
-				   SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId) 
-				   AND BI.InvoiceStatus = 'Invoiced'
-					AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND SO.mastercompanyid = @mastercompanyid
-					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-					AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-					AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-					AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-					AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				ISNULL(rfq.IsQuote,0) = @noQuoteId 
+					AND (@customerName IS NULL OR rfq.BuyerName LIKE '%' + @customerName + '%')
+					 AND (
+						  @partNumber IS NULL 
+						  OR (eRFQ.CustomerRfqPartMappingId IS NOT NULL AND eRFQ.PartNumber LIKE '%' + @partNumber + '%')
+						  OR (eRFQ.CustomerRfqPartMappingId IS NULL AND rfq.LinePartNumber LIKE '%' + @partNumber + '%')
+						)
+					AND rfq.IntegrationPortalId = ISNULL(@sourceById,rfq.IntegrationPortalId) 
+					AND CAST(rfQuote.UpdatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND rfq.mastercompanyid = @mastercompanyid
 		) AS a
 
-		SELECT * INTO #TempSOOperatingFinal FROM
-		 (SELECT * FROM #TempSOOperating main) AS res
+		SELECT * INTO #tmpFinalResult FROM (SELECT * FROM #TempSOOperating main) AS res
 
-		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT MAX(ROW_NUMBER) AS timesSold,SUM(revenue) AS totalRevenue, CONVERT(DECIMAL(18,2),(SUM(revenue)/MAX(ROW_NUMBER))) AS averageRevenue,pn,pnDescription,ItemMasterId
-		 
-		 FROM #TempSOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) AS result
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
-		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesSold DESC'
+		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by UpdatedDate DESC'
 
 		PRINT @Sql
 		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
@@ -174,7 +141,7 @@ BEGIN
     DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            @AdhocComments varchar(150) = '[dbo.usprpt_GetSOOperatingMetricReport_MostSold]',  
+            @AdhocComments varchar(150) = '[dbo.usprpt_GetSOOperatingMetricReport_NotQuotedPart]',  
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100)) +  
             '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) +  
             '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)) +  

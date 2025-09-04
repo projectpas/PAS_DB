@@ -48,10 +48,10 @@ BEGIN
   BEGIN TRY  
     --BEGIN TRANSACTION  
   
-      DECLARE @ModuleID INT = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SALESORDER')
-	  DECLARE @SOModuleId INT
+      DECLARE @ModuleID INT = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SalesOrderQuote')
+	  DECLARE @SOQModuleId INT
 
-	  SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+	  SELECT @SOQModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
 
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
@@ -111,11 +111,12 @@ BEGIN
 	 SELECT * INTO #TempSOOperating FROM
       (SELECT 
 			UPPER(Customer.[Name]) 'customer',  
-			SO.CustomerId CustomerId,
+			SOQ.CustomerId CustomerId,
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) END AS revenue,
+			ISNULL(SOQC.UnitSalesPrice,0) AS 'quotePrice',
+			ISNULL(SOQC.UnitSalesPriceExtended,0) AS 'extPrice',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -127,26 +128,40 @@ BEGIN
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
 			CN.[Description] AS 'condition',
-			SO.SalesOrderNumber AS 'quoteNumber',
-			BI.InvoiceDate AS 'invoiceDate',
-			SO.OpenDate AS 'quoteDate',
-			SO.SalesOrderId as 'salesOrderId'
-       FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
-			INNER JOIN dbo.SalesOrderPartCost SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId
-			--INNER JOIN dbo.SalesOrderStockLineCost SOStk WITH (NOLOCK) ON SOP.SalesOrderPartId = SOStk.SalesOrderPartId
-	   		INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
-			INNER JOIN [dbo].[SalesOrderQuote] SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
-			LEFT JOIN [dbo].[BillingInvoicingItems] AS SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND ISNULL(SOBII.IsPerformaInvoice, 0) = 0  AND SOBII.[ModuleId] = @SOModuleId
-			LEFT JOIN [dbo].[BillingInvoicing] AS BI WITH (NOLOCK) ON SOBII.BillingInvoicingId = BI.BillingInvoicingId and BI.IsVersionIncrease=0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0  AND BI.InvoiceStatus = 'Invoiced' AND BI.[ModuleId] = @SOModuleId
+			SOQ.SalesOrderQuoteNumber AS 'quoteNumber',
+			--BI.InvoiceDate AS 'invoiceDate',
+			SOQ.OpenDate AS 'quoteDate',
+			SOQ.SalesOrderQuoteId as 'salesOrderId',
+			CASE WHEN ISNULL(SOQ.SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END as 'source',
+			SOQ.VersionNumber as 'versionNum',
+			IM.PurchaseUnitOfMeasure as 'uom',
+			(CASE WHEN IM.IsOEM = 1 THEN 'OEM' WHEN IM.IsPma = 1  THEN 'PMA' WHEN IM.IsDER =1 THEN 'DER' ELSE 'OEM' END) as 'type',
+			SOQP.QtyQuoted as 'qtyQuoted',
+			CASE WHEN ISNULL(SO.SalesOrderQuoteId,0) > 0 THEN 'YES' ELSE 'NO' END 'isSOConverted',
+			SOQ.CreatedBy as 'quoteBy',
+			rfq.RFQID as 'rfqRef'
+
+			FROM dbo.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
+			INNER JOIN SalesOrderQuotePartCost SOQC WITH (NOLOCK) on SOQP.SalesOrderQuotePartId = SOQC.SalesOrderQuotePartId
+			INNER JOIN [dbo].[SalesOrderQuote] SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+			LEFT JOIN dbo.CustomerRfq  rfq WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = rfq.ReferenceId AND rfq.ModuleId = @SOQModuleId
+			LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+			--LEFT JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			--LEFT JOIN dbo.SalesOrderPartCost SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId
+
+			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+			--LEFT JOIN [dbo].[BillingInvoicingItems] AS SOBII WITH (NOLOCK) ON SOP.SalesOrderPartId = SOBII.SubReferenceId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND ISNULL(SOBII.IsPerformaInvoice, 0) = 0  AND SOBII.[ModuleId] = @SOModuleId
+			--LEFT JOIN [dbo].[BillingInvoicing] AS BI WITH (NOLOCK) ON SOBII.BillingInvoicingId = BI.BillingInvoicingId and BI.IsVersionIncrease=0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0  AND BI.InvoiceStatus = 'Invoiced' AND BI.[ModuleId] = @SOModuleId
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
-			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
-			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
+			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SOQ.CustomerId = Customer.CustomerId  
+			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOQP.itemmasterId = IM.itemmasterId  
+			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOQP.ConditionId = CN.ConditionId 
 		  WHERE 
-				ISNULL(SOQ.IsDeleted,0) = 0 AND	SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId) 
-					AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy) AND	SOQ.SalesOrderQuoteId=ISNULL(@quoteId,SOQ.SalesOrderQuoteId) 
-					AND CAST(SOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND SO.mastercompanyid = @mastercompanyid
+				ISNULL(SOQ.IsDeleted,0) = 0 AND	SOQ.CustomerId=ISNULL(@customerid,SOQ.CustomerId)  AND SOQP.ItemMasterId = ISNULL(@itemMasterId,SOQP.ItemMasterId) 
+				--AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy) 
+				AND ( @sourceByName IS NULL OR (@sourceByName = 'PAS'  AND ISNULL(NULLIF(LTRIM(RTRIM(SOQ.SourceBy)), ''), 'PAS') = 'PAS') OR (@sourceByName <> 'PAS' AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy)))
+					AND	SOQ.SalesOrderQuoteId=ISNULL(@quoteId,SOQ.SalesOrderQuoteId) 
+					AND CAST(SOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND SOQ.mastercompanyid = @mastercompanyid
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

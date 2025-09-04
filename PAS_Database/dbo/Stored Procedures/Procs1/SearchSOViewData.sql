@@ -18,6 +18,7 @@
 	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
 	6	 25-04-2025  Bhargav Saliya		Customer Name Get from the SO table instead of the Customer table
 	7    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
+	8    03-09-2025  AMIT GHEDIYA		Updated for filter issue (SalesQuoteNumber)
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
 	@PageNumber INT,
@@ -302,7 +303,7 @@ BEGIN
       ORDER BY      
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERID')  THEN SalesOrderId END DESC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,    
-      CASE WHEN (@SortOrder=1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END ASC,    
+      CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERQUOTENUMBER')  THEN SalesOrderQuoteNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END ASC,    
@@ -327,7 +328,7 @@ BEGIN
 	  CASE WHEN (@SortOrder=1 and @SortColumn='NUMBEROFITEMCOUNT')  THEN NumberOfItemCount END ASC,
 
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,    
-      CASE WHEN (@SortOrder=-1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,    
+      CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,    

@@ -22,6 +22,8 @@
 	7    18/10/2023  Devendra Shekh		added new status code REOPENEDFINISHEDGOODS    
 	8    17/01/2025  Vishal Suthar		added new status code CreateWorkOrderTask, UpdateWorkOrderTaskDescrepancy and UpdateWorkOrderTaskResolution    
     9    01/09/2025  Moin Bloch		    Updated Added New Field [Activity]
+	10   03/09/2025  Moin Bloch		    Updated Added TemplateText
+
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_History]    
@@ -47,7 +49,8 @@ BEGIN
   DECLARE @TemplateBody NVARCHAR(MAX);    
   DECLARE @RequestorName VARCHAR(256);    
   DECLARE @ApproverName VARCHAR(256);    
-  DECLARE @WorkOrderNum VARCHAR(256);    
+  DECLARE @WorkOrderNum VARCHAR(256);
+  DECLARE @TemplateText VARCHAR(50);  
     
   SELECT @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode;    
   SELECT @WorkOrderNum = [WorkOrderNum] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @RefferenceId;    
@@ -58,8 +61,15 @@ BEGIN
   OR @StatusCode = 'VendorRMAPickTicketConfirmed' OR @StatusCode = 'VendorRMAShipped' OR @StatusCode = 'CreateVendorCreditMemo' OR @StatusCode = 'UpdateVendorRMAPartQty' OR @StatusCode = 'UpdateVendorRMAReturnReason'
   OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR 
   @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange' OR @StatusCode = 'REOPENCLOSEDWO' OR @StatusCode = 'SERNUMCHANGE' OR @StatusCode = 'CUSTREFCHANGE' OR @StatusCode = 'REOPENEDFINISHEDGOODS' OR @StatusCode = 'CreateWorkOrderTask' OR @StatusCode = 'UpdateWorkOrderTaskDescrepancy' OR @StatusCode = 'UpdateWorkOrderTaskResolution'
-  OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction')    
-  BEGIN    
+  OR @StatusCode = 'DeleteWorkOrderTask' OR @StatusCode = 'CreateWorkOrderTaskInstruction' OR @StatusCode = 'TravelerDelete')    
+  BEGIN        
+	SELECT @TemplateText = [TemplateText] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @StatusCode; 
+	
+	IF(@StatusCode = 'ReleasefromisLocked')
+	BEGIN
+		SET @TemplateText = CASE WHEN @NewValue = 'False' THEN 'Release Form UnLocked' ELSE 'Release Form Locked' END
+	END
+	
    INSERT INTO [dbo].[History]    
        ([ModuleId]    
        ,[RefferenceId]    
@@ -89,7 +99,7 @@ BEGIN
        ,GETUTCDATE()    
        ,@CreatedBy    
        ,GETUTCDATE()
-	   ,@StatusCode)    
+	   ,@TemplateText)    
   END    
   END TRY        
  BEGIN CATCH    

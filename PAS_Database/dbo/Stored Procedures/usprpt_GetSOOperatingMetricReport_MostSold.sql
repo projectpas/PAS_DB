@@ -110,7 +110,7 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal,0) -ISNULL(SOBII.FreightCostPlus,0)) END AS revenue,
+			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal,0)) END AS revenue,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

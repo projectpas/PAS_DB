@@ -1,4 +1,5 @@
-﻿/*******  
+﻿
+/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -21,6 +22,7 @@
 	11	 15-Aug-2025		Ayushi Patel			Handle Part with multiple Manufacturer for stockline
 	12	 15-Aug-2025		Ayushi Patel			Qty OH must be one for Serialized Parts
 	13	 26-Aug-2025		RAJESH GAMI				Validate the PRice Master
+	14	 05-Sep-2025		RAJESH GAMI				Validate the PRice Master (Return message for valid price )
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -258,7 +260,10 @@ BEGIN
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
-												
+												WHEN  ISNULL(TMP.FieldValue, '') != ''  AND ((IMF.FieldName = 'PP_VendorListPrice' OR IMF.FieldName = 'PP_UnitPurchasePrice' OR IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' )
+													AND (TRY_CAST(TMP.FieldValue AS INT) IS NULL ) )
+													THEN (CASE WHEN IMF.FieldName = 'PP_VendorListPrice' THEN 'Vendor List Price' WHEN IMF.FieldName = 'PP_UnitPurchasePrice' THEN 'Unit Purchase Price' WHEN IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' THEN 'Unit Sale Price' ELSE ''END  ) + ' must be a valid price (characters are not allowed)'
+													
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg

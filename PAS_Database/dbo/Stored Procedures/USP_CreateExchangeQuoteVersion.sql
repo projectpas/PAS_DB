@@ -12,6 +12,7 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    09/01/2025		  Ekta Chandegra		  Created
+	2    09/05/2025       Ekta Chandegra          Update Version number
 
 exec [dbo].[USP_CreateExchangeQuoteVersion] @CurrentExchangeQuoteId=130,@CustomerReference=N'',
 @PriorityId=3,@SalesPersonId=73,@CreatedBy=N'roza diaz',@MasterCompanyId=1,@ManagementStructureId=1,
@@ -45,13 +46,23 @@ BEGIN
 
 		SELECT @ExchangeQuoteAttachmentModuleId = AttachmentModuleId FROM [dbo].[AttachmentModule] WITH(NOLOCK) where Name = 'ExchangeQuote';
 
-		DECLARE @Vesrion INT;
+		DECLARE @Vesrion VARCHAR(50);
 		-- Generate Version
-		SELECT @Vesrion = Version FROM [dbo].[ExchangeQuote] WITH(NOLOCK) WHERE ExchangeQuoteId = @CurrentExchangeQuoteId;
-		SET @Vesrion = @Vesrion + 1;
+		SELECT @Vesrion = [Version] FROM [dbo].[ExchangeQuote] WITH(NOLOCK) WHERE ExchangeQuoteId = @CurrentExchangeQuoteId;
+		SET @Vesrion = @Vesrion + 1
 
 		DECLARE @VersionNumber VARCHAR(50);
 		SET @VersionNumber = [dbo].[GenearteVersionNumber] (@Vesrion);
+
+		IF @SalesPersonId = 0 
+		BEGIN
+			SET @SalesPersonId = NULL
+		END
+
+		IF @EmployeeId = 0 
+		BEGIN
+			SET @EmployeeId = NULL
+		END
 
 		DECLARE @SalesPersonName VARCHAR(80);
 		SELECT TOP 1 @SalesPersonName = [FirstName] + ' ' + [LastName] FROM [dbo].[Employee] WITH(NOLOCK) WHERE EmployeeId = @SalesPersonId;

@@ -1,8 +1,4 @@
-﻿
-
-
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateItemMasterDetail]           
  ** Author:   Moin Bloch
  ** Description: Update Item Master All Id Wise Names
@@ -17,7 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    30-Mar-2021   Moin Bloch   Created
-
+    2    05-Sep-2021   Rajesh Gami  Update Stockline Part Numbers and Descriptions When ItemMaster Part Number or Description Changes
  EXEC UpdateItemMasterDetail 268
 **************************************************************/ 
 
@@ -73,6 +69,61 @@ BEGIN
 			  
 		WHERE IM.ItemMasterId  = @ItemMasterId 
 		
+		/*****************  Update Stockline Part Numbers and Descriptions When ItemMaster Part Number or Description Changes  ******************/
+				-- Main ItemMasterId	
+				UPDATE SL
+					SET 
+						SL.PartNumber    = IM.partnumber,
+						SL.PNDescription = IM.PartDescription
+					FROM Stockline SL
+					INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.ItemMasterId
+					WHERE SL.ItemMasterId = @ItemMasterId
+					  AND ISNULL(SL.QuantityOnHand,0) > 0
+					  AND (ISNULL(SL.PartNumber,'')    <> ISNULL(IM.partnumber,'')
+						OR ISNULL(SL.PNDescription,'') <> ISNULL(IM.PartDescription,''));
+
+				-- RevicedPNId
+				UPDATE SL
+				SET SL.RevicedPNNumber = IM.partnumber
+				FROM Stockline SL
+				INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.RevicedPNId
+				WHERE SL.RevicedPNId = @ItemMasterId
+				  AND ISNULL(SL.QuantityOnHand,0) > 0
+				  AND ISNULL(SL.RevicedPNNumber,'') <> ISNULL(IM.partnumber,'');
+
+				-- IsOemPNId
+				UPDATE SL
+				SET SL.OEMPNNumber = IM.partnumber
+				FROM Stockline SL
+				INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.IsOemPNId
+				WHERE SL.IsOemPNId = @ItemMasterId
+				  AND ISNULL(SL.QuantityOnHand,0) > 0
+				  AND ISNULL(SL.OEMPNNumber,'') <> ISNULL(IM.partnumber,'');
+
+				-- TLAItemMasterId
+				UPDATE SL
+				SET 
+					SL.TLAPartNumber      = IM.partnumber,
+					SL.TLAPartDescription = IM.PartDescription
+				FROM Stockline SL
+				INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.TLAItemMasterId
+				WHERE SL.TLAItemMasterId = @ItemMasterId
+				  AND ISNULL(SL.QuantityOnHand,0) > 0
+				  AND (ISNULL(SL.TLAPartNumber,'')      <> ISNULL(IM.partnumber,'')
+					OR ISNULL(SL.TLAPartDescription,'') <> ISNULL(IM.PartDescription,''));
+
+				-- NHAItemMasterId
+				UPDATE SL
+				SET 
+					SL.NHAPartNumber      = IM.partnumber,
+					SL.NHAPartDescription = IM.PartDescription
+				FROM Stockline SL
+				INNER JOIN ItemMaster IM ON IM.ItemMasterId = SL.NHAItemMasterId
+				WHERE SL.NHAItemMasterId = @ItemMasterId
+				  AND ISNULL(SL.QuantityOnHand,0) > 0
+				  AND (ISNULL(SL.NHAPartNumber,'')      <> ISNULL(IM.partnumber,'')
+					OR ISNULL(SL.NHAPartDescription,'') <> ISNULL(IM.PartDescription,''));
+
 		SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId ;
 		
 		COMMIT TRANSACTION

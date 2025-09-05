@@ -36,7 +36,7 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION
 
-			DECLARE @PercentValue DECIMAL = NULL;
+			DECLARE @PercentValue DECIMAL(18, 2) = NULL;
 			IF(@PercentId > 0)
 			BEGIN
 				(SELECT @PercentValue = PercentValue FROM [dbo].[Percent] WITH(NOLOCK) WHERE [PercentId] = @PercentId and [MasterCompanyId] = @MasterCompanyId and ISNULL(IsDeleted,0) = 0)

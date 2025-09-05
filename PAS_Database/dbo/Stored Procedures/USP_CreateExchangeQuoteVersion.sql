@@ -300,9 +300,9 @@ BEGIN
 		   ,[DepositeAmount]
 		   ,[CoreDueDate]
 		   ,[MasterCompanyId]
-		   ,[CreatedBy]
+		   ,@CreatedBy
 		   ,GETUTCDATE()
-		   ,[UpdatedBy]
+		   ,@CreatedBy
 		   ,GETUTCDATE()
 		   ,0
 		   ,1
@@ -403,8 +403,8 @@ BEGIN
 		   ,[DimensionUOMId]
 		   ,[CurrencyId]
 		   ,[MasterCompanyId]
-		   ,[CreatedBy]
-		   ,[UpdatedBy]
+		   ,@CreatedBy
+		   ,@CreatedBy
 		   ,GETUTCDATE()
 		   ,GETUTCDATE()
 		   ,1
@@ -450,7 +450,7 @@ BEGIN
 		   ,[MarkupName]
 		   ,[UOMId])
 		SELECT
-			@NewExchangeQuoteId
+			 @NewExchangeQuoteId
 			,@NewExchangeQuotePartId
 			,[ChargesTypeId]
 			,[VendorId]
@@ -466,8 +466,8 @@ BEGIN
 			,[BillingRate]
 			,[HeaderMarkupId]
 			,[RefNum]
-			,[CreatedBy]
-			,[UpdatedBy]
+			,@CreatedBy
+			,@CreatedBy
 			,GETUTCDATE()
 			,GETUTCDATE()
 			,1
@@ -512,7 +512,7 @@ BEGIN
 			A.[SubModuleId],
 			A.AttachmentId -- This is the key part - we're using the old ID to create the map
 		FROM [dbo].[Attachment] A WITH(NOLOCK)
-		WHERE A.AttachmentId IN (SELECT DISTINCT AttachmentId FROM [dbo].[CommonDocumentDetails] WITH(NOLOCK) WHERE ReferenceId = @CurrentExchangeQuoteId AND ModuleId = @ExchangeQuoteAttachmentModuleId AND IsDeleted = 0);
+		WHERE A.AttachmentId IN (SELECT DISTINCT AttachmentId FROM [dbo].[CommonDocumentDetails] WITH(NOLOCK) WHERE ReferenceId = @CurrentExchangeQuoteId AND ModuleId = @ExchangeQuoteAttachmentModuleId AND ISNULL(IsDeleted,0) = 0);
 
 		-- Now, copy AttachmentDetails using the map. This part is correct.
 		INSERT INTO [dbo].[AttachmentDetails]
@@ -551,7 +551,7 @@ BEGIN
 			AD.[TypeId]
 		FROM [dbo].[AttachmentDetails] AD WITH(NOLOCK)
 		JOIN @AttachmentMap map ON AD.AttachmentId = map.OldAttachmentId
-		WHERE AD.IsActive = 1 AND AD.IsDeleted = 0;
+		WHERE ISNULL(AD.IsActive,0) = 1 AND ISNULL(AD.IsDeleted,0) = 0;
 
 		-- Let's refine the final INSERT
 		INSERT INTO [dbo].[CommonDocumentDetails]
@@ -598,7 +598,7 @@ BEGIN
 		FROM [dbo].[CommonDocumentDetails] CDD WITH(NOLOCK)
 		JOIN [dbo].[Attachment] A WITH(NOLOCK) ON CDD.AttachmentId = A.AttachmentId AND A.ReferenceId = @CurrentExchangeQuoteId
 		JOIN @AttachmentMap map ON A.AttachmentId = map.OldAttachmentId 
-		WHERE CDD.ReferenceId = @CurrentExchangeQuoteId AND CDD.ModuleId = @ExchangeQuoteAttachmentModuleId AND CDD.IsDeleted = 0;
+		WHERE CDD.ReferenceId = @CurrentExchangeQuoteId AND CDD.ModuleId = @ExchangeQuoteAttachmentModuleId AND ISNULL(CDD.IsDeleted,0) = 0;
         
 		----------------------------------------------------------------
 		-- 8. Copy Email
@@ -817,7 +817,7 @@ BEGIN
 			,[PostalCode]
 			,[CountryId]
 			,[Country]
-			,[MasterCompanyId]
+			,@MasterCompanyId
 			,@CreatedBy
 			,@CreatedBy
 			,GETUTCDATE()
@@ -846,13 +846,13 @@ BEGIN
 			,[IsDeleted]
 			,[WorkOrderPartNo])
 		SELECT
-		   [MemoCode]
+		    [MemoCode]
 		   ,[Description]
 		   ,@ExchangeQuoteModuleId
 		   ,@NewExchangeQuoteId
-		   ,[MasterCompanyId]
-		   ,[CreatedBy]
-		   ,[UpdatedBy]
+		   ,@MasterCompanyId
+		   ,@CreatedBy
+		   ,@CreatedBy
 		   ,GETUTCDATE()
 		   ,GETUTCDATE()
 		   ,1
@@ -862,8 +862,8 @@ BEGIN
 		WHERE ReferenceId = @CurrentExchangeQuoteId AND ModuleId = @ExchangeQuoteModuleId
 		AND ISNULL(IsActive,0) = 1 AND  ISNULL(IsDeleted,0) = 0;
 
-		----------------------------------------------------------------
-		-- 11. Copy Phone
+	   ----------------------------------------------------------------
+	   -- 11. Copy Phone
 	   ----------------------------------------------------------------
 	   INSERT INTO [dbo].[CommunicationPhone]
 		   ([PhoneNo]
@@ -887,9 +887,9 @@ BEGIN
 		   ,[Notes]
 		   ,@ExchangeQuoteModuleId
 		   ,@NewExchangeQuoteId
-		   ,[MasterCompanyId]
-		   ,[CreatedBy]
-		   ,[UpdatedBy]
+		   ,@MasterCompanyId
+		   ,@CreatedBy
+		   ,@CreatedBy
 		   ,GETUTCDATE()
 		   ,GETUTCDATE()
 		   ,1
@@ -920,14 +920,14 @@ BEGIN
 			,[CustomerContactId]
 			,[WorkOrderPartNo])
 		SELECT
-			[Mobile]
+			 [Mobile]
 			,[ContactById]
 			,[Notes]
 			,[ModuleId]
 			,@NewExchangeQuoteId
-			,[MasterCompanyId]
-			,[CreatedBy]
-			,[UpdatedBy]
+			,@MasterCompanyId
+			,@CreatedBy
+			,@CreatedBy
 			,GETUTCDATE()
 			,GETUTCDATE()
 			,1
@@ -993,9 +993,9 @@ BEGIN
 			,[CustomerStatusId]
 			,[InternalStatusId]
 			,[CustomerMemo]
-			,[MasterCompanyId]
-			,[CreatedBy]
-			,[UpdatedBy]
+			,@MasterCompanyId
+			,@CreatedBy
+			,@CreatedBy
 			,GETUTCDATE()
 			,GETUTCDATE()
 			,1
@@ -1031,5 +1031,33 @@ BEGIN
 
 	END TRY
 	BEGIN CATCH
+	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+            , @AdhocComments     VARCHAR(150)    = 'USP_CreateExchangeQuoteVersion'     
+            , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = '''+ CAST(ISNULL(@CurrentExchangeQuoteId, '') AS varchar(100) ) + ''',
+													@Parameter2 = '''+ CAST(ISNULL(@CustomerReference, '') AS varchar(100) ) + ''',
+													@Parameter3 = '''+ CAST(ISNULL(@PriorityId, '') AS varchar(100) ) + ''',
+													@Parameter4 = '''+ CAST(ISNULL(@SalesPersonId, '') AS varchar(100) ) + ''',
+													@Parameter5 = '''+ CAST(ISNULL(@CreatedBy , '') AS varchar(100) ) + ''',
+													@Parameter6 = '''+ CAST(ISNULL(@MasterCompanyId , '') AS varchar(100) ) + ''',
+													@Parameter7 = '''+ CAST(ISNULL(@ManagementStructureId, '') AS varchar(100) ) + ''',
+													@Parameter8 = '''+ CAST(ISNULL(@EmployeeId, '') AS varchar(100) ) + ''',
+													@Parameter9 = '''+ CAST(ISNULL(@CustomerContactId, '') AS varchar(100) ) + ''',
+													@Parameter10 = '''+ CAST(ISNULL(@CustomerSeviceRepId, '') AS varchar(100) ) + ''',
+													@Parameter11 = '''+ CAST(ISNULL(@Memo, '') AS varchar(100) ) + ''',
+													@Parameter12 = '''+ CAST(ISNULL(@Notes, '') AS varchar(100) ) + ''',
+													@Parameter13 = '''+ CAST(ISNULL(@FunctionalCurrencyId, '') AS varchar(100) ) + ''',
+													@Parameter14 = '''+ CAST(ISNULL(@ReportCurrencyId, '') AS varchar(100) ) + ''',
+													@Parameter15 = '''+ CAST(ISNULL(@ForeignExchangeRate , '') AS varchar(100) ) + ''
+			,@ApplicationName VARCHAR(100) = 'PAS'    
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+            exec spLogException     
+                    @DatabaseName           = @DatabaseName    
+                    , @AdhocComments          = @AdhocComments    
+                    , @ProcedureParameters = @ProcedureParameters    
+                    , @ApplicationName        =  @ApplicationName    
+                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;    
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
+            RETURN(1);
 	END CATCH
 END

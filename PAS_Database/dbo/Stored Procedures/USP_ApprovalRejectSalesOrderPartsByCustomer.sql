@@ -16,6 +16,7 @@
     1    25-06-2025	 BHARGAV SALIYA	  Created 
 	2    14-07-2025	 RAJESH GAMI	  Call the new SP for update the SO Header status  
 	3    15-07-2025	 Devendra Shekh	  Added @ContactId param
+	4    05-09-2025	 Amit Ghediya	  Update rejected data null after approved.
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
@@ -64,7 +65,10 @@ BEGIN
 					CustomerStatus = @CustomerStatus,
 					InternalStatus = @CustomerStatus,
 					UpdatedBy = @UpdatedBy,
-					UpdatedDate = GETUTCDATE()
+					UpdatedDate = GETUTCDATE(),
+					RejectedById = NULL,
+					RejectedByName = NULL,
+					RejectedDate = NULL
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId 
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 

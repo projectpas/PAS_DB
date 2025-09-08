@@ -8,12 +8,16 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    07-Aug-2025		Bhargav Saliya			Created
+	2	 08-Sep-2025        Divyesh Kathitiya		Set Vendor IsAddress For Billing & Shipping.
+
 	exec [USP_UpdateVendorDetails] 4882,1 ,1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_UpdateVendorDetails]
 @VendorId BIGINT,
 @MasterCompanyId INT,
-@VendorClassificationId VARCHAR
+@VendorClassificationId VARCHAR,
+@IsAddressForBilling BIT,
+@IsAddressForShipping BIT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -23,8 +27,8 @@ BEGIN
 		DECLARE @VendorCode VARCHAR(50) = NULL,@VendorName VARCHAR(100) = NULL,@VendorEmail VARCHAR(200) = NULL,@VendorPhone VARCHAR(256) = NULL,
 				@VendorPhoneExt VARCHAR(10) = NULL,@CreatedBy VARCHAR(256) = NULL,@UpdatedBy VARCHAR(256) = NULL,@Address1 VARCHAR(50) = NULL,
 				@Address2 VARCHAR(50) = NULL,@PostalCode VARCHAR(20) = NULL,@StateOrProvince VARCHAR(50) = NULL,@City VARCHAR(50) = NULL,
-				@CountryId SMALLINT,@IsAddressForShipping BIT,@AddressId BIGINT,@VendorShippingAddressId BIGINT,@IsAddressForBilling BIT,
-				@VendorBillingAddressId BIGINT;
+				--@CountryId SMALLINT,@IsAddressForShipping BIT,@AddressId BIGINT,@VendorShippingAddressId BIGINT,@IsAddressForBilling BIT,
+				@CountryId SMALLINT,@AddressId BIGINT,@VendorShippingAddressId BIGINT,@VendorBillingAddressId BIGINT;
 
 		DECLARE @BillingAddressId INT = 1;
 		DECLARE @ShippingAddressId INT = 2;
@@ -38,8 +42,8 @@ BEGIN
 			   ,@VendorEmail = VendorEmail
 			   ,@VendorPhone = VendorPhone
 			   ,@VendorPhoneExt = VendorPhoneExt
-			   ,@IsAddressForShipping = IsAddressForShipping
-			   ,@IsAddressForBilling = IsAddressForBilling
+			   --,@IsAddressForShipping = IsAddressForShipping
+			   --,@IsAddressForBilling = IsAddressForBilling
 			   ,@CreatedBy = CreatedBy
 			   ,@UpdatedBy = UpdatedBy
 		FROM [dbo].[Vendor] WITH(NOLOCK) WHERE VendorId = @VendorId and MasterCompanyId = @MasterCompanyId;

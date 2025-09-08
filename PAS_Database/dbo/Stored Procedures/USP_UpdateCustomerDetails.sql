@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:  [USP_UpdateCustomerDetails]            
  ** Author:   Ayushi Patel
  ** Description: Update Customer with default values
@@ -7,8 +6,10 @@
  ** Change History             
  **************************************************************             
  ** PR   Date				Author  				Change Description              
- ** --   --------			-------				--------------------------------            
+ ** --   --------			-------					--------------------------------            
     1    31-July-2025		Ayushi Patel			Created
+	2	 04-Sep-2025        Divyesh Kathitiya		Added Customer Financial Default Settings And set IsAddress For Billing & Shipping.
+
 	SELECT TOP 1 * FROM dbo.CodePrefixes WITH(NOLOCK) WHERE MasterCompanyId =1 AND CodeTypeId = 10 AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateCustomerDetails]
@@ -16,7 +17,10 @@ CREATE   PROCEDURE [dbo].[USP_UpdateCustomerDetails]
 	@CustomerModuleId BIGINT,
     @CustomerClassificationVal VARCHAR(256) = NULL,
 	@CustomerAffiliationVal VARCHAR(256) = NULL,
-    @MasterCompanyId INT
+    @MasterCompanyId INT,
+	@EmployeeId BIGINT,
+	@IsAddressForBilling BIT,
+	@IsAddressForShipping BIT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -26,10 +30,16 @@ BEGIN
 		DECLARE @CustomerCode varchar(50);
 		DECLARE @CurrentIdNumber BIGINT =0
 		DECLARE @CustomerCodeTypeId BIGINT = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE UPPER([CodeType]) = 'Customer')
+		DECLARE @LegalEntityId BIGINT;
+		DECLARE @CreditLimit DECIMAL;
+		DECLARE @CreditTermsId INT;		
+		DECLARE @CurrencyId INT;
+
 		SELECT * INTO #TempCodePrefix FROM(SELECT TOP 1 * FROM dbo.CodePrefixes WITH(NOLOCK) WHERE MasterCompanyId =@MasterCompanyId AND CodeTypeId = @CustomerCodeTypeId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0) AS A
 		SELECT @CurrentIdNumber = CASE WHEN CurrentNummber > 0 THEN CAST(CurrentNummber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END	FROM #TempCodePrefix WHERE CodeTypeId = @CustomerCodeTypeId
 		SET @CustomerCode = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber + 1, (SELECT CodePrefix FROM #TempCodePrefix WHERE CodeTypeId = @CustomerCodeTypeId), (SELECT CodeSufix FROM #TempCodePrefix WHERE CodeTypeId = @CustomerCodeTypeId)))
-        
+        SET @LegalEntityId = (SELECT [LegalEntityId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
+		
 		DECLARE @CustomerClassificationId BIGINT;
 		--DECLARE @CustomerAffiliationId BIGINT;
 		SET @CustomerClassificationId = @CustomerClassificationVal
@@ -133,7 +143,7 @@ BEGIN
 			@AddressCreatedBy = @CreatedBy,
 			@AddressCreatedDate = @CreatedDate,
 			@AddressUpdatedBy = @UpdatedDate,
-			@Flag = 1;
+			@Flag = @IsAddressForShipping;
        
 	   EXEC [dbo].AddCustomerBillingAddress
 			@CustomerId = @CustmerId,
@@ -154,7 +164,29 @@ BEGIN
 			@AddressCreatedBy = @CreatedBy,
 			@AddressCreatedDate= @CreatedDate,
 			@AddressUpdatedBy = @UpdatedDate,
-			@Flag = 1
+			@Flag = @IsAddressForBilling;
+
+--  Financial Detail Starts --
+
+		SELECT
+			@CreditLimit = CreditLimit,
+			@CreditTermsId = CreditTermsId,
+			@CurrencyId = CurrencyId			
+		FROM [DBO].[CustomerSettings] WITH(NOLOCK)
+		WHERE [LegalEntityId] = @LegalEntityId
+		AND [MasterCompanyId] = @MasterCompanyId
+		AND [IsActive] = 1 AND [IsDeleted] = 0
+
+		IF NOT EXISTS (SELECT 1 FROM [CustomerFinancial] WITH (NOLOCK) WHERE CustomerId = @CustmerId)
+		BEGIN
+            INSERT INTO [CustomerFinancial] (
+                CustomerId,	MarkUpPercentageId, DiscountId, CreditLimit, CreditTermsId, CurrencyId, AllowNettingOfAPAR, AllowPartialBilling, AllowProformaBilling,
+				IsTaxExempt, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, IsCustomerSetting, PaymentMethodId)
+            VALUES (
+                @CustmerId, NULL, NULL, @CreditLimit, @CreditTermsId, @CurrencyId, 0, 0, 0,
+				0, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, 1,NULL)
+		END
+
 		
     END TRY
     BEGIN CATCH

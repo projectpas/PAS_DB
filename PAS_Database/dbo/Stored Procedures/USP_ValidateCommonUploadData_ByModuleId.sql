@@ -23,6 +23,8 @@
 	12	 15-Aug-2025		Ayushi Patel			Qty OH must be one for Serialized Parts
 	13	 26-Aug-2025		RAJESH GAMI				Validate the PRice Master
 	14	 05-Sep-2025		RAJESH GAMI				Validate the PRice Master (Return message for valid price )
+	15	 08-Sep-2025        Divyesh Kathitiya		Added validation for Customer and Vendor: IsAddress For Billing & Shipping.
+
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -300,7 +302,10 @@ BEGIN
 												WHEN  ISNULL(TMP.FieldValue, '') != ''  AND ((IMF.FieldName = 'PP_VendorListPrice' OR IMF.FieldName = 'PP_UnitPurchasePrice' OR IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' )
 													AND (TRY_CAST(TMP.FieldValue AS INT) IS NULL ) )
 													THEN (CASE WHEN IMF.FieldName = 'PP_VendorListPrice' THEN 'Vendor List Price' WHEN IMF.FieldName = 'PP_UnitPurchasePrice' THEN 'Unit Purchase Price' WHEN IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' THEN 'Unit Sale Price' ELSE ''END  ) + ' must be a valid price (characters are not allowed)'
-													
+												
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'isAddressForBilling' OR IMF.FieldName = 'isAddressForShipping') AND (LOWER(TMP.FieldValue) NOT IN ('yes','no'))
+													THEN IMF.FieldName + ' must be YES OR NO'
+
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
@@ -519,6 +524,9 @@ BEGIN
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
+
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'isAddressForBilling' OR IMF.FieldName = 'isAddressForShipping') AND (LOWER(TMP.FieldValue) NOT IN ('yes','no'))
+													THEN IMF.FieldName + ' must be YES OR NO'
 
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'

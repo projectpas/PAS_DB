@@ -11,6 +11,7 @@
  ** PR   Date         Author  		    Change Description            
  ** --   --------     -------		    ---------------------------     
     1    12/08/2025   Rajesh Gami      Created
+    2    04/09/2025   Devendra Shekh   Added New fiels: [YearId], [MonthId], [PercentId], [PercentValue]
 **************************************************************           
  EXEC USP_AI_AddUpdateAutoQuoteSetting 0,1,'Price List','PRL',1,2,'Auto Send',1,'Admin'
 **************************************************************/
@@ -23,7 +24,10 @@ CREATE   PROCEDURE [dbo].[USP_AI_AddUpdateAutoQuoteSetting]
     @QuoteSendReviewId INT = NULL,
     @QuoteSendReview VARCHAR(100) = NULL,
     @MasterCompanyId INT,
-    @CreatedBy VARCHAR(256)
+    @CreatedBy VARCHAR(256),
+	@YearId BIGINT = NULL,
+	@MonthId BIGINT = NULL,
+	@PercentId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -31,18 +35,25 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION
+
+			DECLARE @PercentValue DECIMAL(18, 2) = NULL;
+			IF(@PercentId > 0)
+			BEGIN
+				(SELECT @PercentValue = PercentValue FROM [dbo].[Percent] WITH(NOLOCK) WHERE [PercentId] = @PercentId and [MasterCompanyId] = @MasterCompanyId and ISNULL(IsDeleted,0) = 0)
+			END
+
             IF (@AIAutoQouteSettingId = 0)
             BEGIN
                 INSERT INTO [dbo].[AIAutoQouteSetting]
                     ([QuoteSettingNameId], [QuoteSettingName], [Code], [Sequence], 
                      [QuoteSendReviewId], [QuoteSendReview], [MasterCompanyId], 
                      [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], 
-                     [IsDeleted], [IsActive])
+                     [IsDeleted], [IsActive], [YearId], [MonthId], [PercentId], [PercentValue])
                 VALUES
                     (@QuoteSettingNameId, (SELECT TOP 1 QuoteSettingName FROM dbo.QuoteSettingName WITH(NOLOCK) WHERE QuoteSettingNameId =@QuoteSettingNameId), @Code, @Sequence, 
                      @QuoteSendReviewId, (SELECT TOP 1 [QuoteName] FROM dbo.QuoteSendReview WITH(NOLOCK) WHERE QuoteSendReviewId =@QuoteSendReviewId), @MasterCompanyId, 
                      @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 
-                     0, 1);
+                     0, 1, @YearId, @MonthId, @PercentId, @PercentValue);
 
                 SET @AIAutoQouteSettingId = SCOPE_IDENTITY();
             END
@@ -56,7 +67,11 @@ BEGIN
                        [QuoteSendReview] = (SELECT TOP 1 [QuoteName] FROM dbo.QuoteSendReview WITH(NOLOCK) WHERE QuoteSendReviewId =@QuoteSendReviewId),
                        [MasterCompanyId] = @MasterCompanyId,
                        [UpdatedBy] = @CreatedBy,
-                       [UpdatedDate] = GETUTCDATE()
+                       [UpdatedDate] = GETUTCDATE(),
+                       [YearId] = @YearId,
+                       [MonthId] = @MonthId,
+                       [PercentId] = @PercentId,
+                       [PercentValue] = @PercentValue
                  WHERE AIAutoQouteSettingId = @AIAutoQouteSettingId;
             END
 
@@ -79,7 +94,11 @@ BEGIN
                      @QuoteSendReviewId = ''' + CAST(ISNULL(@QuoteSendReviewId, '') AS VARCHAR(100)) + ''',
                      @QuoteSendReview = ''' + ISNULL(@QuoteSendReview, '') + ''',
                      @MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100)) + ''',
-                     @CreatedBy = ''' + ISNULL(@CreatedBy, '') + '''',
+                     @CreatedBy = ''' + ISNULL(@CreatedBy, '') + ''',
+					 @YearId = ''' + CAST(ISNULL(@YearId, '') AS VARCHAR(100)) + ''',
+					 @MonthId = ''' + CAST(ISNULL(@MonthId, '') AS VARCHAR(100)) + ''',
+					 @PercentId = ''' + CAST(ISNULL(@PercentId, '') AS VARCHAR(100)) + '''',
+
                 @ApplicationName VARCHAR(100) = 'PAS';
 
         EXEC spLogException 

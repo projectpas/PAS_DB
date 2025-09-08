@@ -13,9 +13,10 @@
  ** --   ----------  -----------		--------------------------------          
     1    13/08/2025  Moin Bloch		    Created
 	2    14/08/2025  Moin Bloch         Removed Markuppercent from SO,SOQ
+	2    04/09/2025  Devendra Shekh     Modified (Added Vendor Quote Calculation, Changed calculation Based on QuoteSetting)
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'NICKITEST-A',7,1
-  EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'ABC123',7,20
+  EXEC [dbo].[USP_GetRFQHistoryByPartNumber] '1150-C',2,1
   
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRFQHistoryByPartNumber]
@@ -36,7 +37,13 @@ BEGIN
 	DECLARE @Status_Code VARCHAR(100) = 'Rejected,Open,Cancelled';
 	DECLARE @CostPlusPrice DECIMAL(18,2) = 0,@RecommendedPrice DECIMAL(18,2) = 0
 	DECLARE @TotalRecord int = 0;   
-	DECLARE @MinId BIGINT = 1;    
+	DECLARE @MinId BIGINT = 1;  
+	DECLARE @PriceListCode VARCHAR(50)  = 'Price List';
+	DECLARE @AvgHistoricalSOCode VARCHAR(50)  = 'Avg Historical SO';
+	DECLARE @AvgHistoricalSOQCode VARCHAR(50)  = 'Avg Historical SOQ';
+	DECLARE @PurchasePriceCode VARCHAR(50)  = 'Purchase Price + Mark up';
+	DECLARE @RecommendedPriceCode VARCHAR(50)  = 'Recommended Price';
+	DECLARE @VendorQuoteCode VARCHAR(50)  = 'Vendor Quote';
 	
 	IF OBJECT_ID(N'tempdb..#tmpRFQHistoryResult') IS NOT NULL
 	BEGIN
@@ -59,7 +66,10 @@ BEGIN
 		[IlsPrice] DECIMAL(18,2) NULL,		
         [MarkUpPercentValue] DECIMAL(18,2) NULL,
 		[CostPlusPrice] DECIMAL(18,2) NULL,
-		[RecommendedPrice] DECIMAL(18,2) NULL
+		[RecommendedPrice] DECIMAL(18,2) NULL,
+		[POUnitPrice] DECIMAL(18,2) NULL,
+		[POMarkUpPercentValue] DECIMAL(18,2) NULL,
+		[POUnitPriceCostPlus] DECIMAL(18,2) NULL,
 	)
 	   
 	CREATE TABLE #tmpRFQConditionResult
@@ -69,14 +79,14 @@ BEGIN
 		[ConditionId] BIGINT NULL		
 	)
 
-	SELECT @MarkUpPercentId = ISNULL(SIS.[PercentId],0),
-	       @MarkUpPercentValue = ISNULL(SIS.[PercentValue],0), 					
-		   @Year = ISNULL(YR.[YearName],0),
-		   @Month = ISNULL(MON.[MonthNumber],0)
-	FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
-	INNER JOIN [DBO].[Years] YR WITH(NOLOCK) ON SIS.[YearId] = YR.[YearId]
-	INNER JOIN [DBO].[Months] MON WITH(NOLOCK) ON SIS.[MonthId] = MON.[MonthId]
-	WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
+	--SELECT @MarkUpPercentId = ISNULL(SIS.[PercentId],0),
+	--       @MarkUpPercentValue = ISNULL(SIS.[PercentValue],0), 					
+	--	   @Year = ISNULL(YR.[YearName],0),
+	--	   @Month = ISNULL(MON.[MonthNumber],0)
+	--FROM [DBO].[AiIntegrationSetting] SIS WITH(NOLOCK) 
+	--INNER JOIN [DBO].[Years] YR WITH(NOLOCK) ON SIS.[YearId] = YR.[YearId]
+	--INNER JOIN [DBO].[Months] MON WITH(NOLOCK) ON SIS.[MonthId] = MON.[MonthId]
+	--WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
 	
   	IF(@MasterCompanyId = 11)
 	BEGIN
@@ -110,7 +120,7 @@ BEGIN
 	
 	INSERT INTO #tmpRFQConditionResult([Condition],[ConditionId])  	  
 	VALUES(@NECode,@NECondition),(@OHCode,@OHCondition),(@NSCode,@NSCondition),(@SVCode,@SVCondition),(@ARCode,@ARCondition)
-		
+
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmpRFQConditionResult    
 
 	WHILE @MinId <= @TotalRecord
@@ -122,7 +132,13 @@ BEGIN
 		FROM #tmpRFQConditionResult WHERE [ID] = @MinId
 
 		------------------------------SOQ------------------------------ 
-	   
+
+		DECLARE @SOQSettingYearId BIGINT, @SOQSettingMonthId BIGINT;
+
+		SELECT @SOQSettingYearId = ISNULL([YearId], 0), @SOQSettingMonthId = ISNULL([MonthId], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOQCode AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @SOQSettingYearId; 
+		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @SOQSettingMonthId;
+
 		SELECT	@RecordsTotalSOQ = COUNT(SOPC.SalesOrderQuotePartId), 
 				@UnitSalesPriceTotalSOQ = ISNULL(SUM(SOPC.UnitSalesPrice),0)
 		FROM [dbo].[SalesOrderQuotePartV1] SQP WITH(NOLOCK)
@@ -148,7 +164,12 @@ BEGIN
 
 		------------------------------SO------------------------------
 
-		DECLARE	@RecordsTotalSO INT = 0,@PerUnitPriceSO DECIMAL(18,2) = 0,@FinalUnitPriceSO DECIMAL(18,2) = 0,@UnitSalesPriceTotalSO DECIMAL(18,2) = 0
+		DECLARE	@RecordsTotalSO INT = 0,@PerUnitPriceSO DECIMAL(18,2) = 0,@FinalUnitPriceSO DECIMAL(18,2) = 0,@UnitSalesPriceTotalSO DECIMAL(18,2) = 0;
+		DECLARE @SOSettingYearId BIGINT, @SOSettingMonthId BIGINT;
+
+		SELECT @SOSettingYearId = [YearId], @SOSettingMonthId = [MonthId] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOCode AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @SOSettingYearId; 
+		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @SOSettingMonthId;
 
 		SELECT	@RecordsTotalSO = COUNT(SOPC.SalesOrderPartId), 
 				@UnitSalesPriceTotalSO = ISNULL(SUM(SOPC.UnitSalesPrice),0)
@@ -177,6 +198,9 @@ BEGIN
 		------------------------------Purchase And Sale------------------------------ 
 
 		DECLARE @RecordsTotalPS INT = 0,@PerUnitPricePS DECIMAL(18,2) = 0, @UnitSalesPriceTotal DECIMAL(18,2) = 0
+		DECLARE @POSSettingPercentValue DECIMAL(18,2) = 0;
+
+		SELECT @POSSettingPercentValue = ISNULL([PercentValue], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @PurchasePriceCode AND [MasterCompanyId] = @MasterCompanyId;
 	
 		SELECT  @RecordsTotalPS = COUNT(IPS.ItemMasterId), 
 				@UnitSalesPriceTotal = ISNULL(SUM(IPS.PP_UnitPurchasePrice),0)
@@ -188,7 +212,51 @@ BEGIN
 		BEGIN
 	  		SET @PerUnitPricePS  = ISNULL((@UnitSalesPriceTotal / @RecordsTotalPS),0);	  		  	
 		END
-		SELECT @CostPlusPrice = @PerUnitPricePS + (@PerUnitPricePS * @MarkUpPercentValue / 100)
+
+		IF(ISNULL(@POSSettingPercentValue, 0) > 0)
+		BEGIN
+			SELECT @CostPlusPrice = @PerUnitPricePS + (@PerUnitPricePS * @POSSettingPercentValue / 100)
+		END
+		ELSE
+		BEGIN
+			SELECT @CostPlusPrice = @PerUnitPricePS
+		END
+
+		------------------------------Vendor Quote : Start ------------------------------ 
+		DECLARE	@RecordsTotalPO INT = 0, @PerUnitPricePO DECIMAL(18,2) = 0, @FinalUnitPricePO DECIMAL(18,2) = 0, @UnitSalesPriceTotalPO DECIMAL(18,2) = 0, @PerUnitPricePOCostPlus DECIMAL(18,2) = 0;
+		DECLARE @VQSettingYearId BIGINT, @VQSettingMonthId BIGINT, @VQSettingPercentValue DECIMAL(18,2) = 0;
+
+		SELECT @VQSettingYearId = [YearId], @VQSettingMonthId = [MonthId], @VQSettingPercentValue = [PercentValue] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @VQSettingYearId; 
+		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @VQSettingMonthId; 
+
+		SELECT	@RecordsTotalPO = COUNT(POP.PurchaseOrderPartRecordId), 
+				@UnitSalesPriceTotalPO = ISNULL(SUM(POP.VendorListPrice),0)
+		FROM [dbo].[PurchaseOrderPart] POP WITH(NOLOCK)
+		INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
+		WHERE TRIM(POP.[PartNumber]) = TRIM(@PartNumber)
+			AND POP.[ConditionId] = @NewConditionId   
+			AND ISNULL(POP.isParent, 0) = 1
+			AND MONTH(PO.[OpenDate]) >= @Month
+			AND YEAR(PO.[OpenDate]) >= @Year
+			AND PO.[Status] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
+			AND PO.[MasterCompanyId] = @MasterCompanyId;	
+		  
+		IF(@RecordsTotalPO > 0)
+		BEGIN
+	  	SET @PerUnitPricePO  = ISNULL((@UnitSalesPriceTotalPO / @RecordsTotalPO),0);
+	  	--Check if PercentValue selected or not
+	  		IF(ISNULL(@VQSettingPercentValue,0) > 0)
+	  		BEGIN
+	  			SET @FinalUnitPricePO  = (@PerUnitPricePO * @VQSettingPercentValue ) / 100;
+	  			SET @PerUnitPricePOCostPlus = @PerUnitPricePO + ISNULL(@FinalUnitPricePO,0);
+	  		END
+			ELSE
+			BEGIN
+				SET @PerUnitPricePOCostPlus = @PerUnitPricePO;
+			END
+		END
+		------------------------------Vendor Quote : End ------------------------------
 
         ------------------------------Price List------------------------------
 
@@ -205,10 +273,10 @@ BEGIN
 	  		SET @PerUnitPricePL  = ISNULL((@UnitSalesPriceTotalPL / @RecordsTotalPL),0);	  		  	
 		END			   	
 
-		SELECT @RecommendedPrice = MAX(v) FROM (VALUES (@CostPlusPrice),(@PerUnitPriceSO),(@PerUnitPriceSOQ),(@PerUnitPricePL)) AS t(v);
+		SELECT @RecommendedPrice = MAX(v) FROM (VALUES (@CostPlusPrice),(@PerUnitPriceSO),(@PerUnitPriceSOQ),(@PerUnitPricePL),(@PerUnitPricePOCostPlus)) AS t(v);
 	
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[PurchaseSalePrice],[SOUnitPrice],[SOQUnitPrice],[IlsPrice],[MarkUpPercentValue],[CostPlusPrice],[RecommendedPrice])
-								   VALUES (@PartNumber, @Code, @PerUnitPricePS,@PerUnitPriceSO,@PerUnitPriceSOQ,@PerUnitPricePL,@MarkUpPercentValue,@CostPlusPrice,@RecommendedPrice)
+		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[PurchaseSalePrice],[SOUnitPrice],[SOQUnitPrice],[IlsPrice],[MarkUpPercentValue],[CostPlusPrice],[RecommendedPrice],[POUnitPrice],[POMarkUpPercentValue],[POUnitPriceCostPlus])
+								   VALUES (@PartNumber, @Code, @PerUnitPricePS,@PerUnitPriceSO,@PerUnitPriceSOQ,@PerUnitPricePL,@POSSettingPercentValue,@CostPlusPrice,@RecommendedPrice,@PerUnitPricePO,@VQSettingPercentValue,@PerUnitPricePOCostPlus)
 	
 		SET @MinId = @MinId + 1
 	END			   	 		

@@ -9,6 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    03-March-2025		Devendra Shekh				Created
+	2    04-Sept-2025       Moin Bloch		    Updated Added IsPrintAdmin
 
 	EXEC GetWorkOrderTaskDetailsById @WorkflowDirectionId=530,@MasterCompanyId=1,@IsDeleted=0
 **************************************************************/
@@ -47,8 +48,9 @@ BEGIN
 		WTI.OpenDate,
 		WTI.OpenBy,
 		WTI.HasInstruction,
-		WTI.IsPrintInspector,
-		WTI.IsPrintTechnician
+		WTI.IsPrintInspector,		
+		CASE WHEN WTI.IsPrintTechnician IS NULL THEN 0 ELSE WTI.IsPrintTechnician END IsPrintTechnician,
+		CASE WHEN WTI.IsPrintAdmin IS NULL THEN 0 ELSE WTI.IsPrintAdmin END IsPrintAdmin
 		FROM [dbo].[WorkOrderTaskDetails] WTI  WITH(NOLOCK)
 		INNER JOIN [dbo].[WorkOrderTask] WOT WITH(NOLOCK) ON WTI.WorkOrderTaskId = WOT.WorkOrderTaskId
 		INNER JOIN [dbo].[Task] TSK WITH(NOLOCK) ON WOT.TaskId = TSK.TaskId

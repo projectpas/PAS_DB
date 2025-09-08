@@ -14,10 +14,13 @@
 ** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 ** 3    29/10/2024  RAJESH GAMI      Un Mapped WO if there is no other material link with the same workorder in the Same PO (Updated)
 ** 4    29/10/2024  Devendra Shekh   Modified (Handling Kit Material Delete)
-**************************************************************/ 
+** 5    04/09/2025  Moin Bloch		 Updated Added History
 
+EXEC [dbo].[DeleteWOMaterialsOnIssuedOrReserved] 61067,'ADMIN User'
+**************************************************************/ 
 CREATE   PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
-	@WorkFlowWorkOrderId BIGINT
+@WorkFlowWorkOrderId BIGINT,
+@UpdatedBy VARCHAR(255) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -25,8 +28,18 @@ BEGIN
 		
 		BEGIN TRY
 			BEGIN TRANSACTION
-			DECLARE @WorkOrderId BIGINT = (SELECT top 1 WorkOrderId FROM DBO.WorkOrderWorkFlow WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
-			DECLARE @WOPartNoId BIGINT = (SELECT top 1 WorkOrderPartNoId FROM DBO.WorkOrderWorkFlow WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
+			DECLARE @WorkOrderModuleID INT = 0
+			DECLARE @DeleteWOMaterial VARCHAR(50)='DeleteWorkOrderMaterials'
+			DECLARE @TemplateBody VARCHAR(MAX)=''
+			DECLARE @ItemMasterId BIGINT = 0
+			DECLARE @PartNumber VARCHAR(50) = NULL
+			DECLARE @WorkOrderNum VARCHAR(50) = NULL
+			DECLARE @CreatedDate DATETIME2(7) = GETUTCDATE()
+			DECLARE @MasterCompanyId INT = 1
+				-- Modules
+			SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';
+			DECLARE @WorkOrderId BIGINT = (SELECT top 1 WorkOrderId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
+			DECLARE @WOPartNoId BIGINT = (SELECT top 1 WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
 			DECLARE @PoID BIGINT = 0, @LooPId INT = 1, @TotalCount INT = 0
 			IF OBJECT_ID(N'tempdb..##TempWOtbl') IS NOT NULL
 				BEGIN
@@ -43,11 +56,11 @@ BEGIN
 
 			SELECT DISTINCT WOM.WorkOrderMaterialsId, 0
 
-			FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)		
+			FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)		
 
 			WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 					AND (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)) = 0 
-					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM Provision WHERE Description = 'SUB WORK ORDER');
+					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM [dbo].[Provision] WITH(NOLOCK) WHERE [Description] = 'SUB WORK ORDER');
 
 			--Inserting KIT Data
 			INSERT INTO #TempWOtbl (WorkOrderMaterialsId, IsKit)
@@ -55,7 +68,7 @@ BEGIN
 			FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
 			WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 					AND (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)) = 0 
-					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM Provision WHERE Description = 'SUB WORK ORDER');
+					AND WOM.ProvisionId NOT IN ( SELECT ProvisionId FROM [dbo].[Provision] WITH(NOLOCK) WHERE [Description] = 'SUB WORK ORDER');
 			
 			INSERT INTO #TempPOtbl(POID) SELECT POId FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) WHERE WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM  #TempWOtbl WHERE IsKit = 0) AND ISNULL(POId,0) > 0
 			INSERT INTO #TempPOtbl(POID) SELECT POId FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) WHERE WorkOrderMaterialsKitId IN (SELECT WorkOrderMaterialsId FROM  #TempWOtbl WHERE IsKit = 1) AND ISNULL(POId,0) > 0
@@ -68,7 +81,7 @@ BEGIN
 			DELETE WOMS FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #TempWOtbl tmpWOM ON WOMS.WorkOrderMaterialsKitId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 1;
 			DELETE WOM FROM dbo.WorkOrderMaterialsKit WOM JOIN #TempWOtbl tmpWOM ON WOM.WorkOrderMaterialsKitId = tmpWOM.WorkOrderMaterialsId AND tmpWOM.IsKit = 1;
 
-			IF NOT EXISTS(SELECT * FROM [dbo].[WorkOrderMaterialsKit] WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId)
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[WorkOrderMaterialsKit] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId)
 			BEGIN
 				DELETE FROM [dbo].[WorkOrderMaterialsKitMapping] WHERE [WOPartNoId] = @WOPartNoId;
 			END
@@ -102,12 +115,23 @@ BEGIN
 				END
 			END
 			
-		
+			SELECT @WorkOrderNum = [WorkOrderNum], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 
+			SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
+	
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+							
+			SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @DeleteWOMaterial;	
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', @WorkOrderNum)
+			SET @TemplateBody = REPLACE(@TemplateBody, '##MPN##', @PartNumber)
+		
+			EXEC [dbo].[USP_History] @WorkOrderModuleID,@WorkOrderId,0,@WOPartNoId,'','',@TemplateBody,'DeleteWorkOrderMaterials',@MasterCompanyId,@UpdatedBy,@CreatedDate,@UpdatedBy,@CreatedDate
+			
 			IF OBJECT_ID(N'tempdb..#TempWOtbl') IS NOT NULL
-				BEGIN
-					DROP TABLE #TempWOtbl 
-				END
+			BEGIN
+				DROP TABLE #TempWOtbl 
+			END
 
 			COMMIT  TRANSACTION
 		END TRY
@@ -120,7 +144,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'DeleteWOMaterialsOnIssuedOrReserved' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkFlowWorkOrderId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@WorkFlowWorkOrderId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

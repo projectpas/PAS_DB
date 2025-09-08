@@ -13,7 +13,8 @@
  *********************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    01-Sep-2025  Rajesh Gami   Created  
+    1    01-Sep-2025  Rajesh Gami   Created
+	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
 ***********************************************************************/  
 CREATE       PROCEDURE [dbo].[GetSOOperatingMetricReport_LMarginUnitUnitByIMId] 
 @PageNumber int = 1,
@@ -101,11 +102,12 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			(ISNULL(SOBII.GrandTotal,0)) AS totalRevenue,
-			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0)) AS partsCost,
+			(ISNULL(SOBII.SubTotal,0)) AS totalRevenue,
+			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,1)) AS partsCost,
 			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCost,
 			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCost,
-			((ISNULL(SOBII.GrandTotal,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmount,
+			--((ISNULL(SOBII.GrandTotal,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmount,
+			((ISNULL(SOBII.SubTotal,0)) - (ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,1)) ) as marginAmount,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

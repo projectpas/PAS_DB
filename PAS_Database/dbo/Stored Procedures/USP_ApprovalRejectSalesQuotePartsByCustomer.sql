@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    26-03-2025	 BHARGAV SALIYA	 Created  
 	2    15-07-2025	 Devendra Shekh	  Added @ContactId param
+	3    05-09-2025	 Amit Ghediya	  Update rejected data null after approved.
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesQuotePartsByCustomer]
@@ -59,7 +60,10 @@ BEGIN
 					CustomerApprovedBy = @ApproveCustName,
 					ApprovalAction = @ApprovalAction,
 					CustomerStatus = @CustomerStatus,
-					CustomerApprovedById = @ContactId
+					CustomerApprovedById = @ContactId,
+					RejectedById = NULL,
+					RejectedByName = NULL,
+					RejectedDate = NULL
 			WHERE SalesOrderQuoteId = @SalesOrderQuoteId AND SalesOrderQuotePartId = @SalesOrderQuotePartId 
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 

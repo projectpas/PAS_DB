@@ -1,5 +1,4 @@
-﻿
-/********************************************************************             
+﻿/********************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for SalesOrder Operating Metric Report LOW Margin to High Margin
@@ -14,7 +13,8 @@
  *********************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    01-Sep-2025  Rajesh Gami   Created  
+    1    01-Sep-2025  Rajesh Gami   Created 
+	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
 ***********************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_LMarginUnit] 
 @PageNumber int = 1,
@@ -106,11 +106,12 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			(ISNULL(SOBII.GrandTotal,0)) AS totalRevenues,
-			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0)) AS partsCosts,
+			(ISNULL(SOBII.SubTotal,0)) AS totalRevenues,
+			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,1)) AS partsCosts,
 			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCosts,
 			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCosts,
-			((ISNULL(SOBII.GrandTotal,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmounts,
+			--((ISNULL(SOBII.GrandTotal,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmounts,
+			((ISNULL(SOBII.SubTotal,0)) - (ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,1)) ) as marginAmounts,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

@@ -11,6 +11,8 @@
  ** PR   Date         Author            Change Description            
  ** --   --------     -------           ---------------------------     
     1    12/08/2025   RAJESH GAMI       Created for AIAutoQuoteSetting table
+	2    04/09/2025   Devendra Shekh    Added New fields: [Code], [YearId], [MonthId], [PercentId], [PercentValue]
+	3    05/09/2025   Devendra Shekh    Added Params: @PercentValue, @YearName, @MonthName
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AI_GetAutoQuoteSettingList]
@@ -25,7 +27,10 @@ CREATE   PROCEDURE [dbo].[USP_AI_GetAutoQuoteSettingList]
     @CreatedBy VARCHAR(50) = NULL,
     @CreatedDate DATETIME = NULL,
     @MasterCompanyId BIGINT = NULL,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@PercentValue DECIMAL(18,2) = NULL,
+	@YearName VARCHAR(50) = NULL,
+	@MonthName VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -84,8 +89,17 @@ BEGIN
 				case when CAST(AI.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(AI.[CreatedDate], @CurrntEeTimeZoneDesc) as Date))end CreatedDate,
 				case when CAST(AI.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(AI.UpdatedDate, @CurrntEeTimeZoneDesc) as Date))end UpdatedDate,
                 ISNULL(AI.IsDeleted,0)IsDeleted,
-                ISNULL(AI.IsActive,0)IsActive
+                ISNULL(AI.IsActive,0)IsActive,
+				AI.Code,
+				AI.YearId,
+				AI.MonthId,
+				AI.PercentId,
+				AI.PercentValue,
+				YE.YearName,
+				MN.[MonthName]
             FROM dbo.AIAutoQouteSetting AI WITH (NOLOCK)
+			LEFT JOIN [dbo].[Years] YE WITH(NOLOCK) ON AI.YearId = YE.YearId
+			LEFT JOIN [dbo].[Months] MN WITH(NOLOCK) ON AI.MonthId = MN.MonthId
             WHERE AI.MasterCompanyId = @MasterCompanyId
 				  AND ISNULL(AI.IsDeleted, 0) = 0
         ),
@@ -99,7 +113,10 @@ BEGIN
             ((@GlobalFilter <> '' AND (
                 QuoteSettingName LIKE '%' + @GlobalFilter + '%' OR
                 QuoteSendReview LIKE '%' + @GlobalFilter + '%' OR
+				YearName LIKE '%' + @GlobalFilter + '%' OR
+				[MonthName] LIKE '%' + @GlobalFilter + '%' OR
 				(CAST([Sequence] AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				(CAST([PercentValue] AS NVARCHAR(10)) LIKE '%' + CAST(@GlobalFilter AS NVARCHAR(10)) + '%') OR
                 CreatedBy LIKE '%' + @GlobalFilter + '%'
             ))
             OR
@@ -107,7 +124,10 @@ BEGIN
                 (ISNULL(@QuoteSettingName, '') = '' OR QuoteSettingName LIKE '%' + @QuoteSettingName + '%') AND
                 (ISNULL(@QuoteSendReview, '') = '' OR QuoteSendReview LIKE '%' + @QuoteSendReview + '%') AND
                 (ISNULL(@CreatedBy, '') = '' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
+                (ISNULL(@YearName, '') = '' OR YearName LIKE '%' + @YearName + '%') AND
+                (ISNULL(@MonthName, '') = '' OR [MonthName] LIKE '%' + @MonthName + '%') AND
 				(IsNull(@Sequence, 0) = 0 OR CAST([Sequence] as VARCHAR(10)) like @Sequence) AND
+				(IsNull(@PercentValue, 0) = 0 OR CAST([PercentValue] AS NVARCHAR(10)) LIKE '%' + CAST(@PercentValue AS NVARCHAR(10)) + '%') AND
                 (ISNULL(@CreatedDate, '') = '' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE))
             ));
 
@@ -125,7 +145,13 @@ BEGIN
             CASE WHEN (@SortOrder = 1  AND @SortColumn = 'CREATEDBY') THEN CreatedBy END ASC,
             CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CREATEDBY') THEN CreatedBy END DESC,
             CASE WHEN (@SortOrder = 1  AND @SortColumn = 'CREATEDDATE') THEN CreatedDate END ASC,
-            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CREATEDDATE') THEN CreatedDate END DESC
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CREATEDDATE') THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'YEARNAME') THEN YearName END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'YEARNAME') THEN YearName END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'MONTHNAME') THEN [MonthName] END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'MONTHNAME') THEN [MonthName] END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'PERCENTVALUE') THEN PercentValue END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PERCENTVALUE') THEN PercentValue END DESC
         OFFSET @RecordFrom ROWS
         FETCH NEXT @PageSize ROWS ONLY;
 

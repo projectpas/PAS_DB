@@ -133,7 +133,7 @@ BEGIN
 			DECLARE @StocklineId BIGINT = 0;
 
 	   	    SELECT @BillingInvoicingIdI = ISNULL([BillingInvoicingId],0),
-			  	   @IsPerformaInvoice = ISNULL([IsPerformaInvoice],0),				  
+			  	   @IsPerformaInvoiceI = ISNULL([IsPerformaInvoice],0),				  
 				   @ReferenceIdI = ISNULL([ReferenceId],0),				  
 				   @SubReferenceId = ISNULL([SubReferenceId],0),
 				   @StocklineId = ISNULL([StocklineId],0)

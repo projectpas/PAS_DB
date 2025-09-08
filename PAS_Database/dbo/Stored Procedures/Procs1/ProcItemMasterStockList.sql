@@ -21,6 +21,8 @@
 	7    01-Aug-2025    Bhargav saliya       Modified [HasSubAssy] field Conditon 
 	8	 07-Aug-2025	Ayushi Patel		 added condition for IsOEM
 	9	 21-Aug-2025	Bhargav saliya		 added Ranking
+	10   04-Sep-2025    Sahdev Saliya        Added WorkOrderType
+
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -48,7 +50,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL,
 @EmployeeId bigint,
-@IsUpdated BIT = NULL
+@IsUpdated BIT = NULL,
+@WorkOrderFormTypeId INT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -151,7 +154,8 @@ BEGIN
 					   im.CreatedBy,
                        im.UpdatedBy,	
 					   im.IsDeleted,
-					   itp.Ranking as RankingsName
+					   itp.Ranking as RankingsName,
+					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Always Dynamic Work Order task' WHEN im.WorkOrderFormTypeId = 2 THEN 'Always Static Work Order task' ELSE 'Type determine at Work Order creation' END AS workOrderType
 			   FROM dbo.ItemMaster im WITH (NOLOCK)	
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     

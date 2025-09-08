@@ -30,6 +30,7 @@
 	14   18/07/2025   Vishal Suthar			Added DISTINCT in the final resultset which was populating duplicate entry
 	15   24/07/2025   Devendra Shekh		added WOPartId for MPN View
 	16   26/08/2025   Moin Bloch		    added RevisedSerialNumber 
+	17   08/09/2025   Bhargav Saliya		Get ShipDate,IsSubWo Flage From MPN Table and remove the Outer Join
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -178,6 +179,7 @@ BEGIN
 
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
+	 print 'Saliya'
 		CREATE TABLE #TempResult (
 			[WorkOrderNum] NVARCHAR(100),
 			[WorkOrderId] NVARCHAR(100),
@@ -271,8 +273,8 @@ BEGIN
 			WPN.[PromisedDate] AS [PromisedDateType],  
 			WPN.[EstimatedShipDate],  
 			WPN.[EstimatedShipDate] AS [EstimatedShipDateType],  
-			LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDateType],
-			LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDate],
+			FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDateType],
+			FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate],
 			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDate,  
 			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDateType,  
 			WO.[CreatedDate],
@@ -289,29 +291,15 @@ BEGIN
 			UPPER(WPN.[CurrentSerialNumber]) AS [SerialNumber],		
 			CASE WHEN ISNULL(WPN.[RevisedSerialNumber], '') != '' THEN UPPER(WPN.[RevisedSerialNumber]) ELSE UPPER(WPN.[CurrentSerialNumber]) END AS [RevisedSerialNumber],
 			UPPER(WPN.[CustomerReference]) AS [CustomerReference],
-			UPPER(WPN.[CustomerReference]) AS [CustomerReferenceType]
-			,ISNULL(SWO.[IsSubWorkOrder], 'No') AS [IsSubWorkOrder],
+			UPPER(WPN.[CustomerReference]) AS [CustomerReferenceType],
+			CASE WHEN ISNULL(WPN.[IsSubWorkOrder], 0) = 1 THEN 'Yes' else 'No' end AS [IsSubWorkOrder],
 			UPPER(wqs.[Description]) AS [MPNQuoteStatus],
 			CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate] , 0) ELSE  
 			ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
 			WPN.[ID] AS [WOPartId]
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
-			OUTER APPLY (
-				SELECT TOP 1 FORMAT([ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate]
-				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
-				WHERE [WorkOrderId] = WO.[WorkOrderId]
-				ORDER BY [ShipDate] DESC
-			) AS LWS
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
-			OUTER APPLY (
-				SELECT TOP 1 'Yes' AS [IsSubWorkOrder]
-				FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK)
-				WHERE 
-					SWO.[WorkOrderId] = WO.[WorkOrderId]
-					AND SWO.[WorkOrderPartNumberId] = WPN.[ID]
-					AND ISNULL(SWO.[IsDeleted], 0) = 0
-			) AS SWO
 			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
@@ -491,14 +479,8 @@ BEGIN
         FETCH NEXT @PageSize ROWS ONLY  
        END  
       ELSE  
-       BEGIN            
-	     ;WITH LatestWorkOrderShipping AS (
-				SELECT	[WorkOrderId],
-						FORMAT(MAX([ShipDate]), 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate]
-				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
-				GROUP BY [WorkOrderId]
-		 ),
-		 Main AS(  
+       BEGIN    
+		 ;WITH Main AS(  
          SELECT DISTINCT   
 				UPPER(WO.[WorkOrderNum]) AS [WorkOrderNum],
 				WO.[WorkOrderId],
@@ -516,23 +498,15 @@ BEGIN
 				WO.[IsActive],
 				WO.[IsDeleted],
 				WO.[WorkOrderType] AS 'WorkOrderType',
-				LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDateType],
-				LWS.[EstimatedCompletionDate] AS [EstimatedCompletionDate]
-				,ISNULL(SWO.[IsSubWorkOrder], 'No') AS [IsSubWorkOrder]
+				FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDateType],
+				FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate],
+				CASE WHEN ISNULL(WPN.[IsSubWorkOrder], 0) = 1 THEN 'Yes' else 'No' end AS [IsSubWorkOrder]
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM [dbo].[WorkOrder] WO WITH (NOLOCK)   
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
-			LEFT JOIN LatestWorkOrderShipping LWS WITH (NOLOCK) ON WO.[WorkOrderId] = LWS.[WorkOrderId]
+			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
-			OUTER APPLY (
-				SELECT TOP 1 'Yes' AS [IsSubWorkOrder]
-				FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK)
-				WHERE 
-					SWO.[WorkOrderId] = WO.[WorkOrderId]
-					--AND SWO.WorkOrderPartNumberId = WPN.ID
-					AND ISNULL(SWO.[IsDeleted], 0) = 0
-			) AS SWO
 			WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted]=@IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
 			))
 			, WorkOrderPartCount AS (

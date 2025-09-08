@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    11-April-2025		Divyesh Kathiriya	Created
+    2    08-Sep-2025		Bhargav	Saliya		Add Update Query If SWO present then update Flage in MPN Table
     
  -- EXEC [USP_CreateSubWorkOrder] @SubWorkOrderId=0,@WorkOrderId=8651,@SubWorkOrderNo=N'CREATING',@MasterCompanyId=1,@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',
 @CreatedDate='2025-04-15 11:15:07.360',@UpdatedDate='2025-04-15 11:15:07.360',@IsActive=1,@IsDeleted=0,@WorkOrderPartNumberId=8355,@OpenDate='2025-04-15 00:00:00',
@@ -87,6 +88,9 @@ BEGIN
 					   @WorkOrderPartNumberId, @OpenDate, @WorkOrderMaterialsId,@StockLineId, @SubWorkOrderStatusId)
 		
 		SET @SubWorkOrderId = SCOPE_IDENTITY();
+
+		--Update [IsSubWorkOrder] flage in MPN table
+		UPDATE [dbo].[WorkOrderPartNumber] SET [IsSubWorkOrder] = 1 Where ID = @WorkOrderPartNumberId and WorkOrderId = @WorkOrderId and MasterCompanyId = @MasterCompanyId
 
 		END
 		ELSE

@@ -74,6 +74,8 @@
     [PublicationNo]              VARCHAR (MAX)   NULL,
     [TravelerNumber]             VARCHAR (100)   NULL,
     [PublicationNotes]           NVARCHAR (MAX)  NULL,
+    [ShipDate]                   DATETIME2 (7)   NULL,
+    [IsSubWorkOrder]             BIT             NULL,
     CONSTRAINT [PK_WorkOrderPartNumber] PRIMARY KEY CLUSTERED ([ID] ASC),
     CONSTRAINT [FK_WorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderPartNumber_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -90,6 +92,8 @@
     CONSTRAINT [FK_WorkOrderPartNumber_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderPartNumber_WorkScope] FOREIGN KEY ([WorkOrderScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 
@@ -330,7 +334,11 @@ BEGIN
 
       ,[ManufacturerName]
 
-      ,[EmployeeStation])
+      ,[EmployeeStation]
+	  
+	  ,[ShipDate]
+	  
+	  ,[IsSubWorkOrder])
 
     SELECT [ID],
 
@@ -421,6 +429,10 @@ BEGIN
       ,[ManufacturerName]
 
       ,[EmployeeStation]
+
+	  ,[ShipDate]
+	  
+	  ,[IsSubWorkOrder]
 
 	FROM INSERTED 
 

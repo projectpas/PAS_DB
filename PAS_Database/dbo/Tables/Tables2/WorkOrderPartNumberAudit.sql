@@ -85,30 +85,8 @@
     [PublicationNo]              VARCHAR (MAX)   NULL,
     [TravelerNumber]             VARCHAR (100)   NULL,
     [PublicationNotes]           NVARCHAR (MAX)  NULL,
+    [ShipDate]                   DATETIME2 (7)   NULL,
+    [IsSubWorkOrder]             BIT             NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

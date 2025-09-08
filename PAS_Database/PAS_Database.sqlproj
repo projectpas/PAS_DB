@@ -4223,6 +4223,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetSOOperatingMetricReport_NotQuotedPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineDocumentDetailsByPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateBillingInvoicingDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_updateWorkOrderShipDate.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

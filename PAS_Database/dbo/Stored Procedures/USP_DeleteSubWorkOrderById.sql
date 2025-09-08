@@ -12,6 +12,7 @@
  ** --   --------     -------				--------------------------------          
     1    12/26/2023   Devendra Shekh			Created
     2    01/05/2024   Devendra Shekh			Created
+    3    08/09/2025   Bhargav Saliya			Update the MPN Table When We delete the SWO
      
 exec [USP_DeleteSubWorkOrderById] 
 
@@ -25,7 +26,9 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 	BEGIN TRANSACTION
-		
+	DECLARE @WorkOrderPartNumberId BIGINT = 0;
+	SELECT @WorkOrderPartNumberId = WorkOrderPartNumberId FROM [dbo].[SubWorkOrder] WITH(NOLOCK) WHERE SubWorkOrderId = @SubWorkOrderId and [UpdatedBy] = @UserName;
+
 	IF(ISNULL(@SubWorkOrderId, 0) > 0)
 	BEGIN
 		
@@ -54,6 +57,13 @@ BEGIN
 		SET [IsDeleted] = 1, [UpdatedBy] = @UserName, [UpdatedDate] = GETUTCDATE()
 		WHERE [SubWorkOrderId] = @SubWorkOrderId
 
+		IF (SELECT COUNT(*) FROM [dbo].[SubWorkOrder] WHERE WorkOrderPartNumberId = @WorkOrderPartNumberId) 
+			= (SELECT COUNT(*) FROM [dbo].[SubWorkOrder]WHERE WorkOrderPartNumberId = @WorkOrderPartNumberId AND IsDeleted = 1)
+		BEGIN
+			UPDATE [dbo].[WorkOrderPartNumber]
+			SET [IsSubWorkOrder] = 0  
+			WHERE ID = @WorkOrderPartNumberId;
+		END
 	END
 	COMMIT  TRANSACTION
 	END TRY    

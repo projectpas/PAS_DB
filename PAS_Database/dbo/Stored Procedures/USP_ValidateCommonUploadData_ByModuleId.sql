@@ -142,6 +142,7 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
+
 			--ORDER BY IMF.DisplaySortOrder ASC
 			--SELECT * FROM #ImportFields ----R
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
@@ -186,20 +187,57 @@ BEGIN
 				)
 				BEGIN
 					--  Get all matching ManufacturerIds based on PartNumber(s)
-					DECLARE @MatchingManufacturerIds TABLE (ManufacturerId BIGINT, ManufacturerName NVARCHAR(200));
+					DECLARE @MatchingManufacturerIds TABLE (ManufacturerId BIGINT, ManufacturerName NVARCHAR(200),PartNumber NVARCHAR(Max), PartNumberId BIGINT);
+					
+				IF EXISTS (
+								SELECT 1
+								FROM ItemMaster IM
+								WHERE IM.ManufacturerName = @ManufacturerId
+									  AND ISNULL(IM.IsDeleted,0) = 0 
+									  AND ISNULL(IM.IsActive,0) = 1
+									  AND IM.MasterCompanyId = @MasterCompanyId
+							)
+							BEGIN
+							 	PRINT 'IF'
+								-- Case 1: @ManufacturerId is actually a ManufacturerName
+								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
+								SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName, Im.partnumber, Im.ItemMasterId
+								FROM ItemMaster IM
+								JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
+								WHERE IMF.ModuleId = @ModuleId
+								  AND IMF.DropdownListValue = 'PartNumber'
+								  AND ISNULL(IM.IsDeleted,0) = 0
+								  AND ISNULL(IM.IsActive,0) = 1
+								  AND IM.MasterCompanyId = @MasterCompanyId
+								  AND IM.ManufacturerName = @ManufacturerId;
+							END
+							ELSE
+							BEGIN
+							PRINT 'ELSE'
+								-- Case 2: @ManufacturerId is NOT a ManufacturerName (treat it as before)
+								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
+								SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName, Im.partnumber, Im.ItemMasterId
+								FROM ItemMaster IM
+								JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
+								WHERE IMF.ModuleId = @ModuleId
+								  AND IMF.DropdownListValue = 'PartNumber'
+								  AND ISNULL(IM.IsDeleted,0) = 0
+								  AND ISNULL(IM.IsActive,0) = 1
+								  AND IM.MasterCompanyId = @MasterCompanyId;
+							END
 
-					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName)
-					SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName
-					FROM ItemMaster IM
-					JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
-					WHERE IMF.ModuleId = @ModuleId
-					  AND IMF.DropdownListValue = 'PartNumber';
-
+							Update IMF SET IMF.DropdownListValueId = MNF.PartNumberId FROM #ImportFields IMF 
+									INNER JOIN ItemMaster IM WITH(NOLOCK) ON IM.partnumber = IMF.FieldValue  
+									INNER JOIN @MatchingManufacturerIds MNF ON IM.partnumber = MNF.PartNumber AND MNF.PartNumber = IMF.FieldValue
+									WHERE IMF.ModuleId = @ModuleId
+											  AND IMF.DropdownListValue = 'PartNumber'
+											  AND ISNULL(IM.IsDeleted,0) = 0
+											  AND ISNULL(IM.IsActive,0) = 1
+											  AND IM.MasterCompanyId = @MasterCompanyId;
+							
 					--  Check how many different manufacturers were found
 					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
 					BEGIN
-						PRINT 'Multiple manufacturers found for PartNumber.';
-
 						--  If @ManufacturerId matches any from the list, do nothing
 						IF EXISTS (
 							SELECT 1 
@@ -207,7 +245,6 @@ BEGIN
 							WHERE ManufacturerName = @ManufacturerId
 						)
 						BEGIN
-							PRINT 'Given ManufacturerId is valid. Keeping as is.';
 							SET @ManufacturerName = @ManufacturerId;
 						END
 						ELSE
@@ -273,8 +310,8 @@ BEGIN
 			FROM #ImportFields IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
-
-			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)
+			
+			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule) 
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
 				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)
@@ -357,12 +394,13 @@ BEGIN
 				
 				SET @CurrentRow += 1;
 			END
+
 			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
 				WHERE FieldName = 'ManufacturerId';
-
+			
 				--  Check if 'PartNumber' is present in ImportFields
 				IF EXISTS (
 					SELECT 1 
@@ -373,26 +411,63 @@ BEGIN
 					--  Get all matching ManufacturerIds based on PartNumber(s)
 					--DECLARE @MatchingManufacturerIds TABLE (ManufacturerId BIGINT, ManufacturerName NVARCHAR(200));
 
-					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName)
-					SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName
+				IF EXISTS (
+					SELECT 1
+					FROM ItemMaster IM
+					WHERE IM.ManufacturerName = @ManufacturerId
+						  AND ISNULL(IM.IsDeleted,0) = 0 
+						  AND ISNULL(IM.IsActive,0) = 1
+						  AND IM.MasterCompanyId = @MasterCompanyId
+				)
+				BEGIN
+					-- Case 1: @ManufacturerId is actually a ManufacturerName
+					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName, partnumber, PartNumberId)
+					SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName, Im.partnumber, Im.ItemMasterId
 					FROM ItemMaster IM
 					JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
 					WHERE IMF.ModuleId = @ModuleId
-					  AND IMF.DropdownListValue = 'PartNumber';
+					  AND IMF.DropdownListValue = 'PartNumber'
+					  AND ISNULL(IM.IsDeleted,0) = 0
+					  AND ISNULL(IM.IsActive,0) = 1
+					  AND IM.MasterCompanyId = @MasterCompanyId
+					  AND IM.ManufacturerName = @ManufacturerId;
+				END
+				ELSE
+				BEGIN
+					-- Case 2: @ManufacturerId is NOT a ManufacturerName (treat it as before)
+					INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName, partnumber, PartNumberId)
+					SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName, Im.partnumber, Im.ItemMasterId
+					FROM ItemMaster IM
+					JOIN #ImportFields IMF ON IMF.FieldValue = IM.PartNumber
+					WHERE IMF.ModuleId = @ModuleId
+					  AND IMF.DropdownListValue = 'PartNumber'
+					  AND ISNULL(IM.IsDeleted,0) = 0
+					  AND ISNULL(IM.IsActive,0) = 1
+					  AND IM.MasterCompanyId = @MasterCompanyId;
+				END
+
+				
+							Update IMF SET IMF.DropdownListValueId = MNF.PartNumberId FROM #ImportFields IMF 
+									INNER JOIN ItemMaster IM WITH(NOLOCK) ON IM.partnumber = IMF.FieldValue  
+									INNER JOIN @MatchingManufacturerIds MNF ON IM.partnumber = MNF.PartNumber AND MNF.PartNumber = IMF.FieldValue
+									WHERE IMF.ModuleId = @ModuleId
+											  AND IMF.DropdownListValue = 'PartNumber'
+											  AND ISNULL(IM.IsDeleted,0) = 0
+											  AND ISNULL(IM.IsActive,0) = 1
+											  AND IM.MasterCompanyId = @MasterCompanyId;
+							
 
 					--  Check how many different manufacturers were found
 					IF ((SELECT COUNT(*) FROM @MatchingManufacturerIds) > 1)
 					BEGIN
-						PRINT 'Multiple manufacturers found for PartNumber.';
-
-						--  If @ManufacturerId matches any from the list, do nothing
+					--  If @ManufacturerId matches any from the list, do nothing
 						IF EXISTS (
 							SELECT 1 
 							FROM @MatchingManufacturerIds 
 							WHERE ManufacturerName = @ManufacturerId
 						)
 						BEGIN
-							PRINT 'Given ManufacturerId is valid. Keeping as is.';
+					
 							SET @ManufacturerName = @ManufacturerId;
 						END
 						ELSE
@@ -457,7 +532,7 @@ BEGIN
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
 			
-			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
+			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)  
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
 				   LOWER(@ManufacturerId) <> LOWER(@ManufacturerName)

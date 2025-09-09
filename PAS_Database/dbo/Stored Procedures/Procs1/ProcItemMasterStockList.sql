@@ -155,7 +155,7 @@ BEGIN
                        im.UpdatedBy,	
 					   im.IsDeleted,
 					   itp.Ranking as RankingsName,
-					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Always Dynamic Work Order task' WHEN im.WorkOrderFormTypeId = 2 THEN 'Always Static Work Order task' ELSE 'Type determine at Work Order creation' END AS workOrderType
+					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType
 			   FROM dbo.ItemMaster im WITH (NOLOCK)	
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     

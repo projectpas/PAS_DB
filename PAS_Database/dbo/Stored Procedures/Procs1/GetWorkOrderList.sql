@@ -1,4 +1,5 @@
-﻿ /*************************************************************           
+﻿
+ /*************************************************************           
  ** File:   [GetWorkOrderList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to get work order List for both MPN and WO View
@@ -179,7 +180,6 @@ BEGIN
 
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
-	 print 'Saliya'
 		CREATE TABLE #TempResult (
 			[WorkOrderNum] NVARCHAR(100),
 			[WorkOrderId] NVARCHAR(100),

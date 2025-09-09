@@ -104,6 +104,7 @@
     [OpenAIAPIKeys]                   VARCHAR (1000)  NULL,
     [EncryptParseNum]                 NVARCHAR (200)  NULL,
     [EncryptParseVer]                 NVARCHAR (200)  NULL,
+    [ApplicationURLWithoutAuth]       NVARCHAR (100)  NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
 

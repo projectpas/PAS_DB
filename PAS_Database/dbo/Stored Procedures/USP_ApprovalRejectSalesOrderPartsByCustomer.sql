@@ -17,6 +17,7 @@
 	2    14-07-2025	 RAJESH GAMI	  Call the new SP for update the SO Header status  
 	3    15-07-2025	 Devendra Shekh	  Added @ContactId param
 	4    05-09-2025	 Amit Ghediya	  Update rejected data null after approved.
+	5    10-09-2025	 Amit Ghediya	  Update for notes
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
@@ -31,7 +32,8 @@ CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
 	@UpdatedBy varchar(250),
     @Action VARCHAR(100),
 	@ApprovalActionId BIGINT,
-	@ContactId BIGINT = NULL
+	@ContactId BIGINT = NULL,
+	@Notes VARCHAR(MAX)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -68,7 +70,8 @@ BEGIN
 					UpdatedDate = GETUTCDATE(),
 					RejectedById = NULL,
 					RejectedByName = NULL,
-					RejectedDate = NULL
+					RejectedDate = NULL,
+					CustomerMemo = @Notes
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId 
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 
@@ -89,7 +92,8 @@ BEGIN
 					CustomerStatus = @RejectCustomerStatus,
 					RejectedById = @ContactId,
 					RejectedByName = @ApproveCustName,
-					RejectedDate = GETUTCDATE()
+					RejectedDate = GETUTCDATE(),
+					CustomerMemo = @Notes
 			WHERE SalesOrderId = @SalesOrderId AND SalesOrderPartId = @SalesOrderPartId  
 				  AND IsDeleted = ISNULL(@IsDeleted,0) AND IsActive = ISNULL(@IsActive,0) AND MasterCompanyId = @MasterCompanyId
 

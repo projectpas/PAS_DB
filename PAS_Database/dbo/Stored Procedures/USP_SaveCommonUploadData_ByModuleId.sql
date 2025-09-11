@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -25,9 +24,11 @@
 	14	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 	15 	 26-Aug-2025        Divyesh Kathiriya		Added New Module "Publication"
 	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented &Resolved issue
+	17	 04-Sep-2025        Divyesh Kathitiya		Added Customer Default Settings And Set Customer and Vendor: IsAddress For Billing & Shipping.
+	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
+CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@MasterCompanyId INT = NULL, 
 	@UserName VARCHAR(256) = NULL,
@@ -74,6 +75,9 @@ BEGIN
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @ItemMasterId BIGINT = 0;
+		DECLARE @IsAddressForBilling VARCHAR(50);				
+		DECLARE @IsAddressForShipping VARCHAR(50);
+
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
@@ -331,7 +335,7 @@ BEGIN
 						(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 9),
 						(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                     )
-					update dbo.CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId
+					update dbo.CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId AND CodeTypeId = 9
                 END
 				
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))  
@@ -418,7 +422,7 @@ BEGIN
 						 --Update CodeData with new current number
 						UPDATE CodePrefixes
 						SET CurrentNummber = @CurrentNumber
-						WHERE CodePrefixId = (SELECT CodePrefixId FROM #tmpCodePrefix);
+						WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
 
 						-- Generate AutoGenerateNumber
 						SET @AutoGenerateNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNumber, (SELECT CodePrefix FROM #tmpCodePrefix), (SELECT CodeSufix FROM #tmpCodePrefix)));
@@ -477,14 +481,14 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 				FROM #ImportFields        
 				WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable
-				print(@FieldValue)
+
 				-- Add audit trail
 				SET @RefFieldName += ', MasterCompanyId, CreatedBy, UpdatedBy'
 				SET @FieldValue += CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + ''''
 				SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 				-- Final dynamic insert
 				SET @RefQuery = 'INSERT INTO ' + @ModuleParentTable + ' (' + @RefFieldName + ') VALUES (' + @FieldValue + ');'+ ' SET @ParentModuleTableId = SCOPE_IDENTITY()'; 
-				PRINT @RefQuery
+
 				EXEC sp_executesql @RefQuery, N'@ParentModuleTableId BIGINT OUTPUT',@ParentModuleTableId OUTPUT;
 				
 				--EXEC (@RefQuery)
@@ -527,6 +531,106 @@ BEGIN
 				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
 	
 			END
+			ELSE IF(@ModuleId = @CustomerModule)
+			BEGIN 
+
+			SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
+			SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
+
+			IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '1'  -- Set isAddressForBilling to 1
+					WHERE FieldName = 'isAddressForBilling';
+				END
+				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '0'  -- Set isAddressForBilling to 0
+					WHERE FieldName = 'isAddressForBilling';
+				END
+				
+				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '1'  -- Set isAddressForShipping to 1
+					WHERE FieldName = 'isAddressForShipping';
+				END
+				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '0'  -- Set isAddressForShipping to 0
+					WHERE FieldName = 'isAddressForShipping';
+				END			
+				
+				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','   
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
+						
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 	
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','  
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
+				FROM #ImportFields        
+				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+	
+			END
+			ELSE IF(@ModuleId = @VendorModule)
+			BEGIN 
+
+			SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
+			SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
+
+			IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '1'  -- Set isAddressForBilling to 1
+					WHERE FieldName = 'isAddressForBilling';
+				END
+				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '0'  -- Set isAddressForBilling to 0
+					WHERE FieldName = 'isAddressForBilling';
+				END
+				
+				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '1'  -- Set isAddressForShipping to 1
+					WHERE FieldName = 'isAddressForShipping';
+				END
+				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = '0'  -- Set isAddressForShipping to 0
+					WHERE FieldName = 'isAddressForShipping';
+				END			
+				
+				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','   
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN ISNULL(FieldValue,'0') + ',' END),      
+						
+					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
+							WHEN FieldType = 'boolean' THEN (CASE	WHEN LOWER(REPLACE(FieldValue, '''', '''''')) IN ('yes', 'true') THEN '1,' ELSE '0,' END) 	
+							WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + REPLACE(FieldValue, '''', '''''') + ''', ''Z'', '''') AS DATETIME), 101),' ELSE 'NULL,' END
+							WHEN FieldType = 'number'  THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END + ','  
+							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
+							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
+				FROM #ImportFields        
+				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+	
+			END
 			ELSE
 			BEGIN 
 					SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
@@ -550,8 +654,6 @@ BEGIN
 				FROM #ImportFields        
 				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
 			END
-
-	
 
 			IF(@ModuleId = @AlterModule)
 			BEGIN
@@ -582,18 +684,27 @@ BEGIN
 				
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
-				BEGIN
-					DECLARE @CustomerCode VARCHAR(120) = 'C-NEW';
-					SET @RefFieldName += ' , CustomerCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsCustomerAlsoVendor,IsPBHCustomer,RestrictPMA,RestrictDER,
-					IsCRMCustomer,Ismiscellaneous,MasterCompanyId,CreatedBy, UpdatedBy'
-					SET @FieldValue += '''' + @CustomerCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 1, 1, 0, 0, 1, 1, 0, 0, ';
-				END
+			BEGIN
+				DECLARE @CustomerCode VARCHAR(120) = 'C-NEW';
+
+				--SET @RefFieldName += ' , CustomerCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsCustomerAlsoVendor,IsPBHCustomer,RestrictPMA,RestrictDER,
+				--IsCRMCustomer,Ismiscellaneous,MasterCompanyId,CreatedBy, UpdatedBy'				
+				--SET @FieldValue += '''' + @CustomerCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 1, 1, 0, 0, 1, 1, 0, 0, ';
+
+				SET @RefFieldName += ' , CustomerCode,IsParent,AddressId,IsCustomerAlsoVendor,IsPBHCustomer,RestrictPMA,RestrictDER,
+				IsCRMCustomer,Ismiscellaneous,MasterCompanyId,CreatedBy, UpdatedBy'
+				SET @FieldValue += '''' + @CustomerCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 1, 1, 0, 0, ';
+			END
 			ELSE IF(@ModuleId = @VendorModule)
 			BEGIN
 				DECLARE @VendorCode VARCHAR(120) = 'Creating';
-				SET @RefFieldName += ' , VendorCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsVendorAlsoCustomer,IsAllowNettingAPAR,IsPreferredVendor,IsCertified,
+				--SET @RefFieldName += ' , VendorCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsVendorAlsoCustomer,IsAllowNettingAPAR,IsPreferredVendor,IsCertified,
+				--VendorAudit,EDI,AeroExchange,Is1099Required,IsAllow,IsWarning,IsRestrict,IsWarningRestriction,MasterCompanyId,CreatedBy, UpdatedBy'
+				--SET @FieldValue += '''' + @VendorCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 1, 1, 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
+
+				SET @RefFieldName += ' , VendorCode,IsParent,AddressId,IsVendorAlsoCustomer,IsAllowNettingAPAR,IsPreferredVendor,IsCertified,
 				VendorAudit,EDI,AeroExchange,Is1099Required,IsAllow,IsWarning,IsRestrict,IsWarningRestriction,MasterCompanyId,CreatedBy, UpdatedBy'
-				SET @FieldValue += '''' + @VendorCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 1, 1, 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
+				SET @FieldValue += '''' + @VendorCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
 			END
 			ELSE IF(@ModuleId = @PublicationModule)
 			BEGIN
@@ -629,14 +740,13 @@ BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
 				
 			END
-			print @FieldValue;
+			
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 			
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 			
 			IF(@ModuleId = @PriceMasterModule AND @isPriceDataExist = 1)
-			BEGIN
-					PRINT 'Update the record'
+			BEGIN					
 					DECLARE @UpdateFields NVARCHAR(MAX) = '';
 						
 						;WITH Fields AS (
@@ -668,9 +778,6 @@ BEGIN
 
 			
 			--select * from #ImportFields
-			PRINT '----------Final Query @RefQuery--------------'
-			PRINT @RefQuery
-
 			IF(@ModuleId = @PublicationModule)
 			BEGIN
 				EXEC sp_executesql @RefQuery, N'@GetDate DATE, @UtcNow DATETIME2(7), @EmployeeId BIGINT, @ModuleTableId BIGINT OUTPUT', @GetDate = @GetDate, @UtcNow = @UtcNow, @EmployeeId = @EmployeeId, @ModuleTableId = @ModuleTableId OUTPUT;
@@ -738,12 +845,45 @@ BEGIN
 			IF(@ModuleId = @CustomerModule)
 			BEGIN
 				DECLARE @CustomerClassificationVal AS VARCHAR(200);
-				DECLARE @CustomerAffiliationVal AS VARCHAR(200);
+				DECLARE @CustomerAffiliationVal AS VARCHAR(200);				
 	
 				SET @CustomerClassificationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerClassificationId')
 				SET @CustomerAffiliationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'CustomerAffiliationId')
+
+				SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
+				SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
 				
-				EXEC USP_UpdateCustomerDetails @ModuleTableId,@ModuleId,@CustomerClassificationVal,@CustomerAffiliationVal, @MasterCompanyId
+				IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''	
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '1'  -- Set isAddressForBilling to 1
+					WHERE FieldName = 'isAddressForBilling';
+				END
+				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '0'  -- Set isAddressForBilling to 0
+					WHERE FieldName = 'isAddressForBilling';
+				END
+
+				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '1'  -- Set isAddressForShipping to 1
+					WHERE FieldName = 'isAddressForShipping';
+				END
+				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '0'  -- Set isAddressForShipping to 0
+					WHERE FieldName = 'isAddressForShipping';
+				END
+
+				SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
+				SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
+
+				--EXEC USP_UpdateCustomerDetails @ModuleTableId,@ModuleId,@CustomerClassificationVal,@CustomerAffiliationVal,@MasterCompanyId,@EmployeeId,@IsAddressForBillingBit,@IsAddressForShippingBit
+				EXEC USP_UpdateCustomerDetails @ModuleTableId,@ModuleId,@CustomerClassificationVal,@CustomerAffiliationVal,@MasterCompanyId,@EmployeeId,@IsAddressForBilling,@IsAddressForShipping;
 			END
 			IF(@ModuleId = @VendorModule)
 			BEGIN
@@ -751,7 +891,42 @@ BEGIN
 	
 				SET @VendorClassificationVal = (select FieldValue from #DynamicKeyValue where FieldName = 'ClasificationId')
 
-				EXEC USP_UpdateVendorDetails @ModuleTableId, @MasterCompanyId,@VendorClassificationVal
+				SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
+				SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
+				
+				IF LOWER(@IsAddressForBilling) = 'yes' OR @IsAddressForBilling = ''	
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '1'  -- Set isAddressForBilling to 1
+					WHERE FieldName = 'isAddressForBilling';
+				END
+				ELSE IF LOWER(@IsAddressForBilling) = 'no'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '0'  -- Set isAddressForBilling to 0
+					WHERE FieldName = 'isAddressForBilling';
+				END
+
+				IF LOWER(@IsAddressForShipping) = 'yes' OR @IsAddressForShipping = ''
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '1'  -- Set isAddressForShipping to 1
+					WHERE FieldName = 'isAddressForShipping';
+				END
+				ELSE IF LOWER(@IsAddressForShipping) = 'no'
+				BEGIN
+					UPDATE #DynamicKeyValue
+					SET FieldValue = '0'  -- Set isAddressForShipping to 0
+					WHERE FieldName = 'isAddressForShipping';
+				END	
+
+				SELECT @IsAddressForBilling = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForBilling';
+				SELECT @IsAddressForShipping = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'isAddressForShipping';
+
+
+				--EXEC USP_UpdateVendorDetails @ModuleTableId, @MasterCompanyId,@VendorClassificationVal
+				EXEC USP_UpdateVendorDetails @ModuleTableId, @MasterCompanyId, @VendorClassificationVal, @IsAddressForBilling, @IsAddressForShipping;
+
 			END
 
 			IF(ISNULL(@ChildTable, '') != '')
@@ -792,8 +967,7 @@ BEGIN
 				SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 				--SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 
-				SET @RefQuery = 'INSERT INTO ' + @ChildTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');'
-				PRINT @RefQuery
+				SET @RefQuery = 'INSERT INTO ' + @ChildTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');'				
 
 				IF(@ModuleId = @PublicationModule)
 				BEGIN

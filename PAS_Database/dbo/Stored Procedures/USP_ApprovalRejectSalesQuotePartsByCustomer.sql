@@ -16,6 +16,7 @@
     1    26-03-2025	 BHARGAV SALIYA	 Created  
 	2    15-07-2025	 Devendra Shekh	  Added @ContactId param
 	3    05-09-2025	 Amit Ghediya	  Update rejected data null after approved.
+	4    10-09-2025	 Amit Ghediya	  Update for notes
 	--CustomerApprovedById,InternalStatusId,CustomerApprovedBy
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesQuotePartsByCustomer]
@@ -28,7 +29,8 @@ CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesQuotePartsByCustomer]
 	@UpdatedBy varchar(250),
     @Action VARCHAR(100),
 	@ApprovalActionId BIGINT,
-	@ContactId BIGINT = NULL
+	@ContactId BIGINT = NULL,
+	@Notes NVARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -61,6 +63,7 @@ BEGIN
 					ApprovalAction = @ApprovalAction,
 					CustomerStatus = @CustomerStatus,
 					CustomerApprovedById = @ContactId,
+					CustomerMemo = @Notes,
 					RejectedById = NULL,
 					RejectedByName = NULL,
 					RejectedDate = NULL
@@ -81,6 +84,7 @@ BEGIN
 					ApprovalAction = @RejectApprovalAction,
 					CustomerStatus = @RejectCustomerStatus,
 					RejectedById = @ContactId,
+					CustomerMemo = @Notes,
 					RejectedByName = @ApproveCustName,
 					RejectedDate = GETUTCDATE()
 			WHERE SalesOrderQuoteId = @SalesOrderQuoteId AND SalesOrderQuotePartId = @SalesOrderQuotePartId 

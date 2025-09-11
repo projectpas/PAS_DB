@@ -14,6 +14,7 @@
  ** PR   Date			 Author						Change Description            
  ** --   --------		 -------					--------------------------------          
     1    09/13/2023		Devendra Shekh					Created
+    2    09/11/2025		Devendra Shekh					added Delete/Restore Operation
 
 exec USP_ReportingStructure_StatusUpdate 1,0
 ************************************************************************/
@@ -21,7 +22,9 @@ exec USP_ReportingStructure_StatusUpdate 1,0
 CREATE   PROCEDURE [dbo].[USP_ReportingStructure_StatusUpdate]
 @ReportingStructureId bigint,
 @isActive bit,
-@UpdatedBy varchar(50)
+@UpdatedBy varchar(50),
+@IsDeleted bit,
+@Opr int
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -30,21 +33,47 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
-				IF(@isActive = 'false') 
+				--@Opr : 0 -- Delete/Restore
+				--@Opr : 1 -- Active/InActive
+
+				IF(ISNULL(@Opr, 0) = 1)
+				BEGIN
+					IF(@isActive = 'false') 
 					BEGIN
 						UPDATE	[dbo].[ReportingStructure]
 						SET		IsActive = 0,
-								UpdatedBy = @UpdatedBy
+								UpdatedBy = @UpdatedBy,
+								UpdatedDate = GETUTCDATE()
 						WHERE [ReportingStructureId] = @ReportingStructureId
 					END
 				ELSE
 					BEGIN
 						UPDATE	[dbo].[ReportingStructure]
 						SET		IsActive = 1,
-								UpdatedBy = @UpdatedBy
+								UpdatedBy = @UpdatedBy,
+								UpdatedDate = GETUTCDATE()
 						WHERE [ReportingStructureId] = @ReportingStructureId
 					END
-				
+				END
+				ELSE
+				BEGIN
+					IF(@IsDeleted = 'false') 
+					BEGIN
+						UPDATE	[dbo].[ReportingStructure]
+						SET		IsDeleted = 0,
+								UpdatedBy = @UpdatedBy,
+								UpdatedDate = GETUTCDATE()
+						WHERE [ReportingStructureId] = @ReportingStructureId
+					END
+				ELSE
+					BEGIN
+						UPDATE	[dbo].[ReportingStructure]
+						SET		IsDeleted = 1,
+								UpdatedBy = @UpdatedBy,
+								UpdatedDate = GETUTCDATE()
+						WHERE [ReportingStructureId] = @ReportingStructureId
+					END
+				END				
 			END
 		COMMIT  TRANSACTION
 

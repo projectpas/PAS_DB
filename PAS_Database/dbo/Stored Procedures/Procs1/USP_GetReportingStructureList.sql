@@ -17,6 +17,7 @@
 	2    11/10/2022			Devendra Shekh		added active/inactive filter, and isactive field to select  
 	3    27 Nov 2023		BHARGAV SALIYA		UTC Date Changes
 	4    06-March-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
+	5    09-Sep-2025		Devendra Shekh		Added IsDeleted Param and select Field
 
 ************************************************************************/    
 CREATE    PROCEDURE [dbo].[USP_GetReportingStructureList]    
@@ -35,7 +36,8 @@ CREATE    PROCEDURE [dbo].[USP_GetReportingStructureList]
   @CreatedDate datetime=null,        
   @UpdatedDate  datetime=null,        
   @CreatedBy  varchar(50)=null,        
-  @UpdatedBy  varchar(50)=null    
+  @UpdatedBy  varchar(50)=null,
+  @IsDeleted bit=null
 )    
 AS    
 BEGIN    
@@ -98,9 +100,9 @@ BEGIN
  CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 	CASE WHEN CAST(UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
  ELSE (CAST(UpdatedDate AS DATETIME)) END UpdatedDate, 
- IsDefault,IsActive  
+ IsDefault,IsActive,IsDeleted  
  FROM ReportingStructure WITH(NOLOCK)    
- WHERE MasterCompanyId = @MasterCompanyId AND (@IsActive IS NULL OR IsActive=@IsActive)  
+ WHERE MasterCompanyId = @MasterCompanyId AND (@IsActive IS NULL OR IsActive=@IsActive) AND (@IsDeleted IS NULL OR IsDeleted=@IsDeleted)  
  )    
     
  SELECT * INTO #TempResult FROM Result    

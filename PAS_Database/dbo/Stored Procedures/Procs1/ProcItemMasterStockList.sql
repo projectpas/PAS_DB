@@ -22,6 +22,7 @@
 	8	 07-Aug-2025	Ayushi Patel		 added condition for IsOEM
 	9	 21-Aug-2025	Bhargav saliya		 added Ranking
 	10   04-Sep-2025    Sahdev Saliya        Added WorkOrderType
+	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -51,7 +52,9 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @MasterCompanyId bigint = NULL,
 @EmployeeId bigint,
 @IsUpdated BIT = NULL,
-@WorkOrderFormTypeId INT = NULL
+@WorkOrderFormTypeId INT = NULL,
+@RankingsName VARCHAR(50) = NULL,
+@workOrderType VARCHAR(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -155,7 +158,7 @@ BEGIN
                        im.UpdatedBy,	
 					   im.IsDeleted,
 					   itp.Ranking as RankingsName,
-					   im.WorkOrderFormTypeId,'' as WorkOrderType
+					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType
 			   FROM dbo.ItemMaster im WITH (NOLOCK)	
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
@@ -176,7 +179,9 @@ BEGIN
 					--(IsHazardousMaterial LIKE '%' +@GlobalFilter+'%') OR					
 					(StockType LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(RankingsName LIKE '%' +@GlobalFilter+'%') OR
+					(workOrderType LIKE '%' +@GlobalFilter+'%')))	
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -194,7 +199,9 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					--(ISNULL(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS date)=CAST(@CreatedDate AS date))AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))AND
+				    (ISNULL(@RankingsName,'') ='' OR RankingsName LIKE '%' + @RankingsName + '%') AND
+					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%'))
 	)
 
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult			
@@ -231,7 +238,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='RankingsName')  THEN RankingsName END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RankingsName')  THEN RankingsName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='workOrderType')  THEN workOrderType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderType')  THEN workOrderType END DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END TRY

@@ -26,6 +26,7 @@
 	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented &Resolved issue
 	17	 04-Sep-2025        Divyesh Kathitiya		Added Customer Default Settings And Set Customer and Vendor: IsAddress For Billing & Shipping.
 	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
+
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]

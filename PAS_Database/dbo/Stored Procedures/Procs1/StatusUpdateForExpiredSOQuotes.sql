@@ -1,4 +1,22 @@
-﻿-- EXEC [StatusUpdateForExpiredSOQuotes]
+﻿/*********************           
+ ** File:   [StatusUpdateForExpiredSOQuotes]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:     
+          
+ ** RETURN VALUE:           
+  
+ **********************           
+  ** Change History           
+ **********************           
+ ** PR   Date             Author		         Change Description            
+ ** --   --------         -------		     ----------------------------       
+	1		-			 	-					Created 
+	2    08-09-2025      Amit Ghediya			Update for status to expired(PN-13634)
+
+-- EXEC [StatusUpdateForExpiredSOQuotes]
+**********************/
 CREATE PROCEDURE [dbo].[StatusUpdateForExpiredSOQuotes]
 AS
 BEGIN
@@ -8,6 +26,10 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+		
+		--Open,Sent,Partially Approved, Pending 
+		DECLARE @StatusId  VARCHAR(50)= '1,3,7,8';
+
 		IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL
 		BEGIN
 			DROP TABLE #TempTable 
@@ -17,8 +39,7 @@ BEGIN
 		INSERT INTO #TempTable
 		SELECT SalesOrderQuoteId FROM SalesOrderQuote WITH (NOLOCK)
 									WHERE QuoteExpireDate < GETDATE()
-									AND StatusId != 4
-									AND StatusId != 6
+									AND StatusId IN(SELECT Item FROM SplitString(@StatusId,','))
 										AND IsActive = 1
 									AND IsDeleted = 0
 

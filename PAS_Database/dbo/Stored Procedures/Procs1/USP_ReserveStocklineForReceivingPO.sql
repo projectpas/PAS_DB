@@ -38,6 +38,7 @@
 	22   01/Apr/2025  RAJESH GAMI		Resolve the issue : WO and SUbWO Auto reserve issue due to wrong goto statement 
 	23   04/14/2025   HEMANT SALIYA	    Added Work Order Work Flow Id for UpdateWOMaterialsCost
 	24   06/09/2025   HEMANT SALIYA	    Updated For Handle WOM reservarion issue fixed.
+	25   10/09/2025   Vishal Suthar		Fixed an issue with reserving more quantity than requested when received more quantity from PO
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
@@ -1609,7 +1610,6 @@ BEGIN
 						--WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
 						WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId;
 
-
 						DECLARE @SOPLoopID BIGINT;
 
 						SELECT @SOPLoopID = MAX(ID) FROM #tmpSalesOrderPart;
@@ -1651,7 +1651,7 @@ BEGIN
 									IF (@stkQuantityAvailable > 0)
 									BEGIN
 										IF (@stkQuantityAvailable >= @QtyRequested)
-											SET @Qty = @QtyRequested;
+											SET @Qty = (@QtyRequested - @QuantityReserved);
 										ELSE IF (@QtyRequested >= @stkQuantityAvailable)
 											SET @Qty = @stkQuantityAvailable;
 									END

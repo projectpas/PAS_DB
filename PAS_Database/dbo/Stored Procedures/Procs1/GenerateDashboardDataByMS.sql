@@ -30,6 +30,7 @@
 	17	 06/30/2025		Devendra Shekh		SO Billing Table Changes
 	18	 07/01/2025		Devendra Shekh		Parts Count Issue resolved for WOQ
 	19	 07/02/2025		Devendra Shekh		Using @BaseUtcOffsetSec for DateConversion
+	20	 09/09/2025		Devendra Shekh		Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -309,7 +310,7 @@ BEGIN
 			WHERE
 			WOQ.IsActive = 1
 			AND WOQ.IsDeleted = 0
-			AND WOQ.SentDate IS NOT NULL
+			--AND WOQ.SentDate IS NOT NULL
 			AND CONVERT(DATE, WOQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
 			AND WOQ.MasterCompanyId = @MasterCompanyId
 		) AS WorkOrderQuoteResult
@@ -327,8 +328,8 @@ BEGIN
 			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpSpeedQuoteUserRole MSD WITH(NOLOCK) ON MSD.ReferenceID = SQ.SpeedQuoteId
 			WHERE
-			SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
-			AND SQ.IsActive = 1
+			--SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE [Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0) AND
+			SQ.IsActive = 1
 			AND SQ.IsDeleted = 0
 			AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
 			AND SQ.MasterCompanyId = @MasterCompanyId
@@ -350,8 +351,8 @@ BEGIN
 			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SOQ.SalesPersonId = emp.EmployeeId
 			INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SOQ.SalesOrderQuoteId
 			WHERE
-			SOQA.CustomerApprovedDate IS NOT NULL
-			AND SOQ.IsActive = 1
+			--SOQA.CustomerApprovedDate IS NOT NULL AND
+			SOQ.IsActive = 1
 			AND SOQ.IsDeleted = 0
 			AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
 			AND SOQ.MasterCompanyId = @MasterCompanyId

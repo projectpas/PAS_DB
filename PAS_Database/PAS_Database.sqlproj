@@ -4224,6 +4224,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetStocklineDocumentDetailsByPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateBillingInvoicingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_updateWorkOrderShipDate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateExchangeSalesOrderShipping.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

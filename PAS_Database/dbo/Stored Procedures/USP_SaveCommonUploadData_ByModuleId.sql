@@ -25,7 +25,7 @@
 	15 	 26-Aug-2025        Divyesh Kathiriya		Added New Module "Publication"
 	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented &Resolved issue
 	17	 04-Sep-2025        Divyesh Kathitiya		Added Customer Default Settings And Set Customer and Vendor: IsAddress For Billing & Shipping.
-
+	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -335,7 +335,7 @@ BEGIN
 						(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 9),
 						(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
                     )
-					update dbo.CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId
+					update dbo.CodePrefixes set CurrentNummber = @CNCurrentNumber where MasterCompanyId=@MasterCompanyId AND CodeTypeId = 9
                 END
 				
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))  
@@ -422,7 +422,7 @@ BEGIN
 						 --Update CodeData with new current number
 						UPDATE CodePrefixes
 						SET CurrentNummber = @CurrentNumber
-						WHERE CodePrefixId = (SELECT CodePrefixId FROM #tmpCodePrefix);
+						WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
 
 						-- Generate AutoGenerateNumber
 						SET @AutoGenerateNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNumber, (SELECT CodePrefix FROM #tmpCodePrefix), (SELECT CodeSufix FROM #tmpCodePrefix)));

@@ -1,5 +1,4 @@
-﻿
-/*******  
+﻿/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -368,7 +367,7 @@ BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
 					END
-				
+					SET @IsDuplicate = 0;
 					IF(@ModuleId=@StocklineModule)
 					BEGIN
 						IF((ISNULL(@DuplicateRefeValue1, '') != '' AND ISNULL(@DuplicateRefeValue2, '') != ''))
@@ -380,7 +379,6 @@ BEGIN
 					BEGIN
 						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 					END
-				PRINT @IsDuplicate
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 

@@ -13,7 +13,22 @@
  ** --   --------     -------			--------------------------------          
     1   09/11/2025  Ekta Chandegra     Created
      
-  EXEC USP_GetExchangeQuoteVerificationResult @ExchangeQuoteId = 10118
+	EXEC [dbo].[USP_CreateExchangeSalesOrderShipping] @ExchangeSalesOrderShippingId=0,
+	@ExchangeSalesOrderId=146,@IsCustomerShipping=0,@ShipviaId=2,@CustomerDomensticShippingShipViaId=0,
+	@CreatedBy=N'roza diaz',@SOShippingStatusId=1,@OpenDate='2025-09-11 00:00:00',@CustomerId=9,
+	@ShipDate='2025-09-11 00:00:00',@AirwayBill=N'',@HouseAirwayBill=N'HouseAirwayBill',
+	@TrackingNum=N'TrackNum',@Weight=0,@SoldToName=N'SRK AVIATION',@SoldToAddress1=N'3797 CAMBRIDGE COURT',
+	@SoldToAddress2=N'',@SoldToCity=N'CLARKSVILLE',@SoldToState=N'ARKANSAS',@SoldToZip=N'72830',
+	@SoldToCountryId=1,@ShipToName=N'SRK AVIATION',@ShipToSiteName=N'SRK AVIATION',@ShipToSiteId=3,
+	@ShipToAddress1=N'3797 CAMBRIDGE COURT',@ShipToAddress2=N'',@ShipToCity=N'CLARKSVILLE',@ShipToState=N'ARKANSAS',
+	@ShipToZip=N'72830',@ShipToCountryId=1,@OriginName=N'CENTRAL US',@OriginAddress1=N'CENTRAL US',
+	@OriginAddress2=N'',@OriginCity=N'Orlando',@OriginState=N'FL',@OriginZip=N'324332',@OriginCountryId=1,
+	@SoldToSiteId=3,@SoldToSiteName=N'SRK AVIATION',@SoldToCountryName=N'UNITED STATES',@ShipToCustomerId=1,
+	@ShipToCountryName=N'UNITED STATES',@OriginCountryName=N'United States',@OriginSiteId=2,@IsSameForShipTo=0,
+	@MasterCompanyId=1,@ShipSizeLength=0,@ShipSizeWidth=0,@ShipSizeHeight=0,@ShipWeightUnit=0,@ShipSizeUnitOfMeasureId=0,
+	@NoOfContainer=1,@ShippingAccountNo=N'740561073',@NoOfItems=1,@IsManualShipping=0,@ManufactureCountryId=0,@QtyUOM=0,
+	@UnitPrice=0,@UnitPriceCurrencyId=1,@PackagingSlipNotes=N'',@ExchangeSalesOrderPartId=139,@QtyShipped=1,
+	@SOPickTicketId=97,@PackagingSlipId=0
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]

@@ -35,7 +35,7 @@ BEGIN
 	DECLARE @MarkUpPercentId BIGINT=NULL, @MarkUpPercentValue DECIMAL(18,2)=0
 	DECLARE @Month INT = 0,@Year INT = 0;
 	DECLARE	@RecordsTotalSOQ INT = 0,@PerUnitPriceSOQ DECIMAL(18,2) = 0,@FinalUnitPriceSOQ DECIMAL(18,2) = 0,@UnitSalesPriceTotalSOQ DECIMAL(18,2) = 0
-	DECLARE @Status_Code VARCHAR(100) = 'Rejected,Open,Cancelled';
+	DECLARE @Status_Code VARCHAR(100) = 'Rejected,Cancelled';
 	DECLARE @CostPlusPrice DECIMAL(18,2) = 0,@RecommendedPrice DECIMAL(18,2) = 0
 	DECLARE @TotalRecord int = 0;   
 	DECLARE @MinId BIGINT = 1;  

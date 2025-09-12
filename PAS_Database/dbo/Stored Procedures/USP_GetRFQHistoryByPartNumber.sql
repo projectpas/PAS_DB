@@ -13,7 +13,8 @@
  ** --   ----------  -----------		--------------------------------          
     1    13/08/2025  Moin Bloch		    Created
 	2    14/08/2025  Moin Bloch         Removed Markuppercent from SO,SOQ
-	2    04/09/2025  Devendra Shekh     Modified (Added Vendor Quote Calculation, Changed calculation Based on QuoteSetting)
+	3    04/09/2025  Devendra Shekh     Modified (Added Vendor Quote Calculation, Changed calculation Based on QuoteSetting)
+	4    12/09/2025  Devendra Shekh     Modified (PO Quote Price Selection)
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'NICKITEST-A',7,1
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] '1150-C',2,1
@@ -43,7 +44,7 @@ BEGIN
 	DECLARE @AvgHistoricalSOQCode VARCHAR(50)  = 'Avg Historical SOQ';
 	DECLARE @PurchasePriceCode VARCHAR(50)  = 'Purchase Price + Mark up';
 	DECLARE @RecommendedPriceCode VARCHAR(50)  = 'Recommended Price';
-	DECLARE @VendorQuoteCode VARCHAR(50)  = 'Vendor Quote';
+	DECLARE @VendorQuoteCode VARCHAR(50)  = 'Purchase Quote + Mark Up';
 	
 	IF OBJECT_ID(N'tempdb..#tmpRFQHistoryResult') IS NOT NULL
 	BEGIN
@@ -222,7 +223,7 @@ BEGIN
 			SELECT @CostPlusPrice = @PerUnitPricePS
 		END
 
-		------------------------------Vendor Quote : Start ------------------------------ 
+		------------------------------Vendor Quote (Purchase Quote + Mark Up) : Start ------------------------------ 
 		DECLARE	@RecordsTotalPO INT = 0, @PerUnitPricePO DECIMAL(18,2) = 0, @FinalUnitPricePO DECIMAL(18,2) = 0, @UnitSalesPriceTotalPO DECIMAL(18,2) = 0, @PerUnitPricePOCostPlus DECIMAL(18,2) = 0;
 		DECLARE @VQSettingYearId BIGINT, @VQSettingMonthId BIGINT, @VQSettingPercentValue DECIMAL(18,2) = 0;
 
@@ -230,21 +231,21 @@ BEGIN
 		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @VQSettingYearId; 
 		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @VQSettingMonthId; 
 
-		SELECT	@RecordsTotalPO = COUNT(POP.PurchaseOrderPartRecordId), 
-				@UnitSalesPriceTotalPO = ISNULL(SUM(POP.VendorListPrice),0)
-		FROM [dbo].[PurchaseOrderPart] POP WITH(NOLOCK)
-		INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.[PurchaseOrderId] = PO.[PurchaseOrderId]
+		SELECT	TOP 1
+				@UnitSalesPriceTotalPO = ISNULL(POP.UnitCost,0)
+		FROM [dbo].[VendorRFQPurchaseOrderPart] POP WITH(NOLOCK)
+		INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) ON POP.[VendorRFQPurchaseOrderId] = PO.[VendorRFQPurchaseOrderId]
 		WHERE TRIM(POP.[PartNumber]) = TRIM(@PartNumber)
 			AND POP.[ConditionId] = @NewConditionId   
-			AND ISNULL(POP.isParent, 0) = 1
 			AND MONTH(PO.[OpenDate]) >= @Month
 			AND YEAR(PO.[OpenDate]) >= @Year
 			AND PO.[Status] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
-			AND PO.[MasterCompanyId] = @MasterCompanyId;	
+			AND PO.[MasterCompanyId] = @MasterCompanyId
+			ORDER BY POP.UpdatedDate DESC;	
 		  
-		IF(@RecordsTotalPO > 0)
+		IF(ISNULL(@UnitSalesPriceTotalPO, 0) > 0)
 		BEGIN
-	  	SET @PerUnitPricePO  = ISNULL((@UnitSalesPriceTotalPO / @RecordsTotalPO),0);
+	  	SET @PerUnitPricePO  = @UnitSalesPriceTotalPO;
 	  	--Check if PercentValue selected or not
 	  		IF(ISNULL(@VQSettingPercentValue,0) > 0)
 	  		BEGIN
@@ -256,7 +257,7 @@ BEGIN
 				SET @PerUnitPricePOCostPlus = @PerUnitPricePO;
 			END
 		END
-		------------------------------Vendor Quote : End ------------------------------
+		------------------------------Vendor Quote (Purchase Quote + Mark Up) : End ------------------------------
 
         ------------------------------Price List------------------------------
 

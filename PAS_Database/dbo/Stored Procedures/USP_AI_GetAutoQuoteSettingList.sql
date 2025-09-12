@@ -13,6 +13,7 @@
     1    12/08/2025   RAJESH GAMI       Created for AIAutoQuoteSetting table
 	2    04/09/2025   Devendra Shekh    Added New fields: [Code], [YearId], [MonthId], [PercentId], [PercentValue]
 	3    05/09/2025   Devendra Shekh    Added Params: @PercentValue, @YearName, @MonthName
+	4    12/09/2025   Devendra Shekh    Added Params: @Days AND @PercentValue Filter resolved
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AI_GetAutoQuoteSettingList]
@@ -30,7 +31,8 @@ CREATE   PROCEDURE [dbo].[USP_AI_GetAutoQuoteSettingList]
 	@EmployeeId bigint,
 	@PercentValue DECIMAL(18,2) = NULL,
 	@YearName VARCHAR(50) = NULL,
-	@MonthName VARCHAR(100) = NULL
+	@MonthName VARCHAR(100) = NULL,
+	@Days INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -44,7 +46,9 @@ BEGIN
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		DECLARE @CurrntEeTimeZoneDesc VARCHAR(100) = '';
-		
+		DECLARE @PercenValStr NVARCHAR(10) = NULL;
+		SET @PercenValStr = CASE WHEN @PercentValue = FLOOR(@PercentValue) THEN CAST(CAST(@PercentValue AS INT) AS NVARCHAR(10)) ELSE CAST(@PercentValue AS NVARCHAR(10)) END;
+				
 				SELECT 
 						@CurrntEeTimeZoneDesc = COALESCE(
 							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
@@ -96,7 +100,8 @@ BEGIN
 				AI.PercentId,
 				AI.PercentValue,
 				YE.YearName,
-				MN.[MonthName]
+				MN.[MonthName],
+				AI.[Days]
             FROM dbo.AIAutoQouteSetting AI WITH (NOLOCK)
 			LEFT JOIN [dbo].[Years] YE WITH(NOLOCK) ON AI.YearId = YE.YearId
 			LEFT JOIN [dbo].[Months] MN WITH(NOLOCK) ON AI.MonthId = MN.MonthId
@@ -116,6 +121,7 @@ BEGIN
 				YearName LIKE '%' + @GlobalFilter + '%' OR
 				[MonthName] LIKE '%' + @GlobalFilter + '%' OR
 				(CAST([Sequence] AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				(CAST([Days] AS VARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
 				(CAST([PercentValue] AS NVARCHAR(10)) LIKE '%' + CAST(@GlobalFilter AS NVARCHAR(10)) + '%') OR
                 CreatedBy LIKE '%' + @GlobalFilter + '%'
             ))
@@ -127,7 +133,8 @@ BEGIN
                 (ISNULL(@YearName, '') = '' OR YearName LIKE '%' + @YearName + '%') AND
                 (ISNULL(@MonthName, '') = '' OR [MonthName] LIKE '%' + @MonthName + '%') AND
 				(IsNull(@Sequence, 0) = 0 OR CAST([Sequence] as VARCHAR(10)) like @Sequence) AND
-				(IsNull(@PercentValue, 0) = 0 OR CAST([PercentValue] AS NVARCHAR(10)) LIKE '%' + CAST(@PercentValue AS NVARCHAR(10)) + '%') AND
+				(IsNull(@Days, 0) = 0 OR CAST([Days] as VARCHAR(10)) LIKE '%' + CAST(@Days AS VARCHAR(10)) + '%') AND
+				(ISNULL(@PercenValStr, '') = '' OR CAST([PercentValue] AS NVARCHAR(10)) LIKE '%' + CAST(@PercenValStr AS NVARCHAR(10)) + '%') AND
                 (ISNULL(@CreatedDate, '') = '' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE))
             ));
 
@@ -151,7 +158,9 @@ BEGIN
 			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'MONTHNAME') THEN [MonthName] END ASC,
             CASE WHEN (@SortOrder = -1 AND @SortColumn = 'MONTHNAME') THEN [MonthName] END DESC,
 			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'PERCENTVALUE') THEN PercentValue END ASC,
-            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PERCENTVALUE') THEN PercentValue END DESC
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PERCENTVALUE') THEN PercentValue END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'DAYS') THEN [Days] END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'DAYS') THEN [Days] END DESC
         OFFSET @RecordFrom ROWS
         FETCH NEXT @PageSize ROWS ONLY;
 

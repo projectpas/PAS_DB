@@ -12,6 +12,7 @@
  ** --   --------     -------		    ---------------------------     
     1    12/08/2025   Rajesh Gami      Created
     2    04/09/2025   Devendra Shekh   Added New fiels: [YearId], [MonthId], [PercentId], [PercentValue]
+    3    12/09/2025   Devendra Shekh   Added New fiels: [Days]
 **************************************************************           
  EXEC USP_AI_AddUpdateAutoQuoteSetting 0,1,'Price List','PRL',1,2,'Auto Send',1,'Admin'
 **************************************************************/
@@ -27,7 +28,8 @@ CREATE   PROCEDURE [dbo].[USP_AI_AddUpdateAutoQuoteSetting]
     @CreatedBy VARCHAR(256),
 	@YearId BIGINT = NULL,
 	@MonthId BIGINT = NULL,
-	@PercentId BIGINT = NULL
+	@PercentId BIGINT = NULL,
+	@Days INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -48,12 +50,12 @@ BEGIN
                     ([QuoteSettingNameId], [QuoteSettingName], [Code], [Sequence], 
                      [QuoteSendReviewId], [QuoteSendReview], [MasterCompanyId], 
                      [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], 
-                     [IsDeleted], [IsActive], [YearId], [MonthId], [PercentId], [PercentValue])
+                     [IsDeleted], [IsActive], [YearId], [MonthId], [PercentId], [PercentValue], [Days])
                 VALUES
                     (@QuoteSettingNameId, (SELECT TOP 1 QuoteSettingName FROM dbo.QuoteSettingName WITH(NOLOCK) WHERE QuoteSettingNameId =@QuoteSettingNameId), @Code, @Sequence, 
                      @QuoteSendReviewId, (SELECT TOP 1 [QuoteName] FROM dbo.QuoteSendReview WITH(NOLOCK) WHERE QuoteSendReviewId =@QuoteSendReviewId), @MasterCompanyId, 
                      @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 
-                     0, 1, @YearId, @MonthId, @PercentId, @PercentValue);
+                     0, 1, @YearId, @MonthId, @PercentId, @PercentValue, @Days);
 
                 SET @AIAutoQouteSettingId = SCOPE_IDENTITY();
             END
@@ -71,7 +73,8 @@ BEGIN
                        [YearId] = @YearId,
                        [MonthId] = @MonthId,
                        [PercentId] = @PercentId,
-                       [PercentValue] = @PercentValue
+                       [PercentValue] = @PercentValue,
+					   [Days] = @Days
                  WHERE AIAutoQouteSettingId = @AIAutoQouteSettingId;
             END
 

@@ -241,6 +241,7 @@ BEGIN
 			AND YEAR(PO.[OpenDate]) >= @Year
 			AND PO.[Status] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
 			AND PO.[MasterCompanyId] = @MasterCompanyId
+			AND ISNULL(POP.[IsNoQuote], 0) = 0
 			ORDER BY POP.UpdatedDate DESC;	
 		  
 		IF(ISNULL(@UnitSalesPriceTotalPO, 0) > 0)

@@ -15,6 +15,7 @@
 	2    14/08/2025  Moin Bloch         Removed Markuppercent from SO,SOQ
 	3    04/09/2025  Devendra Shekh     Modified (Added Vendor Quote Calculation, Changed calculation Based on QuoteSetting)
 	4    12/09/2025  Devendra Shekh     Modified (PO Quote Price Selection)
+	5    12/09/2025  Devendra Shekh     Modified (Date Range Changes)
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'NICKITEST-A',7,1
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] '1150-C',2,1
@@ -35,7 +36,7 @@ BEGIN
 	DECLARE @MarkUpPercentId BIGINT=NULL, @MarkUpPercentValue DECIMAL(18,2)=0
 	DECLARE @Month INT = 0,@Year INT = 0;
 	DECLARE	@RecordsTotalSOQ INT = 0,@PerUnitPriceSOQ DECIMAL(18,2) = 0,@FinalUnitPriceSOQ DECIMAL(18,2) = 0,@UnitSalesPriceTotalSOQ DECIMAL(18,2) = 0
-	DECLARE @Status_Code VARCHAR(100) = 'Rejected,Open,Cancelled';
+	DECLARE @Status_Code VARCHAR(100) = 'Rejected,Cancelled';
 	DECLARE @CostPlusPrice DECIMAL(18,2) = 0,@RecommendedPrice DECIMAL(18,2) = 0
 	DECLARE @TotalRecord int = 0;   
 	DECLARE @MinId BIGINT = 1;  
@@ -43,7 +44,7 @@ BEGIN
 	DECLARE @AvgHistoricalSOCode VARCHAR(50)  = 'Avg Historical SO';
 	DECLARE @AvgHistoricalSOQCode VARCHAR(50)  = 'Avg Historical SOQ';
 	DECLARE @PurchasePriceCode VARCHAR(50)  = 'Purchase Price + Mark up';
-	DECLARE @RecommendedPriceCode VARCHAR(50)  = 'Recommended Price';
+	DECLARE @RecommendedPriceCode VARCHAR(50)  = 'Suggested Price';
 	DECLARE @VendorQuoteCode VARCHAR(50)  = 'Purchase Quote + Mark Up';
 	
 	IF OBJECT_ID(N'tempdb..#tmpRFQHistoryResult') IS NOT NULL
@@ -134,11 +135,9 @@ BEGIN
 
 		------------------------------SOQ------------------------------ 
 
-		DECLARE @SOQSettingYearId BIGINT, @SOQSettingMonthId BIGINT;
+		DECLARE @SOQSettingYearId BIGINT, @SOQSettingMonthId BIGINT, @SOQSettingDays INT;
 
-		SELECT @SOQSettingYearId = ISNULL([YearId], 0), @SOQSettingMonthId = ISNULL([MonthId], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOQCode AND [MasterCompanyId] = @MasterCompanyId;
-		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @SOQSettingYearId; 
-		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @SOQSettingMonthId;
+		SELECT @SOQSettingYearId = ISNULL([YearId], 0), @SOQSettingMonthId = ISNULL([MonthId], 0), @SOQSettingDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOQCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		SELECT	@RecordsTotalSOQ = COUNT(SOPC.SalesOrderQuotePartId), 
 				@UnitSalesPriceTotalSOQ = ISNULL(SUM(SOPC.UnitSalesPrice),0)
@@ -148,8 +147,7 @@ BEGIN
 		INNER JOIN [dbo].[MasterSalesOrderQuoteStatus] SQS WITH(NOLOCK) ON SQ.[StatusId] = SQS.[Id]
 		WHERE TRIM(SQP.[PartNumber]) = TRIM(@PartNumber)
 		  AND SQP.[ConditionId] = @NewConditionId   
-		  AND MONTH(SQ.[OpenDate]) >= @Month
-		  AND YEAR(SQ.[OpenDate]) >= @Year
+		  AND CAST(SQ.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@SOQSettingDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
 		  AND SQS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
 		  AND SQP.[MasterCompanyId] = @MasterCompanyId;				
 		  IF(@RecordsTotalSOQ > 0)
@@ -166,11 +164,9 @@ BEGIN
 		------------------------------SO------------------------------
 
 		DECLARE	@RecordsTotalSO INT = 0,@PerUnitPriceSO DECIMAL(18,2) = 0,@FinalUnitPriceSO DECIMAL(18,2) = 0,@UnitSalesPriceTotalSO DECIMAL(18,2) = 0;
-		DECLARE @SOSettingYearId BIGINT, @SOSettingMonthId BIGINT;
+		DECLARE @SOSettingYearId BIGINT, @SOSettingMonthId BIGINT, @SOSettingDays INT;
 
-		SELECT @SOSettingYearId = [YearId], @SOSettingMonthId = [MonthId] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOCode AND [MasterCompanyId] = @MasterCompanyId;
-		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @SOSettingYearId; 
-		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @SOSettingMonthId;
+		SELECT @SOSettingYearId = [YearId], @SOSettingMonthId = [MonthId], @SOSettingDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @AvgHistoricalSOCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		SELECT	@RecordsTotalSO = COUNT(SOPC.SalesOrderPartId), 
 				@UnitSalesPriceTotalSO = ISNULL(SUM(SOPC.UnitSalesPrice),0)
@@ -180,8 +176,7 @@ BEGIN
 		INNER JOIN [dbo].[MasterSalesOrderStatus] SOS WITH(NOLOCK) ON SO.[StatusId] = SOS.[Id]
 		WHERE TRIM(SP.[PartNumber]) = TRIM(@PartNumber)
 		  AND SP.[ConditionId] = @NewConditionId   
-		  AND MONTH(SO.[OpenDate]) >= @Month
-		  AND YEAR(SO.[OpenDate]) >= @Year
+		  AND CAST(SO.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@SOSettingDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
 		  AND SOS.[Name] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
 		  AND SP.[MasterCompanyId] = @MasterCompanyId;	
 		  
@@ -225,11 +220,9 @@ BEGIN
 
 		------------------------------Vendor Quote (Purchase Quote + Mark Up) : Start ------------------------------ 
 		DECLARE	@RecordsTotalPO INT = 0, @PerUnitPricePO DECIMAL(18,2) = 0, @FinalUnitPricePO DECIMAL(18,2) = 0, @UnitSalesPriceTotalPO DECIMAL(18,2) = 0, @PerUnitPricePOCostPlus DECIMAL(18,2) = 0;
-		DECLARE @VQSettingYearId BIGINT, @VQSettingMonthId BIGINT, @VQSettingPercentValue DECIMAL(18,2) = 0;
+		DECLARE @VQSettingYearId BIGINT, @VQSettingMonthId BIGINT, @VQSettingPercentValue DECIMAL(18,2) = 0, @VQSettingDays INT;
 
-		SELECT @VQSettingYearId = [YearId], @VQSettingMonthId = [MonthId], @VQSettingPercentValue = [PercentValue] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode AND [MasterCompanyId] = @MasterCompanyId;
-		SELECT @Year = [YearName] FROM [dbo].[Years] WITH(NOLOCK) WHERE [YearId] = @VQSettingYearId; 
-		SELECT @Month = [MonthNumber] FROM [dbo].[Months] WITH(NOLOCK) WHERE [MonthId] = @VQSettingMonthId; 
+		SELECT @VQSettingYearId = [YearId], @VQSettingMonthId = [MonthId], @VQSettingPercentValue = [PercentValue], @VQSettingDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		SELECT	TOP 1
 				@UnitSalesPriceTotalPO = ISNULL(POP.UnitCost,0)
@@ -237,11 +230,10 @@ BEGIN
 		INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) ON POP.[VendorRFQPurchaseOrderId] = PO.[VendorRFQPurchaseOrderId]
 		WHERE TRIM(POP.[PartNumber]) = TRIM(@PartNumber)
 			AND POP.[ConditionId] = @NewConditionId   
-			AND MONTH(PO.[OpenDate]) >= @Month
-			AND YEAR(PO.[OpenDate]) >= @Year
+			AND CAST(PO.[OpenDate] AS DATE) BETWEEN DATEADD(DAY, -@VQSettingDays, CAST(GETUTCDATE() AS DATE)) AND CAST(GETUTCDATE() AS DATE)
 			AND PO.[Status] NOT IN (SELECT item FROM SplitString(@Status_Code,','))
 			AND PO.[MasterCompanyId] = @MasterCompanyId
-			AND ISNULL(POP.[IsNoQuote], 0) = 0
+			AND ISNULL(POP.IsNoQuote, 0) = 0
 			ORDER BY POP.UpdatedDate DESC;	
 		  
 		IF(ISNULL(@UnitSalesPriceTotalPO, 0) > 0)

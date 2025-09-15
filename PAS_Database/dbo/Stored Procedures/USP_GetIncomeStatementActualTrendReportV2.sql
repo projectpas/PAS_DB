@@ -239,9 +239,6 @@ BEGIN
 			CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
 		 ORDER BY FiscalYear, [Period]
 
-
-
-
 		CREATE TABLE #AccTrendTable (
 		  ID bigint NOT NULL IDENTITY (1, 1),
 		  LeafNodeId bigint,
@@ -424,8 +421,6 @@ BEGIN
 		
 			 UPDATE #TempTable SET IsProcess = 0  WHERE AccountcalMonth = @AccountcalMonth
 
-			 Select * from #TempTable
-
 			 --Start Processing Accounting calendor Month wise Set Balance in Parent Leaf node.
 			 SET @CID = 0;
 			 SET @CLID = 0;
@@ -441,7 +436,7 @@ BEGIN
 						FROM #TempTable
 							WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth
 				
-				--Update Parent Leaf Node Balance based on chield Count
+				--Update Parent Leaf Node Balance based on child Count
 				UPDATE #TempTable
 						SET Amount =  CASE  WHEN IsPositive = 1 THEN 
 												  (SELECT SUM(ISNULL(T.Amount, 0)) FROM #TempTable T  WHERE T.ParentId = @CLID AND T.AccountcalMonth = @AccountcalMonth)
@@ -470,6 +465,10 @@ BEGIN
 				SELECT * FROM #TempTable --WHERE LeafNodeId = 143
 				SELECT * FROM #AccTrendTable
 			END
+
+			--SELECT 'TempTable After Update Parent Leaf Node Balance'
+				--SELECT * FROM #TempTable  ORDER BY ID DESC--WHERE LeafNodeId = 143
+				--SELECT * FROM #AccTrendTable
 			
 			UPDATE #TempTable SET IsProcess = 0,
 						   TotalAmount = (SELECT SUM(ISNULL(T.Amount,0)) FROM #TempTable T WHERE T.ParentId = T1.LeafNodeId AND T.AccountcalMonth = @AccountcalMonth)	 
@@ -492,15 +491,26 @@ BEGIN
 			  IF NOT EXISTS (SELECT TOP 1 ID FROM #AccTrendTable WHERE LeafNodeId = @CLID AND IsBlankHeader = 1 AND AccountcalMonth = @AccountcalMonth)
 			  BEGIN
 					INSERT INTO #AccTrendTable (LeafNodeId, NodeName, Amount, AccountcalMonth, IsBlankHeader)
-							  SELECT TOP 1 LeafNodeId, Name + ' :',NULL, @AccountcalMonth, 1 FROM #TempTable 
+							  SELECT TOP 1 LeafNodeId, Name + ' :',TotalAmount, @AccountcalMonth, 1 FROM #TempTable 
 											 WHERE LeafNodeId = @CLID
 												  AND ChildCount > 0 AND  AccountcalMonth = @AccountcalMonth
+												  --AND Name Not like '%INCOME STATEMENT%'
+					--SELECT '#AccTrendTable'
+					--SELECT TOP 1 LeafNodeId, Name + ' :',NULL, @AccountcalMonth, 1 FROM #TempTable 
+					--						 WHERE LeafNodeId = @CLID
+					--							  AND ChildCount > 0 AND  AccountcalMonth = @AccountcalMonth
+					--							  --AND Name != 'INCOME STATEMENT'
 					IF(@IsFristRow = 1)
 					BEGIN
 					INSERT INTO ##AccTrendTablePivot(Name,IsBlankHeader, LeafNodeId, ParentId)
 							   SELECT TOP 1  Name + ' :', 1, LeafNodeId, ParentId FROM #TempTable 
 											 WHERE LeafNodeId = @CLID
 												  AND ChildCount > 0 AND AccountcalMonth = @AccountcalMonth
+												  --AND Name Not like '%INCOME STATEMENT%'
+							--SELECT '###AccTrendTablePivot'
+							--SELECT TOP 1  Name + ' :', 1, LeafNodeId, ParentId FROM #TempTable 
+							--				 WHERE LeafNodeId = @CLID
+							--					  AND ChildCount > 0 AND AccountcalMonth = @AccountcalMonth
 					END
 			  END
 
@@ -509,12 +519,12 @@ BEGIN
 					 FROM #TempTable
 						   WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth
 		  IF(@IsFristRow = 1)
-					BEGIN
-					INSERT INTO ##AccTrendTablePivot(Name,IsBlankHeader, LeafNodeId, ParentId)
-								SELECT  Name, 0, LeafNodeId, ParentId
-									FROM #TempTable
-											WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth 
-					END
+		  BEGIN
+			  INSERT INTO ##AccTrendTablePivot(Name,IsBlankHeader, LeafNodeId, ParentId)
+		  				SELECT  Name, 0, LeafNodeId, ParentId
+		  					FROM #TempTable
+		  							WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth 
+		  END
 
 		  UPDATE #TempTable
 				  SET IsProcess = 1
@@ -565,6 +575,16 @@ BEGIN
 			SELECT * FROM ##AccTrendTablePivot
 			SELECT * FROM #AccTrendTable
 		END
+
+		--SELECT 'AccTrendTablePivot'
+		--SELECT * FROM ##AccTrendTablePivot
+		--SELECT * FROM #AccTrendTable
+		--SELECT 'AccTrendTablePivot'
+		--	--SELECT * FROM #TempTable where LeafNodeId = 143
+		--	SELECT * FROM #GLBalance
+		--SELECT * FROM #TempTable
+		--SELECT * FROM ##AccTrendTablePivot
+		--SELECT * FROM #AccTrendTable
 
 		UPDATE #TempTable SET AccountingPeriodName = REPLACE(AP.PeriodName,' - ',' ')  
 		FROM #TempTable tmp JOIN dbo.AccountingCalendar AP WITH(NOLOCK) ON tmp.AccountcalMonth = REPLACE(AP.PeriodName,' - ','')  
@@ -634,6 +654,9 @@ BEGIN
 				 LF.MasterCompanyId, LF.ReportingStructureId, LF.IsPositive, LF.SequenceNumber
 		ORDER BY ParentId, LF.SequenceNumber
 
+		--Select  * from ##tmpFinalReturnTable
+		--SELECT * FROM ##AccTrendTablePivot
+
 		DECLARE @COUNT1 AS INT;
 		DECLARE @COUNTMAX1 AS INT
 		SELECT @COUNTMAX1 = MAX(ID), @COUNT1 = MIN(ID) FROM #AccPeriodTable
@@ -643,12 +666,12 @@ BEGIN
 			DECLARE @APName1 AS VARCHAR(100);
 
 			DECLARE @SQLFinalUpdateQuery varchar(max) = 'UPDATE T1 SET T1.[' + CAST(@APName1 AS VARCHAR(100)) +'] = T2.[' + CAST(@APName1 AS VARCHAR(100)) +'] FROM ##tmpFinalReturnTable T1 JOIN ##AccTrendTablePivot T2 ON T1.leafNodeId = T2.leafNodeId AND T1.parentId = T2.parentId AND T1.[name] = T2.[name]'
-		
+			--PRINT(@SQLUpdateQuery)  
 			EXEC(@SQLFinalUpdateQuery)  
 
 			SET @COUNT1 = @COUNT1 + 1
 		END
-
+		
 		UPDATE T1 
 				SET T1.IsLeafNode = T2.IsLeafNode, T1.MasterCompanyId = T2.MasterCompanyId, 
 					T1.ReportingStructureId = T2.ReportingStructureId, T1.sequenceNumber = T2.sequenceNumber,
@@ -666,6 +689,10 @@ BEGIN
 
 		UPDATE  ##AccTrendTablePivot SET leafNodeId = NULL WHERE IsBlankHeader = 1 OR IsTotlaLine = 1
 
+		--SELECT * FROM ##AccTrendTablePivot
+		--Select  * from ##tmpFinalReturnTable
+
+
 		DECLARE @COUNT2 AS INT;
 		DECLARE @COUNTMAX2 AS INT
 		DECLARE @MAXLeafNodeId AS INT
@@ -681,6 +708,8 @@ BEGIN
 			SET @COUNT2 = @COUNT2 + 1
 		
 		END
+
+		--SELECT * FROM ##AccTrendTablePivot
 
 		DECLARE @COUNT3 AS INT;
 		DECLARE @COUNTMAX3 AS INT
@@ -705,7 +734,7 @@ BEGIN
 
 					DECLARE @SQLQueryUpdateHeader varchar(max) = 'UPDATE ##AccTrendTablePivot SET [' + CAST(@APName4 AS VARCHAR(100)) +'] = NULL WHERE leafNodeId = ' + CAST(@LeafNodeId3 AS VARCHAR(100)) +'' 
 					PRINT (@SQLQueryUpdateHeader)
-					EXEC(@SQLQueryUpdateHeader)  
+					--EXEC(@SQLQueryUpdateHeader)  
 
 					SET @COUNT4 = @COUNT4 + 1
 				END
@@ -716,9 +745,20 @@ BEGIN
 		
 		END
 
+		--SELECT * FROM ##AccTrendTablePivot
+		--Select  * from ##tmpFinalReturnTable
+
 		UPDATE ##AccTrendTablePivot SET [name] = REPLACE([name],'Total - ','') 
 
-		SELECT * FROM ##AccTrendTablePivot WHERE IsBlankHeader != 1 Order BY parentId 
+		SELECT * INTO #ResultTabel FROM ##AccTrendTablePivot  WHERE IsBlankHeader != 1 and IsTotlaLine = 0 --Order BY parentId ASC
+
+		UPDATE #ResultTabel SET IsTotlaLine = 1 WHERE isLeafNode = 0
+
+		--SELECT * FROM ##AccTrendTablePivot --WHERE IsBlankHeader != 1
+
+		SELECT * FROM #ResultTabel Order BY parentId ASC 
+
+		--SELECT * FROM ##AccTrendTablePivot WHERE IsBlankHeader != 1 and IsTotlaLine = 0 Order BY parentId ASC --AND (name != 'REVENUE' and IsTotlaLine = 0)
 
   END TRY
   BEGIN CATCH

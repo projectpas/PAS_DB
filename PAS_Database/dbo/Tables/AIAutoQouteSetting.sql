@@ -17,7 +17,10 @@
     [MonthId]              BIGINT          NULL,
     [PercentId]            BIGINT          NULL,
     [PercentValue]         DECIMAL (18, 2) NULL,
+    [Days]                 INT             NULL,
     CONSTRAINT [PK_AIAutoQouteSetting] PRIMARY KEY CLUSTERED ([AIAutoQouteSettingId] ASC),
     CONSTRAINT [FK_AIAutoQouteSetting_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

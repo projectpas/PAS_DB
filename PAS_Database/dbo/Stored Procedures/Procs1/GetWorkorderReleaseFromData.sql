@@ -77,10 +77,15 @@ BEGIN
 
 		IF(@CMMIds IS NOT NULL)
 		BEGIN
+			--INSERT INTO #tmprCMMIDsDetails ([CMMId])
+			--SELECT [PublicationRecordId] --(SELECT Item FROM DBO.SPLITSTRING(wop.CMMIds, ',')) AS cmmids 
+			--FROM [dbo].[Publication] WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
+			--ORDER BY PublicationTypeId DESC
 			INSERT INTO #tmprCMMIDsDetails ([CMMId])
-			SELECT [PublicationRecordId] --(SELECT Item FROM DBO.SPLITSTRING(wop.CMMIds, ',')) AS cmmids 
-			FROM [dbo].[Publication] WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
-			ORDER BY PublicationTypeId DESC
+			SELECT [PublicationRecordId]
+			FROM [dbo].[Publication] P INNER JOIN [dbo].[PublicationType] PT ON P.PublicationTypeId = PT.PublicationTypeId
+			WHERE P.[PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
+			ORDER BY PT.[Name]
 		END			
 		
 		DECLARE @FAA INT = 1;  

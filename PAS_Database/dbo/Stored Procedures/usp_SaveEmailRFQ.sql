@@ -272,8 +272,8 @@ BEGIN
 				TMP.CustomerId = CASE WHEN ISNULL(CS.CustomerId, 0) > 0 THEN CS.CustomerId ELSE 0 END
 			FROM #tmpQuote TMP
 			LEFT JOIN dbo.[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
-			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId
-			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId
+			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
+			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId AND CS.IsActive = 1 AND CS.IsDeleted = 0
 
 			IF EXISTS(SELECT 1 FROM #tmpQuote WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(CustomerId, 0) = 0 OR ISNULL(ConditionId, 0) = 0 OR ISNULL(QuoteSendReviewId, 0) = 0)
 			BEGIN

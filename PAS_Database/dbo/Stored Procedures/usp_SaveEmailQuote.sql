@@ -178,7 +178,7 @@ BEGIN
 				SET	TMP.ItemMasterId = IM.ItemMasterId
 				FROM #tmpCustomerRfqQuoteDetails TMP
 				LEFT JOIN dbo.[CustomerRfqPartMapping] CRPM WITH(NOLOCK) ON CRPM.CustomerRfqPartMappingId = TMP.CustomerRfqPartMappingId
-				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId
+				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
 				
 				--Create SOQ
 				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName], @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
@@ -192,8 +192,8 @@ BEGIN
 				FROM #tmpCustomerRfqQuoteDetails;
 				--FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
 
-				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId;
-				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId;						
+				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;						
 				SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
 				IF EXISTS(SELECT 1 FROM #tmpCustomerRfqQuoteDetails WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(ConditionId, 0) = 0)

@@ -41,8 +41,8 @@ BEGIN
 			soc.MasterCompanyId,
 			soc.CreatedBy,
 			soc.UpdatedBy,
-			GETDATE() AS CreatedDate,
-			GETDATE() AS UpdatedDate,
+			GETUTCDATE() AS CreatedDate,
+			GETUTCDATE() AS UpdatedDate,
 			ISNULL(soc.IsActive,0) AS IsActive,
 			ISNULL(soc.IsDeleted,0) AS IsDeleted,
 			soc.UOMId AS UomId,
@@ -56,7 +56,7 @@ BEGIN
 			@DatabaseName varchar(100) = DB_NAME()
     -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = 'USP_ConvertSalesQuotePartsToSalesOrderChargesView',
-            @ProcedureParameters varchar(3000) = '@ExchangeQuoteId = ''' + CAST(ISNULL(@ExchangeQuoteId, '') AS varchar(100)),
+            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@ExchangeQuoteId, '') AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
     EXEC spLogException @DatabaseName = @DatabaseName,

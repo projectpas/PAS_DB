@@ -23,6 +23,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 12   19/02/2025  Moin Bloch       Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise checked @CMMIds Empty)
 ** 13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
 ** 14   21/02/2025  Moin Bloch       Updated (Fixed Condition Issue)
+** 15   12/09/2025  Vishal Suthar    Fixed the issue with CMM & RSPEC data interchange
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
 **************************************************************/ 

@@ -29,7 +29,7 @@ BEGIN
 
 		IF(ISNULL(@VendorId,0) > 0 )
 		BEGIN
-			 SET @VendorId = (SELECT [VendorId] FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId AND [MasterCompanyId] = @MasterCompanyId)
+			 SET @VendorId = (SELECT [VendorId] FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId AND [MasterCompanyId] = @MasterCompanyId  AND IsActive = 1 AND IsDeleted = 0)
 			 SET @IsExists = 1;
 		END
 

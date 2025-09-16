@@ -24,6 +24,7 @@
 	11	 21-08-2025  Devendra Shekh		 Modified (Added one more Case for CustomerId) 
 	12	 26-08-2025  Devendra Shekh		 Modified (Added LOWER/TRIM for PartNumber and Customer for Join) 
 	13   01-09-2025  Amit Ghediya		 Modified (Update RefrenceQuoteNumber field selection)
+	14   16-09-2025  Devendra Shekh		 Modified (Changes for StockLineId select, reduced Query Time)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -97,7 +98,14 @@ BEGIN
 				FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 				WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
 				GROUP BY RIM.partnumber, RIM.MasterCompanyId
-			),			
+			),	
+			StkResult AS (
+				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
+				FROM [dbo].[Stockline] STK WITH(NOLOCK) 
+				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
+				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0
+				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
+			),
 			Result AS(
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
@@ -125,7 +133,8 @@ BEGIN
 					IM.PartDescription AS 'PnDescription',
 					(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
-					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
+					CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId,
+					--ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
 					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
@@ -146,6 +155,7 @@ BEGIN
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
@@ -190,7 +200,8 @@ BEGIN
 					CASE WHEN ISNULL(IM.PartDescription, '') != '' THEN IM.PartDescription ELSE CRPM.PartDescription END AS 'PnDescription',
 					(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
-					ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
+					CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId,
+					--ISNULL((SELECT TOP 1 CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END  FROM dbo.Stockline STK WITH(NOLOCK) WHERE IM.[itemmasterid] = STK.[itemmasterid] AND ISNULL(STK.[QuantityAvailable],0) > 0),0) StockLineId,
 					RFQ.EmployeeId,
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
 					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
@@ -222,6 +233,7 @@ BEGIN
 				LEFT JOIN dbo.CustomerRfqPartMapping CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
+				LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
 				--OUTER APPLY (
 				--	SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription

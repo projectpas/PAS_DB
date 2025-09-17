@@ -52,6 +52,9 @@
     [TwoFactorAuthenticationType]        INT             NULL,
     [TwoFactorAuthenticatorKey]          NVARCHAR (100)  NULL,
     [IsScrapCertification]               BIT             NULL,
+    [IsCommission]                       BIT             NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 

@@ -4224,6 +4224,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetStocklineDocumentDetailsByPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateBillingInvoicingDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_updateWorkOrderShipDate.sql" />
+    <Build Include="dbo\Tables\SalesPersonActivityType.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesPersonActivityTypeByCustomerId.sql" />
+    <Build Include="dbo\Stored Procedures\ProceCustomerAssignmentList.sql" />
     <Build Include="dbo\Tables\StocklineAsofNowJobDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStockReportAsOfNowJob.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineAsofNowJobList.sql" />

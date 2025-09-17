@@ -17,6 +17,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/17/2022   Hemant Saliya Created
+    2    09/17/2025   Vishal Suthar Added a field (AllMSlevels) in Update statement to update it while adding a new entry
      
  EXECUTE USP_SaveMSDetails 2
 
@@ -100,7 +101,10 @@ SET NOCOUNT ON
 
 					EXECUTE(@Query)  
 
-					UPDATE [dbo].[ManagementStructureDetails] SET [LastMSLevel] = LastMSName FROM #TempTable WHERE MSDetailsId = @MSDetailsId
+					UPDATE [dbo].[ManagementStructureDetails] 
+					SET [LastMSLevel] = LastMSName,
+					[AllMSlevels] = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@EntityMSID))
+					FROM #TempTable WHERE MSDetailsId = @MSDetailsId
 
 					IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL
 					BEGIN

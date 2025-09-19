@@ -4235,6 +4235,8 @@
     <Build Include="dbo\Stored Procedures\USP_AddStocklineAsofNowJobDetails.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetIncomeStatementTrendReportsExportDataV2.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReport_Original.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomer.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -1,9 +1,9 @@
 ﻿/*************************************************************               
- ** File:  [usprpt_GetEmployeeCommissionReport]      
+ ** File:  [usprpt_GetEmployeeCommissionReport_IncludeCustomer]      
  ** Author:  Vishal Suthar
- ** Description: This stored procedure is used to Employee Commission DATA.    
+ ** Description: This stored procedure is used to Employee Commission DATA Including Customer.    
  ** Purpose:             
- ** Date:   08-SEPT-2025          
+ ** Date:   18-SEPT-2025          
               
  ** RETURN VALUE:               
  **************************************************************               
@@ -11,11 +11,10 @@
  **************************************************************               
  ** PR   Date			Author				Change Description                
  ** --   --------		-------				--------------------------------              
-    1    08-SEPT-2025	Vishal Suthar		Created
-	2	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
+    1    18-SEPT-2025	Vishal Suthar		Created    
          
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
+CREATE     PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomer]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -259,7 +258,7 @@ BEGIN
     DECLARE @ErrorLogID int,
     @DatabaseName varchar(100) = DB_NAME(),
     -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-    @AdhocComments varchar(150) = '[usprpt_GetEmployeeCommissionReport]',
+    @AdhocComments varchar(150) = '[usprpt_GetEmployeeCommissionReport_IncludeCustomer]',
     @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100)) + 
     '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) + 
     '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)) + 

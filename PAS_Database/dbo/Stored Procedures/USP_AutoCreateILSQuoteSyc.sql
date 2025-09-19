@@ -12,11 +12,12 @@
  **************************************************************           
  ** PR   Date         Author		  Change Description            
  ** --   --------     -------		  --------------------------------          
-    1    14/08/2025   Amit Ghediya    Created
+    1    14/08/2025   Amit Ghediya			Created
+	2	 18/08/2025   Devendra Shekh		changed [RfqId] Type to nvarchar
 
 EXEC USP_AutoCreateILSQuoteSyc 129,1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[USP_AutoCreateILSQuoteSyc]
+CREATE   PROCEDURE [dbo].[USP_AutoCreateILSQuoteSyc]
 	@MasterCompanyId INT=NULL
 AS
 BEGIN	
@@ -27,7 +28,7 @@ BEGIN
 		DECLARE @MasterLoopID INT = 0,
 				--@PartNumber NVARCHAR(200) = '0856AE15',
 				@CustomerRfqIds BIGINT = 0,
-				@RfqId BIGINT = 0,
+				@RfqId NVARCHAR(200),
 				@Condition VARCHAR(256),
 				@ConditionId BIGINT,
 				@CustomerRfqQuoteId BIGINT = 0,
@@ -58,7 +59,7 @@ BEGIN
 		(
 			ID BIGINT NOT NULL IDENTITY, 
 			CustomerRfqId BIGINT NULL,
-			RfqId BIGINT NULL,
+			RfqId NVARCHAR(200) NULL,
 			Quantity INT,
 			Condition VARCHAR(256),
 			PartNumber VARCHAR(200) NULL,

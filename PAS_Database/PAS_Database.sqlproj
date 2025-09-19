@@ -4233,6 +4233,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetStocklineAsofNowJobList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetNextRunStocklineAsofNowJobDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddStocklineAsofNowJobDetails.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetIncomeStatementTrendReportsExportDataV2.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReport_Original.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateExchangeSalesOrderShipping.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuotePartsToSalesOrderChargesView.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuoteFreightToSalesOrderFreightView.sql" />

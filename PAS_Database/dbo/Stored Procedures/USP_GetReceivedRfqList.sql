@@ -25,6 +25,7 @@
 	12	 26-08-2025  Devendra Shekh		 Modified (Added LOWER/TRIM for PartNumber and Customer for Join) 
 	13   01-09-2025  Amit Ghediya		 Modified (Update RefrenceQuoteNumber field selection)
 	14   16-09-2025  Devendra Shekh		 Modified (Changes for StockLineId select, reduced Query Time)
+	15   18-09-2025  Devendra Shekh		 Modified (UTC DateTime Issue Resolved)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -55,7 +56,8 @@ CREATE      PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@DateAssigned DATETIME=null,
 	@QuotedBy VARCHAR(50)=NULL,
 	@QuotedDate DATETIME=null,
-	@RefrenceQuoteNumber VARCHAR(50)=NULL
+	@RefrenceQuoteNumber VARCHAR(50)=NULL,
+	@UserEmployeeId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -92,6 +94,18 @@ BEGIN
 					Set @IntegrationPortalId = NULL
 				END
 
+				/* --------------START: Get the timzone and UTC offset -------------- */
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(400) = '', @BaseUtcOffsetSec BIGINT = 0;
+				SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+				FROM dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE E.EmployeeId = @UserEmployeeId AND E.MasterCompanyId = @MasterCompanyId;	
+				
+				SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
+				/* -------------- END: Get the timzone and UTC offset -------------- */
+
 				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
 			;With ItemResult AS (
 				SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
@@ -109,7 +123,7 @@ BEGIN
 			Result AS(
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
-					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
+					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[RfqCreatedDate])) AS 'RfqcreatedDate',
 					RFQ.[BuyerName] AS 'rfqFrom',
 					RFQ.[BuyerCompanyName] AS 'companyName',
 					RFQ.[BuyerCountry] AS 'country',
@@ -139,9 +153,9 @@ BEGIN
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
 					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
 						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
-					RFQ.[DateAssigned],
+					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[DateAssigned])) AS 'DateAssigned',
 					RFQ.[QuotedBy],
-					RFQ.[QuotedDate],
+					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) AS 'QuotedDate',
 					CASE 
 						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
 															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
@@ -176,7 +190,7 @@ BEGIN
 
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
-					RFQ.[RfqCreatedDate] AS 'RfqcreatedDate',
+					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[RfqCreatedDate])) AS 'RfqcreatedDate',
 					RFQ.[BuyerName] AS 'rfqFrom',
 					RFQ.[BuyerCompanyName] AS 'companyName',
 					RFQ.[BuyerCountry] AS 'country',
@@ -206,9 +220,9 @@ BEGIN
 					CONCAT(EM.FirstName, ' ', EM.LastName) AS EmployeeName,
 					CASE WHEN RFQ.ModuleId = @SoqModuleId THEN ISNULL(SOQ.[SalesOrderQuoteNumber],'')
 						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
-					RFQ.[DateAssigned],
+					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[DateAssigned])) AS 'DateAssigned',
 					RFQ.[QuotedBy],
-					RFQ.[QuotedDate],
+					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) AS 'QuotedDate',
 					CASE 
 						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
 															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
@@ -294,7 +308,7 @@ BEGIN
 					ORDER BY  
 					CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQID')  THEN RfqId END ASC,
-					CASE WHEN (@SortOrder=1 and @SortColumn='RFQCREATEDDATE')  THEN RfqcreatedDate END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='RFQCREATEDDATETYPE')  THEN RfqcreatedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='DateAssigned')  THEN DateAssigned END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedBy')  THEN QuotedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedDate')  THEN QuotedDate END ASC,
@@ -315,7 +329,7 @@ BEGIN
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQCREATEDDATE')  THEN RfqcreatedDate END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQCREATEDDATETYPE')  THEN RfqcreatedDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='DateAssigned')  THEN DateAssigned END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedBy')  THEN QuotedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedDate')  THEN QuotedDate END DESC,

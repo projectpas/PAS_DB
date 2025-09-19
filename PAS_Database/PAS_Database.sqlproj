@@ -4239,6 +4239,7 @@
     <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuotePartsToSalesOrderChargesView.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuoteFreightToSalesOrderFreightView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_MakeSalesOrderPartViewFromSalesQuote.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

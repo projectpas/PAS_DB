@@ -1,24 +1,27 @@
 ﻿/*************************************************************             
- ** File:   [USP_GetIncomeStatementActualTrendReportV2]             
+ ** File:   [USP_GetIncomeStatementActualTrendReport]             
  ** Author: Hemant Saliya  
- ** Description: This stored procedure is used to display income statement(actual) report data V2
+ ** Description: This stored procedure is used to display income statement(actual) report data
  ** Purpose:           
- ** Date:27/08/2025
+ ** Date:10/07/2023
          
  **************************************************************             
   ** Change History             
  **************************************************************             
  ** PR   Date         Author  			Change Description             
- 1    27/08/2025   Hemant Saliya		Created 
-
+ 1    10/07/2023   Hemant Saliya		Created 
+ 2    18/09/2023   Hemant Saliya		Updated for Legal Entity Accounting Calendor Wise 
+ 3    25/01/2024   Hemant Saliya		Remove Manual Journal from Reports
+ 4    01/02/2024   Hemant Saliya		Remove Supress Zero Logic
+ 5    05/02/2024   Hemant Saliya	    Updated For Adjustment Period
 
  @strFilter=N'1!2,7!3,11,10!4,12'
 **************************************************************       
-exec DBO.USP_GetIncomeStatementActualTrendReport @ReportingStructureId=20,@MasterCompanyId=1,@ManagementStructureId=1,@StartAccountingPeriodId=244,@EndAccountingPeriodId=244,@IsSupressZero=1,@xmlFilter=N'<?xml version="1.0" encoding="utf-16"?>
+EXEC DBO.USP_GetIncomeStatementActualTrendReport @ReportingStructureId=8,@MasterCompanyId=1,@ManagementStructureId=1,@StartAccountingPeriodId=136,@EndAccountingPeriodId=138,@IsSupressZero= 0, @xmlFilter=N'<?xml version="1.0" encoding="utf-16"?>
 <ArrayOfFilter xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Filter>
     <FieldName>Level1</FieldName>
-    <FieldValue>1,5,6</FieldValue>
+    <FieldValue>1,5,6,52</FieldValue>
   </Filter>
   <Filter>
     <FieldName>Level2</FieldName>
@@ -59,7 +62,7 @@ exec DBO.USP_GetIncomeStatementActualTrendReport @ReportingStructureId=20,@Maste
 </ArrayOfFilter>'
 ************************************************************************/
   
-CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementActualTrendReport]
+CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementActualTrendReport_Original]
 (
 		 @masterCompanyId BIGINT,  
 		 @ReportingStructureId BIGINT = NULL,  
@@ -239,6 +242,9 @@ BEGIN
 			CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
 		 ORDER BY FiscalYear, [Period]
 
+
+
+
 		CREATE TABLE #AccTrendTable (
 		  ID bigint NOT NULL IDENTITY (1, 1),
 		  LeafNodeId bigint,
@@ -296,7 +302,6 @@ BEGIN
 		  IsProcess bit DEFAULT (0)
 		)
 
-		--Get Balance by GL account wise based on Reporting Structure and Accounting Month
 		INSERT INTO #GLBalance (LeafNodeId, AccountcalMonth, DebitAmount, CreaditAmount,  Amount)
 		(SELECT DISTINCT LF.LeafNodeId , REPLACE(BD.AccountingPeriod,' - ',''), 
 						CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
@@ -334,12 +339,10 @@ BEGIN
 		BEGIN
 			SELECT 'GLBalance'
 			SELECT * FROM #GLBalance
-			SELECT * FROM #AccPeriodTable
+			--SELECT * FROM #AccPeriodTable
 			--SELECT * FROM #AccPeriodTable_All
 		END
 
-		
-		--Start Loop by Accounting Month
 		DECLARE @LID AS int = 0;
 		DECLARE @IsFristRow AS bit = 1;
 		DECLARE @LCOUNT AS int = 0;
@@ -348,9 +351,6 @@ BEGIN
 		BEGIN
 		   SELECT @AccountcalMonth = ISNULL(PeriodName, '') FROM #AccPeriodTable where ID = @LCOUNT
 
-		   --SELECT  ISNULL(PeriodName, '') FROM #AccPeriodTable where ID = @LCOUNT
-
-		   --Get Parent(root) Leaf Node details by Reporting Structure
 		   INSERT INTO #TempTable (LeafNodeId, [Name], IsPositive, ParentId, IsProcess, AccountcalMonth)
 							  SELECT
 								LeafNodeId,[Name],IsPositive,ParentId,0,@AccountcalMonth
@@ -365,8 +365,7 @@ BEGIN
 						FROM #TempTable
 								WHERE IsProcess = 0 AND AccountcalMonth = @AccountcalMonth
 								ORDER BY ID
-			
-			--Get All Child & Child of Chils for Selected LeafNodeId
+
 			WHILE (@CLID > 0)
 			BEGIN
 				INSERT INTO #TempTable (LeafNodeId, [Name], IsPositive, ParentId, IsProcess,AccountcalMonth)
@@ -387,15 +386,14 @@ BEGIN
 											ORDER BY ID
 				 END
 			END
-			
+
 			IF(@IsDebugMode = 1)
 			BEGIN
 				SELECT 'TempTable'
-				SELECT * FROM #TempTable --WHERE LeafNodeId = 143
-				SELECT * FROM #GLBalance --WHERE LeafNodeId = 143
+				--SELECT * FROM #TempTable WHERE LeafNodeId = 143
+				--SELECT * FROM #GLBalance WHERE LeafNodeId = 143
 			END
 			
-			--Update GL Balance Amount for each Leaf Node
 			UPDATE #TempTable SET Amount = tmpCal.Amount
 			FROM(SELECT SUM(ISNULL(GL.Amount, 0)) AS Amount, T.LeafNodeId, T.AccountcalMonth
 				FROM #TempTable T 
@@ -403,14 +401,12 @@ BEGIN
 			GROUP BY T.LeafNodeId, T.AccountcalMonth
 			)tmpCal WHERE tmpCal.AccountcalMonth = #TempTable.AccountcalMonth AND tmpCal.LeafNodeId = #TempTable.LeafNodeId AND tmpCal.AccountcalMonth = @AccountcalMonth 
 			
-			IF(@IsDebugMode = 1)
-			BEGIN
-				SELECT 'TempTable After Balance'
-				SELECT * FROM #TempTable --WHERE LeafNodeId = 143
-			END
+			--UPDATE #TempTable SET Amount =ISNULL(GL.Amount, 0)
+			--FROM #TempTable T 
+			--JOIN #GLBalance GL ON T.AccountcalMonth = @AccountcalMonth AND T.LeafNodeId = GL.LeafNodeId AND T.AccountcalMonth = GL.AccountcalMonth
 
-			--SET Chield Count & +Ve and -Ve GL Balnce
-			UPDATE #TempTable
+
+			 UPDATE #TempTable
 			   SET ChildCount = ISNULL((SELECT COUNT(ISNULL(T.Amount, 0))
 											   FROM #TempTable T
 													WHERE T.ParentId = T1.LeafNodeId AND T.AccountcalMonth = @AccountcalMonth), 0),
@@ -421,7 +417,6 @@ BEGIN
 		
 			 UPDATE #TempTable SET IsProcess = 0  WHERE AccountcalMonth = @AccountcalMonth
 
-			 --Start Processing Accounting calendor Month wise Set Balance in Parent Leaf node.
 			 SET @CID = 0;
 			 SET @CLID = 0;
 			 SELECT TOP 1 @CID = ID
@@ -431,12 +426,10 @@ BEGIN
 
 			WHILE (@CID > 0)
 				BEGIN
-				--Select Parent Leaf Node
 				SELECT TOP 1 @CLID = LeafNodeId
 						FROM #TempTable
 							WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth
-				
-				--Update Parent Leaf Node Balance based on child Count
+
 				UPDATE #TempTable
 						SET Amount =  CASE  WHEN IsPositive = 1 THEN 
 												  (SELECT SUM(ISNULL(T.Amount, 0)) FROM #TempTable T  WHERE T.ParentId = @CLID AND T.AccountcalMonth = @AccountcalMonth)
@@ -444,7 +437,6 @@ BEGIN
 									  END
 					 WHERE ID = @CID
 						   AND ChildCount > 0 AND AccountcalMonth = @AccountcalMonth
-				
 				UPDATE #TempTable  SET IsProcess = 1 WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth
 
 				  SET @CID = 0;
@@ -459,17 +451,6 @@ BEGIN
 			   END
 			END
 		
-			IF(@IsDebugMode = 1)
-			BEGIN
-				SELECT 'TempTable After Update Parent Leaf Node Balance'
-				SELECT * FROM #TempTable --WHERE LeafNodeId = 143
-				SELECT * FROM #AccTrendTable
-			END
-
-			--SELECT 'TempTable After Update Parent Leaf Node Balance'
-				--SELECT * FROM #TempTable  ORDER BY ID DESC--WHERE LeafNodeId = 143
-				--SELECT * FROM #AccTrendTable
-			
 			UPDATE #TempTable SET IsProcess = 0,
 						   TotalAmount = (SELECT SUM(ISNULL(T.Amount,0)) FROM #TempTable T WHERE T.ParentId = T1.LeafNodeId AND T.AccountcalMonth = @AccountcalMonth)	 
 						  FROM #TempTable T1 
@@ -491,26 +472,15 @@ BEGIN
 			  IF NOT EXISTS (SELECT TOP 1 ID FROM #AccTrendTable WHERE LeafNodeId = @CLID AND IsBlankHeader = 1 AND AccountcalMonth = @AccountcalMonth)
 			  BEGIN
 					INSERT INTO #AccTrendTable (LeafNodeId, NodeName, Amount, AccountcalMonth, IsBlankHeader)
-							  SELECT TOP 1 LeafNodeId, Name + ' :',TotalAmount, @AccountcalMonth, 1 FROM #TempTable 
+							  SELECT TOP 1 LeafNodeId, Name + ' :',NULL, @AccountcalMonth, 1 FROM #TempTable 
 											 WHERE LeafNodeId = @CLID
 												  AND ChildCount > 0 AND  AccountcalMonth = @AccountcalMonth
-												  --AND Name Not like '%INCOME STATEMENT%'
-					--SELECT '#AccTrendTable'
-					--SELECT TOP 1 LeafNodeId, Name + ' :',NULL, @AccountcalMonth, 1 FROM #TempTable 
-					--						 WHERE LeafNodeId = @CLID
-					--							  AND ChildCount > 0 AND  AccountcalMonth = @AccountcalMonth
-					--							  --AND Name != 'INCOME STATEMENT'
 					IF(@IsFristRow = 1)
 					BEGIN
 					INSERT INTO ##AccTrendTablePivot(Name,IsBlankHeader, LeafNodeId, ParentId)
 							   SELECT TOP 1  Name + ' :', 1, LeafNodeId, ParentId FROM #TempTable 
 											 WHERE LeafNodeId = @CLID
 												  AND ChildCount > 0 AND AccountcalMonth = @AccountcalMonth
-												  --AND Name Not like '%INCOME STATEMENT%'
-							--SELECT '###AccTrendTablePivot'
-							--SELECT TOP 1  Name + ' :', 1, LeafNodeId, ParentId FROM #TempTable 
-							--				 WHERE LeafNodeId = @CLID
-							--					  AND ChildCount > 0 AND AccountcalMonth = @AccountcalMonth
 					END
 			  END
 
@@ -519,12 +489,12 @@ BEGIN
 					 FROM #TempTable
 						   WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth
 		  IF(@IsFristRow = 1)
-		  BEGIN
-			  INSERT INTO ##AccTrendTablePivot(Name,IsBlankHeader, LeafNodeId, ParentId)
-		  				SELECT  Name, 0, LeafNodeId, ParentId
-		  					FROM #TempTable
-		  							WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth 
-		  END
+					BEGIN
+					INSERT INTO ##AccTrendTablePivot(Name,IsBlankHeader, LeafNodeId, ParentId)
+								SELECT  Name, 0, LeafNodeId, ParentId
+									FROM #TempTable
+											WHERE ID = @CID AND AccountcalMonth = @AccountcalMonth 
+					END
 
 		  UPDATE #TempTable
 				  SET IsProcess = 1
@@ -570,21 +540,11 @@ BEGIN
 		BEGIN
 			SELECT 'AccTrendTablePivot'
 			--SELECT * FROM #TempTable where LeafNodeId = 143
-			SELECT * FROM #GLBalance
-			SELECT * FROM #TempTable
-			SELECT * FROM ##AccTrendTablePivot
-			SELECT * FROM #AccTrendTable
+			--SELECT * FROM #GLBalance
+			--SELECT * FROM #TempTable
+			--SELECT * FROM ##AccTrendTablePivot
+			--SELECT * FROM #AccTrendTable
 		END
-
-		--SELECT 'AccTrendTablePivot'
-		--SELECT * FROM ##AccTrendTablePivot
-		--SELECT * FROM #AccTrendTable
-		--SELECT 'AccTrendTablePivot'
-		--	--SELECT * FROM #TempTable where LeafNodeId = 143
-		--	SELECT * FROM #GLBalance
-		--SELECT * FROM #TempTable
-		--SELECT * FROM ##AccTrendTablePivot
-		--SELECT * FROM #AccTrendTable
 
 		UPDATE #TempTable SET AccountingPeriodName = REPLACE(AP.PeriodName,' - ',' ')  
 		FROM #TempTable tmp JOIN dbo.AccountingCalendar AP WITH(NOLOCK) ON tmp.AccountcalMonth = REPLACE(AP.PeriodName,' - ','')  
@@ -654,9 +614,6 @@ BEGIN
 				 LF.MasterCompanyId, LF.ReportingStructureId, LF.IsPositive, LF.SequenceNumber
 		ORDER BY ParentId, LF.SequenceNumber
 
-		--Select  * from ##tmpFinalReturnTable
-		--SELECT * FROM ##AccTrendTablePivot
-
 		DECLARE @COUNT1 AS INT;
 		DECLARE @COUNTMAX1 AS INT
 		SELECT @COUNTMAX1 = MAX(ID), @COUNT1 = MIN(ID) FROM #AccPeriodTable
@@ -666,12 +623,12 @@ BEGIN
 			DECLARE @APName1 AS VARCHAR(100);
 
 			DECLARE @SQLFinalUpdateQuery varchar(max) = 'UPDATE T1 SET T1.[' + CAST(@APName1 AS VARCHAR(100)) +'] = T2.[' + CAST(@APName1 AS VARCHAR(100)) +'] FROM ##tmpFinalReturnTable T1 JOIN ##AccTrendTablePivot T2 ON T1.leafNodeId = T2.leafNodeId AND T1.parentId = T2.parentId AND T1.[name] = T2.[name]'
-			--PRINT(@SQLUpdateQuery)  
+		
 			EXEC(@SQLFinalUpdateQuery)  
 
 			SET @COUNT1 = @COUNT1 + 1
 		END
-		
+
 		UPDATE T1 
 				SET T1.IsLeafNode = T2.IsLeafNode, T1.MasterCompanyId = T2.MasterCompanyId, 
 					T1.ReportingStructureId = T2.ReportingStructureId, T1.sequenceNumber = T2.sequenceNumber,
@@ -689,10 +646,6 @@ BEGIN
 
 		UPDATE  ##AccTrendTablePivot SET leafNodeId = NULL WHERE IsBlankHeader = 1 OR IsTotlaLine = 1
 
-		--SELECT * FROM ##AccTrendTablePivot
-		--Select  * from ##tmpFinalReturnTable
-
-
 		DECLARE @COUNT2 AS INT;
 		DECLARE @COUNTMAX2 AS INT
 		DECLARE @MAXLeafNodeId AS INT
@@ -708,8 +661,6 @@ BEGIN
 			SET @COUNT2 = @COUNT2 + 1
 		
 		END
-
-		--SELECT * FROM ##AccTrendTablePivot
 
 		DECLARE @COUNT3 AS INT;
 		DECLARE @COUNTMAX3 AS INT
@@ -734,7 +685,7 @@ BEGIN
 
 					DECLARE @SQLQueryUpdateHeader varchar(max) = 'UPDATE ##AccTrendTablePivot SET [' + CAST(@APName4 AS VARCHAR(100)) +'] = NULL WHERE leafNodeId = ' + CAST(@LeafNodeId3 AS VARCHAR(100)) +'' 
 					PRINT (@SQLQueryUpdateHeader)
-					--EXEC(@SQLQueryUpdateHeader)  
+					EXEC(@SQLQueryUpdateHeader)  
 
 					SET @COUNT4 = @COUNT4 + 1
 				END
@@ -745,20 +696,9 @@ BEGIN
 		
 		END
 
-		--SELECT * FROM ##AccTrendTablePivot
-		--Select  * from ##tmpFinalReturnTable
-
 		UPDATE ##AccTrendTablePivot SET [name] = REPLACE([name],'Total - ','') 
 
-		SELECT * INTO #ResultTabel FROM ##AccTrendTablePivot  WHERE IsBlankHeader != 1 and IsTotlaLine = 0 --Order BY parentId ASC
-
-		UPDATE #ResultTabel SET IsTotlaLine = 1 WHERE isLeafNode = 0
-
-		--SELECT * FROM ##AccTrendTablePivot --WHERE IsBlankHeader != 1
-
-		SELECT * FROM #ResultTabel Order BY parentId ASC 
-
-		--SELECT * FROM ##AccTrendTablePivot WHERE IsBlankHeader != 1 and IsTotlaLine = 0 Order BY parentId ASC --AND (name != 'REVENUE' and IsTotlaLine = 0)
+		SELECT * FROM ##AccTrendTablePivot WHERE IsBlankHeader != 1 Order BY parentId 
 
   END TRY
   BEGIN CATCH
@@ -766,7 +706,7 @@ BEGIN
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,
-            @AdhocComments varchar(150) = 'USP_GetIncomeStatementActualTrendReportV2',
+            @AdhocComments varchar(150) = 'USP_GetIncomeStatementActualTrendReport',
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''',
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

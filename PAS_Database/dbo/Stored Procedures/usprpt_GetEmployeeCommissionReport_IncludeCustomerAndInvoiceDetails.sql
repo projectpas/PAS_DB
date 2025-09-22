@@ -1,9 +1,9 @@
 ﻿/*************************************************************               
- ** File:  [usprpt_GetEmployeeCommissionReport]      
+ ** File:  [usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]      
  ** Author:  Vishal Suthar
- ** Description: This stored procedure is used to Employee Commission DATA.    
+ ** Description: This stored procedure is used to Employee Commission DATA Including Customer & Invoice Details.    
  ** Purpose:             
- ** Date:   08-SEPT-2025          
+ ** Date:   18-SEPT-2025          
               
  ** RETURN VALUE:               
  **************************************************************               
@@ -11,11 +11,10 @@
  **************************************************************               
  ** PR   Date			Author				Change Description                
  ** --   --------		-------				--------------------------------              
-    1    08-SEPT-2025	Vishal Suthar		Created
-	2	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
+    1    18-SEPT-2025	Vishal Suthar		Created    
          
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
+CREATE     PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -116,6 +115,7 @@ BEGIN
             BI.ReferenceId AS ReferenceId,
             BI.ModuleId,
             BI.CustomerId,
+            BI.InvoiceNo DocNum,
 			CASE WHEN @IncludeCRnRET = 1 
 			 THEN ((ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) + ISNULL(CM.Amount, 0))
 			 ELSE (ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) END GrandTotal,
@@ -154,6 +154,7 @@ BEGIN
 				FI.CustomerId,
 				FI.GrandTotal,
 				FI.PartCost,
+				FI.DocNum,
 				FI.InvoiceDate,
 				SA.EmployeeId,
 				SA.RevenuePercentageId,
@@ -165,13 +166,15 @@ BEGIN
 		AND ((SA.ActivityTypeId = 1 AND FI.ModuleId = @WorkOrderModuleId) 
 			OR (SA.ActivityTypeId = 2 AND FI.ModuleId = @SalesOrderModuleId))
 		AND SA.EffectiveDate <= FI.InvoiceDate
-	  ), rptCTE (TotalRecordsCount, MasterCompanyId, ActivityTypeId, EmployeeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
+	  ), rptCTE (TotalRecordsCount, MasterCompanyId, ActivityTypeId, InvoiceDate, DocNum, EmployeeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
 		MarginAmount, MarginRate, MarginCommission, TotalCommission, 
 		level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 		AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
 		E.MasterCompanyId,
 		BI.ActivityTypeId,
+		BI.InvoiceDate,
+		BI.DocNum,
 		E.EmployeeId,
 		(E.FirstName + ' ' + E.LastName) AS Salesperson,
 		C.[Name] AS Customer,
@@ -214,16 +217,16 @@ BEGIN
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 
-			GROUP BY E.MasterCompanyId, E.EmployeeId, BI.ActivityTypeId, E.FirstName, E.LastName, C.[Name], RP.PercentValue, MP.PercentValue, 
+			GROUP BY E.MasterCompanyId, E.EmployeeId, BI.ActivityTypeId, BI.InvoiceDate, BI.DocNum, E.FirstName, E.LastName, C.[Name], RP.PercentValue, MP.PercentValue, 
                MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name, 
                MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
                MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
 			)
-			,FinalCTE(TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityTypeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
+			,FinalCTE(TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityTypeId, InvoiceDate, DocNum, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
 				 MarginAmount, MarginRate, MarginCommission, TotalCommission,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 
-			  AS (SELECT DISTINCT TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityTypeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
+			  AS (SELECT DISTINCT TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityTypeId, InvoiceDate, DocNum, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
 				 MarginAmount, MarginRate, MarginCommission, TotalCommission,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10 FROM rptCTE)
 			, WithTotal (MasterCompanyId, TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission)
@@ -235,7 +238,8 @@ BEGIN
 			FORMAT(SUM(TotalCommission), 'N', 'en-us') GrandTotalCommission
 			FROM FinalCTE  
 			GROUP BY MasterCompanyId)
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.EmployeeId, CASE WHEN ActivityTypeId = 1 THEN 'MRO Activity' WHEN ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, Salesperson AS EmployeeName, Customer, FORMAT(ISNULL(RevenueAmount,0) , 'N', 'en-us') Revenueamount, 
+		    SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.EmployeeId, CASE WHEN ActivityTypeId = 1 THEN 'MRO Activity' WHEN ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, 
+			InvoiceDate DocDate, DocNum, Salesperson AS EmployeeName, Customer, FORMAT(ISNULL(RevenueAmount,0) , 'N', 'en-us') Revenueamount, 
 				 FORMAT(ISNULL(RevenueRate,0) , 'N', 'en-us') Revenuerate, 
 				 FORMAT(ISNULL(RevenueCommission,0) , 'N', 'en-us') Revenuecommission,
 				 FORMAT(ISNULL(MarginAmount,0) , 'N', 'en-us') Marginamount, 
@@ -259,7 +263,7 @@ BEGIN
     DECLARE @ErrorLogID int,
     @DatabaseName varchar(100) = DB_NAME(),
     -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-    @AdhocComments varchar(150) = '[usprpt_GetEmployeeCommissionReport]',
+    @AdhocComments varchar(150) = '[usprpt_GetEmployeeCommissionReport_IncludeCustomer]',
     @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100)) + 
     '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) + 
     '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)) + 

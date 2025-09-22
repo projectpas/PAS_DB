@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    01/09/2025   Vishal Suthar		Get UserName
+    2    20/09/2025   Vishal Suthar		Fixed sorting and filtering
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[ProceCustomerAssignmentList]
@@ -91,14 +92,23 @@ BEGIN
 			SELECT * INTO #TempResult FROM  Result r
 			WHERE ((@GlobalFilter <>'' AND (CustomerName LIKE '%' +@GlobalFilter+'%'))	
 				OR   
-				(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName +'%')))
+				(@GlobalFilter = '' AND (ISNULL(@CustomerName, '') = '' OR CustomerName LIKE '%' + @CustomerName +'%') AND 
+				(@IsPrimary IS NULL OR CAST(IsPrimary AS BIT) = CAST(@IsPrimary AS BIT)) AND
+				(@IsSecondary IS NULL OR CAST(IsSecondary AS BIT) = CAST(@IsSecondary AS BIT)) AND
+				(@IsAgent IS NULL OR CAST(IsAgent AS BIT) = CAST(@IsAgent AS BIT))))
 
 			SELECT @Count = COUNT(CustomerId) FROM #TempResult			
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsPrimary')  THEN IsPrimary END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsPrimary')  THEN IsPrimary END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsSecondary')  THEN IsSecondary END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsSecondary')  THEN IsSecondary END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsAgent')  THEN IsAgent END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsAgent')  THEN IsAgent END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

@@ -196,7 +196,7 @@ BEGIN
 					WOP.CreatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
 				FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+					INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId AND ISNULL(WO.IsDeleted, 0) = 0
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SLM.MasterCompanyId = WOP.MasterCompanyId
 					INNER JOIN #tmpOriginalStockline OSL ON OSL.StockLineId = WOP.StockLineId
 					WHERE WOP.MasterCompanyId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@MasterCompanyId, ',')) AND ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsClosed,0) = 0 AND ISNULL(WOP.IsFinishGood,0) = 0 AND ISNULL(WOP.RepairOrderId,0) = 0

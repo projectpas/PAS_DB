@@ -39,10 +39,13 @@ BEGIN
 	@Level10 VARCHAR(MAX) = NULL ,
 	@Employee VARCHAR(100) = NULL,
 	@Customer VARCHAR(100) = NULL,
-	@IncludeCRnRET BIT = NULL,
-	@ModuleID INT = 0;
+	@IncludeCRnRET BIT = NULL;
+
+	DECLARE @SOMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
+	DECLARE @WOMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'WorkOrderMPN');
+	DECLARE @SalesOrderModuleId INT = (SELECT ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
+	DECLARE @WorkOrderModuleId INT = (SELECT ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder');
 	
-	SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) where ModuleName = 'SalespersonActivity');
 	BEGIN TRY  
       
 	SELECT   
@@ -78,36 +81,6 @@ BEGIN
 		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @IncludeCRnRET END
 	FROM  
 		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
-  
-	IF ISNULL(@PageSize,0) = 0
-	BEGIN 
-		SELECT @PageSize = COUNT(SAT.CustomerId)
-		FROM DBO.SalesPersonActivityType SAT WITH (NOLOCK)
-			INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SAT.SalesPersonActivityTypeId
-			LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
-			INNER JOIN DBO.BillingInvoicing BI WITH (NOLOCK) ON SAT.CustomerID = BI.CustomerId AND BI.InvoiceStatus = 'Invoiced'
-			INNER JOIN DBO.Customer C WITH (NOLOCK) ON BI.CustomerId = C.CustomerId
-			INNER JOIN Employee E WITH (NOLOCK) ON BI.EmployeeId = E.EmployeeId
-			INNER JOIN [Percent] RP WITH (NOLOCK) ON SAT.RevenuePercentageId = RP.PercentId
-			INNER JOIN [Percent] MP WITH (NOLOCK) ON SAT.MarginPercentageId = MP.PercentId
-		WHERE SAT.mastercompanyid = @mastercompanyid and SAT.IsActive = 1 AND SAT.IsDeleted = 0
-		AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-		AND (ISNULL(@Employee, '') = '' OR BI.EmployeeId = @Employee) 
-		AND (ISNULL(@Customer, '') = '' OR BI.CustomerId = @Customer)
-		AND (ISNULL(@Level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-		AND (ISNULL(@Level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-		AND (ISNULL(@Level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-		AND (ISNULL(@Level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-		AND (ISNULL(@Level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-		AND (ISNULL(@Level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-		AND (ISNULL(@Level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-		AND (ISNULL(@Level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-		AND (ISNULL(@Level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-		AND (ISNULL(@Level10,'') = ''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))	
-	END
-
-	DECLARE @SalesOrderModuleId INT = 10;
-	DECLARE @WorkOrderModuleId INT = 15;
   
    ;WITH InvoicesSOWO AS (
         SELECT
@@ -152,6 +125,8 @@ BEGIN
 	),
 	InvoiceWithSalesperson AS (
 		SELECT FI.BillingInvoicingId,
+				FI.ReferenceId,
+				FI.ModuleId,
 				FI.CustomerId,
 				FI.GrandTotal,
 				FI.PartCost,
@@ -172,7 +147,7 @@ BEGIN
 		MarginAmount, MarginRate, MarginCommission, TotalCommission, 
 		level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 		AS (
-      SELECT COUNT(1) OVER () AS TotalRecordsCount,
+      SELECT 0 AS TotalRecordsCount,
 		E.MasterCompanyId,
 		BI.ActivityTypeId,
 		E.EmployeeId,
@@ -198,11 +173,65 @@ BEGIN
 		FROM InvoiceWithSalesperson BI
 		JOIN DBO.Employee E WITH (NOLOCK) ON BI.EmployeeId = E.EmployeeId
 		JOIN DBO.Customer C WITH (NOLOCK) ON BI.CustomerId = C.CustomerId
-		INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = BI.SalesPersonActivityTypeId
+		LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON BI.ReferenceId = SO.SalesOrderId AND BI.ModuleId = @SalesOrderModuleId
+		INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
 		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
 		LEFT JOIN DBO.[Percent] RP WITH (NOLOCK) ON BI.RevenuePercentageId = RP.PercentId
 		LEFT JOIN DBO.[Percent] MP WITH (NOLOCK) ON BI.MarginPercentageId = MP.PercentId
 		WHERE 1 = 1
+			AND  ((ISNULL(@Employee, '') = '' OR BI.EmployeeId = @Employee) 
+			AND  (ISNULL(@Customer, '') = '' OR BI.CustomerId = @Customer)
+			)
+			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
+			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
+			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
+			AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
+			AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
+			AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
+			AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
+			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
+			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
+			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+
+			GROUP BY E.MasterCompanyId, E.EmployeeId, BI.ActivityTypeId, E.FirstName, E.LastName, C.[Name], RP.PercentValue, MP.PercentValue, 
+               MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name, 
+               MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
+               MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
+
+			UNION ALL
+
+			SELECT 0 AS TotalRecordsCount,
+			E.MasterCompanyId,
+			BI.ActivityTypeId,
+			E.EmployeeId,
+			(E.FirstName + ' ' + E.LastName) AS Salesperson,
+			C.[Name] AS Customer,
+    		SUM(BI.GrandTotal) AS RevenueAmount,
+			ISNULL(RP.PercentValue, 0) AS RevenueRate,
+			SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
+			SUM(BI.PartCost) AS MarginAmount,
+			ISNULL(MP.PercentValue, 0) AS MarginRate,
+			SUM((BI.PartCost) * (MP.PercentValue / 100.0)) AS MarginCommission,
+			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + SUM(BI.PartCost * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
+			UPPER(MSD.Level1Name) AS level1,  
+			UPPER(MSD.Level2Name) AS level2, 
+			UPPER(MSD.Level3Name) AS level3, 
+			UPPER(MSD.Level4Name) AS level4, 
+			UPPER(MSD.Level5Name) AS level5, 
+			UPPER(MSD.Level6Name) AS level6, 
+			UPPER(MSD.Level7Name) AS level7, 
+			UPPER(MSD.Level8Name) AS level8, 
+			UPPER(MSD.Level9Name) AS level9, 
+			UPPER(MSD.Level10Name) AS level10
+			FROM InvoiceWithSalesperson BI
+			JOIN DBO.Employee E WITH (NOLOCK) ON BI.EmployeeId = E.EmployeeId
+			JOIN DBO.Customer C WITH (NOLOCK) ON BI.CustomerId = C.CustomerId
+			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON BI.ReferenceId = WOP.ID AND BI.ModuleId = @WorkOrderModuleId
+			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOP.ID
+			LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
+			LEFT JOIN DBO.[Percent] RP WITH (NOLOCK) ON BI.RevenuePercentageId = RP.PercentId
+			LEFT JOIN DBO.[Percent] MP WITH (NOLOCK) ON BI.MarginPercentageId = MP.PercentId
+			WHERE 1 = 1
 			AND  ((ISNULL(@Employee, '') = '' OR BI.EmployeeId = @Employee) 
 			AND  (ISNULL(@Customer, '') = '' OR BI.CustomerId = @Customer)
 			)
@@ -277,6 +306,14 @@ BEGIN
 			GROUP BY FC.MasterCompanyId, FC.EmployeeId, FC.ActivityTypeId, Salesperson, Customer, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
 			TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission)
 
+			SELECT * INTO #BeforeFinalWithGrp FROM BeforeFinalWithGrp;
+
+			IF ISNULL(@PageSize,0) = 0
+			BEGIN
+				SELECT @PageSize = COUNT(1)
+				FROM #BeforeFinalWithGrp;
+			END
+
 		    SELECT TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityType, EmployeeName, Customer, 
 				FORMAT(ISNULL(Revenueamount,0) , 'N', 'en-us') Revenueamount, 
 				FORMAT(ISNULL(Revenuerate,0) , 'N', 'en-us') Revenuerate, 
@@ -287,7 +324,7 @@ BEGIN
 				FORMAT(ISNULL(Totalcommission,0) , 'N', 'en-us') AS Totalcommission,
 				level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
 				TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission
-			FROM BeforeFinalWithGrp
+			FROM #BeforeFinalWithGrp
 			ORDER BY EmployeeId DESC
 			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
   END TRY  

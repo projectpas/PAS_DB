@@ -139,6 +139,8 @@ BEGIN
 			CASE SAT.DropdownTypeId 
 				WHEN 1 THEN CS.PrimarySalesPersonId
 				WHEN 2 THEN CS.SecondarySalesPersonId
+				WHEN 3 THEN CS.SaId
+				WHEN 4 THEN CS.CsrId
 			END AS EmployeeId,
 			SAT.RevenuePercentageId,
 			SAT.MarginPercentageId,
@@ -161,10 +163,11 @@ BEGIN
 				SA.ActivityTypeId
 		FROM InvoicesSOWO FI
 		JOIN SalesAssignments SA ON FI.CustomerId = SA.CustomerId
-		JOIN Employee EMP ON EMP.EmployeeId = SA.EmployeeId AND ISNULL(EMP.IsCommission, 0) = 1
-		AND ((SA.ActivityTypeId = 1 AND FI.ModuleId = @WorkOrderModuleId) 
+		JOIN Employee EMP ON EMP.EmployeeId = SA.EmployeeId
+		WHERE ((SA.ActivityTypeId = 1 AND FI.ModuleId = @WorkOrderModuleId) 
 			OR (SA.ActivityTypeId = 2 AND FI.ModuleId = @SalesOrderModuleId))
 		AND SA.EffectiveDate <= FI.InvoiceDate
+		AND ISNULL(EMP.IsCommission, 0) = 1
 	  ), rptCTE (TotalRecordsCount, MasterCompanyId, ActivityTypeId, EmployeeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
 		MarginAmount, MarginRate, MarginCommission, TotalCommission, 
 		level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
@@ -176,12 +179,12 @@ BEGIN
 		(E.FirstName + ' ' + E.LastName) AS Salesperson,
 		C.[Name] AS Customer,
     	SUM(BI.GrandTotal) AS RevenueAmount,
-		RP.PercentValue AS RevenueRate,
+		ISNULL(RP.PercentValue, 0) AS RevenueRate,
 		SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
 		SUM(BI.PartCost) AS MarginAmount,
-		MP.PercentValue AS MarginRate,
+		ISNULL(MP.PercentValue, 0) AS MarginRate,
 		SUM((BI.PartCost) * (MP.PercentValue / 100.0)) AS MarginCommission,
-		SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) + SUM((BI.PartCost) * (MP.PercentValue / 100.0)) AS TotalCommission,
+		(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + SUM(BI.PartCost * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -235,7 +238,9 @@ BEGIN
 			FORMAT(SUM(TotalCommission), 'N', 'en-us') GrandTotalCommission
 			FROM FinalCTE  
 			GROUP BY MasterCompanyId)
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.EmployeeId, CASE WHEN ActivityTypeId = 1 THEN 'MRO Activity' WHEN ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, Salesperson AS EmployeeName, Customer, FORMAT(ISNULL(RevenueAmount,0) , 'N', 'en-us') Revenueamount, 
+
+			, FinalWithGrp AS (SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.MasterCompanyId, FC.EmployeeId, CASE WHEN FC.ActivityTypeId = 1 THEN 'MRO Activity' WHEN FC.ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, Salesperson AS EmployeeName, FC.Customer, 
+				 FORMAT(ISNULL(RevenueAmount,0) , 'N', 'en-us') Revenueamount, 
 				 FORMAT(ISNULL(RevenueRate,0) , 'N', 'en-us') Revenuerate, 
 				 FORMAT(ISNULL(RevenueCommission,0) , 'N', 'en-us') Revenuecommission,
 				 FORMAT(ISNULL(MarginAmount,0) , 'N', 'en-us') Marginamount, 
@@ -249,10 +254,42 @@ BEGIN
 				 WC.TotalMarginCommission,
 				 WC.GrandTotalCommission
 		    FROM FinalCTE FC
+			INNER JOIN WithTotal WC ON FC.MasterCompanyId = WC.MasterCompanyId)
+		, BeforeFinalWithGrp AS (SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.MasterCompanyId, FC.EmployeeId, 
+				 CASE WHEN FC.ActivityTypeId = 1 THEN 'MRO Activity' WHEN FC.ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, 
+				 Salesperson AS EmployeeName,
+				 Customer,
+				 SUM(RevenueAmount) Revenueamount, 
+				 SUM(RevenueRate) Revenuerate, 
+				 ISNULL(SUM(RevenueCommission), 0) Revenuecommission,
+				 SUM(MarginAmount) Marginamount, 
+				 SUM(MarginRate) Marginrate, 
+				 SUM(MarginCommission) Margincommission, 
+				 SUM(Totalcommission) Totalcommission,
+				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
+				 WC.TotalRevenueAmount,
+				 WC.TotalRevenueCommission,
+				 WC.TotalMarginAmount,
+				 WC.TotalMarginCommission,
+				 WC.GrandTotalCommission
+		    FROM FinalCTE FC
 			INNER JOIN WithTotal WC ON FC.MasterCompanyId = WC.MasterCompanyId
+			GROUP BY FC.MasterCompanyId, FC.EmployeeId, FC.ActivityTypeId, Salesperson, Customer, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
+			TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission)
 
-			ORDER BY FC.EmployeeId DESC
-		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+		    SELECT TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityType, EmployeeName, Customer, 
+				FORMAT(ISNULL(Revenueamount,0) , 'N', 'en-us') Revenueamount, 
+				FORMAT(ISNULL(Revenuerate,0) , 'N', 'en-us') Revenuerate, 
+				FORMAT(ISNULL(Revenuecommission,0) , 'N', 'en-us') Revenuecommission,
+				FORMAT(ISNULL(Marginamount,0) , 'N', 'en-us') Marginamount, 
+				FORMAT(ISNULL(Marginrate,0) , 'N', 'en-us') Marginrate, 
+				FORMAT(ISNULL(Margincommission,0) , 'N', 'en-us') Margincommission, 
+				FORMAT(ISNULL(Totalcommission,0) , 'N', 'en-us') AS Totalcommission,
+				level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
+				TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission
+			FROM BeforeFinalWithGrp
+			ORDER BY EmployeeId DESC
+			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
   END TRY  
   
   BEGIN CATCH

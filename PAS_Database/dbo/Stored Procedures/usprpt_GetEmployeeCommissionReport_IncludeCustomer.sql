@@ -161,6 +161,7 @@ BEGIN
 				SA.ActivityTypeId
 		FROM InvoicesSOWO FI
 		JOIN SalesAssignments SA ON FI.CustomerId = SA.CustomerId
+		JOIN Employee EMP ON EMP.EmployeeId = SA.EmployeeId AND ISNULL(EMP.IsCommission, 0) = 1
 		AND ((SA.ActivityTypeId = 1 AND FI.ModuleId = @WorkOrderModuleId) 
 			OR (SA.ActivityTypeId = 2 AND FI.ModuleId = @SalesOrderModuleId))
 		AND SA.EffectiveDate <= FI.InvoiceDate

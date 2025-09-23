@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    11/13/2024   Vishal Suthar     Created
+	2    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
      
 -- EXEC DeleteSOQPartStocklineById 425
 ************************************************************************/
@@ -37,6 +38,9 @@ BEGIN
 		DELETE FROM [dbo].[SalesOrderQuoteStocklineCost]  WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 
 		EXEC [dbo].[USP_UpdateSOQPartCostDetails] @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;
+
+		--Update Reset Approve Process
+		EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId,@MasterCompanyId
     END TRY    
 
 	BEGIN CATCH      

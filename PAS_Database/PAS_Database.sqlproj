@@ -4242,6 +4242,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetLegalEntityBankingChequeHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetEntityBankingChequeDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateLegalEntityBankingCheque.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetRFQPricingAnalysisDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetAIAutoQuoteSettingList_ByMasterCompany.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOResetApprovalProcess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOQResetApprovalProcess.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

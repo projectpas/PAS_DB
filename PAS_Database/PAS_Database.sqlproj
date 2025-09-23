@@ -4237,6 +4237,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReport_Original.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomer.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOResetApprovalProcess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOQResetApprovalProcess.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

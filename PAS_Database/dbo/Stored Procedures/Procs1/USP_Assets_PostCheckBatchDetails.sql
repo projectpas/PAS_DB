@@ -27,6 +27,7 @@
    11    19/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
    12    29/11/2024   Abhishek Jirawla  Removing update of Asset Inventory Status from here. This Sp is only used to post batch details
    13	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+   14	 09/15/2025	  Devendra Shekh	Added Missing Columns for [CommonBatchDetails] Insert
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_Assets_PostCheckBatchDetails]
@@ -120,6 +121,13 @@ BEGIN
 		DECLARE @ModuleName VARCHAR(10) = 'AST';
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @CustomerId BIGINT;
+		DECLARE @CustomerName VARCHAR(150) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'AssetInventory';
+		DECLARE @InventoryNumber VARCHAR(100) ='';
 
 		DECLARE @CashAmount DECIMAL(18,2), @DepreciationAmount DECIMAL(18,2), @InstallCost DECIMAL(18,2);
 
@@ -156,8 +164,16 @@ BEGIN
 			SELECT @SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],
 			@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],
 			@Shelf=[ShelfName],@AssetInventoryName=InventoryNumber,@ManagementStructureId = ManagementStructureId,
-			@MasterCompanyId=MasterCompanyId FROM [DBO].[AssetInventory] WITH(NOLOCK) 
+			@MasterCompanyId=AST.MasterCompanyId,
+			@InventoryNumber = [InventoryNumber],
+			@LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'')
+			FROM [DBO].[AssetInventory] AST WITH(NOLOCK) 
+			LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON AST.CurrencyId = CU.CurrencyId
 			WHERE AssetInventoryId = @AssetInventoryId;
+
+			SELECT TOP 1 @CustomerName = CU.[Name] FROM [dbo].[AssetInventoryBillingInvoicing] AIB WITH(NOLOCK)
+			INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON AIB.CustomerId = CU.CustomerId
+			WHERE AIB.AssetInventoryId = @AssetInventoryId;
 
 			SELECT TOP 1  @IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'CASHARTRADEAROTHERSALE' AND MasterCompanyId = @MasterCompanyId;
@@ -284,7 +300,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -292,7 +308,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @CashAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @CashAmount END,
 					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -325,7 +341,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -334,7 +350,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @DepreciationAmount END,
 					--1,@DepreciationAmount,0,
 					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -381,7 +397,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -389,7 +405,7 @@ BEGIN
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
 					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -418,7 +434,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -426,7 +442,7 @@ BEGIN
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
 						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -462,7 +478,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -470,7 +486,7 @@ BEGIN
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
 					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -499,7 +515,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -507,7 +523,7 @@ BEGIN
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
 						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -539,7 +555,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -547,7 +563,7 @@ BEGIN
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
 					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -576,7 +592,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -584,7 +600,7 @@ BEGIN
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
 						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -616,7 +632,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -624,7 +640,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @InstallCost ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @InstallCost END,
 					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@InventoryNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

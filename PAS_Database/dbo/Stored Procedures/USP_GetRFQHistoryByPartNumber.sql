@@ -16,6 +16,7 @@
 	3    04/09/2025  Devendra Shekh     Modified (Added Vendor Quote Calculation, Changed calculation Based on QuoteSetting)
 	4    12/09/2025  Devendra Shekh     Modified (PO Quote Price Selection)
 	5    12/09/2025  Devendra Shekh     Modified (Date Range Changes)
+	6    17/09/2025  Devendra Shekh     Modified (added PercentId to Select)
 
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] 'NICKITEST-A',7,1
   EXEC [dbo].[USP_GetRFQHistoryByPartNumber] '1150-C',2,1
@@ -72,6 +73,8 @@ BEGIN
 		[POUnitPrice] DECIMAL(18,2) NULL,
 		[POMarkUpPercentValue] DECIMAL(18,2) NULL,
 		[POUnitPriceCostPlus] DECIMAL(18,2) NULL,
+		[POPricePercentId] BIGINT NULL,
+		[POQuotePercentId] BIGINT NULL,
 	)
 	   
 	CREATE TABLE #tmpRFQConditionResult
@@ -193,10 +196,10 @@ BEGIN
 	  
 		------------------------------Purchase And Sale------------------------------ 
 
-		DECLARE @RecordsTotalPS INT = 0,@PerUnitPricePS DECIMAL(18,2) = 0, @UnitSalesPriceTotal DECIMAL(18,2) = 0
+		DECLARE @RecordsTotalPS INT = 0,@PerUnitPricePS DECIMAL(18,2) = 0, @UnitSalesPriceTotal DECIMAL(18,2) = 0, @POPricePercentId BIGINT = 0;
 		DECLARE @POSSettingPercentValue DECIMAL(18,2) = 0;
 
-		SELECT @POSSettingPercentValue = ISNULL([PercentValue], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @PurchasePriceCode AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT @POSSettingPercentValue = ISNULL([PercentValue], 0), @POPricePercentId = [PercentId] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @PurchasePriceCode AND [MasterCompanyId] = @MasterCompanyId;
 	
 		SELECT  @RecordsTotalPS = COUNT(IPS.ItemMasterId), 
 				@UnitSalesPriceTotal = ISNULL(SUM(IPS.PP_UnitPurchasePrice),0)
@@ -219,10 +222,10 @@ BEGIN
 		END
 
 		------------------------------Vendor Quote (Purchase Quote + Mark Up) : Start ------------------------------ 
-		DECLARE	@RecordsTotalPO INT = 0, @PerUnitPricePO DECIMAL(18,2) = 0, @FinalUnitPricePO DECIMAL(18,2) = 0, @UnitSalesPriceTotalPO DECIMAL(18,2) = 0, @PerUnitPricePOCostPlus DECIMAL(18,2) = 0;
+		DECLARE	@RecordsTotalPO INT = 0, @PerUnitPricePO DECIMAL(18,2) = 0, @FinalUnitPricePO DECIMAL(18,2) = 0, @UnitSalesPriceTotalPO DECIMAL(18,2) = 0, @PerUnitPricePOCostPlus DECIMAL(18,2) = 0, @POQuotePercentId BIGINT = 0;
 		DECLARE @VQSettingYearId BIGINT, @VQSettingMonthId BIGINT, @VQSettingPercentValue DECIMAL(18,2) = 0, @VQSettingDays INT;
 
-		SELECT @VQSettingYearId = [YearId], @VQSettingMonthId = [MonthId], @VQSettingPercentValue = [PercentValue], @VQSettingDays = ISNULL([Days], 0) FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT @VQSettingYearId = [YearId], @VQSettingMonthId = [MonthId], @VQSettingPercentValue = [PercentValue], @VQSettingDays = ISNULL([Days], 0), @POQuotePercentId = [PercentId] FROM [dbo].[AIAutoQouteSetting] WITH(NOLOCK) WHERE [Code] = @VendorQuoteCode AND [MasterCompanyId] = @MasterCompanyId;
 
 		SELECT	TOP 1
 				@UnitSalesPriceTotalPO = ISNULL(POP.UnitCost,0)
@@ -269,8 +272,8 @@ BEGIN
 
 		SELECT @RecommendedPrice = MAX(v) FROM (VALUES (@CostPlusPrice),(@PerUnitPriceSO),(@PerUnitPriceSOQ),(@PerUnitPricePL),(@PerUnitPricePOCostPlus)) AS t(v);
 	
-		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[PurchaseSalePrice],[SOUnitPrice],[SOQUnitPrice],[IlsPrice],[MarkUpPercentValue],[CostPlusPrice],[RecommendedPrice],[POUnitPrice],[POMarkUpPercentValue],[POUnitPriceCostPlus])
-								   VALUES (@PartNumber, @Code, @PerUnitPricePS,@PerUnitPriceSO,@PerUnitPriceSOQ,@PerUnitPricePL,@POSSettingPercentValue,@CostPlusPrice,@RecommendedPrice,@PerUnitPricePO,@VQSettingPercentValue,@PerUnitPricePOCostPlus)
+		INSERT INTO #tmpRFQHistoryResult([PartNumber],[Condition],[PurchaseSalePrice],[SOUnitPrice],[SOQUnitPrice],[IlsPrice],[MarkUpPercentValue],[CostPlusPrice],[RecommendedPrice],[POUnitPrice],[POMarkUpPercentValue],[POUnitPriceCostPlus],[POPricePercentId],[POQuotePercentId])
+								   VALUES (@PartNumber, @Code, @PerUnitPricePS,@PerUnitPriceSO,@PerUnitPriceSOQ,@PerUnitPricePL,@POSSettingPercentValue,@CostPlusPrice,@RecommendedPrice,@PerUnitPricePO,@VQSettingPercentValue,@PerUnitPricePOCostPlus,@POPricePercentId,@POQuotePercentId)
 	
 		SET @MinId = @MinId + 1
 	END			   	 		

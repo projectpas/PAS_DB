@@ -10,9 +10,10 @@ EXEC [[GetWorkorderQuoteCurrectiveAction]]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 01   10/07/2025  Moin Bloch      Created
+** 02   09/23/2025  Vishal Suthar   Fixed the issue with populating publication details correctly
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 9737,9847
- EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 9737,9847
+ EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 8758,8428
 **************************************************************/ 
 CREATE   PROC [dbo].[GetWorkorderQuoteCurrectiveAction]
 @WorkorderId BIGINT = NULL,  
@@ -57,9 +58,10 @@ BEGIN
 		IF(@CMMIds IS NOT NULL)
 		BEGIN
 			INSERT INTO #tmprCMMIDsDetails ([CMMId])
-			SELECT [PublicationRecordId] 
-			FROM [dbo].[Publication] WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
-			ORDER BY PublicationTypeId DESC
+			SELECT [PublicationRecordId]
+			FROM [dbo].[Publication] P INNER JOIN [dbo].[PublicationType] PT ON P.PublicationTypeId = PT.PublicationTypeId
+			WHERE P.[PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
+			ORDER BY PT.[Name]
 		END			
 		
 		IF(@CMMIds IS NOT NULL)

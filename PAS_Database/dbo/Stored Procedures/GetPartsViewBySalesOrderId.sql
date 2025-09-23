@@ -23,7 +23,8 @@
 	7    08-07-2025   Moin Bloch    Fix For Approval Status
 	8    30-07-2025   RAJESH GAMI   Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is & Check the invoice is generated for the same SO or not.
 	9    01-09-2025   BHARGAV SALIYA   Fixed: Quote Number Binded issue in Analysis tab.
-EXEC [dbo].[GetPartsViewBySalesOrderId]  753
+	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
+EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
@@ -194,7 +195,8 @@ BEGIN
 					END
 				END AS freight,
 			0 AS sobillingInvoicingItemId,
-			@IsInvoiceGenerated isInvoiceGenerated
+			@IsInvoiceGenerated isInvoiceGenerated,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOPC.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId

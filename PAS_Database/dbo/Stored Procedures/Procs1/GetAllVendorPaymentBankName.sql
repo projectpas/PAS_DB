@@ -16,7 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------              
 	1    12/04/2023   Moin Bloch    Modified (SP Formated)
-     
+	2	 11/09/2022   Rajesh Gami	Added the IsDeleted condition and remove BOTH accountTypeId	
 exec GetAllVendorPaymentBankName 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetAllVendorPaymentBankName]
@@ -39,7 +39,7 @@ BEGIN
 			FROM [dbo].[LegalEntityBankingLockBox] lebl WITH (NOLOCK)
 			INNER JOIN [dbo].GLAccount G WITH(NOLOCK) ON lebl.GLAccountId = G.GLAccountId
 			 LEFT JOIN [dbo].[Address] addr WITH(NOLOCK) ON addr.AddressId = lebl.AddressId
-			WHERE lebl.[LegalEntityId] = @LegalEntityId AND (lebl.[AccountTypeId] = 2 OR lebl.[AccountTypeId] = 3)
+			WHERE lebl.[LegalEntityId] = @LegalEntityId AND lebl.[AccountTypeId] = 2 AND ISNULL(lebl.IsDeleted,0) = 0 AND ISNULL(lebl.IsActive,0) = 1
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

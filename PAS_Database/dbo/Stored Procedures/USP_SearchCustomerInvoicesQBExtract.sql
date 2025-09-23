@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_SearchCustomerInvoicesQBExtract]           
  ** Author:  RAJESH GAMI
  ** Description: Search CustomerInvoices QuickBook Extract : Copied from USP_SearchCustomerInvoices for Extract the Quickbook
@@ -22,7 +21,8 @@
 	4	 13 Jun 2025	RAJESH GAMI	   	Replcae the new billing invoicing table with old one (WO, SO)
     5    17 Jun 2025    Moin Bloch       Added CustomerId
 	6    26 Jun 2025   RAJESH GAMI       Resovled duplicate WO Invoice while Invoice VIEW filter selection due to WorkFlowWorkORderId
-	7	 04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing 
+	7	 04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing
+	8	 12 SEP 2025   RAJESH GAMI       DROP Temp table
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -468,7 +468,9 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC
   
 				   OFFSET @RecordFrom ROWS   
-				   FETCH NEXT @PageSize ROWS ONLY  
+				   FETCH NEXT @PageSize ROWS ONLY; 
+				   
+				   DROP TABLE #TempResult;
    END
    ELSE
    BEGIN
@@ -701,7 +703,9 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC
   
 				   OFFSET @RecordFrom ROWS   
-				   FETCH NEXT @PageSize ROWS ONLY
+				   FETCH NEXT @PageSize ROWS ONLY;
+
+				   DROP TABLE #TempResult;
 		END
      END TRY
   BEGIN CATCH

@@ -26,6 +26,7 @@
 	16 	 26-Aug-2025        Rajesh Gami				Price Master Implemented &Resolved issue
 	17	 04-Sep-2025        Divyesh Kathitiya		Added Customer Default Settings And Set Customer and Vendor: IsAddress For Billing & Shipping.
 	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
+	19	 16-Sep-2025        Rajesh Gami				Price Master/Purchase and Sales: Calculate the Discount and related changes 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -74,10 +75,21 @@ BEGIN
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
+		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @ItemMasterId BIGINT = 0;
 		DECLARE @IsAddressForBilling VARCHAR(50);				
 		DECLARE @IsAddressForShipping VARCHAR(50);
+		DECLARE @SalePriceSelectId Varchar(30)= '';
+		DECLARE @SP_CalSPByPP_MarkUpPercOnListPriceValue INT =0;
+		DECLARE @SP_CalSPByPP_MarkUpPercOnListPrice INT = 0
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+					WHERE E.EmployeeId = @EmployeeId; 
+		DECLARE @employeeGetDate   DATE = CASE WHEN ISNULL(@CurrntEmpTimeZoneDesc,'') = '' THEN GETDATE() ELSE Cast(DBO.ConvertUTCtoLocal(GETDATE(), @CurrntEmpTimeZoneDesc) as Date) END
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemMaster');
@@ -131,7 +143,7 @@ BEGIN
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
-			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END;
+			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END;
 
 			IF(@ModuleId = @StocklineModule)
 			BEGIN				
@@ -154,7 +166,7 @@ BEGIN
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
-			WHERE IMF.[ModuleId] = @ModuleId  AND NOT (@ModuleId = @PriceMasterModule AND IMF.FieldName = 'ManufacturerId' );
+			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule) AND IMF.FieldName = 'ManufacturerId' );
 			
 			DECLARE @Qty AS INT;
 			DECLARE @PurchaseUOMId AS BIGINT;
@@ -501,9 +513,11 @@ BEGIN
 
 			SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 1;
 			
-			IF(@ModuleId = @PriceMasterModule)
+			IF(@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule)
 			BEGIN 
-				DECLARE @PP_UnitPurchasePrice DECIMAL(10,2) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_UnitPurchasePrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_UnitPurchasePrice') END;
+				UPDATE #DynamicKeyValue	SET FieldValue = 'Flat'	WHERE FieldName = 'SalePriceSelectName'  AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '';
+
+				DECLARE @PP_UnitPurchasePrice DECIMAL(10,2) = 0;
 				IF(@PP_UnitPurchasePrice = 0)
 				BEGIN
 					DECLARE @PP_VendorListPrice VARCHAR(20) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_VendorListPrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'PP_VendorListPrice') END;
@@ -710,30 +724,36 @@ BEGIN
 			BEGIN
 				SET @RefFieldName += ' , Description, EntryDate, CreatedDate, UpdatedDate, EmployeeId, VerifiedStatus, Sequence, PublishedById, PublishedByRefId, PublishedByOthers, ManagementStructureIds, MasterCompanyId, CreatedBy, UpdatedBy ';
 				SET @FieldValue   += ''''', @GetDate, @UtcNow, @UtcNow, @EmployeeId, 0, 1, 4, 0, ''Others'', ' + CAST(@PublicationMSId AS VARCHAR(50)) + ',';
-			END	
-			ELSE IF(@ModuleId = @PriceMasterModule)
+			END			
+			ELSE IF(@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule)
 			BEGIN
 				DECLARE @SP_FSP_UOMId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_UOMId')
 				DECLARE @SP_FSP_CurrencyId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_CurrencyId');
-				
-				DECLARE @SP_FSP_FlatPriceAmount DECIMAL(10,2) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') END;
-				DECLARE @SalePriceType Varchar(20)='Flat'
+				SET @SP_CalSPByPP_MarkUpPercOnListPriceValue = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice');
+			
+				--IF @SP_CalSPByPP_MarkUpPercOnListPriceValue > 0
+				--BEGIN
+				--	SET @SP_CalSPByPP_MarkUpPercOnListPrice =(SELECT TOP 1 PercentId FROM DBO.[Percent] WITH(NOLOCK) WHERE PercentValue = CAST(@SP_CalSPByPP_MarkUpPercOnListPrice as DECIMAL(10,2)) AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1)
+
+				--	Update #DynamicKeyValue  SET FieldValue = @SP_CalSPByPP_MarkUpPercOnListPrice WHERE FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice';
+				--END
+				--DECLARE @SP_FSP_FlatPriceAmount DECIMAL(10,2) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') END;
+				SET @SalePriceSelectId = (CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName') = 'Flat' THEN '1' WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName') = 'Calculated' THEN '2' ELSE '0' END);
 				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
 				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
 				SELECT TOP 1 @PartNumber =  ISNULL(partnumber,'') FROM ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId
 				SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
 				SET @isPriceDataExist = (CASE WHEN @ItemMasterPurchaseSaleId > 0 THEN 1 ELSE 0 END);
-				SET @RefFieldName += ' , PartNumber,IsActive, IsDeleted,SalePriceSelectId,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_BaseSalePrice,SP_CalSPByPP_MarkUpPercOnListPrice,PP_PurchaseDiscAmount,SP_FSP_FXRatePerc, PP_FXRatePerc,PP_LastListPriceDate,PP_LastPurchaseDiscDate, CreatedDate, UpdatedDate,SP_FSP_UOMId,SP_FSP_CurrencyId,SalePriceSelectName,SP_FSP_FlatPriceAmount,SP_FSP_LastFlatPriceDate, MasterCompanyId, CreatedBy, UpdatedBy ';
-				SET @FieldValue += '''' + @PartNumber + ''',1,0,1,0,0,0,0,1.00,1.00, '''
+				SET @RefFieldName += ' , PartNumber,IsActive, IsDeleted,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_BaseSalePrice,PP_PurchaseDiscAmount,SP_FSP_FXRatePerc, PP_FXRatePerc,PP_LastListPriceDate,PP_LastPurchaseDiscDate, CreatedDate, UpdatedDate,SP_FSP_UOMId,SP_FSP_CurrencyId,SalePriceSelectId,SP_FSP_LastFlatPriceDate, MasterCompanyId, CreatedBy, UpdatedBy ';
+				SET @FieldValue += '''' + @PartNumber + ''',1,0,0,0,0,1.00,1.00, '''
 										+ CONVERT(VARCHAR(30), @GetDate, 126) + ''',''' 
 										+ CONVERT(VARCHAR(30), @GetDate, 126) + ''',''' 
 										+ CONVERT(VARCHAR(30), @UtcNow, 126) + ''',''' 
 										+ CONVERT(VARCHAR(30), @UtcNow, 126) + ''',' 
 										+ CAST(@SP_FSP_UOMId AS VARCHAR(50)) + ',' 
-										+ CAST(@SP_FSP_CurrencyId AS VARCHAR(50)) + ','''
-										+ @SalePriceType + ''',' 
-										+ CAST(@SP_FSP_FlatPriceAmount AS VARCHAR(30)) + ','  
-										+ '''' + CONVERT(VARCHAR(30), @GetDate, 126) + '''' + ',';
+										+ CAST(@SP_FSP_CurrencyId AS VARCHAR(50)) + ','
+										+ CAST(@SalePriceSelectId AS VARCHAR(30)) + ',' 
+										+ '''' + CONVERT(VARCHAR(30), @UtcNow, 126) + '''' + ',';
 			END	
 			ELSE
 			BEGIN
@@ -745,7 +765,7 @@ BEGIN
 			
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 			
-			IF(@ModuleId = @PriceMasterModule AND @isPriceDataExist = 1)
+			IF((@ModuleId = @PriceMasterModule  OR @ModuleId = @PurchaseSalesModule) AND @isPriceDataExist = 1 )
 			BEGIN					
 					DECLARE @UpdateFields NVARCHAR(MAX) = '';
 						
@@ -784,23 +804,66 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				IF(@ModuleId = @PriceMasterModule)
+				IF(@ModuleId = @PriceMasterModule  OR @ModuleId = @PurchaseSalesModule)
 				BEGIN
+				PRINT @RefQuery
 					IF(@isPriceDataExist = 1)
 					BEGIN
-						EXEC sp_executesql @RefQuery
-						Update DBO.ItemMasterPurchaseSale SET PP_PurchaseDiscPerc = NULL,PP_PurchaseDiscAmount =0, SP_CalSPByPP_MarkUpPercOnListPrice = 0, SP_CalSPByPP_MarkUpAmount =0,
-						SP_CalSPByPP_SaleDiscPerc = NULL, SP_CalSPByPP_SaleDiscAmount=0, PP_PurchaseDiscPercValue=NULL,SP_CalSPByPP_SaleDiscPercValue =NULL, SP_CalSPByPP_MarkUpPercOnListPriceValue = NULL
-						WHERE ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId
+						EXEC sp_executesql @RefQuery					
 						SET @ModuleTableId = @ItemMasterPurchaseSaleId;
-						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ItemMasterPurchaseSaleId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ItemMasterPurchaseSaleId
+						--exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ItemMasterPurchaseSaleId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ItemMasterPurchaseSaleId
 					END 
 					ELSE
 					BEGIN
 						EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
-						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
-
 					END
+
+					if(@ModuleTableId > 0)
+					BEGIN
+					PRINT  @SP_CalSPByPP_MarkUpPercOnListPriceValue
+					PRINT '@SP_CalSPByPP_MarkUpPercOnListPriceValue'
+					    SET  @SP_CalSPByPP_MarkUpPercOnListPrice = (SELECT TOP 1 PercentId FROM DBO.[Percent] WITH(NOLOCK) WHERE PercentValue = CAST(@SP_CalSPByPP_MarkUpPercOnListPriceValue as DECIMAL(10,2)) AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1);
+						
+						UPDATE DBO.ItemMasterPurchaseSale 
+							SET PP_PurchaseDiscAmount = CAST((ISNULL(PP_VendorListPrice, 0) * ISNULL(PP_PurchaseDiscPerc, 0) / 100.00) AS DECIMAL(18, 2)),
+								PP_UnitPurchasePrice = ISNULL(PP_VendorListPrice,0) - (CAST((ISNULL(PP_VendorListPrice, 0) * ISNULL(PP_PurchaseDiscPerc, 0) / 100.00) AS DECIMAL(18, 2))),
+								PP_PurchaseDiscPercValue = PP_PurchaseDiscPerc,SP_CalSPByPP_MarkUpPercOnListPriceValue = @SP_CalSPByPP_MarkUpPercOnListPriceValue,
+								SP_CalSPByPP_MarkUpPercOnListPrice = @SP_CalSPByPP_MarkUpPercOnListPrice,
+								PP_LastListPriceDate = @employeeGetDate,
+								PP_LastPurchaseDiscDate = @employeeGetDate
+						WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
+
+						if(@SalePriceSelectId = '1' OR @SalePriceSelectId = 1)
+						BEGIN
+							UPDATE DBO.ItemMasterPurchaseSale 
+								SET SP_CalSPByPP_MarkUpPercOnListPrice = 0,SP_CalSPByPP_MarkUpAmount =0,SP_CalSPByPP_MarkUpPercOnListPriceValue=0,SP_CalSPByPP_UnitSalePrice = CASE WHEN ISNULL(SP_FSP_FlatPriceAmount,0) = 0 THEN ISNULL(PP_UnitPurchasePrice,0) ELSE ISNULL(SP_FSP_FlatPriceAmount,0) END
+								,SP_CalSPByPP_LastSalesDiscDate = NULL, SP_FSP_LastFlatPriceDate = @employeeGetDate
+						
+							WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
+						END
+						else if (@SalePriceSelectId = '2' OR @SalePriceSelectId = 2)
+						BEGIN
+							--DECLARE @percentValue DECIMAL(10,2) = ISNULL((SELECT PercentValue FROM DBO.[PERCENT] WITH(NOLOCK) WHERE PercentId = ISNULL((SELECT TOP 1 SP_CalSPByPP_MarkUpPercOnListPrice FROM DBO.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterPurchaseSaleId = @ModuleTableId),0) ),0)
+							UPDATE DBO.ItemMasterPurchaseSale 
+								SET SP_CalSPByPP_MarkUpAmount =CAST((ISNULL(PP_UnitPurchasePrice, 0) * ISNULL(@SP_CalSPByPP_MarkUpPercOnListPriceValue, 0) / 100.00) AS DECIMAL(18, 2)),
+									SP_CalSPByPP_MarkUpPercOnListPriceValue=@SP_CalSPByPP_MarkUpPercOnListPriceValue,
+									SP_CalSPByPP_UnitSalePrice = ISNULL(PP_UnitPurchasePrice, 0) + CAST((ISNULL(PP_UnitPurchasePrice, 0) * ISNULL(@SP_CalSPByPP_MarkUpPercOnListPriceValue, 0) / 100.00) AS DECIMAL(18, 2)),
+									SP_FSP_FlatPriceAmount = 0, SP_CalSPByPP_LastSalesDiscDate = @employeeGetDate, SP_FSP_LastFlatPriceDate=NULL
+							WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
+						END
+						ELSE
+						BEGIN
+							UPDATE DBO.ItemMasterPurchaseSale 
+								SET SP_CalSPByPP_MarkUpAmount =0,
+									SP_CalSPByPP_MarkUpPercOnListPriceValue=0,
+									SP_CalSPByPP_UnitSalePrice = 0,
+									SP_CalSPByPP_LastSalesDiscDate = NULL, SP_FSP_LastFlatPriceDate=NULL,
+									SP_FSP_FlatPriceAmount = 0
+							WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
+						END
+						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
+					END
+					
 				END
 				ELSE
 				BEGIN
@@ -809,11 +872,10 @@ BEGIN
 		
 			END
 			
-			IF(@ModuleId = @PriceMasterModule AND @ItemMasterId >0)
+			IF((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule) AND @ItemMasterId >0 )
 			BEGIN
 				EXEC UpdateItemMasterPurchaseSaleDetails @ItemMasterId
 			END
-			
 			
 			IF(@ModuleId = @ItemMasterModule)
 			BEGIN
@@ -839,7 +901,6 @@ BEGIN
 				EXEC UpdateStocklineColumnsWithId @ModuleTableId;
 				EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @ModuleTableId, @ManagementStructureEntityId, @MasterCompanyId, @UserName;
 				EXEC USP_AddUpdateStocklineHistory @ModuleTableId,@StockLineModuleId,@ModuleTableId, NULL, NULL,@StocklineHistoryActionId,@QuantityOnHand,@UserName;
-				
 			END
 
 			IF(@ModuleId = @CustomerModule)

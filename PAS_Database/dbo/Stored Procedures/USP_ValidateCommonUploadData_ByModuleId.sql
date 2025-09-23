@@ -23,7 +23,7 @@
 	13	 26-Aug-2025		RAJESH GAMI				Validate the PRice Master
 	14	 05-Sep-2025		RAJESH GAMI				Validate the PRice Master (Return message for valid price )
 	15	 08-Sep-2025        Divyesh Kathitiya		Added validation for Customer and Vendor: IsAddress For Billing & Shipping.
-
+	16	 15-Sep-2025        Rajesh Gami				Price Master: added new fields
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -71,6 +71,7 @@ BEGIN
 		DECLARE @IsDuplicate BIT = NULL;
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
+		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 		SET @GLModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLAccount');
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
@@ -298,10 +299,11 @@ BEGIN
 													 AND IMF.FieldName IN ('UnitSalesPrice', 'UnitCost')
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
-												WHEN  ISNULL(TMP.FieldValue, '') != ''  AND ((IMF.FieldName = 'PP_VendorListPrice' OR IMF.FieldName = 'PP_UnitPurchasePrice' OR IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' )
-													AND (TRY_CAST(TMP.FieldValue AS INT) IS NULL ) )
-													THEN (CASE WHEN IMF.FieldName = 'PP_VendorListPrice' THEN 'Vendor List Price' WHEN IMF.FieldName = 'PP_UnitPurchasePrice' THEN 'Unit Purchase Price' WHEN IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' THEN 'Unit Sale Price' ELSE ''END  ) + ' must be a valid price (characters are not allowed)'
-												
+												WHEN  ISNULL(TMP.FieldValue, '') != ''  AND ((IMF.FieldName = 'PP_VendorListPrice' OR IMF.FieldName = 'PP_UnitPurchasePrice' OR IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice'OR IMF.FieldName = 'PP_PurchaseDiscPerc' OR IMF.FieldName = 'SP_FSP_FlatPriceAmount' OR IMF.FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice' )
+													AND (TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL ) )
+													THEN (CASE WHEN IMF.FieldName = 'PP_VendorListPrice' THEN 'Vendor List Price' WHEN IMF.FieldName = 'PP_UnitPurchasePrice' THEN 'Unit Purchase Price' WHEN IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' THEN 'Unit Sale Price' WHEN IMF.FieldName = 'PP_PurchaseDiscPerc' THEN 'Purchase Discount Percentage' WHEN IMF.FieldName = 'SP_FSP_FlatPriceAmount' THEN 'Flat Price Amount' WHEN IMF.FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice' THEN 'Markup Percentage' ELSE '' END  ) + ' must be a valid price (characters are not allowed)'
+												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'SalePriceSelectName') AND (LOWER(TMP.FieldValue) NOT IN ('Flat','Calculated'))
+													THEN 'Sale Price must be FLAT OR CALCULATED'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'isAddressForBilling' OR IMF.FieldName = 'isAddressForShipping') AND (LOWER(TMP.FieldValue) NOT IN ('yes','no'))
 													THEN IMF.FieldName + ' must be YES OR NO'
 

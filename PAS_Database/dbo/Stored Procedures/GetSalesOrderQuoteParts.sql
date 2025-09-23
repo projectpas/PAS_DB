@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetSalesOrderQuoteParts]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get sales order quote part details for view    
@@ -17,8 +18,8 @@
     1    09/20/2024   Vishal Suthar Created
     2    12/03/2024   Vishal Suthar Handled null values
     3    12/09/2024   Vishal Suthar Fix for qty issue when stockline is not added
-     
- -- EXEC DBO.GetSalesOrderQuoteParts 789
+  	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit        
+ -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteParts]
     @SalesQuoteId BIGINT
@@ -39,7 +40,7 @@ BEGIN
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.UnitSalesPrice, 0) ELSE ISNULL(SOQPC.UnitSalesPrice, 0) END UnitSalePrice,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.MarkUpPercentage, 0) ELSE ISNULL(SOQPC.MarkUpPercentage, 0) END MarkUpPercentage,
 			0 SalesBeforeDiscount,
-			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.DiscountAmount, 0) ELSE ISNULL(SOQPC.DiscountAmount, 0) END Discount,
+			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.DiscountPercentage, 0) ELSE ISNULL(SOQPC.DiscountPercentage, 0) END Discount,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.DiscountAmount, 0) ELSE ISNULL(SOQPC.DiscountAmount, 0) END DiscountAmount,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmount, 0) ELSE ISNULL(SOQPC.NetSaleAmount, 0) END NetSales,
 			SOQPC.MasterCompanyId,
@@ -135,7 +136,8 @@ BEGIN
 			itemMaster.ItemGroup,
 			COALESCE(mf.Name, '') AS ManufacturerName,
 			part.SalesPriceExpiryDate,
-			part.IsNoQuote
+			part.IsNoQuote,
+			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOQPC.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit
 		FROM DBO.SalesOrderQuotePartV1 part WITH (NOLOCK)
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderQuotePartId = Stk.SalesOrderQuotePartId
 		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON Stk.StockLineId = qs.StockLineId

@@ -14,7 +14,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    30/08/2024  Ekta Chandegra     Created
-     
+    2    15/09/2025  Rajesh Gami		Getting only selected ItemMaster data if any
+	3    23/09/2025  Rajesh Gami		Added SuggestedPrice 
 --exec dbo.ItemMasterPriceListForBulkUpdate @ItemMasterId=0,@MasterCompanyId=1
 
 ************************************************************************/
@@ -34,6 +35,35 @@ BEGIN
 			SET @ItemMasterId = NULL      
 		  END 
 	BEGIN TRY 
+	DECLARE @partNumber VARCHAR(120) = (SELECT Top 1 partnumber FROM DBO.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId And MasterCompanyId = @MasterCompanyId)
+	IF OBJECT_ID(N'tempdb..#RFQHistory') IS NOT NULL
+	BEGIN
+		DROP TABLE #RFQHistory
+	END
+
+	CREATE TABLE #RFQHistory
+		(
+			ID INT,
+			PartNumber NVARCHAR(100),
+			Condition NVARCHAR(50),
+			PurchaseSalePrice DECIMAL(18,2),
+			SOUnitPrice DECIMAL(18,2),
+			SOQUnitPrice DECIMAL(18,2),
+			IlsPrice DECIMAL(18,2),
+			MarkUpPercentValue DECIMAL(18,2),
+			CostPlusPrice DECIMAL(18,2),
+			RecommendedPrice DECIMAL(18,2),
+			POUnitPrice DECIMAL(18,2),
+			POMarkUpPercentValue DECIMAL(18,2),
+			POUnitPriceCostPlus DECIMAL(18,2)
+		);
+
+	INSERT INTO #RFQHistory
+		EXEC dbo.USP_GetRFQHistoryByPartNumber 
+			@PartNumber = @partNumber, 
+			@ConditionId = NULL, 
+			@MasterCompanyId = @MasterCompanyId;
+
 
 		SELECT DISTINCT 
 		IM.ItemMasterId,
@@ -58,6 +88,7 @@ BEGIN
 		SELECT
 		IMPS.ItemMasterId,
 		IMPS.PartNumber,
+		IM.ManufacturerName,
 		IMPS.ConditionId,
 		IMPS.ConditionName,
 		IMPS.ItemMasterPurchaseSaleId,
@@ -91,11 +122,16 @@ BEGIN
 		IMPS.SP_FSP_UOMName,
 		IMPS.IsActive,
 		IMPS.IsDeleted
+		,CAST(ISNULL(P.PercentValue,0) as INT) AS SP_CalSPByPP_MarkUpPercValueOnListPrice,
+		 ISNULL(R.RecommendedPrice,0) AS SuggestedPrice
 		FROM [DBO].ItemMasterPurchaseSale IMPS WITH (NOLOCK) 
 		LEFT JOIN [DBO].ItemMaster IM  WITH (NOLOCK)  ON IMPS.ItemMasterId = IM.ItemMasterId 
+		LEFT JOIN [DBO].[Percent] P  WITH (NOLOCK)  ON ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,0) = P.PercentId 
+		LEFT JOIN #RFQHistory R ON R.PartNumber = IM.PartNumber AND R.Condition = IMPS.ConditionName
 		WHERE IMPS.MasterCompanyId = @MasterCompanyId
 		AND IMPS.IsActive = 1
 		AND IMPS.IsDeleted = 0
+		AND (@ItemMasterId IS NULL OR IM.ItemMasterId = @ItemMasterId)
 		
 		END TRY
 		BEGIN CATCH

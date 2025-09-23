@@ -21,6 +21,7 @@
 	7    01-MAY-2025    Hemant Saliya		Created for Marerials, labor, flat rate changes
 	8    09-MAY-2025	Devendra Shekh		Added IsPrintCorrectiveAction to select
 	9    10-JUL-2025    Moin Bloch          Updated MEMO To PublicationNotes
+	10	 23-JUL-2025    Devendra Shekh      Added Case for Memo     
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -34,6 +35,112 @@ BEGIN
   BEGIN TRANSACTION  
    BEGIN   
 		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
+
+		DECLARE @VendorModuleId INT, @ManufacturerModuleId INT, @OtherModuleId INT;
+		SELECT @VendorModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
+		SELECT @ManufacturerModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Manufacturer';
+		SELECT @OtherModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Others';
+
+		DECLARE @WorkOrderId BIGINT;
+		DECLARE @EmailContent NVARCHAR(MAX);
+		DECLARE @ConditionName NVARCHAR(MAX),
+				@PublicationId VARCHAR(100),
+				@RevisionNum VARCHAR(100),
+				@RevisionDate VARCHAR(100),
+				@SecondPublicationId VARCHAR(100),
+				@SecondRevisionNum VARCHAR(100),
+				@SecondRevisionDate VARCHAR(100),
+				@WorkOrderNum VARCHAR(50),
+				@IsEasaUKLicenseType VARCHAR(50),
+				@PublishedById INT,
+				@VendorName VARCHAR(100),
+				@ManufacturerName VARCHAR(100),
+				@PublishedByOthers VARCHAR(100),
+				@IsMultiple BIT,
+				@EmailBody NVARCHAR(MAX);
+
+		SELECT @WorkOrderId = [WorkOrderId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @workOrderPartNoId;
+
+		IF OBJECT_ID(N'tempdb..#tmpPartResult') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpPartResult
+		END 
+
+		IF OBJECT_ID(N'tempdb..#tmpResult') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #tmpResult
+		END
+
+		CREATE TABLE #tmpPartResult (        
+			[PublicationId] VARCHAR(100) NULL,
+			[ConditionName] NVARCHAR(MAX) NULL,
+			[RevisionNum] VARCHAR(100) NULL,
+			[RevisionDate] VARCHAR(100) NULL,
+			[SecondPublicationId] VARCHAR(100) NULL,
+			[SecondRevisionNum] VARCHAR(100) NULL,
+			[SecondRevisionDate] VARCHAR(100) NULL,
+			[WorkOrderNum] VARCHAR(50) NULL,
+			[IsEasaUKLicenseType] VARCHAR(50) NULL,
+			[PublishedById] INT NULL,
+			[VendorName] VARCHAR(100) NULL,
+			[ManufacturerName] VARCHAR(100) NULL,
+			[PublishedByOthers] VARCHAR(100) NULL,
+			[IsMultiple] BIT NULL,
+			[EmailBody] NVARCHAR(MAX) NULL
+		)
+
+		CREATE TABLE #tmpResult (        
+			[WorkOrderQuoteId] BIGINT NULL,
+			[WorkOrderPartNoId] BIGINT NULL,
+			[Remarks] NVARCHAR(MAX) NULL,
+		)
+
+		INSERT INTO #tmpPartResult EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] @WorkOrderId, @workOrderPartNoId;
+
+		IF EXISTS(SELECT 1 FROM #tmpPartResult)
+		BEGIN
+			
+			SELECT	@ConditionName = ConditionName, @PublicationId = PublicationId, @RevisionNum = RevisionNum, @RevisionDate = RevisionDate, @SecondPublicationId = SecondPublicationId, @SecondRevisionNum = SecondRevisionNum, @SecondRevisionDate = SecondRevisionDate, 
+					@WorkOrderNum = WorkOrderNum, @IsEasaUKLicenseType = IsEasaUKLicenseType, @PublishedById = PublishedById, @VendorName = VendorName, @ManufacturerName = ManufacturerName, @PublishedByOthers = PublishedByOthers, @IsMultiple = IsMultiple, @EmailBody = EmailBody
+			FROM #tmpPartResult;
+
+			IF(@IsMultiple IS NULL OR ISNULL(@PublicationId, '0') = '0')
+			BEGIN
+				SET @EmailContent = '';
+			END
+			ELSE
+			BEGIN
+				SET @EmailContent = @EmailBody;
+			END
+
+			-- Apply replacements
+			SET @EmailContent = REPLACE(@EmailContent, '#Condition', ISNULL(NULLIF(@ConditionName,''), '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#PublicationName', ISNULL(@PublicationId, '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#RevisionNumber', ISNULL(NULLIF(@RevisionNum,''), '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#RevisionDate', ISNULL(NULLIF(@RevisionDate,''), '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#RepairSpecificationName', ISNULL(@SecondPublicationId, '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#RepairRevNum', ISNULL(NULLIF(@SecondRevisionNum,''), '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#RepairRevDate', ISNULL(NULLIF(@SecondRevisionDate,''), '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#WorkOrderNumber', ISNULL(@WorkOrderNum, '-'));
+			SET @EmailContent = REPLACE(@EmailContent, '#FAAorEASA', ISNULL(@IsEasaUKLicenseType, '-'));
+			-- Handle conditional PublicationByName
+			DECLARE @PublicationByName NVARCHAR(200);
+
+			IF @PublishedById = @VendorModuleId   -- Vendor
+				SET @PublicationByName = @VendorName;
+			ELSE IF @PublishedById = @ManufacturerModuleId -- Manufacturer
+				SET @PublicationByName = @ManufacturerName;
+			ELSE IF @PublishedById = @OtherModuleId -- Others
+				SET @PublicationByName = @PublishedByOthers;
+			ELSE
+				SET @PublicationByName = '-';
+			
+			SET @EmailContent = REPLACE(@EmailContent, '#PublicationByName', ISNULL(@PublicationByName, '-'));
+
+			-- Final result
+			INSERT INTO #tmpResult ([WorkOrderQuoteId], [WorkOrderPartNoId], [Remarks])
+			VALUES (@WorkOrderQuoteId, @workOrderPartNoId, @EmailContent) 
+		END
 
 		;WITH WOQPartCte AS (
 		SELECT DISTINCT   
@@ -128,7 +235,7 @@ BEGIN
 		--				LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 		--			WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
 
-		,Memo =
+		,Memo = CASE WHEN ISNULL(wop.PublicationNotes, '') <> '' THEN
 				(SELECT CAST('<x>' + 
 					REPLACE(
 						REPLACE(
@@ -141,6 +248,20 @@ BEGIN
 							'"', '&quot;'),
 						'''', '&apos;'),
 					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)'))
+					ELSE 
+					(SELECT CAST('<x>' + 
+					REPLACE(
+						REPLACE(
+							REPLACE(
+								REPLACE(
+									REPLACE(
+										REPLACE(ISNULL(tmp.Remarks, ''), '&', '&amp;'),
+									'<', '&lt;'),
+								'>', '&gt;'),
+							'"', '&quot;'),
+						'''', '&apos;'),
+					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)'))
+					END
 		,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 	FROM dbo.WorkOrder wo WITH(NOLOCK)        
 		 INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
@@ -152,10 +273,11 @@ BEGIN
 		 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 		 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
 		 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
+		 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = @workOrderPartNoId
 	WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 	GROUP BY im.PartNumber,  
-		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,wop.PublicationNotes,  
+		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,wop.PublicationNotes,  tmp.Remarks,
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wop.RevisedPartNumber, wop.RevisedPartDescription
 		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)

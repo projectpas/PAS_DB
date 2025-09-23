@@ -9,16 +9,12 @@ EXEC [[GetWorkorderQuoteCurrectiveAction]]
 **************************************************************   
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
-<<<<<<< HEAD
 ** 01   10/07/2025  Moin Bloch		Created
-=======
-** 01   10/07/2025  Moin Bloch      Created
->>>>>>> c9d38b9526cea407afd1017a47d93f1e81f58bc3
 ** 02   10/07/2025  Devendra Shekh  Added Changes for Other Company to Hanldle 2 CMM
-** 03   09/23/2025  Vishal Suthar   Fixed the issue with populating publication details correctly
+** 03   09/23/2025  Vishal Suthar	Fixed the issue with populating publication details correctly
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 9737,9847
- EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 8758,8428
+ EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 9737,9847
 **************************************************************/ 
 CREATE   PROC [dbo].[GetWorkorderQuoteCurrectiveAction]
 @WorkorderId BIGINT = NULL,  

@@ -24,7 +24,8 @@
 	7    12/23/2024   Moin Bloch        Updated For Get Batchnumber from SubWorkOrderPartNumber
 	8    12/31/2024   Devendra Shekh	Updated For Get FormType and WOFormType Name
 	9    02/20/2025   Moin Bloch        Updated For Get Is813013aeOr14ae
-	4	 07/Mar/2025  Bhargav Saliya	 UTC Date Changes 
+	10	 07/Mar/2025  Bhargav Saliya	 UTC Date Changes 
+	11   18/Sep/2025  Devendra Shekh    Updated For Get [FormStatus]
      
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
@@ -113,6 +114,7 @@ BEGIN
 					  ,wro.[FormTypeId]
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
 				      ,wro.Is813013aeOr14ae
+					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[SubWorkOrder] swo  WITH(NOLOCK) ON swo.SubWorkOrderId = wop.SubWorkOrderId   

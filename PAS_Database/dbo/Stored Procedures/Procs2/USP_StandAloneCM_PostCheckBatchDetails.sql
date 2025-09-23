@@ -21,10 +21,11 @@
 	5    04/23/2024   Moin Bloch	Updated Added Document Number For List 
 	6    11/05/2024   Amit Ghediya	Handle bypass accounting entry.
 	7	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	8	 09/15/2025	  Devendra Shekh	Added Missing Columns for [CommonBatchDetails] Insert
 
 **************************************************************/
 
-CREATE        PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
+CREATE   PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
 (
 	@StandAloneCreditMemoDetailsId BIGINT,
 	@CreditMemoHeaderId BIGINT,
@@ -72,7 +73,7 @@ BEGIN
 		DECLARE @TotalDebit decimal(18, 2) =0;
 		DECLARE @TotalCredit decimal(18, 2) =0;
 		DECLARE @TotalBalance decimal(18, 2) =0;
-		DECLARE @ExtNumber VARCHAR(20);
+		DECLARE @ExtNumber VARCHAR(50);
 		DECLARE @VendorName VARCHAR(50);
 		DECLARE @ExtDate Datetime;
 		DECLARE @stklineId BIGINT;
@@ -81,6 +82,12 @@ BEGIN
 		DECLARE @CodePrefix VARCHAR(50);
 		DECLARE @tmpVendorRMADetailId BIGINT;
 		DECLARE @IsAccountByPass BIT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @CustomerId BIGINT;
+		DECLARE @CustomerName VARCHAR(150) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'STANDALONECM';
 
 		SET @DistributionCodeName = 'CMDISACC';
 
@@ -123,8 +130,13 @@ BEGIN
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			
-			SELECT @ManagementStructureId = ManagementStructureId, @ExtNumber = [CreditMemoNumber] FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+			SELECT @ManagementStructureId = ManagementStructureId, @ExtNumber = [CreditMemoNumber], @CustomerName = [CustomerName], @CustomerId = [CustomerId] FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
+
+			SELECT @LocalCurrencyCode = ISNULL(CY.Code, ''), @ForeignCurrencyCode = ISNULL(CY.Code, '') FROM [dbo].[Customer] CU WITH(NOLOCK)
+			INNER JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CU.CustomerId = CF.CustomerId
+			INNER JOIN [dbo].[Currency] CY WITH(NOLOCK) ON CF.CurrencyId = CY.CurrencyId
+			WHERE CU.CustomerId = @CustomerId;
 
 		INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
@@ -230,7 +242,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -238,7 +250,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
 					@ManagementStructureId ,'StandAloneCreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ExtNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@CreditMemoHeaderId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -265,7 +277,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [ReferenceNumber], [ReferenceName], [LocalCurrency], [FXRate], [ForeignCurrency], [ReferenceId], [ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -273,7 +285,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
 					@ManagementStructureId ,'StandAloneCreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ExtNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@CreditMemoHeaderId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

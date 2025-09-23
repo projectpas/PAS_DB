@@ -4237,6 +4237,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReport_Original.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomer.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetRFQPricingAnalysisDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetAIAutoQuoteSettingList_ByMasterCompany.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

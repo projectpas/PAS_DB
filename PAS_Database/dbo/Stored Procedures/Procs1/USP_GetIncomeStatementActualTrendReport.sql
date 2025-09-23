@@ -664,6 +664,10 @@ BEGIN
 		FROM(
 			SELECT SUM(Amount) AS TotalAmt, NodeName FROM #AccTrendTable act WHERE AccountingPeriod != 'Total' GROUP BY NodeName
 		) Groptoal WHERE Groptoal.NodeName = #AccTrendTable.NodeName AND AccountingPeriod = 'Total'
+
+		--SET --ve Values for Parent Node where IsPositive = 0
+		UPDATE #AccTrendTable SET Amount = Amount * (-1) FROM #AccTrendTable Tmp JOIN dbo.LeafNode LFN ON Tmp.leafNodeId = LFN.leafNodeId WHERE ISNULL(LFN.IsPositive, 0) = 0
+
 	
 		DECLARE @COUNT AS INT;
 		DECLARE @COUNTMAX AS INT

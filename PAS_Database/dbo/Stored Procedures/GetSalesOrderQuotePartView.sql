@@ -17,7 +17,7 @@
 	4    03-12-2024   AMIT GHEDIYA		Fixed Get Saved CurrId from part table.
 	5    12-12-2024   Vishal Suthar		Fixed Qty Quoted when no stockline is added
 	6    09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
-     
+  	7    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit   
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -151,7 +151,8 @@ BEGIN
 		qs.TagDate,
 		qs.TagType,
 		ISNULL(fcu.Code, '') AS CurrencyDescription,
-        part.CurrencyId
+        part.CurrencyId,
+		CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit
     FROM DBO.SalesOrderQuotePartV1 part  WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost PS WITH (NOLOCK) ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId

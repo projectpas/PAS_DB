@@ -16,6 +16,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
 	1	04/18/2025		Vishal Suthar		Created
+	2	09/23/2025		Bhargav Saliya		Get Weight and Dimensions from ItemMaster
      
  EXEC [dbo].[sp_GetROShippingChildList] 2566, 14, 7  
 **************************************************************/
@@ -50,10 +51,12 @@ BEGIN
 			 rosi.FedexPdfPath,
 			 '' AS ECCN,
 			 '' AS HSCODE,
-			 0 AS [Weight],
-			 0 AS SizeLength,
-			 0 AS SizeWidth,
-			 0 AS SizeHeight
+			 ISNULL(ime.ExportWeight,0) AS [Weight],
+			 ISNULL(ime.ExportSizeLength,0) AS SizeLength,
+			 ISNULL(ime.ExportSizeWidth,0) AS SizeWidth,
+			 ISNULL(ime.ExportSizeHeight,0) AS SizeHeight,
+			 ISNULL(ime.ExportWeightUnitName,'') AS weightUom,
+			 ISNULL(ime.ExportSizeUnitOfMeasureName,'') AS SizeUom
 	  FROM DBO.ROPickTicket ropt WITH (NOLOCK)
 	  INNER JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON rop.RepairOrderId = ropt.RepairOrderId AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId  
 	  LEFT JOIN DBO.RepairOrderShippingItem rosi WITH (NOLOCK) ON rosi.RepairOrderPartId = rop.RepairOrderPartRecordId
@@ -67,6 +70,7 @@ BEGIN
 	  LEFT JOIN DBO.Vendor vend WITH (NOLOCK)  on vend.VendorId = ro.VendorId
 	  LEFT JOIN DBO.RepairOrderPackaginSlipItems SPI WITH (NOLOCK) ON ropt.ROPickTicketId = SPI.ROPickTicketId  AND SPI.RepairOrderPartId = rop.RepairOrderPartRecordId
 	  LEFT JOIN DBO.RepairOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  
+	  LEFT JOIN dbo.ItemMasterExportInfo ime WITH (NOLOCK) ON imt.ItemMasterId = ime.ItemMasterId
 	  WHERE ropt.RepairOrderId = @RepairOrderId  
 	  AND rop.RepairOrderPartRecordId = @RepairOrderPartId  
 	  AND ropt.IsConfirmed = 1  

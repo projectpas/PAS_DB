@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_GetJournalEntriesDetailsByLeafNodeId]             
  ** Author: Hemant Saliya  
  ** Description: This stored procedure is used to Get income statement(actual) report Journal Entry Data 
@@ -21,6 +20,7 @@
 	8    05/02/2024   Hemant Saliya	 Updated For Adjustment Period
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
 	10   03/12/2024   Moin Bloch     Added CYCLE COUNT 
+	11   15/09/2025   Devendra Shekh Added ReferenceNumber Field
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -394,6 +394,7 @@ BEGIN
 			OrderNum INT NULL,
 			IsManualJournal BIT NULL,
 			IsStandAloneCM BIT NULL,
+			ReferenceNumber VARCHAR(150) null,
 		  )
 
 		  DECLARE @COUNT AS INT;
@@ -535,7 +536,8 @@ BEGIN
 							     ELSE '' END,
 					LastMSLevel = CB.LastMSLevel,
 					AllMSlevels = CB.AllMSlevels,
-					IsStandAloneCM = CM.IsStandAloneCM
+					IsStandAloneCM = CM.IsStandAloneCM,
+					ReferenceNumber = ISNULL(CB.ReferenceNumber, '')
 		  FROM #AccTrendTable tmp 
 			  JOIN [dbo].[CommonBatchDetails] CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId
 			  JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.ID = cb.DistributionSetupId
@@ -581,23 +583,23 @@ BEGIN
 			(
 			   SELECT LeafNodeId, NodeName, OrderNum,  GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel, AllMSlevels,
 				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
-				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount, IsManualJournal,IsStandAloneCM 
+				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount, IsManualJournal,IsStandAloneCM, ReferenceNumber 
 			   FROM #AccTrendTable
 			   GROUP BY LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM
+				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM, ReferenceNumber
 
 			), cteRanked AS
 			(
 			   SELECT Amount, LeafNodeId, OrderNum, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
 				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
 				ROW_NUMBER() OVER(ORDER BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal,IsStandAloneCM
+				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal,IsStandAloneCM, ReferenceNumber
 			   FROM cte
 			) 
 			SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount, 0 AS AccountingPeriodId, OrderNum,
 			  c1.LeafNodeId, UPPER(c1.NodeName) AS NodeName, c1.GLAccountId, (UPPER(c1.GLAccountCode) + '-' + UPPER(c1.GLAccountName)) AS GLAccount, UPPER(c1.JournalNumber) AS JournalNumber, c1.JournalBatchDetailId, c1.LastMSLevel,  c1.AllMSlevels,
 				c1.CreditAmount, c1.DebitAmount, UPPER(c1.AccountingPeriod) AS AccountingPeriod, UPPER(c1.PeriodName) AS PeriodName, c1.ReferenceModule, c1.ReferenceName, c1.ReferenceId, c1.CustomerId, c1.DistributionSetupCode, 
-				Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal	,IsStandAloneCM			
+				Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal	,IsStandAloneCM, ReferenceNumber			
 			FROM cteRanked c1 
 			WHERE c1.GLAccountId IS NOT NULL
 			ORDER BY OrderNum, JournalNumber;

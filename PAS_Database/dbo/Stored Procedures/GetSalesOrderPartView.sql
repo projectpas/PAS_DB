@@ -30,6 +30,7 @@
 	17   05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
 	18   05-07-2025   BHARGAV SALIYA    get condition through the [SalesOrderPartV1] Join
 	19   07-Aug-2025  RAJESH GAMI	    Getting LotNumber 
+	20   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -192,7 +193,8 @@ BEGIN
 
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
-		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber
+		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber,
+CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId

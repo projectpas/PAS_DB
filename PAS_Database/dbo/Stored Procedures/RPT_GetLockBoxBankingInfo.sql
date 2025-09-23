@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/10/2024  Amit Ghediya    Created
     2    30/12/2024	 EKTA CHANDEGRA	 Check IsPrimary 
-
+    3    01/09/2025	 RAJESH GAMI	 Add LegalEntityBankingCheque details instead of LegalEntityBankingLockBox table
 -- EXEC RPT_GetLockBoxBankingInfo 1
 ************************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetLockBoxBankingInfo] 
@@ -27,7 +27,7 @@ BEGIN
 	BEGIN TRY	
 
 	SELECT TOP 1
-		UPPER(ISNULL(lb.BankName,'')) AS BankName,
+		CASE WHEN lb.AccountTypeId = 1 THEN UPPER(ISNULL(lb.BankName,'')) ELSE UPPER(ISNULL(lb.PayeeName,'')) END AS BankName,
 		'' AS PoBox,
 		MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL)),
 			
@@ -39,8 +39,8 @@ BEGIN
         dbo.EntityStructureSetup ess WITH(NOLOCK)
         JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
         JOIN dbo.LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-        LEFT JOIN dbo.LegalEntityBankingLockBox lb WITH(NOLOCK) ON le.LegalEntityId = lb.LegalEntityId AND lb.IsPrimay = 1
-        LEFT JOIN dbo.Address ad WITH(NOLOCK) ON lb.AddressId = ad.AddressId
+        LEFT JOIN dbo.LegalEntityBankingCheque lb WITH(NOLOCK) ON le.LegalEntityId = lb.LegalEntityId AND lb.IsPrimary = 1
+        LEFT JOIN dbo.[Address] ad WITH(NOLOCK) ON lb.AddressId = ad.AddressId
         LEFT JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
     WHERE 
         ess.IsActive = 1 

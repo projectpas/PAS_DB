@@ -4237,6 +4237,15 @@
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReport_Original.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomer.sql" />
+    <Build Include="dbo\Tables\LegalEntityBankingChequeAudit.sql" />
+    <Build Include="dbo\Tables\LegalEntityBankingCheque.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityBankingChequeHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityBankingChequeDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLegalEntityBankingCheque.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetRFQPricingAnalysisDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetAIAutoQuoteSettingList_ByMasterCompany.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOResetApprovalProcess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOQResetApprovalProcess.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4268,5 +4277,6 @@
     <None Include="Snapshots\PAS_SPRINT_57.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_58_1.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_60.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_61_Mid.dacpac" />
   </ItemGroup>
 </Project>

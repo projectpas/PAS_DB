@@ -9,8 +9,9 @@ EXEC [[GetWorkorderQuoteCurrectiveAction]]
 **************************************************************   
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
-** 01   10/07/2025  Moin Bloch      Created
-** 02   09/23/2025  Vishal Suthar   Fixed the issue with populating publication details correctly
+** 01   10/07/2025  Moin Bloch		Created
+** 02   10/07/2025  Devendra Shekh  Added Changes for Other Company to Hanldle 2 CMM
+** 03   09/23/2025  Vishal Suthar   Fixed the issue with populating publication details correctly
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 9737,9847
  EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 8758,8428
@@ -32,6 +33,8 @@ BEGIN
 		DECLARE @EmailBody NVARCHAR(MAX)=''		
 		DECLARE @ECMasterCompanyId INT = 19
 		DECLARE @NeoMasterCompanyId INT = 20
+		DECLARE @CMMID1 BIGINT = 0 
+		DECLARE @CMMID2 BIGINT = 0 
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
 				
@@ -137,9 +140,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN			
-				  DECLARE @CMMID1 BIGINT = 0 
-				  DECLARE @CMMID2 BIGINT = 0 
-
+				
 				  SELECT @CMMID1 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 1;
 				  SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
 		  				  
@@ -171,6 +172,8 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+			IF(@IsMultiple IS NULL OR @IsMultiple = 0 )
+			BEGIN
 			   SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
 			          CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
@@ -194,6 +197,37 @@ BEGIN
 					  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				 WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID=@workOrderPartNumberId 
+			END
+			ELSE
+			BEGIN
+				SELECT @CMMID1 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 1;
+				SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
+
+				SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
+			          CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
+					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
+					  ISNULL(UPPER(pub2.PublicationId),0) AS SecondPublicationId,
+					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub2.RevisionNum)),'-') SecondRevisionNum,
+					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub2.revisionDate,106),' ','/'),'-')) SecondRevisionDate,	
+					  wo.[WorkOrderNum],
+					  '' IsEasaUKLicenseType,
+					  ISNULL(pub.[PublishedById],0) PublishedById,
+					  ven.[VendorName],
+					  mf.[Name] [ManufacturerName],
+					  pub.[PublishedByOthers],					  
+					  @IsMultiple AS IsMultiple,
+					  @EmailBody AS EmailBody					   
+				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
+					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
+					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9  
+					  LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.[PublicationRecordId] = @CMMID1 
+					  LEFT JOIN [dbo].[Publication] pub2 WITH(NOLOCK) ON pub2.[PublicationRecordId] = @CMMID2 	
+					  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
+					  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId 
+					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
+				 WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID=@workOrderPartNumberId 
+			END
 		END		
 					
   END TRY      

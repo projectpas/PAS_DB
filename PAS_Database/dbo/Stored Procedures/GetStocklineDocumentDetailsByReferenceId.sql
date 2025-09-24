@@ -12,6 +12,7 @@
     1     30-06-2025   Amit Ghediya		Created
     2     18-07-2025   Vishal Suthar	Added module for exchange sales order
     3     07-08-2025   Vishal Suthar	Added module for exchange quote, sales quote and vendor rma
+    3     24-09-2025   Bhargav Saliya	Added module for SWO
 
 EXEC [GetStocklineDocumentDetailsByReferenceId]  1139,1,46
 
@@ -39,7 +40,8 @@ BEGIN
 				@ESOQuote_ModuleId INT = 0,
 				@SOQuote_ModuleId INT = 0,
 				@VendorRMA_ModuleId INT = 0,
-				@PartsStocklineId VARCHAR(MAX) = '';
+				@PartsStocklineId VARCHAR(MAX) = '',
+				@SWO_ModuleId INT = 0;
 
 		SELECT @Stockline_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'StockLine';
 		SELECT @SO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SalesOrder';
@@ -49,6 +51,7 @@ BEGIN
 		SELECT @ESOQuote_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'ExchangeQuote';
 		SELECT @SOQuote_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SalesQuote';
 		SELECT @VendorRMA_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'VendorRMA';
+		SELECT @SWO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SubWorkOrder';
 
 		--Common Get FROM Stockline data
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderStockline') IS NOT NULL
@@ -228,6 +231,47 @@ BEGIN
 				FROM [DBO].[WorkOrderMaterialStockLineKit] MST WITH(NOLOCK) 
 				JOIN [DBO].[WorkOrderMaterialsKit] VRP WITH(NOLOCK) ON MST.WorkOrderMaterialsKitId = VRP.WorkOrderMaterialsKitId
 				WHERE VRP.WorkOrderId = @WorkOrderId; -- get workorderid
+			---END KIT PN Stockline
+
+			SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') FROM #tmpSalesOrderStockline
+		END
+
+		--RepairOrder Part Stockline Documents
+		ELSE IF(@ModuleId = @RO_ModuleId)
+		BEGIN
+			 SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') 
+			 FROM [DBO].[RepairOrderPart] WITH(NOLOCK) 
+			 WHERE RepairOrderId = @ReferenceId 
+			 AND MasterCompanyId = @MasterCompanyId
+		END
+
+		IF(@ModuleId = @SWO_ModuleId)
+		BEGIN			
+			DECLARE @SWOPartId BIGINT = 0;
+			 ---START Material PN Stockline	
+			 SELECT @SWOPartId = SubWorkOrderId FROM [DBO].SubWorkOrderPartNumber WITH(NOLOCK) 
+			 WHERE SubWOPartNoId = @ReferenceId
+
+				--Insert PN(Material) Data
+				INSERT INTO #tmpSalesOrderStockline (StocklineId) 
+							  SELECT VRP.StockLineId
+				FROM [DBO].[SubWorkOrderMaterialStockLine] VRP WITH(NOLOCK) 
+				JOIN [DBO].[SubWorkOrderMaterials] MST WITH(NOLOCK) ON MST.SubWorkOrderMaterialsId = VRP.SubWorkOrderMaterialsId
+				WHERE MST.SubWorkOrderId = @SWOPartId; -- get workorderid
+
+				INSERT INTO #tmpSalesOrderStockline (StocklineId) 
+							  SELECT StockLineId
+				FROM [DBO].[SubWorkOrderPartNumber] VRP WITH(NOLOCK) 
+				WHERE VRP.SubWorkOrderId = @SWOPartId; -- get workorderid
+
+			---END Material PN Stockline
+
+			---START KIT PN Stockline
+				INSERT INTO #tmpSalesOrderStockline (StocklineId) 
+							  SELECT MST.StockLineId
+				FROM [DBO].[SubWorkOrderMaterialStockLineKit] MST WITH(NOLOCK) 
+				JOIN [DBO].[SubWorkOrderMaterialsKit] VRP WITH(NOLOCK) ON MST.SubWorkOrderMaterialsKitId = VRP.SubWorkOrderMaterialsKitId
+				WHERE VRP.SubWorkOrderId = @SWOPartId; -- get workorderid
 			---END KIT PN Stockline
 
 			SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') FROM #tmpSalesOrderStockline

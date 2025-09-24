@@ -4249,6 +4249,7 @@
     <Build Include="dbo\Tables\AsOfDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAsOfDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAsOfDateSettings.sql" />
+    <Build Include="dbo\Stored Procedures\usp_WorkOrderMaterials_GetStockLineList_ReserveIssue.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

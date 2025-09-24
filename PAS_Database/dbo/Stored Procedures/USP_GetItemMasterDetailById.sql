@@ -8,12 +8,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date			Author  		Change Description            
- ** --   --------		-------		---------------------------     
-    1    28/Jan/2025	Rajesh Gami     Created
-    2    25/Mar/2025	Devendra Shekh	added new field: WorkOrderFormTypeId
-	3    02/Apr/2025	Moin Bloch   	added new field: OemPN
-	4	 28-Aug-2025	Bhargav saliya	added new field Ranking
+ ** PR   Date			Author  			Change Description            
+ ** --   --------		-------				---------------------------     
+    1    28/Jan/2025	Rajesh Gami			Created
+    2    25/Mar/2025	Devendra Shekh		added new field: WorkOrderFormTypeId
+	3    02/Apr/2025	Moin Bloch   		added new field: OemPN
+	4	 28-Aug-2025	Bhargav saliya		added new field Ranking
+	5	 22-Sep-2025	Divyesh Kathiriya   added new field: IsHotItem
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -182,7 +183,8 @@ BEGIN
 						iM.RevenueSoGLAccId,
 						iM.RevenueExchGLAccId,
 						COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName,
-						iM.WorkOrderFormTypeId
+						iM.WorkOrderFormTypeId,
+						ISNULL(iM.IsHotItem,0) AS IsHotItem
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

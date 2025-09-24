@@ -11,6 +11,7 @@
  ** PR   Date         Author  			Change Description             
  1    27/08/2025   Hemant Saliya		Created 
  2    18/09/2025   Devendra Shekh		Added Changes for total Amount
+ 3    24/09/2025   Devendra Shekh		total Amount Formula Change
 
 
  @strFilter=N'1!2,7!3,11,10!4,12'
@@ -344,9 +345,10 @@ BEGIN
 
 		;WITH JEGLBalance AS (
 				SELECT	REPLACE(BD.AccountingPeriod,' - ','') AS AccountcalMonth, 
-						CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN SUM(ISNULL(CMD.DebitAmount, 0)) - SUM(ISNULL(CMD.CreditAmount, 0))
-						ELSE SUM(ISNULL(CMD.CreditAmount, 0)) - SUM(ISNULL(CMD.DebitAmount, 0)) 
-						END AS Amount
+						--CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN SUM(ISNULL(CMD.DebitAmount, 0)) - SUM(ISNULL(CMD.CreditAmount, 0))
+						--ELSE SUM(ISNULL(CMD.CreditAmount, 0)) - SUM(ISNULL(CMD.DebitAmount, 0)) 
+						--END AS Amount
+						SUM(ISNULL(CMD.CreditAmount, 0)) - SUM(ISNULL(CMD.DebitAmount, 0)) AS Amount
 		FROM dbo.CommonBatchDetails CMD WITH (NOLOCK)
 			INNER JOIN dbo.BatchDetails BD WITH (NOLOCK) ON CMD.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMD.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId

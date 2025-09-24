@@ -8,17 +8,18 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    26/02/2025   Moin Bloch    Created
-	2    12/03/2025   Moin Bloch    Fixed Multiple MPN Issue
-	3    09/05/2025	  Abhishek Jirawla Add Repair Management
-	4    13/05/2025	  Abhishek Jirawla Isue with create work order with stockline
-	5    04/06/2025	  Devendra Shekh   added stockLineUnitCost to PartNumbers
-	6    10/06/2025	  Devendra Shekh   added @AllowPrintReleaseForm
-	7    01/07/2025	  Devendra Shekh   added New Field : MPNPartNumber
-	8    03/07/2025   Moin Bloch       Changed Old To New Billing Table
-	9    26/08/2025   Moin Bloch	   added RevisedSerialNumber 
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    26/02/2025   Moin Bloch		Created
+	2    12/03/2025   Moin Bloch		Fixed Multiple MPN Issue
+	3    09/05/2025	  Abhishek Jirawla  Add Repair Management
+	4    13/05/2025	  Abhishek Jirawla	Isue with create work order with stockline
+	5    04/06/2025	  Devendra Shekh	added stockLineUnitCost to PartNumbers
+	6    10/06/2025	  Devendra Shekh	added @AllowPrintReleaseForm
+	7    01/07/2025	  Devendra Shekh	added New Field : MPNPartNumber
+	8    03/07/2025   Moin Bloch		Changed Old To New Billing Table
+	9    26/08/2025   Moin Bloch		added RevisedSerialNumber 
+	10   24/09/2025   Vishal Suthar		Added CustomerId also to populate default templates
      
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -225,7 +226,9 @@ BEGIN
 		FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0;
+		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId 
+		AND wf.CustomerId = @ReceivingCustomerId
+		AND wf.[IsVersionIncrease] = 0;
 			   
 		SELECT @WorkOrderTypeId [WorkOrderTypeId],               
                @WorkOrderStatusId [WorkOrderStatusId],               

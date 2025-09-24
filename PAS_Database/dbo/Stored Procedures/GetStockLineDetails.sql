@@ -21,6 +21,7 @@
 	5	 09/02/2025	 Devendra Shekh	 Added new field 'QuantityAdjustment'
 	6    21/04/2025  Abhishek Jirawla Added Integration portal changes
 	7    23/07/2025  MOIN BLOCH 	  Added BatchNumber
+	8    24/09/2025  Sahdev Saliya    Added Classification
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -330,6 +331,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(stl.IsRepairManagement, 0) IsRepairManagement
 			,ISNULL(stl.[IsBatchStock],0) IsBatchStock
 			,stl.[BatchNumber]
+			,im.ItemClassificationName AS Classification
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

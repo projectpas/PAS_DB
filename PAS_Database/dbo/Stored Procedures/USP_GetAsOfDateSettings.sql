@@ -1,9 +1,10 @@
-﻿/*************************************************************             
- ** File:  [USP_AddBillingInvoicingDetails]
+﻿
+/*************************************************************             
+ ** File:  [USP_GetAsOfDateSettings]
  ** Author:  Moin Bloch  
- ** Description: This stored procedure is used to store Billing Details
+ ** Description: This stored procedure is used to get As Of Date Settings
  ** Purpose:           
- ** Date:   10/09/2025            
+ ** Date:   22/09/2025            
  ** PARAMETERS:            
  ** RETURN VALUE:             
  **************************************************************             
@@ -11,36 +12,53 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
-    1    10/09/2025   MOIN BLOCH     Created  
+    1    22/09/2025   MOIN BLOCH     Created  
 
---  EXEC [dbo].[USP_AddStocklineAsofNowJobDetails] 'Job1','C:\Jobs\Job1.csv','2025-09-10',1
-************************************************************************/    
-CREATE   PROCEDURE [dbo].[USP_AddStocklineAsofNowJobDetails]
-@Name NVARCHAR(100),
-@Path NVARCHAR(500),
-@TotalInventory DECIMAL(18,2),
-@JobDate DATETIME2(7),
-@NextRunDate DATETIME2(7),
-@ReportType INT,
-@MasterCompanyId INT
+--  EXEC [dbo].[USP_GetAsOfDateSettings] 1
+************************************************************************/  
+CREATE   PROCEDURE [dbo].[USP_GetAsOfDateSettings]
+@MasterCompanyId INT=NULL
 AS
-BEGIN  
+BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;   
- BEGIN TRY  
- BEGIN TRANSACTION  
- BEGIN    
-	
-	INSERT INTO [dbo].[StocklineAsofNowJobDetails]([Name],[Path],[TotalInventory],[JobDate],[NextRunDate],[ReportType],[MasterCompanyId],[CreatedDate])
-                                            VALUES(@Name,@Path,@TotalInventory,@JobDate,@NextRunDate,@ReportType,@MasterCompanyId,GETUTCDATE());
-	   	
- END   
- COMMIT  TRANSACTION  
+ BEGIN TRY 
+
+    SELECT 
+        [Id],
+        [SiteIds],
+        [WarehouseIds],
+        [LocationIds],
+        [ShelfIds],
+        [BinIds],
+        [Level1Ids],
+        [Level2Ids],
+        [Level3Ids],
+        [Level4Ids],
+        [Level5Ids],
+        [Level6Ids],
+        [Level7Ids],
+        [Level8Ids],
+        [Level9Ids],
+        [Level10Ids],
+        [IsWeeklyOrMonthly],
+        [ExecutionDate],
+        [WeeklyName],
+        [ExcludedLocations],
+        [MasterCompanyId],
+        [CreatedBy],
+        [UpdatedBy],
+        [CreatedDate],
+        [UpdatedDate],
+        [IsActive],
+        [IsDeleted]
+   FROM [dbo].[AsOfDateSettings]
+   WHERE [MasterCompanyId] = @MasterCompanyId    
+
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  
-  PRINT 'ROLLBACK'  
-    ROLLBACK TRANSACTION;  
+  PRINT 'ROLLBACK'      
 	SELECT
     ERROR_NUMBER() AS ErrorNumber,
     ERROR_STATE() AS ErrorState,
@@ -50,10 +68,8 @@ BEGIN
     ERROR_MESSAGE() AS ErrorMessage;
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-              , @AdhocComments     VARCHAR(150)    = 'USP_AddStocklineAsofNowJobDetails'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@Name, '') AS VARCHAR(100))  
-             + '@Parameter2 = ''' + CAST(ISNULL(@Path, '') AS VARCHAR(100))   
-             + '@Parameter3 = ''' + CAST(ISNULL(@JobDate, '') AS VARCHAR(100))   
+              , @AdhocComments     VARCHAR(150)    = '[USP_GetAsOfDateSettings]'   
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL('', '') AS VARCHAR(100))              
              + '@Parameter4 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))              
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------------------------------------  

@@ -15,8 +15,9 @@
 	4    11/21/2014   Amit Ghediya		Modified to add ECCN & Dimension (L,W,H) add update time.
 	5    12/07/2014   Moin Bloch		Modified to add AltOrEqType
 	6    12-12-2024   Vishal Suthar		Modified query that updates QtyOrder to Part Cost when No stockline is there
-	7    16-12-2024   Shrey Chandegara Updated for @PriorityId in  not update proper
-	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @SOMInID
+	7    16-12-2024   Shrey Chandegara  Updated for @PriorityId in  not update proper
+	5    05-07-2015   BHARGAV SALIYA	Change the Save SOQ Order Using @SOMInID
+	6    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -146,7 +147,6 @@ BEGIN
 		
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
-			
 			SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';
 
 			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId)
@@ -185,7 +185,7 @@ BEGIN
 				SELECT SalesOrderId, @SalesOrderPartId, UnitSalesPrice, ISNULL((UnitSalesPrice * QtyOrder), 0), MarkUpPercentage, ISNULL((MarkUpAmount * QtyOrder), 0), DiscountPercentage, ISNULL((DiscountAmount * QtyOrder), 0),
 				@NetSalesAmt, NULL, NULL, TaxAmount, TaxPercentage, UnitCost, ISNULL((UnitCost * QtyOrder), 0), MarginAmount, MarginPercentage, 0,
 				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
-				FROM #SOPartDetails WHERE ID = @SOMInID;
+				FROM #SOPartDetails WHERE ID = @SOMInID;				
 			END
 			ELSE
 			BEGIN
@@ -195,7 +195,7 @@ BEGIN
 			IF (@StockLineId IS NOT NULL AND @StockLineId > 0) -- Added at Stockline Level
 			BEGIN
 				DECLARE @InsertedSalesOrderStocklineId BIGINT;
-
+				
 				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[PriorityId])
 				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes,@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,@PriorityId
 				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
@@ -219,9 +219,26 @@ BEGIN
 				FROM [DBO].[StockLine] Stkl 
 				WHERE Stkl.StockLineId = @StockLineId
 			END
+
+			--Update Reset Approve Process
+			EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId,@MasterCompanyId
 		END
 		ELSE
 		BEGIN
+		
+			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;
+			DECLARE @ExistingQtyReq INT,@ExistingPriority INT,@ExistingUnitSales DECIMAL;
+
+			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = PriorityId  FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+			IF(@SalesOrderStocklineId > 0)
+			BEGIN
+				 SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderStocklineId = @SalesOrderStocklineId;
+			END
+			ELSE
+			BEGIN
+			     SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderPartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderPartId = @SalesOrderPartId;
+			END
+			
 			UPDATE [DBO].[SalesOrderPartV1]
 			SET Notes = @Notes,
 			CustomerRequestDate = @CustomerRequestDate,
@@ -305,12 +322,11 @@ BEGIN
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
 
-			DECLARE @IsQtyRequestedModified BIT;
-			DECLARE @ExistingQtyReq INT;
 
 			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
-
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
+			SET @IsPriorityModified = CASE WHEN @ExistingPriority <> @PriorityId THEN 1 ELSE 0 END;
+			SET @IsUnitSalesModified = CASE WHEN @ExistingUnitSales <> @UnitSalesPrice THEN 1 ELSE 0 END;
 
 			;WITH QuotedSums AS (
 				SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
@@ -354,12 +370,19 @@ BEGIN
 				FROM [DBO].[SalesOrderPartV1] SOP
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			END
+			
+			--Reset Approval Process
+			IF(@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
+			BEGIN
+				 EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId,@MasterCompanyId
+			END
+			
 		END
 
 		SELECT @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
 
-		EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
-
+		EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;	
+		
 		SET @SOMInID = @SOMInID + 1;
 	END
 

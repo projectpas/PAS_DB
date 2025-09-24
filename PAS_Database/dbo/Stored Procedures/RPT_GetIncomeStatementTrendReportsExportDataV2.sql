@@ -515,6 +515,9 @@ BEGIN
 			FROM #ReportingStructureExportData RS JOIN dbo.AccountingCalendar AP WITH(NOLOCK) ON RS.AccountcalMonth = REPLACE(AP.PeriodName,' - ','')
 			WHERE AP.LegalEntityId = @LegalEntityId
 
+			UPDATE #ReportingStructureExportData 
+						SET Amount = ISNULL(Amount, 0) FROM #ReportingStructureExportData
+
 		 SELECT * FROM #ReportingStructureExportData ORDER BY SequenceNumber ASC
  END TRY  
  BEGIN CATCH  

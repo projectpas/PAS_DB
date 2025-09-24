@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetSOQAnalysisData]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SOQ analysis data
@@ -17,8 +18,8 @@
     1    09/19/2024   Vishal Suthar		Created
     2    10/17/2024   Vishal Suthar		Modified to make use of new SOQ Part tables
     3    12/09/2024   Vishal Suthar		Fixed an issue with qty in analysis
-
-EXEC [dbo].[USP_GetSOQAnalysisData] 954
+	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
+EXEC [dbo].[USP_GetSOQAnalysisData] 1300
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSOQAnalysisData] 
 (
@@ -106,7 +107,8 @@ BEGIN
 				soq.TotalCharges AS totalCharges,
 				soq.TotalFreight AS totalFreight,
 				soq.ChargesBilingMethodId AS chargesBilingMethodId,
-				soq.FreightBilingMethodId AS freightBilingMethodId
+				soq.FreightBilingMethodId AS freightBilingMethodId,
+				CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN SOQSC.NetSaleAmountPerUnit ELSE SOQPC.NetSaleAmountPerUnit END AS netSalesPricePerUnit
 			FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 			INNER JOIN DBO.SalesOrderQuotePartV1 part WITH (NOLOCK) ON soq.SalesOrderQuoteId = part.SalesOrderQuoteId
 			LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId

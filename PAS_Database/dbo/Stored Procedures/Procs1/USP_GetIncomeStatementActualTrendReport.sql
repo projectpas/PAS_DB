@@ -10,6 +10,8 @@
  **************************************************************             
  ** PR   Date         Author  			Change Description             
  1    27/08/2025   Hemant Saliya		Created 
+ 2    18/09/2025   Devendra Shekh		Added Changes for total Amount
+ 3    24/09/2025   Devendra Shekh		total Amount Formula Change
 
 
  @strFilter=N'1!2,7!3,11,10!4,12'
@@ -330,6 +332,73 @@ BEGIN
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		GROUP BY LF.LeafNodeId , BD.AccountingPeriod, GLM.IsPositive, GL.GLAccountTypeId)
 
+		-- Batch Amount Sum : Start
+		IF OBJECT_ID(N'tempdb..#AmountResult') IS NOT NULL
+		BEGIN
+			DROP TABLE #AmountResult
+		END
+
+		IF OBJECT_ID(N'tempdb..##FinalAmountResult') IS NOT NULL
+		BEGIN
+			DROP TABLE ##FinalAmountResult
+		END
+
+		;WITH JEGLBalance AS (
+				SELECT	REPLACE(BD.AccountingPeriod,' - ','') AS AccountcalMonth, 
+						--CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN SUM(ISNULL(CMD.DebitAmount, 0)) - SUM(ISNULL(CMD.CreditAmount, 0))
+						--ELSE SUM(ISNULL(CMD.CreditAmount, 0)) - SUM(ISNULL(CMD.DebitAmount, 0)) 
+						--END AS Amount
+						SUM(ISNULL(CMD.CreditAmount, 0)) - SUM(ISNULL(CMD.DebitAmount, 0)) AS Amount
+		FROM dbo.CommonBatchDetails CMD WITH (NOLOCK)
+			INNER JOIN dbo.BatchDetails BD WITH (NOLOCK) ON CMD.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
+			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMD.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
+			INNER JOIN dbo.GLAccount GL WITH (NOLOCK) ON GL.GlAccountId = CMD.GLAccountId AND GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId) 
+		WHERE CMD.IsDeleted = 0 AND CMD.IsDeleted = 0 AND BD.IsDeleted = 0 AND CMD.MasterCompanyId = @MasterCompanyId AND ISNULL(CMD.IsVersionIncrease, 0) = 0		
+				AND BD.AccountingPeriodId IN (SELECT AccountcalID FROM #AccPeriodTable_All)
+				AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
+				AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
+				AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
+				AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
+				AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
+				AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
+				AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
+				AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
+				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
+				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
+				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		GROUP BY BD.AccountingPeriod, GL.GLAccountTypeId
+		)
+		, AmountResult AS (
+			SELECT AccountcalMonth, SUM(Amount) AS Amount FROM JEGLBalance GROUP BY AccountcalMonth
+
+			UNION ALL
+
+			SELECT 'Total' AS AccountcalMonth, SUM(Amount) AS Amount FROM JEGLBalance
+		)
+		SELECT * INTO #AmountResult FROM AmountResult
+
+		DECLARE @cols NVARCHAR(MAX), @query NVARCHAR(MAX);
+		-- Get distinct months as column headers
+		SELECT @cols = STRING_AGG(QUOTENAME([PeriodName]), ',') FROM (SELECT [PeriodName] FROM #AccPeriodTable) AS x;
+
+		-- Build pivot query
+		SET @query = '
+		SELECT *
+		INTO ##FinalAmountResult
+		FROM
+		(
+			SELECT AccountcalMonth, Amount
+			FROM #AmountResult
+		) AS SourceTable
+		PIVOT
+		(
+			SUM(Amount) FOR AccountcalMonth IN (' + @cols + ')
+		) AS PivotTable;';
+
+		EXEC sp_executesql @query;
+		--SELECT * FROM ##FinalAmountResult
+		-- Batch Amount Sum : End
+		
 		IF(@IsDebugMode = 1)
 		BEGIN
 			SELECT 'GLBalance'
@@ -597,6 +666,10 @@ BEGIN
 		FROM(
 			SELECT SUM(Amount) AS TotalAmt, NodeName FROM #AccTrendTable act WHERE AccountingPeriod != 'Total' GROUP BY NodeName
 		) Groptoal WHERE Groptoal.NodeName = #AccTrendTable.NodeName AND AccountingPeriod = 'Total'
+
+		--SET --ve Values for Parent Node where IsPositive = 0
+		UPDATE #AccTrendTable SET Amount = Amount * (-1) FROM #AccTrendTable Tmp JOIN dbo.LeafNode LFN ON Tmp.leafNodeId = LFN.leafNodeId WHERE ISNULL(LFN.IsPositive, 0) = 0
+
 	
 		DECLARE @COUNT AS INT;
 		DECLARE @COUNTMAX AS INT
@@ -750,15 +823,30 @@ BEGIN
 
 		UPDATE ##AccTrendTablePivot SET [name] = REPLACE([name],'Total - ','') 
 
+		SET @query = '
+		INSERT INTO ##AccTrendTablePivot([leafNodeId], [ParentId], [name], ' + @cols + ')
+		SELECT ((SELECT MAX([leafNodeId]) FROM ##AccTrendTablePivot) + 1), null, ''Total'', ' + @cols + ' FROM ##FinalAmountResult
+		'
+
+		EXEC sp_executesql @query;
+
 		SELECT * INTO #ResultTabel FROM ##AccTrendTablePivot  WHERE IsBlankHeader != 1 and IsTotlaLine = 0 --Order BY parentId ASC
 
 		UPDATE #ResultTabel SET IsTotlaLine = 1 WHERE isLeafNode = 0
 
 		--SELECT * FROM ##AccTrendTablePivot --WHERE IsBlankHeader != 1
 
-		SELECT * FROM #ResultTabel Order BY parentId ASC 
+		SELECT * FROM #ResultTabel WHERE [name] = 'Total'
+
+		UNION ALL
+
+		SELECT * FROM #ResultTabel WHERE [name] <> 'Total' Order BY parentId ASC
 
 		--SELECT * FROM ##AccTrendTablePivot WHERE IsBlankHeader != 1 and IsTotlaLine = 0 Order BY parentId ASC --AND (name != 'REVENUE' and IsTotlaLine = 0)
+		IF OBJECT_ID(N'tempdb..##FinalAmountResult') IS NOT NULL
+		BEGIN
+			DROP TABLE ##FinalAmountResult
+		END
 
   END TRY
   BEGIN CATCH

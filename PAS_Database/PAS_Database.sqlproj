@@ -4235,6 +4235,24 @@
     <Build Include="dbo\Stored Procedures\USP_AddStocklineAsofNowJobDetails.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetIncomeStatementTrendReportsExportDataV2.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetIncomeStatementActualTrendReport_Original.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetEmployeeCommissionReport_IncludeCustomer.sql" />
+    <Build Include="dbo\Tables\LegalEntityBankingChequeAudit.sql" />
+    <Build Include="dbo\Tables\LegalEntityBankingCheque.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLegalEntityBankingChequeHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityBankingChequeDataById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLegalEntityBankingCheque.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetRFQPricingAnalysisDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetAIAutoQuoteSettingList_ByMasterCompany.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOResetApprovalProcess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SOQResetApprovalProcess.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeTraining.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddItemMasterGeneralInfo.sql" />
+    <Build Include="dbo\User Defined Types\ItemMasterTableType.sql" />
+    <Build Include="dbo\Tables\AsOfDateSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAsOfDateSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAsOfDateSettings.sql" />
+    <Build Include="dbo\Stored Procedures\usp_WorkOrderMaterials_GetStockLineList_ReserveIssue.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateExchangeSalesOrderShipping.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuotePartsToSalesOrderChargesView.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuoteFreightToSalesOrderFreightView.sql" />
@@ -4271,5 +4289,6 @@
     <None Include="Snapshots\PAS_SPRINT_57.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_58_1.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_60.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_61_Mid.dacpac" />
   </ItemGroup>
 </Project>

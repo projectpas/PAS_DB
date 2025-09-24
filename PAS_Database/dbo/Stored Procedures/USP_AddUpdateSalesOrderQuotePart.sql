@@ -14,6 +14,7 @@
 	3    19-11-2024   AMIT GHEDIYA		 Added LOT Id
 	4    12-12-2024   Vishal Suthar		 Modified query that updates QtyQuoted to Part Cost when No stockline is there
 	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @MinsoqId
+	6    15-09-2025	  Amit Ghediya		 Update for Reset Approval Process
 
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
@@ -125,13 +126,14 @@ BEGIN
 		DECLARE @IsNoQuote AS BIT = NULL;
 		DECLARE @IsLotAssigned AS BIT = NULL;
 		DECLARE @LotId AS BIGINT = 0;
+		DECLARE @PriorityId BIGINT = 0;
 
 		SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId, @SalesOrderQuoteId = SalesOrderQuoteId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderQuoteStocklineId = SalesOrderQuoteStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyQuoted = QtyQuoted,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @QuantityToQuote = QuantityQuote, @Notes = Notes, 
 		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@IsNoQuote = IsNoQuote,
-		@IsLotAssigned = IsLotAssigned,@LotId = LotId
+		@IsLotAssigned = IsLotAssigned,@LotId = LotId,@PriorityId = PriorityId
 		FROM #SOQPartDetails WHERE ID = @MinsoqId;
 		
 		IF (ISNULL(@SalesOrderQuotePartId, 0) = 0) -- Add New Part
@@ -208,15 +210,29 @@ BEGIN
 				FROM [DBO].[StockLine] Stkl
 				WHERE Stkl.StockLineId = @StockLineId;
 			END
+
+			--Update Reset Approve Process
+			EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId,@MasterCompanyId
 		END
 		ELSE
 		BEGIN
-			DECLARE @IsQtyRequestedModified BIT;
-			DECLARE @ExistingQtyReq INT;
+			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;;
+			DECLARE @ExistingQtyReq INT,@ExistingPriority INT,@ExistingUnitSales DECIMAL;;
 
-			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = SOP.PriorityId FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			
+			IF(@SalesOrderQuoteStocklineId > 0)
+			BEGIN
+				 SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderQuoteStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
+			END
+			ELSE
+			BEGIN
+			     SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderQuotePartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			END
 
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
+			SET @IsPriorityModified = CASE WHEN @ExistingPriority <> @PriorityId THEN 1 ELSE 0 END;
+			SET @IsUnitSalesModified = CASE WHEN @ExistingUnitSales <> CAST(ROUND(@UnitSalesPrice, 0) AS INT) THEN 1 ELSE 0 END;
 
 			UPDATE [DBO].[SalesOrderQuotePartV1]
 			SET 
@@ -296,6 +312,12 @@ BEGIN
 				SET SOP.QtyQuoted = CASE WHEN @IsQtyRequestedModified = 1 THEN @QtyRequested ELSE @QtyQuoted END
 				FROM [DBO].[SalesOrderQuotePartV1] SOP
 				WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			END
+			
+			--Reset Approval Process
+			IF(@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
+			BEGIN
+				 EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId,@MasterCompanyId
 			END
 		END
 

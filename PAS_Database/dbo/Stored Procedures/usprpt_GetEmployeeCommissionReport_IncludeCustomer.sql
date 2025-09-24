@@ -1,9 +1,9 @@
 ﻿/*************************************************************               
- ** File:  [usprpt_GetEmployeeCommissionReport]      
+ ** File:  [usprpt_GetEmployeeCommissionReport_IncludeCustomer]      
  ** Author:  Vishal Suthar
- ** Description: This stored procedure is used to Employee Commission DATA.    
+ ** Description: This stored procedure is used to Employee Commission DATA Including Customer.    
  ** Purpose:             
- ** Date:   08-SEPT-2025          
+ ** Date:   18-SEPT-2025          
               
  ** RETURN VALUE:               
  **************************************************************               
@@ -11,11 +11,10 @@
  **************************************************************               
  ** PR   Date			Author				Change Description                
  ** --   --------		-------				--------------------------------              
-    1    08-SEPT-2025	Vishal Suthar		Created
-	2	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
+    1    18-SEPT-2025	Vishal Suthar		Created    
          
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
+CREATE     PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomer]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -41,12 +40,12 @@ BEGIN
 	@Employee VARCHAR(100) = NULL,
 	@Customer VARCHAR(100) = NULL,
 	@IncludeCRnRET BIT = NULL;
-	
+
 	DECLARE @SOMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
 	DECLARE @WOMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'WorkOrderMPN');
 	DECLARE @SalesOrderModuleId INT = (SELECT ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder');
 	DECLARE @WorkOrderModuleId INT = (SELECT ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder');
-
+	
 	BEGIN TRY  
       
 	SELECT   
@@ -82,12 +81,12 @@ BEGIN
 		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @IncludeCRnRET END
 	FROM  
 		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
-
+  
    ;WITH InvoicesSOWO AS (
         SELECT
             BI.BillingInvoicingId,
             BI.ReferenceId AS ReferenceId,
-            SOBII.SubReferenceId AS SubReferenceId,
+			SOBII.SubReferenceId AS SubReferenceId,
             BI.ModuleId,
             BI.CustomerId,
 			CASE WHEN @IncludeCRnRET = 1 
@@ -157,10 +156,10 @@ BEGIN
 		(E.FirstName + ' ' + E.LastName) AS Salesperson,
 		C.[Name] AS Customer,
     	SUM(BI.GrandTotal) AS RevenueAmount,
-		RP.PercentValue AS RevenueRate,
+		ISNULL(RP.PercentValue, 0) AS RevenueRate,
 		SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
 		SUM(BI.PartCost) AS MarginAmount,
-		MP.PercentValue AS MarginRate,
+		ISNULL(MP.PercentValue, 0) AS MarginRate,
 		SUM((BI.PartCost) * (MP.PercentValue / 100.0)) AS MarginCommission,
 		(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + SUM(BI.PartCost * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
         UPPER(MSD.Level1Name) AS level1,  
@@ -201,15 +200,15 @@ BEGIN
                MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
                MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
 
-		UNION ALL
+			UNION ALL
 
-		SELECT 0 AS TotalRecordsCount,
+			SELECT 0 AS TotalRecordsCount,
 			E.MasterCompanyId,
 			BI.ActivityTypeId,
 			E.EmployeeId,
 			(E.FirstName + ' ' + E.LastName) AS Salesperson,
 			C.[Name] AS Customer,
-    		SUM(BI.GrandTotal) AS RevenueAmount,
+			SUM(BI.GrandTotal) AS RevenueAmount,
 			RP.PercentValue AS RevenueRate,
 			SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
 			(SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
@@ -267,8 +266,8 @@ BEGIN
                MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name, 
                MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
                MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
-
-			), FinalCTE(TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityTypeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
+			)
+			,FinalCTE(TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityTypeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
 				 MarginAmount, MarginRate, MarginCommission, TotalCommission,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 
@@ -282,10 +281,10 @@ BEGIN
 			FORMAT(SUM(MarginAmount), 'N', 'en-us') TotalMarginAmount,
 			FORMAT(SUM(MarginCommission), 'N', 'en-us') TotalMarginCommission,
 			FORMAT(SUM(TotalCommission), 'N', 'en-us') GrandTotalCommission
-			FROM FinalCTE
+			FROM FinalCTE  
 			GROUP BY MasterCompanyId)
-			
-		  , FinalWithGrp AS (SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.MasterCompanyId, FC.EmployeeId, CASE WHEN FC.ActivityTypeId = 1 THEN 'MRO Activity' WHEN FC.ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, Salesperson AS EmployeeName, FC.Customer, 
+
+			, FinalWithGrp AS (SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.MasterCompanyId, FC.EmployeeId, CASE WHEN FC.ActivityTypeId = 1 THEN 'MRO Activity' WHEN FC.ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, Salesperson AS EmployeeName, FC.Customer, 
 				 FORMAT(ISNULL(RevenueAmount,0) , 'N', 'en-us') Revenueamount, 
 				 FORMAT(ISNULL(RevenueRate,0) , 'N', 'en-us') Revenuerate, 
 				 FORMAT(ISNULL(RevenueCommission,0) , 'N', 'en-us') Revenuecommission,
@@ -304,13 +303,14 @@ BEGIN
 		, BeforeFinalWithGrp AS (SELECT COUNT(2) OVER () AS TotalRecordsCount, FC.MasterCompanyId, FC.EmployeeId, 
 				 CASE WHEN FC.ActivityTypeId = 1 THEN 'MRO Activity' WHEN FC.ActivityTypeId = 2 THEN 'Brokering' ELSE 'Manafacturing' END ActivityType, 
 				 Salesperson AS EmployeeName,
+				 Customer,
 				 SUM(RevenueAmount) Revenueamount, 
 				 SUM(RevenueRate) Revenuerate, 
 				 ISNULL(SUM(RevenueCommission), 0) Revenuecommission,
 				 SUM(MarginAmount) Marginamount, 
 				 SUM(MarginRate) Marginrate, 
 				 SUM(MarginCommission) Margincommission, 
-				 SUM(TotalCommission) Totalcommission,
+				 SUM(Totalcommission) Totalcommission,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
 				 WC.TotalRevenueAmount,
 				 WC.TotalRevenueCommission,
@@ -319,18 +319,18 @@ BEGIN
 				 WC.GrandTotalCommission
 		    FROM FinalCTE FC
 			INNER JOIN WithTotal WC ON FC.MasterCompanyId = WC.MasterCompanyId
-			GROUP BY FC.MasterCompanyId, FC.EmployeeId, FC.ActivityTypeId, Salesperson, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
+			GROUP BY FC.MasterCompanyId, FC.EmployeeId, FC.ActivityTypeId, Salesperson, Customer, level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
 			TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission)
-		
-		SELECT * INTO #BeforeFinalWithGrp FROM BeforeFinalWithGrp;
 
-		IF ISNULL(@PageSize,0) = 0
-		BEGIN
-			SELECT @PageSize = COUNT(1)
-			FROM #BeforeFinalWithGrp;
-		END
+			SELECT * INTO #BeforeFinalWithGrp FROM BeforeFinalWithGrp;
 
-		SELECT TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityType, EmployeeName, 
+			IF ISNULL(@PageSize,0) = 0
+			BEGIN
+				SELECT @PageSize = COUNT(1)
+				FROM #BeforeFinalWithGrp;
+			END
+
+		    SELECT TotalRecordsCount, MasterCompanyId, EmployeeId, ActivityType, EmployeeName, Customer, 
 				FORMAT(ISNULL(Revenueamount,0) , 'N', 'en-us') Revenueamount, 
 				FORMAT(ISNULL(Revenuerate,0) , 'N', 'en-us') Revenuerate, 
 				FORMAT(ISNULL(Revenuecommission,0) , 'N', 'en-us') Revenuecommission,
@@ -340,16 +340,16 @@ BEGIN
 				FORMAT(ISNULL(Totalcommission,0) , 'N', 'en-us') AS Totalcommission,
 				level1, level2, level3, level4, level5, level6, level7, level8,level9, level10,
 				TotalRevenueAmount, TotalRevenueCommission, TotalMarginAmount, TotalMarginCommission, GrandTotalCommission
-		FROM #BeforeFinalWithGrp
-		ORDER BY EmployeeId DESC
-		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+			FROM #BeforeFinalWithGrp
+			ORDER BY EmployeeId DESC
+			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
   END TRY  
   
   BEGIN CATCH
     DECLARE @ErrorLogID int,
     @DatabaseName varchar(100) = DB_NAME(),
     -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-    @AdhocComments varchar(150) = '[usprpt_GetEmployeeCommissionReport]',
+    @AdhocComments varchar(150) = '[usprpt_GetEmployeeCommissionReport_IncludeCustomer]',
     @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100)) + 
     '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) + 
     '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)) + 

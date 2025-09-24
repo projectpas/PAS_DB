@@ -11,7 +11,7 @@
 ** --   --------     -------		--------------------------------            
 	1   08/08/2022   Moin Bloch	    created 
 	2   14/03/2022   Moin Bloch	    modified removed Wire Transfers and ACH bank account types PN-7338
-  
+  	3   11/09/2022   Rajesh Gami	Added the IsDeleted condition and remove BOTH accountTypeId
   EXEC [dbo].[GetBankDetailsByLegalEntity] 1 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetBankDetailsByLegalEntity]
@@ -30,7 +30,7 @@ BEGIN
 				   [LegalEntityId]
 			  FROM [dbo].[LegalEntityBankingLockBox] WITH(NOLOCK)
 			 WHERE [LegalEntityId] = @LegalEntityId 
-			  AND ([AccountTypeId] = 1 OR [AccountTypeId] = 3)
+			  AND [AccountTypeId] = 1 AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1
 			--UNION ALL
 			--SELECT iwp.InternationalWirePaymentId AS 'BankingId',BankName,iwp.BeneficiaryBankAccount AS 'BankAccountNumber','WirePayment' AS 'Type',iwp.GLAccountId,CASE WHEN IsPrimay = 1 THEN 1 ELSE 0 END AS IsPrimay,LegalEntityId FROM dbo.InternationalWirePayment iwp WITH(NOLOCK)
 			--INNER JOIN dbo.LegalEntityInternationalWireBanking leiwp WITH(NOLOCK) ON iwp.InternationalWirePaymentId = leiwp.InternationalWirePaymentId

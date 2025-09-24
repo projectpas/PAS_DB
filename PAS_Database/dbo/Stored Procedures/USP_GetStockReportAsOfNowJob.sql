@@ -21,84 +21,13 @@ CREATE   PROCEDURE [dbo].[USP_GetStockReportAsOfNowJob]
 	@EndDate DATE = NULL,
 	@MasterCompanyId INT = NULL,
 	@ExcludedLocations NVARCHAR(500) = NULL
-	--@id VARCHAR(100) -- Date MM/DD/YYYY
-	--@id2 VARCHAR(100),
-	--@id3 bit,
-	--@id5 VARCHAR(MAX),
-	--@id6 BIGINT,
-	--@id8 VARCHAR(MAX),
-	--@strFilter VARCHAR(MAX) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
   BEGIN TRY
-
-	--DECLARE @id VARCHAR(100) = GETUTCDATE()
-
-	--IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
-	--BEGIN    
-	--	DROP TABLE #TEMPMSFilter
-	--END
-
-	--IF OBJECT_ID(N'tempdb..#TempLocationDataFilter') IS NOT NULL    
-	--BEGIN    
-	--	DROP TABLE #TempLocationDataFilter
-	--END
-
-	--CREATE TABLE #TEMPMSFilter(        
-	--		ID BIGINT  IDENTITY(1,1),        
-	--		LevelIds VARCHAR(MAX)			 
-	--	) 
-
-	--INSERT INTO #TEMPMSFilter(LevelIds)
-	--SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
-
-	--CREATE TABLE #TempLocationDataFilter(        
-	--		ID BIGINT  IDENTITY(1,1),        
-	--		Sites VARCHAR(MAX)			 
-	--	)
-
-	--INSERT INTO #TempLocationDataFilter(Sites)
-	--SELECT Item FROM DBO.SPLITSTRING(@id5,'!')
-
-	--DECLARE   
-	--@level1 VARCHAR(MAX) = NULL,  
-	--@level2 VARCHAR(MAX) = NULL,  
-	--@level3 VARCHAR(MAX) = NULL,  
-	--@level4 VARCHAR(MAX) = NULL,  
-	--@Level5 VARCHAR(MAX) = NULL,  
-	--@Level6 VARCHAR(MAX) = NULL,  
-	--@Level7 VARCHAR(MAX) = NULL,  
-	--@Level8 VARCHAR(MAX) = NULL,  
-	--@Level9 VARCHAR(MAX) = NULL,  
-	--@Level10 VARCHAR(MAX) = NULL 
-
-	--DECLARE
-	--@siteId VARCHAR(MAX) = NULL,
-	--@warehouseId VARCHAR(MAX) = NULL,
-	--@locationId VARCHAR(MAX) = NULL,
-	--@shelfId VARCHAR(MAX) = NULL,
-	--@binId VARCHAR(MAX) = NULL
-
-	--SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
-	--SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
-	--SELECT @level3 = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
-	--SELECT @level4 = LevelIds FROM #TEMPMSFilter WHERE ID = 4 
-	--SELECT @level5 = LevelIds FROM #TEMPMSFilter WHERE ID = 5 
-	--SELECT @level6 = LevelIds FROM #TEMPMSFilter WHERE ID = 6 
-	--SELECT @level7 = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
-	--SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
-	--SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
-	--SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10 
-
-	--SELECT @siteId = Sites FROM #TempLocationDataFilter WHERE ID = 1 
-	--SELECT @warehouseId = Sites FROM #TempLocationDataFilter WHERE ID = 2 
-	--SELECT @locationId = Sites FROM #TempLocationDataFilter WHERE ID = 3 
-	--SELECT @shelfId = Sites FROM #TempLocationDataFilter WHERE ID = 4 
-	--SELECT @binId = Sites FROM #TempLocationDataFilter WHERE ID = 5 
-
+	
     DECLARE @ModuleID INT = 2; -- MS Module ID 
 	SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline'
 	
@@ -106,11 +35,6 @@ BEGIN
 	BEGIN
 		SET @ExcludedLocations = NULL
 	END
-
-	--IF @id6 = 0
-	--BEGIN
-	--	SET @id6 = NULL
-	--END
 
 	IF OBJECT_ID(N'tempdb..#TEMPOriginalStocklineRecords') IS NOT NULL    
 	BEGIN    
@@ -285,32 +209,12 @@ BEGIN
 	  LEFT JOIN [dbo].[TagType] TT WITH (NOLOCK) ON TT.TagTypeId = stl.TagTypeId
 	  LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH (NOLOCK) ON RRD.StocklineId = stl.StocklineId
 	  LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRH WITH (NOLOCK) ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId	  
-	 --LEFT JOIN DBO.Location LCT WITH (NOLOCK) ON LCT.LocationId = stl.CustomerId
      WHERE stl.[MasterCompanyId] = @mastercompanyid 
 	 AND stl.[IsParent] = 1 
 	 AND stl.[IsDeleted] = 0 
-	 --AND CAST(stl.[CreatedDate] AS DATE) >= CAST(@StartDate AS DATE) AND CAST(stl.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE)
 	 AND CAST(stl.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE)
-	 AND ISNULL(stl.[IsCustomerStock],0) = 0
-	 --AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 	
-	 --AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2,''), ',')))
-	 --AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	 --AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	 --AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	 --AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	 --AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	 --AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	 --AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	 --AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	 --AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	 --AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	 --AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	 --AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	 --AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	 --AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	 --AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	 --AND  (@id6 IS NULL OR im.ItemMasterId=@id6)
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	 AND ISNULL(stl.[IsCustomerStock],0) = 0	 
+	 AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	   
 	/* Reduce Received Items from AsOfNow till Today */
 	IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
@@ -338,26 +242,8 @@ BEGIN
 	 AND stl.[IsParent] = 1 
 	 AND stl.[IsDeleted] = 0 
 	 AND ISNULL(stl.[IsCustomerStock],0) = 0
-	 --AND (CAST(stl.[ReceivedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(stl.[ReceivedDate] AS DATE) < CAST(@EndDate AS DATE))
-     AND (CAST(stl.[ReceivedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(stl.[ReceivedDate] AS DATE) < CAST(@EndDate AS DATE))	 
-   --AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-   --AND (ISNULL(@id2,'') = '' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-   --AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-   --AND  (ISNULL(@level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-   --AND  (ISNULL(@level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-   --AND  (ISNULL(@level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-   --AND  (ISNULL(@level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-   --AND  (ISNULL(@level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-   --AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-   --AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-   --AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-   --AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-   --AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-   --AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-   --AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-   --AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-   --AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-     AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+     AND (CAST(stl.[ReceivedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(stl.[ReceivedDate] AS DATE) < CAST(@EndDate AS DATE)) 
+     AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 
 	 UPDATE StkOriginal
 	 SET StkOriginal.[QTY_on_Hand] = StkOriginal.[QTY_on_Hand] - StkReceived.[Qty],
@@ -390,31 +276,12 @@ BEGIN
 	AND stl.[IsParent] = 1 
 	AND stl.[IsDeleted] = 0 	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
-	--AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'') = '' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	--AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	--AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	--AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	--AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	--AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	  AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	 GROUP BY StkHistory.[StockLineId], stl.[MasterCompanyId]
 
 	 UPDATE StkOriginal
 	 SET StkOriginal.[QTY_on_Hand] = StkOriginal.[QTY_on_Hand] + StkReceived.[QTY_OH]
-	 --,StkOriginal.Qty_Reserved =  StkOriginal.Qty_Reserved + StkReceived.QTY_OH
 	 ,StkOriginal.[Qty_Available] = StkOriginal.[Qty_Available] + StkReceived.[QTY_OH]
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineRemovedFromOH StkReceived ON StkOriginal.[StockLineId] = StkReceived.[StocklineId]
@@ -444,26 +311,8 @@ BEGIN
 	AND stl.[IsParent] = 1 
 	AND stl.[IsDeleted] = 0 	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
-	--AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkHistory.[StockLineId], stl.[MasterCompanyId];
 
 	-- Increase Consumed Qty
@@ -497,26 +346,8 @@ BEGIN
 	  AND stl.[IsParent] = 1 
 	  AND stl.[IsDeleted] = 0 	  
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
-	  --AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	  AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkHistory.[StockLineId], stl.[MasterCompanyId];
 
 	-- Remove Un-Issued Qty
@@ -551,26 +382,8 @@ BEGIN
 	AND stl.[IsParent] = 1 
 	AND stl.[IsDeleted] = 0	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
-	--AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkAdjust.[StockLineId], stl.[MasterCompanyId];
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Reduced ([StocklineId], [QTY_OH], [MasterCompanyId])
@@ -585,26 +398,8 @@ BEGIN
 	AND stl.[IsParent] = 1 
 	AND stl.[IsDeleted] = 0	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
-    --AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Increase Adjusted Qty (Decreased Qty)
@@ -639,26 +434,8 @@ BEGIN
 	AND stl.[IsParent] = 1 
 	AND stl.[IsDeleted] = 0
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
-	--AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	AND CAST(StkAdjust.[CreatedDate] AS DATE) BETWEEN CAST(@EndDate AS DATE) AND CAST(@EndDate AS DATE)  
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND CAST(StkAdjust.[CreatedDate] AS DATE) BETWEEN CAST(@EndDate AS DATE) AND CAST(@EndDate AS DATE)  	
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Increased ([StocklineId], [QTY_OH], [MasterCompanyId])
@@ -673,26 +450,8 @@ BEGIN
 	AND stl.[IsParent] = 1 
 	AND stl.[IsDeleted] = 0
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
-	--AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Removed Adjusted Qty (Increased Qty)
@@ -727,26 +486,8 @@ BEGIN
 	  AND stl.[IsParent] = 1 
 	  AND stl.[IsDeleted] = 0 
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
-	  --AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	  AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal
@@ -779,26 +520,8 @@ BEGIN
 	  AND stl.[IsParent] = 1 
 	  AND stl.[IsDeleted] = 0 
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
-	--AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	  AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY StkAdjust.[StockLineId], stl.[MasterCompanyId];
 
 	UPDATE StkOriginal
@@ -832,26 +555,8 @@ BEGIN
 	  AND stl.[IsParent] = 1 
 	  AND stl.[IsDeleted]= 0 
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
-	  --AND (CAST(BStkAdjust.[UpdatedDate] AS DATE) > CAST(@StartDate AS DATE) AND CAST(BStkAdjust.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	  AND (CAST(BStkAdjust.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(BStkAdjust.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))
-	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))[
-	   AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (CAST(BStkAdjust.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(BStkAdjust.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
+	  AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	GROUP BY BStkAdjustD.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal

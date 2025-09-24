@@ -18,6 +18,8 @@
 	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
 	6    27-06-2025  Bhargav Saliya		 Add New Fields @NumberOfItemCount 
 	7    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return 
+	8    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
+
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -51,7 +53,8 @@ CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  @ManufacturerType varchar(50) = null,
  @NumberOfItemCount varchar(50)=null,
  @SourceBy varchar(50)=null,
- @MarketplaceRef varchar(50)=null
+ @MarketplaceRef varchar(50)=null,
+ @SourceByName varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -120,6 +123,12 @@ BEGIN
 		SET @Status = NULL
     END
 
+	 
+    IF @SourceByName = 'All'
+    BEGIN
+		SET @SourceByName = NULL
+    END
+
     DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID  
     ;With Main AS (
       Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,
@@ -153,7 +162,7 @@ BEGIN
        Where S.SalesOrderQuoteId=SOQ.SalesOrderQuoteId
       ) B
 	  OUTER APPLY(SELECT count(SalesOrderQuotePartId) as 'Items' FROM [dbo].[SalesOrderQuotePartV1] soqv1 with(nolock) where soqv1.SalesOrderQuoteId = SOQ.SalesOrderQuoteId GROUP BY soqv1.SalesOrderQuoteId) PartCount
-      WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId), PartCTE AS (  
+      WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END = @SourceByName) AND SOQ.MasterCompanyId = @MasterCompanyId), PartCTE AS (  
       SELECT SQ.SalesOrderQuoteId,(CASE WHEN Count(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PartNumber END)  AS 'PartNumberType',A.PartNumber FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  
       LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) On SQ.SalesOrderQuoteId = SP.SalesOrderQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0  
       OUTER APPLY (  
@@ -164,7 +173,7 @@ BEGIN
            WHERE S.SalesOrderQuoteId = SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
            FOR XML PATH('')), 1, 1, '') PartNumber
       ) A  
-      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR sq.StatusId = @StatusID))  
+      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR sq.StatusId = @StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SQ.SourceBy END = @SourceByName))  
       GROUP BY SQ.SalesOrderQuoteId, A.PartNumber  
       ),
 	  PartMFCTE AS(  
@@ -180,7 +189,7 @@ BEGIN
         WHERE S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
         FOR XML PATH('')), 1, 1, '') Manufacturer  
       ) A  
-      WHERE ((SQ.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId=@StatusID))  
+      WHERE ((SQ.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId=@StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SQ.SourceBy END = @SourceByName))  
       GROUP BY SQ.SalesOrderQuoteId,A.Manufacturer  
       ),PartDescCTE AS (  
       SELECT SQ.SalesOrderQuoteId, (CASE WHEN COUNT(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PartDescription END) AS 'PartDescriptionType', A.PartDescription FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  
@@ -193,7 +202,7 @@ BEGIN
            Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PartDescription  
       ) A  
-      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId = @StatusID))  
+      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId = @StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SQ.SourceBy END = @SourceByName))  
       GROUP BY SQ.SalesOrderQuoteId,A.PartDescription  
       ), PriorityCTE AS (  
       SELECT SQ.SalesOrderQuoteId,(CASE WHEN COUNT(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PriorityDescription END) AS 'PriorityType', A.PriorityDescription FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  
@@ -206,7 +215,7 @@ BEGIN
            WHERE S.SalesOrderQuoteId = SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PriorityDescription  
       ) A  
-      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId = @StatusID))   
+      WHERE ((SQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SQ.StatusId = @StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SQ.SourceBy END = @SourceByName))   
       GROUP BY SQ.SalesOrderQuoteId,A.PriorityDescription  
       ),Result AS (  
       SELECT M.SalesOrderQuoteId,M.SalesOrderQuoteNumber,M.OpenDate as 'QuoteDate',M.CustomerId,M.Name as 'CustomerName',M.Status,  

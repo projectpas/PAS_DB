@@ -4246,6 +4246,7 @@
     <Build Include="dbo\Stored Procedures\usp_GetAIAutoQuoteSettingList_ByMasterCompany.sql" />
     <Build Include="dbo\Stored Procedures\USP_SOResetApprovalProcess.sql" />
     <Build Include="dbo\Stored Procedures\USP_SOQResetApprovalProcess.sql" />
+    <Build Include="dbo\Stored Procedures\usp_WorkOrderMaterials_GetStockLineList_ReserveIssue.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

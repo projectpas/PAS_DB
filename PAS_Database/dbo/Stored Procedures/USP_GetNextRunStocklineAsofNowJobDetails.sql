@@ -36,13 +36,32 @@ BEGIN
 		DECLARE @DayOfMonth INT = 0;
 		DECLARE @HasJobSetting BIT = 0;
 		DECLARE @ExcludedLocations NVARCHAR(500) = NULL
+		DECLARE @MSLevel NVARCHAR(500) = NULL
+		DECLARE @Location NVARCHAR(500) = NULL
+		DECLARE @ManagementStructureId BIGINT = NULL
 
 		SELECT @Id = [Id],
 		  	   @IsWeeklyOrMonthly = ISNULL([IsWeeklyOrMonthly],0),
 		       @ExecutionDate = [ExecutionDate],
 			   @WeeklyName = [WeeklyName],
-			   @ExcludedLocations = [ExcludedLocations]
-		FROM [dbo].[StocklineSettings] 
+			   @ExcludedLocations = ISNULL([ExcludedLocations],''),
+			   @MSLevel = ISNULL(Level1Ids, '') + '!' + 
+			              ISNULL(Level2Ids, '') + '!' + 
+						  ISNULL(Level3Ids, '') + '!' + 
+						  ISNULL(Level4Ids, '') + '!' +
+						  ISNULL(Level5Ids, '') + '!' +
+						  ISNULL(Level6Ids, '') + '!' +
+						  ISNULL(Level7Ids, '') + '!' +
+						  ISNULL(Level8Ids, '') + '!' +
+						  ISNULL(Level9Ids, '') + '!' +
+						  ISNULL(Level10Ids, ''),
+			  @Location = ISNULL(SiteIds, '') + '!' + 
+			             ISNULL(WarehouseIds, '') + '!' + 
+						 ISNULL(LocationIds, '') + '!' + 
+						 ISNULL(ShelfIds, '') + '!' + 
+						 ISNULL(BinIds, ''), 
+			  @ManagementStructureId = [ManagementStructureId]
+		FROM [dbo].[AsOfDateSettings] WITH(NOLOCK)
 		WHERE [MasterCompanyId] = @MasterCompanyId
 
 	    IF(@Id > 0)
@@ -82,9 +101,13 @@ BEGIN
 		       @RunDate [RunDate],
 			   @NextMonthDate [NextRunDate],
 			   @HasJobSetting [HasJobSetting],
-			   CASE WHEN CAST(@RunDate AS DATE) = CAST(GETUTCDATE() AS DATE) THEN 1 ELSE 0 END [IsRunJob],	
-			   @ExcludedLocations [ExcludedLocations]
-
+			   CASE WHEN CAST(@RunDate AS DATE) = CAST(GETUTCDATE() AS DATE) THEN 1 ELSE 0 END [IsRunJob],
+			   @ExcludedLocations [ExcludedLocations],
+			   @MSLevel [MSLevel],
+			   @Location [Location],
+			   '' [TagType],			   
+			   1 [IsCustomerStock],
+			   @ManagementStructureId [ManagementStructureId]
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  

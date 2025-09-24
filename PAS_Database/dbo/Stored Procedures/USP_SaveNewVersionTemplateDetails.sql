@@ -9,6 +9,7 @@
  ** PR   Date				Author  					Change Description
  ** --   --------			-------					--------------------------------
     1    09-April-2025	   Devendra Shekh				Created
+	2    24-Sep-2025       Sahdev Saliya                Added New Field Verified, VerifiedBy And VerifiedDate
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveNewVersionTemplateDetails]
@@ -31,12 +32,12 @@ BEGIN
 		[WorkflowDescription], [BERThresholdAmount], [Version], [WorkScopeId], [ItemMasterId], [PartNumber], [PartNumberDescription], [RevisedPartNumber], [ChangedPartNumberId], [ChangedPartNumberDescription], [CustomerId], [CurrencyId],
 		[WorkflowCreateDate], [WorkflowExpirationDate], [IsCalculatedBERThreshold], [IsFixedAmount], [FixedAmount], [FlatRate], [IsPercentageOfNew], [CostOfNew], [PercentageOfNew], [IsPercentageOfReplacement],
 		[CostOfReplacement], [PercentageOfReplacement], [OtherCost], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers], [PercentageOfTotal], [Memo], [ManagementStructureId], [WorkScope], [Currency],
-		[ChangedPartNumber], [CustomerName], [CustomerCode], [WFParentId], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [MasterCompanyId], [IsActive], [IsVersionIncrease], [WorkOrderNumber]
+		[ChangedPartNumber], [CustomerName], [CustomerCode], [WFParentId], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [MasterCompanyId], [IsActive], [IsVersionIncrease], [WorkOrderNumber], [Verified], [VerifiedBy], [VerifiedDate]
 		)
 		SELECT	[WorkflowDescription], [BERThresholdAmount], @VersionNum, [WorkScopeId], [ItemMasterId], [PartNumber], [PartNumberDescription], [RevisedPartNumber], [ChangedPartNumberId], [ChangedPartNumberDescription], [CustomerId], [CurrencyId],
 		GETUTCDATE(), [WorkflowExpirationDate], [IsCalculatedBERThreshold], [IsFixedAmount], [FixedAmount], [FlatRate], [IsPercentageOfNew], [CostOfNew], [PercentageOfNew], [IsPercentageOfReplacement],
 		[CostOfReplacement], [PercentageOfReplacement], [OtherCost], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers], [PercentageOfTotal], [Memo], [ManagementStructureId], [WorkScope], [Currency],
-		[ChangedPartNumber], [CustomerName], [CustomerCode], @workFlowMainId, GETUTCDATE(), GETUTCDATE(), [CreatedBy], [UpdatedBy], [MasterCompanyId], 1, 0, @WorkFlowNumber
+		[ChangedPartNumber], [CustomerName], [CustomerCode], @workFlowMainId, GETUTCDATE(), GETUTCDATE(), [CreatedBy], [UpdatedBy], [MasterCompanyId], 1, 0, @WorkFlowNumber, [Verified], [VerifiedBy], [VerifiedDate]
 		FROM [dbo].[Workflow] WITH(NOLOCK)
 		WHERE [WorkflowId] = @workFlowMainId;
 

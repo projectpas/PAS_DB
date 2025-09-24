@@ -24,8 +24,9 @@ CREATE   PROCEDURE [dbo].[USP_GetStocklineAsofNowJobList]
 @JobDate DATETIME = NULL,
 @NextRunDate DATETIME = NULL,
 @CreatedDate DATETIME = NULL,
-@MasterCompanyId INT = NULL,  
-@EmployeeId BIGINT,      
+@MasterCompanyId INT = NULL, 
+@ReportType INT = NULL,
+@EmployeeId BIGINT = NULL,      
 @IsDeleted BIT = NULL      
 AS      
 BEGIN      
@@ -76,7 +77,7 @@ BEGIN
 		  ,ISNULL(IE.[TotalInventory],0) [TotalInventory]
 		  ,(CAST(DBO.ConvertUTCtoLocal(IE.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) [CreatedDate]		  
   FROM [dbo].[StocklineAsofNowJobDetails] IE WITH(NOLOCK)	    
-   WHERE (IE.MasterCompanyId = @MasterCompanyId)
+   WHERE (IE.MasterCompanyId = @MasterCompanyId) AND (IE.[ReportType] = @ReportType)	
     AND ((@GlobalFilter <>'' 
 	AND ((IE.[Name] LIKE '%' + @GlobalFilter+'%') OR 
 	     (CAST([TotalInventory] AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%') 	

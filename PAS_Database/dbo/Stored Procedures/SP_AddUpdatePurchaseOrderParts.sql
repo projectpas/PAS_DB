@@ -18,8 +18,9 @@
 	6	 12/12/2024	  AYUSHI PATEL			change the status of approval process based on isModified
 	7	 19/02/2025	  Vishal Suthar			Optimized by removing the call to update stockline draft to outside the while loop
 	8	 23/07/2025	  RAJESH GAMI			Fixed: Get @OrderPartStatusId from the SOPartStatus table
+	9	 23/09/2025	  Amit Ghediya			Update VendorRFQ refrence
 ************************************************************************/
-CREATE        PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -42,7 +43,7 @@ BEGIN
 			DECLARE @ApproveStatusId INT, @ApproveStatus VARCHAR(100),@SalesOrderId BIGINT,@ConditionId BIGINT,@PendingStatusId INT, @PendingStatus VARCHAR(100);
 			DECLARE @ItemMasterId BIGINT,@SalesOrderPartId BIGINT,@ExchProvisionId INT
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
-			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
+			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@IsFromVendorRFQ BIGINT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
 			DECLARE @IsModified BIT = 0
 			DECLARE @OrderPartStatusId INT = (SELECT SOPartStatusId FROM dbo.SOPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
 			SELECT TOP 1 @ApproveStatusId = ApprovalStatusId,@ApproveStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1
@@ -79,7 +80,7 @@ BEGIN
 					SELECT @PurchaseOrderPartRecordId= PurchaseOrderPartRecordId,@IsDeletedPart = IsDeleted,@EmployeeID =EmployeeID, @SalesOrderId = SalesOrderId, 
 							@ConditionId = ConditionId,@ItemMasterId =ItemMasterId, @WorkOrderMaterialsId = WorkOrderMaterialsId,@EstDeliveryDate =EstDeliveryDate,
 							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder,
-							@IsModified = IsModified
+							@IsFromVendorRFQ = IsFromVendorRFQ,	@IsModified = IsModified
 							FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId;
 					IF(@PurchaseOrderPartRecordId > 0)  -->>>>> Start:1 @PurchaseOrderPartRecordId > 0
 					BEGIN						
@@ -392,6 +393,14 @@ BEGIN
 								EXEC dbo.[SP_SaveSOPartStatusByPartId] @SalesOrderPartId, @OrderPartStatusId
 							END
 						END --END: IF SalesOrderPart
+
+						--Update VendorRFQ
+						DECLARE @RFQModuleId BIGINT = 0;
+						SELECT @RFQModuleId = ModuleId FROM dbo.[Module] WITH(NOLOCK) WHERE ModuleName = 'PurchaseOrder';
+						IF(ISNULL(@IsFromVendorRFQ,0) > 0)
+						BEGIN
+							 UPDATE dbo.[VendorRFQPart] SET ReferenceId = @PurchaseOrderId, ModuleId = @RFQModuleId WHERE [VendorRFQPartId] = @IsFromVendorRFQ;
+						END						
 					END -->>>>> END:1 ELSE @PurchaseOrderPartRecordId > 0									
 				
 /* ----------------------------START:  SPLIT PART Functionality ---------------------------------- */

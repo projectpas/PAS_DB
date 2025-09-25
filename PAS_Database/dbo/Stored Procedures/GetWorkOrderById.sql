@@ -19,8 +19,9 @@
 	7    01/07/2025	  Devendra Shekh   added New Field : MPNPartNumber
 	8    03/07/2025   Moin Bloch       Changed Old To New Billing Table
 	9    26/08/2025   Moin Bloch	   added RevisedSerialNumber 
-	10   24/09/2025   Vishal Suthar		Added CustomerId also to populate default templates
 	10   24/09/2025   Rajesh Gami	   added MPN Notes   
+	11   25/09/2025   Vishal Suthar	   Fixed populating WorkFlowId based on customerId as well
+
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -227,8 +228,9 @@ BEGIN
 		FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId 
-		AND wf.CustomerId = @ReceivingCustomerId
+		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId 
+		AND (wf.CustomerId IS NULL OR wf.CustomerId = @ReceivingCustomerId)
+		AND wf.[WorkScopeId] = @WorkOrderScopeId 
 		AND wf.[IsVersionIncrease] = 0;
 			   
 		SELECT @WorkOrderTypeId [WorkOrderTypeId],               

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:  [USP_SaveAsOfDateSettings]
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to store As Of Date Settings
@@ -12,11 +11,12 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
-    1    22/09/2025   MOIN BLOCH     Created  
+    1    22/09/2025   MOIN BLOCH		Created  
+    2    25/09/2025   Devendra Shekh	Added GroupById for Insert/Update  
 
 --  EXEC [dbo].[USP_SaveAsOfDateSettings] 
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
+CREATE     PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
 @Id BIGINT = NULL, 
 @IsWeeklyOrMonthly INT = NULL,
 @ExecutionDate DATETIME2(7) = NULL,
@@ -40,7 +40,8 @@ CREATE   PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
 @ManagementStructureId  BIGINT = NULL, 
 @MasterCompanyId INT = NULL,
 @CreatedBy VARCHAR(256) = NULL,
-@UpdatedBy VARCHAR(256) = NULL
+@UpdatedBy VARCHAR(256) = NULL,
+@GroupById INT = NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -96,7 +97,8 @@ BEGIN
             [CreatedDate],
             [UpdatedDate],
             [IsActive],
-            [IsDeleted]
+            [IsDeleted],
+			[GroupById]
         )
         VALUES
         (
@@ -126,7 +128,8 @@ BEGIN
             GETUTCDATE(),
             GETUTCDATE(),
             1, 
-            0  
+            0,
+			@GroupById
         );
     END
     ELSE
@@ -153,7 +156,8 @@ BEGIN
             [WeeklyName] = @WeeklyName,
             [ExcludedLocations] = @ExcludedLocations,            
             [UpdatedBy] = @UpdatedBy,
-            [UpdatedDate] = GETUTCDATE()
+            [UpdatedDate] = GETUTCDATE(),
+            [GroupById] = @GroupById
       WHERE [MasterCompanyId] = @MasterCompanyId;
     END
  END   

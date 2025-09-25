@@ -213,15 +213,12 @@ BEGIN
 			RP.PercentValue AS RevenueRate,
 			SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
 			(SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0) 
-                     + ISNULL(SUM(WOC.OverHeadCost),0))) AS MarginAmount,
+                     + ISNULL(SUM(WOC.LaborCost),0))) AS MarginAmount,
 			MP.PercentValue AS MarginRate,
 			((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0) 
-                     + ISNULL(SUM(WOC.OverHeadCost),0))) * (MP.PercentValue / 100.0)) AS MarginCommission,
+                     + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0)) AS MarginCommission,
 			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + (SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0) 
-                     + ISNULL(SUM(WOC.OverHeadCost),0)))) AS TotalCommission,
+                     + ISNULL(SUM(WOC.LaborCost),0)))) AS TotalCommission,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

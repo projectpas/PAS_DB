@@ -216,11 +216,12 @@ BEGIN
 		END AS 'shipdate',
 		ISNULL((SOBII.SubTotal), 0) AS 'Netsales',
 		UPPER(SOBII.MiscCharges) AS 'Misc',  
-		ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0) AS 'rev',
+		--ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0) AS 'rev',
+		ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0)) AS 'rev',
 		ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0) AS [directcost], 
-		(ISNULL(((ISNULL(SOSC.UnitCostExtended, 0)) / NULLIF( (ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)) , 0) ), 0) * 100) AS 'dcofrevperc',
-		ISNULL( (( ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)) - (ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0))), 0) AS 'marginamt',
-		ISNULL(((		ISNULL( (( ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)) - (ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0))), 0) * 100) / NULLIF((ISNULL(SOBII.PartCost, 0) + ISNULL(SOBII.Freight, 0) + ISNULL(SOBII.MiscCharges, 0)), 0)), 0) AS 'marginrevperc',
+		(ISNULL(((ISNULL(SOSC.UnitCostExtended, 0)) / NULLIF(ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0)), 0) ), 0) * 100) AS 'dcofrevperc',
+		ISNULL( ((ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) - (ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0))), 0) AS 'marginamt',
+		ISNULL(((ISNULL(((ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) - (ISNULL(ISNULL(SOSC.UnitCostExtended, 0), 0))), 0) * 100) / NULLIF((ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))), 0)), 0) AS 'marginrevperc',
 		SOQ.salesorderquotenumber AS 'qtenum',  
 		UPPER(MSD.Level1Name) AS 'level1',  
 		UPPER(MSD.Level2Name) AS 'level2', 
@@ -235,8 +236,9 @@ BEGIN
 		UPPER(SO.SalesPersonName) AS 'salesperson',  
 		UPPER(SO.CustomerServiceRepName) AS 'csr',
 		SO.MasterCompanyId,
-		'' AS CreditMemoNumber
-		,STL.StocklineId,	STL.StockLineNumber
+		'' AS CreditMemoNumber,
+		STL.StocklineId,
+		STL.StockLineNumber
 		FROM dbo.BillingInvoicing SOBI WITH (NOLOCK)
 			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0
 			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  

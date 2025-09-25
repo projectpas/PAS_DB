@@ -12,10 +12,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    01-Sep-2025  Rajesh Gami   Created 
-	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
+ ** S NO   Date         Author			Change Description              
+ ** --   --------		-------         --------------------------------            
+    1    01-Sep-2025	Rajesh Gami		Created 
+	2    04-Sep-2025	Rajesh Gami		Remove all taxes from the revenue (Sales and Other Tax)
+	3    25-Sep-2025	Vishal Suthar	Modified Revenue calculation
+
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_MostSold] 
 @PageNumber int = 1,
@@ -111,7 +113,8 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.SubTotal,0)) END AS revenue,
+			--CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.SubTotal,0)) END AS revenue,
+			CASE WHEN BI.BillingInvoicingId IS NULL THEN ISNULL(SOC.TotalRevenue,0) ELSE (ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) END AS revenue,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -131,7 +134,6 @@ BEGIN
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-		  
 		  WHERE 
 				   SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId) 
 				   AND BI.InvoiceStatus = 'Invoiced'
@@ -148,13 +150,15 @@ BEGIN
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) AS a
 
-		SELECT * INTO #TempSOOperatingFinal FROM
-		 (SELECT * FROM #TempSOOperating main) AS res
+		SELECT * INTO #TempSOOperatingFinal FROM (SELECT * FROM #TempSOOperating main) AS res
 
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT MAX(ROW_NUMBER) AS timesSold,SUM(revenue) AS totalRevenue, CONVERT(DECIMAL(18,2),(SUM(revenue)/MAX(ROW_NUMBER))) AS averageRevenue,pn,pnDescription,ItemMasterId
+		(SELECT MAX(ROW_NUMBER) AS timesSold,SUM(revenue) AS totalRevenue, CONVERT(DECIMAL(18,2),(SUM(revenue)/MAX(ROW_NUMBER))) AS averageRevenue,
+		pn,
+		pnDescription,
+		ItemMasterId
 		 
-		 FROM #TempSOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) AS result
+		FROM #TempSOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) AS result
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesSold DESC'
 
@@ -165,13 +169,13 @@ BEGIN
   
   BEGIN CATCH  
       SELECT
-    ERROR_NUMBER() AS ErrorNumber,
-    ERROR_STATE() AS ErrorState,
-    ERROR_SEVERITY() AS ErrorSeverity,
-    ERROR_PROCEDURE() AS ErrorProcedure,
-    ERROR_LINE() AS ErrorLine,
-    ERROR_MESSAGE() AS ErrorMessage;
-    DECLARE @ErrorLogID int,  
+		ERROR_NUMBER() AS ErrorNumber,
+		ERROR_STATE() AS ErrorState,
+		ERROR_SEVERITY() AS ErrorSeverity,
+		ERROR_PROCEDURE() AS ErrorProcedure,
+		ERROR_LINE() AS ErrorLine,
+		ERROR_MESSAGE() AS ErrorMessage;
+		DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             @AdhocComments varchar(150) = '[dbo.usprpt_GetSOOperatingMetricReport_MostSold]',  

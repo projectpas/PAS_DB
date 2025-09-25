@@ -87,6 +87,7 @@ BEGIN
         SELECT
             BI.BillingInvoicingId,
             BI.ReferenceId AS ReferenceId,
+            SOBII.SubReferenceId AS SubReferenceId,
             BI.ModuleId,
             BI.CustomerId,
 			CASE WHEN @IncludeCRnRET = 1 
@@ -127,6 +128,7 @@ BEGIN
 	InvoiceWithSalesperson AS (
 		SELECT FI.BillingInvoicingId,
 				FI.ReferenceId,
+				FI.SubReferenceId,
 				FI.ModuleId,
 				FI.CustomerId,
 				FI.GrandTotal,
@@ -210,10 +212,13 @@ BEGIN
     		SUM(BI.GrandTotal) AS RevenueAmount,
 			RP.PercentValue AS RevenueRate,
 			SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
-			SUM(BI.PartCost) AS MarginAmount,
+			(SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
+                     + ISNULL(SUM(WOC.LaborCost),0))) AS MarginAmount,
 			MP.PercentValue AS MarginRate,
-			SUM((BI.PartCost) * (MP.PercentValue / 100.0)) AS MarginCommission,
-			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + SUM(BI.PartCost * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
+			((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
+                     + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0)) AS MarginCommission,
+			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + ((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
+                     + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0))) AS TotalCommission,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -227,8 +232,16 @@ BEGIN
 			FROM InvoiceWithSalesperson BI
 			JOIN DBO.Employee E WITH (NOLOCK) ON BI.EmployeeId = E.EmployeeId
 			JOIN DBO.Customer C WITH (NOLOCK) ON BI.CustomerId = C.CustomerId
-			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON BI.ReferenceId = WOP.ID AND BI.ModuleId = @WorkOrderModuleId
+			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON BI.SubReferenceId = WOP.ID AND BI.ModuleId = @WorkOrderModuleId
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOP.ID
+			LEFT JOIN (
+				SELECT WOPartNoId,
+					   SUM(PartsCost) AS PartsCost,
+					   SUM(LaborCost) AS LaborCost,
+					   SUM(OverHeadCost) AS OverHeadCost
+				FROM dbo.WorkOrderCostDetails WITH (NOLOCK)
+				GROUP BY WOPartNoId
+			) WOC ON WOC.WOPartNoId = BI.SubReferenceId
 			LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
 			LEFT JOIN DBO.[Percent] RP WITH (NOLOCK) ON BI.RevenuePercentageId = RP.PercentId
 			LEFT JOIN DBO.[Percent] MP WITH (NOLOCK) ON BI.MarginPercentageId = MP.PercentId

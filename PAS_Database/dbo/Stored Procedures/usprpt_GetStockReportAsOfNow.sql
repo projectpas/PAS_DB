@@ -21,7 +21,7 @@
 	5    05-05-2025     VISHAL SUTHAR		Added one more parameter for (excluded locations)
 	6	 23-09-2025		Moin Bloch		    Added more fields
      
-exec usprpt_GetStockReportAsOfNow @mastercompanyid=1, @id=N'2025-09-24',@id2=N'', @id3=1, @id5='', @id6=0,@id8='', @strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
+exec usprpt_GetStockReportAsOfNow @mastercompanyid=1, @id=N'2025-09-24',@id2=N'', @id3=1, @id5='2,7,17,24!!!!', @id6=0,@id8='', @strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -840,6 +840,10 @@ BEGIN
 	FROM #TEMPOriginalStocklineRecords StkOriginal
 	INNER JOIN #TEMPStocklineUnitCostAdjustedBulk StkSold ON StkOriginal.[StockLineId] = StkSold.[StocklineId]
 
+	DECLARE @TotalInventory DECIMAL(18,2) = 0 
+	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))
+		FROM #TEMPOriginalStocklineRecords stl WHERE [QTY_on_Hand] > 0
+
 	/* Final Result Set */
 	SELECT DISTINCT TotalRecordsCount,    
 			PN,
@@ -912,7 +916,8 @@ BEGIN
 			stl.TagType,
 			stl.TaggedBy,
 			stl.TagDate,
-			stl.ReconciliationNum
+			stl.ReconciliationNum,
+			@TotalInventory [TotalInventory]
 			FROM #TEMPOriginalStocklineRecords stl WHERE QTY_on_Hand > 0
 			ORDER BY PN;
   END TRY

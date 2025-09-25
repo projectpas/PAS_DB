@@ -76,6 +76,7 @@
     [PublicationNotes]           NVARCHAR (MAX)  NULL,
     [ShipDate]                   DATETIME2 (7)   NULL,
     [IsSubWorkOrder]             BIT             NULL,
+    [Notes]                      NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderPartNumber] PRIMARY KEY CLUSTERED ([ID] ASC),
     CONSTRAINT [FK_WorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderPartNumber_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),

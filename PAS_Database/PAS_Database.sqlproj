@@ -4253,7 +4253,15 @@
     <Build Include="dbo\Stored Procedures\USP_SaveAsOfDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAsOfDateSettings.sql" />
     <Build Include="dbo\Stored Procedures\usp_WorkOrderMaterials_GetStockLineList_ReserveIssue.sql" />
-
+    <Build Include="dbo\Stored Procedures\USP_CreateExchangeSalesOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuotePartsToSalesOrderChargesView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ConvertSalesQuoteFreightToSalesOrderFreightView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetExchangeQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_MakeSalesOrderPartViewFromSalesQuote.sql" />
+    <Build Include="dbo\Tables\SalesPersonActivityTypeAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalespersonActivityHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderPartNotes.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderMPNType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

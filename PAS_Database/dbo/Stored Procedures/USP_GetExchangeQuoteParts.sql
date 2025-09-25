@@ -1,0 +1,95 @@
+﻿/*************************************************************           
+ ** File:   [USP_GetExchangeQuoteParts]          
+ ** Author: EKTA CHANDEGRA
+ ** Description: This stored procedure is used to USP_GetExchangeQuoteParts
+ ** Purpose:         
+ ** Date:    09/16/2025  
+ ** PARAMETERS: @ExchangeQuoteId BIGINT
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** -----------------------------------------------------------          
+    1    09/16/2025  EKTA CHANDEGRA    Created
+	     
+exec [dbo].[USP_GetExchangeQuoteParts] @ExchangeQuoteId=152
+************************************************************************/ 
+CREATE   PROCEDURE [dbo].[USP_GetExchangeQuoteParts]
+    @ExchangeQuoteId BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+	BEGIN TRY
+		-- Main ExchangeQuotePart data
+		SELECT DISTINCT
+			   part.ExchangeQuotePartId,
+			   part.ExchangeQuoteId,
+			   part.ItemMasterId,
+			   part.StockLineId,
+			   qs.StockLineNumber,
+			   ISNULL(qs.SerialNumber, '') AS SerialNumber,
+			   part.MasterCompanyId,
+			   part.CreatedBy,
+			   part.CreatedDate,
+			   part.UpdatedBy,
+			   part.UpdatedDate,
+			   im.PartNumber,
+			   im.PartDescription,
+			   ISNULL(cp.ConditionId, 0) AS ConditionId,
+			   ISNULL(cp.Description, '') AS ConditionDescription,
+			   part.ExchangeCurrencyId,
+			   part.LoanCurrencyId,
+			   part.ExchangeListPrice,
+			   part.EntryDate,
+			   part.ExchangeOverhaulPrice,
+			   part.ExchangeCorePrice,
+			   part.EstOfFeeBilling,
+			   part.BillingStartDate,
+			   part.ExchangeOutrightPrice,
+			   part.DaysForCoreReturn,
+			   part.BillingIntervalDays,
+			   part.ExchangeOverhaulCost,
+			   part.Currency,
+			   part.DepositeAmount,
+			   part.CoreDueDate,
+			   part.MethodType,
+			   part.IsConvertedToSalesOrder,
+			   part.CustomerRequestDate,
+			   part.PromisedDate,
+			   part.EstimatedShipDate,
+			   part.QtyQuoted,
+			   ISNULL(qs.UnitCost, 0) AS UnitCost
+		FROM [dbo].[ExchangeQuotePart] part WITH(NOLOCK)
+			 INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
+			 INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON part.ExchangeQuoteId = soq.ExchangeQuoteId
+			 LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+			 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+		WHERE part.ExchangeQuoteId = @ExchangeQuoteId
+		  AND ISNULL(part.IsDeleted,0) = 0;
+
+		-- Child collection: ExchangeQuoteScheduleBilling
+		SELECT sb.*
+		FROM [dbo].[ExchangeQuoteScheduleBilling] sb WITH(NOLOCK)
+			 INNER JOIN [dbo].[ExchangeQuotePart] p WITH(NOLOCK) ON sb.ExchangeQuotePartId = p.ExchangeQuotePartId
+		WHERE p.ExchangeQuoteId = @ExchangeQuoteId
+		  AND ISNULL(p.IsDeleted,0) = 0;
+	END TRY
+	BEGIN CATCH
+	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+            , @AdhocComments     VARCHAR(150)    = 'USP_GetExchangeQuoteParts'   
+			, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@ExchangeQuoteId, '') AS varchar(100) ) + ''
+			,@ApplicationName VARCHAR(100) = 'PAS'    
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+            exec spLogException     
+                    @DatabaseName           = @DatabaseName    
+                    , @AdhocComments          = @AdhocComments    
+                    , @ProcedureParameters = @ProcedureParameters    
+                    , @ApplicationName        =  @ApplicationName    
+                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;    
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
+            RETURN(1);
+	END CATCH
+END

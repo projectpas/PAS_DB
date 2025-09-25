@@ -19,7 +19,9 @@
 	5	 09-APR-2025  Vishal Suthar		 Applied Optimization, Standard Formatting and Cleanup
 	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount and set Group By
 	7    15-07-2025  Rajesh Gami		Fixed: Getting proper status as shown as in header
-	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return 
+	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
+    9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
+
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -52,7 +54,8 @@ CREATE PROCEDURE [dbo].[SearchPNViewData]
  @ManufacturerType varchar(50) = null,
  @NumberOfItemCount varchar(50)=null,
  @SourceBy varchar(50)=null,
- @MarketplaceRef varchar(50)=null
+ @MarketplaceRef varchar(50)=null,
+ @SourceByName varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -105,7 +108,12 @@ BEGIN
     IF @StatusID = 0  
     BEGIN   
 		SET @StatusID = NULL  
-    END   
+    END
+	
+	IF @SourceByName = 'All'
+    BEGIN
+		SET @SourceByName = NULL
+    END
   
     If @Status = '0'  
     BEGIN  
@@ -135,7 +143,7 @@ BEGIN
     INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId  
     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 	--OUTER APPLY (SELECT COUNT(SP.SalesOrderQuoteId) AS 'ItemNo' FROM DBO.SalesOrderQuotePartV1 SP WITH(NOLOCK) WHERE SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId GROUP BY SP.SalesOrderQuoteId) PartCount
-    WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId
+    WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END = @SourceByName) AND SOQ.MasterCompanyId = @MasterCompanyId
 	GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate,SOQ.CustomerId,SOQ.CustomerName, SOQ.StatusName, SPC.NetSaleAmount,  
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
     IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  

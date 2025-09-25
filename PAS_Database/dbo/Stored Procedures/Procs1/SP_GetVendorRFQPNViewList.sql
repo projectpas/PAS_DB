@@ -13,6 +13,7 @@
 	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
 	3    29/07/2024   Rajesh Gami		Duplicate record    
 	4    07/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
+	5    24/09/2025   Amit Ghediya		Vendor Filter
 
 **********************/  
 
@@ -115,7 +116,8 @@ SET NOCOUNT ON;
      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
      INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
       WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
-      AND PO.MasterCompanyId = @MasterCompanyId )   
+      AND PO.MasterCompanyId = @MasterCompanyId 
+	  AND (@VendorId IS NULL OR PO.VendorId = @VendorId))   
    
    SELECT 
 	DISTINCT M.VendorRFQPurchaseOrderId,M.VendorRFQPurchaseOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  

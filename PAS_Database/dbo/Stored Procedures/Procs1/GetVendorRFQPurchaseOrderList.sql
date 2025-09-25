@@ -12,6 +12,7 @@
 	1    	-	         -              Created    
 	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue
 	3    07/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
+	4    24/09/2025   Amit Ghediya		Vendor Filter
 
 **************************************************************/  
 
@@ -167,6 +168,7 @@ BEGIN
 
      WHERE ((PO.IsDeleted = @IsDeleted) AND (VPOP.IsDeleted = 0) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
       AND PO.MasterCompanyId = @MasterCompanyId   
+	  AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.IsNoQuote,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,VPOP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels ,Po.VendorReference
    ), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult FROM  Result  

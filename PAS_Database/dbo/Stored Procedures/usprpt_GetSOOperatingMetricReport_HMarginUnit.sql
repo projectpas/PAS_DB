@@ -11,10 +11,12 @@
  *********************************************************************            
   ** Change History             
  *********************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    01-Sep-2025  Rajesh Gami   Created  
-	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
+ ** S NO   Date       Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    01-Sep-2025  Rajesh Gami		Created  
+	2    04-Sep-2025  Rajesh Gami		Remove all taxes from the revenue (Sales and Other Tax)
+	3    25-Sep-2025  Vishal Suthar		Modified Revenue calculation
+
 ***********************************************************************/  
 CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_HMarginUnit] 
 @PageNumber int = 1,
@@ -106,13 +108,12 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			(ISNULL(SOBII.SubTotal,0)) AS totalRevenues,
-			(ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,1)) AS partsCosts,
-			(ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) AS otherCosts,
-			((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0) ) AS totalCosts,
-			--((ISNULL(SOBII.GrandTotal,0)) - ((ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,0))  + ISNULL(SOBII.MiscChargesCostPlus,0) + ISNULL(SOBII.SalesTax,0)+ ISNULL(SOBII.OtherTax,0)) ) as marginAmounts,
-			((ISNULL(SOBII.SubTotal,0)) - (ISNULL(CST.UnitCost,0) * ISNULL(SOBII.QtyBilled,1)) ) as marginAmounts,
-
+			--(ISNULL(SOBII.SubTotal, 0)) AS totalRevenues,
+			(ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) AS totalRevenues,
+			(ISNULL(CST.UnitCost, 0) * ISNULL(SOBII.QtyBilled, 1)) AS partsCosts,
+			(ISNULL(SOBII.MiscChargesCostPlus, 0) + ISNULL(SOBII.SalesTax, 0)+ ISNULL(SOBII.OtherTax, 0)) AS otherCosts,
+			((ISNULL(CST.UnitCost, 0) * ISNULL(SOBII.QtyBilled, 0)) + ISNULL(SOBII.MiscChargesCostPlus, 0) + ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0)) AS totalCosts,
+			((ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) - (ISNULL(CST.UnitCost, 0) * ISNULL(SOBII.QtyBilled, 1))) AS marginAmounts,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -169,10 +170,10 @@ BEGIN
 				 otherCost,
 				 totalCost,
 				 marginAmount,				
-				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((marginAmount/totalRevenue)*100))) END) as margin,
-				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((partsCost/totalRevenue)*100))) END) as partsOrRev
-				 ,(CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((otherCost/totalRevenue)*100))) END) as otherOrRev,
-				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10,2),((totalCost/totalRevenue)*100))) END) as totalCostOrRev
+				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10, 2),((marginAmount/totalRevenue) * 100))) END) as margin,
+				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10, 2),((partsCost/totalRevenue) * 100))) END) as partsOrRev,
+				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10, 2),((otherCost/totalRevenue) * 100))) END) as otherOrRev,
+				 (CASE WHEN totalRevenue = 0 THEN 0 ELSE (CONVERT(DECIMAL(10, 2),((totalCost/totalRevenue) * 100))) END) as totalCostOrRev
 				 
 		 FROM #tmpBeforeFinalResult) as result
 
@@ -181,27 +182,24 @@ BEGIN
 		IF(@marginSortBy = 'marginPer')
 		BEGIN
 			SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by Margin DESC'
-
 		END
 		ELSE
 		BEGIN
 			SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by marginAmount DESC'
 		END
-			PRINT @Sql
-			EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
-		
 
+		PRINT @Sql
+		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
   END TRY  
-  
   BEGIN CATCH  
       SELECT
-    ERROR_NUMBER() AS ErrorNumber,
-    ERROR_STATE() AS ErrorState,
-    ERROR_SEVERITY() AS ErrorSeverity,
-    ERROR_PROCEDURE() AS ErrorProcedure,
-    ERROR_LINE() AS ErrorLine,
-    ERROR_MESSAGE() AS ErrorMessage;
-    DECLARE @ErrorLogID int,  
+		ERROR_NUMBER() AS ErrorNumber,
+		ERROR_STATE() AS ErrorState,
+		ERROR_SEVERITY() AS ErrorSeverity,
+		ERROR_PROCEDURE() AS ErrorProcedure,
+		ERROR_LINE() AS ErrorLine,
+		ERROR_MESSAGE() AS ErrorMessage;
+		DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             @AdhocComments varchar(150) = '[dbo.usprpt_GetSOOperatingMetricReport_HMarginUnit]',  

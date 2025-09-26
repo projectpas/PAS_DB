@@ -12,10 +12,10 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
     1    11/09/2025   MOIN BLOCH     Created  
-
+	2    25/09/2025  MOIN BLOCH      added GroupById
 --  EXEC [dbo].[USP_GetNextRunStocklineAsofNowJobDetails] 1
 ************************************************************************/    
-CREATE   PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
+CREATE     PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
 @MasterCompanyId INT
 AS
 BEGIN  
@@ -39,6 +39,7 @@ BEGIN
 		DECLARE @MSLevel NVARCHAR(500) = NULL
 		DECLARE @Location NVARCHAR(500) = NULL
 		DECLARE @ManagementStructureId BIGINT = NULL
+		DECLARE @GroupById INT = 0 
 
 		SELECT @Id = [Id],
 		  	   @IsWeeklyOrMonthly = ISNULL([IsWeeklyOrMonthly],0),
@@ -60,7 +61,8 @@ BEGIN
 						 ISNULL(LocationIds, '') + '!' + 
 						 ISNULL(ShelfIds, '') + '!' + 
 						 ISNULL(BinIds, ''), 
-			  @ManagementStructureId = [ManagementStructureId]
+			  @ManagementStructureId = [ManagementStructureId],
+			  @GroupById = ISNULL([GroupById],0)
 		FROM [dbo].[AsOfDateSettings] WITH(NOLOCK)
 		WHERE [MasterCompanyId] = @MasterCompanyId
 
@@ -107,7 +109,8 @@ BEGIN
 			   @Location [Location],
 			   '' [TagType],			   
 			   1 [IsCustomerStock],
-			   @ManagementStructureId [ManagementStructureId]
+			   @ManagementStructureId [ManagementStructureId],
+			   @GroupById [GroupById]
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  

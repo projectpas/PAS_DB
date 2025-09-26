@@ -11,9 +11,10 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    01/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
+	2	 23/09/2025	  Amit Ghediya	   Update VendorRFQ refrence
 
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
+CREATE       PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -89,9 +90,54 @@ BEGIN
 								   ,SOURCE.TaggedByTypeName,SOURCE.TagDate,SOURCE.IsNoQuote
 								   );
 					
-					  													     
 					 
-				   	        EXEC PROCUpdateVendorRFQPurchaseOrderDetail @VendorRFAPOId;									    
+				   	        EXEC PROCUpdateVendorRFQPurchaseOrderDetail @VendorRFAPOId;			
+					END
+
+					--Update VendorRFQ
+					DECLARE @TotalPartsCount int = 0,
+							@PartLoopId int,
+							@VendorRFQPurchaseOrderId BIGINT,
+							@IsFromVendorRFQ BIGINT = 0;
+					DECLARE @RFQModuleId BIGINT = 0;
+
+					SELECT @RFQModuleId = ModuleId FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
+
+					IF OBJECT_ID(N'tempdb..#tmpRFQPoPartList') IS NOT NULL    
+					BEGIN    
+						DROP TABLE #tmpRFQPoPartList
+					END
+
+					CREATE TABLE #tmpRFQPoPartList
+					(
+						ID BIGINT NOT NULL IDENTITY, 
+						[VendorRFQPOPartRecordId] [bigint] NULL,
+						[VendorRFQPurchaseOrderId] [bigint] NULL,
+						[IsFromVendorRFQ] [bigint] NULL
+					)
+
+					INSERT INTO #tmpRFQPoPartList ([VendorRFQPOPartRecordId],[VendorRFQPurchaseOrderId]
+																	,[IsFromVendorRFQ] )
+					SELECT [VendorRFQPOPartRecordId],[VendorRFQPurchaseOrderId]
+																	,[IsFromVendorRFQ]
+					FROM @TableVendorRFQPurchaseOrderPart;
+					
+					SELECT  @PartLoopId = MAX(ID) FROM #tmpRFQPoPartList
+					
+					WHILE(@PartLoopId > 0)
+					BEGIN 
+						SELECT @VendorRFQPurchaseOrderId = VendorRFQPurchaseOrderId,@IsFromVendorRFQ = IsFromVendorRFQ
+						FROM #tmpRFQPoPartList WHERE ID = @PartLoopId;
+						
+						IF(ISNULL(@VendorRFQPurchaseOrderId,0) > 0)
+						BEGIN 
+							 IF(ISNULL(@IsFromVendorRFQ,0) > 0)
+							 BEGIN 
+								  UPDATE dbo.[VendorRFQPart] SET ReferenceId = @VendorRFQPurchaseOrderId, ModuleId = @RFQModuleId WHERE [VendorRFQPartId] = @IsFromVendorRFQ;
+							 END
+						END
+
+						SET @PartLoopId = @PartLoopId - 1;
 					END
 					
 				END

@@ -133,7 +133,14 @@ BEGIN
 				FI.GrandTotal,
 				FI.PartCost,
 				FI.InvoiceDate,
-				SA.EmployeeId,
+				SA.DropdownTypeId,
+				CASE SA.DropdownTypeId
+					WHEN 1 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.SalesPersonId ELSE WO.SalesPersonId END)
+					WHEN 2 THEN SA.EmployeeId
+					WHEN 3 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.SalesPersonId ELSE SA.EmployeeId END)
+					WHEN 4 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.CustomerSeviceRepId ELSE WO.CSRId END)
+				END AS EmployeeId,
+				--SA.EmployeeId,
 				SA.RevenuePercentageId,
 				SA.MarginPercentageId,
 				SA.SalesPersonActivityTypeId,
@@ -141,6 +148,8 @@ BEGIN
 		FROM InvoicesSOWO FI
 		JOIN SalesAssignments SA ON FI.CustomerId = SA.CustomerId
 		JOIN Employee EMP ON EMP.EmployeeId = SA.EmployeeId
+		LEFT JOIN DBO.SalesOrder SO ON SO.SalesOrderId = FI.ReferenceId
+		LEFT JOIN DBO.WorkOrder WO ON WO.WorkOrderId = FI.ReferenceId
 		WHERE ((SA.ActivityTypeId = 1 AND FI.ModuleId = @WorkOrderModuleId) 
 			OR (SA.ActivityTypeId = 2 AND FI.ModuleId = @SalesOrderModuleId))
 		AND SA.EffectiveDate <= FI.InvoiceDate
@@ -216,8 +225,8 @@ BEGIN
 			MP.PercentValue AS MarginRate,
 			((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
                      + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0)) AS MarginCommission,
-			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + (SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0)))) AS TotalCommission,
+			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + ((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
+                     + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0))) AS TotalCommission,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

@@ -33,7 +33,7 @@ CREATE   PROCEDURE [dbo].[USP_ApprovalRejectSalesOrderPartsByCustomer]
     @Action VARCHAR(100),
 	@ApprovalActionId BIGINT,
 	@ContactId BIGINT = NULL,
-	@Notes VARCHAR(MAX)
+	@Notes VARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -129,5 +129,5 @@ BEGIN
 	RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
 
 	RETURN (1);
-	END CATCH
+	END CATCH
 END

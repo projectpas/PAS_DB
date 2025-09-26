@@ -4262,6 +4262,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalespersonActivityHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderPartNotes.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderMPNType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCommissionFlagById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

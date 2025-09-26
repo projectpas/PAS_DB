@@ -14,7 +14,7 @@
     1    18-SEPT-2025	Vishal Suthar		Created    
          
 ************************************************************************/ 
-CREATE      PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
+CREATE        PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -170,10 +170,10 @@ BEGIN
 		C.[Name] AS Customer,
     	SUM(BI.GrandTotal) AS RevenueAmount,
 		RP.PercentValue AS RevenueRate,
-		SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
+		SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) AS RevenueCommission,
 		SUM(BI.PartCost) AS MarginAmount,
 		MP.PercentValue AS MarginRate,
-		SUM((BI.PartCost) * (MP.PercentValue / 100.0)) AS MarginCommission,
+		SUM((BI.PartCost) * (ISNULL(MP.PercentValue,0) / 100.0)) AS MarginCommission,
 		(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + SUM(BI.PartCost * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
@@ -225,14 +225,14 @@ BEGIN
 			C.[Name] AS Customer,
 			SUM(BI.GrandTotal) AS RevenueAmount,
 			RP.PercentValue AS RevenueRate,
-			SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
+			SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) AS RevenueCommission,
 			(SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
                      + ISNULL(SUM(WOC.LaborCost),0))) AS MarginAmount,
 			MP.PercentValue AS MarginRate,
 			((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0)) AS MarginCommission,
+                     + ISNULL(SUM(ISNULL(WOC.LaborCost,0)),0))) * (ISNULL(MP.PercentValue,0) / 100.0)) AS MarginCommission,
 			(SUM(BI.GrandTotal * (ISNULL(RP.PercentValue,0) / 100.0)) + ((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0))) * (MP.PercentValue / 100.0))) AS TotalCommission,
+                     + ISNULL(SUM(WOC.LaborCost),0))) * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

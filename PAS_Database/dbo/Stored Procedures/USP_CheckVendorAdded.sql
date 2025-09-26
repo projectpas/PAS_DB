@@ -10,9 +10,10 @@
  **************************************************************           
  ** PR   Date          Author  			Change Description            
  ** --   --------      -------			---------------------------     
-    1    29/07/2025    Amit Ghediya     Created
+    1    29/07/2025    Amit Ghediya			Created
+    2    26/09/2025    Devendra Shekh		Added VendorId Select From Vendor
 **************************************************************
- EXEC USP_CheckVendorAdded 'AMETEK MRO',1 
+ EXEC USP_CheckVendorAdded 'RAINCO OF DALLAS',1 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CheckVendorAdded] 
 	@VendorName VARCHAR(150) = NULL,
@@ -31,6 +32,15 @@ BEGIN
 		BEGIN
 			 SET @VendorId = (SELECT [VendorId] FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId AND [MasterCompanyId] = @MasterCompanyId  AND IsActive = 1 AND IsDeleted = 0)
 			 SET @IsExists = 1;
+		END
+
+		IF(ISNULL(@VendorId,0) = 0 )
+		BEGIN
+			IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE UPPER(TRIM([VendorName])) = UPPER(TRIM(@VendorName)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
+			BEGIN
+				SET @VendorId = (SELECT TOP 1 [VendorId] FROM [dbo].[Vendor] WITH(NOLOCK) WHERE UPPER(TRIM([VendorName])) = UPPER(TRIM(@VendorName)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
+				SET @IsExists = 1;
+			END
 		END
 
 		SELECT @IsExists 'Exists', @VendorId 'VendorId'

@@ -14,7 +14,7 @@
     1    18-SEPT-2025	Vishal Suthar		Created    
          
 ************************************************************************/ 
-CREATE     PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
+CREATE      PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -139,7 +139,7 @@ BEGIN
 				CASE SA.DropdownTypeId
 					WHEN 1 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.SalesPersonId ELSE WO.SalesPersonId END)
 					WHEN 2 THEN SA.EmployeeId
-					WHEN 3 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.SalesPersonId ELSE SA.EmployeeId END)
+					WHEN 3 THEN SA.EmployeeId
 					WHEN 4 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.CustomerSeviceRepId ELSE WO.CSRId END)
 				END AS EmployeeId,
 				--SA.EmployeeId,

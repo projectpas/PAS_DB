@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_UpdateWorkOrder]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Update Work Order Quote
@@ -15,9 +16,10 @@
 	3    18/04/2025    Moin Bloch		Added For CREATING TRAVELER LABOUR HEADER
 	4    30/04/2025    Rajesh Gami		Fix the RevisedItemMasterId, Desc and PartNumber related issue.
 	5    18/06/2025    Devendra Shekh   Added Changes to Add New MPN to Quote
+	6    24/09/2025    RAJESH GAMI		Added MPN Notes
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UpdateWorkOrder]
+CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -64,7 +66,7 @@ CREATE PROCEDURE [dbo].[USP_UpdateWorkOrder]
 @StockLineId INT=NULL,
 @IsTraveler BIT=NULL,
 @AllowInvoiceBeforeShipping BIT=NULL,
-@tbl_WorkOrderPartNumberType WorkOrderPartNumberType READONLY
+@tbl_WorkOrderPartNumberType WorkOrderMPNType READONLY
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -176,7 +178,8 @@ BEGIN
 		[PublicationNo] [VARCHAR](MAX) NULL,
 		[SerialNumber] [VARCHAR](100) NULL,
 		[MasterPartId] [BIGINT] NULL,
-		[Isadd] [BIT] NULL
+		[Isadd] [BIT] NULL,
+		[Notes] [nvarchar](MAX) NULL
 	)
 
 	IF OBJECT_ID(N'tempdb..#tmpNewAddedWorkOrderPartNumber') IS NOT NULL
@@ -208,14 +211,14 @@ BEGIN
 		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
-		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],[Isadd])
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],[Isadd],Notes)
 	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
 		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
 		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
-		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],0 FROM @tbl_WorkOrderPartNumberType
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],0,Notes FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -467,6 +470,7 @@ BEGIN
 				  ,WOP.[EmployeeStation] = WOPT.[EmployeeStation]
 				  ,WOP.[PublicationNo] = WOPT.[PublicationNo]
 				  ,WOP.TravelerNumber = @TravelerName
+				  ,WOP.Notes = WOPT.Notes
 			FROM [dbo].[WorkOrderPartNumber] WOP  WITH(NOLOCK)    
 			INNER JOIN dbo.ItemMaster Im WITH(NOLOCK)     ON WOP.ItemMasterId = Im.ItemMasterId
 			INNER JOIN #tmprCreateWorkOrderPartNumber WOPT ON WOPT.ID = WOP.ID  
@@ -519,14 +523,14 @@ BEGIN
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
-					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber)
+					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes)
 			 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 					[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 					[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],ItemMasterId,[PartNumber],[PartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
-					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName
+					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes
 			   FROM #tmprCreateWorkOrderPartNumber 
 			  WHERE [PKID] = @MinId
 

@@ -19,7 +19,7 @@
     3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
     4    09/Jul/2025	RAJESH GAMI		 Manage address space
 	5    16/Jul/2025	Moin Bloch		 Added UPPERCASE
-	6    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096)
+	6    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096), Remove line break comma
  EXEC GetWireTransferBankingInfo 1 
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[GetWireTransferBankingInfo]
@@ -53,7 +53,7 @@ BEGIN
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
 					'ACCOUNT #: <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBankAccount) + '</label>' 
 				ELSE '' END +
-				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN ', ' ELSE '' END + 
+				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN '' ELSE '' END + 
 				'<br />' +
 				CASE WHEN inter.ABA IS NOT NULL THEN 
 					'ROUTING #: <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
@@ -108,7 +108,7 @@ BEGIN
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
 					'ACCT# <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBankAccount) + '</label>' 
 				ELSE '' END +
-				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN ', ' ELSE '' END + 
+				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL AND LTRIM(RTRIM(inter.BeneficiaryBankAccount)) != '' THEN '' ELSE '' END + 
 				'<br />' +
 				CASE WHEN inter.ABA IS NOT NULL THEN 
 					'ABA# <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 

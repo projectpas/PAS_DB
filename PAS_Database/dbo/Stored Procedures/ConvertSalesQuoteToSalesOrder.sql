@@ -18,18 +18,17 @@ exec [dbo].[ConvertSalesQuoteToSalesOrder] @TypeId=1,@AccountTypeId=1,@CustomerI
 @CustomerCode=N'C-000008',@CustomerContactId=52,@CustomerReference=N'',@CurrencyId=0,@SalesPersonId=5,@AgentId=0,
 @CustomerSeviceRepId=4,@EmployeeId=237,@Memo=N'',@Notes=N'',@RestrictPMA=1,@RestrictDER=1,@ManagementStructureId=1,
 @CustomerWarningId=0,@CreatedBy=N'roza diaz',@MasterCompanyId=1,@SalesOrderQuoteId=0,@TotalFreight=0,@TotalCharges=0,
-@FreightBilingMethodId=0,@ChargesBilingMethodId=0,@EntityStructureId=0,@TransferMemos=0,@TransferNotes=0,
-@StatusId=4
+@FreightBilingMethodId=0,@ChargesBilingMethodId=0,@EntityStructureId=0,@TransferMemos=0,@TransferNotes=0,@StatusId=4
 
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[ConvertSalesQuoteToSalesOrder]
 	@TypeId INT,
 	@AccountTypeId INT,
     @CustomerId BIGINT,
-    @CustomerName NVARCHAR(200),
-    @CustomerCode NVARCHAR(100),
+    @CustomerName VARCHAR(100),
+    @CustomerCode VARCHAR(100),
     @CustomerContactId BIGINT,
-    @CustomerReference NVARCHAR(200),
+    @CustomerReference VARCHAR(100),
     @CurrencyId INT,
     @SalesPersonId BIGINT,
     @AgentId BIGINT ,
@@ -41,7 +40,7 @@ CREATE   PROCEDURE [dbo].[ConvertSalesQuoteToSalesOrder]
     @RestrictDER BIT,
     @ManagementStructureId BIGINT,
     @CustomerWarningId BIGINT,
-    @CreatedBy NVARCHAR(100),
+    @CreatedBy VARCHAR(256),
     @MasterCompanyId INT,
     @SalesOrderQuoteId BIGINT,
     @TotalFreight DECIMAL(18,2),
@@ -59,7 +58,7 @@ BEGIN
 		DECLARE 
 			@CreditLimit DECIMAL(18, 2),
 			@CreditTermId INT,
-			@CreditTermName NVARCHAR(100)
+			@CreditTermName VARCHAR(50)
 
 		-- Get Customer Financial data
 		SELECT TOP 1

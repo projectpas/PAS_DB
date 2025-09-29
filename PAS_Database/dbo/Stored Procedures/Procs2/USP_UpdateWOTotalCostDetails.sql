@@ -267,7 +267,8 @@ SET NOCOUNT ON
 
 				UPDATE #WOCostDetails
 					SET TotalCost = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0) + ISNULL(FreightCost,0) + ISNULL(ExclusionCost,0),
-						DirectCost = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0)
+						--DirectCost = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0)
+						DirectCost = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0)
 				FROM #WOCostDetails
 
 				UPDATE #WOCostDetails
@@ -305,16 +306,16 @@ SET NOCOUNT ON
 					WHERE WOB.[ReferenceId] = @WorkOrderId AND WOWF.[WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND WOB.ModuleId = @WOModuleId AND ISNULL(WOB.[IsVersionIncrease],0) = 0 AND ISNULL(WOB.[IsPerformaInvoice], 0) = 0) > 0)
 				BEGIN					
 					UPDATE #WOCostDetails
-					SET Revenue = ISNULL(WOB.[GrandTotal],0),
-						ActRevenue = ISNULL(WOB.[GrandTotal],0),
-						ActMargin = ISNULL(WOB.[GrandTotal],0) - ISNULL(WOCD.DirectCost,0),
+					SET Revenue = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))),
+						ActRevenue = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))),
+						ActMargin = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.DirectCost,0),
 						ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), ISNULL(WOB.[GrandTotal],0)),
 						PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.MaterialCost,0), ISNULL(WOB.[GrandTotal],0)),
 						LaborRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.TotalLaborCost,0), ISNULL(WOB.[GrandTotal],0)),
 						 OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.BurdenRateAmount,0), ISNULL(WOB.[GrandTotal],0)),
-						 Margin =  ISNULL(WOB.[GrandTotal],0) - ISNULL(WOCD.DirectCost,0),
-						 MarginPer = dbo.udfCalcPercentage(ISNULL(WOB.[GrandTotal],0) - ISNULL(WOCD.DirectCost,0), ISNULL(WOB.[GrandTotal],0)),
-						DirectCostPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), ISNULL(WOB.[GrandTotal],0))
+						 Margin =  (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.DirectCost,0),
+						 MarginPer = dbo.udfCalcPercentage((ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.DirectCost,0), ISNULL(WOB.[GrandTotal],0)),
+						DirectCostPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))))
 					FROM #WOCostDetails WOCD 
 						JOIN [dbo].[BillingInvoicingItems] WOB WITH(NOLOCK) ON WOCD.[WorkOrderId] = WOB.[ReferenceId] AND WOB.ModuleId = @WOModuleId 
 						JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH(NOLOCK) ON WOB.[SubReferenceId] = WOWF.[WorkOrderPartNoId] AND WOCD.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId

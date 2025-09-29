@@ -28,8 +28,10 @@
 	16	 21/07/2025   RAJESH GAMI		Fixed : Flat Rate(Freight and Charge): frieght and charges are being included again
 	17	 28/07/2025   RAJESH GAMI		Get Unit Sales PRice, Markup% and Amount, Discount% & Amount for the SO
 	18	 02/09/2025   Vishal Suthar		Added DISTINCT in the SELECT Statement
+	19	 29/09/2025   Moin Bloch		Added [ApprovalActionId]
 
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
+    EXEC [dbo].[GetCommonBillingMPNDetails] 19821,19957,'19957',15,1,0
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
@@ -59,7 +61,7 @@ BEGIN
 		DECLARE @TotalCost DECIMAL(18,2) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,2) = 0, @OtherTaxAmount DECIMAL(18,2) = 0, @GrandTotal DECIMAL(18,2) = 0;
 		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 , @InvoiceStatusName varchar(50)='';
 		DECLARE @InvoiceStatusId BIGINT=0,@WorkOrderQuoteStatusId INT=0
-		PRint '1'
+		
 		SELECT @InvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WHERE [Status]='Invoiced'
 		SELECT @WorkOrderQuoteStatusId = [WorkOrderQuoteStatusId] FROM [dbo].[WorkOrderQuoteStatus] WITH(NOLOCK) WHERE [Description] = 'Approved'
 
@@ -124,12 +126,13 @@ BEGIN
 				[QuoteMethod] BIT NULL,
 				[ShippingId]  BIGINT NULL, 
 				[InvoiceStatusName] VARCHAR(50),
-				IsFlatChargeUsed BIT DEFAULT 0,
-				IsFlatFreightUsed BIT DEFAULT 0,
-				FlatChargeStkId BIGINT NULL,
-				FlatFreightStkId BIGINT NULL
-			)
-			PRint '1'
+				[IsFlatChargeUsed] BIT DEFAULT 0,
+				[IsFlatFreightUsed] BIT DEFAULT 0,
+				[FlatChargeStkId] BIGINT NULL,
+				[FlatFreightStkId] BIGINT NULL,
+				[ApprovalActionId] BIGINT NULL,
+		)
+			
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
 		BEGIN
 			SELECT @WorkOrderMPNMSModuleEnum = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN'
@@ -140,13 +143,13 @@ BEGIN
 			
 			DECLARE @FinalCondCert INT
 				SELECT @FinalCondCert = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Final Cond/Cert'
-				PRint '2'
+			
 			IF(@IsProformaInvoice = 0)
 			BEGIN
 
 				IF(@IsCreatedFromQuote = 1)
 				BEGIN
-					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
+					INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber],[ApprovalActionId]) 
 									SELECT DISTINCT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
 									
 									 CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
@@ -158,13 +161,14 @@ BEGIN
 								ELSE '' 
 							END
 						END [Cond],		wop.[PartNumber],
-									wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber]
+						wop.[PartDescription],wop.[ManufacturerName],wop.[CurrentSerialNumber],
+						woa.[ApprovalActionId]
 					FROM [dbo].[WorkOrderQuote] woq WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrderQuoteDetails] woqd WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woqd.[WorkOrderQuoteId] AND ISNULL(woqd.[IsVersionIncrease], 0) = 0
-					INNER JOIN [WorkOrderApproval] woa WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woa.WorkOrderQuoteId AND woqd.WOPartNoId = woa.WorkOrderPartNoId AND woa.ApprovalActionId = @WorkOrderQuoteStatusId AND woa.[IsDeleted] = 0
+					 LEFT JOIN [dbo].[WorkOrderApproval] woa WITH(NOLOCK) ON woq.[WorkOrderQuoteId] = woa.WorkOrderQuoteId AND woqd.WOPartNoId = woa.WorkOrderPartNoId AND woa.[IsDeleted] = 0  -- AND woa.ApprovalActionId = @WorkOrderQuoteStatusId 					
 					 LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woqd.WOPartNoId = wop.ID 
-				   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
-				   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+				     LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+				     LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 					 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 					 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
 					WHERE wop.[WorkOrderId] = @ReferenceId 
@@ -193,15 +197,15 @@ BEGIN
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 						LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
-			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
-			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+						LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
+						LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND ISNULL([IsFinishGood], 0) = 1					  
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
 						ORDER BY [ID]
-						PRint '3'
+						
 					END
 					ELSE
 					BEGIN
@@ -220,8 +224,8 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrderShippingItem] wos WITH(NOLOCK) ON wop.[ID] = wos.[WorkOrderPartNumId] AND wos.[IsDeleted] = 0 
 						 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 						 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
-			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOSD WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId] AND WOSD.[WorkOrderSettlementId] = @FinalCondCert
-			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
+						 LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOSD WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId] AND WOSD.[WorkOrderSettlementId] = @FinalCondCert
+						 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
 						  AND ISNULL([IsFinishGood], 0) = 1					
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)

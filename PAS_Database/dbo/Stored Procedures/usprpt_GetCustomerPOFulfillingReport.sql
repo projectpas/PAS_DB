@@ -23,7 +23,7 @@ CREATE   PROCEDURE [dbo].[usprpt_GetCustomerPOFulfillingReport]
 	@id DATE = NULL,
 	@id2 DATE = NULL,
 	@mastercompanyid INT,
-	@managementStructureId INT,
+	@managementStructureId BIGINT,
 	@id4 NVARCHAR(200) = '',
 	@id3  NVARCHAR(200) = ''
 AS  
@@ -81,7 +81,7 @@ BEGIN
 			LEFT JOIN [DBO].[SalesOrderStocklineV1] SST WITH(NOLOCK) ON SST.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId
 			LEFT JOIN [DBO].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderPartId = SST.SalesOrderPartId AND STKC.SalesOrderStocklineId = SSt.SalesOrderStocklineId
-			LEFT JOIN [DBO].[BillingInvoicingItems] BII WITH(NOLOCK) ON BII.ReferenceId = SOP.SalesOrderId AND BII.SubReferenceId = SOP.SalesOrderPartId AND BII.ModuleId = @ModuleId AND BII.IsVersionIncrease = 0
+			LEFT JOIN [DBO].[BillingInvoicingItems] BII WITH(NOLOCK) ON BII.ReferenceId = SOP.SalesOrderId AND BII.SubReferenceId = SOP.SalesOrderPartId AND BII.ModuleId = @ModuleId AND ISNULL(BII.IsVersionIncrease,0) = 0
 			LEFT JOIN [DBO].[BillingInvoicing] BI WITH(NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND BII.SubReferenceId = SOP.SalesOrderPartId AND BI.ModuleId = @ModuleId
 			LEFT JOIN [DBO].[SOPickTicket] SP WITH(NOLOCK) ON SP.SalesOrderPartStocklineId = SST.SalesOrderStocklineId AND SP.SalesOrderPartId = SST.SalesOrderPartId
 			LEFT JOIN [DBO].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = SP.SalesOrderPartId
@@ -89,8 +89,8 @@ BEGIN
 			LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.SalesOrderId = SOP.SalesOrderId AND ROP.StockLineId = SST.StockLineId
 			LEFT JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 			LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON PO.PurchaseOrderId = SOP.POId
-			WHERE SO.OpenDate >= @id
-			  AND SO.OpenDate < DATEADD(DAY, 1, @id2)
+			WHERE CAST(SO.OpenDate AS DATE) >= @id
+			  AND  CAST(SO.OpenDate AS DATE) < DATEADD(DAY, 1, @id2)
 			  AND SO.ManagementStructureId = @managementStructureId
 			  AND (@id4 = '' OR @id4 IS NULL OR SO.CustomerName LIKE '%' + @id4 + '%')  
 			 -- AND SO.CustomerReference LIKE '%' + @POCustRefrence + '%'

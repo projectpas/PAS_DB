@@ -39,7 +39,7 @@ BEGIN
 		--DECLARE @POCustRefrence  NVARCHAR(200) = '';
 		DECLARE @ModuleId INT = 0;
 
-		select @ModuleId = ModuleId from Module where ModuleName = 'SalesOrder'
+		SELECT @ModuleId = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder'
 
 		SELECT 
 			SO.SalesOrderId,

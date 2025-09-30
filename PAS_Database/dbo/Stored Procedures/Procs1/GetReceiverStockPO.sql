@@ -20,6 +20,7 @@
     4    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
 	5    02/27/2025   AMIT GHEDIYA	    Change DataType OF ReceivedDate From DATETIME to DATE
  	6    20 MAR 2025  RAJESH GAMI		Change the JOIN from INNER to LEFT for the StocklineDraft
+	7    26 SEP 2025  RAJESH GAMI		Added EmployeeId
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
 exec dbo.GetReceiverStockPO @PurchaseOrderId=2014,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
 **************************************************************/
@@ -29,34 +30,55 @@ CREATE    PROCEDURE [dbo].[GetReceiverStockPO]
 	@ItemMasterId bigint,
 	@ConditionId int,
 	@ReceiverNumber varchar(100),
-	@PurchaseOrderPartId bigint
+	@PurchaseOrderPartId bigint,
+	@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
 	BEGIN
+		 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		 SELECT 
+		 	@CurrntEmpTimeZoneDesc = COALESCE(
+		 		ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+		 		LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		 	)
+		 FROM 
+		 	dbo.Employee E WITH (NOLOCK) 
+		 LEFT JOIN 
+		 	dbo.TimeZone ETZ WITH (NOLOCK) 
+		 	ON E.TimeZoneId = ETZ.TimeZoneId
+		 LEFT JOIN 
+		 	dbo.LegalEntity LE WITH (NOLOCK) 
+		 	ON E.LegalEntityId = LE.LegalEntityId
+		 LEFT JOIN 
+		 	dbo.TimeZone LTZ WITH (NOLOCK) 
+		 	ON LE.TimeZoneId = LTZ.TimeZoneId
+		 WHERE 
+		 	E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		IF(@isParentData = '1')
 		BEGIN			
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE) AS ReceivedDate,
+			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 				CASE WHEN MAX(POP.WorkOrderId) > 1 THEN 3 WHEN MAX(POP.SalesOrderId) > 1 THEN 2 ELSE 1 END AS Modules FROM [dbo].[Stockline] sl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 				INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=i.ItemMasterId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
-				GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE)
+				GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 			UNION
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate as DATE) as ReceivedDate,
+			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 				CASE WHEN MAX(POP.WorkOrderId) >1 THEN 3 when MAX(POP.SalesOrderId) > 1 THEN 2 ELSE 1 END AS Modules 
 				FROM [dbo].[NonStockInventory] sl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMasterNonStock] i WITH(NOLOCK) ON i.MasterPartId = sl.MasterPartId
 				LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=sl.MasterPartId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
-				GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE)
+				GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 			UNION
-			SELECT sl.ReceiverNumber, CAST(sl.ReceivedDate AS DATE) AS ReceivedDate, 1 AS Modules FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber, (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate, 1 AS Modules FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
 				INNER JOIN [dbo].[Asset] i WITH(NOLOCK) ON i.AssetRecordId = sl.AssetRecordId
 				WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-				GROUP BY sl.ReceiverNumber, CAST(sl.ReceivedDate AS DATE) ORDER BY Modules DESC			
+				GROUP BY sl.ReceiverNumber, (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) ORDER BY Modules DESC			
 		END
 		IF(@isParentData = '0')
 		BEGIN
@@ -74,7 +96,7 @@ BEGIN
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,
-				  cast(sl.ReceivedDate as date) as ReceivedDate,
+				  (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 			      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
 				  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
 				  lc.[Name] as 'LocationName' ,
@@ -114,7 +136,7 @@ BEGIN
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,
-				  cast(sl.ReceivedDate as date) as ReceivedDate,
+				  (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 			      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
 				  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
 				  lc.[Name] as 'LocationName' ,
@@ -154,7 +176,7 @@ BEGIN
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,
-				  cast(sl.ReceivedDate as date) as ReceivedDate,
+				  (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 			      s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',
 				  bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',
 				  lc.[Name] as 'LocationName' ,
@@ -193,7 +215,7 @@ BEGIN
 				   sl.ControlNumber,
 				   sl.IdNumber,
 				   sl.ReceiverNumber,
-				   cast(sl.ReceivedDate as date) as ReceivedDate,
+				   (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 				   sl.Site AS 'SiteName',
 				   sl.Warehouse AS 'WareHouseName',
 			       sl.Bin as 'BinName',
@@ -224,7 +246,7 @@ BEGIN
 				   sl.ControlNumber,
 				   '' AS IdNumber,
 				   sl.ReceiverNumber,
-				   cast(sl.ReceivedDate as date) as ReceivedDate,
+				   (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 				   sl.SiteName AS 'SiteName',
 				   sl.Warehouse AS 'WareHouseName',
 			       sl.BinName as 'BinName',

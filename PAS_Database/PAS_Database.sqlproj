@@ -4264,6 +4264,7 @@
     <Build Include="dbo\User Defined Types\WorkOrderMPNType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCommissionFlagById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterNonStockAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteNonStockItemMaster.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -298,12 +298,12 @@ SET NOCOUNT ON
 					SET Revenue = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))),
 						ActRevenue = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))),
 						ActMargin = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.[DirectCost],0),
-						ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.[DirectCost],0), ISNULL(WOB.[GrandTotal],0)),
-						PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.[MaterialCost],0), ISNULL(WOB.[GrandTotal],0)),
-						LaborRevePer = dbo.udfCalcPercentage(ISNULL([TotalLaborCost],0), ISNULL(WOB.[GrandTotal],0)),
-						OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.[BurdenRateAmount],0), ISNULL(WOB.[GrandTotal],0)),
+						ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.[DirectCost],0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0)))),
+						PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.[MaterialCost],0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0)))),
+						LaborRevePer = dbo.udfCalcPercentage(ISNULL([TotalLaborCost],0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0)))),
+						OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.[BurdenRateAmount],0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0)))),
 						Margin = (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.[DirectCost],0),
-						MarginPer = dbo.udfCalcPercentage((ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.[DirectCost],0), ISNULL(WOB.[GrandTotal],0)),
+						MarginPer = dbo.udfCalcPercentage((ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))) - ISNULL(WOCD.[DirectCost],0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0)))),
 						DirectCostPer = dbo.udfCalcPercentage(ISNULL([DirectCost],0), (ISNULL(WOB.[GrandTotal],0) - (ISNULL(WOB.[SalesTax], 0) + ISNULL(WOB.[OtherTax],0))))
 					FROM #WOCostDetails WOCD 
 						JOIN [dbo].[BillingInvoicing] WOB WITH(NOLOCK) ON WOCD.[WorkOrderId] = WOB.[ReferenceId] AND WOB.[ModuleId] = @WOModuleId

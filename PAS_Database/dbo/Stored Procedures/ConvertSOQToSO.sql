@@ -25,6 +25,8 @@
 	9    12/09/2024   Moin Bloch		Updated for fixing an issue with converting part Qty
 	10   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
 	11   28/02/2025   Ayushi Patel		Cast OpenDate As a Date
+	12   29/09/2025   Vishal Suthar		Fixed an issue with order of parts after transfer
+
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -242,7 +244,8 @@ BEGIN
 	FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 	WHERE SOQP.SalesOrderQuoteId = @SalesOrderQuoteId
 	AND ((@TransferStockline = 0) OR @TransferStockline = 1)
-	AND ISNULL(SOQP.IsNoQuote, 0) <> 1;
+	AND ISNULL(SOQP.IsNoQuote, 0) <> 1
+	ORDER BY SOQP.SalesOrderQuotePartId DESC;
 
 	SELECT @SOQLoopID = MAX(ID) FROM #soqpList;
 	WHILE (@SOQLoopID > 0)

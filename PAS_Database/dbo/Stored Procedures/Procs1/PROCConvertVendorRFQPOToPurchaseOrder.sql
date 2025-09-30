@@ -323,6 +323,7 @@ BEGIN
 		SELECT @POModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
 		SELECT @VRFQPOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
 
+		UPDATE [dbo].[PurchaseOrderPart] SET [VendorListPrice] = [UnitCost] WHERE [PurchaseOrderId] = @Result AND [MasterCompanyId] = @MasterCompanyId;
 		UPDATE [dbo].[VendorRFQPart] SET [ModuleId] = @POModuleId, [ReferenceId] = @Result WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND [ModuleId] = @VRFQPOModuleId AND [MasterCompanyId] = @MasterCompanyId;
 	 END
 

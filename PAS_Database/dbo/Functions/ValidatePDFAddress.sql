@@ -1,4 +1,5 @@
-﻿/*****************************************************************************
+﻿
+/*****************************************************************************
  ** File:   [ValidatePDFAddress]
  ** Author:   Unkwon
  ** Description: Merge Address
@@ -33,7 +34,7 @@ BEGIN
     SET @address = '';
 
     -- Helper variables for conditional new line
-    DECLARE @lineBreak NVARCHAR(10) = ', <br/>';
+    DECLARE @lineBreak NVARCHAR(10) = '<br/>';
     DECLARE @newLine NVARCHAR(10) = '<br/>';
 
 	-- Assinged Address1

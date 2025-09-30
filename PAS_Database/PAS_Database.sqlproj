@@ -4266,6 +4266,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterNonStockAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteNonStockItemMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetNonStockItemDataByID.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetARAgingAsOfNowJob.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

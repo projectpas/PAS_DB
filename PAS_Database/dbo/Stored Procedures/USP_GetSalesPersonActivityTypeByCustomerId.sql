@@ -49,8 +49,8 @@ BEGIN
 			MSD.AllMSlevels
 		FROM [dbo].[SalesPersonActivityType] c WITH(NOLOCK)
 		INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = c.SalesPersonActivityTypeId
-		LEFT JOIN [Percent] P_REV ON P_REV.PercentId = c.RevenuePercentageId
-		LEFT JOIN [Percent] P_MAR ON P_MAR.PercentId = c.MarginPercentageId
+		LEFT JOIN [Percent] P_REV WITH (NOLOCK) ON P_REV.PercentId = c.RevenuePercentageId
+		LEFT JOIN [Percent] P_MAR WITH (NOLOCK) ON P_MAR.PercentId = c.MarginPercentageId
 		WHERE c.CustomerId = @CustomerId;
 	END TRY
 	BEGIN CATCH

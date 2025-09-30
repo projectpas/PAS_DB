@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:  [USP_GetAsOfDateSettings]
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to get As Of Date Settings
@@ -12,11 +11,12 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
-    1    22/09/2025   MOIN BLOCH     Created  
+    1    22/09/2025   MOIN BLOCH		Created  
+	2    25/09/2025   Devendra Shekh	Added GroupById 
 
 --  EXEC [dbo].[USP_GetAsOfDateSettings] 1
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetAsOfDateSettings]
+CREATE     PROCEDURE [dbo].[USP_GetAsOfDateSettings]
 @MasterCompanyId INT=NULL
 AS
 BEGIN
@@ -51,7 +51,8 @@ BEGIN
         [CreatedDate],
         [UpdatedDate],
         [IsActive],
-        [IsDeleted]
+        [IsDeleted],
+        [GroupById]
    FROM [dbo].[AsOfDateSettings]
    WHERE [MasterCompanyId] = @MasterCompanyId    
 

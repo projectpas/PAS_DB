@@ -19,7 +19,7 @@
 	3    01/23/2023   Bhargav Saliya	Change DataType OF ReceivedDate From DATE to DATETIME
 	4    03/13/2025   Vishal Suthar		Changed DataType OF ReceivedDate From DATETIME to DATE
 	5    14/04/2025   Moin Bloch        Modify(Update Qty Logic)
-  
+    6    26 SEP 2025  RAJESH GAMI		Added EmployeeId
 -- EXEC GetReceiverStockROPNLabel 2553,'0',1,1,'RecNo-000009'
 
 exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
@@ -29,25 +29,46 @@ CREATE   PROCEDURE [dbo].[GetReceiverStockROPNLabel]
 @isParentData varchar(10),
 @ItemMasterId bigint,
 @ConditionId int,
-@ReceiverNumber varchar(100)
+@ReceiverNumber varchar(100),
+@EmployeeId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		 SELECT 
+		 	@CurrntEmpTimeZoneDesc = COALESCE(
+		 		ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+		 		LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		 	)
+		 FROM 
+		 	dbo.Employee E WITH (NOLOCK) 
+		 LEFT JOIN 
+		 	dbo.TimeZone ETZ WITH (NOLOCK) 
+		 	ON E.TimeZoneId = ETZ.TimeZoneId
+		 LEFT JOIN 
+		 	dbo.LegalEntity LE WITH (NOLOCK) 
+		 	ON E.LegalEntityId = LE.LegalEntityId
+		 LEFT JOIN 
+		 	dbo.TimeZone LTZ WITH (NOLOCK) 
+		 	ON LE.TimeZoneId = LTZ.TimeZoneId
+		 WHERE 
+		 	E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
 		IF(@isParentData = '1')
 		BEGIN
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			WHERE RepairOrderId=@RepairOrderId and IsParent=1
-			GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE)
+			GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 
 			UNION
 
-			SELECT sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE) AS ReceivedDate FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[Asset] i WITH(NOLOCK) ON i.AssetRecordId = sl.AssetRecordId
 			WHERE RepairOrderId = @RepairOrderId 
-			GROUP BY sl.ReceiverNumber,CAST(sl.ReceivedDate AS DATE);
+			GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end);
 		END
 		IF(@isParentData = '0')
 		BEGIN
@@ -66,7 +87,7 @@ BEGIN
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,
-				  CAST(sl.ReceivedDate AS DATE) AS ReceivedDate,
+				  (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate,
 			       s.[Name] AS 'SiteName',
 				   w.[Name] AS 'WareHouseName',
 				  bn.[Name] AS 'BinName',
@@ -107,7 +128,7 @@ BEGIN
 				  sl.ControlNumber,
 				  sl.IdNumber,
 				  sl.ReceiverNumber,
-				  CAST(sl.ReceivedDate AS DATE) AS ReceivedDate,
+				  (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate,
 			       s.[Name] AS 'SiteName',
 				   w.[Name] AS 'WareHouseName',
 				  bn.[Name] AS 'BinName',
@@ -148,7 +169,7 @@ BEGIN
 				   sl.ControlNumber,
 				   '' AS IdNumber,
 				   sl.ReceiverNumber,
-				   cast(sl.ReceivedDate AS DATE) AS ReceivedDate,
+				   (case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate,
 				   sl.SiteName AS 'SiteName',
 				   sl.Warehouse AS 'WareHouseName',
 			       sl.BinName AS 'BinName',

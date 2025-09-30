@@ -87,6 +87,7 @@
     [PublicationNotes]           NVARCHAR (MAX)  NULL,
     [ShipDate]                   DATETIME2 (7)   NULL,
     [IsSubWorkOrder]             BIT             NULL,
+    [Notes]                      NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
 

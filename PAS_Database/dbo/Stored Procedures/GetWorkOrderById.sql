@@ -8,19 +8,20 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------          
-    1    26/02/2025   Moin Bloch		Created
-	2    12/03/2025   Moin Bloch		Fixed Multiple MPN Issue
-	3    09/05/2025	  Abhishek Jirawla  Add Repair Management
-	4    13/05/2025	  Abhishek Jirawla	Isue with create work order with stockline
-	5    04/06/2025	  Devendra Shekh	added stockLineUnitCost to PartNumbers
-	6    10/06/2025	  Devendra Shekh	added @AllowPrintReleaseForm
-	7    01/07/2025	  Devendra Shekh	added New Field : MPNPartNumber
-	8    03/07/2025   Moin Bloch		Changed Old To New Billing Table
-	9    26/08/2025   Moin Bloch		added RevisedSerialNumber 
-	10   24/09/2025   Vishal Suthar		Added CustomerId also to populate default templates
-     
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    26/02/2025   Moin Bloch    Created
+	2    12/03/2025   Moin Bloch    Fixed Multiple MPN Issue
+	3    09/05/2025	  Abhishek Jirawla Add Repair Management
+	4    13/05/2025	  Abhishek Jirawla Isue with create work order with stockline
+	5    04/06/2025	  Devendra Shekh   added stockLineUnitCost to PartNumbers
+	6    10/06/2025	  Devendra Shekh   added @AllowPrintReleaseForm
+	7    01/07/2025	  Devendra Shekh   added New Field : MPNPartNumber
+	8    03/07/2025   Moin Bloch       Changed Old To New Billing Table
+	9    26/08/2025   Moin Bloch	   added RevisedSerialNumber 
+	10   24/09/2025   Rajesh Gami	   added MPN Notes   
+	11   25/09/2025   Vishal Suthar	   Fixed populating WorkFlowId based on customerId as well
+
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -95,6 +96,7 @@ BEGIN
 		[IsRepairManagement] BIT NULL,
 		[StockLineUnitCost] DECIMAL(18, 2) NULL,
 		[MPNPartNumber] VARCHAR(400) NULL,
+				[Notes] NVARCHAR(MAX) NULL,
 	)
 
     DECLARE @CustomerId BIGINT=0,@CustomerContactId BIGINT=0,@ReceivingCustomerWorkId BIGINT=0,@ItemMasterId BIGINT=0,@ConditionId BIGINT=0,@RecStockLineId BIGINT=0,@WorkScopeId BIGINT=0,@CsrId BIGINT=0,@EmployeeId BIGINT=0
@@ -226,8 +228,9 @@ BEGIN
 		FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId 
-		AND wf.CustomerId = @ReceivingCustomerId
+		WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId 
+		AND (wf.CustomerId IS NULL OR wf.CustomerId = @ReceivingCustomerId)
+		AND wf.[WorkScopeId] = @WorkOrderScopeId 
 		AND wf.[IsVersionIncrease] = 0;
 			   
 		SELECT @WorkOrderTypeId [WorkOrderTypeId],               
@@ -401,7 +404,7 @@ BEGIN
 				INSERT INTO #TempTableForPartsDetailsWO([ReceivingCustomerWorkId],[Partnumber],[PartDescription],[RevisedPartNo],[Condition],[ConditionId],
 					[StockLineNumber],[StockLineId],[SerialNumber],[Reference],[ReceivedDate],[ManagementStructureId],[CustReqDate],[Quantity],[ItemMasterId],
 					[ItemGroup],[WorkOrderScopeId],[NTE],[IsPMA],[IsDER],[ACTailNum],[SiteId],[Site],[Warehouse],[Location],[Shelf],[Bin],[IsFinishedGood],
-					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement], [StockLineUnitCost], [MPNPartNumber])				
+					[LastMSLevel],[AllMSlevels],[WorkOrderPriorityId],[WorkOrderStageId],[DefaultWorkOrderStatusId],[WorkFlowNo],[WorkFlowId],[WorkflowExpirationDate], [IsRepairManagement], [StockLineUnitCost], [MPNPartNumber],Notes)				
 				SELECT 0,im.[PartNumber],im.[PartDescription],im.[RevisedPart],con.[Description],COALESCE(wopn.[RevisedConditionId], 0),
 					sl.[StockLineNumber],sl.[StockLineId],sl.[SerialNumber],rc.[CustomerReference],CRM.[OpenDate],CRM.[ManagementStructureId],CRM.[OpenDate],1,rc.[ItemMasterId],
 					COALESCE(ig.[ItemGroupCode], ''),wopn.[WorkOrderScopeId],ISNULL((im.[OverhaulHours] + COALESCE(im.[mfgHours], 0) + im.[RPHours] + im.[TestHours]),0),
@@ -411,7 +414,7 @@ BEGIN
 					(CASE WHEN wf.WorkflowId = 0 THEN NULL ELSE wf.WorkflowId END),wf.WorkflowExpirationDate, sl.IsRepairManagement, ISNULL(sl.UnitCost, 0),
 					CONCAT(im.[PartNumber], CASE	WHEN COALESCE(sl.[SerialNumber], '') <> '' THEN ' - ' + sl.[SerialNumber]
 													WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
-													ELSE '' END)
+													ELSE '' END),ISNULL(wopn.Notes,'')
 				FROM [dbo].[CustomerRMADeatils] rc WITH(NOLOCK)
 				INNER JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON rc.[RMADeatilsId] = sl.[RMADeatilsId]
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
@@ -864,6 +867,7 @@ BEGIN
 				[IsRepairManagement]  BIT NULL,
 				[StockLineUnitCost] DECIMAL(18, 2) NULL,
 				[MPNPartNumber] VARCHAR(400) NULL,
+				[NOTES] NVARCHAR(MAX) NULL,
 			)
 
 			SELECT @WorkOrderNum=[WorkOrderNum],@PrimarySalesPersonId=[SalesPersonId],@CsrId =[CsrId] ,@EmployeeId=[EmployeeId],@CustomerId = [CustomerId],
@@ -884,8 +888,8 @@ BEGIN
 				INSERT INTO #TempWOPartShippingDetails ([ShipDate],[WorkOrderPartNoId])
 				                                 SELECT [ShipDate],[WorkOrderPartNoId] FROM [dbo].[WorkOrderShipping] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;	
 												 				
-				INSERT INTO #TempWorkOrderPartNumberDetails([ID],[WorkOrderId], [WorkOrderScopeId], [EstimatedShipDate], [CustomerRequestDate], [PromisedDate], [EstimatedCompletionDate], [NTE], [Quantity], [StockLineId], [CMMIds], [WorkflowId], [WorkOrderStageId], [WorkOrderStatusId], [WorkOrderPriorityId], [IsPMA], [IsDER], [TechStationId], [TATDaysStandard], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [TechnicianId], [ConditionId], [TATDaysCurrent], [RevisedPartId], [ManagementStructureId], [IsMPNContract], [ContractNo], [WorkScope], [isLocked], [ReceivedDate], [IsClosed], [ACTailNum], [ClosedDate], [PDFPath], [IsFinishGood], [RevisedConditionId], [CustomerReference], [Level1], [Level2], [Level3], [Level4], [AssignDate], [ReceivingCustomerWorkId], [ExpertiseId], [RevisedItemmasterid], [RevisedPartNumber], [RevisedPartDescription], [IsTraveler], [AllowInvoiceBeforeShipping], [WOFPrintDate], [CurrentSerialNumber], [StocklineCost], [TendorStocklineCost], [RepairOrderId], [RONumber], [RevisedSerialNumber], [IsROCreated], [PartNumber], [PartDescription], [WorkOrderStatus], [Priority], [WorkOrderStage], [ManufacturerName], [TechName], [EmployeeStation], [PublicationNo]) 
-				                                     SELECT [ID],[WorkOrderId], [WorkOrderScopeId], [EstimatedShipDate], [CustomerRequestDate], [PromisedDate], [EstimatedCompletionDate], [NTE], [Quantity], [StockLineId], [CMMIds], [WorkflowId], [WorkOrderStageId], [WorkOrderStatusId], [WorkOrderPriorityId], [IsPMA], [IsDER], [TechStationId], [TATDaysStandard], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [TechnicianId], [ConditionId], [TATDaysCurrent], [RevisedPartId], [ManagementStructureId], [IsMPNContract], [ContractNo], [WorkScope], [isLocked], [ReceivedDate], [IsClosed], [ACTailNum], [ClosedDate], [PDFPath], [IsFinishGood], [RevisedConditionId], [CustomerReference], [Level1], [Level2], [Level3], [Level4], [AssignDate], [ReceivingCustomerWorkId], [ExpertiseId], [RevisedItemmasterid], [RevisedPartNumber], [RevisedPartDescription], [IsTraveler], [AllowInvoiceBeforeShipping], [WOFPrintDate], [CurrentSerialNumber], [StocklineCost], [TendorStocklineCost], [RepairOrderId], [RONumber], [RevisedSerialNumber], [IsROCreated], [PartNumber], [PartDescription], [WorkOrderStatus], [Priority], [WorkOrderStage], [ManufacturerName], [TechName], [EmployeeStation], [PublicationNo]
+				INSERT INTO #TempWorkOrderPartNumberDetails([ID],[WorkOrderId], [WorkOrderScopeId], [EstimatedShipDate], [CustomerRequestDate], [PromisedDate], [EstimatedCompletionDate], [NTE], [Quantity], [StockLineId], [CMMIds], [WorkflowId], [WorkOrderStageId], [WorkOrderStatusId], [WorkOrderPriorityId], [IsPMA], [IsDER], [TechStationId], [TATDaysStandard], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [TechnicianId], [ConditionId], [TATDaysCurrent], [RevisedPartId], [ManagementStructureId], [IsMPNContract], [ContractNo], [WorkScope], [isLocked], [ReceivedDate], [IsClosed], [ACTailNum], [ClosedDate], [PDFPath], [IsFinishGood], [RevisedConditionId], [CustomerReference], [Level1], [Level2], [Level3], [Level4], [AssignDate], [ReceivingCustomerWorkId], [ExpertiseId], [RevisedItemmasterid], [RevisedPartNumber], [RevisedPartDescription], [IsTraveler], [AllowInvoiceBeforeShipping], [WOFPrintDate], [CurrentSerialNumber], [StocklineCost], [TendorStocklineCost], [RepairOrderId], [RONumber], [RevisedSerialNumber], [IsROCreated], [PartNumber], [PartDescription], [WorkOrderStatus], [Priority], [WorkOrderStage], [ManufacturerName], [TechName], [EmployeeStation], [PublicationNo],[NOTES]) 
+				                                     SELECT [ID],[WorkOrderId], [WorkOrderScopeId], [EstimatedShipDate], [CustomerRequestDate], [PromisedDate], [EstimatedCompletionDate], [NTE], [Quantity], [StockLineId], [CMMIds], [WorkflowId], [WorkOrderStageId], [WorkOrderStatusId], [WorkOrderPriorityId], [IsPMA], [IsDER], [TechStationId], [TATDaysStandard], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [TechnicianId], [ConditionId], [TATDaysCurrent], [RevisedPartId], [ManagementStructureId], [IsMPNContract], [ContractNo], [WorkScope], [isLocked], [ReceivedDate], [IsClosed], [ACTailNum], [ClosedDate], [PDFPath], [IsFinishGood], [RevisedConditionId], [CustomerReference], [Level1], [Level2], [Level3], [Level4], [AssignDate], [ReceivingCustomerWorkId], [ExpertiseId], [RevisedItemmasterid], [RevisedPartNumber], [RevisedPartDescription], [IsTraveler], [AllowInvoiceBeforeShipping], [WOFPrintDate], [CurrentSerialNumber], [StocklineCost], [TendorStocklineCost], [RepairOrderId], [RONumber], [RevisedSerialNumber], [IsROCreated], [PartNumber], [PartDescription], [WorkOrderStatus], [Priority], [WorkOrderStage], [ManufacturerName], [TechName], [EmployeeStation], [PublicationNo],[NOTES]
 				FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND IsDeleted = 0 ORDER BY ID 	
 
 								

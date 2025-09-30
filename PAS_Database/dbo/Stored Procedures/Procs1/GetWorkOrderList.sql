@@ -32,7 +32,7 @@
 	15   24/07/2025   Devendra Shekh		added WOPartId for MPN View
 	16   26/08/2025   Moin Bloch		    added RevisedSerialNumber 
 	17   08/09/2025   Bhargav Saliya		Get ShipDate,IsSubWo Flage From MPN Table and remove the Outer Join
-
+	18   24/09/2025   Rajesh Gami			Added MPN Notes in return field value (Also added parameter as well)
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
 	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
@@ -81,7 +81,8 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @ManufacturerName VARCHAR(50)=NULL,
 	 @IsSubWorkOrder VARCHAR(50) = NULL,
 	 @MPNQuoteStatus VARCHAR(50) = NULL,
-	 @ApprovedAmount VARCHAR(50) = NULL
+	 @ApprovedAmount VARCHAR(50) = NULL,
+	 @Notes NVARCHAR(MAX) = NULL
 
 AS  
 BEGIN  
@@ -226,7 +227,8 @@ BEGIN
 			[IsSubWorkOrder] NVARCHAR(10),
 			[MPNQuoteStatus] NVARCHAR(100),
 			[ApprovedAmount] NVARCHAR(100),
-			[WOPartId] NVARCHAR(100)
+			[WOPartId] NVARCHAR(100),
+			[Notes] NVARCHAR(MAX),
 		);
 
 		-- 2. Create the index for faster filtering/sorting
@@ -296,7 +298,8 @@ BEGIN
 			UPPER(wqs.[Description]) AS [MPNQuoteStatus],
 			CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate] , 0) ELSE  
 			ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
-			WPN.[ID] AS [WOPartId]
+			WPN.[ID] AS [WOPartId],
+			ISNULL(WPN.Notes,'') as Notes
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
@@ -320,7 +323,7 @@ BEGIN
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
 				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
 				[CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus],
-				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId]
+				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId],Notes
 			FROM Result
 		),
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
@@ -332,7 +335,7 @@ BEGIN
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
 			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
 			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
-			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId]
+			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes
 		FROM QuoteResult
         WHERE (  
         (@GlobalFilter <>'' AND 
@@ -358,6 +361,7 @@ BEGIN
 			([CustomerReference] LIKE '%' +@GlobalFilter+'%') OR
 			([MPNQuoteStatus] LIKE '%' +@GlobalFilter+'%') OR
 			([ApprovedAmount] LIKE '%' +@GlobalFilter+'%') OR
+			([Notes] LIKE '%' +@GlobalFilter+'%') OR  
 			([IsSubWorkOrder] LIKE '%' + @GlobalFilter +'%')
 			)
 		)  
@@ -389,6 +393,7 @@ BEGIN
         (ISNULL(@CustRef,'') ='' OR [CustomerReference] LIKE '%' + @CustRef+'%') AND
         (ISNULL(@MPNQuoteStatus,'') ='' OR [MPNQuoteStatus] LIKE '%' + @MPNQuoteStatus+'%') AND
         (ISNULL(@ApprovedAmount,'') ='' OR [ApprovedAmount] LIKE '%' + @ApprovedAmount+'%') AND
+		(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes+'%') AND  
 		(ISNULL(@IsSubWorkOrder,'') ='' OR [IsSubWorkOrder] LIKE '%' + @IsSubWorkOrder + '%') 
 
         ))  
@@ -472,7 +477,9 @@ BEGIN
         CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBER')  THEN [SerialNumber] END DESC, 
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDSERIALNUMBER') THEN [RevisedSerialNumber] END DESC, 		
         CASE WHEN (@SortOrder=-1 AND @SortColumn='MPNQUOTESTATUS')  THEN [MPNQuoteStatus] END DESC,  
-        CASE WHEN (@SortOrder=-1 AND @SortColumn='APPROVEDAMOUNT')  THEN [ApprovedAmount] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='APPROVEDAMOUNT')  THEN [ApprovedAmount] END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN Notes END DESC,  
+		CASE WHEN (@SortOrder=1 AND @SortColumn='Notes')  THEN Notes END ASC,  
         CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERREFERENCE')  THEN [CustomerReference] END DESC  
   
         OFFSET @RecordFrom ROWS   
@@ -552,8 +559,10 @@ BEGIN
 			  MAX(CASE WHEN ISNULL(WPN.[RevisedSerialNumber], '') != '' THEN UPPER(WPN.[RevisedSerialNumber]) ELSE UPPER(WPN.[CurrentSerialNumber]) END) AS [RevisedSerialNumber],			  
 			  MAX(UPPER(wqs.[Description])) AS [MPNQuoteStatus],
 			  MAX(CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate], 0) ELSE  
-					ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) ) 'ApprovedAmount'
+					ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) ) 'ApprovedAmount',
 					--ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR)) 'ApprovedAmount'
+
+				 MAX(WPN.Notes)  AS 'Notes'
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]
@@ -606,7 +615,8 @@ BEGIN
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([SerialNumber]) END)  AS 'SerialNumber',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([RevisedSerialNumber]) END)  AS 'RevisedSerialNumber',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([MPNQuoteStatus]) END)  AS 'MPNQuoteStatus',
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ApprovedAmount]) END)  AS 'ApprovedAmount'
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ApprovedAmount]) END)  AS 'ApprovedAmount',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([Notes]) END)  AS 'Notes'
 		  INTO #finalTemp FROM #TempWOPartResult 
 		  GROUP BY	 [WorkOrderNum], [WorkOrderId], [CustomerId], [CustomerName], [CustomerType], [OpenDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],[IsActive], [IsDeleted]
 					,[WorkOrderType], [WorkOrderType], [EstimatedCompletionDateType],  [EstimatedCompletionDate], [IsSubWorkOrder], [RowStatus]
@@ -618,7 +628,8 @@ BEGIN
               CustomerRequestDateType, PromisedDate, PromisedDateType, EstimatedShipDate, EstimatedShipDateType,   
               [EstimatedCompletionDate], [EstimatedCompletionDateType], [IsSubWorkOrder], UPPER([TechName]) [TechName], UPPER([TechNameType]) [TechNameType], UPPER([TechStation]) [TechStation], UPPER([TechStationType]) [TechStationType], 
 			  UPPER([CustomerReference]) [CustomerReference], UPPER([CustomerReferenceType]) [CustomerReferenceType], [SerialNumber],[RevisedSerialNumber], [MPNQuoteStatus], 
-			  CASE WHEN [MPNQuoteStatus] = 'Multiple' THEN [ApprovedAmount] WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount]
+			  CASE WHEN [MPNQuoteStatus] = 'Multiple' THEN [ApprovedAmount] WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount],
+			  CASE WHEN UPPER([Notes]) ='MULTIPLE' THEN UPPER([Notes]) ELSE [Notes] END AS [Notes]
           FROM #finalTemp M   
           ),  
          ResultCount AS(SELECT COUNT([WorkOrderId]) AS totalItems FROM Result)  
@@ -645,6 +656,7 @@ BEGIN
            ([CustomerReference] LIKE '%' + @GlobalFilter +'%') OR
 		   ([MPNQuoteStatus] LIKE '%' +@GlobalFilter+'%') OR
 		   ([ApprovedAmount] LIKE '%' +@GlobalFilter+'%') OR
+		   	([Notes] LIKE '%' +@GlobalFilter+'%') OR
 		   ([IsSubWorkOrder] LIKE '%' + @GlobalFilter +'%')
            ))  
            OR     
@@ -676,6 +688,7 @@ BEGIN
            (ISNULL(@CustRef,'') ='' OR [CustomerReference] LIKE '%' + @CustRef+'%') AND  
            (ISNULL(@MPNQuoteStatus,'') ='' OR [MPNQuoteStatus] LIKE '%' + @MPNQuoteStatus+'%') AND  
            (ISNULL(@ApprovedAmount,'') ='' OR [ApprovedAmount] LIKE '%' + @ApprovedAmount+'%') AND  
+		   (ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes+'%') AND  
 		   (ISNULL(@IsSubWorkOrder,'') ='' OR [IsSubWorkOrder] LIKE '%' + @IsSubWorkOrder + '%') 
 
            ))  
@@ -761,6 +774,8 @@ BEGIN
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDSERIALNUMBER')  THEN [RevisedSerialNumber] END DESC, 
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='MPNQUOTESTATUS')  THEN [MPNQuoteStatus] END DESC,
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='APPROVEDAMOUNT')  THEN [ApprovedAmount] END DESC,
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='Notes')  THEN [Notes] END ASC,  
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN [Notes] END DESC,
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSUBWORKORDER')  THEN [IsSubWorkOrder] END DESC
   
          OFFSET @RecordFrom ROWS   

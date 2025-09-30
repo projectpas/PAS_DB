@@ -4265,6 +4265,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateEmployeeCommissionFlagById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterNonStockAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteNonStockItemMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetNonStockItemDataByID.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

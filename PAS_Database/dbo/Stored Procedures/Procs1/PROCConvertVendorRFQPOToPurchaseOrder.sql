@@ -25,6 +25,7 @@
 	10   30/07/2024  Moin Bloch        Fixed Freight And Charge bug
 	11   30/07/2024  Shrey Chandegara  Fixed Freight And Charge bug
 	12   11/09/2024  Amit Ghediya      Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate while Convert VendorRFQPO To PurchaseOrder.
+	13   25/09/2025  Devendra Shekh	   Added Changes for @IsFromRFQ to Update [VendorRFQPart]
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
@@ -36,6 +37,7 @@ CREATE      PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]
 @MasterCompanyId int,    
 @CodeTypeId int,    
 @Opr int,    
+@IsFromRFQ bit,    
 @Result int OUTPUT    
 AS    
 BEGIN    
@@ -313,7 +315,18 @@ BEGIN
      END     
          
 
-     SELECT @Result = IDENT_CURRENT('PurchaseOrder');             
+     SELECT @Result = IDENT_CURRENT('PurchaseOrder');     
+	 
+	 IF(ISNULL(@IsFromRFQ, 0) = 1)
+	 BEGIN
+		DECLARE @POModuleId INT, @VRFQPOModuleId INT;
+		SELECT @POModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
+		SELECT @VRFQPOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
+
+		UPDATE [dbo].[PurchaseOrderPart] SET [VendorListPrice] = [UnitCost] WHERE [PurchaseOrderId] = @Result AND [MasterCompanyId] = @MasterCompanyId;
+		UPDATE [dbo].[VendorRFQPart] SET [ModuleId] = @POModuleId, [ReferenceId] = @Result WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND [ModuleId] = @VRFQPOModuleId AND [MasterCompanyId] = @MasterCompanyId;
+	 END
+
     END    
     ELSE    
     BEGIN         
@@ -726,8 +739,8 @@ BEGIN
         FROM [dbo].[AllShipVia] WITH(NOLOCK) WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;    
     
      END    
-    END        
-    SELECT @Result = @PurchaseOrderId;    
+    END	
+	SELECT @Result = @PurchaseOrderId;    
    END    
   END    
  END    

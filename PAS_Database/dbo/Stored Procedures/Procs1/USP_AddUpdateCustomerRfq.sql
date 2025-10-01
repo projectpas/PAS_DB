@@ -16,6 +16,7 @@
 	3	 25-07-2025  Devendra Shekh	 added IsMRO Field
 	4	 07-08-2025  Devendra Shekh	 changed [RfqId] Type to nvarchar
 	5    14/02/2023  Amit Ghediya    update for auto Quote
+    6    26/09/2025	 Devendra Shekh  Modified (Added Merge Insert/Update Changes)
      
 -- EXEC USP_AddUpdateCustomerRfq
 ************************************************************************/
@@ -31,81 +32,113 @@ BEGIN
 	BEGIN TRANSACTION;
 	BEGIN TRY
 
-					DECLARE @CustomerRfqId BIGINT;
+					--DECLARE @CustomerRfqId BIGINT;
 		
 		------------------- Customer RFQ add ---------------------------------------------------------
-					IF OBJECT_ID(N'tempdb..#tmpCustomerRfq') IS NOT NULL
-					BEGIN
-						DROP TABLE #tmpCustomerRfq
-					END
+					--IF OBJECT_ID(N'tempdb..#tmpCustomerRfq') IS NOT NULL
+					--BEGIN
+					--	DROP TABLE #tmpCustomerRfq
+					--END
 			
-					CREATE TABLE #tmpCustomerRfq
-					(
-						ID BIGINT NOT NULL IDENTITY, 
-						[RfqId] NVARCHAR(200) NULL,
-						[RfqCreatedDate] [DATETIME2](7) NULL,
-						[IntegrationPortalId] [int] NULL,
-						[Type] [VARCHAR](50) NULL,
-						[Notes] [VARCHAR](max) NULL,
-						[BuyerName] [VARCHAR](250) NULL,
-						[BuyerCompanyName] [VARCHAR](250) NULL,
-						[BuyerAddress] [VARCHAR](250) NULL,
-						[BuyerCity] [VARCHAR](50) NULL,
-						[BuyerCountry] [VARCHAR](50) NULL,
-						[BuyerState] [VARCHAR](50) NULL,
-						[BuyerZip] [VARCHAR](50) NULL,
-						[LinePartNumber] [VARCHAR](250) NULL,
-						[LineDescription] [VARCHAR](250) NULL,
-						[CreatedBy] [VARCHAR](50) NOT NULL,
-						[CreatedDate] [datetime2](7) NOT NULL,
-						[UpdatedBy] [VARCHAR](50) NOT NULL,
-						[UpdatedDate] [DATETIME2](7) NOT NULL,
-						[IsActive] [BIT] NOT NULL,
-						[IsDeleted] [BIT] NOT NULL,
-						[AltPartNumber] [VARCHAR](250) NULL,
-						[Quantity] [int] NULL,
-						[Condition] [varchar](50) NULL,
-						[IsMRO] [bit] NULL
-					)
-					print 'STEP 1'
-					INSERT INTO #tmpCustomerRfq ([RfqId] ,[RfqCreatedDate] ,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
-						[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-						[CreatedBy] ,[CreatedDate] ,[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[AltPartNumber],[Quantity],[Condition],[IsMRO])
-					SELECT [RfqId] 
-					,RfqCreatedDate
-					--,CASE WHEN [RfqCreatedDate] IS NOT NULL AND [RfqCreatedDate] != '' THEN CAST([RfqCreatedDate] AS DATETIME2) ELSE NULL END 
-					,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
-						   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-						   @CreatedBy ,GETUTCDATE() ,@CreatedBy ,GETUTCDATE() ,1 ,0,AltPartNumber,Quantity,Condition,[IsMRO]
-					FROM @tbl_CustomerRfqType;
-				print 'STEP 2'
+					--CREATE TABLE #tmpCustomerRfq
+					--(
+					--	ID BIGINT NOT NULL IDENTITY, 
+					--	[RfqId] NVARCHAR(200) NULL,
+					--	[RfqCreatedDate] [DATETIME2](7) NULL,
+					--	[IntegrationPortalId] [int] NULL,
+					--	[Type] [VARCHAR](50) NULL,
+					--	[Notes] [VARCHAR](max) NULL,
+					--	[BuyerName] [VARCHAR](250) NULL,
+					--	[BuyerCompanyName] [VARCHAR](250) NULL,
+					--	[BuyerAddress] [VARCHAR](250) NULL,
+					--	[BuyerCity] [VARCHAR](50) NULL,
+					--	[BuyerCountry] [VARCHAR](50) NULL,
+					--	[BuyerState] [VARCHAR](50) NULL,
+					--	[BuyerZip] [VARCHAR](50) NULL,
+					--	[LinePartNumber] [VARCHAR](250) NULL,
+					--	[LineDescription] [VARCHAR](250) NULL,
+					--	[CreatedBy] [VARCHAR](50) NOT NULL,
+					--	[CreatedDate] [datetime2](7) NOT NULL,
+					--	[UpdatedBy] [VARCHAR](50) NOT NULL,
+					--	[UpdatedDate] [DATETIME2](7) NOT NULL,
+					--	[IsActive] [BIT] NOT NULL,
+					--	[IsDeleted] [BIT] NOT NULL,
+					--	[AltPartNumber] [VARCHAR](250) NULL,
+					--	[Quantity] [int] NULL,
+					--	[Condition] [varchar](50) NULL,
+					--	[IsMRO] [bit] NULL
+					--)
+					--print 'STEP 1'
+					--INSERT INTO #tmpCustomerRfq ([RfqId] ,[RfqCreatedDate] ,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+					--	[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
+					--	[CreatedBy] ,[CreatedDate] ,[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[AltPartNumber],[Quantity],[Condition],[IsMRO])
+					--SELECT [RfqId] 
+					--,RfqCreatedDate
+					----,CASE WHEN [RfqCreatedDate] IS NOT NULL AND [RfqCreatedDate] != '' THEN CAST([RfqCreatedDate] AS DATETIME2) ELSE NULL END 
+					--,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+					--	   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
+					--	   @CreatedBy ,GETUTCDATE() ,@CreatedBy ,GETUTCDATE() ,1 ,0,AltPartNumber,Quantity,Condition,[IsMRO]
+					--FROM @tbl_CustomerRfqType;
+				--print 'STEP 2'
 	  ------------------------------Delete record if exists---------------------------------------------------------------------
-					DELETE c
-						FROM [dbo].[CustomerRfq] c 
-						INNER JOIN @tbl_CustomerRfqType tbl  ON c.RfqId=tbl.RfqId AND c.IntegrationPortalId = tbl.IntegrationPortalId
-						WHERE c.MasterCompanyId = @MasterCompanyId
+					--DELETE c
+					--	FROM [dbo].[CustomerRfq] c 
+					--	INNER JOIN @tbl_CustomerRfqType tbl  ON c.RfqId=tbl.RfqId AND c.IntegrationPortalId = tbl.IntegrationPortalId
+					--	WHERE c.MasterCompanyId = @MasterCompanyId
 	 --------------------------- Insert into Rfq table --------------------------------------------------
-				print 'STEP 3'
+				--print 'STEP 3'
 				--SELECT * FROM #tmpCustomerRfq
-					INSERT INTO [dbo].[CustomerRfq]
-							   ([RfqId] ,[RfqCreatedDate],[IntegrationPortalId] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
-								[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] , 
-								[MasterCompanyId] ,		
-								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[AltPartNumber],[Quantity],[Condition],[IsMRO])
-					SELECT [RfqId] ,[RfqCreatedDate],[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
-						   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-						   @MasterCompanyId ,
-						   @CreatedBy,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0,AltPartNumber,Quantity,Condition,[IsMRO]
-					 FROM #tmpCustomerRfq;
-							print 'STEP 4'
-					SELECT @CustomerRfqId = SCOPE_IDENTITY();
+					--INSERT INTO [dbo].[CustomerRfq]
+					--		   ([RfqId] ,[RfqCreatedDate],[IntegrationPortalId] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+					--			[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] , 
+					--			[MasterCompanyId] ,		
+					--			[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[AltPartNumber],[Quantity],[Condition],[IsMRO])
+					--SELECT [RfqId] ,[RfqCreatedDate],[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+					--	   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
+					--	   @MasterCompanyId ,
+					--	   @CreatedBy,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0,AltPartNumber,Quantity,Condition,[IsMRO]
+					-- FROM #tmpCustomerRfq;
+					--		print 'STEP 4'
+					--SELECT @CustomerRfqId = SCOPE_IDENTITY();
 
 					--------------------------------Update record if exists---------------------------------------------------------------------
-					UPDATE rfqq SET rfqq.CustomerRfqId = rfq.CustomerRfqId
-						FROM [dbo].[CustomerRfqQuote] rfqq WITH(NOLOCK)
-						INNER JOIN [CustomerRfq] rfq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
-						WHERE rfqq.MasterCompanyId = @MasterCompanyId
+					--UPDATE rfqq SET rfqq.CustomerRfqId = rfq.CustomerRfqId
+					--	FROM [dbo].[CustomerRfqQuote] rfqq WITH(NOLOCK)
+					--	INNER JOIN [CustomerRfq] rfq WITH(NOLOCK) ON rfqq.RfqId=rfq.RfqId 
+					--	WHERE rfqq.MasterCompanyId = @MasterCompanyId
 
+					
+					MERGE INTO [dbo].[CustomerRfq] AS target
+					USING @tbl_CustomerRfqType AS source
+						ON target.[RfqId] = source.[RfqId] AND target.[IntegrationPortalId] = source.[IntegrationPortalId] AND target.[MasterCompanyId] = @MasterCompanyId 
+					
+					-- If a match is found, update the existing row
+					WHEN MATCHED THEN
+						UPDATE SET
+								   target.[Type] = source.[Type],
+								   target.[Notes] = source.[Notes],
+								   target.[BuyerName] = source.[BuyerName],
+								   target.[BuyerCompanyName] = source.[BuyerCompanyName],
+								   target.[BuyerAddress] = source.[BuyerAddress],
+								   target.[BuyerCity] = source.[BuyerCity],
+								   target.[BuyerCountry] = source.[BuyerCountry],
+								   target.[BuyerState] = source.[BuyerState],
+								   target.[BuyerZip] = source.[BuyerZip],
+								   target.[LinePartNumber] = source.[LinePartNumber],
+								   target.[LineDescription] = source.[LineDescription],
+								   target.[UpdatedBy] = @CreatedBy,
+								   target.[UpdatedDate] = GETUTCDATE(),
+								   target.[AltPartNumber] = source.[AltPartNumber],
+								   target.[Quantity] = source.[Quantity],
+								   target.[Condition] = source.[Condition],
+								   target.[IsMRO] = source.[IsMRO]
+					
+					-- If no match is found, insert a new row
+					WHEN NOT MATCHED BY TARGET THEN
+						INSERT ([RfqId],[RfqCreatedDate],[IntegrationPortalId],[Type],[Notes],[BuyerName],[BuyerCompanyName],[BuyerAddress],[BuyerCity],[BuyerCountry],[BuyerState],[BuyerZip],[LinePartNumber],[LineDescription],
+								[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartNumber],[Quantity],[Condition],[IsMRO])
+						VALUES (source.[RfqId],source.[RfqCreatedDate],source.[IntegrationPortalId],source.[Type],source.[Notes],source.[BuyerName],source.[BuyerCompanyName],source.[BuyerAddress],source.[BuyerCity],source.[BuyerCountry],source.[BuyerState],
+								source.[BuyerZip],source.[LinePartNumber],source.[LineDescription],@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,source.[AltPartNumber],source.[Quantity],source.[Condition],source.[IsMRO]);
 
 					IF(ISNULL(@IsFromIls,0) = 0)
 					BEGIN

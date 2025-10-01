@@ -16,7 +16,8 @@
   exec [dbo].[USP_GetSalesPersonActivityTypeByCustomerId] @CustomerId=4445
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSalesPersonActivityTypeByCustomerId]
-    @CustomerId BIGINT
+    @CustomerId BIGINT,
+    @IsDeleted BIT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -51,7 +52,8 @@ BEGIN
 		INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = c.SalesPersonActivityTypeId
 		LEFT JOIN [Percent] P_REV WITH (NOLOCK) ON P_REV.PercentId = c.RevenuePercentageId
 		LEFT JOIN [Percent] P_MAR WITH (NOLOCK) ON P_MAR.PercentId = c.MarginPercentageId
-		WHERE c.CustomerId = @CustomerId;
+		WHERE c.CustomerId = @CustomerId
+		AND c.IsActive = 1 AND c.IsDeleted = @IsDeleted;
 	END TRY
 	BEGIN CATCH
 	DECLARE @ErrorLogID INT

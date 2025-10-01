@@ -4267,6 +4267,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteNonStockItemMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetNonStockItemDataByID.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetCustomerPOFulfillingReport.sql" />
+    <Build Include="dbo\Stored Procedures\ConvertSalesQuoteToSalesOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

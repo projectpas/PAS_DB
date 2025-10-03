@@ -26,6 +26,7 @@
 	13   01-09-2025  Amit Ghediya		 Modified (Update RefrenceQuoteNumber field selection)
 	14   16-09-2025  Devendra Shekh		 Modified (Changes for StockLineId select, reduced Query Time)
 	15   18-09-2025  Devendra Shekh		 Modified (UTC DateTime Issue Resolved)
+	16   03-10-2025  Devendra Shekh		 Modified (added new Param : @Condition, @Quantity)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -57,7 +58,9 @@ CREATE      PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@QuotedBy VARCHAR(50)=NULL,
 	@QuotedDate DATETIME=null,
 	@RefrenceQuoteNumber VARCHAR(50)=NULL,
-	@UserEmployeeId BIGINT = NULL
+	@UserEmployeeId BIGINT = NULL,
+	@Condition VARCHAR(250) = NULL,
+	@Quantity INT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -275,6 +278,8 @@ BEGIN
 							(QuotedBy like '%' +@GlobalFilter+'%') OR
 							(QuotedDate like '%' +@GlobalFilter+'%') OR
 							(EmployeeName like '%'+@GlobalFilter+'%') OR
+							(Condition like '%'+@GlobalFilter+'%') OR
+							(CAST(Quantity AS varchar(20)) like '%'+@GlobalFilter+'%') OR
 							(RefrenceQuoteNumber like '%'+@GlobalFilter+'%')
 							))
 							OR   
@@ -297,6 +302,8 @@ BEGIN
 							(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and
 							(IsNull(@EmployeeName,'') ='' OR EmployeeName like '%'+ @EmployeeName +'%') and
 							(IsNull(@RefrenceQuoteNumber,'') ='' OR RefrenceQuoteNumber like '%'+ @RefrenceQuoteNumber +'%') and
+							(IsNull(@Condition,'') ='' OR Condition like '%'+ @Condition +'%') and
+							(IsNull(@Quantity,'') ='' OR CAST(Quantity AS VARCHAR(20)) like '%' + CAST(@Quantity AS VARCHAR(20)) + '%') and 
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
 							)),
@@ -326,6 +333,8 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='Contact')  THEN Contact END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='EmployeeName')  THEN EmployeeName END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RefrenceQuoteNumber')  THEN RefrenceQuoteNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='Condition')  THEN Condition END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='Quantity')  THEN Quantity END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
@@ -346,7 +355,9 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='PartDescription')  THEN PnDescription END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Contact')  THEN Contact END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='EmployeeName')  THEN EmployeeName END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='RefrenceQuoteNumber')  THEN RefrenceQuoteNumber END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='RefrenceQuoteNumber')  THEN RefrenceQuoteNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='Condition')  THEN Condition END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='Quantity')  THEN Quantity END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 

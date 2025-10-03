@@ -161,7 +161,7 @@ BEGIN
 			BEGIN
 				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
-				ISNULL(wobii.GrandTotal, 0) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				(ISNULL(wobi.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
 				INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId
@@ -182,7 +182,8 @@ BEGIN
 				;WITH Result AS (	
 					SELECT DISTINCT
 					IM.PartNumber, IM.PartDescription, CDTN.[Description] AS Condition, IM.ItemGroup,
-					ISNULL(SUM(SOBIII.PartCost),0) + ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0) + ISNULL(SUM(SOBIII.MiscCharges),0) AS 'GrandTotal',
+					--ISNULL(SUM(SOBIII.PartCost),0) + ISNULL(SUM(SOBIII.SalesTax),0) + ISNULL(SUM(SOBIII.OtherTax),0) + ISNULL(SUM(SOBIII.MiscCharges),0) AS 'GrandTotal',
+					ISNULL(SUM(SOBIII.GrandTotal),0) - (ISNULL(SUM(SOBIII.SalesTax), 0) + ISNULL(SUM(SOBIII.OtherTax), 0)) AS 'GrandTotal',
 					cust.Name AS CustomerName, so.SalesOrderNumber, UPPER(SO.SalesPersonName) 'SalesPerson'
 					FROM DBO.BillingInvoicing SOBI WITH (NOLOCK)
 					INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0

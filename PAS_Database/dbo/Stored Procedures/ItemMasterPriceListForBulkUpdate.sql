@@ -241,7 +241,7 @@ BEGIN
 					INSERT INTO #tmpRFQ
 					EXEC dbo.USP_GetSuggestedPriceByPartNumber 
 						@ItemMasterId = @loopItemMasterId, 
-						@PartNumner = @loopPartNumber, 
+						@PartNumber = @loopPartNumber, 
 						@ConditionId = NULL, 
 						@MasterCompanyId = @MasterCompanyId;
 									PRINT 'end'

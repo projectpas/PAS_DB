@@ -12,10 +12,11 @@
  **	2		13-Aug-2025		Devendra Shekh			Added Changes for Suggestion Price
  **	3		15-Aug-2025		Devendra Shekh			Modified for Price Changes, Added QuoteSendReviewId
  **	4		25-Sep-2025		Devendra Shekh		    Added Changes for [ItemMasterId] and [StockLineId] 
+ ** 5       03-Oct-2025     Devendra Shekh			Added [IsCustomerStock] for Stk
  
 EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 880
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
+CREATE     PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
 @CustomerRfqId BIGINT = NULL
 AS
 BEGIN
@@ -82,7 +83,7 @@ SET NOCOUNT ON
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 				FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0
+				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 			)
 			INSERT INTO #tmpCustomerRfqPartMapping

@@ -26,11 +26,11 @@
 	13   01-09-2025  Amit Ghediya		 Modified (Update RefrenceQuoteNumber field selection)
 	14   16-09-2025  Devendra Shekh		 Modified (Changes for StockLineId select, reduced Query Time)
 	15   18-09-2025  Devendra Shekh		 Modified (UTC DateTime Issue Resolved)
-	16   03-10-2025  Devendra Shekh		 Modified (added new Param : @Condition, @Quantity)
+	16   03-10-2025  Devendra Shekh		 Modified (added new Param : @Condition, @Quantity) And Added [IsCustomerStock] for Stk
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetReceivedRfqList]
+CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@PageSize INT,
 	@PageNumber INT,
 	@SortColumn VARCHAR(50)=null,
@@ -120,7 +120,7 @@ BEGIN
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 				FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0
+				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 			),
 			Result AS(

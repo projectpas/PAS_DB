@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [ItemMasterPriceListForBulkUpdate]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used ItemMasterPriceListForBulkUpdate
@@ -15,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    30/08/2024  Ekta Chandegra     Created
     2    15/09/2025  Rajesh Gami		Getting only selected ItemMaster data if any
-	3    23/09/2025  Rajesh Gami		Added SuggestedPrice 
+	3    23/09/2025  Rajesh Gami		Added SuggestedPrice (Added New SP)
 --exec dbo.ItemMasterPriceListForBulkUpdate @ItemMasterId=0,@MasterCompanyId=1
 
 ************************************************************************/
@@ -61,11 +62,16 @@ BEGIN
 			POQuotePercentId BIGINT
 		);
 
-	INSERT INTO #RFQHistory
-		EXEC dbo.USP_GetRFQHistoryByPartNumber 
-			@PartNumber = @partNumber, 
-			@ConditionId = NULL, 
-			@MasterCompanyId = @MasterCompanyId;
+		IF(@ItemMasterId >0)
+		BEGIN
+			INSERT INTO #RFQHistory
+			EXEC dbo.USP_GetSuggestedPriceByPartNumber 
+				@ItemMasterId = @ItemMasterId, 
+				@PartNumber = @partNumber, 
+				@ConditionId = NULL, 
+				@MasterCompanyId = @MasterCompanyId;
+		END
+
 
 
 		SELECT DISTINCT 
@@ -203,7 +209,7 @@ BEGIN
 				CREATE TABLE #tmpRFQ
 				(
 					ID BIGINT,
-					PartNumber VARCHAR(50),
+					PartNumber VARCHAR(200),
 					[Condition] VARCHAR(50),
 					PurchaseSalePrice DECIMAL(18,2),
 					SOUnitPrice DECIMAL(18,2),
@@ -219,26 +225,27 @@ BEGIN
 					POQuotePercentId BIGINT
 				);
 
-				DECLARE @loopPartNumber VARCHAR(50);
-
+				DECLARE @loopPartNumber VARCHAR(200);
+				DECLARE @loopItemMasterId BIGINT;
 				
 				DECLARE curPart CURSOR FOR
-					SELECT DISTINCT PartNumber
+					SELECT DISTINCT ItemMasterId,PartNumber
 					FROM #tmpPriceMaster  WHERE ISNULL(PartNumber, '') <> ''
 
 				OPEN curPart;
-				FETCH NEXT FROM curPart INTO @loopPartNumber;
+				FETCH NEXT FROM curPart INTO @loopItemMasterId,@loopPartNumber;
 
 				WHILE @@FETCH_STATUS = 0
 				BEGIN
-					
+					PRINT 'Start'
 					INSERT INTO #tmpRFQ
-					EXEC dbo.USP_GetRFQHistoryByPartNumber 
-						@PartNumber = @loopPartNumber, 
+					EXEC dbo.USP_GetSuggestedPriceByPartNumber 
+						@ItemMasterId = @loopItemMasterId, 
+						@PartNumner = @loopPartNumber, 
 						@ConditionId = NULL, 
 						@MasterCompanyId = @MasterCompanyId;
-
-					FETCH NEXT FROM curPart INTO @loopPartNumber;
+									PRINT 'end'
+					FETCH NEXT FROM curPart INTO @loopItemMasterId,@loopPartNumber;
 				END
 
 				CLOSE curPart;

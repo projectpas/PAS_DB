@@ -11,6 +11,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** --   --------    -------				--------------------------------
 ** 1											
 ** 2   26-08-2025  Bhargav Saliya       Added Case for @IsScrapCertification
+** 3   03-10-2025  Amit Ghediya         Added Case for @IsemployeeCertifyingStaff
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
@@ -24,8 +25,8 @@ CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByMS]
 @Idlist VARCHAR(max) = '0',
 @ManagementStructureId bigint = 0,
 @masterCompanyId bigint,
-@IsScrapCertification BIT
-
+@IsScrapCertification BIT,
+@IsemployeeCertifyingStaff BIT
 AS
 BEGIN
 
@@ -97,6 +98,17 @@ BEGIN
 				SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
 				FROM dbo.Employee E WITH(NOLOCK) 
 				WHERE E.MasterCompanyId = @masterCompanyId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%')) AND E.IsScrapCertification = @IsScrapCertification
+				UNION 
+				SELECT DISTINCT  EmployeeId AS Value,FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee  WITH(NOLOCK) 
+					WHERE EmployeeId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+					ORDER BY Label
+			END
+			ELSE IF(@IsemployeeCertifyingStaff = 1)
+			BEGIN
+				SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee E WITH(NOLOCK) 
+				WHERE E.MasterCompanyId = @masterCompanyId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%')) AND E.employeeCertifyingStaff = @IsemployeeCertifyingStaff
 				UNION 
 				SELECT DISTINCT  EmployeeId AS Value,FirstName + ' ' + LastName AS Label
 				FROM dbo.Employee  WITH(NOLOCK) 

@@ -12,11 +12,13 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
     1    11/09/2025   MOIN BLOCH     Created  
-	2    25/09/2025  MOIN BLOCH      added GroupById
+	2    25/09/2025   MOIN BLOCH     added GroupById
+	3    03/10/2025   MOIN BLOCH	 Updated Datatype of ExecutionDate & Added New Fields
 --  EXEC [dbo].[USP_GetNextRunStocklineAsofNowJobDetails] 1
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
-@MasterCompanyId INT
+@MasterCompanyId INT=NULL,
+@ReportType INT=NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -26,7 +28,7 @@ BEGIN
 		DECLARE @Weekly INT = 2;
 		DECLARE @None INT = 0;
 		DECLARE @IsWeeklyOrMonthly INT= NULL;
-		DECLARE @ExecutionDate DATE = NULL;
+		DECLARE @ExecutionDate INT = NULL;
 		DECLARE @RunDate DATE = NULL;
 		DECLARE @StartDate DATE = NULL;	
 		DECLARE @NextRunDate DATE = NULL;
@@ -40,6 +42,8 @@ BEGIN
 		DECLARE @Location NVARCHAR(500) = NULL
 		DECLARE @ManagementStructureId BIGINT = NULL
 		DECLARE @GroupById INT = 0 
+		DECLARE @ViewType VARCHAR(20) = NULL
+		DECLARE @IsInvoice BIT = 0,@IsCredits BIT = 0,@IsDeposit BIT = 0,@IsUnappliedAmounts BIT = 0
 
 		SELECT @Id = [Id],
 		  	   @IsWeeklyOrMonthly = ISNULL([IsWeeklyOrMonthly],0),
@@ -62,15 +66,21 @@ BEGIN
 						 ISNULL(ShelfIds, '') + '!' + 
 						 ISNULL(BinIds, ''), 
 			  @ManagementStructureId = [ManagementStructureId],
-			  @GroupById = ISNULL([GroupById],0)
+			  @GroupById = ISNULL([GroupById],0),
+			  @ViewType = [ViewType],
+			  @IsInvoice =  ISNULL([IsInvoice],0), 
+			  @IsCredits =  ISNULL([IsCredits],0), 
+			  @IsDeposit =  ISNULL([IsDeposit],0), 
+			  @IsUnappliedAmounts =  ISNULL([IsUnappliedAmounts],0)
 		FROM [dbo].[AsOfDateSettings] WITH(NOLOCK)
-		WHERE [MasterCompanyId] = @MasterCompanyId
+	   WHERE [MasterCompanyId] = @MasterCompanyId
+		 AND [ReportType] = @ReportType  
 
 	    IF(@Id > 0)
 		BEGIN
 			IF(@IsWeeklyOrMonthly = @Monthly)
 			BEGIN
-				SET @DayOfMonth = DAY(@ExecutionDate) 	
+				SET @DayOfMonth = @ExecutionDate 	
 				SET @RunDate = DATEFROMPARTS(YEAR(GETUTCDATE()), MONTH(GETUTCDATE()), @DayOfMonth);
 				SET @StartDate = DATEADD(MONTH, -1, @RunDate);
 				SET @NextMonthDate = DATEADD(MONTH, 1, @RunDate);
@@ -108,9 +118,14 @@ BEGIN
 			   @MSLevel [MSLevel],
 			   @Location [Location],
 			   '' [TagType],			   
-			   1 [IsCustomerStock],
+			   1  [IsCustomerStock],
 			   @ManagementStructureId [ManagementStructureId],
-			   @GroupById [GroupById]
+			   @GroupById [GroupById],
+			   @ViewType  [ViewType],
+			   @IsInvoice [IsInvoice], 
+			   @IsCredits [IsCredits], 
+			   @IsDeposit [IsDeposit], 
+			   @IsUnappliedAmounts [IsUnappliedAmounts]
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  

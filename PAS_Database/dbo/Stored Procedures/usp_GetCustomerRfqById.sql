@@ -12,6 +12,7 @@
  **	2		07-Aug-2025		Devendra Shekh		Added [CustomerRfqPartMapping] select
  **	3		14-Aug-2025		Bhargav Saliya		Added [PriorityId] and [ExpirationDate] 
  **	4		25-Sep-2025		Devendra Shekh		Added Changes for [ItemMasterId] and [StockLineId] 
+ ** 5       03-Oct-2025     Devendra Shekh		Added [IsCustomerStock] for Stk
  
 EXECUTE [dbo].[usp_GetCustomerRFQbyId] 961
 **************************************************************/  
@@ -49,7 +50,7 @@ SET NOCOUNT ON
 			INTO #StkResults
 			FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 			INNER JOIN #ItemResults RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-			WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0
+			WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
 			GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 
 			SELECT	[CustomerRfqId], [RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 

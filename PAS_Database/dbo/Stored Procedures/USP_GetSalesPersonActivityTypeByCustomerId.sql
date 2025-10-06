@@ -13,7 +13,7 @@
   ** --   --------		-------			--------------------------------          
      1    04-Sept-2025  Vishal Suthar	Created
       
-  exec [dbo].[USP_GetSalesPersonActivityTypeByCustomerId] @CustomerId=4445
+  exec [dbo].[USP_GetSalesPersonActivityTypeByCustomerId] @CustomerId=4468, @IsDeleted=0
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSalesPersonActivityTypeByCustomerId]
     @CustomerId BIGINT,
@@ -47,11 +47,20 @@ BEGIN
 			c.IsActive,
 			c.IsDeleted,
 			MSD.LastMSLevel,        
-			MSD.AllMSlevels
+			MSD.AllMSlevels,
+			E.FirstName + ' ' + E.LastName AS AssignedSalesperson
 		FROM [dbo].[SalesPersonActivityType] c WITH(NOLOCK)
 		INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = c.SalesPersonActivityTypeId
 		LEFT JOIN [Percent] P_REV WITH (NOLOCK) ON P_REV.PercentId = c.RevenuePercentageId
 		LEFT JOIN [Percent] P_MAR WITH (NOLOCK) ON P_MAR.PercentId = c.MarginPercentageId
+		LEFT JOIN dbo.CustomerSales CS WITH (NOLOCK) ON CS.CustomerId = c.CustomerId
+		LEFT JOIN dbo.Employee E WITH (NOLOCK) ON E.EmployeeId = 
+        CASE 
+            WHEN c.DropdownTypeId = 1 THEN CS.PrimarySalesPersonId
+            WHEN c.DropdownTypeId = 2 THEN CS.SecondarySalesPersonId
+            WHEN c.DropdownTypeId = 3 THEN CS.SaId
+            WHEN c.DropdownTypeId = 4 THEN CS.CSRId
+        END
 		WHERE c.CustomerId = @CustomerId
 		AND c.IsActive = 1 AND c.IsDeleted = @IsDeleted;
 	END TRY

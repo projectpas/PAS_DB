@@ -13,48 +13,56 @@
  ** --   --------     -------		--------------------------------            
     1    22/09/2025   MOIN BLOCH		Created  
 	2    25/09/2025   Devendra Shekh	Added GroupById 
-
---  EXEC [dbo].[USP_GetAsOfDateSettings] 1
+	3    03/10/2025   MOIN BLOCH		Aded New Fields  
+--  EXEC [dbo].[USP_GetAsOfDateSettings] 1,1
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_GetAsOfDateSettings]
-@MasterCompanyId INT=NULL
+@MasterCompanyId INT=NULL,
+@ReportType INT=NULL
 AS
 BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;   
  BEGIN TRY 
 
-    SELECT 
-        [Id],
-        [SiteIds],
-        [WarehouseIds],
-        [LocationIds],
-        [ShelfIds],
-        [BinIds],
-        [Level1Ids],
-        [Level2Ids],
-        [Level3Ids],
-        [Level4Ids],
-        [Level5Ids],
-        [Level6Ids],
-        [Level7Ids],
-        [Level8Ids],
-        [Level9Ids],
-        [Level10Ids],
-        [IsWeeklyOrMonthly],
-        [ExecutionDate],
-        [WeeklyName],
-        [ExcludedLocations],
-        [MasterCompanyId],
-        [CreatedBy],
-        [UpdatedBy],
-        [CreatedDate],
-        [UpdatedDate],
-        [IsActive],
-        [IsDeleted],
-        [GroupById]
-   FROM [dbo].[AsOfDateSettings]
-   WHERE [MasterCompanyId] = @MasterCompanyId    
+    SELECT [Id],
+		   [ReportType],
+		   [ExecutionDate],
+		   [IsWeeklyOrMonthly],
+		   [WeeklyName],
+		   [ExcludedLocations],
+           [SiteIds],
+           [WarehouseIds],
+           [LocationIds],
+           [ShelfIds],
+           [BinIds],
+           [Level1Ids],
+           [Level2Ids],
+           [Level3Ids],
+           [Level4Ids],
+           [Level5Ids],
+           [Level6Ids],
+           [Level7Ids],
+           [Level8Ids],
+           [Level9Ids],
+           [Level10Ids],
+		   [ManagementStructureId],
+		   [ViewType],
+           CASE WHEN [IsInvoice] = 1 THEN 1 ELSE 0 END [IsInvoice],
+           CASE WHEN [IsCredits] = 1 THEN 1 ELSE 0 END [IsCredits],
+           CASE WHEN [IsDeposit] = 1 THEN 1 ELSE 0 END [IsDeposit],
+           CASE WHEN [IsUnappliedAmounts] = 1 THEN 1 ELSE 0 END [IsUnappliedAmounts],
+           [MasterCompanyId],
+           [CreatedBy],
+           [UpdatedBy],
+           [CreatedDate],
+           [UpdatedDate],
+           [IsActive],
+           [IsDeleted],
+           [GroupById]
+      FROM [dbo].[AsOfDateSettings]
+     WHERE [MasterCompanyId] = @MasterCompanyId  
+	   AND [ReportType] = @ReportType  
 
  END TRY   
  BEGIN CATCH        

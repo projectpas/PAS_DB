@@ -13,13 +13,14 @@
  ** --   --------     -------		--------------------------------            
     1    22/09/2025   MOIN BLOCH		Created  
     2    25/09/2025   Devendra Shekh	Added GroupById for Insert/Update  
-
+	3    03/10/2025   MOIN BLOCH		Aded New Fields  
 --  EXEC [dbo].[USP_SaveAsOfDateSettings] 
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
 @Id BIGINT = NULL, 
+@ReportType INT = NULL,
+@ExecutionDate INT = NULL,
 @IsWeeklyOrMonthly INT = NULL,
-@ExecutionDate DATETIME2(7) = NULL,
 @WeeklyName VARCHAR(10) = NULL,
 @ExcludedLocations NVARCHAR(500) = NULL,
 @SiteIds NVARCHAR(500) = NULL,
@@ -38,6 +39,11 @@ CREATE     PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
 @Level9Ids NVARCHAR(500) = NULL,
 @Level10Ids NVARCHAR(500) = NULL,    
 @ManagementStructureId  BIGINT = NULL, 
+@ViewType VARCHAR(20) = NULL,
+@IsInvoice BIT = NULL,
+@IsCredits BIT = NULL,
+@IsDeposit BIT = NULL,
+@IsUnappliedAmounts BIT = NULL,
 @MasterCompanyId INT = NULL,
 @CreatedBy VARCHAR(256) = NULL,
 @UpdatedBy VARCHAR(256) = NULL,
@@ -49,6 +55,7 @@ BEGIN
  BEGIN TRY  
  BEGIN TRANSACTION  
  BEGIN  
+	DECLARE @StocklineAsOfDateSetup INT = 1,@ARAgingAsOfDateSetup INT = 2,@APAgingAsOfDateSetup INT = 3
 
 	SET @SiteIds  = CASE WHEN @SiteIds = '0' THEN NULL ELSE @SiteIds END;  
     SET @WarehouseIds = CASE WHEN @WarehouseIds = '0' THEN NULL ELSE @WarehouseIds END;
@@ -67,10 +74,10 @@ BEGIN
 	SET @Level9Ids = CASE WHEN @Level9Ids = '0'  THEN NULL ELSE @Level9Ids END;
 	SET @Level10Ids =CASE WHEN @Level10Ids = '0' THEN NULL ELSE @Level10Ids END;
 
-    IF NOT EXISTS(SELECT 1 FROM [dbo].[AsOfDateSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)
+    IF NOT EXISTS(SELECT 1 FROM [dbo].[AsOfDateSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ReportType] = @ReportType)
     BEGIN
         INSERT INTO [dbo].[AsOfDateSettings]
-        (
+        (	[ReportType],
             [SiteIds],
             [WarehouseIds],
             [LocationIds],
@@ -98,10 +105,15 @@ BEGIN
             [UpdatedDate],
             [IsActive],
             [IsDeleted],
-			[GroupById]
+			[GroupById],
+			[ViewType],
+		    [IsInvoice],
+		    [IsCredits],
+		    [IsDeposit],
+		    [IsUnappliedAmounts]
         )
         VALUES
-        (
+        (   @ReportType,
             @SiteIds,
             @WarehouseIds,
             @LocationIds,
@@ -129,36 +141,92 @@ BEGIN
             GETUTCDATE(),
             1, 
             0,
-			@GroupById
+			@GroupById,
+			@ViewType,
+		    @IsInvoice,
+		    @IsCredits,
+		    @IsDeposit,
+		    @IsUnappliedAmounts
         );
     END
     ELSE
     BEGIN
-        UPDATE [dbo].[AsOfDateSettings]
-        SET 
-            [SiteIds] = @SiteIds,
-            [WarehouseIds] = @WarehouseIds,
-            [LocationIds] = @LocationIds,
-            [ShelfIds] = @ShelfIds,
-            [BinIds] = @BinIds,
-            [Level1Ids] = @Level1Ids,
-            [Level2Ids] = @Level2Ids,
-            [Level3Ids] = @Level3Ids,
-            [Level4Ids] = @Level4Ids,
-            [Level5Ids] = @Level5Ids,
-            [Level6Ids] = @Level6Ids,
-            [Level7Ids] = @Level7Ids,
-            [Level8Ids] = @Level8Ids,
-            [Level9Ids] = @Level9Ids,
-            [Level10Ids] = @Level10Ids,
-            [IsWeeklyOrMonthly] = @IsWeeklyOrMonthly,
-            [ExecutionDate] = @ExecutionDate,
-            [WeeklyName] = @WeeklyName,
-            [ExcludedLocations] = @ExcludedLocations,            
-            [UpdatedBy] = @UpdatedBy,
-            [UpdatedDate] = GETUTCDATE(),
-            [GroupById] = @GroupById
-      WHERE [MasterCompanyId] = @MasterCompanyId;
+		IF(@ReportType = @StocklineAsOfDateSetup)
+		BEGIN
+			UPDATE [dbo].[AsOfDateSettings]
+			SET [SiteIds] = @SiteIds,
+				[WarehouseIds] = @WarehouseIds,
+				[LocationIds] = @LocationIds,
+				[ShelfIds] = @ShelfIds,
+				[BinIds] = @BinIds,
+				[Level1Ids] = @Level1Ids,
+				[Level2Ids] = @Level2Ids,
+				[Level3Ids] = @Level3Ids,
+				[Level4Ids] = @Level4Ids,
+				[Level5Ids] = @Level5Ids,
+				[Level6Ids] = @Level6Ids,
+				[Level7Ids] = @Level7Ids,
+				[Level8Ids] = @Level8Ids,
+				[Level9Ids] = @Level9Ids,
+				[Level10Ids] = @Level10Ids,
+				[IsWeeklyOrMonthly] = @IsWeeklyOrMonthly,
+				[ExecutionDate] = @ExecutionDate,
+				[WeeklyName] = @WeeklyName,
+				[ExcludedLocations] = @ExcludedLocations,            
+				[UpdatedBy] = @UpdatedBy,
+				[UpdatedDate] = GETUTCDATE(),
+				[GroupById] = @GroupById
+		  WHERE [MasterCompanyId] = @MasterCompanyId 
+			AND [ReportType] = @ReportType  
+		END
+		ELSE IF(@ReportType = @ARAgingAsOfDateSetup)
+		BEGIN
+			UPDATE [dbo].[AsOfDateSettings]
+			SET [ViewType] = @ViewType,
+			    [IsInvoice] = @IsInvoice,
+				[IsCredits] = @IsCredits,
+				[IsDeposit] = @IsDeposit,
+				[IsUnappliedAmounts] = @IsUnappliedAmounts,
+				[Level1Ids] = @Level1Ids,
+				[Level2Ids] = @Level2Ids,
+				[Level3Ids] = @Level3Ids,
+				[Level4Ids] = @Level4Ids,
+				[Level5Ids] = @Level5Ids,
+				[Level6Ids] = @Level6Ids,
+				[Level7Ids] = @Level7Ids,
+				[Level8Ids] = @Level8Ids,
+				[Level9Ids] = @Level9Ids,
+				[Level10Ids] = @Level10Ids,
+				[IsWeeklyOrMonthly] = @IsWeeklyOrMonthly,
+				[ExecutionDate] = @ExecutionDate,
+				[WeeklyName] = @WeeklyName,				
+				[UpdatedBy] = @UpdatedBy,
+				[UpdatedDate] = GETUTCDATE()				
+		  WHERE [MasterCompanyId] = @MasterCompanyId 
+			AND [ReportType] = @ReportType  
+		END
+		ELSE IF(@ReportType = @APAgingAsOfDateSetup)
+		BEGIN
+			UPDATE [dbo].[AsOfDateSettings]
+			SET [ViewType] = @ViewType,			    
+				[Level1Ids] = @Level1Ids,
+				[Level2Ids] = @Level2Ids,
+				[Level3Ids] = @Level3Ids,
+				[Level4Ids] = @Level4Ids,
+				[Level5Ids] = @Level5Ids,
+				[Level6Ids] = @Level6Ids,
+				[Level7Ids] = @Level7Ids,
+				[Level8Ids] = @Level8Ids,
+				[Level9Ids] = @Level9Ids,
+				[Level10Ids] = @Level10Ids,
+				[IsWeeklyOrMonthly] = @IsWeeklyOrMonthly,
+				[ExecutionDate] = @ExecutionDate,
+				[WeeklyName] = @WeeklyName,				
+				[UpdatedBy] = @UpdatedBy,
+				[UpdatedDate] = GETUTCDATE()				
+		  WHERE [MasterCompanyId] = @MasterCompanyId 
+			AND [ReportType] = @ReportType  
+		END
     END
  END   
  COMMIT  TRANSACTION  

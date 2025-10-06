@@ -1,7 +1,8 @@
 ﻿CREATE TABLE [dbo].[AsOfDateSettings] (
     [Id]                    BIGINT         IDENTITY (1, 1) NOT NULL,
+    [ReportType]            INT            NULL,
+    [ExecutionDate]         INT            NULL,
     [IsWeeklyOrMonthly]     INT            NULL,
-    [ExecutionDate]         DATETIME2 (7)  NULL,
     [WeeklyName]            VARCHAR (10)   NULL,
     [ExcludedLocations]     NVARCHAR (500) NULL,
     [SiteIds]               NVARCHAR (500) NULL,
@@ -20,6 +21,11 @@
     [Level9Ids]             NVARCHAR (500) NULL,
     [Level10Ids]            NVARCHAR (500) NULL,
     [ManagementStructureId] BIGINT         NULL,
+    [ViewType]              VARCHAR (20)   NULL,
+    [IsInvoice]             BIT            NULL,
+    [IsCredits]             BIT            NULL,
+    [IsDeposit]             BIT            NULL,
+    [IsUnappliedAmounts]    BIT            NULL,
     [MasterCompanyId]       INT            NOT NULL,
     [CreatedBy]             VARCHAR (256)  NOT NULL,
     [UpdatedBy]             VARCHAR (256)  NOT NULL,
@@ -30,4 +36,6 @@
     [GroupById]             INT            NULL,
     CONSTRAINT [PK_AsOfDateSettings] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
+
+
 

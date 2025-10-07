@@ -4268,10 +4268,14 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetCustomerPOFulfillingReport.sql" />
     <Build Include="dbo\Stored Procedures\ConvertSalesQuoteToSalesOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSuggestedPriceByPartNumber.sql" />
+
     <Build Include="dbo\Tables\MROPriceMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMROPriceMasterByItemMasterId.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddOrUpdateMROPriceMaster.sql" />
     <Build Include="dbo\Stored Procedures\CheckMROPriceExists.sql" />
+
+    <Build Include="dbo\Stored Procedures\USP_checkEnforceCustomerCreditRestrictions.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

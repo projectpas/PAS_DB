@@ -10,9 +10,10 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    13-May-2025		Divyesh Kathiriya	Created    
+    2    01-Oct-2025		Bhargav Saliya	    Add Field [IsCreaditRestriction].    
  
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_UpdateLegalEntity]
+CREATE   PROCEDURE [dbo].[USP_UpdateLegalEntity]
 @LegalEntityId BIGINT,
 @Name VARCHAR(100),
 @CompanyCode VARCHAR(256),
@@ -50,7 +51,8 @@ Create   PROCEDURE [DBO].[USP_UpdateLegalEntity]
 @UKCAALicense VARCHAR(200) = Null,
 @TaxId VARCHAR(100) = Null,
 @LastLevel BIT = Null,
-@LedgerId BIGINT = Null
+@LedgerId BIGINT = Null,
+@IsCreaditRestriction BIT = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -133,7 +135,8 @@ BEGIN
 								[TimeZoneId] = @TimeZoneId,
 								[IsPrintCheckNumber] = @IsPrintCheckNumber,
 								[IsTurnOffMgmt] = @IsTurnOffMgmt,
-								[UKCAALicense] = @UKCAALicense
+								[UKCAALicense] = @UKCAALicense,
+								[IsCreaditRestriction] = @IsCreaditRestriction
 						  WHERE [LegalEntityId] = @LegalEntityId;
 
 						  UPDATE [DBO].[Address]

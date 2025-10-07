@@ -46,6 +46,7 @@
     [TimeoutInMinutes]        INT           NULL,
     [UKCAALicense]            VARCHAR (200) NULL,
     [EmployeeId]              BIGINT        NULL,
+    [IsCreaditRestriction]    BIT           NULL,
     CONSTRAINT [PK_LegalEntity] PRIMARY KEY CLUSTERED ([LegalEntityId] ASC),
     CONSTRAINT [FK_LegalEntity_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_LegalEntity_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -55,6 +56,8 @@
     CONSTRAINT [Unique_LegalEntity] UNIQUE NONCLUSTERED ([CompanyCode] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_LegalEntity_Name] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -124,7 +127,7 @@ BEGIN
 	[TextTransformId],
 	[EnableLockScreen],
 	[TimeoutInMinutes],
-	[UKCAALicense] )
+	[UKCAALicense],[IsCreaditRestriction] )
 
  SELECT 
  
@@ -173,7 +176,8 @@ BEGIN
 	[TextTransformId],
 	[EnableLockScreen],
 	[TimeoutInMinutes],
-	[UKCAALicense] 
+	[UKCAALicense],
+	[IsCreaditRestriction]
  
  FROM INSERTED  
  

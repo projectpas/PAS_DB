@@ -302,6 +302,7 @@ BEGIN
 					0 AS 'laborrevper',
 					0 AS 'ohcostper',  
 					0 AS 'revenueper',   
+					0 AS otherCost,
 					CASE WHEN ISNULL(CM.Amount,0) != 0 THEN (((ISNULL(CM.Amount,0)  * 100))/ISNULL(CM.Amount,0)) ELSE ISNULL(CM.Amount,0) END AS 'grossmarginrevper',  
 					CASE      
 					  WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)      
@@ -313,7 +314,7 @@ BEGIN
 					UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',      
 					UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5,        
 					UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8, UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,  
-					WO.MasterCompanyId AS masterCompanyId ,ISNULL(WOC.ChargesCost, 0) otherCost 
+					WO.MasterCompanyId AS masterCompanyId
 			 FROM DBO.CreditMemo CM WITH (NOLOCK)    
 				  INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				  LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  

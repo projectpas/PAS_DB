@@ -152,7 +152,7 @@ BEGIN
 		SELECT @WOBillingUnits = COUNT(*), @WOBillingAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup--, wobii.GrandTotal
-					, ISNULL(wobii.GrandTotal, 0) AS GrandTotal
+					, (ISNULL(wobi.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) AS GrandTotal
 					--, CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [GrandTotal]
 					, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
@@ -176,7 +176,7 @@ BEGIN
 		SELECT @WOMTDUnits = COUNT(*), @WOMTDAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
 					wop.ID, item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup, 
-					ISNULL(wobii.GrandTotal, 0) AS GrandTotal, 
+					(ISNULL(wobi.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) AS GrandTotal, 
 					--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN ISNULL(wobii.GrandTotal,0) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS 'GrandTotal',   
 					wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.BillingInvoicing wobi WITH (NOLOCK)

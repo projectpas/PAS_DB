@@ -133,7 +133,9 @@ BEGIN
 					p.Description AS [Priority], 
 					(EMP.FirstName + ' ' + EMP.LastName) AS Techname, WO.OpenDate, WOP.CustomerRequestDate AS CustReqDate,
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
-					ISNULL(WOC.TotalCost, 0) AS EstCost, ISNULL(WOC.ActualMargin, 0) AS EstMargin,
+					--ISNULL(WOC.TotalCost, 0) AS EstCost, 
+					ISNULL(WOC.PartsCost, 0) AS EstCost, 
+					ISNULL(WOC.ActualMargin, 0) AS EstMargin,
 					''  AS PONumber, WOP.CustomerReference AS RONumber,
 					WOP.ID AS WOpartId
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
@@ -171,7 +173,9 @@ BEGIN
 					(EMP.FirstName + ' ' + EMP.LastName) AS Techname, WO.OpenDate, WOP.CustomerRequestDate AS CustReqDate,
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
 					--CASE WHEN ISNULL(WOC.ActualRevenue, 0) != 0 THEN ISNULL(WOC.ActualRevenue, 0) ELSE ISNULL(WOC.Revenue, 0) END AS EstRevenue, 
-					ISNULL(WOC.TotalCost, 0) AS EstCost, ISNULL(WOC.ActualMargin, 0) AS EstMargin,
+					--ISNULL(WOC.TotalCost, 0) AS EstCost, 
+					ISNULL(WOC.PartsCost, 0) AS EstCost, 
+					ISNULL(WOC.ActualMargin, 0) AS EstMargin,
 					''  AS PONumber, WOP.CustomerReference AS RONumber,WOP.ID AS WOpartId
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
 					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				

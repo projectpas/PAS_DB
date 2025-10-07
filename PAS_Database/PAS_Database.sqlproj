@@ -4268,6 +4268,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetCustomerPOFulfillingReport.sql" />
     <Build Include="dbo\Stored Procedures\ConvertSalesQuoteToSalesOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSuggestedPriceByPartNumber.sql" />
+    <Build Include="dbo\Stored Procedures\USP_checkEnforceCustomerCreditRestrictions.sql" />
     <Build Include="dbo\Views\vw_VendorRFQReference.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetVendorQuoteReportSSRS.sql" />
   </ItemGroup>

@@ -11,6 +11,7 @@
  ** --   -------------		----------------	--------------------------------          
     1    09-May-2025		Divyesh Kathiriya	Created
 	2	 16-May-2025		Divyesh Kathiriya	Add Nullable Parameter.
+	3	 01-Oct-2025		Bhargav Saliya  	Add Field [IsCreaditRestriction].
     
  -- EXEC [USP_CreateLegalEntity] @Name=N'LEGAL ENTITY',@AddressId=0,@PhoneNumber=N'98989892333',@FaxNumber=default,@FunctionalCurrencyId=2,@ReportingCurrencyId=2,
 								 @IsBalancingEntity=1,@TagNames=N'',@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@MasterCompanyId=1,@CompanyCode=N'LEGAL ENTITY CODE',
@@ -19,7 +20,7 @@
 								 @InvoiceFaxPhonePosition=1,@TimeZoneId=7,@DoingLegalAs=Null,@PhoneExt=Null,@CageCode=Null,@FAALicense=Null,@EASALicense=Null,
 								 @CAACLicense=Null,@TCCALicense=Null,@UKCAALicense=Null,@TaxId=Null,@LastLevel=0
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_CreateLegalEntity]
+CREATE   PROCEDURE [dbo].[USP_CreateLegalEntity]
 @Name VARCHAR(100),
 @CompanyCode VARCHAR(256),
 @CompanyName VARCHAR(256),
@@ -55,7 +56,8 @@ Create   PROCEDURE [DBO].[USP_CreateLegalEntity]
 @TCCALicense VARCHAR(100) = Null,
 @UKCAALicense VARCHAR(200) = Null,
 @TaxId VARCHAR(100) = Null,
-@LastLevel BIT = Null
+@LastLevel BIT = Null,
+@IsCreaditRestriction BIT = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -188,7 +190,7 @@ BEGIN
 							[TimeZoneId],
 							[IsPrintCheckNumber],
 							[IsTurnOffMgmt],
-							[UKCAALicense])
+							[UKCAALicense],[IsCreaditRestriction])
 						VALUES(
 							@Name,
 							@DoingLegalAs,
@@ -223,7 +225,8 @@ BEGIN
 							@timeZoneId,
 							@IsPrintCheckNumber,
 							@IsTurnOffMgmt,
-							@UKCAALicense
+							@UKCAALicense,
+							@IsCreaditRestriction
 							)						
 		
 						SET @LegalEntityId = SCOPE_IDENTITY();

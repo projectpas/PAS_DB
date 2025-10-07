@@ -300,7 +300,7 @@ BEGIN
 		UPPER(CMD.Amount) 'rev',  
 		0.00 'directcost', 
 		0.00 'dcofrevperc',
-		0.00 'marginamt',  
+		ISNULL(CM.Amount,0) 'marginamt',  
 		0.00 'marginrevperc', 
 		SOQ.salesorderquotenumber 'qtenum',  
 		UPPER(MSD.Level1Name) AS level1,  

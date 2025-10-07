@@ -47,16 +47,7 @@
     [TimeoutInMinutes]        INT           NULL,
     [UKCAALicense]            VARCHAR (200) NULL,
     [EmployeeId]              BIGINT        NULL,
+    [IsCreaditRestriction]    BIT           NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
 

@@ -27,6 +27,7 @@
 	17	 04-Sep-2025        Divyesh Kathitiya		Added Customer Default Settings And Set Customer and Vendor: IsAddress For Billing & Shipping.
 	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
 	19	 16-Sep-2025        Rajesh Gami				Price Master/Purchase and Sales: Calculate the Discount and related changes 
+	20	 06-Oct-2025        Rajesh Gami				Price Master/Purchase and Sales : History related change
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -861,7 +862,7 @@ BEGIN
 									SP_FSP_FlatPriceAmount = 0
 							WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
 						END
-						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
+						--exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
 					END
 					
 				END
@@ -875,6 +876,7 @@ BEGIN
 			IF((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule) AND @ItemMasterId >0 )
 			BEGIN
 				EXEC UpdateItemMasterPurchaseSaleDetails @ItemMasterId
+				exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
 			END
 			
 			IF(@ModuleId = @ItemMasterModule)

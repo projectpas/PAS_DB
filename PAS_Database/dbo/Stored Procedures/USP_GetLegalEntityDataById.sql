@@ -11,10 +11,11 @@
  ** --   -------------		----------------	--------------------------------          
     1    30-April-2025		Divyesh Kathiriya	Created
 	2    26-Aug-2025        Sahdev Saliya       Added New Field EmployeeId
+	3    01-Oct-2025        Bhargav Saliya      Added New Field IsCreaditRestriction
     
  -- EXEC [USP_GetLegalEntityDataById] @LegalEntityId=34
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_GetLegalEntityDataById]
+CREATE   PROCEDURE [dbo].[USP_GetLegalEntityDataById]
 @LegalEntityId BIGINT = Null
 AS
 BEGIN
@@ -80,7 +81,8 @@ BEGIN
 			ISNULL(le.[EnableLockScreen], 0) AS EnableLockScreen,
 			ISNULL(le.[TimeoutInMinutes], 0) AS TimeoutInMinutes,
 			ISNULL(le.[EmployeeId], 0) AS EmployeeId,	
-			(SELECT STRING_AGG(mp.[TagName], ',') FROM [LegalEntityTagNameMapping] mp WITH (NOLOCK) WHERE mp.[LegalEntityId] = le.[LegalEntityId]) AS TagNames
+			(SELECT STRING_AGG(mp.[TagName], ',') FROM [LegalEntityTagNameMapping] mp WITH (NOLOCK) WHERE mp.[LegalEntityId] = le.[LegalEntityId]) AS TagNames,
+			ISNULL(le.IsCreaditRestriction, 0) AS IsCreaditRestriction
 		FROM [DBO].[LegalEntity] le WITH (NOLOCK) 	
 		LEFT JOIN [DBO].[Address] ad WITH (NOLOCK) ON le.[AddressId] = ad.[AddressId]
 		LEFT JOIN [DBO].[Countries] cont WITH (NOLOCK) ON ad.[CountryId] = cont.[countries_id]

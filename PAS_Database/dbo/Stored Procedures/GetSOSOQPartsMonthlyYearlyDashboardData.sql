@@ -259,7 +259,7 @@ BEGIN
 					DECLARE @CntsSOQAmt DECIMAL(18, 2) = 0;;
 					;WITH tmpSalesOrderQuoteAmt(Total, Mnth) as (
 					--SELECT SUM((ISNULL(SOQPC.NetSaleAmount, 0) / (ISNULL(SOQP.QtyQuoted, 0))) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQPC.TaxAmount,0)), @Month
-					SELECT SUM(ISNULL(SOQPC.NetSaleAmount, 0)), @Month
+					SELECT (SUM(ISNULL(SOQPC.NetSaleAmount, 0)) + SUM(ISNULL(SOQPC.MiscCharges, 0)) + SUM(ISNULL(SOQPC.Freight, 0))), @Month
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						INNER JOIN #tmpSOQUserRole SOQUR ON SOQUR.ReferenceID = SOQ.SalesOrderQuoteId
@@ -281,7 +281,7 @@ BEGIN
 					;WITH tmpSalesOrderAmt(Total, Mnth) as (
 					SELECT 
 					--SUM((ISNULL(SOPC.NetSaleAmount, 0) / (ISNULL(SOP.QtyOrder, 0))) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOPC.TaxAmount,0)), 
-					SUM((ISNULL(SOPC.NetSaleAmount, 0))), 
+					(SUM((ISNULL(SOPC.NetSaleAmount, 0))) + SUM(ISNULL(SOPC.MiscCharges, 0)) + SUM(ISNULL(SOPC.Freight, 0))), 
 					@Month
 					FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
@@ -456,7 +456,7 @@ BEGIN
 					;WITH tmpYearlySalesOrderQuoteAmt(Total, Mnth) as (
 					SELECT 
 					--SUM((CASE WHEN (ISNULL(SOQP.QtyQuoted, 0)) > 0 THEN (ISNULL(SOQPC.NetSaleAmount, 0) / (ISNULL(SOQP.QtyQuoted, 0))) ELSE 0 END) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQPC.TaxAmount,0)), 
-					SUM((CASE WHEN (ISNULL(SOQP.QtyQuoted, 0)) > 0 THEN (ISNULL(SOQPC.NetSaleAmount, 0)) ELSE 0 END)), 
+					SUM((CASE WHEN (ISNULL(SOQP.QtyQuoted, 0)) > 0 THEN (ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(SOQPC.MiscCharges, 0) + ISNULL(SOQPC.Freight, 0)) ELSE 0 END)), 
 					@Month
 					FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
@@ -479,7 +479,7 @@ BEGIN
 					;WITH tmpYearlySalesOrderAmt(Total, Mnth) as (
 					SELECT 
 					--SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0) / (ISNULL(SOP.QtyOrder, 0))) ELSE 0 END) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOPC.TaxAmount,0)), 
-					SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0)) ELSE 0 END)), 
+					SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0) + ISNULL(SOPC.MiscCharges, 0) + ISNULL(SOPC.Freight, 0)) ELSE 0 END)), 
 					@Month 
 					FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
@@ -618,7 +618,7 @@ BEGIN
 							C.[Name] AS CustomerName,
 							C.CustomerId,
 							--SUM((ISNULL(SOPC.NetSaleAmount, 0) / (ISNULL(SOP.QtyOrder, 0))) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOPC.TaxAmount,0)) AS TotalSalesCount
-							SUM((ISNULL(SOPC.NetSaleAmount, 0))) AS TotalSalesCount
+							(SUM((ISNULL(SOPC.NetSaleAmount, 0))) + SUM((ISNULL(SOPC.MiscCharges, 0))) + SUM((ISNULL(SOPC.Freight, 0)))) AS TotalSalesCount
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN Customer C WITH (NOLOCK) ON C.CustomerId = SO.CustomerId
@@ -667,7 +667,7 @@ BEGIN
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0;
 
 				--SELECT @soqYearlyAmount = SUM((CASE WHEN ISNULL(SOQP.QtyQuoted, 0) > 0 THEN (ISNULL(SOQPC.NetSaleAmount, 0) / (ISNULL(SOQP.QtyQuoted, 0))) ELSE 0 END) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQPC.TaxAmount,0))
-				SELECT @soqYearlyAmount = SUM((CASE WHEN ISNULL(SOQP.QtyQuoted, 0) > 0 THEN (ISNULL(SOQPC.NetSaleAmount, 0)) ELSE 0 END))
+				SELECT @soqYearlyAmount = SUM((CASE WHEN ISNULL(SOQP.QtyQuoted, 0) > 0 THEN (ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(SOQPC.MiscCharges, 0) + ISNULL(SOQPC.Freight, 0)) ELSE 0 END))
 				FROM SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 					INNER JOIN SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 					LEFT OUTER JOIN SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQC.SalesOrderQuotePartId
@@ -688,7 +688,7 @@ BEGIN
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0;
 
 				--SELECT @soYearlyAmount =  SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0) / (ISNULL(SOP.QtyOrder, 0))) ELSE 0 END) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOPC.TaxAmount,0))
-				SELECT @soYearlyAmount =  SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0)) ELSE 0 END))
+				SELECT @soYearlyAmount =  SUM((CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0 THEN (ISNULL(SOPC.NetSaleAmount, 0) + ISNULL(SOPC.MiscCharges, 0) + ISNULL(SOPC.Freight, 0)) ELSE 0 END))
 				FROM SalesOrderPartV1 SOP WITH (NOLOCK)
 					INNER JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 					LEFT OUTER JOIN SalesOrderCharges SOC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOC.SalesOrderPartId

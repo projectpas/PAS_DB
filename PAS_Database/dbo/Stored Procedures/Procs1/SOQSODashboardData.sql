@@ -103,20 +103,19 @@ BEGIN
 							MSD.ReferenceID,
 							RMS.EntityStructureId
 						FROM dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
-						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) 
-							ON MSD.EntityMsId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) 
-							ON EUR.RoleId = RMS.RoleId
+						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.EntityMsId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 						WHERE MSD.ModuleID = @MSModuleID AND EUR.EmployeeId = @EmployeeId
 					),
 					DeduplicatedCharges AS
 					(
 						SELECT 
 							SP.SalesOrderQuotePartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderQuotePartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuoteFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderQuotePartId
 					),
@@ -125,8 +124,8 @@ BEGIN
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
-				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0) as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
+				,ISNULL(SUM(SPC.UnitCostExtended),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0) as 'EstRevenue'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId
@@ -142,7 +141,7 @@ BEGIN
 
 				Where (SOQ.IsDeleted=0) AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.StatusId=1 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result
@@ -210,28 +209,27 @@ BEGIN
 							MSD.ReferenceID,
 							RMS.EntityStructureId
 						FROM dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK)
-						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) 
-							ON MSD.EntityMsId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) 
-							ON EUR.RoleId = RMS.RoleId
+						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.EntityMsId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 						WHERE MSD.ModuleID = @MSModuleID AND EUR.EmployeeId = @EmployeeId
 					),
 					DeduplicatedCharges AS
 					(
 						SELECT 
 							SP.SalesOrderQuotePartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderQuotePartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuoteFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderQuotePartId
 					),
 				 Result AS(
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
-				SO.SalesOrderNumber ,ISNULL(SUM(SPC.UnitCostExtended),0)  + ISNULL(B.Charges,0) as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				SO.SalesOrderNumber ,ISNULL(SUM(SPC.UnitCostExtended),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0) as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
@@ -248,7 +246,7 @@ BEGIN
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOQAP.InternalStatusId=4
 				Where (SOQ.IsDeleted=0) AND SOQ.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result
@@ -326,10 +324,11 @@ BEGIN
 					(
 						SELECT 
 							SP.SalesOrderQuotePartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderQuotePartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuoteCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuoteFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderQuotePartId
 					),
@@ -337,8 +336,8 @@ BEGIN
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
-				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				,ISNULL(SUM(SPC.UnitCostExtended),0)  as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0) as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
@@ -355,7 +354,7 @@ BEGIN
 				INNER JOIN dbo.SalesOrderQuoteApproval SOQAP WITH (NOLOCK) ON SOQAP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOQAP.CustomerStatusId=4
 				Where (SOQ.IsDeleted=0) AND SOQ.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SOQ.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result
@@ -433,10 +432,11 @@ BEGIN
 					(
 						SELECT 
 							SP.SalesOrderPartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderPartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderQuoteFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderPartId
 					),
@@ -444,8 +444,8 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
-				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
+				,ISNULL(SUM(SPC.UnitCostExtended),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0)as 'EstRevenue'
 				,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
@@ -462,7 +462,7 @@ BEGIN
 				INNER JOIN dbo.SalesOrderApproval SOAPR WITH (NOLOCK) ON SOAPR.SalesOrderPartId = SP.SalesOrderPartId AND SOAPR.InternalStatusId=4
 				Where (SO.IsDeleted=0) AND SO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result
@@ -540,10 +540,11 @@ BEGIN
 					(
 						SELECT 
 							SP.SalesOrderPartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderPartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderQuoteFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderPartId
 					),
@@ -552,7 +553,7 @@ BEGIN
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
 				,ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0) as 'EstRevenue'
 				,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
@@ -569,7 +570,7 @@ BEGIN
 				INNER JOIN dbo.SalesOrderApproval SOAPR WITH (NOLOCK) ON SOAPR.SalesOrderPartId = SP.SalesOrderPartId AND SOAPR.CustomerStatusId=4
 				Where (SO.IsDeleted=0) AND SO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result
@@ -648,7 +649,7 @@ BEGIN
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,
 				ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(SUM(B.Charges),0)  as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(SUM(B.Charges),0)as 'EstRevenue',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(SUM(B.Charges),0) + ISNULL(SUM(F.Freight),0) as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate',
 				SP.ConditionId,SP.ItemMasterId
 				from SalesOrder SO WITH (NOLOCK)
@@ -668,6 +669,11 @@ BEGIN
 					SELECT SOQC.BillingAmount AS Charges from SalesOrderCharges SOQC WHERE SOQC.SalesOrderPartId = SP.SalesOrderPartId
 					AND SOQC.ItemMasterId = SP.ItemMasterId and SOQC.ConditionId = SP.ConditionId group by SOQC.ItemMasterId,SOQC.BillingAmount,SOQC.ConditionId
 		        ) B
+				OUTER APPLY
+			    (
+					SELECT SOQC.BillingAmount AS Freight from SalesOrderFreight SOQC WHERE SOQC.SalesOrderPartId = SP.SalesOrderPartId
+					AND SOQC.ItemMasterId = SP.ItemMasterId and SOQC.ConditionId = SP.ConditionId group by SOQC.ItemMasterId,SOQC.BillingAmount,SOQC.ConditionId
+		        ) F
 				Where (SO.IsDeleted=0) AND SO.MasterCompanyId = @MasterCompanyId and (SO.StatusId = 10) AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				
 				GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
@@ -750,10 +756,11 @@ BEGIN
 					(
 						SELECT 
 							SP.SalesOrderPartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderPartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderPartId = SP.SalesOrderPartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderPartId
 					),
@@ -761,8 +768,8 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,
-				ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				ISNULL(SUM(SPC.UnitCostExtended),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0) as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				INNER JOIN MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
@@ -781,7 +788,7 @@ BEGIN
 				AND SP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderShippingItem)
 				GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result
@@ -859,10 +866,11 @@ BEGIN
 					(
 						SELECT 
 							SP.SalesOrderPartId,
-							SUM(SOQC.BillingAmount) AS Charges
+							SUM(SOQC.BillingAmount) AS Charges,
+							SUM(SOQF.BillingAmount) AS Freight
 						FROM dbo.SalesOrderPartV1 SP WITH (NOLOCK)
-						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) 
-							ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderCharges SOQC WITH (NOLOCK) ON SOQC.SalesOrderPartId = SP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderFreight SOQF WITH (NOLOCK) ON SOQF.SalesOrderPartId = SP.SalesOrderPartId
 						WHERE SP.IsDeleted = 0
 						GROUP BY SP.SalesOrderPartId
 					),
@@ -870,8 +878,8 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,
-				ISNULL(SUM(SPC.UnitCostExtended),0) + ISNULL(B.Charges,0)  as 'EstCost',
-				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				ISNULL(SUM(SPC.UnitCostExtended),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0) + ISNULL(B.Freight,0) as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
@@ -890,7 +898,7 @@ BEGIN
 				AND SP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 				GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
-				B.Charges),
+				B.Charges, B.Freight),
 				FinalResult AS (SELECT RefId,SalesOrderQuoteNumber,OpenDate,CustomerId,CustomerName,Status,
 					Priority,SalesPerson,PartNumber,PartDescription,SalesOrderNumber,
 					EstRevenue,EstCost, EstimatedShipDate,RequestedDate from Result

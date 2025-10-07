@@ -116,7 +116,7 @@ BEGIN
 				AND SOQ.MasterCompanyId = @MasterCompanyId
 			GROUP BY SOQ.StatusId
 
-		SELECT @SOQReceivedAmount = SUM(ISNULL(SOQPC.NetSaleAmount,0)) + SUM(ISNULL(SOQPC.MiscCharges,0)) FROM 
+		SELECT @SOQReceivedAmount = SUM(ISNULL(SOQPC.NetSaleAmount,0)) + SUM(ISNULL(SOQPC.MiscCharges,0)) + SUM(ISNULL(SOQPC.Freight,0)) FROM 
 				DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=SOQP.SalesOrderQuotePartId and ISNULL(SOQPC.IsDeleted, 0)=0
@@ -135,7 +135,7 @@ BEGIN
 			WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
-	  SELECT @SOQApprovedInternalAmount = SUM(SOQPC.NetSaleAmount)+ SUM(ISNULL(SOQPC.MiscCharges,0))  FROM 
+	  SELECT @SOQApprovedInternalAmount = SUM(SOQPC.NetSaleAmount)+ SUM(ISNULL(SOQPC.MiscCharges,0)) + SUM(ISNULL(SOQPC.Freight,0))  FROM 
 				DBO.SalesOrderQuotePartV1 POP WITH (NOLOCK) INNER JOIN DBO.SalesOrderQuote PO WITH (NOLOCK) ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 				INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = PO.SalesOrderQuoteId
@@ -153,7 +153,7 @@ BEGIN
 			WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND PO.MasterCompanyId = @MasterCompanyId
 
-       SELECT @SOQApprovedCustomerAmount = SUM(SOQPC.NetSaleAmount)+ SUM(ISNULL(SOQPC.MiscCharges,0))  FROM 
+       SELECT @SOQApprovedCustomerAmount = SUM(SOQPC.NetSaleAmount)+ SUM(ISNULL(SOQPC.MiscCharges,0)) + SUM(ISNULL(SOQPC.Freight,0))  FROM 
 				DBO.SalesOrderQuotePartV1 POP WITH (NOLOCK) INNER JOIN DBO.SalesOrderQuote PO WITH (NOLOCK) ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 	   			INNER JOIN #tmpSOQUserRole DR ON DR.ReferenceID = PO.SalesOrderQuoteId
@@ -171,7 +171,7 @@ BEGIN
 		WHERE ISNULL(RO.IsDeleted, 0) = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 			   AND RO.MasterCompanyId = @MasterCompanyId
 
-	   SELECT @SOApprovedInternalAmount = SUM(SOPC.NetSaleAmount)+ SUM(ISNULL(SOPC.MiscCharges,0)) FROM 
+	   SELECT @SOApprovedInternalAmount = SUM(SOPC.NetSaleAmount)+ SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
@@ -189,7 +189,7 @@ BEGIN
 		WHERE ISNULL(RO.IsDeleted, 0) = 0  AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND RO.MasterCompanyId = @MasterCompanyId
 
-	  SELECT @SOApprovedCustomerAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0))  FROM 
+	  SELECT @SOApprovedCustomerAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				 INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
@@ -207,7 +207,7 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId
 
 
-	 SELECT @SOFullfillingAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0))  FROM 
+	 SELECT @SOFullfillingAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN #tmpSOUserRole DR ON DR.ReferenceID = RO.SalesOrderId
@@ -225,7 +225,7 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From dbo.SalesOrderShippingItem WITH (NOLOCK))
 
-	 SELECT @SOShippingAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0))  FROM 
+	 SELECT @SOShippingAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
 				DBO.SalesOrder RO WITH (NOLOCK) INNER JOIN DBO.SalesOrderPartV1 ROP WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN DBO.SalesOrderApproval SOAPR WITH (NOLOCK) ON RO.SalesOrderId = SOAPR.SalesOrderId AND ROP.SalesOrderPartId = SOAPR.SalesOrderPartId AND SOAPR.CustomerStatusId=2
@@ -247,7 +247,7 @@ BEGIN
 				AND ROP.SalesOrderPartId NOT IN(select SubReferenceId From dbo.BillingInvoicingItems WITH (NOLOCK) WHERE ISNULL(IsPerformaInvoice,0) = 0 AND ModuleId = @salesOrderModuleId)
 
 
-	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0))  FROM 
+	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount) + SUM(ISNULL(SOPC.MiscCharges,0)) + SUM(ISNULL(SOPC.Freight,0)) FROM 
 				DBO.SalesOrderPartV1 ROP WITH (NOLOCK) INNER JOIN DBO.SalesOrder RO WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 			    INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON ROP.SalesOrderPartId = SOSI.SalesOrderPartId

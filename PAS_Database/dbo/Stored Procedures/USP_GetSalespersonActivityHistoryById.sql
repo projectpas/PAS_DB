@@ -50,11 +50,20 @@ BEGIN
 			c.IsDeleted,
 			c.IsActive,
 			MSD.LastMSLevel,        
-			MSD.AllMSlevels
+			MSD.AllMSlevels,
+			E.FirstName + ' ' + E.LastName AS AssignedSalesperson
 		FROM [dbo].[SalesPersonActivityTypeAudit] c WITH(NOLOCK)
 		INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = c.SalesPersonActivityTypeId
 		LEFT JOIN [Percent] P_REV ON P_REV.PercentId = c.RevenuePercentageId
 		LEFT JOIN [Percent] P_MAR ON P_MAR.PercentId = c.MarginPercentageId
+		LEFT JOIN dbo.CustomerSales CS WITH (NOLOCK) ON CS.CustomerId = c.CustomerId
+		LEFT JOIN dbo.Employee E WITH (NOLOCK) ON E.EmployeeId = 
+        CASE 
+            WHEN c.DropdownTypeId = 1 THEN CS.PrimarySalesPersonId
+            WHEN c.DropdownTypeId = 2 THEN CS.SecondarySalesPersonId
+            WHEN c.DropdownTypeId = 3 THEN CS.SaId
+            WHEN c.DropdownTypeId = 4 THEN CS.CSRId
+        END
 		WHERE c.SalesPersonActivityTypeId = @SalespersonActivityId
 		ORDER BY c.AuditSalesPersonActivityTypeId DESC;
 	END TRY

@@ -179,7 +179,7 @@ BEGIN
 					DECLARE @Amt DECIMAL(18, 2) = 0;
 					--SELECT @Amt = CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END
 					;WITH InvoiceResult AS (
-					SELECT SUM(wobii.GrandTotal) as GrandTotal
+					SELECT ISNULL(SUM(WOBI.GrandTotal),0) - (ISNULL(SUM(WOBI.SalesTax),0) + ISNULL(SUM(WOBI.OtherTax),0)) as GrandTotal
 					FROM DBO.BillingInvoicing WOBI WITH (NOLOCK)
 						LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsVersionIncrease, 0) = 0 AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.SubModuleId = @SubModuleId
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.SubReferenceId
@@ -201,7 +201,7 @@ BEGIN
 					DECLARE @SOAmt DECIMAL(18, 2) = 0;
 					
 					;WITH InvoiceResult AS (
-						SELECT SUM(GrandTotal) as GrandTotal
+						SELECT ISNULL(SUM(SOBI.GrandTotal),0) - (ISNULL(SUM(SOBI.SalesTax),0) + ISNULL(SUM(SOBI.OtherTax),0)) as GrandTotal
 						--SELECT @SOAmt = SUM(GrandTotal) 
 						FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId

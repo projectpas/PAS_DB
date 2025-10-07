@@ -13,7 +13,7 @@
 	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 	4    21-07-2025		Hemnat Saliya			Added IsVersionIncrease	
 		
-	exec dbo.USP_WorkOrderAnalysis 8631,8331
+	exec dbo.USP_WorkOrderAnalysis 9950,10104
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysis]
 @WorkOrderId BIGINT,
@@ -51,13 +51,13 @@ BEGIN
 				ISNULL(woc.DirectCost, 0) AS DirectCost,
 				CASE 
 					WHEN ISNULL(woc.Revenue, 0) > 0 
-					THEN ROUND((ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00)) * 100.00 / woc.Revenue, 2) 
+					THEN ROUND((ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00)) * 100.00 / woc.Revenue, 2) 
 					ELSE 0 
 				END AS DirectCostRevenuePercentage,
-				(ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00))) AS Margin,
+				(ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00))) AS Margin,
 				CASE 
 					WHEN ISNULL(woc.Revenue, 0) > 0 
-					THEN ROUND((ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00) + ISNULL(woc.ChargesCost, 0.00))) * 100.00 / woc.Revenue, 2) 
+					THEN ROUND((ISNULL(woc.Revenue, 0.00) - (ISNULL(woc.PartsCost, 0.00) + ISNULL(woc.LaborCost, 0.00))) * 100.00 / woc.Revenue, 2) 
 					ELSE 0 
 				END AS MarginPercentage,
 				c.Name AS CustomerName,

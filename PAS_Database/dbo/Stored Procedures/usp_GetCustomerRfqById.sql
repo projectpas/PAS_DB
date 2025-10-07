@@ -11,8 +11,10 @@
  **	1		01-Aug-2025		Devendra Shekh		Created
  **	2		07-Aug-2025		Devendra Shekh		Added [CustomerRfqPartMapping] select
  **	3		14-Aug-2025		Bhargav Saliya		Added [PriorityId] and [ExpirationDate] 
+ **	4		25-Sep-2025		Devendra Shekh		Added Changes for [ItemMasterId] and [StockLineId] 
+ ** 5       03-Oct-2025     Devendra Shekh		Added [IsCustomerStock] for Stk
  
-EXECUTE [dbo].[usp_GetCustomerRFQbyId] 3
+EXECUTE [dbo].[usp_GetCustomerRFQbyId] 961
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetCustomerRfqById]
 @CustomerRfqId BIGINT = NULL
@@ -22,15 +24,42 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN
+			
+			IF OBJECT_ID('tempdb..#ItemResults') IS NOT NULL
+			BEGIN
+				DROP TABLE #ItemResults
+			END
 
-			DECLARE @LegalEntityId BIGINT = 0;
+			IF OBJECT_ID('tempdb..#StkResults') IS NOT NULL
+			BEGIN
+				DROP TABLE #StkResults
+			END
 
-			SELECT TOP 1 @LegalEntityId = [LegalEntityId] FROM [dbo].[CustomerRfqQuote] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;  
+			DECLARE @LegalEntityId BIGINT = 0, @MasterCompanyId BIGINT = 0;
+
+			SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+			SELECT TOP 1 @LegalEntityId = [LegalEntityId] FROM [dbo].[CustomerRfqQuote] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId; 
+			
+			SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
+			INTO #ItemResults
+			FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
+			WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
+			GROUP BY RIM.partnumber, RIM.MasterCompanyId
+
+			SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
+			INTO #StkResults
+			FROM [dbo].[Stockline] STK WITH(NOLOCK) 
+			INNER JOIN #ItemResults RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
+			WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
+			GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 
 			SELECT	[CustomerRfqId], [RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 
-					[BuyerState], [BuyerZip], [LinePartNumber], [LineDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [IsQuote], [IsMRO], [ModuleId], [ReferenceId]
-			FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+					[BuyerState], [BuyerZip], [LinePartNumber], [LineDescription], [AltPartNumber], [Quantity], [Condition], RFQ.[MasterCompanyId], [CreatedBy], [CreatedDate],
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [IsQuote], [IsMRO], [ModuleId], [ReferenceId], IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
+			FROM [dbo].[CustomerRfq] RFQ WITH(NOLOCK)
+			LEFT JOIN #ItemResults IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+			LEFT JOIN #StkResults STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+			WHERE [CustomerRfqId] = @CustomerRfqId;
 
 			SELECT	[CustomerRfqQuoteId], [CustomerRfqId], [RfqId], [AddComment], [IsAddCommentQuote], [FaaEasaRelease], [IsFaaEasaReleaseQuote], [RpOh], [IsRpOhQuote], [LegalEntityId],
 					[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Note]
@@ -53,9 +82,12 @@ SET NOCOUNT ON
 			LEFT JOIN [dbo].[Countries] Co WITH (NOLOCK) ON Ad.CountryId = Co.countries_id
 			WHERE LE.LegalEntityId = @LegalEntityId;
 			
-			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
-			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], CRFQ.[PartNumber], CRFQ.[PartDescription], [AltPartNumber], [Quantity], [Condition], CRFQ.[MasterCompanyId], [CreatedBy], [CreatedDate],
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
+			FROM [dbo].[CustomerRfqPartMapping] CRFQ WITH(NOLOCK)
+			LEFT JOIN #ItemResults IM WITH(NOLOCK) ON LOWER(TRIM(CRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+			LEFT JOIN #StkResults STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND CRFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+			WHERE [CustomerRfqId] = @CustomerRfqId;
 		END
 	END TRY    
 	BEGIN CATCH      

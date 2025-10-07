@@ -13,14 +13,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    10/17/2022   Subhash Saliya Created
-     
+ ** PR   Date				Author				Change Description            
+ ** --   --------			-------				--------------------------------          
+    1    10/17/2022			Subhash Saliya		Created
+    2    09-Sept-2025		Rajesh Gami			Added Cheque Banking    
 -- EXEC [[USP_DeleteRestoireLegalEntityBanking]] 1
 **************************************************************/
 
-CReate   PROCEDURE [dbo].[USP_DeleteRestoireLegalEntityBanking]
+CREATE   PROCEDURE [dbo].[USP_DeleteRestoireLegalEntityBanking]
 @ReferenceId BIGINT,
 @UpdatedBy varchar(100),
 @TableName varchar(100),
@@ -36,22 +36,23 @@ BEGIN
 
 				if(UPPER(@TableName) ='LEGALENTITYINTERNATIONALWIREBANKING')
 				begin
-
-				update LegalEntityInternationalWireBanking set IsDeleted=@IsDeleted  where LegalEntityInternationalWireBankingId =@ReferenceId
+					update LegalEntityInternationalWireBanking set IsDeleted=@IsDeleted  where LegalEntityInternationalWireBankingId =@ReferenceId
 				End
 
 				if(UPPER(@TableName) ='ACH')
 				begin
-
-				update ACH set IsDeleted=@IsDeleted  where ACHId =@ReferenceId
+					update ACH set IsDeleted=@IsDeleted  where ACHId =@ReferenceId
 				End
 
 				if(UPPER(@TableName) ='LEGALENTITYBANKINGLOCKBOX')
-				begin
-
-				update LegalEntityBankingLockBox set IsDeleted=@IsDeleted  where LegalEntityBankingLockBoxId =@ReferenceId
+				begin	
+					update LegalEntityBankingLockBox set IsDeleted=@IsDeleted  where LegalEntityBankingLockBoxId =@ReferenceId
 				End
 
+				if(@TableName ='LegalEntityBankingCheque')
+				begin
+					update dbo.LegalEntityBankingCheque set IsDeleted=@IsDeleted  where LegalEntityBankingChequeId =@ReferenceId
+				End
 
 				
 			END

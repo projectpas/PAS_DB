@@ -134,7 +134,7 @@ BEGIN
 		PRINT @CustomerContactId
 		PRINT @CustomerContactName
 
-		DECLARE @CreditTermName VARCHAR(50),@CreditLimit DECIMAL(18,2) ,@CreditTermId INT, @BalanceDue NUMERIC(9,2);
+		DECLARE @CreditTermName VARCHAR(50),@CreditLimit DECIMAL(18,2) ,@CreditTermId INT, @BalanceDue DECIMAL(18,2);
 		SELECT TOP 1 @CreditTermName = CT.[Name],
 			   @CreditLimit = CF.[CreditLimit],
 			   @CreditTermId = CT.[CreditTermsId],

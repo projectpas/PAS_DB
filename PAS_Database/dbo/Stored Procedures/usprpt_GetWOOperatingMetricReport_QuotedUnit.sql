@@ -130,7 +130,7 @@ BEGIN
 			CASE WHEN WOBIT.BillingInvoicingItemId IS NULL THEN 
 				CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL(WOQD.CommonFlatRate , 0) ELSE  
 			    ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount,0) + ISNULL(WOQD.LaborFlatBillingAmount,0) + ISNULL(WOQD.ChargesFlatBillingAmount,0)+ ISNULL(WOQD.FreightFlatBillingAmount,0),0) ,0) END
-			ELSE ISNULL(WOBIT.GrandTotal,0) END AS revenue,
+			ELSE (ISNULL(WOBIT.GrandTotal, 0) - (ISNULL(WBI.SalesTax, 0) + ISNULL(WBI.OtherTax, 0))) END AS revenue,
 			--CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
 			--	ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount+ WOQD.FreightFlatBillingAmount,0) ,0) END 'revenue',  
 			UPPER(MSD.Level1Name) AS level1,  

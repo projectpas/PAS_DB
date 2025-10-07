@@ -216,7 +216,7 @@ BEGIN
 			   UPPER(WOPN.WorkScope) 'workscope',  
 			   UPPER(WO.WorkOrderNum) 'wonum',  
 			   WOBI.InvoiceNo 'invoicenum',  
-			   CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBIM.GrandTotal,0) > 0 THEN ISNULL(WOBIM.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBIM.GrandTotal,0) > 0 THEN ISNULL(WOBIM.GrandTotal,0) WHEN ISNULL(WOBIM.SubTotal,0) > 0 THEN ISNULL(WOBIM.SubTotal,0) ELSE ISNULL(WOBIM.UnitPrice,0) END END AS 'revenue',   
+			   CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBIM.GrandTotal,0) > 0 THEN ISNULL(WOBIM.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBIM.GrandTotal,0) > 0 THEN (ISNULL(WOBIM.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))) WHEN ISNULL(WOBIM.SubTotal,0) > 0 THEN ISNULL(WOBIM.SubTotal,0) ELSE ISNULL(WOBIM.UnitPrice,0) END END AS 'revenue',   
 			   UPPER(WOQ.QuoteNumber) 'quotenum',  
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
 			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   

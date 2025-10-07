@@ -136,7 +136,7 @@ BEGIN
 			CASE WHEN ISNULL(WOPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
 			--UPPER(WS.WorkScopeCode) 'workscopes',
 			UPPER(CN.Description) 'workscopes',  
-			ISNULL(WOBIT.GrandTotal,0) AS GrandTotal,
+			(ISNULL(WOBIT.GrandTotal, 0) - (ISNULL(WBI.SalesTax, 0) + ISNULL(WBI.OtherTax, 0))) AS GrandTotal,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 

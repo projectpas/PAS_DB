@@ -17,10 +17,11 @@
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddStocklineAsofNowJobDetails]
 @Name NVARCHAR(100),
-@Path NVARCHAR(100),
+@Path NVARCHAR(500),
 @TotalInventory DECIMAL(18,2),
 @JobDate DATETIME2(7),
 @NextRunDate DATETIME2(7),
+@ReportType INT,
 @MasterCompanyId INT
 AS
 BEGIN  
@@ -30,8 +31,8 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN    
 	
-	INSERT INTO [dbo].[StocklineAsofNowJobDetails]([Name],[Path],[TotalInventory],[JobDate],[NextRunDate],[MasterCompanyId],[CreatedDate])
-                                            VALUES(@Name,@Path,@TotalInventory,@JobDate,@NextRunDate,@MasterCompanyId,GETUTCDATE());
+	INSERT INTO [dbo].[StocklineAsofNowJobDetails]([Name],[Path],[TotalInventory],[JobDate],[NextRunDate],[ReportType],[MasterCompanyId],[CreatedDate])
+                                            VALUES(@Name,@Path,@TotalInventory,@JobDate,@NextRunDate,@ReportType,@MasterCompanyId,GETUTCDATE());
 	   	
  END   
  COMMIT  TRANSACTION  

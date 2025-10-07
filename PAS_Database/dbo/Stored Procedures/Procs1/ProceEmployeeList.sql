@@ -18,6 +18,7 @@
 	4    12/03/2025   Sahdev Saliya      Change the Date format to Datetime
 	5    29/05/2025   Amit Ghediya       Get user has role or not.
 	6	 17/06/2025   Bhargav Saliya     select the  Employee Roles
+	7    10/03/2025   Sahdev Saliya      Added New Field CommissionEligible
      
 ************************************************************************/
 CREATE PROCEDURE [dbo].[ProceEmployeeList]
@@ -46,7 +47,8 @@ CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @IsSuperAdmin bit = NULL,
 @UserName  varchar(50) = NULL,
 @IsRoleAssign  bit = NULL,
-@EmpRoles varchar(200) = NULL
+@EmpRoles varchar(200) = NULL,
+@CommissionEligible varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -132,7 +134,8 @@ BEGIN
 					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype,
 					ASP.UserName,
 					IsRoleAssign = (SELECT CASE WHEN COUNT(EmployeeUserRoleId) > 0 THEN 1 ELSE 0 END FROM dbo.EmployeeUserRole ER WITH(NOLOCK) WHERE ER.EmployeeId = t.EmployeeId),
-					ERA.EmpRoles 
+					ERA.EmpRoles,
+					CASE WHEN t.IsCommission = 1 THEN 'Yes' ELSE 'No' END AS CommissionEligible
 			   FROM dbo.Employee t WITH (NOLOCK)
 			        INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
 					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
@@ -182,7 +185,8 @@ BEGIN
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR 
 					(UserName LIKE '%' +@GlobalFilter+'%') or
-					(EmpRoles LIKE '%' +@GlobalFilter+'%')))	
+					(EmpRoles LIKE '%' +@GlobalFilter+'%') OR
+					(CommissionEligible LIKE '%' +@GlobalFilter+'%')))	
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@EmployeeCode,'') ='' OR EmployeeCode LIKE '%' + @EmployeeCode+'%') AND
 					(ISNULL(@FirstName,'') ='' OR FirstName LIKE '%' + @FirstName + '%') AND
@@ -198,7 +202,8 @@ BEGIN
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
 					(ISNULL(@UserName,'') ='' OR UserName LIKE '%' + @UserName + '%')) AND
-					(ISNULL(@EmpRoles,'') ='' OR EmpRoles LIKE '%' + @EmpRoles + '%')
+					(ISNULL(@EmpRoles,'') ='' OR EmpRoles LIKE '%' + @EmpRoles + '%') AND
+					(ISNULL(@CommissionEligible,'') ='' OR CommissionEligible LIKE '%' + @CommissionEligible + '%') 				
 				   )
 
 			SELECT @Count = COUNT(EmployeeId) FROM #TempResult			
@@ -233,7 +238,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UserName')  THEN UserName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UserName')  THEN UserName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='EmpRoles')  THEN EmpRoles END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='EmpRoles')  THEN EmpRoles END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='EmpRoles')  THEN EmpRoles END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CommissionEligible')  THEN CommissionEligible END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CommissionEligible')  THEN CommissionEligible END DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 

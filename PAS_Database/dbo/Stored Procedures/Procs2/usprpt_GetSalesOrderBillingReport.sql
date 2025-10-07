@@ -1,6 +1,6 @@
 ﻿/************************************************************* 
  ** File:[usprpt_GetRCWReport] 
- ** Author:HEMANT SALIYA 
+ ** Author:		HEMANT SALIYA 
  ** Description: Get Data for RCW Report
  ** Purpose:  
  ** Date:15-APR-2022
@@ -12,22 +12,23 @@
  ************************************************************** 
  ** Change History 
  ************************************************************** 
- ** SNODateAuthor			Change Description  
- ** ---------- -------------		--------------------------------
-	1  15-APR-2022		HEMANT SALIYA  Created  
-	2  16-JUNE-203		Devendra Shekh made changes to do total
-	3  11-JULY-2023		AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
-	4  19-JULY-2023		SHREY CHANDEGARA  Changes for revenue Issue
-	5  01-FEB-2024		AMIT GHEDIYA		added isperforma Flage for SO
-	6  28-MAR-2024		Ekta Chandegra	IsDeleted and IsActive flag is added
-	7  10-OCT-2024		Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
-	8  24-DEC-2024		Vishal Suthar 	Fixed report calculations
-	9  26-DEC-2024		Abhishek Jirawla	Fixed report calculations
- 	10 01/july/2025		RAJESH GAMI	 Change the table as per new Billing Structure
+ ** SNO Date			Author				Change Description  
+ ** --- --------		-------------		--------------------------------
+	1	15-APR-2022		HEMANT SALIYA		Created  
+	2	16-JUNE-203		Devendra Shekh		made changes to do total
+	3	11-JULY-2023	AYESHA SULTANA		CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
+	4	19-JULY-2023	SHREY CHANDEGARA	Changes for revenue Issue
+	5	01-FEB-2024		AMIT GHEDIYA		added isperforma Flage for SO
+	6	28-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
+	7	10-OCT-2024		Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
+	8	24-DEC-2024		Vishal Suthar 		Fixed report calculations
+	9	26-DEC-2024		Abhishek Jirawla	Fixed report calculations
+ 	10	01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure
+	11	11/SEP/2025		Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
 
 --EXECUTE[dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
+CREATE   PROCEDURE [dbo].[usprpt_GetSalesOrderBillingReport]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -64,7 +65,6 @@ select
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,  
 	@level2=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level2 end,  
-  
 	@level3=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level3 end,  
 	@level4=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'
@@ -81,7 +81,6 @@ select
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level9 end,  
 	@level10=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end  
-  
 	FROM  
 	@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
 
@@ -91,41 +90,26 @@ select
 	BEGIN TRY
   
 	DECLARE @ModuleID INT; -- MS Module ID
-
 	SELECT @ModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE UPPER(RTRIM(ModuleName)) = 'SALESORDER'
-
 	SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END  
 
 	IF ISNULL(@PageSize,0)=0  
 	BEGIN
 		SELECT @PageSize=COUNT(*)
 		FROM dbo.BillingInvoicing SOBI WITH (NOLOCK)
-			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) 
-				ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0
-			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) 
-				ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
-			INNER JOIN dbo.EntityStructureSetup ES 
-				ON ES.EntityStructureId = MSD.EntityMSID  
-			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
-				ON SO.SalesOrderId = SOP.SalesOrderId
-			INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) 
-				ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId
-			INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) 
-				ON SOBIII.StockLineId = SOV.StockLineId 
-			INNER JOIN dbo.customer C WITH (NOLOCK) 
-				ON SOBI.customerid = C.customerid 
-			INNER JOIN dbo.itemmaster IM WITH (NOLOCK) 
-				ON SOP.itemmasterid = IM.itemmasterid 
-			INNER JOIN dbo.stockline STL WITH (NOLOCK) 
-				ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
-			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) 
-				ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
-				ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
-			LEFT JOIN dbo.workorder WO WITH (NOLOCK)  
-				ON STL.workorderid = WO.workorderid 
-			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) 
-				ON SOP.conditionid = CDTN.conditionid
+			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0
+			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
+			INNER JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
+			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId
+			INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOBIII.StockLineId = SOV.StockLineId 
+			INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
+			INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
+			INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
+			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
+			LEFT JOIN dbo.workorder WO WITH (NOLOCK) ON STL.workorderid = WO.workorderid 
+			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid
 		WHERE SOBI.customerid = ISNULL(@name, SOBI.customerid)  AND SOBI.ModuleId = @SOModuleId AND SOBIII.ModuleId = @SOModuleId
 			AND CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
 			AND SOBI.mastercompanyid = @mastercompanyid 
@@ -147,7 +131,6 @@ select
 			INNER JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.BillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0  AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  
 			INNER JOIN dbo.BillingInvoicingItems SOBII WITH (NOLOCK) ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBII.IsPerformaInvoice, 0) = 0 AND  CMD.StocklineId = SOBII.StockLineId
 			LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId  
-			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid  
@@ -219,17 +202,7 @@ select
 					ELSE CONVERT(VARCHAR(50), SOBIII.ShipDate, 107) 
 				END AS 'shipdate',
 
-			--CASE 
-			--	WHEN ISNULL(@IsDownload, 0) = 0 THEN CASE WHEN SOBIII.ShipDate IS NULL OR (CAST(SOBIII.shipdate as DATE)= CAST('1900-01-01' as DATE) OR CAST(SOBIII.shipdate as DATE)= CAST('0001-01-01' as DATE)) THEN '' ELSE ISNULL(CAST(SOBIII.shipdate AS date), '') END 
-			--	ELSE CASE WHEN SOBIII.ShipDate IS NULL OR (CAST(SOBIII.shipdate as DATE)= CAST('1900-01-01' as DATE) OR CAST(SOBIII.shipdate as DATE)= CAST('0001-01-01' as DATE)) THEN '' ELSE ISNULL(CAST(SOBIII.ShipDate AS date), '') END 
-			--END 'shipdate',
-			--CASE 
-			--	WHEN SOBIII.SOBillingInvoicingItemId = firstRow.SOBillingInvoicingItemId AND firstRow.RowNumber = 1 
-				--THEN 
-			--ISNULL(SOBIII.PartCost, 0) + ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0) + ISNULL(SOBIII.Freight, 0) + ISNULL(SOBIII.MiscCharges, 0) AS 'revenue',
-			ISNULL(SOBIII.GrandTotal, 0) AS 'revenue',
-			--	ELSE ISNULL(SOBIII.PartCost, 0) + ISNULL(taxValue.SalesTaxValue, 0) + ISNULL(taxValue.OtherTaxValue, 0)
-			--END 'revenue',
+			(ISNULL(SOBIII.GrandTotal, 0) - (ISNULL(SOBIII.SalesTax, 0) + ISNULL(SOBIII.OtherTax, 0))) AS 'revenue',
 			UPPER(MSD.Level1Name) AS level1, 
 			UPPER(MSD.Level2Name) AS level2,
 			UPPER(MSD.Level3Name) AS level3,
@@ -246,33 +219,19 @@ select
 			STL.StocklineId,
 			STL.StockLineNumber
 		FROM dbo.BillingInvoicing SOBI WITH (NOLOCK)
-			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) 
-				ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0
-			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) 
-				ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
-			INNER JOIN dbo.EntityStructureSetup ES 
-				ON ES.EntityStructureId = MSD.EntityMSID  
-			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
-				ON SO.SalesOrderId = SOP.SalesOrderId
-			INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) 
-				--ON SOBIII.StockLineId = SOV.StockLineId 
-				ON SOV.SalesOrderPartId = SOP.SalesOrderPartId 
-			INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) 
-				ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId AND SOV.StockLineId = SOBIII.StockLineId
-			INNER JOIN dbo.customer C WITH (NOLOCK) 
-				ON SOBI.customerid = C.customerid 
-			INNER JOIN dbo.itemmaster IM WITH (NOLOCK) 
-				ON SOP.itemmasterid = IM.itemmasterid 
-			INNER JOIN dbo.stockline STL WITH (NOLOCK) 
-				ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
-			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) 
-				ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
-			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
-				ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
-			LEFT JOIN dbo.workorder WO WITH (NOLOCK)  
-				ON STL.workorderid = WO.workorderid 
-			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) 
-				ON SOP.conditionid = CDTN.conditionid
+			INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId AND SO.IsDeleted = 0 AND SO.IsActive = 1 AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0
+			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
+			INNER JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
+			INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			INNER JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOV.SalesOrderPartId = SOP.SalesOrderPartId 
+			INNER JOIN dbo.BillingInvoicingItems SOBIII WITH (NOLOCK) ON SOBIII.BillingInvoicingId = SOBI.BillingInvoicingId AND ISNULL(SOBIII.IsVersionIncrease, 0) = 0 AND ISNULL(SOBIII.IsPerformaInvoice, 0) = 0 AND SOP.SalesOrderPartId = SOBIII.SubReferenceId AND SOV.StockLineId = SOBIII.StockLineId
+			INNER JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
+			INNER JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid 
+			INNER JOIN dbo.stockline STL WITH (NOLOCK) ON SOV.stocklineid = STL.stocklineid AND STL.IsParent = 1 
+			LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
+			LEFT JOIN dbo.workorder WO WITH (NOLOCK) ON STL.workorderid = WO.workorderid 
+			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid
 		WHERE SOBI.customerid = ISNULL(@name, SOBI.customerid)  AND SOBI.ModuleId = @SOModuleId AND SOBIII.ModuleId = @SOModuleId
 			AND CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
 			AND SOBI.mastercompanyid = @mastercompanyid 
@@ -286,9 +245,7 @@ select
 			AND (ISNULL(@Level7, '') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7, ',')))  
 			AND (ISNULL(@Level8, '') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8, ',')))  
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
-			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ','))
-		)  
-
+			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))  
 
 		UNION ALL  
   
@@ -307,8 +264,6 @@ select
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CM.invoicedate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), CM.invoicedate, 107) END 'invoicedate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END 'quoteapprovaldate',
-			--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate',
-
 			CASE 
 					WHEN SOBII.ShipDate IS NULL 
 						 OR CAST(SOBII.ShipDate as DATE) IN (CAST('1900-01-01' as Date), CAST('0001-01-01' as Date)) 
@@ -317,10 +272,6 @@ select
 					THEN FORMAT(SOBII.ShipDate, 'MM/dd/yyyy') 
 					ELSE CONVERT(VARCHAR(50), SOBII.ShipDate, 107) 
 				END AS 'shipdate',
-			--CASE 
-			--	WHEN ISNULL(@IsDownload, 0) = 0 THEN CASE WHEN SOBII.ShipDate IS NULL OR (CAST(SOBII.shipdate as DATE)= CAST('1900-01-01' as DATE) OR CAST(SOBII.shipdate as DATE)= CAST('0001-01-01' as DATE)) THEN '' ELSE ISNULL(CAST(SOBII.ShipDate AS date), '') END 
-			--	ELSE CASE WHEN SOBII.ShipDate IS NULL  OR (CAST(SOBII.shipdate as DATE)= CAST('1900-01-01' as DATE) OR CAST(SOBII.shipdate as DATE)= CAST('0001-01-01' as DATE))  THEN '' ELSE ISNULL(CAST(SOBII.ShipDate AS date), '') END 
-			--END 'shipdate',
 			(ISNULL(CMD.Amount,0)) as 'revenue', 
 			UPPER(MSD.Level1Name) AS level1, 
 			UPPER(MSD.Level2Name) AS level2,
@@ -334,9 +285,9 @@ select
 			UPPER(MSD.Level10Name) AS level10,  
 			UPPER(SO.SalesPersonName) 'salesperson', 
 			UPPER(SO.CustomerServiceRepName) 'csr',  
-			SO.MasterCompanyId  
-			,STL.StocklineId
-			,STL.StockLineNumber
+			SO.MasterCompanyId,
+			STL.StocklineId,
+			STL.StockLineNumber
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 			INNER JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.BillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0 AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  
@@ -347,13 +298,13 @@ select
 			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid  
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId 
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
-			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
+			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
 			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1
   
 		WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  SOBI.ModuleId = @SOModuleId AND SOBII.ModuleId = @SOModuleId AND
 		CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
 		SO.mastercompanyid = @mastercompanyid  AND SO.IsDeleted = 0 AND SO.IsActive = 1 
-		AND ISNULL(CM.IsWorkOrder,0) = 0
+		AND ISNULL(CM.IsWorkOrder, 0) = 0
 		AND 
 		(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
@@ -381,53 +332,50 @@ select
 			FROM FinalCTE  
 			GROUP BY masterCompanyId)  
   
-	SELECT COUNT(2) OVER () AS TotalRecordsCount, customername, pn, customercode, pndescription, condition, sonum, wonum, invoicenum, receiveddate,
-		opendate, invoicedate, quotedate, quoteapprovaldate, shipdate,  
-		FORMAT(ISNULL(revenue,0) , 'N', 'en-us') 'revenue',  
-		level1, level2, level3, level4, level5, level6, level7, level8,  
-		level9, level10, salesperson, csr,
-		WC.TotalRevenue,FC.StockLineNumber  
-	FROM FinalCTE FC  
+		SELECT COUNT(2) OVER () AS TotalRecordsCount, customername, pn, customercode, pndescription, condition, sonum, wonum, invoicenum, receiveddate,
+			opendate, invoicedate, quotedate, quoteapprovaldate, shipdate,  
+			FORMAT(ISNULL(revenue,0) , 'N', 'en-us') 'revenue',  
+			level1, level2, level3, level4, level5, level6, level7, level8,  
+			level9, level10, salesperson, csr,
+			WC.TotalRevenue,FC.StockLineNumber  
+		FROM FinalCTE FC  
 		INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId  
-	ORDER BY FC.invoicedate DESC  
-	OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
-END TRY 
+		ORDER BY FC.invoicedate DESC  
+		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+	END TRY 
  
-  BEGIN CATCH 
+	BEGIN CATCH 
+		DECLARE @ErrorLogID int, 
+		@DatabaseName varchar(100) = DB_NAME() 
+		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------- 
+		,@AdhocComments varchar(150) = '[usprpt_GetSalesOrderBillingReport]', 
+		@ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@fromdate, '') AS varchar(100)) + 
+		'@Parameter2 = ''' + CAST(ISNULL(@todate, '') AS varchar(100)) + 
+		'@Parameter3 = ''' + CAST(ISNULL(@name, '') AS varchar(100)) + 
+		'@Parameter4 = ''' + CAST(ISNULL(@level1, '') AS varchar(100)) + 
+		'@Parameter5 = ''' + CAST(ISNULL(@level2, '') AS varchar(100)) + 
+		'@Parameter6 = ''' + CAST(ISNULL(@level3, '') AS varchar(100)) + 
+		'@Parameter7 = ''' + CAST(ISNULL(@level4, '') AS varchar(100)) + 
+		'@Parameter8 = ''' + CAST(ISNULL(@level5, '') AS varchar(100)) + 
+		'@Parameter9 = ''' + CAST(ISNULL(@level6, '') AS varchar(100)) + 
+		'@Parameter10 = ''' + CAST(ISNULL(@level7, '') AS varchar(100)) + 
+		'@Parameter11 = ''' + CAST(ISNULL(@level8, '') AS varchar(100)) + 
+		'@Parameter12 = ''' + CAST(ISNULL(@level9, '') AS varchar(100)) + 
+		'@Parameter13 = ''' + CAST(ISNULL(@level10, '') AS varchar(100)) + 
+		'@Parameter14 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100))+  
+		'@Parameter15 = ''' + CAST(ISNULL(@tagtype, '') AS varchar)+  
+		'@Parameter16 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar)+  
+		'@Parameter17 = ''' + CAST(ISNULL(@PageSize, '') AS varchar),  
+		@ApplicationName varchar(100) = 'PAS'
+		-----------------------------------PLEASE DO NOT EDIT BELOW---------------------------------------- 
+		EXEC Splogexception @DatabaseName = @DatabaseName, 
+		@AdhocComments = @AdhocComments, 
+		@ProcedureParameters = @ProcedureParameters, 
+		@ApplicationName = @ApplicationName, 
+		@ErrorLogID = @ErrorLogID OUTPUT; 
  
- DECLARE @ErrorLogID int, 
-@DatabaseName varchar(100) = DB_NAME() 
------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------- 
-, 
-@AdhocComments varchar(150) = '[usprpt_GetSalesOrderBillingReport]', 
-@ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@fromdate, '') AS varchar(100)) + 
-'@Parameter2 = ''' + CAST(ISNULL(@todate, '') AS varchar(100)) + 
-'@Parameter3 = ''' + CAST(ISNULL(@name, '') AS varchar(100)) + 
-'@Parameter4 = ''' + CAST(ISNULL(@level1, '') AS varchar(100)) + 
-'@Parameter5 = ''' + CAST(ISNULL(@level2, '') AS varchar(100)) + 
-'@Parameter6 = ''' + CAST(ISNULL(@level3, '') AS varchar(100)) + 
-'@Parameter7 = ''' + CAST(ISNULL(@level4, '') AS varchar(100)) + 
-'@Parameter8 = ''' + CAST(ISNULL(@level5, '') AS varchar(100)) + 
-'@Parameter9 = ''' + CAST(ISNULL(@level6, '') AS varchar(100)) + 
-'@Parameter10 = ''' + CAST(ISNULL(@level7, '') AS varchar(100)) + 
-'@Parameter11 = ''' + CAST(ISNULL(@level8, '') AS varchar(100)) + 
-'@Parameter12 = ''' + CAST(ISNULL(@level9, '') AS varchar(100)) + 
-'@Parameter13 = ''' + CAST(ISNULL(@level10, '') AS varchar(100)) + 
-'@Parameter14 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100))+  
-'@Parameter15 = ''' + CAST(ISNULL(@tagtype, '') AS varchar)+  
-'@Parameter16 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar)+  
-'@Parameter17 = ''' + CAST(ISNULL(@PageSize, '') AS varchar),  
-@ApplicationName varchar(100) = 'PAS' 
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID) 
  
- -----------------------------------PLEASE DO NOT EDIT BELOW---------------------------------------- 
- EXEC Splogexception @DatabaseName = @DatabaseName, 
-@AdhocComments = @AdhocComments, 
-@ProcedureParameters = @ProcedureParameters, 
-@ApplicationName = @ApplicationName, 
-@ErrorLogID = @ErrorLogID OUTPUT; 
- 
- RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID) 
- 
- RETURN (1); 
-  END CATCH 
+		RETURN (1); 
+	END CATCH 
 END

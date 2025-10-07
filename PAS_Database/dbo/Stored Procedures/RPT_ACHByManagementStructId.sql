@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [RPT_ACHByManagementStructId]          
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get ACH Details.
@@ -16,10 +17,10 @@
  ** --   --------     -------		  --------------------------------          
     1    02/06/2025   Moin Bloch    Created
 	2    16/Jul/2025  Moin Bloch	Added UPPERCASE
-
+	3    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096)
 EXEC [dbo].[RPT_ACHByManagementStructId]  1
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
+CREATE  PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
 @ManagementStructId BIGINT = NULL
 AS
 BEGIN
@@ -37,9 +38,9 @@ BEGIN
 			SELECT 
 			'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(BankName, '')) + ' </label><br/>' +
 			'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(IntermediateBankName, '')) + ' </label><br/>' +
-			'ACCOUNT NUMBER: <label style="text-transform:uppercase;">' + UPPER(ISNULL(AccountNumber, '')) + '</label><br/>' +
-			'ROUTING NUMBER: <label style="text-transform:uppercase;">' + UPPER(ISNULL(ABA, '')) + '</label><br/>' +
-			'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
+			'ACCT# <label style="text-transform:uppercase;">' + UPPER(ISNULL(AccountNumber, '')) + '</label><br/>' +
+			'ROUTING# <label style="text-transform:uppercase;">' + UPPER(ISNULL(ABA, '')) + '</label><br/>'
+			--+'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
 			AS ACHDetail
 		FROM [dbo].[ACH] WITH (NOLOCK)
 		WHERE LegalEntityId = @LegalEntityId 

@@ -10,10 +10,10 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    11-July-2025		Divyesh Kathiriya	Created
-    
+    2    09-Sept-2025		Rajesh Gami			Added Cheque Banking    
  -- EXEC [USP_LegalEntityBankingStatusChange] @BankingId=23, @Status=N'InActive', @UpdatedBy=N'DANE PERK', @BankingType=1
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_LegalEntityBankingStatusChange]
+CREATE PROCEDURE [dbo].[USP_LegalEntityBankingStatusChange]
 @BankingId BIGINT = 0,
 @Status VARCHAR(20),
 @UpdatedBy VARCHAR(256),
@@ -29,7 +29,7 @@ BEGIN
 	DECLARE @Lockbox INT = 1;       
     DECLARE @InternationalWire INT = 2;      
     DECLARE @ACH INT = 3;
-	 
+	DECLARE @ChequeType INT = 4;
     IF (LOWER(@Status) = LOWER('Active'))
 	BEGIN
         SET @IsActive = 1;
@@ -47,19 +47,24 @@ BEGIN
 			SET	[IsActive] = @IsActive, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 			WHERE [LegalEntityBankingLockBoxId] = @BankingId;			
 		END
-		IF (@BankingType = @InternationalWire)
+		ELSE IF (@BankingType = @InternationalWire)
 		BEGIN			
 			UPDATE [DBO].[LegalEntityInternationalWireBanking] 
 			SET	[IsActive] = @IsActive, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 			WHERE [InternationalWirePaymentId] = @BankingId;			
 		END
-		IF (@BankingType = @ACH)
+		ELSE IF (@BankingType = @ACH)
 		BEGIN			
 			UPDATE [DBO].[ACH] 
 			SET	[IsActive] = @IsActive, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
 			WHERE [ACHId] = @BankingId;			
 		END
-		
+		ELSE IF (@BankingType = @ChequeType)
+		BEGIN			
+			UPDATE [DBO].[LegalEntityBankingCheque] 
+			SET	[IsActive] = @IsActive, [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()
+			WHERE [LegalEntityBankingChequeId] = @BankingId;			
+		END
 	END
 
 	COMMIT  TRANSACTION

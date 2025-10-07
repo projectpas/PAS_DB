@@ -28,7 +28,8 @@ CREATE   PROCEDURE [dbo].[ProceCustomerAssignmentList]
 	@CustomerName varchar(100) = NULL,
 	@IsPrimary bit = NULL,
 	@IsSecondary bit = NULL,
-	@IsAgent bit = NULL
+	@IsAgent bit = NULL,
+	@IsCSR bit = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -75,17 +76,20 @@ BEGIN
 				CUST.[Name] AS CustomerName,
 				CASE WHEN EMP_P.EmployeeId = @EmployeeId THEN 1 ELSE 0 END AS IsPrimary,
 				CASE WHEN EMP_S.EmployeeId = @EmployeeId THEN 1 ELSE 0 END AS IsSecondary,
-				CASE WHEN EMP_A.EmployeeId = @EmployeeId THEN 1 ELSE 0 END AS IsAgent
+				CASE WHEN EMP_A.EmployeeId = @EmployeeId THEN 1 ELSE 0 END AS IsAgent,
+				CASE WHEN EMP_C.EmployeeId = @EmployeeId THEN 1 ELSE 0 END AS IsCSR
             FROM dbo.CustomerSales CS WITH (NOLOCK)
 			    LEFT JOIN dbo.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = CS.CustomerId
 			    LEFT JOIN dbo.Employee EMP_P WITH (NOLOCK) ON EMP_P.EmployeeId = CS.PrimarySalesPersonId
 				LEFT JOIN dbo.Employee EMP_S WITH (NOLOCK) ON EMP_S.EmployeeId = CS.SecondarySalesPersonId
 				LEFT JOIN dbo.Employee EMP_A WITH (NOLOCK) ON EMP_A.EmployeeId = CS.SaId
+				LEFT JOIN dbo.Employee EMP_C WITH (NOLOCK) ON EMP_C.EmployeeId = CS.CsrId
 		 	WHERE CS.MasterCompanyId = @MasterCompanyId
 			AND (
 				 CS.PrimarySalesPersonId = @EmployeeId
-			  OR CS.SecondarySalesPersonId = @EmployeeId
-			  OR CS.SaId = @EmployeeId
+				  OR CS.SecondarySalesPersonId = @EmployeeId
+				  OR CS.SaId = @EmployeeId
+				  OR CS.CsrId = @EmployeeId
 			)
 			), 
 			ResultCount AS (SELECT COUNT(CustomerId) AS totalItems FROM Result)
@@ -95,7 +99,8 @@ BEGIN
 				(@GlobalFilter = '' AND (ISNULL(@CustomerName, '') = '' OR CustomerName LIKE '%' + @CustomerName +'%') AND 
 				(@IsPrimary IS NULL OR CAST(IsPrimary AS BIT) = CAST(@IsPrimary AS BIT)) AND
 				(@IsSecondary IS NULL OR CAST(IsSecondary AS BIT) = CAST(@IsSecondary AS BIT)) AND
-				(@IsAgent IS NULL OR CAST(IsAgent AS BIT) = CAST(@IsAgent AS BIT))))
+				(@IsAgent IS NULL OR CAST(IsAgent AS BIT) = CAST(@IsAgent AS BIT)) AND
+				(@IsCSR IS NULL OR CAST(IsCSR AS BIT) = CAST(@IsCSR AS BIT))))
 
 			SELECT @Count = COUNT(CustomerId) FROM #TempResult			
 
@@ -108,7 +113,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IsSecondary')  THEN IsSecondary END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsSecondary')  THEN IsSecondary END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IsAgent')  THEN IsAgent END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsAgent')  THEN IsAgent END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsAgent')  THEN IsAgent END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsCSR')  THEN IsCSR END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCSR')  THEN IsCSR END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

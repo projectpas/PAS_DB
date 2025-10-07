@@ -123,14 +123,12 @@ BEGIN
 			UPPER(IM.PartDescription) 'pnDescription',  
 			--UPPER(WS.WorkScopeCode) 'workscope',
 			UPPER(CN.Description) 'workscope',  
-			ISNULL(WOBIT.GrandTotal,0) AS grandTotal,
+			(ISNULL(WOBIT.GrandTotal, 0) - (ISNULL(WBI.SalesTax, 0) + ISNULL(WBI.OtherTax, 0))) AS grandTotal,
 			WBI.BillingInvoicingId as billingInvoicingId,
-			UPPER(Wo.WorkOrderNum) as workOrderNum,
-			
+			UPPER(Wo.WorkOrderNum) as workOrderNum,	
 			wo.OpenDate,
 			WBI.InvoiceDate,
 			ISNULL(wos.Code,'') + '-' + ISNULL(wos.Stage,'') as woStage,
-
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -143,7 +141,6 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			wo.WorkOrderId,
 			wo.WorkOrderTypeId
-	
        FROM 
 			DBO.BillingInvoicingItems AS WOBIT WITH (NOLOCK)  
 			INNER JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  

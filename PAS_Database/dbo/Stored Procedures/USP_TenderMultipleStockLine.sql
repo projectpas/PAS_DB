@@ -9,6 +9,7 @@
 ** --   --------		-------					--------------------------------
 ** 1	09/12/2024		Devendra Shekh			Created
 ** 2    09/24/2024		Devendra Shekh			Added more fiels to Select 
+** 3    09/24/2025		Bhargav Saliya			Added more fiels to Select [PN-12767]
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_TenderMultipleStockLine]
 	@tbl_TenderMultipleStocklineType [TenderMultipleStocklineType] READONLY,
@@ -126,10 +127,12 @@ BEGIN
 					INSERT INTO #TenderMultipleStkListData(
 							[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 							[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
-							[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [WorkFlowWorkOrderId], [ManagementStructureId], [UnitCost])
+							[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [WorkFlowWorkOrderId], [ManagementStructureId], [UnitCost],[ObtainFromTypeId],[ObtainFrom],[ObtainFromName],
+							[OwnerTypeId],[Owner],[OwnerName],[TraceableToTypeId],[TraceableTo],[TraceableToName])
 					SELECT	[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 							[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
-							[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [WorkFlowWorkOrderId], [ManagementStructureId], [UnitCost]
+							[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [WorkFlowWorkOrderId], [ManagementStructureId], [UnitCost],[ObtainFromTypeId],[ObtainFrom],[ObtainFromName],
+							[OwnerTypeId],[Owner],[OwnerName],[TraceableToTypeId],[TraceableTo],[TraceableToName]
 					FROM @tbl_TenderMultipleStocklineType;
 
 					SELECT @TotalStockLineCount = MAX(RecordID), @CurrentStk = MIN(RecordID) FROM #TenderMultipleStkListData;

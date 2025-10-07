@@ -12,18 +12,21 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author    Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/27/2024   Vishal Suthar Created
-    2    10/17/2024   Vishal Suthar Modified to make use of new SO Part tables
-    3    11/28/2024   Vishal Suthar Fixed an issue with Analysis data
-    4    11/29/2024   Vishal Suthar Fixed an issue with Tax Amount Calculation
-    5    12/02/2024   Vishal Suthar Fixed an issue with Freight calculation
-	6    07-07-2025   Moin Bloch    Changed Old To New Billing Table
-	7    08-07-2025   Moin Bloch    Fix For Approval Status
-	8    30-07-2025   RAJESH GAMI   Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is & Check the invoice is generated for the same SO or not.
-	9    01-09-2025   BHARGAV SALIYA   Fixed: Quote Number Binded issue in Analysis tab.
-EXEC [dbo].[GetPartsViewBySalesOrderId]  753
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    09/27/2024   Vishal Suthar		Created
+    2    10/17/2024   Vishal Suthar		Modified to make use of new SO Part tables
+    3    11/28/2024   Vishal Suthar		Fixed an issue with Analysis data
+    4    11/29/2024   Vishal Suthar		Fixed an issue with Tax Amount Calculation
+    5    12/02/2024   Vishal Suthar		Fixed an issue with Freight calculation
+	6    07-07-2025   Moin Bloch		Changed Old To New Billing Table
+	7    08-07-2025   Moin Bloch		Fix For Approval Status
+	8    30-07-2025   RAJESH GAMI		Fixed: Getting Freight and CHarges amount from the billing invoicing if any invoice generated otherwise as it is & Check the invoice is generated for the same SO or not.
+	9    01-09-2025   BHARGAV SALIYA	Fixed: Quote Number Binded issue in Analysis tab.
+	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
+	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
+
+EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
     @SalesOrderId INT
@@ -184,17 +187,19 @@ BEGIN
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0) ELSE  so.TotalFreight END totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
-			CASE WHEN sob.BillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.FreightCostPlus, 0) ELSE 
-				CASE 
-					WHEN so.FreightBilingMethodId = 3 THEN 0 
-					ELSE ISNULL((SELECT SUM(b.BillingAmount)
-								FROM DBO.SalesOrderFreight b WITH (NOLOCK)
-								WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
-									AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
-					END
-				END AS freight,
+			--CASE WHEN sob.BillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.FreightCostPlus, 0) ELSE 
+			--	CASE 
+			--		WHEN so.FreightBilingMethodId = 3 THEN 0 
+			--		ELSE ISNULL((SELECT SUM(b.Amount)
+			--					FROM DBO.SalesOrderFreight b WITH (NOLOCK)
+			--					WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
+			--						AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
+			--		END
+			--	END AS freight,
+			ISNULL((SELECT SUM(b.Amount) FROM DBO.SalesOrderFreight b WITH (NOLOCK) WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0 AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0) AS freight,
 			0 AS sobillingInvoicingItemId,
-			@IsInvoiceGenerated isInvoiceGenerated
+			@IsInvoiceGenerated isInvoiceGenerated,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOPC.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId

@@ -11,10 +11,10 @@
  ** --   -------------		----------------	--------------------------------          
     1    27-May-2025		Divyesh Kathiriya	Created
     2	 28-May-2025		Divyesh Kathiriya	Add Update Functionality of LegalEntity Banking LockBox.
-
+    3	 05-Sep-2025		Rajesh Gami			Each (Deposit and Disbursement) should have an individual primary account (PN-14095)
  -- EXEC [USP_LegalEntityBankingLockBox] 
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_LegalEntityBankingLockBox]
+CREATE   PROCEDURE [dbo].[USP_LegalEntityBankingLockBox]
 @LegalEntityId BIGINT,
 @LegalEntityBankingLockBoxId BIGINT,
 @BankName VARCHAR(100),
@@ -118,7 +118,12 @@ BEGIN
 			ELSE
 			BEGIN
 				-- IF NO OTHER PRIMARY EXISTS, MARK AS PRIMARY
-				IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimay] = 1)
+				--IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimay] = 1)
+				--BEGIN
+				--	SET @IsPrimay = 1;
+				--END
+
+				IF NOT EXISTS (SELECT 1 FROM [DBO].[LegalEntityBankingLockBox] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND [IsPrimay] = 1 AND [AccountTypeId] = @AccountTypeId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0)
 				BEGIN
 					SET @IsPrimay = 1;
 				END

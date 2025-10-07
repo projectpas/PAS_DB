@@ -22,3 +22,16 @@
     CONSTRAINT [FK_SalesPersonActivityType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+
+
+GO
+CREATE   TRIGGER [dbo].[Trg_SalesPersonActivityTypeAudit]
+   ON  [dbo].[SalesPersonActivityType]
+   AFTER INSERT,DELETE,UPDATE
+AS 
+BEGIN
+	INSERT INTO SalesPersonActivityTypeAudit
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

@@ -124,7 +124,7 @@ BEGIN
 			  ,ISNULL(WOMPN.PartsCost, 0) AS [COGSPartsUnitCost]
 			  ,[RMAReasonId]
 			  ,[RMAReason]
-			  ,[Notes]
+			  ,CRD.[Notes]
 			  ,[isWorkOrder]
 			  ,CRD.[MasterCompanyId]
 			  ,CRD.[CreatedBy]

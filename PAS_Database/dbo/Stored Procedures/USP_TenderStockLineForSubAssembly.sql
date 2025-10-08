@@ -23,6 +23,7 @@
 	5 	 22/03/2024     Moin Bloch          Added New Field @EvidenceId
 	6 	 18/07/2024     Moin Bloch          Added @LocationId Field
 	7    12/07/2024		Hemant Saliya		Convert Serial NUmber to Varchar
+	8 	 08/10/2025     Moin Bloch			Added MPN Tendor 
 	
 
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=3809,@WorkFlowWorkOrderId=3280,@WorkOrderMaterialsId=15917
@@ -93,7 +94,8 @@ BEGIN
 				@CurrentSerialNumber VARCHAR(50),
 				@MaterialItemMasterId BIGINT = 0,
 				@MaterialIsSerialized BIT = 0,
-				@WorkOrderPartNoId BIGINT;
+				@WorkOrderPartNoId BIGINT,
+				@IsMPNTendor BIT = 0; 
 
 				IF OBJECT_ID(N'tempdb..#tmpWOMStockline') IS NOT NULL
 				BEGIN
@@ -305,7 +307,7 @@ BEGIN
 						1, @IsSerialized, @SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName,
 						@TraceableToTypeId, @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate,
 						@ReceiverNumber, @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @MasterCompanyId, @UpdatedBy,
-						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId, @EvidenceId
+						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId, @EvidenceId, @WorkFlowWorkOrderId ,@IsMPNTendor
 			
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 					

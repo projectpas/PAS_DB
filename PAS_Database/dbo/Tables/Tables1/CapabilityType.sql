@@ -20,6 +20,8 @@
 );
 
 
+
+
 GO
 
 
@@ -160,8 +162,14 @@ BEGIN
 
 	Memo = ins.SequenceMemo, IsActive = ins.IsActive, IsDeleted = ins.IsDeleted, ConditionId=ins.ConditionId
 
-	FROM [dbo].[WorkScope] WS JOIN INSERTED ins ON ws.WorkScopeId = ins.WorkScopeId
-
+	FROM [dbo].[WorkScope] WS JOIN INSERTED ins ON ws.WorkScopeId = ins.WorkScopeId 
+	 WHERE NOT EXISTS (
+        SELECT 1
+        FROM dbo.WorkScope WS2
+        WHERE WS2.WorkScopeCode = ins.CapabilityTypeDesc
+          AND WS2.MasterCompanyId = WS.MasterCompanyId
+          AND WS2.WorkScopeId <> WS.WorkScopeId
+    );
 	
 
 	SET NOCOUNT ON;

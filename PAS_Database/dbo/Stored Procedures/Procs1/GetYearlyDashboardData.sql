@@ -157,7 +157,7 @@ BEGIN
 
 					;WITH cte(Total, Mnth) AS (
 						--SELECT CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END , @Month Total
-						SELECT ISNULL(SUM(wobii.GrandTotal), 0) AS GrandTotal, @Month Total
+						SELECT ISNULL(SUM(WOBI.GrandTotal),0) - (ISNULL(SUM(WOBI.SalesTax),0) + ISNULL(SUM(WOBI.OtherTax),0)) AS GrandTotal, @Month Total
 						FROM DBO.BillingInvoicing WOBI WITH (NOLOCK) 
 							LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsVersionIncrease, 0) = 0 AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.SubModuleId = @SubModuleId
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.SubReferenceId
@@ -183,7 +183,7 @@ BEGIN
 					DECLARE @SOAmt DECIMAL(18, 2) = 0;
 
 					;WITH cte(Total, Mnth) AS (
-						SELECT SUM(GrandTotal), @Month FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
+						SELECT ISNULL(SUM(GrandTotal),0) - (ISNULL(SUM(SalesTax),0) + ISNULL(SUM(OtherTax),0)), @Month FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId
 							INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
 							--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId

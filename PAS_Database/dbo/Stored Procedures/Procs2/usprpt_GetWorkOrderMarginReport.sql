@@ -188,8 +188,8 @@ BEGIN
      
 			 ;WITH rptCTE (TotalRecordsCount,WorkOrderId, WorkOrderPartNoId, customername, customercode, pn, pndescription, serialnum, workscope, wonum, quotenum, invoicenum,   
 				receiveddate, opendate,invoicedate,quotedate,quoteapprovaldate,shipdate, revenue, partscost,laborcost, overheadcost, directcost, margin, partsrevper, laborrevper, ohcostper, revenueper,   
-				grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
-				 level9, level10, masterCompanyId,otherCost)  
+				otherCost, grossmarginrevper,tat, salesperson,csr, level1, level2, level3, level4, level5, level6, level7, level8,  
+				 level9, level10, masterCompanyId)  
 				 AS ( SELECT DISTINCT    
 						COUNT(1) OVER () AS TotalRecordsCount,    
 						WO.WorkOrderId, 
@@ -222,6 +222,7 @@ BEGIN
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.LaborCost,0) / (ISNULL(WOBI.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))))*100) ELSE 0 END 'laborrevper',      
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.OverHeadCost,0) / (ISNULL(WOBI.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))))*100) ELSE 0 END 'ohcostper',      
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOC.DirectCost,0) / (ISNULL(WOBI.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))))*100) ELSE 0 END  'revenueper',      
+						ISNULL(WOC.ChargesCost, 0) otherCost,
 						CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (((ISNULL(WOBI.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))) - ISNULL(WOC.DirectCost, 0)) / (ISNULL(WOBI.GrandTotal, 0) - (ISNULL(WOBIM.SalesTax, 0) + ISNULL(WOBIM.OtherTax, 0))))*100) ELSE 0 END 'grossmarginrevper',  
 						CASE      
 						  WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)      
@@ -229,11 +230,11 @@ BEGIN
 						  WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate)      
 						  WHEN RCW.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, RCW.ReceivedDate, GETDATE())      
 						END AS 'tat',      
-						UPPER(E.FirstName + ' ' + E.LastName) 'salesperson',      
+						UPPER(E.FirstName + ' ' + E.LastName) AS 'salesperson',      
 						UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',      
 						UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5,        
 						UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8, UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,  
-						WO.MasterCompanyId AS masterCompanyId ,ISNULL(WOC.ChargesCost, 0) otherCost
+						WO.MasterCompanyId AS masterCompanyId
 					FROM DBO.WorkOrder WO WITH (NOLOCK)      
 						 INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId      
 						 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
@@ -416,6 +417,13 @@ BEGIN
   END TRY      
       
   BEGIN CATCH      
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     ROLLBACK TRANSACTION      
       
     IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL      

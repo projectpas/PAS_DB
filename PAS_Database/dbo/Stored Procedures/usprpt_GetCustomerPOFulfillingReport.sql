@@ -67,7 +67,7 @@ BEGIN
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 					STRING_AGG(STK.StocklineNumber, ', ') AS StocklineNumbers,
-					STRING_AGG(STK.SerialNumber, ', ') AS SerialNumbers,
+					STRING_AGG(STK.SerialNumber, '') AS SerialNumbers,
 					MAX(BI.InvoiceNo) AS InvoiceNo,
 					MAX(SOS.ShipDate) AS ShipDate,
 					SO.CreditTermName AS Terms,

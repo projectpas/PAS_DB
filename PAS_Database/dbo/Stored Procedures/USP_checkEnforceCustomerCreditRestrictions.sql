@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    05-Oct-2025		Bhargav Saliya      Created
+    2    07-Oct-2025		Bhargav Saliya      Modefied
 
 --[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 77
 **************************************************************/
@@ -34,24 +35,16 @@ BEGIN
 
 		SELECT @IsCreaditRestriction = IsCreaditRestriction FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = @LegalEntityId and MasterCompanyId = @MastercompanyId;
 
-		SELECT @IsRestrict = [Restrict],@RestrictMessage = [RestrictMessage],
-			   @IsWarning = [Warning],@WarningMessage = [WarningMessage] 
-	    FROM [dbo].[CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
-
 		SELECT @CreditLimit = ISNULL([CreditLimit],0) FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE CustomerId = @CustomerId and MasterCompanyId = @MastercompanyId;
 
 		IF(@CreditLimit < 0 AND @IsCreaditRestriction = 1)
 		BEGIN
-			IF(@IsRestrict = 1)
-			BEGIN
-				SELECT ISNULL([Restrict],0) as IsWarnRestrict,ISNULL([RestrictMessage],'') as [Message]
+				SELECT 
+					ISNULL([Restrict],0) as IsRestrict,
+					ISNULL([Warning],0) as IsWarning,
+					ISNULL([RestrictMessage],'') as [RestrictMessage],
+					ISNULL([WarningMessage],'') as [WarningMessage]
 				FROM [dbo].[CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
-			END
-			ELSE IF(@IsWarning = 1)
-			BEGIN
-				SELECT ISNULL([Warning],0) as IsWarnRestrict,ISNULL([WarningMessage],'') as [Message]
-				FROM [dbo].[CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
-			END
 		END
 
 	END TRY 

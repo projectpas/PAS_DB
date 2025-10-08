@@ -13,8 +13,9 @@
  **	3		15-Aug-2025		Devendra Shekh			Modified for Price Changes, Added QuoteSendReviewId
  **	4		25-Sep-2025		Devendra Shekh		    Added Changes for [ItemMasterId] and [StockLineId] 
  ** 5       03-Oct-2025     Devendra Shekh			Added [IsCustomerStock] for Stk
+ ** 6       07-Oct-2025     Devendra Shekh			Added [CustomerId]
  
-EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 880
+EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 840
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
 @CustomerRfqId BIGINT = NULL
@@ -51,7 +52,8 @@ SET NOCOUNT ON
 				UnitPrice [decimal](18,2) NULL,
 				QuoteSendReviewId [Int] NULL,
 				ItemMasterId [bigint] NULL,
-				StockLineId [Int] NULL
+				StockLineId [bigint] NULL,
+				CustomerId [bigint] NULL
 			);
 
 			IF OBJECT_ID(N'tempdb..#tmpResult') IS NOT NULL
@@ -87,12 +89,15 @@ SET NOCOUNT ON
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 			)
 			INSERT INTO #tmpCustomerRfqPartMapping
-			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], CRFQ.[PartNumber], CRFQ.[PartDescription], [AltPartNumber], [Quantity], [Condition], CRFQ.[MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], 0, 0, IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
+			SELECT	[CustomerRfqPartMappingId], CRFQ.[CustomerRfqId], CRFQ.[Notes], CRFQ.[PartNumber], CRFQ.[PartDescription], CRFQ.[AltPartNumber], CRFQ.[Quantity], CRFQ.[Condition], CRFQ.[MasterCompanyId], CRFQ.[CreatedBy], CRFQ.[CreatedDate],
+					CRFQ.[UpdatedBy], CRFQ.[UpdatedDate], CRFQ.[IsActive], CRFQ.[IsDeleted], 0, 0, IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
+					,(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
 			FROM [dbo].[CustomerRfqPartMapping] CRFQ WITH(NOLOCK)
 			LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(CRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 			LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND CRFQ.[MasterCompanyId] = IM.[MasterCompanyId]
-			WHERE [CustomerRfqId] = @CustomerRfqId;
+			INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON CRFQ.CustomerRfqId = RFQ.CustomerRfqId
+			LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
+			WHERE CRFQ.[CustomerRfqId] = @CustomerRfqId;
 
 			SELECT @TotalRow = MAX(Id), @CurrentRow = MIN(Id) FROM #tmpCustomerRfqPartMapping;
 			
@@ -118,7 +123,7 @@ SET NOCOUNT ON
 			FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 			SELECT	[CustomerRfqPartMappingId], [CustomerRfqId], [Notes], [PartNumber], [PartDescription], [AltPartNumber], [Quantity], [Condition], [MasterCompanyId], [CreatedBy], [CreatedDate],
-					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [UnitPrice], [QuoteSendReviewId], [ItemMasterId], [StockLineId]
+					[UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [UnitPrice], [QuoteSendReviewId], [ItemMasterId], [StockLineId], [CustomerId]
 			FROM #tmpCustomerRfqPartMapping;
 			
 		END

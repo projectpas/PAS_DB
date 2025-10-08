@@ -26,6 +26,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    15	27/09/2024  Devendra Shekh		Commented USP_CreateChildStockline
    16   04/14/2025  HEMANT SALIYA		Added Work Order Work Flow Id for UpdateWOMaterialsCost
    16   18/04/2025  ABHISHEK JIRAWLA	Added Integration Portal in Stockline
+   17	08/10/2025  Moin Bloch			Added MPN Tendor 
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -69,11 +70,13 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
 @BinId BIGINT = NULL,  
 @MasterCompanyId BIGINT,  
 @UpdatedBy VARCHAR(100),  
-@WorkOrderMaterialsId BIGINT,  
+@WorkOrderMaterialsId BIGINT=0,  
 @IsKitType BIT = 0,  
 @Unitcost DECIMAL(18,2) = 0,
 @ProvisionId INT =0, 
-@EvidenceId INT = NULL  
+@EvidenceId INT = NULL,  
+@WorkOrderWorkflowId BIGINT  = NULL,  
+@IsMPNTendor BIT = 0  
 AS  
 BEGIN  
    
@@ -90,7 +93,7 @@ BEGIN
  DECLARE @IDNumber VARCHAR(50);  
  DECLARE @NewWorkOrderMaterialsId BIGINT;  
  DECLARE @StockLineId BIGINT;  
- DECLARE @WorkOrderWorkflowId BIGINT;  
+ --DECLARE @WorkOrderWorkflowId BIGINT;  
  DECLARE @IsWorkOrderMaterialsExist BIT = 0;  
  DECLARE @MSModuleID INT = 2; -- Stockline Module ID  
  DECLARE @IsPMA BIT = 0;  
@@ -116,6 +119,7 @@ BEGIN
  DECLARE @IsTimeLife BIT;  
     
    -- #STEP 1 CREATE STOCKLINE  
+   BEGIN TRY 
    BEGIN TRANSACTION  
     BEGIN  
      DECLARE @QtyTendered INT = 0;  
@@ -124,9 +128,11 @@ BEGIN
      DECLARE @WorkOrderTypeId INT = 0;  
      DECLARE @TearDownWorkOrderTypeId INT = 0;  
      DECLARE @WorkOrderPartNoId BIGINT = 0;  
-	 DECLARE @isExchange BIT = (CASE WHEN UPPER((SELECT StatusCode FROM DBO.Provision WHERE ProvisionId = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
+	 DECLARE @ItemClassificationId BIGINT = 0;  
+	 DECLARE @WorkOrderFormTypeId BIT = 0; 
+	 DECLARE @isExchange BIT = (CASE WHEN UPPER((SELECT [StatusCode] FROM [dbo].[Provision] WITH(NOLOCK) WHERE [ProvisionId] = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
-	 print @isExchange
+	 
      SET @count = @Quantity;  
      SET @slcount = @Quantity;  
      SET @IsAddUpdate = 1;  
@@ -135,8 +141,8 @@ BEGIN
      SET @IsOHUpdated = 0;  
      SET @AddHistoryForNonSerialized = 0;  
   
-     SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 22; -- For Stockline Module  
-     SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module  
+     SELECT @ModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'StockLine'; -- For Stockline Module   
+     SELECT @SubModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials'; -- For WORK ORDER Materials Module  
   
      --IF(@isExchange = 1)
 	 --BEGIN
@@ -150,24 +156,24 @@ BEGIN
       
      CREATE TABLE #tmpCodePrefixes_Parent  
      (  
-       ID BIGINT NOT NULL IDENTITY,   
-       CodePrefixId BIGINT NULL,  
-       CodeTypeId BIGINT NULL,  
-       CurrentNummber BIGINT NULL,  
-       CodePrefix VARCHAR(50) NULL,  
-       CodeSufix VARCHAR(50) NULL,  
-       StartsFrom BIGINT NULL,  
+       [ID] BIGINT NOT NULL IDENTITY,   
+       [CodePrefixId] BIGINT NULL,  
+       [CodeTypeId] BIGINT NULL,  
+       [CurrentNummber] BIGINT NULL,  
+       [CodePrefix] VARCHAR(50) NULL,  
+       [CodeSufix] VARCHAR(50) NULL,  
+       [StartsFrom] BIGINT NULL,  
      )  
   
      /* PN Manufacturer Combination Stockline logic */  
      CREATE TABLE #tmpPNManufacturer  
      (  
-       ID BIGINT NOT NULL IDENTITY,   
-       ItemMasterId BIGINT NULL,  
-       ManufacturerId BIGINT NULL,  
-       StockLineNumber VARCHAR(100) NULL,  
-       CurrentStlNo BIGINT NULL,  
-       isSerialized BIT NULL  
+       [ID] BIGINT NOT NULL IDENTITY,   
+       [ItemMasterId] BIGINT NULL,  
+       [ManufacturerId] BIGINT NULL,  
+       [StockLineNumber] VARCHAR(100) NULL,  
+       [CurrentStlNo] BIGINT NULL,  
+       [isSerialized] BIT NULL  
      )  
   
      ;WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId) AS  
@@ -189,35 +195,40 @@ BEGIN
      ON CSTL.StockLineId = STL.StockLineId  
      /* PN Manufacturer Combination Stockline logic */  
   
-     SELECT @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife  FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
-     SELECT @WorkOrderNumber = WorkOrderNum,@WorkOrderTypeId=WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId  
+     SELECT @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+     
+	 SELECT @WorkOrderNumber = [WorkOrderNum],@WorkOrderTypeId=[WorkOrderTypeId], @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId  
 
-	 IF(ISNULL(@IsKitType, 0) = 0)
+	 IF(ISNULL(@IsMPNTendor,0) = 0)
 	 BEGIN
-		SELECT @WorkOrderWorkflowId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId 
-	 END
-	 ELSE 
-	 BEGIN
-		SELECT @WorkOrderWorkflowId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterialsKit WITH(NOLOCK) WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId 
+		 IF(ISNULL(@IsKitType, 0) = 0)
+		 BEGIN
+			SELECT @WorkOrderWorkflowId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId 
+		 END
+		 ELSE 
+		 BEGIN
+			SELECT @WorkOrderWorkflowId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderMaterialsKit] WITH(NOLOCK) WHERE [WorkOrderMaterialsKitId] = @WorkOrderMaterialsId 
+		 END
 	 END
       
-     SELECT @WorkOrderPartNoId=WorkOrderPartNoId FROM WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId =@WorkOrderWorkflowId  
-     SELECT @TearDownWorkOrderTypeId=Id FROM WorkOrderType WITH(NOLOCK) WHERE Description ='Teardown'  
+     SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkOrderWorkflowId  
+
+     SELECT @TearDownWorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] ='Teardown'  
        
      INSERT INTO #tmpCodePrefixes_Parent (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom)   
      SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
-     FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId  
+     FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId  
      WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;  
   
      IF(@WorkOrderTypeId != @TearDownWorkOrderTypeId)  
      BEGIN  
-      SET @Unitcost=0;  
+      SET @Unitcost = 0;  
      END  
   
      DECLARE @currentNo AS BIGINT;  
      DECLARE @stockLineCurrentNo AS BIGINT;  
   
-     SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId  
+     SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId  
   
      IF (@currentNo <> 0)  
      BEGIN  
@@ -228,15 +239,15 @@ BEGIN
       SET @stockLineCurrentNo = 1  
      END  
   
-     IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 30))  
+     IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Parent WHERE [CodeTypeId] = 30))  
      BEGIN   
       SET @StockLineNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](@stockLineCurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 30)))  
       
-	  UPDATE DBO.ItemMaster SET [CurrentStlNo] = @stockLineCurrentNo WHERE [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId  
+	  UPDATE [dbo].[ItemMaster] SET [CurrentStlNo] = @stockLineCurrentNo WHERE [ItemMasterId] = @ItemMasterId AND [ManufacturerId] = @ManufacturerId  
      END  
      ELSE   
      BEGIN  
-      ROLLBACK TRAN;  
+		ROLLBACK TRAN;  
      END  
   
      IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 9))  
@@ -273,7 +284,7 @@ BEGIN
 		WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
 		GROUP BY iM.ItemMasterId
 
-     INSERT INTO dbo.Stockline(StockLineNumber, ControlNumber, IDNumber, IsCustomerStock,IsCustomerstockType,ItemMasterId,PartNumber, PurchaseUnitOfMeasureId,ConditionId,Quantity,   
+     INSERT INTO [dbo].[Stockline](StockLineNumber, ControlNumber, IDNumber, IsCustomerStock,IsCustomerstockType,ItemMasterId,PartNumber, PurchaseUnitOfMeasureId,ConditionId,Quantity,   
        QuantityAvailable, QuantityOnHand,QuantityTurnIn,IsSerialized,SerialNumber, CustomerId, ObtainFromType, ObtainFrom, ObtainFromName, OwnerType, [Owner], OwnerName, TraceableToType,   
        TraceableTo, TraceableToName, Memo, WorkOrderId, WorkOrderNumber, ManufacturerId, InspectionBy, InspectionDate, ReceiverNumber, IsParent, LotCost, ParentId,  
        QuantityIssued, QuantityReserved,QuantityToReceive,RepairOrderExtendedCost, SubWOPartNoId,SubWorkOrderId, WorkOrderExtendedCost, WorkOrderPartNoId,  
@@ -287,18 +298,17 @@ BEGIN
        
      SELECT @StockLineId = SCOPE_IDENTITY()  
   
-     UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNummber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId --(30,17,9)  
+     UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @SLCurrentNummber WHERE [CodeTypeId] = 30 AND [MasterCompanyId] = @MasterCompanyId --(30,17,9)  
   
-     UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNummber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId  
+     UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @CNCurrentNummber WHERE [CodeTypeId] = 9 AND [MasterCompanyId] = @MasterCompanyId  
   
      EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @StockLineId  
        
-     UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @WorkOrderNumber,Unitcost= @Unitcost  
-     WHERE StockLineId = @StockLineId  
+     UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @WorkOrderNumber,Unitcost= @Unitcost WHERE [StockLineId] = @StockLineId  
 
 	 IF(@isExchange = 1)
 	 BEGIN
-		UPDATE dbo.Stockline SET WorkOrderMaterialsId = @WorkOrderMaterialsId WHEre StockLineId = @StockLineId
+		UPDATE [dbo].[Stockline] SET [WorkOrderMaterialsId] = @WorkOrderMaterialsId WHERE [StockLineId] = @StockLineId
 	 END
 
 	 IF(@WorkOrderTypeId = @TearDownWorkOrderTypeId)  
@@ -361,46 +371,99 @@ BEGIN
      BEGIN  
       IF (@IsMaterialStocklineCreate = 1)  
       BEGIN  
-       IF ((SELECT COUNT(1) FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = @ConditionId AND   
-			WorkFlowWorkOrderId = @WorkOrderWorkflowId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0) > 0)  
+        IF ((SELECT COUNT(1) FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [ConditionCodeId] = @ConditionId AND [WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0) > 0)  
 		BEGIN  
-			UPDATE dbo.WorkOrderMaterials SET   
+			UPDATE [dbo].[WorkOrderMaterials] SET   
 			Quantity =  CASE WHEN ISNULL(Quantity, 0) - (ISNULL(QuantityReserved, 0) + ISNULL(QuantityIssued, 0)) >= @Quantity THEN Quantity ELSE  
 			(ISNULL(QuantityReserved, 0) + ISNULL(QuantityIssued, 0) + @Quantity) END  
 			--Quantity = Quantity + @Quantity   
-			FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId  
+			FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId  
 			SELECT @NewWorkOrderMaterialsId = @WorkOrderMaterialsId;  
 				IF(@isExchange = 1)
-				BEGIN
-				print 'Stocklineeee 1'
-
-					UPDATE dbo.Stockline SET WorkOrderMaterialsId = @WorkOrderMaterialsId WHEre StockLineId = @StockLineId
+				BEGIN				
+					UPDATE [dbo].[Stockline] SET WorkOrderMaterialsId = @WorkOrderMaterialsId WHERE [StockLineId] = @StockLineId
 				END
-		   END  
-		 ELSE  
-		   BEGIN  
-			INSERT INTO dbo.WorkOrderMaterials (WorkOrderId, WorkFlowWorkOrderId, ItemMasterId, TaskId, ConditionCodeId, ItemClassificationId, Quantity, UnitOfMeasureId,  
-			   UnitCost,ExtendedCost,Memo,IsDeferred, QuantityReserved, QuantityIssued, MaterialMandatoriesId,ProvisionId,CreatedDate, CreatedBy, UpdatedDate,   
-			   UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
-			SELECT @WorkOrderId, WOWF.WorkFlowWorkOrderId, @ItemMasterId, WOM.TaskId, @ConditionId, WOM.ItemClassificationId, @Quantity, @UnitOfMeasureId, 0, 0, @Memo,   
-			   WOM.IsDeferred, 0, 0, WOM.MaterialMandatoriesId,WOM.ProvisionId,GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
-			FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)   
-			 JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId  
-			WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId;  
+		END  
+		ELSE  
+		BEGIN  
+			 IF(ISNULL(@IsMPNTendor,0) = 0)
+			 BEGIN			
+				INSERT INTO [dbo].[WorkOrderMaterials] ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId],  
+				   [UnitCost],[ExtendedCost],[Memo],[IsDeferred], [QuantityReserved], [QuantityIssued], [MaterialMandatoriesId],[ProvisionId],[CreatedDate], [CreatedBy], [UpdatedDate],   
+				   [UpdatedBy], [MasterCompanyId], [IsActive], [IsDeleted])   
+				SELECT @WorkOrderId, WOWF.WorkFlowWorkOrderId, @ItemMasterId, WOM.TaskId, @ConditionId, WOM.ItemClassificationId, @Quantity, @UnitOfMeasureId, 0, 0, @Memo,   
+				   WOM.IsDeferred, 0, 0, WOM.MaterialMandatoriesId,WOM.ProvisionId,GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
+				FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)   
+				 JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId  
+				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId;  
   
-			SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()  
-			IF(@isExchange = 1)
-			BEGIN
-				print 'Stocklineeee 2'
-				UPDATE dbo.Stockline SET WorkOrderMaterialsId = @NewWorkOrderMaterialsId WHEre StockLineId = @StockLineId
+				SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()  
+				IF(@isExchange = 1)
+				BEGIN				
+					UPDATE [dbo].[Stockline] SET [WorkOrderMaterialsId] = @NewWorkOrderMaterialsId WHERE [StockLineId] = @StockLineId
+				END
 			END
-		   END  
-  
-       INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,   
+			ELSE
+			BEGIN
+				DECLARE @TaskId BIGINT = 0
+				IF(@WorkOrderFormTypeId = 0)
+				BEGIN
+					SELECT @TaskId = ISNULL([TaskId],0) FROM [dbo].[Task] WHERE [Description] = 'ALL TASK' AND [MasterCompanyId] = @MasterCompanyId
+
+					IF(@TaskId = 0)
+					BEGIN
+						INSERT INTO [dbo].[Task]([Description],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Sequence],[IsTravelerTask],[Descrepancy],[Resolution],[StandardHours],[StandardMinute],[IsPrintInWO],[IsPrintInWOQ],[IsPrintInspector],[IsPrintTechnician],[IsPrintAdmin])
+						 	             VALUES ('ALL TASK','',@MasterCompanyId,'AUTO SCRIPT','AUTO SCRIPT',GETUTCDATE(),GETUTCDATE(),1,0,(SELECT (MAX([Sequence]) + 1) FROM [dbo].[Task] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId),1,NULL,NULL,0,0,0,0,1,0,1);
+						SET @TaskId = SCOPE_IDENTITY()  
+					END
+				END
+				ELSE 
+				BEGIN
+					SET @TaskId = (SELECT TOP 1 ISNULL([WorkOrderTaskId],0) FROM [dbo].[WorkOrderTask] WHERE [WorkOrderId] = @WorkOrderId AND [WorkFlowWorkOrderId] = @WorkOrderWorkflowId AND [MasterCompanyId] = @MasterCompanyId);
+					IF(@TaskId = 0)
+					BEGIN
+						SET @TaskId = (SELECT ISNULL([TaskId],0) FROM [dbo].[Task] WHERE [Description] = 'ALL TASK' AND [MasterCompanyId] = @MasterCompanyId);						
+						IF(@TaskId = 0)
+						BEGIN
+							INSERT INTO [dbo].[Task]([Description],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Sequence],[IsTravelerTask],[Descrepancy],[Resolution],[StandardHours],[StandardMinute],[IsPrintInWO],[IsPrintInWOQ],[IsPrintInspector],[IsPrintTechnician],[IsPrintAdmin])
+						 	             VALUES ('ALL TASK','',@MasterCompanyId,'AUTO SCRIPT','AUTO SCRIPT',GETUTCDATE(),GETUTCDATE(),1,0,(SELECT (MAX([Sequence]) + 1) FROM [dbo].[Task] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId),1,NULL,NULL,0,0,0,0,1,0,1);
+							
+							SET @TaskId = SCOPE_IDENTITY();
+
+							INSERT INTO [dbo].[WorkOrderTask]([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName],[IsFromWorkFlow])
+							 VALUES (@WorkOrderId,@WorkOrderWorkflowId,@TaskId,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderPartNoId,1,NULL,NULL,NULL,NULL,'ALL TASK',NULL)
+							
+							SET @TaskId = SCOPE_IDENTITY();
+
+						END
+						ELSE
+						BEGIN
+							INSERT INTO [dbo].[WorkOrderTask]([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName],[IsFromWorkFlow])
+							 VALUES (@WorkOrderId,@WorkOrderWorkflowId,@TaskId,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@WorkOrderPartNoId,1,NULL,NULL,NULL,NULL,'ALL TASK',NULL)
+							
+							SET @TaskId = SCOPE_IDENTITY();
+						END
+					END
+				END
+				
+				INSERT INTO [dbo].[WorkOrderMaterials] ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId],  
+				   [UnitCost],[ExtendedCost],[Memo],[IsDeferred], [QuantityReserved], [QuantityIssued], [MaterialMandatoriesId],[ProvisionId],[CreatedDate], [CreatedBy], [UpdatedDate],   
+				   [UpdatedBy], [MasterCompanyId], [IsActive], [IsDeleted]) 
+				   
+				SELECT @WorkOrderId, @WorkOrderWorkflowId, @ItemMasterId, @TaskId, @ConditionId, @ItemClassificationId, @Quantity, @UnitOfMeasureId, 0, 0, @Memo,   
+				   0, 0, 0, 1,@ProvisionId,GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   				
+				
+				SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()  
+
+			END
+
+	    END  
+			   		 	  	  	   	  
+       INSERT INTO [dbo].[WorkOrderMaterialStockLine](WorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued,   
            UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
        SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, @Quantity, 0, 0, 0, 0, 0,  
           GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
-       FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)   
+       FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)   
        WHERE WOM.WorkOrderMaterialsId = @NewWorkOrderMaterialsId;  
   
        DECLARE @WOMStockLineId BIGINT = 0  
@@ -408,9 +471,9 @@ BEGIN
        SELECT @WOMStockLineId = SCOPE_IDENTITY()  
   
        IF(@WorkOrderTypeId = @TearDownWorkOrderTypeId)  
-             BEGIN  
-        UPDATE [dbo].[WorkOrderMaterialStockLine] SET UnitCost= @Unitcost,ExtendedCost=ISNULL((@Quantity * @Unitcost),0) WHERE WOMStockLineId=@WOMStockLineId;  
-             END  
+       BEGIN  
+			UPDATE [dbo].[WorkOrderMaterialStockLine] SET [UnitCost] = @Unitcost,[ExtendedCost] = ISNULL((@Quantity * @Unitcost),0) WHERE [WOMStockLineId]=@WOMStockLineId;  
+       END  
   
        --UPDATE QTY TO TURN IN IF MISMATCH  
        SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0))   
@@ -426,8 +489,13 @@ BEGIN
   
        IF (@QtyTendered > @QtyToTendered)  
        BEGIN  
-        UPDATE dbo.WorkOrderMaterials SET QtyToTurnIn = @QtyTendered FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId  
-       END  
+			UPDATE dbo.WorkOrderMaterials SET [QtyToTurnIn] = @QtyTendered FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId  
+       END 
+	   
+	   IF(ISNULL(@IsMPNTendor,0) = 1)
+	   BEGIN  
+			UPDATE dbo.WorkOrderMaterials SET [QtyToTurnIn] = @Quantity FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @NewWorkOrderMaterialsId  
+       END 
   
        --UPDATE QTY REQ IN MATERIAL IF REQ QTY MISMATCH  
        SELECT @TotalStlQtyReq = SUM(ISNULL(womsl.Quantity,0))   
@@ -436,7 +504,7 @@ BEGIN
   
        IF(@TotalStlQtyReq > (SELECT ISNULL(Quantity, 0) FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId))  
        BEGIN  
-        UPDATE dbo.WorkOrderMaterials SET Quantity = @TotalStlQtyReq FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId  
+			UPDATE dbo.WorkOrderMaterials SET Quantity = @TotalStlQtyReq FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId  
        END  
   
        --UPDATE WO PART LEVEL TOTAL COST  
@@ -452,8 +520,8 @@ BEGIN
      END  
      ELSE  
      BEGIN  
-	 print '@IsMaterialStocklineCreate = 0'
-      SELECT @WorkOrderWorkflowId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterialsKit WITH(NOLOCK) WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId;  
+	 
+      SELECT @WorkOrderWorkflowId = WorkFlowWorkOrderId FROM [dbo].[WorkOrderMaterialsKit] WITH(NOLOCK) WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId;  
   
       IF (@IsMaterialStocklineCreate = 1)  
       BEGIN  
@@ -540,5 +608,26 @@ BEGIN
 
 	 SELECT @StockLineId as StockLineId
     END  
-   COMMIT  TRANSACTION  
+   COMMIT  TRANSACTION 
+    END TRY        
+ BEGIN CATCH
+  IF @@trancount > 0    
+   PRINT 'ROLLBACK'  
+    
+   ROLLBACK TRAN;    
+   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+            , @AdhocComments     VARCHAR(150)    = 'usp_SaveTurnInWorkOrderMaterils'     
+			, @ProcedureParameters VARCHAR(3000) = '@WorkOrderId = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))  
+            , @ApplicationName VARCHAR(100) = 'PAS'    
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+            exec spLogException     
+                    @DatabaseName           = @DatabaseName    
+                    , @AdhocComments          = @AdhocComments    
+                    , @ProcedureParameters = @ProcedureParameters    
+                    , @ApplicationName        =  @ApplicationName    
+                    , @ErrorLogID             = @ErrorLogID OUTPUT ;    
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
+            RETURN(1);    
+ END CATCH    
 END

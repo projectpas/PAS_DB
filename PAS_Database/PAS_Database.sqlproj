@@ -69,8 +69,6 @@
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
     <Folder Include="Snapshots" />
-    <Folder Include="HangFire\" />
-    <Folder Include="HangFire\Tables\" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -3544,17 +3542,6 @@
     <Build Include="dbo\User Defined Types\WorkOrderPartNumberType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivingCustomerWorkAuditById.sql" />
     <Build Include="dbo\Stored Procedures\CheckVendorWarningRestriction.sql" />
-    <Build Include="HangFire\Tables\AggregatedCounter.sql" />
-    <Build Include="HangFire\Tables\Hash.sql" />
-    <Build Include="HangFire\Tables\Counter.sql" />
-    <Build Include="HangFire\Tables\Set.sql" />
-    <Build Include="HangFire\Tables\List.sql" />
-    <Build Include="HangFire\Tables\Server.sql" />
-    <Build Include="HangFire\Tables\JobQueue.sql" />
-    <Build Include="HangFire\Tables\JobParameter.sql" />
-    <Build Include="HangFire\Tables\State.sql" />
-    <Build Include="HangFire\Tables\Job.sql" />
-    <Build Include="HangFire\Tables\Schema.sql" />
     <Build Include="dbo\Tables\SubWorkOrderTaskInstructionAudit.sql" />
     <Build Include="dbo\Tables\SubWorkOrderTaskInstruction.sql" />
     <Build Include="dbo\Tables\SubWorkOrderTaskDetailsAudit.sql" />
@@ -4268,14 +4255,11 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetCustomerPOFulfillingReport.sql" />
     <Build Include="dbo\Stored Procedures\ConvertSalesQuoteToSalesOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSuggestedPriceByPartNumber.sql" />
-
     <Build Include="dbo\Tables\MROPriceMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMROPriceMasterByItemMasterId.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddOrUpdateMROPriceMaster.sql" />
     <Build Include="dbo\Stored Procedures\CheckMROPriceExists.sql" />
-
     <Build Include="dbo\Stored Procedures\USP_checkEnforceCustomerCreditRestrictions.sql" />
-
     <Build Include="dbo\Views\vw_VendorRFQReference.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetVendorQuoteReportSSRS.sql" />
   </ItemGroup>

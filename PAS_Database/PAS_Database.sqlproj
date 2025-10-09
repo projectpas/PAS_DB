@@ -4271,6 +4271,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireAuditV2.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterExportInfoById.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateExportInfo.sql" />
+    <Build Include="dbo\Stored Procedures\GetInternationalWireTransferBankingInfoV2.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

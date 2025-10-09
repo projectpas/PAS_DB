@@ -1,9 +1,9 @@
 ﻿/*************************************************************             
- ** File:   [GetWireTransferBankingInfo]            
- ** Author:  EKTA CHANDEGRA
- ** Description: This stored procedure is used GetWireTransferBankingInfo
+ ** File:   [GetInternationalWireTransferBankingInfoV2]            
+ ** Author:  RAJESH GAMI
+ ** Description: This stored procedure is used Get Internationa lWireTransfer Banking Info V2
  ** Purpose:           
- ** Date:  10/12/2024        
+ ** Date:  08/Oct/2025       
             
  ** PARAMETERS: @ManagementStructId bigint  
            
@@ -13,35 +13,25 @@
  **************************************************************             
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
-    1    10/12/2024		EKTA CHANDEGRA	 Created  
-    2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
-    3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
-    4    09/Jul/2025	RAJESH GAMI		 Manage address space
-	5    16/Jul/2025	Moin Bloch		 Added UPPERCASE
-	6    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096), Remove line break comma
-	7    08/Oct/2025	RAJESH GAMI		 Added logic for NEO(PN-14371)
- EXEC GetWireTransferBankingInfo 1 
+	1    08/Oct/2025	RAJESH GAMI		 CREATED
+ EXEC GetInternationalWireTransferBankingInfoV2 38 
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[GetWireTransferBankingInfo]
+CREATE       PROCEDURE [dbo].[GetInternationalWireTransferBankingInfoV2]
     @ManagementStructId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	SET NOCOUNT ON;   
 	BEGIN TRY
-		-- Declare variable to store MasterCompanyId
 		DECLARE @MasterCompanyId INT;
 		DECLARE @MTI_MasterComapnyId BIGINT = 12,@NEO_MasterComapnyId BIGINT = 20;
 
-		-- Retrieve MasterCompanyId from EntityStructureSetup table
 		SET @MasterCompanyId = (SELECT MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
 								WHERE EntityStructureId = @ManagementStructId);
 
-		-- Check if MasterCompanyId is equal to the value for @MTI_MasterComapnyId
 		IF @MasterCompanyId = CAST(@MTI_MasterComapnyId AS INT)
 		BEGIN
-			-- Query for @MTI_MasterComapnyId
 			SELECT TOP 1
 			(
 				 CASE WHEN inter.BankName IS NOT NULL THEN 
@@ -66,8 +56,8 @@ BEGIN
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
-				LEFT JOIN [dbo].[InternationalWirePayment] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
+				LEFT JOIN [dbo].[LegalEntityInternationalWireBankingV2] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
+				LEFT JOIN [dbo].[InternationalWirePaymentV2] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
 				LEFT JOIN [dbo].[ACH] ach WITH(NOLOCK) ON le.LegalEntityId = ach.LegalEntityId AND ach.IsPrimay = 1
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 				INNER JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
@@ -78,7 +68,6 @@ BEGIN
 		END
 		ELSE IF @MasterCompanyId = CAST(@NEO_MasterComapnyId AS INT)
 		BEGIN
-			-- Query for other companies
 			SELECT TOP 1
 			(
 				 CASE WHEN inter.BankName IS NOT NULL THEN 
@@ -93,14 +82,8 @@ BEGIN
 				ELSE '' END + ', ' +CASE WHEN ad.PostalCode IS NOT NULL THEN UPPER(ad.PostalCode) ELSE '' END + '</label>' 
 				ELSE '' END +
 				'<br />' + 
-				--CASE WHEN ad.StateOrProvince IS NOT NULL THEN 
-				--	'<label style="text-transform: uppercase;">' + ad.StateOrProvince + '</label>' 
-				--ELSE '' END +
-				--',' +
-				--CASE WHEN ad.PostalCode IS NOT NULL THEN ad.PostalCode ELSE '' END + 
-				--'<br />' +
 				CASE WHEN co.countries_name IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + UPPER(co.countries_name) + '</label><br />' 
+					'<label style="text-transform: uppercase;">' + UPPER(co.countries_name)+'Rajesh' + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBank) + '</label><br />' 
@@ -112,14 +95,17 @@ BEGIN
 				'<br />' +
 				CASE WHEN inter.ABA IS NOT NULL THEN 
 					'ABA# <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
+				ELSE '' END +
+				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
+					'SWIFT/IBAN CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
 				ELSE '' END
 			) AS chequeTo
 			FROM 
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON  msl.LegalEntityId = le.LegalEntityId
-				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
-				LEFT JOIN [dbo].[InternationalWirePayment] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
+				LEFT JOIN [dbo].[LegalEntityInternationalWireBankingV2] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
+				LEFT JOIN [dbo].[InternationalWirePaymentV2] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 				INNER JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 			WHERE 
@@ -129,7 +115,6 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			-- Query for other companies
 			SELECT TOP 1
 			(
 				 CASE WHEN inter.BankName IS NOT NULL THEN 
@@ -172,8 +157,8 @@ BEGIN
 				[dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON  msl.LegalEntityId = le.LegalEntityId
-				LEFT JOIN [dbo].[LegalEntityInternationalWireBanking] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
-				LEFT JOIN [dbo].[InternationalWirePayment] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
+				LEFT JOIN [dbo].[LegalEntityInternationalWireBankingV2] lockbox WITH(NOLOCK) ON le.LegalEntityId = lockbox.LegalEntityId AND lockbox.IsPrimay = 1
+				LEFT JOIN [dbo].[InternationalWirePaymentV2] inter WITH(NOLOCK) ON lockbox.InternationalWirePaymentId = inter.InternationalWirePaymentId
 				INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 				INNER JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 			WHERE 
@@ -185,7 +170,7 @@ BEGIN
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
-            , @AdhocComments     VARCHAR(150)    = 'GetWireTransferBankingInfo'     
+            , @AdhocComments     VARCHAR(150)    = 'GetInternationalWireTransferBankingInfoV2'     
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ManagementStructId, '') 
             , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    

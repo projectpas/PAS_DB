@@ -14,6 +14,7 @@
     1   08/Feb/2024    Rajesh Gami		Created
     2   26/Aug/2025    Devendra Shekh	added VendorName ILSRFQPart Insert
     3   27/Aug/2025    Devendra Shekh	added @PriceType Param
+    4   09/Oct/2025    Devendra Shekh	added @CustomerRfqId Param
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@tbl_ILSRFQPartType ILSRFQPartType READONLY,
@@ -35,7 +36,8 @@ CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@BuyerComment VARCHAR(MAX) = NULL,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200),
-	@PriceType VARCHAR(50) = NULL
+	@PriceType VARCHAR(50) = NULL,
+	@CustomerRfqId BIGINT = NULL
 AS
 BEGIN
 	  SET NOCOUNT ON;
@@ -47,13 +49,13 @@ BEGIN
 			DECLARE @StatusName varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationRFQStatus WITH(NOLOCK) WHERE IntegrationRFQStatusId = @StatusId)
 			DECLARE @IntegrationPortal varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationPortal WITH(NOLOCK) WHERE IntegrationPortalId = @IntegrationPortalId)
 			SET @Priority = CASE WHEN @PriorityId = NULL or @PriorityId = 0 THEN @Priority ELSE (SELECT TOP 1 [Description] FROM DBO.[Priority] WITH(NOLOCK) WHERE PriorityId = @PriorityId) END;
-
+			SET @CustomerRfqId = CASE WHEN ISNULL(@CustomerRfqId, 0) = 0 THEN NULL ELSE @CustomerRfqId END;
 
 			IF(@ThirdPartyRFQId >0)
 			BEGIN
 				UPDATE [dbo].[ThirdPartyRFQ] SET [PortalRFQId] = UPPER(@PortalRFQId), Name = @Name,[IntegrationRFQStatusId] = @StatusId,[Status] = @StatusName
 												 ,[UpdatedDate] = GETUTCDATE(),[UpdatedBy] = @CreatedBy WHERE ThirdPartyRFQId = @ThirdPartyRFQId
-				UPDATE [dbo].[ILSRFQDetail] SET  [PriorityId] = @PriorityId, Priority = @Priority, QuoteWithinDays = @QuoteWithinDays, DeliverByDate = @DeliverByDate, [PriceType] = @PriceType
+				UPDATE [dbo].[ILSRFQDetail] SET  [PriorityId] = @PriorityId, Priority = @Priority, QuoteWithinDays = @QuoteWithinDays, DeliverByDate = @DeliverByDate, [PriceType] = @PriceType, [CustomerRfqId] =  @CustomerRfqId
 												 ,PreparedBy = @PreparedBy ,DeliverToAddress = @DeliverToAddress, BuyerComment = @BuyerComment, UpdatedBy = @CreatedBy, UpdatedDate = GETUTCDATE()
 												 WHERE ThirdPartyRFQId = @ThirdPartyRFQId
 				set @ILSRFQDetailId = (SELECT TOP 1 ILSRFQDetailId FROM [dbo].[ILSRFQDetail] WHERE ThirdPartyRFQId = @ThirdPartyRFQId)
@@ -88,10 +90,10 @@ BEGIN
 				   /**** Insert data into the ILS RFQ Detail table *****/
 				   INSERT INTO [dbo].[ILSRFQDetail]
 					   ([ThirdPartyRFQId],[PriorityId],[Priority],[RequestedQty],[QuoteWithinDays],[DeliverByDate],[PreparedBy],[AttachmentId],[DeliverToAddress] ,[BuyerComment], [PriceType]
-					   ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsDeleted]  ,[IsActive])
+					   ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsDeleted]  ,[IsActive], [CustomerRfqId])
 				   VALUES
 					   (@LatestThirdPartyRFQId,@PriorityId,@Priority,@RequestedQty,@QuoteWithinDays ,@DeliverByDate ,@PreparedBy ,@AttachmentId ,@DeliverToAddress ,@BuyerComment, @PriceType
-					   ,@MasterCompanyId ,@CreatedBy ,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,0 ,1)
+					   ,@MasterCompanyId ,@CreatedBy ,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,0 ,1 ,@CustomerRfqId)
 			
 				   SET @LatestILSRFQDetailId = SCOPE_IDENTITY();
 

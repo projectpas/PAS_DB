@@ -53,8 +53,16 @@
     [TwoFactorAuthenticatorKey]          NVARCHAR (100)  NULL,
     [IsScrapCertification]               BIT             NULL,
     [IsCommission]                       BIT             NULL,
+    [MRORevenuePercentageId]             BIGINT          NULL,
+    [BrokeringRevenuePercentageId]       BIGINT          NULL,
+    [ManufacturingRevenuePercentageId]   BIGINT          NULL,
+    [MROMarginPercentageId]              BIGINT          NULL,
+    [BrokeringMarginPercentageId]        BIGINT          NULL,
+    [ManufacturingMarginPercentageId]    BIGINT          NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 
 
 

@@ -18,6 +18,7 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
     1     08/04/2025      Ekta Chandegra        Created  
+	2     09/10/2025      Amit Ghediya			Update Balance due condition to nullable  
 
 exec [dbo].[USP_CreateExchangeSalesOrder] @TypeId=1,@OpenDate='2025-08-04 00:00:00',@CustomerId=44,
 @CustomerReference=N'test',@SalesPersonId=0,@CustomerSeviceRepId=0,@EmployeeId=237,@Memo=N'',@StatusId=1,
@@ -246,7 +247,7 @@ BEGIN
 			,0
 			,0
 			,0
-			,@BalanceDue
+			,ISNULL(@BalanceDue,0.0)
 			,@SalesPersonId
 			,NULL
 			,@CustomerSeviceRepId

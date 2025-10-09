@@ -4262,6 +4262,13 @@
     <Build Include="dbo\Stored Procedures\USP_checkEnforceCustomerCreditRestrictions.sql" />
     <Build Include="dbo\Views\vw_VendorRFQReference.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetVendorQuoteReportSSRS.sql" />
+    <Build Include="dbo\Tables\LegalEntityInternationalWireBankingV2.sql" />
+    <Build Include="dbo\Tables\LegalEntityInternationalWireBankingAuditV2.sql" />
+    <Build Include="dbo\Tables\InternationalWirePaymentV2.sql" />
+    <Build Include="dbo\Tables\InternationalWirePaymentAuditV2.sql" />
+    <Build Include="dbo\Stored Procedures\USP_LegalEntityInternationalWirePaymentV2.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireByIdV2.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityInternationalWireAuditV2.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

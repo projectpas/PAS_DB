@@ -16,7 +16,8 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    10/17/2022			Subhash Saliya		Created
-    2    09-Sept-2025		Rajesh Gami			Added Cheque Banking    
+    2    09-Sept-2025		Rajesh Gami			Added Cheque Banking  
+	3    08-Oct-2025		Rajesh Gami			Added Legal Entity InternationalWire Banking V2
 -- EXEC [[USP_DeleteRestoireLegalEntityBanking]] 1
 **************************************************************/
 
@@ -52,6 +53,10 @@ BEGIN
 				if(@TableName ='LegalEntityBankingCheque')
 				begin
 					update dbo.LegalEntityBankingCheque set IsDeleted=@IsDeleted  where LegalEntityBankingChequeId =@ReferenceId
+				End
+				if(UPPER(@TableName) ='LEGALENTITYINTERNATIONALWIREBANKINGV2')
+				begin
+					update LegalEntityInternationalWireBankingV2 set IsDeleted=@IsDeleted  where LegalEntityInternationalWireBankingId =@ReferenceId
 				End
 
 				

@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[InternationalWirePaymentV2] (
+    [InternationalWirePaymentId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [SwiftCode]                  VARCHAR (50)  NULL,
+    [BeneficiaryBankAccount]     VARCHAR (50)  NULL,
+    [BeneficiaryBank]            VARCHAR (100) NULL,
+    [BankName]                   VARCHAR (100) NULL,
+    [IntermediaryBank]           VARCHAR (100) NULL,
+    [BankAddressId]              BIGINT        NULL,
+    [BeneficiaryCustomer]        VARCHAR (100) NULL,
+    [MasterCompanyId]            INT           NOT NULL,
+    [CreatedBy]                  VARCHAR (256) NOT NULL,
+    [UpdatedBy]                  VARCHAR (256) NOT NULL,
+    [CreatedDate]                DATETIME2 (7) NOT NULL,
+    [UpdatedDate]                DATETIME2 (7) NOT NULL,
+    [IsActive]                   BIT           NOT NULL,
+    [IsDeleted]                  BIT           CONSTRAINT [InternationalWirePaymentV2_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [ABA]                        VARCHAR (256) NULL,
+    [BeneficiaryCustomerId]      BIGINT        NULL,
+    [BankLocation1]              VARCHAR (250) NULL,
+    [BankLocation2]              VARCHAR (250) NULL,
+    [GLAccountId]                BIGINT        NULL,
+    [VendorBankAccountTypeId]    INT           NULL,
+    CONSTRAINT [PK_InternationalWirePaymentV2] PRIMARY KEY CLUSTERED ([InternationalWirePaymentId] ASC),
+    CONSTRAINT [FK_InternationalWirePaymentV2_Address] FOREIGN KEY ([BankAddressId]) REFERENCES [dbo].[Address] ([AddressId]),
+    CONSTRAINT [FK_InternationalWirePaymentV2_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+);
+

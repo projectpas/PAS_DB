@@ -21,6 +21,7 @@
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
 	10   03/12/2024   Moin Bloch     Added CYCLE COUNT 
 	11   15/09/2025   Devendra Shekh Added ReferenceNumber Field
+	12   09/10/2025   Amit Ghediya   Added employeeId Field for datecast.
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -38,11 +39,25 @@ CREATE   PROCEDURE [dbo].[USP_GetJournalEntriesDetailsByLeafNodeId]
  @masterCompanyId INT = NULL,
  @LeafNodeId BIGINT = NULL,
  @GLAccountId BIGINT = NULL,
- @strFilter VARCHAR(MAX) = NULL
+ @strFilter VARCHAR(MAX) = NULL,
+ @employeeId BIGINT = NULL
 )  
 AS  
 BEGIN   
  BEGIN TRY  
+		  
+			/* --------------START: Get the timzone and UTC offset -------------- */
+				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(400) = '', @BaseUtcOffsetSec BIGINT = 0;
+				SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+				FROM dbo.Employee E WITH (NOLOCK) 
+					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+					LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+					LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE E.EmployeeId = @employeeId AND E.MasterCompanyId = @MasterCompanyId;	
+				
+				SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
+		  /* -------------- END: Get the timzone and UTC offset -------------- */
+
 		  IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL      
 		  BEGIN      
 		   DROP TABLE #TempTable      
@@ -54,7 +69,7 @@ BEGIN
 		  DECLARE @AccountPeriods VARCHAR(max);  
 		  DECLARE @AccountPeriodIds VARCHAR(max);  
 		  DECLARE @LegalEntityId BIGINT;
-		  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		  --DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		  DECLARE @PostedBatchStatusId BIGINT;
 		  DECLARE @BatchMSModuleId BIGINT; 
 		  DECLARE @RevenueGLAccountTypeId AS BIGINT;
@@ -81,8 +96,8 @@ BEGIN
 		  SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
 		  SELECT @CustomerRefundModuleId = [ModuleId] FROM [dbo].[Module] WHERE [ModuleName] = 'CustomerRefund';
 
-		  SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-		  WHERE LE.LegalEntityId = @LegalEntityId;
+		 -- SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		 -- WHERE LE.LegalEntityId = @LegalEntityId;
 
 		  IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 		  BEGIN    

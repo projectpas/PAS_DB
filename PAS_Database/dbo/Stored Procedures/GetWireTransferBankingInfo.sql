@@ -20,7 +20,7 @@
 	5    16/Jul/2025	Moin Bloch		 Added UPPERCASE
 	6    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096), Remove line break comma
 	7    08/Oct/2025	RAJESH GAMI		 Added logic for NEO(PN-14371)
- EXEC GetWireTransferBankingInfo 1 
+ EXEC GetWireTransferBankingInfo 38 
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[GetWireTransferBankingInfo]
     @ManagementStructId BIGINT
@@ -36,7 +36,7 @@ BEGIN
 		-- Retrieve MasterCompanyId from EntityStructureSetup table
 		SET @MasterCompanyId = (SELECT MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
-								WHERE EntityStructureId = @ManagementStructId);
+								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
 
 		-- Check if MasterCompanyId is equal to the value for @MTI_MasterComapnyId
 		IF @MasterCompanyId = CAST(@MTI_MasterComapnyId AS INT)
@@ -105,6 +105,23 @@ BEGIN
 				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBank) + '</label><br />' 
 				ELSE '' END +
+				CASE 
+					WHEN ISNULL(TRIM(inter.BankLocation1), '') <> '' AND ISNULL(TRIM(inter.BankLocation2), '') <> '' THEN
+					'<label style="text-transform: uppercase;">' 
+					+ UPPER(inter.BankLocation1) + ', ' + UPPER(inter.BankLocation2) 
+						+ '</label><br />'
+        
+					WHEN ISNULL(TRIM(inter.BankLocation1), '') <> '' THEN
+						'<label style="text-transform: uppercase;">' 
+						+ UPPER(inter.BankLocation1) 
+						+ '</label><br />'
+
+					WHEN ISNULL(TRIM(inter.BankLocation2), '') <> '' THEN
+						'<label style="text-transform: uppercase;">' 
+						+ UPPER(inter.BankLocation2) 
+						+ '</label><br />'
+					ELSE ''
+				END +
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
 					'ACCT# <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBankAccount) + '</label>' 
 				ELSE '' END +

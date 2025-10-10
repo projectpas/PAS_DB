@@ -24,6 +24,8 @@
 	14	 05-Sep-2025		RAJESH GAMI				Validate the PRice Master (Return message for valid price )
 	15	 08-Sep-2025        Divyesh Kathitiya		Added validation for Customer and Vendor: IsAddress For Billing & Shipping.
 	16	 15-Sep-2025        Rajesh Gami				Price Master: added new fields
+	17	 09-Oct-2025        Priyansh Patel			MRO Price Master added Validation for Customer,Unit Price and StartDate
+	18	 10-Oct-2025        Rajesh Gami				Disocunt does not allow mor than 100 (Validate the Purchase and Sales)
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -77,7 +79,7 @@ BEGIN
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
-
+		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
 		@DropdownListValue VARCHAR(100) = NULL, 
@@ -276,7 +278,46 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
-												WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN @ModuleId = @MROPriceMasterModule 
+     AND IMF.FieldName = 'CustomerId' 
+     AND ISNULL(IMF.DropdownListType, '') != ''  
+     AND ISNULL(IMF.DropdownListValueId, '') = '' 
+     AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
+THEN
+    ' '
+
+WHEN ISNULL(IMF.DropdownListType, '') != ''  
+     AND ISNULL(IMF.DropdownListValueId, '') = '' 
+THEN 
+    'Please Enter Correct ' + IMF.HeaderName + IMF.FieldName
+
+-- UnitPrice Validation (checking for numeric value and greater than 0)
+WHEN @ModuleId = @MROPriceMasterModule 
+     AND ISNULL(TMP.FieldValue, '') != '' 
+     AND IMF.FieldName = 'UnitPrice' 
+	 AND TMP.FieldValue LIKE '%[^0-9]%'
+     AND (
+         TRY_CAST(TMP.FieldValue AS INT) IS NULL 
+         OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+     )
+THEN 
+    'UnitPrice must be a whole number greater than 0'
+WHEN ISNULL(TMP.FieldValue, '') != '' 
+     AND IMF.FieldName = 'PP_PurchaseDiscPerc' 
+     AND (
+         TRY_CAST(TMP.FieldValue AS INT) > 100
+     )
+THEN 
+    'Purchase Discount percentage cannot exceed 100.'
+
+-- Date validation for StartDate field (MM/DD/YYYY format)
+WHEN IMF.FieldName = 'StartDate' 
+     AND ISNULL(TMP.FieldValue, '') != '' 
+     AND TRY_CONVERT(DATE, TMP.FieldValue, 101) IS NULL
+THEN 
+    'StartDate must be in MM/DD/YYYY format'
+
+
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')
 													AND (
 														TMP.FieldValue NOT LIKE '%@%._%' 

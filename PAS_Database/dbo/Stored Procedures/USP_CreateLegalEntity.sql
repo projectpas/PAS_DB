@@ -12,6 +12,7 @@
     1    09-May-2025		Divyesh Kathiriya	Created
 	2	 16-May-2025		Divyesh Kathiriya	Add Nullable Parameter.
 	3	 01-Oct-2025		Bhargav Saliya  	Add Field [IsCreaditRestriction].
+	4    09-Oct-2025        Bhargav Saliya      Added New Field [RestrictMessage]
     
  -- EXEC [USP_CreateLegalEntity] @Name=N'LEGAL ENTITY',@AddressId=0,@PhoneNumber=N'98989892333',@FaxNumber=default,@FunctionalCurrencyId=2,@ReportingCurrencyId=2,
 								 @IsBalancingEntity=1,@TagNames=N'',@CreatedBy=N'DANE PERK',@UpdatedBy=N'DANE PERK',@MasterCompanyId=1,@CompanyCode=N'LEGAL ENTITY CODE',
@@ -57,7 +58,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateLegalEntity]
 @UKCAALicense VARCHAR(200) = Null,
 @TaxId VARCHAR(100) = Null,
 @LastLevel BIT = Null,
-@IsCreaditRestriction BIT = Null
+@IsCreaditRestriction BIT = Null,
+@RestrictMessage VARCHAR(Max) = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -190,7 +192,7 @@ BEGIN
 							[TimeZoneId],
 							[IsPrintCheckNumber],
 							[IsTurnOffMgmt],
-							[UKCAALicense],[IsCreaditRestriction])
+							[UKCAALicense],[IsCreaditRestriction],[RestrictMessage])
 						VALUES(
 							@Name,
 							@DoingLegalAs,
@@ -226,7 +228,8 @@ BEGIN
 							@IsPrintCheckNumber,
 							@IsTurnOffMgmt,
 							@UKCAALicense,
-							@IsCreaditRestriction
+							@IsCreaditRestriction,
+							@RestrictMessage
 							)						
 		
 						SET @LegalEntityId = SCOPE_IDENTITY();

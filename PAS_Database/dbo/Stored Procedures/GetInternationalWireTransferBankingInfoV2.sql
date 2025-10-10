@@ -83,7 +83,7 @@ BEGIN
 				ELSE '' END +
 				'<br />' + 
 				CASE WHEN co.countries_name IS NOT NULL THEN 
-					'<label style="text-transform: uppercase;">' + UPPER(co.countries_name)+'Rajesh' + '</label><br />' 
+					'<label style="text-transform: uppercase;">' + UPPER(co.countries_name) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBank) + '</label><br />' 

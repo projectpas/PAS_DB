@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -27,7 +28,7 @@
 	17	 04-Sep-2025        Divyesh Kathitiya		Added Customer Default Settings And Set Customer and Vendor: IsAddress For Billing & Shipping.
 	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
 	19	 16-Sep-2025        Rajesh Gami				Price Master/Purchase and Sales: Calculate the Discount and related changes 
-	20	 06-Oct-2025        Rajesh Gami				Price Master/Purchase and Sales : History related change
+	20	 10-Oct-2025        Priyansh Patel			MRO Price Master Implemented 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -77,12 +78,15 @@ BEGIN
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
+		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
+		DECLARE @isMROPriceDataExist BIT = 0;
+
 		DECLARE @ItemMasterId BIGINT = 0;
 		DECLARE @IsAddressForBilling VARCHAR(50);				
 		DECLARE @IsAddressForShipping VARCHAR(50);
 		DECLARE @SalePriceSelectId Varchar(30)= '';
-		DECLARE @SP_CalSPByPP_MarkUpPercOnListPriceValue INT =0;
-		DECLARE @SP_CalSPByPP_MarkUpPercOnListPrice INT = 0
+		DECLARE @SP_CalSPByPP_MarkUpPercOnListPriceValue DECIMAL(18,2) =0;
+		DECLARE @SP_CalSPByPP_MarkUpPercOnListPrice DECIMAL(18,2) = 0
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
 		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
@@ -756,6 +760,89 @@ BEGIN
 										+ CAST(@SalePriceSelectId AS VARCHAR(30)) + ',' 
 										+ '''' + CONVERT(VARCHAR(30), @UtcNow, 126) + '''' + ',';
 			END	
+			ELSE IF(@ModuleId = @MROPriceMasterModule )
+			BEGIN
+				DECLARE @MROWhereClause NVARCHAR(MAX) = '';
+				DECLARE @MROSQL NVARCHAR(MAX);
+				DECLARE @MatchedId BIGINT = NULL;
+				DECLARE @MRORefFieldName VARCHAR(MAX) = '';
+
+				SELECT @MRORefFieldName = STRING_AGG(FieldName, ',')
+				FROM ImportModuleFieldMaster IMF
+				WHERE IMF.ModuleId = @MROPriceMasterModule
+				  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId');
+
+				;WITH Fields AS (
+					SELECT
+						LTRIM(RTRIM(value)) AS FieldName,
+						ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
+					FROM STRING_SPLIT(@MRORefFieldName, ',')
+				),
+				Vals AS (
+					SELECT
+						LTRIM(RTRIM(value)) AS FieldValue,
+						ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
+					FROM STRING_SPLIT(@FieldValue, ',')
+				),
+				FieldTypes AS (
+					SELECT IMF.FieldName, IMF.FieldType
+					FROM ImportModuleFieldMaster IMF
+					WHERE IMF.ModuleId = @MROPriceMasterModule
+					  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId')
+				),
+				Pairs AS (
+					SELECT f.FieldName, v.FieldValue, ft.FieldType
+					FROM Fields f
+					JOIN Vals v ON f.rn = v.rn
+					LEFT JOIN FieldTypes ft ON ft.FieldName = f.FieldName
+				)
+
+				 
+				SELECT @MROWhereClause = STRING_AGG(
+						CASE 
+							WHEN FieldValue IS NULL OR UPPER(FieldValue) = 'NULL'
+								THEN FieldName + ' IS NULL'
+							ELSE
+								FieldName + ' = ' +
+								CASE 
+									WHEN FieldType = 'string' THEN QUOTENAME(FieldValue, '''')
+									WHEN FieldType = 'boolean' THEN CASE WHEN LOWER(FieldValue) IN ('yes', 'true') THEN '1' ELSE '0' END
+									WHEN FieldType IN ('datetime', 'date') THEN 
+										CASE WHEN ISNULL(FieldValue, '') <> ''
+											 THEN 'CONVERT(DATETIME, ' + QUOTENAME(FieldValue, '''') + ', 101)'
+											 ELSE 'NULL'
+										END
+									WHEN FieldType = 'number' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END
+									WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN 'NULL' ELSE FieldValue END
+									ELSE QUOTENAME(FieldValue, '''')  -- default to quoting just in case
+								END
+						END
+					, ' AND ')
+					FROM Pairs;
+
+
+				SET @MROSQL = '
+				BEGIN
+					IF EXISTS (SELECT 1 FROM MROPriceMaster WHERE ' + @MROWhereClause + ')
+					BEGIN
+						SELECT TOP 1 @isExistOut = 1, @matchedIdOut = MROPriceMasterId FROM MROPriceMaster WHERE ' + @MROWhereClause + '
+					END
+					ELSE
+					BEGIN
+						SET @isExistOut = 0;
+						SET @matchedIdOut = NULL;
+					END
+				END
+				';
+
+				EXEC sp_executesql 
+					@MROSQL,
+					N'@isExistOut BIT OUTPUT, @matchedIdOut BIGINT OUTPUT',
+					@isMROPriceDataExist OUTPUT,
+					@MatchedId OUTPUT;
+
+			SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
+			END
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
@@ -763,7 +850,6 @@ BEGIN
 			END
 			
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
-			
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 			
 			IF((@ModuleId = @PriceMasterModule  OR @ModuleId = @PurchaseSalesModule) AND @isPriceDataExist = 1 )
@@ -792,6 +878,61 @@ BEGIN
 
 						SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
 			END
+			ELSE IF(@ModuleId = @MROPriceMasterModule AND @isMROPriceDataExist = 1 AND @MatchedId IS NOT NULL)
+			BEGIN
+						DECLARE @MROUpdateFields NVARCHAR(MAX) = '';
+
+							SELECT @MRORefFieldName = STRING_AGG(FieldName, ',')
+						FROM ImportModuleFieldMaster IMF
+						WHERE IMF.ModuleId = @MROPriceMasterModule
+						  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId','UnitPrice','CurrencyId');
+
+						;WITH Fields AS (
+							SELECT LTRIM(RTRIM(value)) AS FieldName,
+								   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
+							FROM STRING_SPLIT(@RefFieldName, ',')
+						),
+						Vals AS (
+							SELECT LTRIM(RTRIM(value)) AS FieldValue,
+								   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn
+							FROM STRING_SPLIT(@FieldValue, ',')
+						),
+						FieldTypes AS (
+							SELECT IMF.FieldName, IMF.FieldType
+							FROM ImportModuleFieldMaster IMF
+							WHERE IMF.ModuleId = @MROPriceMasterModule
+							  AND IMF.FieldName IN (SELECT FieldName FROM Fields)
+						),
+						Pairs AS (
+							SELECT f.FieldName, v.FieldValue, ft.FieldType
+							FROM Fields f
+							JOIN Vals v ON f.rn = v.rn
+							LEFT JOIN FieldTypes ft ON ft.FieldName = f.FieldName
+							WHERE f.FieldName NOT IN ('StartDate','CreatedDate', 'CreatedBy','UpdatedBy','MasterCompanyId')
+						)
+
+						SELECT @MROUpdateFields = STRING_AGG(
+							FieldName + ' = ' + 
+							CASE 
+								WHEN FieldValue IS NULL OR UPPER(FieldValue) = 'NULL' THEN 'NULL'
+								ELSE
+									CASE 
+										WHEN FieldType = 'string' THEN QUOTENAME(FieldValue, '''')
+										WHEN FieldType = 'boolean' THEN CASE WHEN LOWER(FieldValue) IN ('yes', 'true') THEN '1' ELSE '0' END
+										WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN CASE WHEN ISNULL(FieldValue, '') <> '' THEN 'CONVERT(VARCHAR(10), CAST(REPLACE(''' + FieldValue + ''', ''Z'', '''') AS DATETIME), 101)' ELSE 'NULL,' END
+
+										WHEN FieldType = 'number' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN '0' ELSE FieldValue END
+										WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue, '') = '' THEN 'NULL' ELSE FieldValue END
+										ELSE QUOTENAME(FieldValue, '''')
+									END
+							END
+						, ', ')
+						FROM Pairs;
+						--SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @MROUpdateFields + ' WHERE MROPriceMasterId = ' + CAST(@MatchedId AS bigint) + ';';
+							BEGIN
+								SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @MROUpdateFields + ' WHERE MROPriceMasterId = ' + CAST(@MatchedId AS varchar(20)) + ';';
+							END
+					END
 			ELSE
 			BEGIN
 				SET @RefQuery = 'INSERT INTO ' + @ReferenceTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
@@ -807,7 +948,6 @@ BEGIN
 			BEGIN
 				IF(@ModuleId = @PriceMasterModule  OR @ModuleId = @PurchaseSalesModule)
 				BEGIN
-				PRINT @RefQuery
 					IF(@isPriceDataExist = 1)
 					BEGIN
 						EXEC sp_executesql @RefQuery					
@@ -862,7 +1002,7 @@ BEGIN
 									SP_FSP_FlatPriceAmount = 0
 							WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
 						END
-						--exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
+						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
 					END
 					
 				END
@@ -876,7 +1016,6 @@ BEGIN
 			IF((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule) AND @ItemMasterId >0 )
 			BEGIN
 				EXEC UpdateItemMasterPurchaseSaleDetails @ItemMasterId
-				exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
 			END
 			
 			IF(@ModuleId = @ItemMasterModule)

@@ -28,7 +28,7 @@ BEGIN
 
 		SET @MasterCompanyId = (SELECT MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
-								WHERE EntityStructureId = @ManagementStructId);
+								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1);
 
 		IF @MasterCompanyId = CAST(@MTI_MasterComapnyId AS INT)
 		BEGIN
@@ -88,6 +88,23 @@ BEGIN
 				CASE WHEN inter.BeneficiaryBank IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBank) + '</label><br />' 
 				ELSE '' END +
+				CASE 
+					WHEN ISNULL(TRIM(inter.BankLocation1), '') <> '' AND ISNULL(TRIM(inter.BankLocation2), '') <> '' THEN
+					'<label style="text-transform: uppercase;">' 
+					+ UPPER(inter.BankLocation1) + ', ' + UPPER(inter.BankLocation2) 
+						+ '</label><br />'
+        
+					WHEN ISNULL(TRIM(inter.BankLocation1), '') <> '' THEN
+						'<label style="text-transform: uppercase;">' 
+						+ UPPER(inter.BankLocation1) 
+						+ '</label><br />'
+
+					WHEN ISNULL(TRIM(inter.BankLocation2), '') <> '' THEN
+						'<label style="text-transform: uppercase;">' 
+						+ UPPER(inter.BankLocation2) 
+						+ '</label><br />'
+					ELSE ''
+				END +
 				CASE WHEN inter.BeneficiaryBankAccount IS NOT NULL THEN 
 					'ACCT# <label style="text-transform: uppercase;">' + UPPER(inter.BeneficiaryBankAccount) + '</label>' 
 				ELSE '' END +

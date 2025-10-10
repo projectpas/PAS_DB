@@ -308,7 +308,7 @@ WHEN ISNULL(TMP.FieldValue, '') != ''
          TRY_CAST(TMP.FieldValue AS INT) > 100
      )
 THEN 
-    'Purchase Discount percentage cannot exceed 100.'
+    'Purchase Discount percentage cannot exceed 100'
 
 -- Date validation for StartDate field (MM/DD/YYYY format)
 WHEN IMF.FieldName = 'StartDate' 

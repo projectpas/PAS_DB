@@ -12,7 +12,7 @@
     1    05-Oct-2025		Bhargav Saliya      Created
     2    07-Oct-2025		Bhargav Saliya      Modefied
 
---[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 77
+--[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 77, @MastercompanyId = 1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_checkEnforceCustomerCreditRestrictions]
 @LegalEntityId BIGINT,
@@ -24,8 +24,7 @@ BEGIN
 			@CreditLimit DECIMAL = 0,
 			@IsRestrict BIT = 0,
 			@IsWarning BIT = 0,
-			@RestrictMessage varchar(300) = null,
-			@WarningMessage varchar(300) = null;
+			@RestrictMessage varchar(MAX) = 0;
 
 	DECLARE @WarningTypeId INT = (SELECT [CustomerWarningTypeId] FROM dbo.[CustomerWarningType] WITH(NOLOCK) WHERE UPPER([Name]) = 'IF CREDIT LIMIT IS NEGATIVE');
 
@@ -33,7 +32,9 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-		SELECT @IsCreaditRestriction = IsCreaditRestriction FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = @LegalEntityId and MasterCompanyId = @MastercompanyId;
+		SELECT @IsCreaditRestriction = ISNULL(IsCreaditRestriction,0),
+			   @RestrictMessage = CASE WHEN IsCreaditRestriction = 1 THEN RestrictMessage ELSE '' END
+		FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = @LegalEntityId and MasterCompanyId = @MastercompanyId;
 
 		SELECT @CreditLimit = ISNULL([CreditLimit],0) FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE CustomerId = @CustomerId and MasterCompanyId = @MastercompanyId;
 
@@ -43,7 +44,9 @@ BEGIN
 					ISNULL([Restrict],0) as IsRestrict,
 					ISNULL([Warning],0) as IsWarning,
 					ISNULL([RestrictMessage],'') as [RestrictMessage],
-					ISNULL([WarningMessage],'') as [WarningMessage]
+					ISNULL([WarningMessage],'') as [WarningMessage],
+					@RestrictMessage AS LeRestriction,
+					@IsCreaditRestriction as IsCreaditRestriction
 				FROM [dbo].[CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
 		END
 

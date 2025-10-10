@@ -11,6 +11,7 @@
  ** --   -------------		----------------	--------------------------------          
     1    13-May-2025		Divyesh Kathiriya	Created    
     2    01-Oct-2025		Bhargav Saliya	    Add Field [IsCreaditRestriction].    
+	3    09-Oct-2025        Bhargav Saliya      Added New Field [RestrictMessage]
  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateLegalEntity]
@@ -52,7 +53,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateLegalEntity]
 @TaxId VARCHAR(100) = Null,
 @LastLevel BIT = Null,
 @LedgerId BIGINT = Null,
-@IsCreaditRestriction BIT = Null
+@IsCreaditRestriction BIT = Null,
+@RestrictMessage VARCHAR(Max) = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -136,7 +138,8 @@ BEGIN
 								[IsPrintCheckNumber] = @IsPrintCheckNumber,
 								[IsTurnOffMgmt] = @IsTurnOffMgmt,
 								[UKCAALicense] = @UKCAALicense,
-								[IsCreaditRestriction] = @IsCreaditRestriction
+								[IsCreaditRestriction] = @IsCreaditRestriction,
+								[RestrictMessage] = @RestrictMessage
 						  WHERE [LegalEntityId] = @LegalEntityId;
 
 						  UPDATE [DBO].[Address]

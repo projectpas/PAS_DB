@@ -19,6 +19,8 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 8    20/02/2025      Moin Bloch          Updated (Checked @CMMIds Empty)
 ** 9    24/02/2025      Moin Bloch          Updated (Renamed FotterRemarks TO FooterRemarks)
 ** 10   25/02/2025      Moin Bloch          Updated (changed Condition Table)
+** 11   10/10/2025      Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
+	
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 **************************************************************/ 
@@ -226,6 +228,8 @@ BEGIN
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood
+			   ,'VER-000001' VersionNo
+			   ,0 AS IsVersionIncrease
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
@@ -309,6 +313,8 @@ BEGIN
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood
+			   ,'VER-000001' VersionNo
+			   ,0 AS IsVersionIncrease
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
@@ -390,6 +396,8 @@ BEGIN
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood
+			   ,'VER-000001' VersionNo
+			   ,0 AS IsVersionIncrease
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId

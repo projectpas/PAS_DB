@@ -4273,6 +4273,9 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateExportInfo.sql" />
     <Build Include="dbo\Stored Procedures\GetInternationalWireTransferBankingInfoV2.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalepersonDetailByCustomerId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateReleaseForm.sql" />
+    <Build Include="dbo\Views\vw_SalesOrderQuote.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetCustomerQuoteReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

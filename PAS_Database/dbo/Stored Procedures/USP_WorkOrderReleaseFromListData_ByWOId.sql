@@ -13,6 +13,7 @@
  ** --   --------			-------				--------------------------------          
     1    10-June-2025		Devendra Shekh		Created
     2    25-June-2025		Devendra Shekh		Remarks Breaks Issue Resolved
+	3    10/10/2025         Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
 
  EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8992,2
 **************************************************************/ 
@@ -90,7 +91,9 @@ BEGIN
 		[EmployeeId] [bigint] NULL,
 		[FormTypeId] [int] NULL,
 		[WOFormType] [varchar](50) NULL,
-		[Is813013aeOr14ae] [bit] NULL
+		[Is813013aeOr14ae] [bit] NULL,
+		[VersionNo] [varchar](50) NULL,
+		[IsVersionIncrease] [bit] NULL
 	);
 
 	SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDERMPN';
@@ -112,7 +115,7 @@ BEGIN
 			,ISNULL(wro.[Reference], '') AS [Reference]
 			,CASE WHEN ISNULL(wro.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(
 																	TRY_CAST(REPLACE(wro.Remarks, '&nbsp;', ' ') AS XML).value('.', 'NVARCHAR(MAX)')
-																)) END AS [Remarks]
+																)) END AS [Remarks]			
 		FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 				LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -123,7 +126,7 @@ BEGIN
 				LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 				LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
 				LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
-		WHERE wro.[WorkOrderId] = @WorkorderId
+		WHERE wro.[WorkOrderId] = @WorkorderId AND ISNULL(wro.[IsVersionIncrease],0) = 0
 		)
 
 		INSERT INTO #tmpWork_ReleaseForm ([ReleaseFromId], [Quantity], [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks])
@@ -184,9 +187,11 @@ BEGIN
 											WHEN wro.FormTypeId = 3 THEN 'UK-CAA'
 											ELSE '' 
 										END,
-			TMP.Is813013aeOr14ae      = wro.Is813013aeOr14ae
+			TMP.Is813013aeOr14ae      = wro.Is813013aeOr14ae,
+			TMP.[VersionNo]           = wro.[VersionNo],
+			TMP.[IsVersionIncrease]   = ISNULL(wro.[IsVersionIncrease],0)
 		FROM #tmpWork_ReleaseForm TMP
-		JOIN [Work_ReleaseFrom_8130] wro ON TMP.ReleaseFromId = wro.ReleaseFromId
+		JOIN [Work_ReleaseFrom_8130] wro ON TMP.ReleaseFromId = wro.ReleaseFromId AND ISNULL(wro.[IsVersionIncrease],0) = 0
 		LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 		LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 		LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
@@ -201,7 +206,7 @@ BEGIN
 		SELECT	[ReleaseFromId], [WorkorderId], [workOrderPartNoId], [Country], [OrganizationName], [InvoiceNo], [ItemName], [PartNumber], [Description], [Reference], [Quantity], [Batchnumber], [status], [Remarks],
 				[Certifies], [approved], [Nonapproved], [AuthorisedSign], [AuthorizationNo], [PrintedName], [Date], [AuthorisedSign2], [ApprovalCertificate], [PrintedName2], [Date2], [CFR], [Otherregulation],
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [trackingNo], [OrganizationAddress], [is8130from], [IsClosed], [ReceivedDate], [islocked], [IsEASALicense],
-				[FormType], [ManagementStructureId], [EmployeeId], [FormTypeId], [WOFormType], [Is813013aeOr14ae]
+				[FormType], [ManagementStructureId], [EmployeeId], [FormTypeId], [WOFormType], [Is813013aeOr14ae], [VersionNo], [IsVersionIncrease]
 		FROM #tmpWork_ReleaseForm
 				 
 	END TRY    

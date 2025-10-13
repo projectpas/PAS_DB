@@ -87,8 +87,13 @@ BEGIN
 			ISNULL(msd.AllMSlevels, '') AS AllMSlevels,
 			ISNULL(CONVERT(VARCHAR, ee.IsWorksInShop), '') AS IsHeWorksInShop,
 			ISNULL(e.Memo, '') AS Memo,
-			ISNULL(anu.NormalizedUserName, '') AS UserName
-
+			ISNULL(anu.NormalizedUserName, '') AS UserName,
+			e.MRORevenuePercentageId,
+			e.BrokeringRevenuePercentageId,
+			e.ManufacturingRevenuePercentageId,
+			e.MROMarginPercentageId,
+			e.BrokeringMarginPercentageId,
+			e.ManufacturingMarginPercentageId
 		INTO #Results
 		FROM [dbo].Employee e WITH(NOLOCK)
 		LEFT JOIN [dbo].EmployeeManagementStructureDetails msd WITH(NOLOCK) ON e.EmployeeId = msd.ReferenceID AND msd.ModuleID = @ModuleId

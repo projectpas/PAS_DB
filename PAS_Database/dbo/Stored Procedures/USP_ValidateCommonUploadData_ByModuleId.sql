@@ -19,13 +19,14 @@
 	9	 11-Aug-2025		Ayushi Patel			Added validation for stockline : UnitSalesPrice , UnitCost , QuantityOnHand
 	10	 13-Aug-2025		Ayushi Patel			Handle Manufacturer based on PartNumber for stockline
 	11	 15-Aug-2025		Ayushi Patel			Handle Part with multiple Manufacturer for stockline
-	12	 15-Aug-2025		Ayushi Patel			Qty OH must be one for Serialized Parts
+	12	 15-Aug-2025		Ayushi Patel			Qty OH must be one for Serialized Parts
 	13	 26-Aug-2025		RAJESH GAMI				Validate the PRice Master
 	14	 05-Sep-2025		RAJESH GAMI				Validate the PRice Master (Return message for valid price )
 	15	 08-Sep-2025        Divyesh Kathitiya		Added validation for Customer and Vendor: IsAddress For Billing & Shipping.
 	16	 15-Sep-2025        Rajesh Gami				Price Master: added new fields
 	17	 09-Oct-2025        Priyansh Patel			MRO Price Master added Validation for Customer,Unit Price and StartDate
 	18	 10-Oct-2025        Rajesh Gami				Disocunt does not allow mor than 100 (Validate the Purchase and Sales)
+	
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -177,7 +178,7 @@ BEGIN
 			DECLARE @ManufacturerId VARCHAR(255)
 			DECLARE @ManufacturerName VARCHAR(255)
 			DECLARE @Manufacture VARCHAR(255)
-			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
+			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
@@ -263,7 +264,7 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						-- Only one manufacturer found — assign directly
+						-- Only one manufacturer found - assign directly
 						SELECT TOP 1 
 							--@ManufacturerId = ManufacturerName,
 							@ManufacturerName = ManufacturerName
@@ -279,43 +280,42 @@ BEGIN
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
 												WHEN @ModuleId = @MROPriceMasterModule 
-     AND IMF.FieldName = 'CustomerId' 
-     AND ISNULL(IMF.DropdownListType, '') != ''  
-     AND ISNULL(IMF.DropdownListValueId, '') = '' 
-     AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
-THEN
-    ' '
+													 AND IMF.FieldName = 'CustomerId' 
+													 AND ISNULL(IMF.DropdownListType, '') != ''  
+													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
+													 AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
+												THEN
+													' '
 
-WHEN ISNULL(IMF.DropdownListType, '') != ''  
-     AND ISNULL(IMF.DropdownListValueId, '') = '' 
-THEN 
-    'Please Enter Correct ' + IMF.HeaderName + IMF.FieldName
+												WHEN ISNULL(IMF.DropdownListType, '') != ''  
+													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
+												THEN 
+													'Please Enter Correct ' + IMF.HeaderName + IMF.FieldName
 
--- UnitPrice Validation (checking for numeric value and greater than 0)
-WHEN @ModuleId = @MROPriceMasterModule 
-     AND ISNULL(TMP.FieldValue, '') != '' 
-     AND IMF.FieldName = 'UnitPrice' 
-	 AND TMP.FieldValue LIKE '%[^0-9]%'
-     AND (
-         TRY_CAST(TMP.FieldValue AS INT) IS NULL 
-         OR TRY_CAST(TMP.FieldValue AS INT) <= 0
-     )
-THEN 
-    'UnitPrice must be a whole number greater than 0'
-WHEN ISNULL(TMP.FieldValue, '') != '' 
-     AND IMF.FieldName = 'PP_PurchaseDiscPerc' 
-     AND (
-         TRY_CAST(TMP.FieldValue AS INT) > 100
-     )
-THEN 
-    'Purchase Discount percentage cannot exceed 100'
+												-- UnitPrice Validation (checking for numeric value and greater than 0)
+												WHEN  @ModuleId = @MROPriceMasterModule 
+														AND ISNULL(TMP.FieldValue, '') != '' 
+														AND IMF.FieldName = 'UnitPrice' 
+															 AND TMP.FieldValue LIKE '%[^0-9]%'
+														And ( TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0 )
+												THEN 
+													'Unit Price  must be a whole number greater than 0' 
 
--- Date validation for StartDate field (MM/DD/YYYY format)
-WHEN IMF.FieldName = 'StartDate' 
-     AND ISNULL(TMP.FieldValue, '') != '' 
-     AND TRY_CONVERT(DATE, TMP.FieldValue, 101) IS NULL
-THEN 
-    'StartDate must be in MM/DD/YYYY format'
+													WHEN ISNULL(TMP.FieldValue, '') != '' 
+														 AND IMF.FieldName = 'PP_PurchaseDiscPerc' 
+														 AND (
+															 TRY_CAST(TMP.FieldValue AS INT) > 100
+														 )
+													THEN 
+														'Purchase Discount percentage cannot exceed 100.'
+
+												-- Date validation for StartDate field (MM/DD/YYYY format)
+												WHEN IMF.FieldName = 'StartDate' 
+													 AND ISNULL(TMP.FieldValue, '') != '' 
+													 AND TRY_CONVERT(DATE, TMP.FieldValue, 101) IS NULL
+												THEN 
+													'Start Date must be in MM/DD/YYYY format'
 
 
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')
@@ -528,7 +528,7 @@ THEN
 					END
 					ELSE
 					BEGIN
-						-- Only one manufacturer found — assign directly
+						-- Only one manufacturer found - assign directly
 						SELECT TOP 1 
 							--@ManufacturerId = ManufacturerName,
 							@ManufacturerName = ManufacturerName
@@ -663,5 +663,5 @@ THEN
 				@ApplicationName = @ApplicationName,    
 				@ErrorLogID = @ErrorLogID OUTPUT;    
 			RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
-	END CATCH    
+	END CATCH    
 END

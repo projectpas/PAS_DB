@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -758,6 +759,7 @@ BEGIN
 				DECLARE @SP_FSP_UOMId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_UOMId')
 				DECLARE @SP_FSP_CurrencyId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_CurrencyId');
 				SET @SP_CalSPByPP_MarkUpPercOnListPriceValue = (SELECT ISNULL(TRY_CAST(NULLIF(FieldValue, '') AS DECIMAL(18,2)), 0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice');
+			
 				--IF @SP_CalSPByPP_MarkUpPercOnListPriceValue > 0
 				--BEGIN
 				--	SET @SP_CalSPByPP_MarkUpPercOnListPrice =(SELECT TOP 1 PercentId FROM DBO.[Percent] WITH(NOLOCK) WHERE PercentValue = CAST(@SP_CalSPByPP_MarkUpPercOnListPrice as DECIMAL(10,2)) AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1)
@@ -1021,7 +1023,7 @@ BEGIN
 									SP_FSP_FlatPriceAmount = 0
 							WHERE ItemMasterPurchaseSaleId = @ModuleTableId;
 						END
-						exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
+						--exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
 					END
 					
 				END
@@ -1035,6 +1037,7 @@ BEGIN
 			IF((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule) AND @ItemMasterId >0 )
 			BEGIN
 				EXEC UpdateItemMasterPurchaseSaleDetails @ItemMasterId
+				exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=@ModuleTableId,@ModuleId=@ItemMasterModuleId,@MasterCompanyId=@MasterCompanyId,@RefferenceId=@ModuleTableId
 			END
 			
 			IF(@ModuleId = @ItemMasterModule)

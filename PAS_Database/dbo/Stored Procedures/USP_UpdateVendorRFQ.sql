@@ -12,6 +12,7 @@
  ** PR   Date					Author					Change Description            
  ** --   --------				-------					--------------------------------          
     1    02-Sep-2025			Amit Ghediya			Created
+    2    13-Oct-2025			Devendra Shekh			Added ILSRFQDetailId Check 
      
 -- EXEC USP_UpdateVendorRFQ
 ************************************************************************/
@@ -27,7 +28,7 @@ BEGIN
 	BEGIN
 
 		DECLARE @VendorName VARCHAR(150) ='';
-		SELECT @VendorName = [VendorName] FROM [dbo].[VendorRFQPart] WITH(NOLOCK) WHERE ItemSupplierPartId = @ItemSupplierPartId;
+		SELECT @VendorName = [VendorName] FROM [dbo].[VendorRFQPart] WITH(NOLOCK) WHERE ItemSupplierPartId = @ItemSupplierPartId AND [ILSRFQDetailId] = @ILSRFQDetailId;
 
 		UPDATE VRFQP
 		SET	

@@ -158,18 +158,26 @@ BEGIN
 	  InvoiceWithPercentageValue AS (
 			SELECT
 				IWS.*,
-				CASE 
-					WHEN IWS.ActivityTypeId = 1 THEN E.MRORevenuePercentageId
-					WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringRevenuePercentageId
-					WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingRevenuePercentageId
-				END AS EffectiveRevenuePercentageId,
-				CASE 
-					WHEN IWS.ActivityTypeId = 1 THEN E.MROMarginPercentageId
-					WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringMarginPercentageId
-					WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingMarginPercentageId
-				END AS EffectiveMarginPercentageId
+				COALESCE(SA.RevenuePercentageId, 
+					CASE 
+						WHEN IWS.ActivityTypeId = 1 THEN E.MRORevenuePercentageId
+						WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringRevenuePercentageId
+						WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingRevenuePercentageId
+					END) AS EffectiveRevenuePercentageId,
+
+				COALESCE(SA.MarginPercentageId, 
+					CASE 
+						WHEN IWS.ActivityTypeId = 1 THEN E.MROMarginPercentageId
+						WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringMarginPercentageId
+						WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingMarginPercentageId
+					END) AS EffectiveMarginPercentageId
 			FROM InvoiceWithSalesperson IWS
 			LEFT JOIN Employee E WITH (NOLOCK) ON E.EmployeeId = IWS.EmployeeId
+			LEFT JOIN SalesAssignments SA ON IWS.CustomerId = SA.CustomerId
+			AND IWS.EmployeeId = SA.EmployeeId
+			AND IWS.ActivityTypeId = SA.ActivityTypeId
+			AND SA.EffectiveDate <= IWS.InvoiceDate
+			AND SA.IsDeleted = 0
 	  ),
 	  InvoiceWithEffectivePercent AS (
 			SELECT

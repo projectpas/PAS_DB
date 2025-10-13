@@ -53,9 +53,14 @@ BEGIN
 					SOP.POId,
 					SOP.PONumber,
 					SOP.ConditionName,
-					PO.[Status] AS POStatus,
-					RO.RepairOrderId,
-					RO.RepairOrderNumber,
+					--PO.[Status] AS POStatus,
+					CASE 
+						WHEN COUNT(DISTINCT ISNULL(NULLIF(PO.[Status], ''), NULL)) 
+						   + COUNT(DISTINCT ISNULL(NULLIF(RO.[Status], ''), NULL)) > 1 
+							THEN 'Multiple'
+						ELSE 
+							ISNULL(MAX(PO.[Status]), ISNULL(MAX(RO.[Status]), ''))
+					END AS POStatus,
 					RO.[Status] AS ROStatus,
 					IM.PartNumber AS PN,
 					CASE 
@@ -107,8 +112,6 @@ BEGIN
 					SST.StockLineId,
 					SOP.ConditionName,
 					PO.[Status],
-					RO.RepairOrderId,
-					RO.RepairOrderNumber,
 					RO.[Status],
 					IM.PartNumber,
 					IM.PartDescription,
@@ -126,12 +129,6 @@ BEGIN
 					SO.CustomerName,
 					SO.SalesOrderNumber AS SONum,
 					MSOS.[Name] AS SOStatus,
-					SOP.POId,
-					SOP.PONumber,
-					PO.[Status] AS POStatus,
-					RO.RepairOrderId,
-					RO.RepairOrderNumber,
-					RO.[Status] AS ROStatus,
 					IM.PartNumber AS PN,
 					CASE 
 						WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
@@ -142,17 +139,13 @@ BEGIN
 					STK.SerialNumber,
 					SOP.ConditionName,
 					ISNULL(IU.ShortName, '') AS UOM,
-					--ISNULL(SST.QtyOrder, SOP.QtyOrder) AS QtyOrder,
-					--ISNULL(STKC.NetSaleAmountPerUnit, SOPC.NetSaleAmountPerUnit) AS UnitPrice,
-					--ISNULL(SST.QtyOrder, SOP.QtyOrder) * ISNULL(STKC.NetSaleAmountPerUnit, SOPC.NetSaleAmountPerUnit) AS TotalAmount,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 					BI.InvoiceNo,
 					SOS.ShipDate,
 					SO.CreditTermName AS Terms,
-					SOS.AirwayBill AS AWB,
-					SOP.SalesOrderPartId
+					SOS.AirwayBill AS AWB
 				FROM [DBO].[SalesOrder] SO WITH(NOLOCK)
 				INNER JOIN [DBO].[MasterSalesOrderStatus] MSOS WITH(NOLOCK) ON MSOS.Id = SO.StatusId
 				INNER JOIN [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
@@ -186,10 +179,9 @@ BEGIN
 			   GROUP BY 
 					SO.SalesOrderId,
 					SO.CustomerReference,
-					SOP.POId,
-					SOP.PONumber,
 					IM.PartNumber,
 					PO.[Status],
+					RO.[Status],
 					IM.PartDescription,
 					SO.SalesOrderNumber,
 					SO.OpenDate,
@@ -206,13 +198,11 @@ BEGIN
 					STK.StockLineId,
 					STK.StocklineNumber,
 					STK.SerialNumber,
-					SOP.ConditionName,
 					SST.StockLineId,
 					BI.InvoiceNo,
 					SOS.ShipDate,
 					SO.CreditTermName,
-					SOS.AirwayBill,
-					SOP.SalesOrderPartId
+					SOS.AirwayBill
 			)
 			, AggregatedSales AS
 			(
@@ -222,6 +212,10 @@ BEGIN
 					CustomerPORO,
 					CustomerName,
 					SOStatus,
+					COUNT(ConditionName) AS ConditionNameCount,
+					STRING_AGG(ConditionName, ', ') AS AllConditionName,
+					COUNT(UOM) AS UOMCount,
+					STRING_AGG(UOM, ', ') AS AllUOM,
 					Terms,
 					COUNT(PN) AS PNCount,
 					STRING_AGG(PN, ', ') AS AllPNs,
@@ -233,18 +227,21 @@ BEGIN
 					STRING_AGG(StocklineNumber, ', ') AS StocklineNumbers,
 					STRING_AGG(SerialNumber, ', ') AS SerialNumbers,
 					MAX(InvoiceNo) AS InvoiceNo,
-					MAX(ShipDate) AS ShipDate,
-					MAX(AWB) AS AWB,
-					STRING_AGG(PONumber, ', ') AS AllPONumbers
+					COUNT(ShipDate) AS ShipDateCount,
+					STRING_AGG(ShipDate, ', ') AS AllShipDate,
+					COUNT(AWB) AS AWBCount,
+					STRING_AGG(AWB, ', ') AS AllAWB
 				FROM SalesOrderWithLine
-				GROUP BY SalesOrderId,SONum, CustomerPORO, CustomerName, SOStatus, Terms
+				GROUP BY SalesOrderId,SONum, CustomerPORO, CustomerName,SOStatus, Terms
 			)
 			SELECT 
 				SalesOrderId,
 				SONum,
 				CustomerPORO,
-				CustomerName,
-				SOStatus,
+				CustomerName,SOStatus,
+				CASE WHEN ConditionNameCount > 1 THEN 'MULTIPLE' ELSE AllConditionName END AS ConditionName,
+				CASE WHEN UOMCount > 1 THEN 'MULTIPLE' ELSE AllUOM END AS UOM,
+				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE '' END AS POStatus,
 				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE AllPNs END AS PN,
 				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE PartDescriptions END AS PNDescription,
 				TotalQty,
@@ -253,10 +250,9 @@ BEGIN
 				StocklineNumbers,
 				CASE WHEN SerialCount > 1 THEN 'MULTIPLE' ELSE SerialNumbers END AS SerialNumbers,
 				InvoiceNo,
-				ShipDate,
+				CASE WHEN ShipDateCount > 1 THEN 'MULTIPLE' ELSE AllShipDate END AS ShipDate,
 				Terms,
-				AWB,
-				AllPONumbers
+				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB
 			FROM AggregatedSales
 			ORDER BY SalesOrderId DESC;
 		END

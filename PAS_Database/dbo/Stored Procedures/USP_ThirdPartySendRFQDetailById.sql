@@ -14,10 +14,11 @@
 	2    26/08/2025	  Devendra Shekh	added VendorName (removed transaction)
 	3    27/08/2025	  Devendra Shekh	added PriceType
 	4    09/10/2025	  Devendra Shekh	added CustomerRfqId
+	5    13/10/2025   Devendra Shekh	added CustomerRfqId to Part Level
 **************************************************************
- EXEC USP_ThirdPartySendRFQDetailById 1,1 
+ EXEC USP_ThirdPartySendRFQDetailById 49,145,1 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_ThirdPartySendRFQDetailById] 
+CREATE   PROCEDURE [dbo].[USP_ThirdPartySendRFQDetailById] 
 @ThirdPartyRFQId bigint =0,
 @ILSRFQPartId bigint =0,
 @MasterCompanyId int = 0
@@ -70,7 +71,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					   part.MasterCompanyId,
 					   part.VendorName,
 					   ird.PriceType,
-					   ird.CustomerRfqId
+					   part.CustomerRfqId
 			    FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId

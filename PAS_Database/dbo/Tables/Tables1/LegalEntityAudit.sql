@@ -48,7 +48,6 @@
     [UKCAALicense]            VARCHAR (200) NULL,
     [EmployeeId]              BIGINT        NULL,
     [IsCreaditRestriction]    BIT           NULL,
-    [Memo]                    VARCHAR (MAX) NULL,
     [RestrictMessage]         VARCHAR (MAX) NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );

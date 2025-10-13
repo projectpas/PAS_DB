@@ -24,6 +24,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
 ** 14   21/02/2025  Moin Bloch       Updated (Fixed Condition Issue)
 ** 15   12/09/2025  Vishal Suthar    Fixed the issue with CMM & RSPEC data interchange
+** 16   10/10/2025  Moin Bloch       Updated For Get VersionNo & IsVersionIncrease Flag
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
 **************************************************************/ 
@@ -243,6 +244,8 @@ BEGIN
 							+ '</div>' FooterRemarks,  
 							UPPER(le.EASALicense) AS EASALicense,  
 							@EmailBody AS EmailBody
+							,'VER-000001' VersionNo
+					        ,0 AS IsVersionIncrease
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
@@ -335,6 +338,8 @@ BEGIN
 					   + '</div>' FooterRemarks,  
 						UPPER(le.EASALicense) AS EASALicense,  
 						@EmailBody AS EmailBody
+					   ,'VER-000001' VersionNo
+					   ,0 AS IsVersionIncrease
 			FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 				  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 				  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
@@ -406,6 +411,8 @@ BEGIN
 					+ '</div>' FooterRemarks,  
 					   UPPER(le.EASALicense) AS EASALicense,  
 					   @EmailBody AS EmailBody
+					   ,'VER-000001' VersionNo
+					   ,0 AS IsVersionIncrease
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId

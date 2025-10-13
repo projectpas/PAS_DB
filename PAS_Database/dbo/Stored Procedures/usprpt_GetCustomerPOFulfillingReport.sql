@@ -66,12 +66,12 @@ BEGIN
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
-					STRING_AGG(STK.StocklineNumber, ', ') AS StocklineNumbers,
+					STRING_AGG(STK.StocklineNumber, '') AS StocklineNumbers,
 					STRING_AGG(STK.SerialNumber, '') AS SerialNumbers,
 					MAX(BI.InvoiceNo) AS InvoiceNo,
 					MAX(SOS.ShipDate) AS ShipDate,
 					SO.CreditTermName AS Terms,
-					STRING_AGG(SOS.AirwayBill, ', ') AS AWB
+					STRING_AGG(SOS.AirwayBill, '') AS AWB
 				FROM [DBO].[SalesOrder] SO WITH(NOLOCK)
 				INNER JOIN [DBO].[MasterSalesOrderStatus] MSOS WITH(NOLOCK) ON MSOS.Id = SO.StatusId
 				INNER JOIN [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
@@ -142,9 +142,12 @@ BEGIN
 					STK.SerialNumber,
 					SOP.ConditionName,
 					ISNULL(IU.ShortName, '') AS UOM,
-					ISNULL(SST.QtyOrder, SOP.QtyOrder) AS QtyOrder,
-					ISNULL(STKC.NetSaleAmountPerUnit, SOPC.NetSaleAmountPerUnit) AS UnitPrice,
-					ISNULL(SST.QtyOrder, SOP.QtyOrder) * ISNULL(STKC.NetSaleAmountPerUnit, SOPC.NetSaleAmountPerUnit) AS TotalAmount,
+					--ISNULL(SST.QtyOrder, SOP.QtyOrder) AS QtyOrder,
+					--ISNULL(STKC.NetSaleAmountPerUnit, SOPC.NetSaleAmountPerUnit) AS UnitPrice,
+					--ISNULL(SST.QtyOrder, SOP.QtyOrder) * ISNULL(STKC.NetSaleAmountPerUnit, SOPC.NetSaleAmountPerUnit) AS TotalAmount,
+					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
+					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
+					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 					BI.InvoiceNo,
 					SOS.ShipDate,
 					SO.CreditTermName AS Terms,
@@ -180,6 +183,36 @@ BEGIN
 				  AND (@id3 = '' OR @id3 IS NULL
 					   OR SO.CustomerReference LIKE '%' + @id3 + '%'
 					   OR SOP.PONumber LIKE '%' + @id3 + '%')
+			   GROUP BY 
+					SO.SalesOrderId,
+					SO.CustomerReference,
+					SOP.POId,
+					SOP.PONumber,
+					IM.PartNumber,
+					PO.[Status],
+					IM.PartDescription,
+					SO.SalesOrderNumber,
+					SO.OpenDate,
+					SO.CustomerName,
+					SO.CustomerServiceRepName,
+					IU.ShortName,
+					RO.RepairOrderId,
+					RO.RepairOrderNumber,
+					RO.[Status],
+					SOP.ConditionName,
+					SO.SalesOrderNumber,
+					MSOS.[Name],
+					SOP.Notes,
+					STK.StockLineId,
+					STK.StocklineNumber,
+					STK.SerialNumber,
+					SOP.ConditionName,
+					SST.StockLineId,
+					BI.InvoiceNo,
+					SOS.ShipDate,
+					SO.CreditTermName,
+					SOS.AirwayBill,
+					SOP.SalesOrderPartId
 			)
 			, AggregatedSales AS
 			(
@@ -194,9 +227,9 @@ BEGIN
 					STRING_AGG(PN, ', ') AS AllPNs,
 					COUNT(SerialNumber) AS SerialCount,
 					STRING_AGG(PNDescription, ', ') AS PartDescriptions,
-					SUM(QtyOrder) AS TotalQty,
+					SUM(TotalQty) AS TotalQty,
+					SUM(UnitPrice) AS UnitPrice,
 					SUM(TotalAmount) AS TotalAmount,
-					CASE WHEN SUM(QtyOrder) = 0 THEN 0 ELSE SUM(TotalAmount) / SUM(QtyOrder) END AS UnitPrice,
 					STRING_AGG(StocklineNumber, ', ') AS StocklineNumbers,
 					STRING_AGG(SerialNumber, ', ') AS SerialNumbers,
 					MAX(InvoiceNo) AS InvoiceNo,

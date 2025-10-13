@@ -22,6 +22,7 @@
 	5    12/31/2024   Devendra Shekh Updated For Get FormType and Batchnumber Name
 	6    02/13/2025   Moin Bloch     Updated For Get Is813013aeOr14ae Flag 
 	7    10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
+	8    13/10/2025   Moin Bloch     Updated to Dynamic VersionNo
      
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
@@ -36,8 +37,20 @@ BEGIN
 
 		BEGIN TRY
 			BEGIN  
-			    DECLARE @MSModuleId INT;
+			    DECLARE @MSModuleId INT,@MasterCompanyId INT;
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
+
+				SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Work_ReleaseFrom_8130] CTT WITH(NOLOCK) WHERE [ReleaseFromId]=@ReleaseFromId;
+
+				DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
+
+				SELECT @VerCode  = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Version';
+		
+				SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
+
+				DECLARE @VersionNo VARCHAR(50) = NULL
+
+				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
 
 				 SELECT 
 					   wro.[ReleaseFromId]
@@ -90,7 +103,7 @@ BEGIN
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
 					  ,wop.ManagementStructureId AS ManagementStructureId   
 					  ,ISNULL(wro.Is813013aeOr14ae,1) Is813013aeOr14ae
-					  ,ISNULL(wro.[VersionNo],'VER-000001') VersionNo
+					  ,ISNULL(wro.[VersionNo],@VersionNo) VersionNo
 					  ,ISNULL(wro.[IsVersionIncrease],0) IsVersionIncrease
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id

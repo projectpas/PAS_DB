@@ -76,7 +76,7 @@ BEGIN
 				MSOS.[Name] AS SOStatus,
 				MAX(SOVS.ShipDate) AS ShipDate,
 				SOQ.CreditTermName AS Terms,
-				STRING_AGG(SOVS.AirwayBill, ', ') AS AWB,
+				STRING_AGG(SOVS.AirwayBill, '') AS AWB,
 				SOP.Notes
 			FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 			INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId

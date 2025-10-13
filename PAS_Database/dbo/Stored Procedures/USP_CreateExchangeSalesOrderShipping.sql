@@ -12,7 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1   09/11/2025  Ekta Chandegra     Created
-     
+    2   13/Oct/2025  RAJESH			    Added missing code
 	EXEC [dbo].[USP_CreateExchangeSalesOrderShipping] @ExchangeSalesOrderShippingId=0,
 	@ExchangeSalesOrderId=146,@IsCustomerShipping=0,@ShipviaId=2,@CustomerDomensticShippingShipViaId=0,
 	@CreatedBy=N'roza diaz',@SOShippingStatusId=1,@OpenDate='2025-09-11 00:00:00',@CustomerId=9,
@@ -95,7 +95,19 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]
 @ExchangeSalesOrderPartId BIGINT,
 @QtyShipped INT,
 @SOPickTicketId BIGINT,
-@PackagingSlipId BIGINT
+@PackagingSlipId BIGINT,
+@ExchangeSalesOrderCustomsInfoId BIGINT,
+@EntryType VARCHAR(100),
+@EntryNumber VARCHAR(100),
+@CommodityCode VARCHAR(50),
+@EPU VARCHAR(50),
+@UCR VARCHAR(50),
+@MasterUCR VARCHAR(50),
+@MovementRefNo VARCHAR(100),
+@CustomsValue DECIMAL(18,2),
+@CustomCurrencyId BIGINT,
+@NetMass DECIMAL(18,2),
+@VATValue DECIMAL(18,2)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -122,13 +134,143 @@ BEGIN
 				IF (@ExchangeSalesOrderShippingId > 0)
 				BEGIN
 					-- Update
-					UPDATE [dbo].[ExchangeSalesOrderShipping]
-					SET UpdatedDate = GETUTCDATE(),
-						ShipviaId = @ShipViaId,
-						CustomerDomensticShippingShipViaId = @CustomerDomensticShippingShipViaId,
-						UpdatedBy = @CreatedBy
-					WHERE ExchangeSalesOrderShippingId = @ExchangeSalesOrderShippingId;
+					--UPDATE [dbo].[ExchangeSalesOrderShipping]
+					--SET UpdatedDate = GETUTCDATE(),
+					--	ShipviaId = @ShipViaId,
+					--	CustomerDomensticShippingShipViaId = @CustomerDomensticShippingShipViaId,
+					--	UpdatedBy = @CreatedBy
+					--WHERE ExchangeSalesOrderShippingId = @ExchangeSalesOrderShippingId;
 
+					UPDATE [dbo].[ExchangeSalesOrderShipping]
+								SET 
+									SOShippingStatusId = @SOShippingStatusId,
+									CustomerId = @CustomerId,
+									ShipViaId = @ShipViaId,
+									ShipDate = @ShipDate,
+									AirwayBill = @AirwayBill,
+									HouseAirwayBill = @HouseAirwayBill,
+									TrackingNum = @TrackingNum,
+									Weight = @Weight,
+									SoldToName = @SoldToName,
+									SoldToAddress1 = @SoldToAddress1,
+									SoldToAddress2 = @SoldToAddress2,
+									SoldToCity = @SoldToCity,
+									SoldToState = @SoldToState,
+									SoldToZip = @SoldToZip,
+									SoldToCountryId = @SoldToCountryId,
+									ShipToName = @ShipToName,
+									ShipToSiteName = @ShipToSiteName,
+									ShipToSiteId = @ShipToSiteId,
+									ShipToAddress1 = @ShipToAddress1,
+									ShipToAddress2 = @ShipToAddress2,
+									ShipToCity = @ShipToCity,
+									ShipToState = @ShipToState,
+									ShipToZip = @ShipToZip,
+									ShipToCountryId = @ShipToCountryId,
+									OriginName = @OriginName,
+									OriginAddress1 = @OriginAddress1,
+									OriginAddress2 = @OriginAddress2,
+									OriginCity = @OriginCity,
+									OriginState = @OriginState,
+									OriginZip = @OriginZip,
+									OriginCountryId = @OriginCountryId,
+									Shipment = NULL,
+									SoldToSiteId = @SoldToSiteId,
+									SoldToSiteName = @SoldToSiteName,
+									SoldToCountryName = @SoldToCountryName,
+									ShipToCustomerId = @ShipToCustomerId,
+									ShipToCountryName = @ShipToCountryName,
+									OriginCountryName = @OriginCountryName,
+									OriginSiteId = @OriginSiteId,
+									IsSameForShipTo = @IsSameForShipTo,
+									MasterCompanyId = @MasterCompanyId,
+									UpdatedBy = @CreatedBy,
+									UpdatedDate = GETUTCDATE(),
+									ShipSizeLength = @ShipSizeLength,
+									ShipSizeWidth = @ShipSizeWidth,
+									ShipSizeHeight = @ShipSizeHeight,
+									ShipWeightUnit = @ShipWeightUnit,
+									ShipSizeUnitOfMeasureId = @ShipSizeUnitOfMeasureId,
+									NoOfContainer = @NoOfContainer,
+									ShippingAccountNo = @ShippingAccountNo,
+									CustomerDomensticShippingShipViaId = @CustomerDomensticShippingShipViaId,
+									NoOfItems = @NoOfItems,
+									IsCustomerShipping = @IsCustomerShipping,
+									IsManualShipping = @IsManualShipping,
+									ManufactureCountryId = @ManufactureCountryId,
+									QtyUOM = @QtyUOM,
+									UnitPrice = @UnitPrice,
+									UnitPriceCurrencyId = @UnitPriceCurrencyId,
+									PackagingSlipNotes = @PackagingSlipNotes
+								WHERE ExchangeSalesOrderShippingId = @ExchangeSalesOrderShippingId;
+
+						IF EXISTS (SELECT 1  FROM [dbo].[ExchangeSalesOrderShippingCustomsInfo] WITH(NOLOCK) WHERE ExchangeSalesOrderShippingId = @ExchangeSalesOrderShippingId)
+						BEGIN
+							UPDATE [dbo].[ExchangeSalesOrderShippingCustomsInfo]
+							SET
+								EntryType = @EntryType,
+								EntryNumber = @EntryNumber,
+								CommodityCode = @CommodityCode,
+								EPU = @EPU,
+								UCR = @UCR,
+								MasterUCR = @MasterUCR,
+								MovementRefNo = @MovementRefNo,
+								CustomsValue = @CustomsValue,
+								CustomCurrencyId = @CustomCurrencyId,
+								NetMass = @NetMass,
+								VATValue = @VATValue,
+								UpdatedBy = @CreatedBy,
+								UpdatedDate = GETUTCDATE()
+							WHERE ExchangeSalesOrderShippingId = @ExchangeSalesOrderShippingId;
+						END
+						ELSE
+						BEGIN
+							 INSERT INTO [dbo].[ExchangeSalesOrderShippingCustomsInfo]
+							(
+								ExchangeSalesOrderShippingId,
+								EntryType,
+								EntryNumber,
+								CommodityCode,
+								EPU,
+								UCR,
+								MasterUCR,
+								MovementRefNo,
+								CustomsValue,
+								CustomCurrencyId,
+								NetMass,
+								VATValue,
+								MasterCompanyId,
+								CreatedBy,
+								UpdatedBy,
+								CreatedDate,
+								UpdatedDate,
+								IsActive,
+								IsDeleted
+							)
+							VALUES
+							(
+								@ExchangeSalesOrderShippingId,
+								@EntryType,
+								@EntryNumber,
+								@CommodityCode,
+								@EPU,
+								@UCR,
+								@MasterUCR,
+								@MovementRefNo,
+								@CustomsValue,
+								@CustomCurrencyId,
+								@NetMass,
+								@VATValue,
+								@MasterCompanyId,
+								@CreatedBy,
+								@CreatedBy,
+								GETUTCDATE(),
+								GETUTCDATE(),
+								1, -- IsActive
+								0  -- IsDeleted
+							);
+
+						END
 					IF (@PackagingSlipId IS NOT NULL AND @PackagingSlipId > 0)
 					BEGIN
 						UPDATE [dbo].[ExchangeSalesOrderPackaginSlipItems]
@@ -356,6 +498,54 @@ BEGIN
 					,NULL
 					,NULL
 					)
+
+
+
+					INSERT INTO [dbo].[ExchangeSalesOrderShippingCustomsInfo]
+					(
+						ExchangeSalesOrderShippingId,
+						EntryType,
+						EntryNumber,
+						CommodityCode,
+						EPU,
+						UCR,
+						MasterUCR,
+						MovementRefNo,
+						CustomsValue,
+						CustomCurrencyId,
+						NetMass,
+						VATValue,
+						MasterCompanyId,
+						CreatedBy,
+						UpdatedBy,
+						CreatedDate,
+						UpdatedDate,
+						IsActive,
+						IsDeleted
+					)
+					VALUES
+					(
+						@ExchangeSalesOrderShippingId,
+						@EntryType,
+						@EntryNumber,
+						@CommodityCode,
+						@EPU,
+						@UCR,
+						@MasterUCR,
+						@MovementRefNo,
+						@CustomsValue,
+						@CustomCurrencyId,
+						@NetMass,
+						@VATValue,
+						@MasterCompanyId,
+						@CreatedBy,
+						@CreatedBy,
+						GETUTCDATE(),
+						GETUTCDATE(),
+						1,
+						0 
+					);
+
 				END
 
 				-- Step 3: Handle Distribution (simplified trigger logic placeholder)

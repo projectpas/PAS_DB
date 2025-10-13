@@ -10,5 +10,6 @@
     [Condition]      VARCHAR (20)  NULL,
     [IsEmail]        BIT           NULL,
     [IsFax]          BIT           NULL,
-    [VendorName]     VARCHAR (150) NULL);
+    [VendorName]     VARCHAR (150) NULL,
+    [CustomerRfqId]  BIGINT        NULL);
 

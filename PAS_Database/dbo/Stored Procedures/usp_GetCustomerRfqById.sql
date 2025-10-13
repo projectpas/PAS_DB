@@ -14,6 +14,7 @@
  **	4		25-Sep-2025		Devendra Shekh		Added Changes for [ItemMasterId] and [StockLineId] 
  ** 5       03-Oct-2025     Devendra Shekh		Added [IsCustomerStock] for Stk
  ** 6       07-Oct-2025     Devendra Shekh		Added [CustomerId]
+ ** 7       13-Oct-2025     Devendra Shekh	    Added [VendorRFQId], [ThirdPartyRFQId], [ILSRFQPartId]
  
 EXECUTE [dbo].[usp_GetCustomerRFQbyId] 961
 **************************************************************/  
@@ -54,15 +55,24 @@ SET NOCOUNT ON
 			WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
 			GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 
-			SELECT	[CustomerRfqId], [RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 
+			SELECT	RFQ.[CustomerRfqId], RFQ.[RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 
 					[BuyerState], [BuyerZip], [LinePartNumber], [LineDescription], [AltPartNumber], [Quantity], [Condition], RFQ.[MasterCompanyId], RFQ.[CreatedBy], RFQ.[CreatedDate],
 					RFQ.[UpdatedBy], RFQ.[UpdatedDate], RFQ.[IsActive], RFQ.[IsDeleted], [IsQuote], [IsMRO], [ModuleId], [ReferenceId], IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
 					,(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
+					,VRFQResult.[VendorRFQId], [ThirdPartyRFQId], [ILSRFQPartId]
 			FROM [dbo].[CustomerRfq] RFQ WITH(NOLOCK)
 			LEFT JOIN #ItemResults IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 			LEFT JOIN #StkResults STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 			LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
-			WHERE [CustomerRfqId] = @CustomerRfqId;
+			OUTER APPLY (
+				SELECT ILS.ThirdPartyRFQId, ILS.MasterCompanyId, ILSP.CustomerRfqId, TRQ.RFQId AS VendorRFQId, MAX(ILSP.ILSRFQPartId) AS ILSRFQPartId
+				FROM [dbo].[ThirdPartyRFQ] TRQ WITH(NOLOCK)
+				INNER JOIN [dbo].[ILSRFQDetail] ILS WITH(NOLOCK) ON ILS.ThirdPartyRFQId = TRQ.ThirdPartyRFQId
+				INNER JOIN [dbo].[ILSRFQPart] ILSP WITH(NOLOCK) ON ILSP.ILSRFQDetailId = ILS.ILSRFQDetailId AND LOWER(TRIM(ILSP.PartNumber)) = LOWER(TRIM(RFQ.[LinePartNumber])) AND LOWER(TRIM(ILSP.Condition)) = LOWER(TRIM(RFQ.Condition)) AND ILSP.CustomerRfqId = RFQ.CustomerRfqId
+				WHERE ILSP.CustomerRfqId = RFQ.CustomerRfqId AND ILSP.MasterCompanyId = RFQ.MasterCompanyId
+				GROUP BY ILS.ThirdPartyRFQId, ILS.MasterCompanyId, ILSP.CustomerRfqId, TRQ.RFQId
+			) AS VRFQResult
+			WHERE RFQ.[CustomerRfqId] = @CustomerRfqId;
 
 			SELECT	[CustomerRfqQuoteId], [CustomerRfqId], [RfqId], [AddComment], [IsAddCommentQuote], [FaaEasaRelease], [IsFaaEasaReleaseQuote], [RpOh], [IsRpOhQuote], [LegalEntityId],
 					[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Note]
@@ -88,11 +98,20 @@ SET NOCOUNT ON
 			SELECT	[CustomerRfqPartMappingId], CRFQ.[CustomerRfqId], CRFQ.[Notes], CRFQ.[PartNumber], CRFQ.[PartDescription], CRFQ.[AltPartNumber], CRFQ.[Quantity], CRFQ.[Condition], CRFQ.[MasterCompanyId], CRFQ.[CreatedBy], CRFQ.[CreatedDate],
 					CRFQ.[UpdatedBy], CRFQ.[UpdatedDate], CRFQ.[IsActive], CRFQ.[IsDeleted], IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
 					,(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
+					,VRFQResult.VendorRFQId, VRFQResult.ThirdPartyRFQId, VRFQResult.ILSRFQPartId
 			FROM [dbo].[CustomerRfqPartMapping] CRFQ WITH(NOLOCK)
 			LEFT JOIN #ItemResults IM WITH(NOLOCK) ON LOWER(TRIM(CRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 			LEFT JOIN #StkResults STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND CRFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 			INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON CRFQ.CustomerRfqId = RFQ.CustomerRfqId
 			LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
+			OUTER APPLY (
+				SELECT ILS.ThirdPartyRFQId, ILS.MasterCompanyId, ILSP.CustomerRfqId, TRQ.RFQId AS VendorRFQId, MAX(ILSP.ILSRFQPartId) AS ILSRFQPartId
+				FROM [dbo].[ThirdPartyRFQ] TRQ WITH(NOLOCK)
+				INNER JOIN [dbo].[ILSRFQDetail] ILS WITH(NOLOCK) ON ILS.ThirdPartyRFQId = TRQ.ThirdPartyRFQId
+				INNER JOIN [dbo].[ILSRFQPart] ILSP WITH(NOLOCK) ON ILSP.ILSRFQDetailId = ILS.ILSRFQDetailId AND LOWER(TRIM(ILSP.PartNumber)) = LOWER(TRIM(CRFQ.PartNumber)) AND LOWER(TRIM(ILSP.Condition)) = LOWER(TRIM(CRFQ.Condition)) AND ILSP.CustomerRfqId = CRFQ.CustomerRfqId
+				WHERE ILSP.CustomerRfqId = CRFQ.CustomerRfqId AND ILSP.MasterCompanyId = CRFQ.MasterCompanyId
+				GROUP BY ILS.ThirdPartyRFQId, ILS.MasterCompanyId, ILSP.CustomerRfqId, TRQ.RFQId
+			) AS VRFQResult
 			WHERE CRFQ.[CustomerRfqId] = @CustomerRfqId;
 		END
 	END TRY    

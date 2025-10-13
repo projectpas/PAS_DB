@@ -23,6 +23,7 @@
 	10   02/12/2025   Moin Bloch     Updated For Get Is813013aeOr14ae
 	11   02/14/2025   Bhargav Saliya UTC Date Changes
 	12   08/25/2025   Moin Bloch     Updated For Get [FormStatus]
+	13   10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
@@ -112,6 +113,8 @@ BEGIN
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
 				      ,wro.Is813013aeOr14ae
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
+					  ,wro.[VersionNo]
+					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -123,6 +126,7 @@ BEGIN
 					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.[WorkOrderId]=@WorkorderId AND wro.[workOrderPartNoId] =@workOrderPartNoId  
+					ORDER BY wro.[ReleaseFromId] DESC
 				END
 				ELSE
 				BEGIN
@@ -179,6 +183,8 @@ BEGIN
 					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK' ELSE '' END WOFormType
 				      ,wro.Is813013aeOr14ae
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
+					  ,wro.[VersionNo]
+					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -192,6 +198,7 @@ BEGIN
 				WHERE wro.[WorkOrderId]=@WorkorderId 
 				  AND wro.[workOrderPartNoId] =@workOrderPartNoId 
 				  AND wro.[ReleaseFromId] = @ReleaseFromId
+				  ORDER BY wro.[ReleaseFromId] DESC
 				END
 		END TRY    
 		BEGIN CATCH      

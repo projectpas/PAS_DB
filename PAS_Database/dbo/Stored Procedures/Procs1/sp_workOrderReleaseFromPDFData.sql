@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -21,14 +20,14 @@
 	3    02/02/2024   Devendra Shekh	Updated for revised Part Panry and Condition
 	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
 	5    12/31/2024   Devendra Shekh Updated For Get FormType and Batchnumber Name
-	6    02/13/2025   Moin Bloch     Updated For Get Is813013aeOr14ae Flag
+	6    02/13/2025   Moin Bloch     Updated For Get Is813013aeOr14ae Flag 
+	7    10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
      
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_workOrderReleaseFromPDFData]
 @ReleaseFromId bigint
-
 AS
 BEGIN
 
@@ -89,19 +88,21 @@ BEGIN
 					  ,wro.[PDFPath]
 					  ,wop.[IsFinishGood] AS IsFinishGood
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
-					  ,wop.ManagementStructureId as ManagementStructureId   
+					  ,wop.ManagementStructureId AS ManagementStructureId   
 					  ,ISNULL(wro.Is813013aeOr14ae,1) Is813013aeOr14ae
+					  ,ISNULL(wro.[VersionNo],'VER-000001') VersionNo
+					  ,ISNULL(wro.[IsVersionIncrease],0) IsVersionIncrease
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
-				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
-					   LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
+				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
+					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
-					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId and WorkOrderSettlementId=9
-				      LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
-					  LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
-					  LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
+					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId and WorkOrderSettlementId=9
+				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
-				WHERE wro.ReleaseFromId=@ReleaseFromId
+				WHERE wro.[ReleaseFromId]=@ReleaseFromId
 			END
 
 		END TRY    

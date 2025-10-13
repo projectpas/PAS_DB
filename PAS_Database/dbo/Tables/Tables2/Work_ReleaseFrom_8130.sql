@@ -43,8 +43,12 @@
     [FormTypeId]          INT           NULL,
     [IsLocked]            BIT           NULL,
     [Is813013aeOr14ae]    INT           DEFAULT ((1)) NULL,
+    [VersionNo]           VARCHAR (50)  NULL,
+    [IsVersionIncrease]   BIT           DEFAULT ((0)) NULL,
     CONSTRAINT [PK_Work_ReleaseFrom_8130] PRIMARY KEY CLUSTERED ([ReleaseFromId] ASC)
 );
+
+
 
 
 

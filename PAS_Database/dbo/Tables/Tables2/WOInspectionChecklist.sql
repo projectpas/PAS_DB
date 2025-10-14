@@ -36,9 +36,21 @@
     [CreatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklist_CreatedDate] DEFAULT (getdate()) NOT NULL,
     [UpdatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklist_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [InspectionConditionId]                BIGINT         NULL,
+    [istheshipcontainerdamage]             INT            NULL,
+    [ispnontheunitlegible]                 INT            NULL,
+    [isthepartreceivedmatchpnporo]         INT            NULL,
+    [isprotectivecapplugsapplicable]       INT            NULL,
+    [isremarksusunapprovedparts]           INT            NULL,
+    [ispnrepairstationcapablitylist]       INT            NULL,
+    [isapplicableads]                      INT            NULL,
+    [istechnicaldatacurandavail]           INT            NULL,
+    [actiontaken]                          NVARCHAR (MAX) NULL,
+    [iscustomernotified]                   INT            NULL,
     CONSTRAINT [PK_WOInspectionChecklist] PRIMARY KEY CLUSTERED ([WOInspectionId] ASC),
     CONSTRAINT [FK_WOInspectionChecklist_ReceivingCustomerWorkId] FOREIGN KEY ([ReceivingCustomerWorkId]) REFERENCES [dbo].[ReceivingCustomerWork] ([ReceivingCustomerWorkId])
 );
+
+
 
 
 

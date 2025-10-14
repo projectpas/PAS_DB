@@ -21,7 +21,7 @@
 	7    09-MAY-2025	 Devendra Shekh		Added IsPrintCorrectiveAction to select
     8    10-JUL-2025     Moin Bloch         Updated MEMO To PublicationNotes
 	9	 23-JUL-2025     Devendra Shekh		Added Case for Memo
-
+	10	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7342,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
@@ -235,7 +235,8 @@ BEGIN
 				FinalLaborTotal DECIMAL(18, 2),
 				RowNumber INT,
 				Memo VARCHAR(MAX),
-				IsPrintCorrectiveAction BIT
+				IsPrintCorrectiveAction BIT,
+				EstimatedShipDate DATETIME2(7)
 			);
 
 
@@ -309,6 +310,7 @@ BEGIN
 				--		dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 				--		LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 				--	WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
+					,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -324,7 +326,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
-				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	       
 
@@ -339,7 +341,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction,EstimatedShipDate)
 			SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -353,7 +355,7 @@ BEGIN
 					FinalTotal,
 					FinalLaborTotal,
 					RowNumber,
-					Memo, IsPrintCorrectiveAction
+					Memo, IsPrintCorrectiveAction,EstimatedShipDate
 				FROM #tmpQuoteIds; 
 
 		END
@@ -428,6 +430,7 @@ BEGIN
 				--		dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 				--		LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 				--		WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode) AND ctd.MasterCompanyId = 20 )
+				,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -444,7 +447,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
-				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
@@ -458,7 +461,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction,EstimatedShipDate)
 				SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -472,7 +475,7 @@ BEGIN
 					FinalTotal,
 					FinalLaborTotal,
 					RowNumber,
-					Memo, IsPrintCorrectiveAction
+					Memo, IsPrintCorrectiveAction,EstimatedShipDate
 				FROM #tmpQuotetblMulti; 
 
 		END

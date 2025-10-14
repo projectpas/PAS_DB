@@ -264,7 +264,12 @@ BEGIN
 					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)'))
 					END
 		,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
-		,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
+			,CASE 
+				WHEN wop.EstimatedShipDate IS NULL 
+					 OR LTRIM(RTRIM(CAST(wop.EstimatedShipDate AS VARCHAR))) = '' 
+				THEN '' 
+				ELSE FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy') 
+			 END AS EstimatedShipDate
 	FROM dbo.WorkOrder wo WITH(NOLOCK)        
 		 INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  

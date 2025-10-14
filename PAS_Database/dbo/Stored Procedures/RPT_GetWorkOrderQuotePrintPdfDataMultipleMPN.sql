@@ -22,7 +22,7 @@
     8    10-JUL-2025     Moin Bloch         Updated MEMO To PublicationNotes
 	9	 23-JUL-2025     Devendra Shekh		Added Case for Memo
 	10	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7342,'',0  
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7884,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
@@ -236,7 +236,7 @@ BEGIN
 				RowNumber INT,
 				Memo VARCHAR(MAX),
 				IsPrintCorrectiveAction BIT,
-				EstimatedShipDate DATETIME2(7)
+				EstimatedShipDate DATETIME2(7)NULL
 			);
 
 
@@ -310,7 +310,13 @@ BEGIN
 				--		dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 				--		LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 				--	WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
-					,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
+					--,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
+						,CASE 
+						WHEN wop.EstimatedShipDate IS NULL 
+							 OR LTRIM(RTRIM(CAST(wop.EstimatedShipDate AS VARCHAR))) = '' 
+						THEN '' 
+						ELSE FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy') 
+					 END AS EstimatedShipDate
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -430,7 +436,13 @@ BEGIN
 				--		dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK)
 				--		LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 				--		WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode) AND ctd.MasterCompanyId = 20 )
-				,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
+				--,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
+						,CASE 
+						WHEN wop.EstimatedShipDate IS NULL 
+							 OR LTRIM(RTRIM(CAST(wop.EstimatedShipDate AS VARCHAR))) = '' 
+						THEN '' 
+						ELSE FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy') 
+					 END AS EstimatedShipDate
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -475,7 +487,10 @@ BEGIN
 					FinalTotal,
 					FinalLaborTotal,
 					RowNumber,
-					Memo, IsPrintCorrectiveAction,EstimatedShipDate
+					Memo, IsPrintCorrectiveAction,CASE 
+        WHEN LTRIM(RTRIM(CAST(EstimatedShipDate AS VARCHAR))) = '' THEN NULL
+        ELSE EstimatedShipDate
+    END AS EstimatedShipDate
 				FROM #tmpQuotetblMulti; 
 
 		END

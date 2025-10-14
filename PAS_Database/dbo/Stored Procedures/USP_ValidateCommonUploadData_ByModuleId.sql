@@ -26,7 +26,7 @@
 	16	 15-Sep-2025        Rajesh Gami				Price Master: added new fields
 	17	 09-Oct-2025        Priyansh Patel			MRO Price Master added Validation for Customer,Unit Price and StartDate
 	18	 10-Oct-2025        Rajesh Gami				Disocunt does not allow mor than 100 (Validate the Purchase and Sales)
-	
+	19	 14-OCT-2025        Rajesh Gami				Remove Comma from the dicimal value 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -122,7 +122,25 @@ BEGIN
 
 		INSERT INTO #uploadDataResults([ModuleId], [UserName], [MasterCompanyId], [UploadRecord], [OriginalRecordData])
 		SELECT [ModuleId], [UserName], [MasterCompanyId], [UploadRecord], [UploadRecord] FROM @UploadData;
-		
+
+		UPDATE #uploadDataResults
+		SET UploadRecord = JSON_MODIFY(
+								JSON_MODIFY(
+									JSON_MODIFY(
+										JSON_MODIFY(
+											UploadRecord,
+											'$.PP_VendorListPrice',
+											REPLACE(JSON_VALUE(UploadRecord, '$.PP_VendorListPrice'), ',', '')
+										),
+										'$.SP_FSP_FlatPriceAmount',
+										REPLACE(JSON_VALUE(UploadRecord, '$.SP_FSP_FlatPriceAmount'), ',', '')
+									),
+									'$.SP_CalSPByPP_MarkUpPercOnListPrice',
+									REPLACE(JSON_VALUE(UploadRecord, '$.SP_CalSPByPP_MarkUpPercOnListPrice'), ',', '')
+								),
+								'$.PP_PurchaseDiscPerc',
+								REPLACE(JSON_VALUE(UploadRecord, '$.PP_PurchaseDiscPerc'), ',', '')
+                    );
 		SELECT @TotalRecords = MAX([RecordId]), @CurrentRecord = MIN([RecordId]) FROM #uploadDataResults;
 
 		SELECT @ReferenceTable = ReferenceTable FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
@@ -341,7 +359,7 @@ BEGIN
 													 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 												THEN IMF.FieldName + ' must be a valid number'
 												WHEN  ISNULL(TMP.FieldValue, '') != ''  AND ((IMF.FieldName = 'PP_VendorListPrice' OR IMF.FieldName = 'PP_UnitPurchasePrice' OR IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice'OR IMF.FieldName = 'PP_PurchaseDiscPerc' OR IMF.FieldName = 'SP_FSP_FlatPriceAmount' OR IMF.FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice' )
-													AND (TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL ) )
+													AND (TRY_CAST(REPLACE(TMP.FieldValue, ',', '') AS DECIMAL(18,2)) IS NULL ) )
 													THEN (CASE WHEN IMF.FieldName = 'PP_VendorListPrice' THEN 'Vendor List Price' WHEN IMF.FieldName = 'PP_UnitPurchasePrice' THEN 'Unit Purchase Price' WHEN IMF.FieldName = 'SP_CalSPByPP_UnitSalePrice' THEN 'Unit Sale Price' WHEN IMF.FieldName = 'PP_PurchaseDiscPerc' THEN 'Purchase Discount Percentage' WHEN IMF.FieldName = 'SP_FSP_FlatPriceAmount' THEN 'Flat Price Amount' WHEN IMF.FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice' THEN 'Markup Percentage' ELSE '' END  ) + ' must be a valid price (characters are not allowed)'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'SalePriceSelectName') AND (LOWER(TMP.FieldValue) NOT IN ('Flat','Calculated'))
 													THEN 'Sale Price must be FLAT OR CALCULATED'

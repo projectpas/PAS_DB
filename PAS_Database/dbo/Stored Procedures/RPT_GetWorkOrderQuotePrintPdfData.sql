@@ -22,6 +22,7 @@
 	8    09-MAY-2025	Devendra Shekh		Added IsPrintCorrectiveAction to select
 	9    10-JUL-2025    Moin Bloch          Updated MEMO To PublicationNotes
 	10	 23-JUL-2025    Devendra Shekh      Added Case for Memo     
+	11	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -263,6 +264,7 @@ BEGIN
 					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)'))
 					END
 		,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
+		,ISNULL(FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy'), '') AS EstimatedShipDate
 	FROM dbo.WorkOrder wo WITH(NOLOCK)        
 		 INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
@@ -279,7 +281,7 @@ BEGIN
 	GROUP BY im.PartNumber,  
 		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,wop.PublicationNotes,  tmp.Remarks,
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wop.RevisedPartNumber, wop.RevisedPartDescription
-		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction),
+		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
 	SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal FROM AfterTax FinalQuote;

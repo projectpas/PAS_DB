@@ -40,7 +40,8 @@ BEGIN
 	  [RestrictMessage] VARCHAR(300) NULL,
 	  [WarningMessage] VARCHAR(300) NULL,
 	  LeRestriction VARCHAR(MAX) NULL,
-	  IsCreaditRestriction BIT NULL
+	  IsCreaditRestriction BIT NULL,
+	  CreditLimit DECIMAL NULL,
 	)
 
 	SET NOCOUNT ON;
@@ -60,21 +61,22 @@ BEGIN
 		BEGIN
 			IF(@SelectCustId is not null AND @SelectCustId > 0)
 			BEGIN
-				INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction])
+				INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
 				SELECT 
 					ISNULL([Restrict],0) as IsRestrict,
 					ISNULL([Warning],0) as IsWarning,
 					ISNULL([RestrictMessage],'') as [RestrictMessage],
 					ISNULL([WarningMessage],'') as [WarningMessage],
 					@RestrictMessage AS LeRestriction,
-					@IsCreaditRestriction as IsCreaditRestriction
+					@IsCreaditRestriction as IsCreaditRestriction,
+					@CreditLimit AS CreditLimit
 				FROM [dbo].[CustomerWarning] WITH(NOLOCK) 
 				WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
 			END
 			ELSE
 			BEGIN
-			 INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction])
-			 values(0,0,'','',@RestrictMessage,@IsCreaditRestriction);
+			 INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
+			 values(0,0,'','',@RestrictMessage,@IsCreaditRestriction,@CreditLimit);
 			END
 		END
 

@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -29,6 +28,7 @@
 	18	 11-Sep-2025        Rajesh Gami				Update CodePrefixCode for the stockline module.
 	19	 16-Sep-2025        Rajesh Gami				Price Master/Purchase and Sales: Calculate the Discount and related changes 
 	20	 10-Oct-2025        Priyansh Patel			MRO Price Master Implemented 
+	21	 14-OCT-2025        Rajesh Gami				Added validation 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]

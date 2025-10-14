@@ -12,7 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1   09/11/2025  Ekta Chandegra     Created
-    2   13/Oct/2025  RAJESH			    Added missing code
+    2   13/Oct/2025  RAJESH			    Added missing code And Change the datatype as required
 	EXEC [dbo].[USP_CreateExchangeSalesOrderShipping] @ExchangeSalesOrderShippingId=0,
 	@ExchangeSalesOrderId=146,@IsCustomerShipping=0,@ShipviaId=2,@CustomerDomensticShippingShipViaId=0,
 	@CreatedBy=N'roza diaz',@SOShippingStatusId=1,@OpenDate='2025-09-11 00:00:00',@CustomerId=9,
@@ -96,18 +96,18 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]
 @QtyShipped INT,
 @SOPickTicketId BIGINT,
 @PackagingSlipId BIGINT,
-@ExchangeSalesOrderCustomsInfoId BIGINT,
-@EntryType VARCHAR(100),
-@EntryNumber VARCHAR(100),
-@CommodityCode VARCHAR(50),
-@EPU VARCHAR(50),
-@UCR VARCHAR(50),
-@MasterUCR VARCHAR(50),
-@MovementRefNo VARCHAR(100),
-@CustomsValue DECIMAL(18,2),
-@CustomCurrencyId BIGINT,
-@NetMass DECIMAL(18,2),
-@VATValue DECIMAL(18,2)
+@ExchangeSalesOrderCustomsInfoId BIGINT = NULL,
+@EntryType VARCHAR(100) = NULL,
+@EntryNumber VARCHAR(100) = NULL,
+@CommodityCode VARCHAR(100) = NULL,
+@EPU VARCHAR(100) = NULL,
+@UCR VARCHAR(100) = NULL,
+@MasterUCR VARCHAR(100) = NULL,
+@MovementRefNo VARCHAR(100) = NULL,
+@CustomsValue DECIMAL(18,2) = NULL,
+@CustomCurrencyId BIGINT = NULL,
+@NetMass DECIMAL(18,2) = NULL,
+@VATValue DECIMAL(18,2) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -606,6 +606,13 @@ BEGIN
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'USP_CreateExchangeSalesOrderShipping'   

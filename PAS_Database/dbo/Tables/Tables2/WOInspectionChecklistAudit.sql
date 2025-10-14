@@ -37,6 +37,16 @@
     [CreatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklistAudit_CreatedDate] DEFAULT (getdate()) NULL,
     [UpdatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklistAudit_UpdatedDate] DEFAULT (getdate()) NULL,
     [InspectionConditionId]                BIGINT         NULL,
+    [istheshipcontainerdamage]             INT            NULL,
+    [ispnontheunitlegible]                 INT            NULL,
+    [isthepartreceivedmatchpnporo]         INT            NULL,
+    [isprotectivecapplugsapplicable]       INT            NULL,
+    [isremarksusunapprovedparts]           INT            NULL,
+    [ispnrepairstationcapablitylist]       INT            NULL,
+    [isapplicableads]                      INT            NULL,
+    [istechnicaldatacurandavail]           INT            NULL,
+    [actiontaken]                          NVARCHAR (MAX) NULL,
+    [iscustomernotified]                   INT            NULL,
     CONSTRAINT [PK_WOInspectionChecklistAudit] PRIMARY KEY CLUSTERED ([WOInspectionAuditId] ASC)
 );
 

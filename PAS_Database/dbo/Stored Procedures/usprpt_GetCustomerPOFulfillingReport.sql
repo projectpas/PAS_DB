@@ -63,10 +63,11 @@ BEGIN
 					END AS POStatus,
 					RO.[Status] AS ROStatus,
 					IM.PartNumber AS PN,
-					CASE 
-						WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
-						ELSE IM.PartDescription
-					END AS PNDescription,
+					--CASE 
+					--	WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
+					--	ELSE IM.PartDescription
+					--END AS PNDescription,
+					IM.PartDescription AS PNDescription,
 					ISNULL(IU.ShortName, '') AS UOM,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
@@ -130,10 +131,11 @@ BEGIN
 					SO.SalesOrderNumber AS SONum,
 					MSOS.[Name] AS SOStatus,
 					IM.PartNumber AS PN,
-					CASE 
-						WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
-						ELSE IM.PartDescription
-					END AS PNDescription,
+					--CASE 
+					--	WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
+					--	ELSE IM.PartDescription
+					--END AS PNDescription,
+					IM.PartDescription AS PNDescription,
 					STK.StockLineId,
 					STK.StocklineNumber,
 					STK.SerialNumber,
@@ -167,8 +169,6 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				LEFT JOIN [DBO].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.SalesOrderId = SOP.SalesOrderId 
 				   AND ROP.StockLineId = SST.StockLineId
-				LEFT JOIN [DBO].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-				LEFT JOIN [DBO].[PurchaseOrder] PO WITH(NOLOCK) ON PO.PurchaseOrderId = SOP.POId
 				WHERE SO.OpenDate >= @id
 				  AND SO.OpenDate < DATEADD(DAY, 1, @id2)
 				  AND SO.ManagementStructureId = @ManagementStructureId
@@ -180,17 +180,12 @@ BEGIN
 					SO.SalesOrderId,
 					SO.CustomerReference,
 					IM.PartNumber,
-					PO.[Status],
-					RO.[Status],
 					IM.PartDescription,
 					SO.SalesOrderNumber,
 					SO.OpenDate,
 					SO.CustomerName,
 					SO.CustomerServiceRepName,
 					IU.ShortName,
-					RO.RepairOrderId,
-					RO.RepairOrderNumber,
-					RO.[Status],
 					SOP.ConditionName,
 					SO.SalesOrderNumber,
 					MSOS.[Name],
@@ -219,13 +214,13 @@ BEGIN
 					Terms,
 					COUNT(PN) AS PNCount,
 					STRING_AGG(PN, ', ') AS AllPNs,
-					COUNT(SerialNumber) AS SerialCount,
 					STRING_AGG(PNDescription, ', ') AS PartDescriptions,
 					SUM(TotalQty) AS TotalQty,
 					SUM(UnitPrice) AS UnitPrice,
 					SUM(TotalAmount) AS TotalAmount,
 					STRING_AGG(StocklineNumber, ', ') AS StocklineNumbers,
-					STRING_AGG(SerialNumber, ', ') AS SerialNumbers,
+					COUNT(SerialNumber) AS SerialCount,
+					MAX(SerialNumber) AS SerialNumbers,
 					MAX(InvoiceNo) AS InvoiceNo,
 					COUNT(ShipDate) AS ShipDateCount,
 					STRING_AGG(ShipDate, ', ') AS AllShipDate,
@@ -241,19 +236,45 @@ BEGIN
 				CustomerName,SOStatus,
 				CASE WHEN ConditionNameCount > 1 THEN 'MULTIPLE' ELSE AllConditionName END AS ConditionName,
 				CASE WHEN UOMCount > 1 THEN 'MULTIPLE' ELSE AllUOM END AS UOM,
-				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE '' END AS POStatus,
+				CASE 
+					WHEN LEN(CombinedStatusStr) = 0 THEN ''
+					WHEN CHARINDEX(',', CombinedStatusStr) > 0 THEN 'MULTIPLE'
+					ELSE CombinedStatusStr
+				END AS POStatus,
 				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE AllPNs END AS PN,
 				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE PartDescriptions END AS PNDescription,
 				TotalQty,
 				TotalAmount,
 				UnitPrice,
 				StocklineNumbers,
-				CASE WHEN SerialCount > 1 THEN 'MULTIPLE' ELSE SerialNumbers END AS SerialNumbers,
+				SerialNumbers,
 				InvoiceNo,
 				CASE WHEN ShipDateCount > 1 THEN 'MULTIPLE' ELSE AllShipDate END AS ShipDate,
 				Terms,
 				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB
-			FROM AggregatedSales
+			FROM AggregatedSales A
+			CROSS APPLY
+			(
+				SELECT 
+				ISNULL(
+				  STUFF((
+					SELECT ',' + s.Status
+					FROM
+					(
+						SELECT DISTINCT PO.[Status] AS Status
+						FROM [DBO].[PurchaseOrder] PO
+						INNER JOIN [DBO].[SalesOrderPartV1] SOP ON SOP.POId = PO.PurchaseOrderId
+						WHERE SOP.SalesOrderId = A.SalesOrderId AND PO.[Status] IS NOT NULL
+						UNION
+						SELECT DISTINCT RO.[Status] AS Status
+						FROM [DBO].[RepairOrder] RO
+						INNER JOIN [DBO].[RepairOrderPart] ROP ON ROP.RepairOrderId = RO.RepairOrderId
+						WHERE ROP.SalesOrderId = A.SalesOrderId AND RO.[Status] IS NOT NULL
+					) AS s
+					FOR XML PATH(''), TYPE
+				  ).value('.', 'nvarchar(max)'), 1, 1, '')
+				, '') AS CombinedStatusStr
+			) CS
 			ORDER BY SalesOrderId DESC;
 		END
   END TRY    

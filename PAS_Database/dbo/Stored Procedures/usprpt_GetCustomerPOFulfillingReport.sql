@@ -69,15 +69,18 @@ BEGIN
 					--END AS PNDescription,
 					IM.PartDescription AS PNDescription,
 					ISNULL(IU.ShortName, '') AS UOM,
-					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
+					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
+					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
+					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
+					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyOrder ELSE SOP.QtyOrder END AS TotalQty,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
-					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
+					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyOrder * STKC.NetSaleAmountPerUnit ELSE SOP.QtyOrder * SOPC.NetSaleAmountPerUnit END AS TotalAmount,
 					STRING_AGG(STK.StocklineNumber, '') AS StocklineNumbers,
-					STRING_AGG(STK.SerialNumber, '') AS SerialNumbers,
+					STK.SerialNumber AS SerialNumbers,
 					MAX(BI.InvoiceNo) AS InvoiceNo,
 					MAX(SOS.ShipDate) AS ShipDate,
 					SO.CreditTermName AS Terms,
-					STRING_AGG(SOS.AirwayBill, '') AS AWB
+					SOS.AirwayBill AS AWB
 				FROM [DBO].[SalesOrder] SO WITH(NOLOCK)
 				INNER JOIN [DBO].[MasterSalesOrderStatus] MSOS WITH(NOLOCK) ON MSOS.Id = SO.StatusId
 				INNER JOIN [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
@@ -117,7 +120,13 @@ BEGIN
 					IM.PartNumber,
 					IM.PartDescription,
 					IU.ShortName,
-					SO.CreditTermName
+					SST.QtyOrder,
+					SOP.QtyOrder,
+					STKC.NetSaleAmountPerUnit,
+					SOPC.NetSaleAmountPerUnit,
+					STK.SerialNumber,
+					SO.CreditTermName,
+					SOS.AirwayBill
 				ORDER BY SO.SalesOrderId DESC;
 		END
 		ELSE
@@ -163,7 +172,7 @@ BEGIN
 				   AND BII.ModuleId = @ModuleId 
 				   AND BII.IsVersionIncrease = 0
 				LEFT JOIN [DBO].[BillingInvoicing] BI WITH(NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId
-				LEFT JOIN [DBO].[SOPickTicket] SP WITH(NOLOCK) ON SP.SalesOrderPartStocklineId = SST.StockLineId 
+				LEFT JOIN [DBO].[SOPickTicket] SP WITH(NOLOCK) ON SP.SalesOrderPartStocklineId = SST.SalesOrderStocklineId 
 				   AND SP.SalesOrderPartId = SST.SalesOrderPartId
 				LEFT JOIN [DBO].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = SP.SalesOrderPartId
 				LEFT JOIN [DBO].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
@@ -216,14 +225,17 @@ BEGIN
 					STRING_AGG(PN, ', ') AS AllPNs,
 					STRING_AGG(PNDescription, ', ') AS PartDescriptions,
 					SUM(TotalQty) AS TotalQty,
-					SUM(UnitPrice) AS UnitPrice,
+					COUNT(UnitPrice) AS UnitPriceCount,
+					STRING_AGG(UnitPrice, ', ') AS AllUnitPrice,
 					SUM(TotalAmount) AS TotalAmount,
 					STRING_AGG(StocklineNumber, ', ') AS StocklineNumbers,
 					COUNT(SerialNumber) AS SerialCount,
-					MAX(SerialNumber) AS SerialNumbers,
-					MAX(InvoiceNo) AS InvoiceNo,
+					COUNT(SerialNumber) AS SerialNumbersCount,
+					STRING_AGG(SerialNumber, ', ') AS AllSerialNumbers,
+					COUNT(InvoiceNo) AS InvoiceNoCount,
+					STRING_AGG(InvoiceNo, ', ') AS AllInvoiceNo,
 					COUNT(ShipDate) AS ShipDateCount,
-					STRING_AGG(ShipDate, ', ') AS AllShipDate,
+					STRING_AGG(CONVERT(varchar(10), ShipDate, 101), ', ') AS AllShipDate,
 					COUNT(AWB) AS AWBCount,
 					STRING_AGG(AWB, ', ') AS AllAWB
 				FROM SalesOrderWithLine
@@ -245,10 +257,10 @@ BEGIN
 				CASE WHEN PNCount > 1 THEN 'MULTIPLE' ELSE PartDescriptions END AS PNDescription,
 				TotalQty,
 				TotalAmount,
-				UnitPrice,
+				CASE WHEN UnitPriceCount > 1 THEN 'MULTIPLE' ELSE AllUnitPrice END AS UnitPrice,
 				StocklineNumbers,
-				SerialNumbers,
-				InvoiceNo,
+				CASE WHEN SerialNumbersCount > 1 THEN 'MULTIPLE' ELSE AllSerialNumbers END AS SerialNumbers,
+				CASE WHEN InvoiceNoCount > 1 THEN 'MULTIPLE' ELSE AllInvoiceNo END AS InvoiceNo,
 				CASE WHEN ShipDateCount > 1 THEN 'MULTIPLE' ELSE AllShipDate END AS ShipDate,
 				Terms,
 				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB

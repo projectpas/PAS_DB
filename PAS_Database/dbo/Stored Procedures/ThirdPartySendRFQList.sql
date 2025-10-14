@@ -74,8 +74,8 @@ BEGIN
 		DECLARE @IsActive bit;
 		DECLARE @PoModuleId BIGINT = 0, @RFQPOModuleId BIGINT = 0;
 
-		SELECT @PoModuleId = [ModuleId] FROM [Dbo].[Module] where [ModuleName] = 'PurchaseOrder';
-		SELECT @RFQPOModuleId = [ModuleId] FROM [Dbo].[Module] where [ModuleName] = 'VendorRFQPurchaseOrder';
+		SELECT @PoModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
+		SELECT @RFQPOModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -221,7 +221,7 @@ BEGIN
 								ELSE MAX(PO.PurchaseOrderNumber)
 							END
 						FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
-						INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = VRFQP.ReferenceId
+						INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
 						WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.moduleid = @PoModuleId
 						) AS DisplayPONumber,
 					   (
@@ -229,7 +229,7 @@ BEGIN
 						FROM (
 							SELECT DISTINCT PO.PurchaseOrderNumber
 							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
-							INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
 							WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
 						) AS DistinctVendors
 					 ) AS PONumber,
@@ -238,7 +238,7 @@ BEGIN
 						FROM (
 							SELECT DISTINCT PO.VendorRFQPurchaseOrderNumber
 							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
-							INNER JOIN DBO.VendorRFQPurchaseOrder PO ON PO.VendorRFQPurchaseOrderId = VRFQP.ReferenceId
+							INNER JOIN DBO.VendorRFQPurchaseOrder PO WITH(NOLOCK) ON PO.VendorRFQPurchaseOrderId = VRFQP.ReferenceId
 							WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.ModuleId = @RFQPOModuleId
 						) AS DistinctVendors
 					 ) AS VendorRFQPurchaseOrderNumber,

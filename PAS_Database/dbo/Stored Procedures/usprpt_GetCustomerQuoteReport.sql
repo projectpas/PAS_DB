@@ -66,18 +66,18 @@ BEGIN
 				SOQ.LeadSourceName AS Source,
 				SOQ.CustomerServiceRepName AS SourceRef,
 				ISNULL(IU.ShortName, '') AS UOM,
-				SOP.ConditionName AS Cond,
-				--SOP.QtyRequested AS Qty,
-				--MAX(STKC.UnitSalesPrice) AS UnitPrice,
-				--SUM(SST.QtyQuoted * STKC.UnitSalesPrice) AS TotalAmount,
-				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted) ELSE SUM(SOP.QtyRequested) END AS TotalQty,
+				SOP.ConditionName AS Cond,				
+				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted) ELSE SUM(SOP.QtyRequested) END AS TotalQty,
+				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
+				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyRequested * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
+				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyQuoted ELSE SOP.QtyRequested END AS TotalQty,
 				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
-				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyRequested * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
+				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyQuoted * STKC.NetSaleAmountPerUnit ELSE SOP.QtyRequested * SOPC.NetSaleAmountPerUnit END AS TotalAmount,
 				SO.SalesOrderNumber AS SONum,
 				MSOS.[Name] AS SOStatus,
 				MAX(SOVS.ShipDate) AS ShipDate,
 				SOQ.CreditTermName AS Terms,
-				STRING_AGG(SOVS.AirwayBill, '') AS AWB,
+				SOVS.AirwayBill AS AWB,
 				SOP.Notes
 			FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 			INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
@@ -114,8 +114,13 @@ BEGIN
 				SOP.QtyRequested,
 				MSOS.[Name],
 				IU.ShortName,
+				SST.QtyQuoted,
+				SOP.QtyRequested,
+				STKC.NetSaleAmountPerUnit,
+				SOPC.NetSaleAmountPerUnit,
 				SOQ.CreditTermName,
 				SO.SalesOrderNumber,
+				SOVS.AirwayBill,
 				SOP.Notes,
 				SST.StockLineId
 			ORDER BY SOQ.SalesOrderQuoteId DESC;
@@ -210,10 +215,12 @@ BEGIN
 					STRING_AGG(PN, ', ') AS AllPNs,
 					STRING_AGG(PNDescription, ', ') AS PartDescriptions,
 					SUM(TotalQty) AS TotalQty,
-					SUM(UnitPrice) AS UnitPrice,
+					COUNT(UnitPrice) AS UnitPriceCount,
+					STRING_AGG(UnitPrice, ', ') AS AllUnitPrice,
 					SUM(TotalAmount) AS TotalAmount,
 					MAX(ShipDate) AS ShipDate,
-					MAX(AWB) AS AWB,
+					COUNT(AWB) AS AWBCount,
+					STRING_AGG(AWB, ', ') AS AllAWB,
 					STRING_AGG(Notes, ', ') AS Notes
 				FROM SalesOrderWithLine
 				GROUP BY SalesOrderQuoteId, SOQNum,SONum,QuoteDate,
@@ -231,13 +238,13 @@ BEGIN
 				UOM,
 				CASE WHEN CondCount > 1 THEN 'MULTIPLE' ELSE AllCond END AS Cond,
 				TotalQty,
-				UnitPrice,
+				CASE WHEN UnitPriceCount > 1 THEN 'MULTIPLE' ELSE AllUnitPrice END AS UnitPrice,
 				TotalAmount,
 				SONum,
 				SOStatus,
 				ShipDate,
 				Terms,
-				AWB,
+				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB,
 				Notes
 			FROM AggregatedSales
 			ORDER BY SalesOrderQuoteId DESC;

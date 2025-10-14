@@ -78,7 +78,7 @@ BEGIN
 				MAX(SOVS.ShipDate) AS ShipDate,
 				SOQ.CreditTermName AS Terms,
 				SOVS.AirwayBill AS AWB,
-				SOP.Notes
+				REPLACE(REPLACE(ISNULL(SOP.Notes,''), '<p>', ''),'</p>','') AS Notes
 			FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 			INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 			LEFT JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
@@ -152,7 +152,7 @@ BEGIN
 					SOQ.CreditTermName AS Terms,
 					SOVS.ShipDate,
 					SOVS.AirwayBill AS AWB,
-					SOP.Notes
+					REPLACE(REPLACE(ISNULL(SOP.Notes,''), '<p>', ''),'</p>','') AS Notes
 				FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 				INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 				LEFT JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
@@ -221,7 +221,9 @@ BEGIN
 					MAX(ShipDate) AS ShipDate,
 					COUNT(AWB) AS AWBCount,
 					STRING_AGG(AWB, ', ') AS AllAWB,
-					STRING_AGG(Notes, ', ') AS Notes
+					--STRING_AGG(Notes, ', ') AS Notes
+					COUNT(Notes) ASNotesCount,
+					STRING_AGG(Notes, ', ') AS AllNotes
 				FROM SalesOrderWithLine
 				GROUP BY SalesOrderQuoteId, SOQNum,SONum,QuoteDate,
 				UOM, CustomerName, SOStatus, Terms
@@ -245,7 +247,7 @@ BEGIN
 				ShipDate,
 				Terms,
 				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB,
-				Notes
+				CASE WHEN ASNotesCount > 1 THEN 'MULTIPLE' ELSE AllNotes END AS AWB
 			FROM AggregatedSales
 			ORDER BY SalesOrderQuoteId DESC;
 		END

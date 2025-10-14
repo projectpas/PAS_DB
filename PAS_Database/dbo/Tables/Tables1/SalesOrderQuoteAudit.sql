@@ -79,6 +79,7 @@
     [SourceBy]                 VARCHAR (30)    NULL,
     [MarketplaceRef]           VARCHAR (50)    NULL,
     [ApprovalCode]             VARCHAR (200)   NULL,
+    [LegalEntityId]            BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuoteAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteAudit_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );

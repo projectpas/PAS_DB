@@ -15,7 +15,7 @@
     [StatusChangeDate]         DATETIME2 (7)   CONSTRAINT [DF_ExchangeQuote_StatusChangeDate] DEFAULT (getdate()) NOT NULL,
     [CustomerId]               BIGINT          NOT NULL,
     [CustomerName]             VARCHAR (100)   NULL,
-    [CustomerCode]             VARCHAR (100)    NULL,
+    [CustomerCode]             VARCHAR (100)   NULL,
     [CustomerContactId]        BIGINT          NOT NULL,
     [CreditLimit]              DECIMAL (18, 2) NULL,
     [CreditTermId]             INT             NULL,
@@ -53,7 +53,7 @@
     [Notes]                    NVARCHAR (MAX)  NULL,
     [AgentId]                  BIGINT          NULL,
     [AgentName]                VARCHAR (50)    NULL,
-    [ManagementStructureName]  VARCHAR (286)    NULL,
+    [ManagementStructureName]  VARCHAR (286)   NULL,
     [AccountTypeId]            INT             NULL,
     [RestrictPMA]              BIT             DEFAULT ((0)) NOT NULL,
     [RestrictDER]              BIT             DEFAULT ((0)) NOT NULL,
@@ -69,6 +69,7 @@
     [FunctionalCurrencyId]     INT             NULL,
     [ReportCurrencyId]         INT             NULL,
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
+    [LegalEntityId]            BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuote] PRIMARY KEY CLUSTERED ([ExchangeQuoteId] ASC),
     CONSTRAINT [FK_ExchangeQuote_CreditTerms] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_ExchangeQuote_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -76,6 +77,8 @@
     CONSTRAINT [FK_ExchangeQuote_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeQuote_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

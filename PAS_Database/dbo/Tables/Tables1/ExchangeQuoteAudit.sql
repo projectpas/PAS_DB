@@ -70,12 +70,7 @@
     [FunctionalCurrencyId]     INT             NULL,
     [ReportCurrencyId]         INT             NULL,
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
+    [LegalEntityId]            BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuoteAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteId] ASC)
 );
-
-
-
-
-
-
 

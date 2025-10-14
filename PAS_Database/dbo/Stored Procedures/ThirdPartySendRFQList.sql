@@ -15,6 +15,7 @@
 	3    08-10-2025   Devendra Shekh  Added Params And Fields For : RFQSentDate, VendorName, VendorRFQReferenceNumber, VendorResponseReceived, VendorResponseDate
 	4    08-10-2025   Amit Ghediya    add po vendor param
 	5    09-10-2025   Devendra Shekh  Added ReferenceId, ModuleId
+	6    14-10-2025   Devendra Shekh  Added VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
@@ -60,7 +61,8 @@ CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
 @VendorResponseDate datetime2 = NULL,
 @VendorNames varchar(100) = NULL,
 @VendorNamesDisplay varchar(100) = NULL,
-@PONumber varchar(100) = NULL
+@PONumber varchar(100) = NULL,
+@VendorRFQPurchaseOrderNumber varchar(100) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -70,9 +72,10 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
-		DECLARE @PoModuleId BIGINT = 0;
+		DECLARE @PoModuleId BIGINT = 0, @RFQPOModuleId BIGINT = 0;
 
-		SELECT @PoModuleId = [ModuleId] FROM [Dbo].[Module] where [ModuleName] = 'PurchaseOrder';
+		SELECT @PoModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
+		SELECT @RFQPOModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -148,6 +151,16 @@ BEGIN
 				) AS t
 			WHERE t.RefModCount = 1
 		),
+		RFQReferenceResult AS (
+			SELECT * FROM (
+				SELECT [ILSRFQDetailId], [MasterCompanyId], [ReferenceId] AS RFQReferenceId, [ModuleId] AS RFQModuleId
+				,COUNT(*) OVER (PARTITION BY [ILSRFQDetailId], [ModuleId]) AS RefModCount
+				FROM [DBO].[VendorRFQPart] WITH(NOLOCK)
+				WHERE	ISNULL([IsDeleted], 0) = 0 AND ISNULL([IsActive], 0) = 1 AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([ModuleId], 0) = @RFQPOModuleId
+						GROUP BY [ILSRFQDetailId], [MasterCompanyId], [ReferenceId], [ModuleId]
+				) AS t
+			WHERE t.RefModCount = 1
+		),
 		Result AS(
 				SELECT DISTINCT
 					   part.ILSRFQPartId ILSRFQPartId,
@@ -208,7 +221,7 @@ BEGIN
 								ELSE MAX(PO.PurchaseOrderNumber)
 							END
 						FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
-						INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = VRFQP.ReferenceId
+						INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
 						WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.moduleid = @PoModuleId
 						) AS DisplayPONumber,
 					   (
@@ -216,12 +229,23 @@ BEGIN
 						FROM (
 							SELECT DISTINCT PO.PurchaseOrderNumber
 							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
-							INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
 							WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
 						) AS DistinctVendors
 					 ) AS PONumber,
+					 (
+						SELECT STRING_AGG(VendorRFQPurchaseOrderNumber, ', ')
+						FROM (
+							SELECT DISTINCT PO.VendorRFQPurchaseOrderNumber
+							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
+							INNER JOIN DBO.VendorRFQPurchaseOrder PO WITH(NOLOCK) ON PO.VendorRFQPurchaseOrderId = VRFQP.ReferenceId
+							WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.ModuleId = @RFQPOModuleId
+						) AS DistinctVendors
+					 ) AS VendorRFQPurchaseOrderNumber,
 					 RR.ReferenceId,
-					 RR.ModuleId
+					 RR.ModuleId,
+					 RFQR.RFQReferenceId,
+					 RFQR.RFQModuleId
 			   FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
@@ -229,6 +253,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
 					LEFT JOIN VendorRFQPartResult VRFQ ON VRFQ.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQ.[MasterCompanyId] = ird.[MasterCompanyId] 
 					LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = ird.ILSRFQDetailId AND RR.[MasterCompanyId] = ird.[MasterCompanyId] 
+					LEFT JOIN RFQReferenceResult RFQR ON RFQR.ILSRFQDetailId = ird.ILSRFQDetailId AND RFQR.[MasterCompanyId] = ird.[MasterCompanyId] 
 		 	  WHERE 
 					((ISNULL(part.IsDeleted,0)= 0) ) AND 			     
 					part.MasterCompanyId=@MasterCompanyId 
@@ -261,6 +286,7 @@ BEGIN
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(VendorRFQReferenceNumber LIKE '%' +@GlobalFilter+'%') OR
 					(VendorResponseReceived LIKE '%' +@GlobalFilter+'%') OR
+					(VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedDate like '%' + @GlobalFilter + '%') OR
 					(UpdatedDate like '%' + @GlobalFilter + '%'))) OR   
 					(@GlobalFilter='' AND (ISNULL(@RFQId,'') ='' OR [RFQId] LIKE '%' + @RFQId+'%') AND
@@ -288,6 +314,7 @@ BEGIN
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND						
 					(ISNULL(@VendorRFQReferenceNumber,'') ='' OR VendorRFQReferenceNumber LIKE '%' + @VendorRFQReferenceNumber + '%') AND						
 					(ISNULL(@VendorResponseReceived,'') ='' OR VendorResponseReceived LIKE '%' + @VendorResponseReceived + '%') AND						
+					(ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber + '%') AND						
 					(ISNULL(@VendorResponseDate,'') ='' OR CAST(VendorResponseDate AS Date)=CAST(@VendorResponseDate AS date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
@@ -353,7 +380,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorResponseReceived')  THEN VendorResponseReceived END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorResponseReceived')  THEN VendorResponseReceived END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorResponseDate')  THEN VendorResponseDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorResponseDate')  THEN VendorResponseDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorResponseDate')  THEN VendorResponseDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 

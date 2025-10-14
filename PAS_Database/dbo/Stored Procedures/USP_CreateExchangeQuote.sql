@@ -14,6 +14,7 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
     1     07/23/2025      Ekta Chandegra        Created  
+    2     14/10/2025      BHARGAV SALIYA		Added @LegalEntityId  
 
 
 exec [dbo].[USP_CreateExchangeQuote] @CustomerReference=N'',@OpenDate='2025-07-23 00:00:00',@QuoteExpireDate='2025-08-22 00:00:00',
@@ -43,7 +44,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeQuote]
 	@FunctionalCurrencyId INT,
 	@ReportCurrencyId INT,
 	@ForeignExchangeRate DECIMAL(18,2),
-	@TypeId INT
+	@TypeId INT,
+	@LegalEntityId BIGINT
 AS	
 BEGIN
     SET NOCOUNT ON;
@@ -242,6 +244,7 @@ BEGIN
 		  ,[FunctionalCurrencyId]
 		  ,[ReportCurrencyId]
 		  ,[ForeignExchangeRate]
+		  ,[LegalEntityId]
         )
         VALUES
         (
@@ -313,7 +316,8 @@ BEGIN
 			NULL,
 			@FunctionalCurrencyId,
 			@ReportCurrencyId,
-			@ForeignExchangeRate
+			@ForeignExchangeRate,
+			@LegalEntityId
 		);
 
         SET @ExchangeQuoteId = SCOPE_IDENTITY();

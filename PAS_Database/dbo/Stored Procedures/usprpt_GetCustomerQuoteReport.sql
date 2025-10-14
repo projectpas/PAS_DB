@@ -55,10 +55,11 @@ BEGIN
 			SELECT 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber AS PN,
-				CASE 
-					WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
-					ELSE IM.PartDescription
-				END AS PNDescription,
+				--CASE 
+				--	WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
+				--	ELSE IM.PartDescription
+				--END AS PNDescription,
+				IM.PartDescription AS PNDescription,
 				SOQ.SalesOrderQuoteNumber AS SOQNum,
 				SOQ.OpenDate AS QuoteDate,
 				SOQ.CustomerName,
@@ -126,10 +127,11 @@ BEGIN
 				SELECT 
 					SOQ.SalesOrderQuoteId,
 					IM.PartNumber AS PN,
-					CASE 
-						WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
-						ELSE IM.PartDescription
-					END AS PNDescription,
+					--CASE 
+					--	WHEN LEN(IM.PartDescription) > 25 THEN LEFT(IM.PartDescription, 25) + '...'
+					--	ELSE IM.PartDescription
+					--END AS PNDescription,
+					IM.PartDescription AS PNDescription,
 					SOQ.SalesOrderQuoteNumber AS SOQNum,
 					SOQ.OpenDate AS QuoteDate,
 					SOQ.CustomerName,

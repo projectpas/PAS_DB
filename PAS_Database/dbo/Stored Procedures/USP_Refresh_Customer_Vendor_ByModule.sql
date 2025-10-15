@@ -14,6 +14,7 @@
     1    15 April 2025	RAJESH GAMI		CREATED 
     2    18 April 2025	Bhargav Saliya	Changes For RO, RFQ RO,RFQ Po,Non PO,VendorProformaInvoice,Exchange,SO,SOQ,Exchange Quote,Exchange,Speed Quote,CustomerRMA,Receiving Cust
     3    30 July  2025	Moin Bloch	    Fix For Sales Person
+	4    15 Oct   2025  Moin Bloch      Added SalesPersion Details
 
  EXEC [USP_WO_Refresh_Customer] 4291,8646
  EXEC [USP_Refresh_Customer_Vendor_ByModule] 4291,0,8646,15,''  EXEC [USP_Refresh_Customer_Vendor_ByModule] 1122,0,6639,23,''
@@ -52,10 +53,13 @@ BEGIN
 				DECLARE @NonPOModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='NonPOInvoice')
 				DECLARE @VendorPaymentModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorPayment')
 				DECLARE @VendorProformaInvoiceModuleId INT = (SELECT TOP 1 ModuleId FROM DBO.Module WITH(NOLOCK) WHERE ModuleName ='VendorProformaInvoice')
+				DECLARE @MasterCompanyId INT
 				
 				IF(@customerId > 0)
 				BEGIN
-					DECLARE @CustomerName VARCHAR(100) = (SELECT TOP 1 C.[Name]	FROM [dbo].[Customer] C WITH(NOLOCK)   WHERE CustomerId = @customerId)
+					DECLARE @CustomerName VARCHAR(100)='';
+
+					SELECT @MasterCompanyId = C.[MasterCompanyId], @CustomerName = C.[Name] FROM [dbo].[Customer] C WITH(NOLOCK) WHERE [CustomerId] = @customerId;
 
 					DECLARE @PrimarySalesPersonId BIGINT = NULL,@CsrId BIGINT = NULL
 
@@ -71,12 +75,16 @@ BEGIN
 						 WHERE [WorkorderId] = @referenceId 
 						   AND [CustomerId] = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[Workorder] W WITH (NOLOCK) WHERE WorkorderId = @referenceId 
+
+						EXEC [dbo].[USP_UpdateSalesPersonDetails] @referenceId,@customerId,@MasterCompanyId,@WOModuleId;
 					END
 
 					ELSE IF(@moduleId = @SalesModuleId) /***********>>>>>>> Sales Order Customer Name REFRESH <<<<<<<************/
 					BEGIN
 						UPDATE [dbo].[SalesOrder] SET [CustomerName] = @CustomerName WHERE SalesOrderId = @referenceId AND CustomerId = @customerId			
 						SELECT [CustomerName] [Name] FROM [dbo].[SalesOrder] S WITH (NOLOCK) WHERE SalesOrderId = @referenceId 
+
+						EXEC [dbo].[USP_UpdateSalesPersonDetails] @referenceId,@customerId,@MasterCompanyId,@SalesModuleId;
 					END
 
 					ELSE IF(@moduleId = @SOQModuleId) /***********>>>>>>> Sales Order Quote Customer Name REFRESH <<<<<<<************/

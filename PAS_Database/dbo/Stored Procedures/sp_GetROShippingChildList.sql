@@ -17,7 +17,7 @@
  ** --   --------		-------				--------------------------------          
 	1	04/18/2025		Vishal Suthar		Created
 	2	09/23/2025		Bhargav Saliya		Get Weight and Dimensions from ItemMaster
-     
+    3   14 OCT 2025		Rajesh Gami			Get UOM from the stockline instead of ItemMaster Weight UOM (PN-13622)
  EXEC [dbo].[sp_GetROShippingChildList] 2566, 14, 7  
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetROShippingChildList]  
@@ -55,7 +55,7 @@ BEGIN
 			 ISNULL(ime.ExportSizeLength,0) AS SizeLength,
 			 ISNULL(ime.ExportSizeWidth,0) AS SizeWidth,
 			 ISNULL(ime.ExportSizeHeight,0) AS SizeHeight,
-			 ISNULL(ime.ExportWeightUnitName,'') AS weightUom,
+			 ISNULL(sl.UnitOfMeasure,'') AS weightUom,
 			 ISNULL(ime.ExportSizeUnitOfMeasureName,'') AS SizeUom
 	  FROM DBO.ROPickTicket ropt WITH (NOLOCK)
 	  INNER JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON rop.RepairOrderId = ropt.RepairOrderId AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId  

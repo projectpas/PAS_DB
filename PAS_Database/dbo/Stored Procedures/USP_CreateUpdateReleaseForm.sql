@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    09/10/2025   Moin Bloch       Created
+	2    14/10/2025   Moin Bloch       Update For New Version
 
 --   EXEC [dbo].[USP_CreateUpdateReleaseForm]
 **************************************************************/
@@ -86,103 +87,106 @@ BEGIN
 		SET @UpdatedDate = GETUTCDATE()
 
 		IF(@ReleaseFromId > 0)
-		BEGIN			
+		BEGIN
 			SELECT @VersionNo = [VersionNo], @FormTypeId = [FormTypeId], @Country = [Country] FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK) WHERE [ReleaseFromId] = @ReleaseFromId;
-			
-			UPDATE [dbo].[Work_ReleaseFrom_8130] SET [IsVersionIncrease] = 1 WHERE [ReleaseFromId] = @ReleaseFromId;  
-
-			DECLARE @VersionNum INT= 0;
-			IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
+						
+			IF(ISNULL(@IsVersionIncrease,0) = 1)
 			BEGIN
-				IF (LEN(@VersionNo) > 6)
+			
+				UPDATE [dbo].[Work_ReleaseFrom_8130] SET [IsVersionIncrease] = 1 WHERE [ReleaseFromId] = @ReleaseFromId;  
+
+				DECLARE @VersionNum INT= 0;
+				IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
 				BEGIN
-					DECLARE @Part2 NVARCHAR(20) = PARSENAME(REPLACE(@VersionNo, '-', '.'), 1);
-					IF (@Part2 IS NOT NULL AND ISNUMERIC(@Part2) = 1)
+					IF (LEN(@VersionNo) > 6)
 					BEGIN
-						SET @VersionNum = CAST(@Part2 AS INT) + 1;
+						DECLARE @Part2 NVARCHAR(20) = PARSENAME(REPLACE(@VersionNo, '-', '.'), 1);
+						IF (@Part2 IS NOT NULL AND ISNUMERIC(@Part2) = 1)
+						BEGIN
+							SET @VersionNum = CAST(@Part2 AS INT) + 1;
+						END
 					END
+					ELSE
+					BEGIN
+						SET @VersionNum = CAST(SUBSTRING(@VersionNo, 3, LEN(@VersionNo)) AS INT) + 1;
+					END
+					SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
+				END
+
+				IF(@isFromSettlement IS NOT NULL AND @isFromSettlement = 1)
+				BEGIN
+					SET @IsLocked = 1;
+
+					INSERT INTO [dbo].[Work_ReleaseFrom_8130] ([WorkorderId],[workOrderPartNoId],[Country],[OrganizationName],[InvoiceNo],[ItemName],[Description],[PartNumber],[Reference],
+								[Quantity],[Batchnumber],[status],[Remarks],[Certifies],[approved],[Nonapproved],[AuthorisedSign],[AuthorizationNo],[PrintedName],[Date],[AuthorisedSign2],
+								[ApprovalCertificate],[PrintedName2],[Date2],[CFR],[Otherregulation],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],
+								[IsDeleted],[trackingNo],[OrganizationAddress],[is8130from],[IsClosed],[PDFPath],[IsEASALicense],[EmployeeId],[FormTypeId],[IsLocked],[Is813013aeOr14ae],
+								[VersionNo],[IsVersionIncrease])											
+						 VALUES (@WorkorderId,@workOrderPartNoId,@Country,@OrganizationName,@InvoiceNo,@ItemName,@Description,@PartNumber,@Reference,
+								 @Quantity,@Batchnumber,@status,@Remarks, @Certifies,@approved, @Nonapproved,@AuthorisedSign, @AuthorizationNo, @PrintedName, @Date, @AuthorisedSign2,
+								 @ApprovalCertificate, @PrintedName2, @Date2, @CFR, @Otherregulation, @MasterCompanyId, @CreatedBy, @UpdatedBy, @CreatedDate, @UpdatedDate,1,
+								 0,@trackingNo,@OrganizationAddress, @is8130from, @IsClosed, @PDFPath, @IsEASALicense, @EmployeeId, @FormTypeId, @IsLocked, @Is813013aeOr14ae, 
+								 @VersionNo, 0)
+
+						SET @ReleaseFromId = SCOPE_IDENTITY();	
 				END
 				ELSE
 				BEGIN
-					SET @VersionNum = CAST(SUBSTRING(@VersionNo, 3, LEN(@VersionNo)) AS INT) + 1;
-				END
-				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
-			END
+					SET @IsLocked = 0;
 
-			IF(@isFromSettlement IS NOT NULL AND @isFromSettlement = 1)
-			BEGIN
-				SET @IsLocked = 1;
-
-				INSERT INTO [dbo].[Work_ReleaseFrom_8130] ([WorkorderId],[workOrderPartNoId],[Country],[OrganizationName],[InvoiceNo],[ItemName],[Description],[PartNumber],[Reference],
-				            [Quantity],[Batchnumber],[status],[Remarks],[Certifies],[approved],[Nonapproved],[AuthorisedSign],[AuthorizationNo],[PrintedName],[Date],[AuthorisedSign2],
-						    [ApprovalCertificate],[PrintedName2],[Date2],[CFR],[Otherregulation],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],
-						    [IsDeleted],[trackingNo],[OrganizationAddress],[is8130from],[IsClosed],[PDFPath],[IsEASALicense],[EmployeeId],[FormTypeId],[IsLocked],[Is813013aeOr14ae],
-						    [VersionNo],[IsVersionIncrease])											
-				     VALUES (@WorkorderId,@workOrderPartNoId,@Country,@OrganizationName,@InvoiceNo,@ItemName,@Description,@PartNumber,@Reference,
-							 @Quantity,@Batchnumber,@status,@Remarks, @Certifies,@approved, @Nonapproved,@AuthorisedSign, @AuthorizationNo, @PrintedName, @Date, @AuthorisedSign2,
-							 @ApprovalCertificate, @PrintedName2, @Date2, @CFR, @Otherregulation, @MasterCompanyId, @CreatedBy, @UpdatedBy, @CreatedDate, @UpdatedDate,1,
-							 0,@trackingNo,@OrganizationAddress, @is8130from, @IsClosed, @PDFPath, @IsEASALicense, @EmployeeId, @FormTypeId, @IsLocked, @Is813013aeOr14ae, 
-							 @VersionNo, 0)
-
+					INSERT INTO [dbo].[Work_ReleaseFrom_8130] ([WorkorderId],[workOrderPartNoId],[Country],[OrganizationName],[InvoiceNo],[ItemName],[Description],[PartNumber],[Reference],
+								[Quantity],[Batchnumber],[status],[Remarks],[Certifies],[approved],[Nonapproved],[AuthorisedSign],[AuthorizationNo],[PrintedName],[Date],[AuthorisedSign2],
+								[ApprovalCertificate],[PrintedName2],[Date2],[CFR],[Otherregulation],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],
+								[IsDeleted],[trackingNo],[OrganizationAddress],[is8130from],[IsClosed],[PDFPath],[IsEASALicense],[EmployeeId],[FormTypeId],[IsLocked],[Is813013aeOr14ae],
+								[VersionNo],[IsVersionIncrease])											
+						 VALUES (@WorkorderId,@workOrderPartNoId,@Country,@OrganizationName,@InvoiceNo,@ItemName,@Description,@PartNumber,@Reference,
+								 @Quantity,@Batchnumber,@status,@Remarks, @Certifies,@approved, @Nonapproved,@AuthorisedSign, @AuthorizationNo, @PrintedName, @Date, @AuthorisedSign2,
+								 @ApprovalCertificate, @PrintedName2, @Date2, @CFR, @Otherregulation, @MasterCompanyId, @CreatedBy, @UpdatedBy, @CreatedDate, @UpdatedDate,1,
+								 0,@trackingNo,@OrganizationAddress, @is8130from, @IsClosed, @PDFPath, @IsEASALicense, @EmployeeId, @FormTypeId, @IsLocked, @Is813013aeOr14ae, 
+								 @VersionNo, 0) 
+							 
 					SET @ReleaseFromId = SCOPE_IDENTITY();	
+				END
 			END
 			ELSE
 			BEGIN
-				SET @IsLocked = 0;
-
-				INSERT INTO [dbo].[Work_ReleaseFrom_8130] ([WorkorderId],[workOrderPartNoId],[Country],[OrganizationName],[InvoiceNo],[ItemName],[Description],[PartNumber],[Reference],
-				            [Quantity],[Batchnumber],[status],[Remarks],[Certifies],[approved],[Nonapproved],[AuthorisedSign],[AuthorizationNo],[PrintedName],[Date],[AuthorisedSign2],
-						    [ApprovalCertificate],[PrintedName2],[Date2],[CFR],[Otherregulation],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],
-						    [IsDeleted],[trackingNo],[OrganizationAddress],[is8130from],[IsClosed],[PDFPath],[IsEASALicense],[EmployeeId],[FormTypeId],[IsLocked],[Is813013aeOr14ae],
-						    [VersionNo],[IsVersionIncrease])											
-				     VALUES (@WorkorderId,@workOrderPartNoId,@Country,@OrganizationName,@InvoiceNo,@ItemName,@Description,@PartNumber,@Reference,
-							 @Quantity,@Batchnumber,@status,@Remarks, @Certifies,@approved, @Nonapproved,@AuthorisedSign, @AuthorizationNo, @PrintedName, @Date, @AuthorisedSign2,
-							 @ApprovalCertificate, @PrintedName2, @Date2, @CFR, @Otherregulation, @MasterCompanyId, @CreatedBy, @UpdatedBy, @CreatedDate, @UpdatedDate,1,
-							 0,@trackingNo,@OrganizationAddress, @is8130from, @IsClosed, @PDFPath, @IsEASALicense, @EmployeeId, @FormTypeId, @IsLocked, @Is813013aeOr14ae, 
-							 @VersionNo, 0) 
-							 
-				SET @ReleaseFromId = SCOPE_IDENTITY();	
+				UPDATE [dbo].[Work_ReleaseFrom_8130]
+				   SET [Country] = @Country
+					  ,[OrganizationName] = @OrganizationName
+					  ,[InvoiceNo] = @InvoiceNo
+					  ,[ItemName] = @ItemName
+					  ,[Description] = @Description
+					  ,[PartNumber] = @PartNumber
+					  ,[Reference] = @Reference
+					  ,[Quantity] = @Quantity
+					  ,[Batchnumber] = @Batchnumber
+					  ,[status] = @status
+					  ,[Remarks] = @Remarks
+					  ,[Certifies] = @Certifies
+					  ,[approved] = @approved
+					  ,[Nonapproved] = @Nonapproved
+					  ,[AuthorisedSign] = @AuthorisedSign
+					  ,[AuthorizationNo] = @AuthorizationNo
+					  ,[PrintedName] = @PrintedName
+					  ,[Date] = @Date
+					  ,[AuthorisedSign2] = @AuthorisedSign2
+					  ,[ApprovalCertificate] = @ApprovalCertificate
+					  ,[PrintedName2] = @PrintedName2
+					  ,[Date2] = @Date2
+					  ,[CFR] = @CFR
+					  ,[Otherregulation] = @Otherregulation
+					  ,[UpdatedBy] = @UpdatedBy
+					  ,[UpdatedDate] = @UpdatedDate
+					  ,[trackingNo] = @trackingNo
+					  ,[OrganizationAddress] = @OrganizationAddress
+					  ,[is8130from] = @is8130from
+					  ,[IsClosed] = @IsClosed
+					  ,[PDFPath] = @PDFPath
+					  ,[IsEASALicense] = @IsEASALicense
+					  ,[EmployeeId] = @EmployeeId
+					  ,[Is813013aeOr14ae] = @Is813013aeOr14ae
+				 WHERE [ReleaseFromId] = @ReleaseFromId
 			END
-			
-			--UPDATE [dbo].[Work_ReleaseFrom_8130]
-			--   SET [Country] = @Country
-			--	  ,[OrganizationName] = @OrganizationName
-			--	  ,[InvoiceNo] = @InvoiceNo
-			--	  ,[ItemName] = @ItemName
-			--	  ,[Description] = @Description
-			--	  ,[PartNumber] = @PartNumber
-			--	  ,[Reference] = @Reference
-			--	  ,[Quantity] = @Quantity
-			--	  ,[Batchnumber] = @Batchnumber
-			--	  ,[status] = @status
-			--	  ,[Remarks] = @Remarks
-			--	  ,[Certifies] = @Certifies
-			--	  ,[approved] = @approved
-			--	  ,[Nonapproved] = @Nonapproved
-			--	  ,[AuthorisedSign] = @AuthorisedSign
-			--	  ,[AuthorizationNo] = @AuthorizationNo
-			--	  ,[PrintedName] = @PrintedName
-			--	  ,[Date] = @Date
-			--	  ,[AuthorisedSign2] = @AuthorisedSign2
-			--	  ,[ApprovalCertificate] = @ApprovalCertificate
-			--	  ,[PrintedName2] = @PrintedName2
-			--	  ,[Date2] = @Date2
-			--	  ,[CFR] = @CFR
-			--	  ,[Otherregulation] = @Otherregulation
-			--	  ,[UpdatedBy] = @UpdatedBy
-			--	  ,[UpdatedDate] = @UpdatedDate
-			--	  ,[trackingNo] = @trackingNo
-			--	  ,[OrganizationAddress] = @OrganizationAddress
-			--	  ,[is8130from] = @is8130from
-			--	  ,[IsClosed] = @IsClosed
-			--	  ,[PDFPath] = @PDFPath
-			--	  ,[IsEASALicense] = @IsEASALicense
-			--	  ,[EmployeeId] = @EmployeeId
-			--	  ,[Is813013aeOr14ae] = @Is813013aeOr14ae
-			--	  ,[VersionNo] = @VersionNo
-			--	  ,[IsVersionIncrease] = @IsVersionIncrease
-			-- WHERE [ReleaseFromId] = @ReleaseFromId
-
 			EXEC [dbo].[sp_Update8130fromdata] @WorkorderId,@workOrderPartNoId
 		END
 		ELSE

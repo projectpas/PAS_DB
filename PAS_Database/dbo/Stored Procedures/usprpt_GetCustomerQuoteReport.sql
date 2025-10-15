@@ -63,8 +63,8 @@ BEGIN
 				SOQ.SalesOrderQuoteNumber AS SOQNum,
 				SOQ.OpenDate AS QuoteDate,
 				SOQ.CustomerName,
-				SOQ.LeadSourceName AS Source,
-				SOQ.CustomerServiceRepName AS SourceRef,
+				CASE WHEN ISNULL(SOQ.SourceBy,'') != '' THEN SOQ.SourceBy ELSE  MAX(soq.LeadSourceName) END AS Source,
+				SOQ.MarketplaceRef AS SourceRef,
 				ISNULL(IU.ShortName, '') AS UOM,
 				SOP.ConditionName AS Cond,				
 				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted) ELSE SUM(SOP.QtyRequested) END AS TotalQty,
@@ -77,8 +77,8 @@ BEGIN
 				MSOS.[Name] AS SOStatus,
 				MAX(SOVS.ShipDate) AS ShipDate,
 				SOQ.CreditTermName AS Terms,
-				SOVS.AirwayBill AS AWB,
-				SOP.Notes
+				MAX(SOVS.AirwayBill) AS AWB,
+				MAX(REPLACE(REPLACE(ISNULL(SOP.Notes,''), '<p>', ''),'</p>','')) AS Notes
 			FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 			INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 			LEFT JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
@@ -108,8 +108,8 @@ BEGIN
 				SOQ.SalesOrderQuoteNumber,
 				SOQ.OpenDate,
 				SOQ.CustomerName,
-				SOQ.LeadSourceName,
-				SOQ.CustomerServiceRepName,
+				SOQ.SourceBy,
+				SOQ.MarketplaceRef,
 				SOP.ConditionName,
 				SOP.QtyRequested,
 				MSOS.[Name],
@@ -121,7 +121,7 @@ BEGIN
 				SOQ.CreditTermName,
 				SO.SalesOrderNumber,
 				SOVS.AirwayBill,
-				SOP.Notes,
+				--SOP.Notes,
 				SST.StockLineId
 			ORDER BY SOQ.SalesOrderQuoteId DESC;
 		END
@@ -140,8 +140,8 @@ BEGIN
 					SOQ.SalesOrderQuoteNumber AS SOQNum,
 					SOQ.OpenDate AS QuoteDate,
 					SOQ.CustomerName,
-					SOQ.LeadSourceName AS Source,
-					SOQ.CustomerServiceRepName AS SourceRef,
+					CASE WHEN ISNULL(SOQ.SourceBy,'') != '' THEN SOQ.SourceBy ELSE MAX(soq.LeadSourceName) END AS Source,
+					SOQ.MarketplaceRef AS SourceRef,
 					ISNULL(IU.ShortName, '') AS UOM,
 					SOP.ConditionName AS Cond,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted) ELSE SUM(SOP.QtyRequested) END AS TotalQty,
@@ -152,7 +152,7 @@ BEGIN
 					SOQ.CreditTermName AS Terms,
 					SOVS.ShipDate,
 					SOVS.AirwayBill AS AWB,
-					SOP.Notes
+					REPLACE(REPLACE(ISNULL(SOP.Notes,''), '<p>', ''),'</p>','') AS Notes
 				FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 				INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 				LEFT JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
@@ -182,8 +182,8 @@ BEGIN
 				SOQ.SalesOrderQuoteNumber,
 				SOQ.OpenDate,
 				SOQ.CustomerName,
-				SOQ.LeadSourceName,
-				SOQ.CustomerServiceRepName,
+				SOQ.SourceBy,
+				SOQ.MarketplaceRef,
 				IU.ShortName,
 				SOP.ConditionName,
 				SO.SalesOrderNumber,
@@ -221,7 +221,9 @@ BEGIN
 					MAX(ShipDate) AS ShipDate,
 					COUNT(AWB) AS AWBCount,
 					STRING_AGG(AWB, ', ') AS AllAWB,
-					STRING_AGG(Notes, ', ') AS Notes
+					--STRING_AGG(Notes, ', ') AS Notes
+					COUNT(Notes) ASNotesCount,
+					STRING_AGG(Notes, ', ') AS AllNotes
 				FROM SalesOrderWithLine
 				GROUP BY SalesOrderQuoteId, SOQNum,SONum,QuoteDate,
 				UOM, CustomerName, SOStatus, Terms
@@ -245,7 +247,7 @@ BEGIN
 				ShipDate,
 				Terms,
 				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB,
-				Notes
+				CASE WHEN ASNotesCount > 1 THEN 'MULTIPLE' ELSE AllNotes END AS Notes
 			FROM AggregatedSales
 			ORDER BY SalesOrderQuoteId DESC;
 		END

@@ -14,6 +14,7 @@
     1    10-June-2025		Devendra Shekh		Created
     2    25-June-2025		Devendra Shekh		Remarks Breaks Issue Resolved
 	3    10/10/2025         Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
+	4    14/10/2025         Moin Bloch          Updated For Get VersionNo
 
  EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8992,2
 **************************************************************/ 
@@ -115,7 +116,8 @@ BEGIN
 			,ISNULL(wro.[Reference], '') AS [Reference]
 			,CASE WHEN ISNULL(wro.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(
 																	TRY_CAST(REPLACE(wro.Remarks, '&nbsp;', ' ') AS XML).value('.', 'NVARCHAR(MAX)')
-																)) END AS [Remarks]			
+																)) END AS [Remarks]
+			,ISNULL(wro.[VersionNo],'')	[VersionNo]												
 		FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 				LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -129,10 +131,10 @@ BEGIN
 		WHERE wro.[WorkOrderId] = @WorkorderId AND ISNULL(wro.[IsVersionIncrease],0) = 0
 		)
 
-		INSERT INTO #tmpWork_ReleaseForm ([ReleaseFromId], [Quantity], [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks])
-		SELECT MAX([ReleaseFromId]), SUM(ISNULL([Quantity], 0)), [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks]
+		INSERT INTO #tmpWork_ReleaseForm ([ReleaseFromId], [Quantity], [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks],[VersionNo])
+		SELECT MAX([ReleaseFromId]), SUM(ISNULL([Quantity], 0)), [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks],[VersionNo]
 		FROM ReleaseFormResult
-		GROUP BY  [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks]
+		GROUP BY  [PartNumber], [Batchnumber], [status], [FormTypeId], [Reference], [Remarks], [VersionNo]
 
 		UPDATE TMP
 		SET
@@ -188,7 +190,7 @@ BEGIN
 											ELSE '' 
 										END,
 			TMP.Is813013aeOr14ae      = wro.Is813013aeOr14ae,
-			TMP.[VersionNo]           = wro.[VersionNo],
+			--TMP.[VersionNo]           = wro.[VersionNo],
 			TMP.[IsVersionIncrease]   = ISNULL(wro.[IsVersionIncrease],0)
 		FROM #tmpWork_ReleaseForm TMP
 		JOIN [Work_ReleaseFrom_8130] wro ON TMP.ReleaseFromId = wro.ReleaseFromId AND ISNULL(wro.[IsVersionIncrease],0) = 0

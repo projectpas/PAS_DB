@@ -4276,6 +4276,10 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateReleaseForm.sql" />
     <Build Include="dbo\Views\vw_SalesOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetCustomerQuoteReport.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Migrate_LegalEntityInternationalWireDataFromDomestic.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Migrate_LegalEntityBankingChequeData.sql" />
+    <Build Include="dbo\User Defined Types\MROPriceMasterListType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSalesPersonDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

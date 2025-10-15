@@ -19,7 +19,9 @@
 	6    18/04/2025   Moin Bloch       Added For CREATING TRAVELER LABOUR HEADER
 	7    19/05/2025   Abhishek Jirawla Added new History template to mention if cretaed form lot
 	8    01/07/2025   Vishal Suthar	   Inserting EnforceMpnPickTicketConfirmation flag in WorkOrder table
-	9    24/09/2025    RAJESH GAMI		Added MPN Notes
+	9    24/09/2025   RAJESH GAMI		Added MPN Notes
+	10   15/10/2025   Moin Bloch        Added SalesPersion Details
+
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_CreateWorkOrder]
@@ -89,6 +91,7 @@ BEGIN
 	DECLARE @CustomerRMAHeaderManagementStructureModule INT,@OpenRMAStatus INT,@CustomerRMAItemReturnedStatus INT
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
 	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
+	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL
 	
 	-- Work Order Type
 	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
@@ -362,12 +365,18 @@ BEGIN
 		[WorkOrderNum] [VARCHAR](50) NULL,
 		[ReceiverNum] [VARCHAR](50) NULL							
 	)
-
+	
+	SELECT TOP 1 @SecondarySalesPersonId=[SecondarySalesPersonId],@SalesAgentID=[SaId] FROM [dbo].[CustomerSales] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+	
     -- Set CSRId and SalesPersonId to NULL if 0
     IF @CSRId = 0
         SET @CSRId = NULL;
     IF @SalesPersonId = 0
         SET @SalesPersonId = NULL;
+	IF @SecondarySalesPersonId = 0
+	    SET @SecondarySalesPersonId = NULL;
+	IF @SalesAgentID = 0
+	    SET @SalesAgentID = NULL;		
 
     -- Fetch WorkOrderSettings based on parameters
     SELECT TOP 1 @WorkOrderSettingId=[WorkOrderSettingId],
@@ -436,13 +445,17 @@ BEGIN
 	INSERT INTO [dbo].[WorkOrder]([WorkOrderNum],[IsSinglePN],[WorkOrderTypeId],[OpenDate],[CustomerId],[WorkOrderStatusId],[EmployeeId],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 	            [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[SalesPersonId],[CSRId],[ReceivingCustomerWorkId],[Memo],[Notes],[CustomerContactId],[CustomerName],[CustomerType],
                 [CreditLimit],[CreditTerms],[TearDownTypes],[RMAHeaderId],[IsWarranty],[IsAccepted],[ReasonId],[Reason],[CreditTermId],[IsManualForm],[PercentId],[Days],[NetDays],
-                [WorkOrderType],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[WorkOrderFormTypeId],[IsWoAlwaysOrOndemandId],[EnforceMpnPickTicketConfirmation])
+                [WorkOrderType],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[WorkOrderFormTypeId],[IsWoAlwaysOrOndemandId],[EnforceMpnPickTicketConfirmation],
+				[SecondarySalesPersonId],[SalesAgentID])
          VALUES (@WorkOrderNum,@IsSinglePN,@WorkOrderTypeId,GETUTCDATE(),@CustomerId,@WorkOrderStatusId,@EmployeeId,@MasterCompanyId,@CreatedBy,@UpdatedBy,
 				 @CreatedDate,@UpdatedDate,1,0,@SalesPersonId,@CSRId,@ReceivingCustomerWorkId,@Memo,@Notes,@CustomerContactId,@CustomerName,@CustomerType,
 				 @CreditLimit,@CreditTerms,@TearDownTypes,@RMAHeaderId,@IsWarranty,@IsAccepted,@ReasonId,@Reason,@CreditTermId,@IsManualForm,@PercentId,@Days,@NetDays,
-				 @WorkOrderType,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@WorkOrderFormTypeId,@IsWoAlwaysOrOndemandId,@EnforceMpnPickTicketConfirmation)
+				 @WorkOrderType,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@WorkOrderFormTypeId,@IsWoAlwaysOrOndemandId,@EnforceMpnPickTicketConfirmation,
+				 @SecondarySalesPersonId,@SalesAgentID)
 
-	SET @WorkOrderId = SCOPE_IDENTITY();	   
+	SET @WorkOrderId = SCOPE_IDENTITY();	
+	
+	EXEC [dbo].[USP_UpdateSalesPersonDetails] @WorkOrderId,@CustomerId,@MasterCompanyId,@WorkOrderModuleID;
 	
 	SELECT TOP 1 @EmployeeExpertiseId = [EmployeeExpertiseId] FROM [dbo].[EmployeeExpertise] WITH(NOLOCK) WHERE [EmpExpCode] = @EmpExpCode AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 

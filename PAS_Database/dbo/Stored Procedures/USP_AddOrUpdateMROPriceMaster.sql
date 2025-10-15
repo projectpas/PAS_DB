@@ -12,17 +12,8 @@
     1    26/09/2025    Priyansh Patel   Created
 **********************/
 
-CREATE PROCEDURE [dbo].[USP_AddOrUpdateMROPriceMaster] 
-    @MROPriceMasterId BIGINT = NULL,
-    @ItemMasterId BIGINT,
-    @MasterCompanyId INT,
-    @CustomerId BIGINT = NULL,
-    @WorkscopeId BIGINT,
-    @CurrencyId INT,
-    @UnitPrice DECIMAL(18,2),
-	 @StartDate DATETIME2(7),
-    @CreatedBy VARCHAR(50),
-    @UpdatedBy VARCHAR(50)
+CREATE PROCEDURE [dbo].[USP_AddOrUpdateMROPriceMaster]
+    @MROPriceMasterList MROPriceMasterListType READONLY  -- Accept the list of objects
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -31,65 +22,132 @@ BEGIN
     BEGIN TRY
         BEGIN TRAN;
 
-        IF(ISNULL(@MROPriceMasterId,0) = 0)
-        BEGIN
-		PRINT 'BEGIN';
-            INSERT INTO [dbo].[MROPriceMaster]
-            (
-              [ItemMasterId],
-                [MasterCompanyId],
-                [CustomerId],
-                [WorkscopeId],
-                [UnitPrice],
-				[CurrencyId],
-				[StartDate],
-                [CreatedBy],
-                [CreatedDate],
-                [UpdatedBy],
-                [UpdatedDate],
-                [IsActive],
-                [IsDeleted]
-            )
-            VALUES
-            (
-                @ItemMasterId,
-                @MasterCompanyId,
-                @CustomerId,
-                @WorkscopeId,
-                @UnitPrice,
-				@CurrencyId,
-				 @StartDate,
-                @CreatedBy,
-                GETUTCDATE(),
-                @UpdatedBy,
-                GETUTCDATE(),
-                1, 0
-            );
+	-- Temp table to stage the rows with a sequential ID
+    IF OBJECT_ID('tempdb..#MROPriceMasterTemp') IS NOT NULL
+        DROP TABLE #MROPriceMasterTemp;
 
-            SET @MROPriceMasterId = SCOPE_IDENTITY();
-		PRINT 'End';
+    CREATE TABLE #MROPriceMasterTemp
+    (
+        SeqID INT IDENTITY(1,1) PRIMARY KEY,
+        MROPriceMasterId BIGINT NULL,
+        ItemMasterId BIGINT NULL,
+        MasterCompanyId INT NULL,
+        CustomerId BIGINT NULL,
+        WorkscopeId BIGINT NULL,
+        CurrencyId INT NULL,
+        UnitPrice DECIMAL(18,2) NULL,
+        StartDate DATETIME2(7) NULL,
+        CreatedBy VARCHAR(50) NULL,
+        UpdatedBy VARCHAR(50) NULL
+    );
 
-        END
-        ELSE
+    -- Insert all rows from TVP into the staging table
+    INSERT INTO #MROPriceMasterTemp
+    (
+        MROPriceMasterId,
+        ItemMasterId,
+        MasterCompanyId,
+        CustomerId,
+        WorkscopeId,
+        CurrencyId,
+        UnitPrice,
+        StartDate,
+        CreatedBy,
+        UpdatedBy
+    )
+    SELECT 
+        MROPriceMasterId,
+        ItemMasterId,
+        MasterCompanyId,
+        CustomerId,
+        WorkscopeId,
+        CurrencyId,
+        UnitPrice,
+        StartDate,
+        CreatedBy,
+        UpdatedBy
+    FROM @MROPriceMasterList;
+
+    DECLARE @MaxSeq INT;
+    DECLARE @CurrSeq INT = 1;
+
+    SELECT @MaxSeq = MAX(SeqID) FROM #MROPriceMasterTemp;
+
+            PRINT @MaxSeq;
+   
+        -- Now loop from 1 to @MaxSeq
+        WHILE @CurrSeq <= @MaxSeq
         BEGIN
-          
-            UPDATE [dbo].[MROPriceMaster]
-            SET 
-                [CustomerId] = @CustomerId,
-                [WorkscopeId] = @WorkscopeId,
-				[StartDate] = @StartDate,
-				[CurrencyId] = @CurrencyId,
-                [UnitPrice] = @UnitPrice,
-                [UpdatedBy] = @UpdatedBy,
-                [UpdatedDate] = GETUTCDATE()
-            WHERE [MROPriceMasterId] = @MROPriceMasterId;
-        END
+            PRINT @CurrSeq;
+
+            -- Declare placeholders
+            DECLARE 
+                @MROPriceMasterId BIGINT,
+                @ItemMasterId BIGINT,
+                @MasterCompanyId INT,
+                @CustomerId BIGINT,
+                @WorkscopeId BIGINT,
+                @CurrencyId INT,
+                @UnitPrice DECIMAL(18,2),
+                @StartDate DATETIME2(7),
+                @CreatedBy VARCHAR(50),
+                @UpdatedBy VARCHAR(50);
+
+            -- Load the row’s values into the variables
+            SELECT
+                @MROPriceMasterId = MROPriceMasterId,
+                @ItemMasterId = ItemMasterId,
+                @MasterCompanyId = MasterCompanyId,
+                @CustomerId = CustomerId,
+                @WorkscopeId = WorkscopeId,
+                @CurrencyId = CurrencyId,
+                @UnitPrice = UnitPrice,
+                @StartDate = StartDate,
+                @CreatedBy = CreatedBy,
+                @UpdatedBy = UpdatedBy
+            FROM #MROPriceMasterTemp
+            WHERE SeqID = @CurrSeq;
+
+                -- If new record
+                IF @MROPriceMasterId IS NULL OR @MROPriceMasterId = 0
+                BEGIN
+                    INSERT INTO dbo.MROPriceMaster
+                    (
+                        ItemMasterId, MasterCompanyId, CustomerId, WorkscopeId,
+                        UnitPrice, CurrencyId, StartDate,
+                        CreatedBy, CreatedDate,
+                        UpdatedBy, UpdatedDate, IsActive, IsDeleted
+                    )
+                    VALUES
+                    (
+                        @ItemMasterId, @MasterCompanyId, @CustomerId, @WorkscopeId,
+                        @UnitPrice, @CurrencyId, @StartDate,
+                        @CreatedBy, GETUTCDATE(),
+                        @UpdatedBy, GETUTCDATE(),
+                        1, 0
+                    );
+                END
+                ELSE
+                BEGIN
+                    -- Existing record, update
+                    UPDATE mp
+                    SET
+                        mp.CustomerId = @CustomerId,
+                        mp.WorkscopeId = @WorkscopeId,
+                        mp.StartDate = @StartDate,
+                        mp.CurrencyId = @CurrencyId,
+                        mp.UnitPrice = @UnitPrice,
+                        mp.UpdatedBy = @UpdatedBy,
+                        mp.UpdatedDate = GETUTCDATE()
+                    FROM dbo.MROPriceMaster mp
+                    WHERE mp.MROPriceMasterId = @MROPriceMasterId;
+                END
+				 SET @CurrSeq = @CurrSeq + 1;
+                END
+            PRINT @ItemMasterId;
 
         COMMIT TRAN;
-
-        SELECT @MROPriceMasterId AS [MROPriceMasterId];
     END TRY
-
 
     BEGIN CATCH
         IF @@TRANCOUNT > 0

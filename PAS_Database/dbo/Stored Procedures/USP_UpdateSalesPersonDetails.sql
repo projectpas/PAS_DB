@@ -87,13 +87,13 @@ BEGIN
 	IF(@ModuleId = @SalesOrderModuleID)
 	BEGIN
 		-- Primary Salesperson
-		SELECT @PrimarySalesRevenue = [RevenuePercentageId],@PrimarySalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @PrimarySalesperson AND [ActivityTypeId] = @MROActivity AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+		SELECT @PrimarySalesRevenue = [RevenuePercentageId],@PrimarySalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @PrimarySalesperson AND [ActivityTypeId] = @Brokering AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		-- Secondary Salesperson
-		SELECT @SecondarySalesRevenue = [RevenuePercentageId],@SecondarySalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @SecondarySalesperson AND [ActivityTypeId] = @MROActivity AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+		SELECT @SecondarySalesRevenue = [RevenuePercentageId],@SecondarySalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @SecondarySalesperson AND [ActivityTypeId] = @Brokering AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		-- Customer Service Rep (CSR)
-		SELECT @CSRSalesRevenue = [RevenuePercentageId],@CSRSalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @CSR AND [ActivityTypeId] = @MROActivity AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+		SELECT @CSRSalesRevenue = [RevenuePercentageId],@CSRSalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @CSR AND [ActivityTypeId] = @Brokering AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		-- Agent
-		SELECT @AgentSalesRevenue = [RevenuePercentageId],@AgentSalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @Agent AND [ActivityTypeId] = @MROActivity AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+		SELECT @AgentSalesRevenue = [RevenuePercentageId],@AgentSalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @Agent AND [ActivityTypeId] = @Brokering AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		
 		UPDATE [dbo].[SalesOrder]
 		   SET [SecondarySalesPersonId] = @SecondarySalesPersonId

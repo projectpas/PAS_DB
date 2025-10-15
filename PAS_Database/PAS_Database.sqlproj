@@ -4276,6 +4276,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateReleaseForm.sql" />
     <Build Include="dbo\Views\vw_SalesOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetCustomerQuoteReport.sql" />
+    <Build Include="dbo\User Defined Types\MROPriceMasterListType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

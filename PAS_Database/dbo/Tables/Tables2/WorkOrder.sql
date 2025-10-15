@@ -42,6 +42,16 @@
     [WorkOrderFormTypeId]              BIT             NULL,
     [IsWoAlwaysOrOndemandId]           BIT             NULL,
     [EnforceMpnPickTicketConfirmation] BIT             NULL,
+    [SecondarySalesPersonId]           BIGINT          NULL,
+    [SalesAgentID]                     BIGINT          NULL,
+    [PrimarySalesRevenue]              BIGINT          NULL,
+    [PrimarySalesMargin]               BIGINT          NULL,
+    [SecondarySalesRevenue]            BIGINT          NULL,
+    [SecondarySalesMargin]             BIGINT          NULL,
+    [CSRSalesRevenue]                  BIGINT          NULL,
+    [CSRSalesMargin]                   BIGINT          NULL,
+    [AgentSalesRevenue]                BIGINT          NULL,
+    [AgentSalesMargin]                 BIGINT          NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -54,6 +64,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

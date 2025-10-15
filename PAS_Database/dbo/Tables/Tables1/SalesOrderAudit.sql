@@ -78,7 +78,19 @@
     [ForeignExchangeRate]           DECIMAL (18, 2) NULL,
     [EnforcePickTicketConfirmation] BIT             NULL,
     [ApprovalCode]                  VARCHAR (200)   NULL,
+    [SecondarySalesPersonId]        BIGINT          NULL,
+    [SalesAgentID]                  BIGINT          NULL,
+    [PrimarySalesRevenue]           BIGINT          NULL,
+    [PrimarySalesMargin]            BIGINT          NULL,
+    [SecondarySalesRevenue]         BIGINT          NULL,
+    [SecondarySalesMargin]          BIGINT          NULL,
+    [CSRSalesRevenue]               BIGINT          NULL,
+    [CSRSalesMargin]                BIGINT          NULL,
+    [AgentSalesRevenue]             BIGINT          NULL,
+    [AgentSalesMargin]              BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrderAudit_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 

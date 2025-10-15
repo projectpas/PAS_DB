@@ -44,8 +44,20 @@
     [IsWoAlwaysOrOndemandId]           BIT             NULL,
     [WorkOrderFormTypeId]              BIT             NULL,
     [EnforceMpnPickTicketConfirmation] BIT             NULL,
+    [SecondarySalesPersonId]           BIGINT          NULL,
+    [SalesAgentID]                     BIGINT          NULL,
+    [PrimarySalesRevenue]              BIGINT          NULL,
+    [PrimarySalesMargin]               BIGINT          NULL,
+    [SecondarySalesRevenue]            BIGINT          NULL,
+    [SecondarySalesMargin]             BIGINT          NULL,
+    [CSRSalesRevenue]                  BIGINT          NULL,
+    [CSRSalesMargin]                   BIGINT          NULL,
+    [AgentSalesRevenue]                BIGINT          NULL,
+    [AgentSalesMargin]                 BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
 
 
 

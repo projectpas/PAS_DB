@@ -136,18 +136,15 @@ BEGIN
 				FI.PartCost,
 				FI.InvoiceDate,
 				SA.DropdownTypeId,
+				SA.SalesPersonActivityTypeId,
+				SA.ActivityTypeId,
+				SA.IsDeleted,
 				CASE SA.DropdownTypeId
 					WHEN 1 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.SalesPersonId ELSE WO.SalesPersonId END)
 					WHEN 2 THEN SA.EmployeeId
 					WHEN 3 THEN SA.EmployeeId
 					WHEN 4 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.CustomerSeviceRepId ELSE WO.CSRId END)
-				END AS EmployeeId,
-				--SA.EmployeeId,
-				SA.RevenuePercentageId,
-				SA.MarginPercentageId,
-				SA.SalesPersonActivityTypeId,
-				SA.ActivityTypeId,
-				SA.IsDeleted
+				END AS EmployeeId
 		FROM InvoicesSOWO FI
 		JOIN SalesAssignments SA ON FI.CustomerId = SA.CustomerId
 		JOIN Employee EMP ON EMP.EmployeeId = SA.EmployeeId
@@ -157,7 +154,37 @@ BEGIN
 			OR (SA.ActivityTypeId = 2 AND FI.ModuleId = @SalesOrderModuleId))
 		AND SA.EffectiveDate <= FI.InvoiceDate
 		AND ISNULL(EMP.IsCommission, 0) = 1
-	  ), rptCTE (TotalRecordsCount, MasterCompanyId, ActivityTypeId, EmployeeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
+	  ), 
+	  InvoiceWithPercentageValue AS (
+			SELECT
+				IWS.*,
+				COALESCE(SA.RevenuePercentageId, 
+					CASE 
+						WHEN IWS.ActivityTypeId = 1 THEN E.MRORevenuePercentageId
+						WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringRevenuePercentageId
+						WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingRevenuePercentageId
+					END) AS EffectiveRevenuePercentageId,
+
+				COALESCE(SA.MarginPercentageId, 
+					CASE 
+						WHEN IWS.ActivityTypeId = 1 THEN E.MROMarginPercentageId
+						WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringMarginPercentageId
+						WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingMarginPercentageId
+					END) AS EffectiveMarginPercentageId
+			FROM InvoiceWithSalesperson IWS
+			LEFT JOIN Employee E WITH (NOLOCK) ON E.EmployeeId = IWS.EmployeeId
+			LEFT JOIN SalesAssignments SA ON IWS.CustomerId = SA.CustomerId
+			AND IWS.EmployeeId = SA.EmployeeId
+			AND IWS.ActivityTypeId = SA.ActivityTypeId
+			AND SA.EffectiveDate <= IWS.InvoiceDate
+			AND SA.IsDeleted = 0
+	  ),
+	  InvoiceWithEffectivePercent AS (
+			SELECT
+				IWS.*
+			FROM InvoiceWithPercentageValue IWS
+			LEFT JOIN Employee E WITH (NOLOCK) ON E.EmployeeId = IWS.EmployeeId
+	  ),rptCTE (TotalRecordsCount, MasterCompanyId, ActivityTypeId, EmployeeId, Salesperson, Customer, RevenueAmount, RevenueRate, RevenueCommission,
 		MarginAmount, MarginRate, MarginCommission, TotalCommission, 
 		level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 		AS (
@@ -184,31 +211,14 @@ BEGIN
 		UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
 		UPPER(MSD.Level10Name) AS level10
-		FROM InvoiceWithSalesperson BI
+		FROM InvoiceWithEffectivePercent BI
 		JOIN DBO.Employee E WITH (NOLOCK) ON BI.EmployeeId = E.EmployeeId
 		JOIN DBO.Customer C WITH (NOLOCK) ON BI.CustomerId = C.CustomerId
 		LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON BI.ReferenceId = SO.SalesOrderId AND BI.ModuleId = @SalesOrderModuleId
 		INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
 		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
-		--LEFT JOIN DBO.[Percent] RP WITH (NOLOCK) ON BI.RevenuePercentageId = RP.PercentId
-		--LEFT JOIN DBO.[Percent] MP WITH (NOLOCK) ON BI.MarginPercentageId = MP.PercentId
-		LEFT JOIN dbo.[Percent] RP WITH (NOLOCK)
-			ON RP.PercentId = 
-				CASE 
-					WHEN (BI.RevenuePercentageId IS NOT NULL AND BI.IsDeleted = 0) THEN BI.RevenuePercentageId
-					WHEN BI.ActivityTypeId = 1 THEN E.MRORevenuePercentageId         -- MRO Activity
-					WHEN BI.ActivityTypeId = 2 THEN E.BrokeringRevenuePercentageId   -- Brokering
-					WHEN BI.ActivityTypeId = 3 THEN E.ManufacturingRevenuePercentageId -- Manufacturing
-				END
-
-		LEFT JOIN dbo.[Percent] MP WITH (NOLOCK)
-			ON MP.PercentId = 
-				CASE 
-					WHEN (BI.MarginPercentageId IS NOT NULL AND BI.IsDeleted = 0) THEN BI.MarginPercentageId
-					WHEN BI.ActivityTypeId = 1 THEN E.MROMarginPercentageId
-					WHEN BI.ActivityTypeId = 2 THEN E.BrokeringMarginPercentageId
-					WHEN BI.ActivityTypeId = 3 THEN E.ManufacturingMarginPercentageId
-				END
+		LEFT JOIN dbo.[Percent] RP WITH (NOLOCK) ON RP.PercentId = BI.EffectiveRevenuePercentageId
+		LEFT JOIN dbo.[Percent] MP WITH (NOLOCK) ON MP.PercentId = BI.EffectiveMarginPercentageId
 		WHERE 1 = 1
 			AND  ((ISNULL(@Employee, '') = '' OR BI.EmployeeId = @Employee) 
 			AND  (ISNULL(@Customer, '') = '' OR BI.CustomerId = @Customer)
@@ -257,7 +267,7 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10
-			FROM InvoiceWithSalesperson BI
+			FROM InvoiceWithEffectivePercent BI
 			JOIN DBO.Employee E WITH (NOLOCK) ON BI.EmployeeId = E.EmployeeId
 			JOIN DBO.Customer C WITH (NOLOCK) ON BI.CustomerId = C.CustomerId
 			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON BI.SubReferenceId = WOP.ID AND BI.ModuleId = @WorkOrderModuleId
@@ -271,25 +281,8 @@ BEGIN
 				GROUP BY WOPartNoId
 			) WOC ON WOC.WOPartNoId = BI.SubReferenceId
 			LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
-			--LEFT JOIN DBO.[Percent] RP WITH (NOLOCK) ON BI.RevenuePercentageId = RP.PercentId
-			--LEFT JOIN DBO.[Percent] MP WITH (NOLOCK) ON BI.MarginPercentageId = MP.PercentId
-			LEFT JOIN dbo.[Percent] RP WITH (NOLOCK)
-				ON RP.PercentId = 
-					CASE 
-						WHEN (BI.RevenuePercentageId IS NOT NULL AND BI.IsDeleted = 0) THEN BI.RevenuePercentageId
-						WHEN BI.ActivityTypeId = 1 THEN E.MRORevenuePercentageId         -- MRO Activity
-						WHEN BI.ActivityTypeId = 2 THEN E.BrokeringRevenuePercentageId   -- Brokering
-						WHEN BI.ActivityTypeId = 3 THEN E.ManufacturingRevenuePercentageId -- Manufacturing
-					END
-
-			LEFT JOIN dbo.[Percent] MP WITH (NOLOCK)
-				ON MP.PercentId = 
-					CASE 
-						WHEN (BI.MarginPercentageId IS NOT NULL AND BI.IsDeleted = 0) THEN BI.MarginPercentageId
-						WHEN BI.ActivityTypeId = 1 THEN E.MROMarginPercentageId
-						WHEN BI.ActivityTypeId = 2 THEN E.BrokeringMarginPercentageId
-						WHEN BI.ActivityTypeId = 3 THEN E.ManufacturingMarginPercentageId
-					END
+			LEFT JOIN dbo.[Percent] RP WITH (NOLOCK) ON RP.PercentId = BI.EffectiveRevenuePercentageId
+			LEFT JOIN dbo.[Percent] MP WITH (NOLOCK) ON MP.PercentId = BI.EffectiveMarginPercentageId
 			WHERE 1 = 1
 			AND  ((ISNULL(@Employee, '') = '' OR BI.EmployeeId = @Employee) 
 			AND  (ISNULL(@Customer, '') = '' OR BI.CustomerId = @Customer)

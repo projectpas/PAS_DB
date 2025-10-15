@@ -24,6 +24,7 @@
 	11   02/14/2025   Bhargav Saliya UTC Date Changes
 	12   08/25/2025   Moin Bloch     Updated For Get [FormStatus]
 	13   10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
+	14   14/10/2025   Moin Bloch     Updated For Type Wise Order
 	
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
@@ -126,7 +127,7 @@ BEGIN
 					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.[WorkOrderId]=@WorkorderId AND wro.[workOrderPartNoId] =@workOrderPartNoId  
-					ORDER BY wro.[ReleaseFromId] DESC
+					ORDER BY [WOFormType],wro.[ReleaseFromId] DESC
 				END
 				ELSE
 				BEGIN
@@ -197,8 +198,8 @@ BEGIN
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.[WorkOrderId]=@WorkorderId 
 				  AND wro.[workOrderPartNoId] =@workOrderPartNoId 
-				  AND wro.[ReleaseFromId] = @ReleaseFromId
-				  ORDER BY wro.[ReleaseFromId] DESC
+				  AND wro.[ReleaseFromId] = @ReleaseFromId				 
+				  ORDER BY [WOFormType],wro.[ReleaseFromId] DESC
 				END
 		END TRY    
 		BEGIN CATCH      

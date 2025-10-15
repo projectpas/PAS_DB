@@ -12,7 +12,7 @@
     1    05-Oct-2025		Bhargav Saliya      Created
     2    07-Oct-2025		Bhargav Saliya      Modefied
 
---[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 77, @MastercompanyId = 1
+--[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 4468, @MastercompanyId = 1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_checkEnforceCustomerCreditRestrictions]
 @LegalEntityId BIGINT,
@@ -24,9 +24,25 @@ BEGIN
 			@CreditLimit DECIMAL = 0,
 			@IsRestrict BIT = 0,
 			@IsWarning BIT = 0,
-			@RestrictMessage varchar(MAX) = 0;
+			@RestrictMessage varchar(MAX) = NULL,
+			@SelectCustId BIGINT;
 
 	DECLARE @WarningTypeId INT = (SELECT [CustomerWarningTypeId] FROM dbo.[CustomerWarningType] WITH(NOLOCK) WHERE UPPER([Name]) = 'IF CREDIT LIMIT IS NEGATIVE');
+
+	IF OBJECT_ID(N'tempdb..#restrictTempTable') IS NOT NULL
+	BEGIN
+	  DROP TABLE #restrictTempTable
+	END
+
+	CREATE TABLE #restrictTempTable (
+	  IsRestrict BIT NULL,
+	  IsWarning BIT NULL,
+	  [RestrictMessage] VARCHAR(300) NULL,
+	  [WarningMessage] VARCHAR(300) NULL,
+	  LeRestriction VARCHAR(MAX) NULL,
+	  IsCreaditRestriction BIT NULL,
+	  CreditLimit DECIMAL NULL,
+	)
 
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -38,17 +54,33 @@ BEGIN
 
 		SELECT @CreditLimit = ISNULL([CreditLimit],0) FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE CustomerId = @CustomerId and MasterCompanyId = @MastercompanyId;
 
+		SELECT top 1 @SelectCustId = CustomerId FROM [CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND MasterCompanyId = @MastercompanyId
+
+		
 		IF(@CreditLimit < 0 AND @IsCreaditRestriction = 1)
 		BEGIN
+			IF(@SelectCustId is not null AND @SelectCustId > 0)
+			BEGIN
+				INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
 				SELECT 
 					ISNULL([Restrict],0) as IsRestrict,
 					ISNULL([Warning],0) as IsWarning,
 					ISNULL([RestrictMessage],'') as [RestrictMessage],
 					ISNULL([WarningMessage],'') as [WarningMessage],
 					@RestrictMessage AS LeRestriction,
-					@IsCreaditRestriction as IsCreaditRestriction
-				FROM [dbo].[CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
+					@IsCreaditRestriction as IsCreaditRestriction,
+					@CreditLimit AS CreditLimit
+				FROM [dbo].[CustomerWarning] WITH(NOLOCK) 
+				WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
+			END
+			ELSE
+			BEGIN
+			 INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
+			 values(0,0,'','',@RestrictMessage,@IsCreaditRestriction,@CreditLimit);
+			END
 		END
+
+		SELECT * FROM #restrictTempTable
 
 	END TRY 
 	BEGIN CATCH

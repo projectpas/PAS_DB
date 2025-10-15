@@ -20,6 +20,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 9    24/02/2025      Moin Bloch          Updated (Renamed FotterRemarks TO FooterRemarks)
 ** 10   25/02/2025      Moin Bloch          Updated (changed Condition Table)
 ** 11   10/10/2025      Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
+** 12   13/10/2025      Moin Bloch          Updated to Dynamic VersionNo
 	
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
@@ -57,6 +58,16 @@ BEGIN
 		SET @MTIMasterCompanyId = 11; -- For MTI
 	  	  
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+
+		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
+
+		SELECT @VerCode  = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Version';
+		
+		SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
+
+		DECLARE @VersionNo VARCHAR(50) = NULL
+
+		SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
 
 		IF OBJECT_ID(N'tempdb..#tmprCMMIDsDetails') IS NOT NULL
 		BEGIN
@@ -228,7 +239,7 @@ BEGIN
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood
-			   ,'VER-000001' VersionNo
+			   ,@VersionNo VersionNo
 			   ,0 AS IsVersionIncrease
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
@@ -313,7 +324,7 @@ BEGIN
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood
-			   ,'VER-000001' VersionNo
+			   ,@VersionNo VersionNo
 			   ,0 AS IsVersionIncrease
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
@@ -396,7 +407,7 @@ BEGIN
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood
-			   ,'VER-000001' VersionNo
+			   ,@VersionNo VersionNo
 			   ,0 AS IsVersionIncrease
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 

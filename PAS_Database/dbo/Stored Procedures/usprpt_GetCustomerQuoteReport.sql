@@ -77,8 +77,8 @@ BEGIN
 				MSOS.[Name] AS SOStatus,
 				MAX(SOVS.ShipDate) AS ShipDate,
 				SOQ.CreditTermName AS Terms,
-				SOVS.AirwayBill AS AWB,
-				REPLACE(REPLACE(ISNULL(SOP.Notes,''), '<p>', ''),'</p>','') AS Notes
+				MAX(SOVS.AirwayBill) AS AWB,
+				MAX(REPLACE(REPLACE(ISNULL(SOP.Notes,''), '<p>', ''),'</p>','')) AS Notes
 			FROM [DBO].[SalesOrderQuote] SOQ WITH(NOLOCK)
 			INNER JOIN [DBO].[SalesOrderQuotePartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 			LEFT JOIN [DBO].[SalesOrderQuotePartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
@@ -121,7 +121,7 @@ BEGIN
 				SOQ.CreditTermName,
 				SO.SalesOrderNumber,
 				SOVS.AirwayBill,
-				SOP.Notes,
+				--SOP.Notes,
 				SST.StockLineId
 			ORDER BY SOQ.SalesOrderQuoteId DESC;
 		END
@@ -247,7 +247,7 @@ BEGIN
 				ShipDate,
 				Terms,
 				CASE WHEN AWBCount > 1 THEN 'MULTIPLE' ELSE AllAWB END AS AWB,
-				CASE WHEN ASNotesCount > 1 THEN 'MULTIPLE' ELSE AllNotes END AS AWB
+				CASE WHEN ASNotesCount > 1 THEN 'MULTIPLE' ELSE AllNotes END AS Notes
 			FROM AggregatedSales
 			ORDER BY SalesOrderQuoteId DESC;
 		END

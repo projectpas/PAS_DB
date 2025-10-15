@@ -15,8 +15,9 @@
  ** 5       03-Oct-2025     Devendra Shekh		Added [IsCustomerStock] for Stk
  ** 6       07-Oct-2025     Devendra Shekh		Added [CustomerId]
  ** 7       13-Oct-2025     Devendra Shekh	    Added [VendorRFQId], [ThirdPartyRFQId], [ILSRFQPartId]
+ ** 8       15-Oct-2025     Devendra Shekh	    Added [ReferenceNumber]
  
-EXECUTE [dbo].[usp_GetCustomerRFQbyId] 961
+EXECUTE [dbo].[usp_GetCustomerRFQbyId] 1007
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetCustomerRfqById]
 @CustomerRfqId BIGINT = NULL
@@ -38,9 +39,14 @@ SET NOCOUNT ON
 			END
 
 			DECLARE @LegalEntityId BIGINT = 0, @MasterCompanyId BIGINT = 0;
+			DECLARE @SalesQuoteModuleId INT, @SalesOrderModuleId INT, @SpeedQuoteModuleId INT;
 
 			SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 			SELECT TOP 1 @LegalEntityId = [LegalEntityId] FROM [dbo].[CustomerRfqQuote] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId; 
+
+			SELECT @SalesQuoteModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESQUOTE';
+			SELECT @SalesOrderModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER';
+			SELECT @SpeedQuoteModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SPEEDQUOTE';
 			
 			SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
 			INTO #ItemResults
@@ -57,9 +63,13 @@ SET NOCOUNT ON
 
 			SELECT	RFQ.[CustomerRfqId], RFQ.[RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 
 					[BuyerState], [BuyerZip], [LinePartNumber], [LineDescription], [AltPartNumber], [Quantity], [Condition], RFQ.[MasterCompanyId], RFQ.[CreatedBy], RFQ.[CreatedDate],
-					RFQ.[UpdatedBy], RFQ.[UpdatedDate], RFQ.[IsActive], RFQ.[IsDeleted], [IsQuote], [IsMRO], [ModuleId], [ReferenceId], IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
+					RFQ.[UpdatedBy], RFQ.[UpdatedDate], RFQ.[IsActive], RFQ.[IsDeleted], [IsQuote], [IsMRO], [ModuleId], RFQ.[ReferenceId], IM.ItemMasterId, CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId
 					,(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId
 					,VRFQResult.[VendorRFQId], [ThirdPartyRFQId], [ILSRFQPartId]
+					,CASE	WHEN ISNULL([ModuleId], 0) = @SalesQuoteModuleId THEN SOQResult.ReferenceNumber
+							WHEN ISNULL([ModuleId], 0) = @SalesOrderModuleId THEN SOResult.ReferenceNumber
+							WHEN ISNULL([ModuleId], 0) = @SpeedQuoteModuleId THEN SPQResult.ReferenceNumber
+							ELSE '' END AS ReferenceNumber
 			FROM [dbo].[CustomerRfq] RFQ WITH(NOLOCK)
 			LEFT JOIN #ItemResults IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 			LEFT JOIN #StkResults STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
@@ -72,6 +82,21 @@ SET NOCOUNT ON
 				WHERE ILSP.CustomerRfqId = RFQ.CustomerRfqId AND ILSP.MasterCompanyId = RFQ.MasterCompanyId
 				GROUP BY ILS.ThirdPartyRFQId, ILS.MasterCompanyId, ILSP.CustomerRfqId, TRQ.RFQId
 			) AS VRFQResult
+			OUTER APPLY (
+				SELECT SOQ.SalesOrderQuoteId AS ReferenceId, SOQ.SalesOrderQuoteNumber AS ReferenceNumber, SOQ.MasterCompanyId 
+				FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK)
+				WHERE SOQ.[SalesOrderQuoteId] = RFQ.ReferenceId AND SOQ.MasterCompanyId = RFQ.MasterCompanyId AND RFQ.ModuleId = @SalesQuoteModuleId 
+			) SOQResult
+			OUTER APPLY (
+				SELECT SO.SalesOrderId AS ReferenceId, SO.SalesOrderNumber AS ReferenceNumber, SO.MasterCompanyId 
+				FROM [dbo].[SalesOrder] SO WITH(NOLOCK)
+				WHERE SO.[SalesOrderId] = RFQ.ReferenceId AND SO.MasterCompanyId = RFQ.MasterCompanyId AND RFQ.ModuleId = @SalesOrderModuleId 
+			) SOResult
+			OUTER APPLY (
+				SELECT SPQ.SpeedQuoteId AS ReferenceId, SPQ.SpeedQuoteNumber AS ReferenceNumber, SPQ.MasterCompanyId 
+				FROM [dbo].[SpeedQuote] SPQ WITH(NOLOCK)
+				WHERE SPQ.[SpeedQuoteId] = RFQ.ReferenceId AND SPQ.MasterCompanyId = RFQ.MasterCompanyId AND RFQ.ModuleId = @SpeedQuoteModuleId 
+			) SPQResult
 			WHERE RFQ.[CustomerRfqId] = @CustomerRfqId;
 
 			SELECT	[CustomerRfqQuoteId], [CustomerRfqId], [RfqId], [AddComment], [IsAddCommentQuote], [FaaEasaRelease], [IsFaaEasaReleaseQuote], [RpOh], [IsRpOhQuote], [LegalEntityId],

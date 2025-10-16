@@ -90,6 +90,11 @@ BEGIN
 			SOBII.SubReferenceId AS SubReferenceId,
             BI.ModuleId,
             BI.CustomerId,
+			CASE BI.ModuleId
+					WHEN @WorkOrderModuleId THEN 1
+					WHEN @SalesOrderModuleId THEN 2
+					ELSE 3
+				END AS ActivityTypeId,
 			CASE WHEN @IncludeCRnRET = 1 
 			 THEN ((ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) + ISNULL(CM.Amount, 0))
 			 ELSE (ISNULL(SOBII.GrandTotal, 0) - (ISNULL(SOBII.SalesTax, 0) + ISNULL(SOBII.OtherTax, 0))) END GrandTotal,
@@ -107,77 +112,108 @@ BEGIN
         AND BI.ModuleId IN (@SalesOrderModuleId, @WorkOrderModuleId)
         AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
     ),
-    SalesAssignments AS (
-		SELECT SAT.SalesPersonActivityTypeId,
-			SAT.CustomerId,
-			SAT.DropdownTypeId,
-			CASE SAT.DropdownTypeId 
-				WHEN 1 THEN CS.PrimarySalesPersonId
-				WHEN 2 THEN CS.SecondarySalesPersonId
-				WHEN 3 THEN CS.SaId
-				WHEN 4 THEN CS.CsrId
-			END AS EmployeeId,
-			SAT.RevenuePercentageId,
-			SAT.MarginPercentageId,
-			SAT.ActivityTypeId,
-			SAT.EffectiveDate,
-			SAT.IsDeleted
-		FROM dbo.SalesPersonActivityType SAT WITH (NOLOCK)
-		JOIN dbo.CustomerSales CS WITH (NOLOCK) ON CS.CustomerId = SAT.CustomerId
-		WHERE SAT.IsActive = 1 AND SAT.MasterCompanyId = @MasterCompanyId
-	),
-	InvoiceWithSalesperson AS (
-		SELECT FI.BillingInvoicingId,
-				FI.ReferenceId,
-				FI.SubReferenceId,
-				FI.ModuleId,
-				FI.CustomerId,
-				FI.GrandTotal,
-				FI.PartCost,
-				FI.InvoiceDate,
-				SA.DropdownTypeId,
-				SA.ActivityTypeId,
-				SA.SalesPersonActivityTypeId,
-				SA.IsDeleted AS SAIsDeleted,
-				CASE SA.DropdownTypeId
-					WHEN 1 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.SalesPersonId ELSE WO.SalesPersonId END)
-					WHEN 2 THEN SA.EmployeeId
-					WHEN 3 THEN SA.EmployeeId
-					WHEN 4 THEN (CASE WHEN FI.ModuleId = @SalesOrderModuleId THEN SO.CustomerSeviceRepId ELSE WO.CSRId END)
-				END AS EmployeeId
-		FROM InvoicesSOWO FI
-		JOIN SalesAssignments SA ON FI.CustomerId = SA.CustomerId
-		JOIN Employee EMP ON EMP.EmployeeId = SA.EmployeeId
-		LEFT JOIN DBO.SalesOrder SO ON SO.SalesOrderId = FI.ReferenceId
-		LEFT JOIN DBO.WorkOrder WO ON WO.WorkOrderId = FI.ReferenceId
-		WHERE ((SA.ActivityTypeId = 1 AND FI.ModuleId = @WorkOrderModuleId) 
-			OR (SA.ActivityTypeId = 2 AND FI.ModuleId = @SalesOrderModuleId))
-		AND SA.EffectiveDate <= FI.InvoiceDate
-		AND ISNULL(EMP.IsCommission, 0) = 1
-	  ), 
-	  InvoiceWithPercentageValue AS (
+    InvoiceWithPercentageValue AS (
 			SELECT
 				IWS.*,
-				COALESCE(SA.RevenuePercentageId, 
-					CASE 
-						WHEN IWS.ActivityTypeId = 1 THEN E.MRORevenuePercentageId
-						WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringRevenuePercentageId
-						WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingRevenuePercentageId
-					END) AS EffectiveRevenuePercentageId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.SalesPersonId
+					WHEN @WorkOrderModuleId THEN WO.SalesPersonId
+				END AS EmployeeId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.PrimarySalesRevenue
+					WHEN @WorkOrderModuleId THEN WO.PrimarySalesRevenue
+				END AS EffectiveRevenuePercentageId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.PrimarySalesMargin
+					WHEN @WorkOrderModuleId THEN WO.PrimarySalesMargin
+				END AS EffectiveMarginPercentageId
+			FROM InvoicesSOWO IWS
+			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
+			WHERE 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.PrimarySalesRevenue
+								  WHEN @WorkOrderModuleId THEN WO.PrimarySalesRevenue END) IS NOT NULL
+			AND 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.PrimarySalesMargin
+								  WHEN @WorkOrderModuleId THEN WO.PrimarySalesMargin END) IS NOT NULL
 
-				COALESCE(SA.MarginPercentageId, 
-					CASE 
-						WHEN IWS.ActivityTypeId = 1 THEN E.MROMarginPercentageId
-						WHEN IWS.ActivityTypeId = 2 THEN E.BrokeringMarginPercentageId
-						WHEN IWS.ActivityTypeId = 3 THEN E.ManufacturingMarginPercentageId
-					END) AS EffectiveMarginPercentageId
-			FROM InvoiceWithSalesperson IWS
-			LEFT JOIN Employee E WITH (NOLOCK) ON E.EmployeeId = IWS.EmployeeId
-			LEFT JOIN SalesAssignments SA ON IWS.CustomerId = SA.CustomerId
-			AND IWS.EmployeeId = SA.EmployeeId
-			AND IWS.ActivityTypeId = SA.ActivityTypeId
-			AND SA.EffectiveDate <= IWS.InvoiceDate
-			AND SA.IsDeleted = 0
+			 UNION ALL
+
+			 SELECT
+				IWS.*,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.SecondarySalesPersonId
+					WHEN @WorkOrderModuleId THEN WO.SecondarySalesPersonId
+				END AS EmployeeId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.SecondarySalesRevenue
+					WHEN @WorkOrderModuleId THEN WO.SecondarySalesRevenue
+				END AS EffectiveRevenuePercentageId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.SecondarySalesMargin
+					WHEN @WorkOrderModuleId THEN WO.SecondarySalesMargin
+				END AS EffectiveMarginPercentageId
+			FROM InvoicesSOWO IWS
+			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
+			WHERE 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.SecondarySalesRevenue
+								  WHEN @WorkOrderModuleId THEN WO.SecondarySalesRevenue END) IS NOT NULL
+			AND 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.SecondarySalesMargin
+								  WHEN @WorkOrderModuleId THEN WO.SecondarySalesMargin END) IS NOT NULL
+
+			UNION ALL
+
+			SELECT
+				IWS.*,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.SalesAgentId
+					WHEN @WorkOrderModuleId THEN WO.SalesAgentId
+				END AS EmployeeId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.AgentSalesRevenue
+					WHEN @WorkOrderModuleId THEN WO.AgentSalesRevenue
+				END AS EffectiveRevenuePercentageId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.AgentSalesMargin
+					WHEN @WorkOrderModuleId THEN WO.AgentSalesMargin
+				END AS EffectiveMarginPercentageId
+			FROM InvoicesSOWO IWS
+			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
+			WHERE 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.AgentSalesRevenue
+								  WHEN @WorkOrderModuleId THEN WO.AgentSalesRevenue END) IS NOT NULL
+			AND 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.AgentSalesMargin
+								  WHEN @WorkOrderModuleId THEN WO.AgentSalesMargin END) IS NOT NULL
+
+			UNION ALL
+
+			SELECT
+				IWS.*,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.CustomerSeviceRepId
+					WHEN @WorkOrderModuleId THEN WO.CSRId
+				END AS EmployeeId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.CSRSalesRevenue
+					WHEN @WorkOrderModuleId THEN WO.CSRSalesRevenue
+				END AS EffectiveRevenuePercentageId,
+				CASE IWS.ModuleId
+					WHEN @SalesOrderModuleId THEN SO.CSRSalesMargin
+					WHEN @WorkOrderModuleId THEN WO.CSRSalesMargin
+				END AS EffectiveMarginPercentageId
+			FROM InvoicesSOWO IWS
+			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
+			WHERE 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.CSRSalesRevenue
+								  WHEN @WorkOrderModuleId THEN WO.CSRSalesRevenue END) IS NOT NULL
+			AND 
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.CSRSalesMargin
+								  WHEN @WorkOrderModuleId THEN WO.CSRSalesMargin END) IS NOT NULL
 	  ),
 	  InvoiceWithEffectivePercent AS (
 			SELECT

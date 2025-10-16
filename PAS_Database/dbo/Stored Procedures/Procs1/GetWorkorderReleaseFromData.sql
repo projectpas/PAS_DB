@@ -25,6 +25,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 14   21/02/2025  Moin Bloch       Updated (Fixed Condition Issue)
 ** 15   12/09/2025  Vishal Suthar    Fixed the issue with CMM & RSPEC data interchange
 ** 16   10/10/2025  Moin Bloch       Updated For Get VersionNo & IsVersionIncrease Flag
+** 17   13/10/2025  Moin Bloch       Updated to Dynamic VersionNo
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
 **************************************************************/ 
@@ -56,6 +57,16 @@ BEGIN
 		DECLARE @NeoMasterCompanyId INT = 20
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
+
+		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
+
+		SELECT @VerCode  = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Version';
+		
+		SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
+
+		DECLARE @VersionNo VARCHAR(50) = NULL
+
+		SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
 		
 		IF OBJECT_ID(N'tempdb..#tmprCMMIDsDetails') IS NOT NULL
 		BEGIN
@@ -226,7 +237,7 @@ BEGIN
 					  pub.[PublishedByOthers],
 					  wo.[MasterCompanyId],
 					  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
-					  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
+					  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
 					   --+ (CASE WHEN wop.CMMId is not null and wop.CMMId > 0 THEN   
 						--		CASE WHEN wo.MasterCompanyId != @MTIMasterCompanyId THEN '<p>' + ('Publication ID: ' + ISNULL(UPPER(pub.PublicationId),0)) +'</p>'   
 						--				+'<p>'+(CASE WHEN pub.PublishedById = 2 THEN 'Published By: ' + ISNULL(UPPER(ven.VendorName),'-')  
@@ -244,7 +255,7 @@ BEGIN
 							+ '</div>' FooterRemarks,  
 							UPPER(le.EASALicense) AS EASALicense,  
 							@EmailBody AS EmailBody
-							,'VER-000001' VersionNo
+							,@VersionNo VersionNo
 					        ,0 AS IsVersionIncrease
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
@@ -316,7 +327,7 @@ BEGIN
 				  pub.[PublishedByOthers],	
 				  wo.[MasterCompanyId],
 				  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
-				  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks, 
+				  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks, 
 				 -- ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">' 
 					--+ (CASE WHEN wop.CMMId is not null and wop.CMMId > 0 THEN   
 					--		CASE WHEN wo.MasterCompanyId != @MTIMasterCompanyId THEN '<p>' + ('Publication ID: ' + ISNULL(UPPER(pub.PublicationId),0)) +'</p>'   
@@ -338,7 +349,7 @@ BEGIN
 					   + '</div>' FooterRemarks,  
 						UPPER(le.EASALicense) AS EASALicense,  
 						@EmailBody AS EmailBody
-					   ,'VER-000001' VersionNo
+					   ,@VersionNo VersionNo
 					   ,0 AS IsVersionIncrease
 			FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 				  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
@@ -405,13 +416,13 @@ BEGIN
 					  pub.[PublishedByOthers],
 					  wo.[MasterCompanyId],
 					  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
-					  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
+					  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
 					  (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 					+ '</div>' FooterRemarks,  
 					   UPPER(le.EASALicense) AS EASALicense,  
 					   @EmailBody AS EmailBody
-					   ,'VER-000001' VersionNo
+					   ,@VersionNo VersionNo
 					   ,0 AS IsVersionIncrease
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  

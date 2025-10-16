@@ -13,7 +13,7 @@
  ** --   --------		-------				--------------------------------
     1    08-SEPT-2025	Vishal Suthar		Created
 	2	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
-         
+	3    16-OCT-2025    RAJESH GAMI			handle Null value        
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
 	@PageNumber int = 1,  
@@ -120,22 +120,22 @@ BEGIN
 					WHEN @WorkOrderModuleId THEN WO.SalesPersonId
 				END AS EmployeeId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.PrimarySalesRevenue
-					WHEN @WorkOrderModuleId THEN WO.PrimarySalesRevenue
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.PrimarySalesRevenue,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.PrimarySalesRevenue,0)
 				END AS EffectiveRevenuePercentageId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.PrimarySalesMargin
-					WHEN @WorkOrderModuleId THEN WO.PrimarySalesMargin
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.PrimarySalesMargin,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.PrimarySalesMargin,0)
 				END AS EffectiveMarginPercentageId
 			FROM InvoicesSOWO IWS
 			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
 			WHERE 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.PrimarySalesRevenue
-								  WHEN @WorkOrderModuleId THEN WO.PrimarySalesRevenue END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.PrimarySalesRevenue,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.PrimarySalesRevenue,0) END) IS NOT NULL
 			AND 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.PrimarySalesMargin
-								  WHEN @WorkOrderModuleId THEN WO.PrimarySalesMargin END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.PrimarySalesMargin,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.PrimarySalesMargin,0) END) IS NOT NULL
 
 			 UNION ALL
 
@@ -146,22 +146,22 @@ BEGIN
 					WHEN @WorkOrderModuleId THEN WO.SecondarySalesPersonId
 				END AS EmployeeId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.SecondarySalesRevenue
-					WHEN @WorkOrderModuleId THEN WO.SecondarySalesRevenue
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.SecondarySalesRevenue,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.SecondarySalesRevenue,0)
 				END AS EffectiveRevenuePercentageId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.SecondarySalesMargin
-					WHEN @WorkOrderModuleId THEN WO.SecondarySalesMargin
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.SecondarySalesMargin,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.SecondarySalesMargin,0)
 				END AS EffectiveMarginPercentageId
 			FROM InvoicesSOWO IWS
 			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
 			WHERE 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.SecondarySalesRevenue
-								  WHEN @WorkOrderModuleId THEN WO.SecondarySalesRevenue END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.SecondarySalesRevenue,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.SecondarySalesRevenue,0) END) IS NOT NULL
 			AND 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.SecondarySalesMargin
-								  WHEN @WorkOrderModuleId THEN WO.SecondarySalesMargin END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.SecondarySalesMargin,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.SecondarySalesMargin,0) END) IS NOT NULL
 
 			UNION ALL
 
@@ -172,22 +172,22 @@ BEGIN
 					WHEN @WorkOrderModuleId THEN WO.SalesAgentId
 				END AS EmployeeId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.AgentSalesRevenue
-					WHEN @WorkOrderModuleId THEN WO.AgentSalesRevenue
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.AgentSalesRevenue,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.AgentSalesRevenue,0)
 				END AS EffectiveRevenuePercentageId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.AgentSalesMargin
-					WHEN @WorkOrderModuleId THEN WO.AgentSalesMargin
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.AgentSalesMargin,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.AgentSalesMargin,0)
 				END AS EffectiveMarginPercentageId
 			FROM InvoicesSOWO IWS
 			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
 			WHERE 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.AgentSalesRevenue
-								  WHEN @WorkOrderModuleId THEN WO.AgentSalesRevenue END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.AgentSalesRevenue,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.AgentSalesRevenue,0) END) IS NOT NULL
 			AND 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.AgentSalesMargin
-								  WHEN @WorkOrderModuleId THEN WO.AgentSalesMargin END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.AgentSalesMargin,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.AgentSalesMargin,0) END) IS NOT NULL
 
 			UNION ALL
 
@@ -198,22 +198,22 @@ BEGIN
 					WHEN @WorkOrderModuleId THEN WO.CSRId
 				END AS EmployeeId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.CSRSalesRevenue
-					WHEN @WorkOrderModuleId THEN WO.CSRSalesRevenue
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.CSRSalesRevenue,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.CSRSalesRevenue,0)
 				END AS EffectiveRevenuePercentageId,
 				CASE IWS.ModuleId
-					WHEN @SalesOrderModuleId THEN SO.CSRSalesMargin
-					WHEN @WorkOrderModuleId THEN WO.CSRSalesMargin
+					WHEN @SalesOrderModuleId THEN ISNULL(SO.CSRSalesMargin,0)
+					WHEN @WorkOrderModuleId THEN ISNULL(WO.CSRSalesMargin,0)
 				END AS EffectiveMarginPercentageId
 			FROM InvoicesSOWO IWS
 			LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = IWS.ReferenceId AND IWS.ModuleId = @SalesOrderModuleId
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = IWS.ReferenceId AND IWS.ModuleId = @WorkOrderModuleId
 			WHERE 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.CSRSalesRevenue
-								  WHEN @WorkOrderModuleId THEN WO.CSRSalesRevenue END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.CSRSalesRevenue,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.CSRSalesRevenue,0) END) IS NOT NULL
 			AND 
-				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN SO.CSRSalesMargin
-								  WHEN @WorkOrderModuleId THEN WO.CSRSalesMargin END) IS NOT NULL
+				(CASE IWS.ModuleId WHEN @SalesOrderModuleId THEN ISNULL(SO.CSRSalesMargin,0)
+								  WHEN @WorkOrderModuleId THEN ISNULL(WO.CSRSalesMargin,0) END) IS NOT NULL
 	  ),
 	  InvoiceWithEffectivePercent AS (
 			SELECT
@@ -230,13 +230,13 @@ BEGIN
 		E.EmployeeId,
 		(E.FirstName + ' ' + E.LastName) AS Salesperson,
 		C.[Name] AS Customer,
-    	SUM(BI.GrandTotal) AS RevenueAmount,
+    	SUM(ISNULL(BI.GrandTotal,0)) AS RevenueAmount,
 		RP.PercentValue AS RevenueRate,
-		SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
-		SUM(BI.PartCost) AS MarginAmount,
+		SUM(ISNULL(BI.GrandTotal,0) * (ISNULL(RP.PercentValue,0) / 100.00)) AS RevenueCommission,
+		SUM(ISNULL(BI.PartCost,0)) AS MarginAmount,
 		MP.PercentValue AS MarginRate,
-		SUM((ISNULL(BI.PartCost,0)) * (ISNULL(MP.PercentValue,0) / 100.0)) AS MarginCommission,
-		(SUM(ISNULL(BI.GrandTotal,0) * (ISNULL(RP.PercentValue,0) / 100.0)) + SUM(ISNULL(BI.PartCost,0) * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
+		SUM((ISNULL(BI.PartCost,0)) * (ISNULL(MP.PercentValue,0) / 100.00)) AS MarginCommission,
+		(SUM(ISNULL(BI.GrandTotal,0) * (ISNULL(RP.PercentValue,0) / 100.00)) + SUM(ISNULL(BI.PartCost,0) * (ISNULL(MP.PercentValue,0) / 100.00))) AS TotalCommission,
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -283,16 +283,16 @@ BEGIN
 			E.EmployeeId,
 			(E.FirstName + ' ' + E.LastName) AS Salesperson,
 			C.[Name] AS Customer,
-    		SUM(BI.GrandTotal) AS RevenueAmount,
+    		SUM(ISNULL(BI.GrandTotal,0)) AS RevenueAmount,
 			RP.PercentValue AS RevenueRate,
-			SUM(BI.GrandTotal * (RP.PercentValue / 100.0)) AS RevenueCommission,
-			(SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
+			SUM(ISNULL(BI.GrandTotal,0) * (RP.PercentValue / 100.00)) AS RevenueCommission,
+			(SUM(ISNULL(BI.GrandTotal,0)) - (ISNULL(SUM(WOC.PartsCost),0) 
                      + ISNULL(SUM(WOC.LaborCost),0))) AS MarginAmount,
 			MP.PercentValue AS MarginRate,
 			((SUM(ISNULL(BI.GrandTotal,0)) - (ISNULL(SUM(ISNULL(WOC.PartsCost,0)),0) 
-                     + ISNULL(SUM(ISNULL(WOC.LaborCost,0)),0))) * (ISNULL(MP.PercentValue,0) / 100.0)) AS MarginCommission,
-			(SUM(ISNULL(BI.GrandTotal,0) * (ISNULL(RP.PercentValue,0) / 100.0)) + ((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
-                     + ISNULL(SUM(WOC.LaborCost),0))) * (ISNULL(MP.PercentValue,0) / 100.0))) AS TotalCommission,
+                     + ISNULL(SUM(ISNULL(WOC.LaborCost,0)),0))) * (ISNULL(MP.PercentValue,0) / 100.00)) AS MarginCommission,
+			(SUM(ISNULL(BI.GrandTotal,0) * (ISNULL(RP.PercentValue,0) / 100.00)) + ((SUM(BI.GrandTotal) - (ISNULL(SUM(WOC.PartsCost),0) 
+                     + ISNULL(SUM(WOC.LaborCost),0))) * (ISNULL(MP.PercentValue,0) / 100.00))) AS TotalCommission,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -310,9 +310,9 @@ BEGIN
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOP.ID
 			LEFT JOIN (
 				SELECT WOPartNoId,
-					   SUM(PartsCost) AS PartsCost,
-					   SUM(LaborCost) AS LaborCost,
-					   SUM(OverHeadCost) AS OverHeadCost
+					   SUM(ISNULL(PartsCost,0)) AS PartsCost,
+					   SUM(ISNULL(LaborCost,0)) AS LaborCost,
+					   SUM(ISNULL(OverHeadCost,0)) AS OverHeadCost
 				FROM dbo.WorkOrderCostDetails WITH (NOLOCK)
 				GROUP BY WOPartNoId
 			) WOC ON WOC.WOPartNoId = BI.SubReferenceId

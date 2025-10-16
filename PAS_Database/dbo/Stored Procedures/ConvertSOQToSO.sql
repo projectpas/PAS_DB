@@ -26,6 +26,7 @@
 	10   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
 	11   28/02/2025   Ayushi Patel		Cast OpenDate As a Date
 	12   29/09/2025   Vishal Suthar		Fixed an issue with order of parts after transfer
+	13   16/10/2024   Moin Bloch		Updated Added SalesPersion Details
 
 declare @p13 bigint
 set @p13=NULL
@@ -180,6 +181,8 @@ BEGIN
 	SELECT @SalesOrderId = SCOPE_IDENTITY();
 
 	SELECT @CustomerId = SO.CustomerId FROM DBO.SalesOrder SO WITH (NOLOCK) WHERE SO.SalesOrderId = @SalesOrderId;
+
+	EXEC [dbo].[USP_UpdateSalesPersonDetails] @SalesOrderId,@CustomerId,@mastCompanyId,@SOModuleId;
 
 	-- Fetch SalesOrder settings
 	DECLARE @soqSettingApprovalRule BIT;

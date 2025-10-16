@@ -10,7 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    20-May-2025   Devendra Shekh		Created
-	 
+	2    16-Oct-2025   Rajesh Gami			Resovle issue for FlatMaterialAmount doesn't save (Update the WOQDetailsId in the temptable)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
@@ -65,15 +65,16 @@ BEGIN
 
 		UPDATE #tmpWorkOrderQuoteDetails SET [UpdatedDate] = GETUTCDATE();
 
-		SELECT	@WorkflowWorkOrderId = [WorkflowWorkOrderId], @WorkOrderQuoteDetailsId = [WorkOrderQuoteDetailsId], @WorkOrderQuoteId = [WorkOrderQuoteId], @UpdatedBy = [UpdatedBy], @MasterCompanyId = [MasterCompanyId],
+		SELECT TOP 1 @WorkflowWorkOrderId = [WorkflowWorkOrderId], @WorkOrderQuoteDetailsId = [WorkOrderQuoteDetailsId], @WorkOrderQuoteId = [WorkOrderQuoteId], @UpdatedBy = [UpdatedBy], @MasterCompanyId = [MasterCompanyId],
 				@IsVersionIncrease = ISNULL([IsVersionIncrease], 0)
-		FROM #tmpWorkOrderQuoteDetails WHERE [RowId] = @InitialRowId;
+		FROM #tmpWorkOrderQuoteDetails 
+		--WHERE [RowId] = @InitialRowId;
 
 		SET @woPartNoId = (SELECT TOP 1 [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId);
 		SET @ItemMasterId = (SELECT TOP 1 [ItemMasterId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @WorkOrderQuoteDetailsId = (SELECT TOP 1 [WorkOrderQuoteDetailsId] FROM [dbo].[WorkOrderQuoteDetails] WITH(NOLOCK) WHERE [WOPartNoId] = @woPartNoId);
 		SET @workorderId = (SELECT TOP 1 [WorkOrderId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId);
-
+		PRINT @WorkOrderQuoteDetailsId
 		IF(ISNULL(@WorkOrderQuoteDetailsId, 0) > 0)
 		BEGIN
 
@@ -134,9 +135,8 @@ BEGIN
 			FROM #tmpWorkOrderQuoteMaterial WHERE ISNULL(IsDeleted, 0) = 0 AND ISNULL(WorkOrderQuoteMaterialId, 0) = 0
 			
 			UPDATE TMP
-			SET	TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END, TMP.IsDeleted = 0
+			SET TMP.WorkOrderQuoteDetailsId=@WorkOrderQuoteDetailsId,TMP.WOPartNoId = @woPartNoId, TMP.ItemMasterId = CASE WHEN ISNULL(TMP.ItemMasterId, 0) = 0 THEN @ItemMasterId ELSE TMP.ItemMasterId END, TMP.IsDeleted = 0
 			FROM #tmpWorkOrderQuoteDetails TMP
-
 			-- Updating Work Order Quote Details
 			UPDATE woq
 			SET 

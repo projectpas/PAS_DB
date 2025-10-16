@@ -455,8 +455,8 @@ BEGIN
 			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
 			WHERE cdd.MasterCompanyId = @MasterCompanyId
 			AND cdd.ReferenceId IN(SELECT ITEM FROM DBO.SplitString(@PartsStocklineId,',')) 
-			AND cdd.IsActive = 1 
-			AND cdd.IsDeleted = 0 
+			AND ISNULL(cdd.IsActive,1) = 1 
+			AND ISNULL(cdd.IsDeleted,0) = 0
 			AND cdd.ModuleId in(@Stockline_ModuleId,@ReceivingCustomerWork_ModuleId)
 		END
 		ELSE
@@ -474,8 +474,8 @@ BEGIN
 			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
 			WHERE cdd.MasterCompanyId = @MasterCompanyId
 			AND cdd.ReferenceId IN(SELECT ITEM FROM DBO.SplitString(@PartsStocklineId,',')) 
-			AND cdd.IsActive = 1 
-			AND cdd.IsDeleted = 0 
+			AND ISNULL(cdd.IsActive,1) = 1 
+			AND ISNULL(cdd.IsDeleted,0) = 0
 			AND cdd.ModuleId = @Stockline_ModuleId
 		END
 		

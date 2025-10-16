@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------              
 	1    15-10-2025   Moin Bloch       Created
+	2    16-10-2025   Moin Bloch       Added  Revenue & Margin Percent From Employee If In Customer it's not available
 
 --   EXEC [USP_UpdateSalesPersonDetails] 19841,1128,1,15
 **************************************************************/
@@ -70,6 +71,54 @@ BEGIN
 		-- Agent
 		SELECT @AgentSalesRevenue = [RevenuePercentageId],@AgentSalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @Agent AND [ActivityTypeId] = @MROActivity AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		
+		IF(ISNULL(@SalesPersonId, 0) != 0)
+		BEGIN
+			IF(ISNULL(@PrimarySalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @PrimarySalesRevenue = [MRORevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesPersonId
+			END
+			IF(ISNULL(@PrimarySalesMargin, 0) = 0)
+			BEGIN
+				SELECT @PrimarySalesMargin = [MROMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesPersonId
+			END
+		END
+
+		IF(ISNULL(@SecondarySalesPersonId, 0) != 0)
+		BEGIN
+			IF(ISNULL(@SecondarySalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @SecondarySalesRevenue = [MRORevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SecondarySalesPersonId
+			END
+			IF(ISNULL(@SecondarySalesMargin, 0) = 0)
+			BEGIN
+				SELECT @SecondarySalesMargin = [MROMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SecondarySalesPersonId
+			END
+		END
+
+		IF(ISNULL(@CSRId, 0) != 0)
+		BEGIN
+			IF(ISNULL(@CSRSalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @CSRSalesRevenue = [MRORevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @CSRId
+			END
+			IF(ISNULL(@CSRSalesMargin, 0) = 0)
+			BEGIN
+				SELECT @CSRSalesMargin = [MROMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @CSRId
+			END
+		END
+
+		IF(ISNULL(@SalesAgentID, 0) != 0)
+		BEGIN
+			IF(ISNULL(@AgentSalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @AgentSalesRevenue = [MRORevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesAgentID
+			END
+			IF(ISNULL(@AgentSalesMargin, 0) = 0)
+			BEGIN
+				SELECT @AgentSalesMargin = [MROMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesAgentID
+			END
+		END
+
 		UPDATE [dbo].[WorkOrder]
 		   SET [SecondarySalesPersonId] = @SecondarySalesPersonId
 			  ,[SalesAgentID] = @SalesAgentID
@@ -95,6 +144,55 @@ BEGIN
 		-- Agent
 		SELECT @AgentSalesRevenue = [RevenuePercentageId],@AgentSalesMargin = [MarginPercentageId] FROM [dbo].[SalesPersonActivityType] WITH(NOLOCK) WHERE [DropdownTypeId] = @Agent AND [ActivityTypeId] = @Brokering AND [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		
+
+		IF(ISNULL(@SalesPersonId, 0) != 0)
+		BEGIN
+			IF(ISNULL(@PrimarySalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @PrimarySalesRevenue = [BrokeringRevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesPersonId
+			END
+			IF(ISNULL(@PrimarySalesMargin, 0) = 0)
+			BEGIN
+				SELECT @PrimarySalesMargin = [BrokeringMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesPersonId
+			END
+		END
+
+		IF(ISNULL(@SecondarySalesPersonId, 0) != 0)
+		BEGIN
+			IF(ISNULL(@SecondarySalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @SecondarySalesRevenue = [BrokeringRevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SecondarySalesPersonId
+			END
+			IF(ISNULL(@SecondarySalesMargin, 0) = 0)
+			BEGIN
+				SELECT @SecondarySalesMargin = [BrokeringMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SecondarySalesPersonId
+			END
+		END
+
+		IF(ISNULL(@CSRId, 0) != 0)
+		BEGIN
+			IF(ISNULL(@CSRSalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @CSRSalesRevenue = [BrokeringRevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @CSRId
+			END
+			IF(ISNULL(@CSRSalesMargin, 0) = 0)
+			BEGIN
+				SELECT @CSRSalesMargin = [BrokeringMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @CSRId
+			END
+		END
+
+		IF(ISNULL(@SalesAgentID, 0) != 0)
+		BEGIN
+			IF(ISNULL(@AgentSalesRevenue, 0) = 0)
+			BEGIN
+				SELECT @AgentSalesRevenue = [BrokeringRevenuePercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesAgentID
+			END
+			IF(ISNULL(@AgentSalesMargin, 0) = 0)
+			BEGIN
+				SELECT @AgentSalesMargin = [BrokeringMarginPercentageId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @SalesAgentID
+			END
+		END
+
 		UPDATE [dbo].[SalesOrder]
 		   SET [SecondarySalesPersonId] = @SecondarySalesPersonId
 			  ,[SalesAgentID] = @SalesAgentID
@@ -108,8 +206,7 @@ BEGIN
 			  ,[AgentSalesMargin] = CASE WHEN ISNULL(@SalesAgentID,0) = 0 THEN 0 ELSE @AgentSalesMargin END
 		 WHERE [SalesOrderId] = @ReferenceId
 	END
-
-		
+			
 	END
 	COMMIT  TRANSACTION
 
@@ -133,5 +230,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
-        END CATCH     
+        END CATCH     
 END

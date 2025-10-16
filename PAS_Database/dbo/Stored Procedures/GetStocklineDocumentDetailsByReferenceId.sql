@@ -12,7 +12,8 @@
     1     30-06-2025   Amit Ghediya		Created
     2     18-07-2025   Vishal Suthar	Added module for exchange sales order
     3     07-08-2025   Vishal Suthar	Added module for exchange quote, sales quote and vendor rma
-    3     24-09-2025   Bhargav Saliya	Added module for SWO
+    4     24-09-2025   Bhargav Saliya	Added module for SWO
+	5     15-10-2025   Bhargav Saliya   Added Receiving Customer Documnet Case
 
 EXEC [GetStocklineDocumentDetailsByReferenceId]  1139,1,46
 
@@ -41,7 +42,8 @@ BEGIN
 				@SOQuote_ModuleId INT = 0,
 				@VendorRMA_ModuleId INT = 0,
 				@PartsStocklineId VARCHAR(MAX) = '',
-				@SWO_ModuleId INT = 0;
+				@SWO_ModuleId INT = 0,
+				@ReceivingCustomerWork_ModuleId INT = 0;
 
 		SELECT @Stockline_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'StockLine';
 		SELECT @SO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SalesOrder';
@@ -52,6 +54,7 @@ BEGIN
 		SELECT @SOQuote_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SalesQuote';
 		SELECT @VendorRMA_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'VendorRMA';
 		SELECT @SWO_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'SubWorkOrder';
+		SELECT @ReceivingCustomerWork_ModuleId = [AttachmentModuleId] FROM DBO.AttachmentModule WITH(NOLOCK) WHERE [Name] = 'ReceivingCustomerWork';
 
 		--Common Get FROM Stockline data
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderStockline') IS NOT NULL
@@ -232,6 +235,13 @@ BEGIN
 				JOIN [DBO].[WorkOrderMaterialsKit] VRP WITH(NOLOCK) ON MST.WorkOrderMaterialsKitId = VRP.WorkOrderMaterialsKitId
 				WHERE VRP.WorkOrderId = @WorkOrderId; -- get workorderid
 			---END KIT PN Stockline
+
+			--for ReceivingCustomerWork---
+			INSERT INTO #tmpSalesOrderStockline (StocklineId)
+			SELECT cd.ReferenceId
+				FROM ReceivingCustomerWork rcw
+				INNER JOIN CommonDocumentDetails cd on cd.ReferenceId = rcw.ReceivingCustomerWorkId AND ModuleId = @ReceivingCustomerWork_ModuleId
+			WHERE WorkOrderId = @WorkOrderId
 
 			SELECT @PartsStocklineId = STRING_AGG([StocklineId], ',') FROM #tmpSalesOrderStockline
 		END
@@ -430,7 +440,9 @@ BEGIN
 		END
 
 		--For Common Select Doc for All Module (SO/WO/RO)
-		SELECT cdd.DocName, 
+		IF(@ModuleId = @WO_ModuleId)
+		BEGIN
+			SELECT cdd.DocName, 
 			   cdd.IsActive,
 			   cdd.IsDeleted, 
 			   ad.FileName,
@@ -439,13 +451,33 @@ BEGIN
 			   ad.FileSize, 
 			   ad.AttachmentId , 
 			   ad.AttachmentDetailId
-		FROM DBO.AttachmentDetails ad WITH(NOLOCK)
-		INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
-		WHERE cdd.MasterCompanyId = @MasterCompanyId
-		AND cdd.ReferenceId IN(SELECT ITEM FROM DBO.SplitString(@PartsStocklineId,',')) 
-		AND cdd.IsActive = 1 
-		AND cdd.IsDeleted = 0 
-		AND cdd.ModuleId = @Stockline_ModuleId
+			FROM DBO.AttachmentDetails ad WITH(NOLOCK)
+			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
+			WHERE cdd.MasterCompanyId = @MasterCompanyId
+			AND cdd.ReferenceId IN(SELECT ITEM FROM DBO.SplitString(@PartsStocklineId,',')) 
+			AND ISNULL(cdd.IsActive,1) = 1 
+			AND ISNULL(cdd.IsDeleted,0) = 0
+			AND cdd.ModuleId in(@Stockline_ModuleId,@ReceivingCustomerWork_ModuleId)
+		END
+		ELSE
+		BEGIN
+			SELECT cdd.DocName, 
+			   cdd.IsActive,
+			   cdd.IsDeleted, 
+			   ad.FileName,
+			   ad.FileType,
+			   ad.Link,
+			   ad.FileSize, 
+			   ad.AttachmentId , 
+			   ad.AttachmentDetailId
+			FROM DBO.AttachmentDetails ad WITH(NOLOCK)
+			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
+			WHERE cdd.MasterCompanyId = @MasterCompanyId
+			AND cdd.ReferenceId IN(SELECT ITEM FROM DBO.SplitString(@PartsStocklineId,',')) 
+			AND ISNULL(cdd.IsActive,1) = 1 
+			AND ISNULL(cdd.IsDeleted,0) = 0
+			AND cdd.ModuleId = @Stockline_ModuleId
+		END
 		
 	END TRY
 	BEGIN CATCH

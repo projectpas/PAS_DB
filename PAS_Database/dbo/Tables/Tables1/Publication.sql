@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[Publication] (
     [PublicationRecordId]    BIGINT         IDENTITY (1, 1) NOT NULL,
     [PublicationId]          VARCHAR (100)  NOT NULL,
-    [Description]            VARCHAR (256)  NOT NULL,
+    [Description]            VARCHAR (4000) NULL,
     [MasterCompanyId]        INT            NOT NULL,
     [CreatedBy]              VARCHAR (256)  NOT NULL,
     [UpdatedBy]              VARCHAR (256)  NOT NULL,
@@ -35,6 +35,8 @@
     CONSTRAINT [FK_PublicationPublication_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_PublicationPublication_PublishedById] FOREIGN KEY ([PublishedById]) REFERENCES [dbo].[Module] ([ModuleId])
 );
+
+
 
 
 

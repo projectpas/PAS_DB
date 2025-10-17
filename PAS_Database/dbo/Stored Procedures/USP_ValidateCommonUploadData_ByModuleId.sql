@@ -84,7 +84,9 @@ BEGIN
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
 		@DropdownListValue VARCHAR(100) = NULL, 
-		@DropdownLFieldValue VARCHAR(MAX) = NULL;
+		@DropdownLFieldValue VARCHAR(MAX) = NULL,
+		@SelectFieldName VARCHAR(100) = NULL;
+		DECLARE @PublicationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Publication');
 
 		IF OBJECT_ID('tempdb..#ImportFields') IS NOT NULL
 			DROP TABLE #ImportFields
@@ -173,7 +175,7 @@ BEGIN
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
 
-				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = ''
+				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = '',@SelectFieldName = FieldName
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '')
@@ -181,7 +183,15 @@ BEGIN
 					DECLARE @DropdownListValueId VARCHAR(100) = NULL;
 					SET @DropdownLFieldValue = UPPER(TRIM(@DropdownLFieldValue))
 					
-					EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
+					IF(UPPER(@SelectFieldName) = 'VERIFIEDBY' AND UPPER(@DropdownLFieldValue) = 'NA' AND @ModuleId = @PublicationModule)
+					BEGIN
+						SET @DropdownListValueId = '0'
+					END
+					ELSE
+					BEGIN
+						EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
+					END
+
 					IF(ISNULL(@DropdownListValueId, '') != '')
 					BEGIN
 						SET @DropdownListValueId = (SELECT LEFT(@DropdownListValueId, CHARINDEX(',', @DropdownListValueId + ',') - 1))

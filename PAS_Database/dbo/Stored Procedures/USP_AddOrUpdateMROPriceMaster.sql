@@ -10,10 +10,12 @@
  ** PR   Date          Author  			Change Description            
  ** --   --------      -------			---------------------------     
     1    26/09/2025    Priyansh Patel   Created
+    2    15/10/2025    Priyansh Patel   Updated the Parameter to user defiend table type
+
 **********************/
 
 CREATE PROCEDURE [dbo].[USP_AddOrUpdateMROPriceMaster]
-    @MROPriceMasterList MROPriceMasterListType READONLY  -- Accept the list of objects
+    @MROPriceMasterList MROPriceMasterListType READONLY  --  the list of objects
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -37,11 +39,11 @@ BEGIN
         CurrencyId INT NULL,
         UnitPrice DECIMAL(18,2) NULL,
         StartDate DATETIME2(7) NULL,
+        EndDate DATETIME2(7) NULL,
         CreatedBy VARCHAR(50) NULL,
         UpdatedBy VARCHAR(50) NULL
     );
 
-    -- Insert all rows from TVP into the staging table
     INSERT INTO #MROPriceMasterTemp
     (
         MROPriceMasterId,
@@ -52,6 +54,7 @@ BEGIN
         CurrencyId,
         UnitPrice,
         StartDate,
+		EndDate,
         CreatedBy,
         UpdatedBy
     )
@@ -64,6 +67,7 @@ BEGIN
         CurrencyId,
         UnitPrice,
         StartDate,
+		EndDate,
         CreatedBy,
         UpdatedBy
     FROM @MROPriceMasterList;
@@ -75,12 +79,10 @@ BEGIN
 
             PRINT @MaxSeq;
    
-        -- Now loop from 1 to @MaxSeq
         WHILE @CurrSeq <= @MaxSeq
         BEGIN
             PRINT @CurrSeq;
 
-            -- Declare placeholders
             DECLARE 
                 @MROPriceMasterId BIGINT,
                 @ItemMasterId BIGINT,
@@ -90,6 +92,7 @@ BEGIN
                 @CurrencyId INT,
                 @UnitPrice DECIMAL(18,2),
                 @StartDate DATETIME2(7),
+                @EndDate DATETIME2(7),
                 @CreatedBy VARCHAR(50),
                 @UpdatedBy VARCHAR(50);
 
@@ -103,6 +106,7 @@ BEGIN
                 @CurrencyId = CurrencyId,
                 @UnitPrice = UnitPrice,
                 @StartDate = StartDate,
+                @EndDate = EndDate,
                 @CreatedBy = CreatedBy,
                 @UpdatedBy = UpdatedBy
             FROM #MROPriceMasterTemp
@@ -114,14 +118,14 @@ BEGIN
                     INSERT INTO dbo.MROPriceMaster
                     (
                         ItemMasterId, MasterCompanyId, CustomerId, WorkscopeId,
-                        UnitPrice, CurrencyId, StartDate,
+                        UnitPrice, CurrencyId, StartDate,EndDate,
                         CreatedBy, CreatedDate,
                         UpdatedBy, UpdatedDate, IsActive, IsDeleted
                     )
                     VALUES
                     (
                         @ItemMasterId, @MasterCompanyId, @CustomerId, @WorkscopeId,
-                        @UnitPrice, @CurrencyId, @StartDate,
+                        @UnitPrice, @CurrencyId, @StartDate,@EndDate,
                         @CreatedBy, GETUTCDATE(),
                         @UpdatedBy, GETUTCDATE(),
                         1, 0
@@ -135,6 +139,7 @@ BEGIN
                         mp.CustomerId = @CustomerId,
                         mp.WorkscopeId = @WorkscopeId,
                         mp.StartDate = @StartDate,
+                        mp.EndDate = @EndDate,
                         mp.CurrencyId = @CurrencyId,
                         mp.UnitPrice = @UnitPrice,
                         mp.UpdatedBy = @UpdatedBy,
@@ -158,7 +163,7 @@ BEGIN
 
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),
- -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+ -------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
                 @AdhocComments VARCHAR(150) = '[USP_AddOrUpdateMROPriceMaster]',
                 @ProcedureParameters VARCHAR(3000) = 
                     '@MROPriceMasterId=''' + CAST(ISNULL(@MROPriceMasterId, 0) AS VARCHAR(100)) + ''',

@@ -27,6 +27,7 @@
 	17	 09-Oct-2025        Priyansh Patel			MRO Price Master added Validation for Customer,Unit Price and StartDate
 	18	 10-Oct-2025        Rajesh Gami				Disocunt does not allow mor than 100 (Validate the Purchase and Sales)
 	19	 14-OCT-2025        Rajesh Gami				Remove Comma from the dicimal value 
+	20   17-OCT-2025        Bhargav Saliya          Publication module :: Added case for 'VerifiedBy' Field 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",

@@ -4280,6 +4280,8 @@
     <Build Include="dbo\Stored Procedures\USP_Migrate_LegalEntityBankingChequeData.sql" />
     <Build Include="dbo\User Defined Types\MROPriceMasterListType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesPersonDetails.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateItemMasterForRFQ.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateCustomerForRFQ.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

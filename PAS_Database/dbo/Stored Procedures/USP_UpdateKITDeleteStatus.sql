@@ -3,31 +3,31 @@
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used To Delete Kit in the Kit List 
  ** Purpose:         
- ** Date:   26-09-2025 
+ ** Date:    27-10-2025   
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-	1	27-10-2025           Nakul Chandigra     Created 
+	1	 27-10-2025           Nakul Chandigra     Created 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateKITDeleteStatus]
-@id BIGINT
+@Kitid BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-	BEGIN TRANSACTION
+		BEGIN TRANSACTION
 	BEGIN
 		
 		UPDATE dbo.KitMaster
 		SET 
 			IsDeleted = 1,
 			UpdatedDate = GETUTCDATE()
-		WHERE KitId = @id;
+		WHERE KitId = @Kitid;
 
-	EXEC [dbo].[usp_SaveKITMasterHistory] @id 
+	EXEC [dbo].[usp_SaveKITMasterHistory] @Kitid 
 
 	END
 	COMMIT  TRANSACTION

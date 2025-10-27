@@ -37,7 +37,7 @@ BEGIN
 	FROM [dbo].[KitMaster] kIM WITH (NOLOCK)
 	LEFT JOIN [dbo].[ItemMaster] imst WITH (NOLOCK) ON kIM.ItemMasterId = imst.ItemMasterId
 	LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON kIM.WorkScopeId = wos.WorkScopeId
-	WHERE kIM.KitId = @ItemMasterid;
+	WHERE kIM.ItemMasterid = @ItemMasterid;
 
 	END TRY
 	BEGIN CATCH

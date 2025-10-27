@@ -7,6 +7,7 @@
     [CurrencyId]       INT             NULL,
     [UnitPrice]        DECIMAL (18, 2) NULL,
     [StartDate]        DATETIME2 (7)   NULL,
+    [EndDate]          DATETIME2 (7)   NULL,
     [CreatedBy]        VARCHAR (50)    NULL,
     [UpdatedBy]        VARCHAR (50)    NULL);
 

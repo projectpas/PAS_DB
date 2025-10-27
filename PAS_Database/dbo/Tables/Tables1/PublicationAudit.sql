@@ -2,7 +2,7 @@
     [PublicationAuditId]     BIGINT         IDENTITY (1, 1) NOT NULL,
     [PublicationRecordId]    BIGINT         NOT NULL,
     [PublicationId]          VARCHAR (100)  NOT NULL,
-    [Description]            VARCHAR (4000) NULL,
+    [Description]            VARCHAR (4000) NOT NULL,
     [MasterCompanyId]        INT            NOT NULL,
     [CreatedBy]              VARCHAR (256)  NOT NULL,
     [UpdatedBy]              VARCHAR (256)  NOT NULL,

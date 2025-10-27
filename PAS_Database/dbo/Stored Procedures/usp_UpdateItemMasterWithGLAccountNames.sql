@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:  [usp_UpdateItemMasterWithGLAccountNames]            
  ** Author:   Devendra Shekh
  ** Description: Update Item Master with default values
@@ -9,6 +8,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    22-July-2025		Ayushi Patel			Created
+    2    27-OCt-2025		Devendra Shekh			Added Missing GLAccountIds Update for ItemMaster
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_UpdateItemMasterWithGLAccountNames]
     @ItemMasterId BIGINT,
@@ -89,7 +89,21 @@ BEGIN
             IM.COGS_ExchSalesOrderGLAccName = CONCAT(GL15.AccountCode, '-', GL15.AccountName),
             IM.IsPma = @IsPma,
             IM.IsDER = @IsDER,
-            IM.IsOEM = @IsOEM
+            IM.IsOEM = @IsOEM,
+			IM.GoodsReceivedNotInvoicesGLAccId = I.GoodsReceivedNotInvoicesGLAccId,
+			IM.WorkInProgressGLAccId = I.WorkInProgressGLAccId,
+			IM.InventoryToBillGLAccId = I.InventoryToBillGLAccId,
+			IM.FinishedGoodsGLAccId = I.FinishedGoodsGLAccId,
+			IM.InventoryExchAgreementGLAccId = I.InventoryExchAgreementGLAccId,
+			IM.InventoryReserveGLAccId = I.InventoryReserveGLAccId,
+			IM.COGS_WorkOrderGLAccId = I.COGS_WorkOrderGLAccId,
+			IM.COGS_SalesOrderGLAccId = I.COGS_SalesOrderGLAccId,
+			IM.COGS_QtyVarianceGLAccId = I.COGS_QtyVarianceGLAccId,
+			IM.COGS_UnitCostVarianceGLAccId = I.COGS_UnitCostVarianceGLAccId,
+			IM.RevenueMroGLAccId = I.RevenueMroGLAccId,
+			IM.RevenueSoGLAccId = I.RevenueSoGLAccId,
+			IM.RevenueExchGLAccId = I.RevenueExchGLAccId,
+			IM.COGS_ExchSalesOrderGLAccId = I.COGS_ExchSalesOrderGLAccId
         FROM dbo.ItemMaster IM WITH (NOLOCK)
         LEFT JOIN dbo.InventoryGLSetting I WITH (NOLOCK) ON I.InventoryGLSettingId = @InventoryGLSettingId
         LEFT JOIN dbo.GLAccount GL1 WITH (NOLOCK) ON GL1.GLAccountId = I.InventoryGLAccId

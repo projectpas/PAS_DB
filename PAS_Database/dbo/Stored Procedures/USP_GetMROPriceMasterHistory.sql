@@ -1,23 +1,20 @@
 ﻿/*********************           
- ** File:   [USP_GetMROPriceMasterByItemMasterId]           
+ ** File:   [USP_GetMROPriceMasterHistory]           
  ** Author: Priyansh Patel
- ** Description: This stored procedure returns all Price Master records
- **              by ItemMasterId 
- ** Date:   26/09/2025
+ ** Description: This stored procedure returns all MRO Price Master records History         
+ ** Date:   16/10/2025
 
  **********************           
   ** Change History           
  **********************           
  ** PR   Date          Author  			Change Description            
  ** --   --------      -------			---------------------------     
-    1    26/09/2025    Priyansh Patel   Created
+    1    16/10/2025    Priyansh Patel   Created
 **********************/
--- Example: EXEC USP_GetMROPriceMasterByItemMasterId 1001, 0, 1
+-- Example: EXEC USP_GetMROPriceMasterHistory 1001
 
-CREATE PROCEDURE [dbo].[USP_GetMROPriceMasterByItemMasterId] 
-    @ItemMasterId BIGINT,
-	@IsDeleted BIT,
-	@MasterCompanyId int = 0
+CREATE PROCEDURE [dbo].[USP_GetMROPriceMasterHistory] 
+    @MROPriceMasterId BIGINT
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -26,6 +23,7 @@ BEGIN
     BEGIN TRY
         BEGIN
             SELECT 
+                  MPM.[MROPriceMasterAuditId],
                   MPM.[MROPriceMasterId],
                   MPM.[ItemMasterId],
                   MPM.[MasterCompanyId],
@@ -41,12 +39,9 @@ BEGIN
                   MPM.[UpdatedDate],
                   MPM.[IsActive],
                   MPM.[IsDeleted]
-            FROM [dbo].[MROPriceMaster] MPM WITH(NOLOCK)
-            WHERE MPM.[ItemMasterId] = @ItemMasterId
-              AND MPM.[MasterCompanyId] = @MasterCompanyId
-              AND MPM.[IsActive] = 1
-              AND MPM.[IsDeleted] = @IsDeleted
-            ORDER BY MPM.[StartDate] DESC;
+            FROM [dbo].[MROPriceMasterAudit] MPM WITH(NOLOCK)
+            WHERE MPM.[MROPriceMasterId] = @MROPriceMasterId
+            ORDER BY MPM.[UpdatedDate] DESC;
         END
     END TRY
 
@@ -61,11 +56,9 @@ BEGIN
 
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),
-                @AdhocComments VARCHAR(150) = '[USP_GetMROPriceMasterByItemMasterId]',
+                @AdhocComments VARCHAR(150) = '[USP_GetMROPriceMasterHistory]',
                 @ProcedureParameters VARCHAR(3000) = 
-                    '@ItemMasterId=''' + CAST(ISNULL(@ItemMasterId, 0) AS VARCHAR(100)) + ''',
-                     @MasterCompanyId=''' + CAST(ISNULL(@MasterCompanyId, 0) AS VARCHAR(100)) + ''',
-                     @IsDeleted=''' + CAST(ISNULL(@IsDeleted, 0) AS VARCHAR(100)) + '''',
+                    '@MROPriceMasterId=''' + CAST(ISNULL(@MROPriceMasterId, 0) AS VARCHAR(100)),
                 @ApplicationName VARCHAR(100) = 'PAS';
         -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         EXEC spLogException 

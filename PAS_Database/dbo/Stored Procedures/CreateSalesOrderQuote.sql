@@ -62,7 +62,8 @@ CREATE   PROCEDURE [dbo].[CreateSalesOrderQuote]
 	@CopyOldSOQId BIGINT,
 	@CustomerRfqId BIGINT,
 	@SourceBy VARCHAR(50),
-	@MarketplaceRef VARCHAR(50)
+	@MarketplaceRef VARCHAR(50),
+	@CustomerContactId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -82,7 +83,7 @@ BEGIN
 				SELECT @SOQModuleId  = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) where [ModuleName] = 'SalesQuote';
 
 				DECLARE @AccountTypeId INT;
-				DECLARE @CustomerContactId BIGINT;
+				--DECLARE @CustomerContactId BIGINT;
 				DECLARE @ContractReference VARCHAR(100);
 				DECLARE @CreditLimit DECIMAL(18,2);
 				DECLARE @CreditTermId INT;
@@ -180,7 +181,7 @@ BEGIN
 				-- Fetch customer details
 				SELECT TOP 1
 				@AccountTypeId = C.CustomerTypeId,
-				@CustomerContactId = CC.CustomerContactId,
+				--@CustomerContactId = CC.CustomerContactId,
 				@ContractReference = C.ContractReference,
 				@RestrictDER = C.RestrictDER,
 				@RestrictPMA = C.RestrictPMA,

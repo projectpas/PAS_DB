@@ -19,6 +19,7 @@
 	8    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
 	9    27 Aug 2025	Devendra Shekh		Modified (price decimal issue when autoquote resolved)
 	10	 27 Aug 2025	Devendra Shekh		Modified (select employee from LegalEntity or Employee Table if @EmployeeId is null or 0)
+	11	 27 Oct 2025	Devendra Shekh		Modified (Create Item and Customer if Not Exists in System)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -178,8 +179,10 @@ BEGIN
 		IF(ISNULL(@CustomerRfqId, 0) > 0)
 		BEGIN
 			DECLARE @TotalQuoteRow INT, @CurrentQuoteRow INT;
-			DECLARE @CustomerRfqPartMappingId BIGINT, @Condition VARCHAR(250), @PartNumber VARCHAR(250);
+			DECLARE @CustomerRfqPartMappingId BIGINT, @Condition VARCHAR(250), @PartNumber VARCHAR(250), @PartDescription VARCHAR(250);
 			DECLARE @QuoteSendReviewId INT = 0, @UnitPrice DECIMAL(18,2) = 0, @DefaultUnitPrice DECIMAL(18,2) = 0;
+			DECLARE @ItemMasterId BIGINT = 0, @CustomerId BIGINT = 0;
+			DECLARE @NewItemMasterId BIGINT = 0, @NewCustomerId BIGINT = 0;
 			
 			IF OBJECT_ID(N'tempdb..#tmpQuote') IS NOT NULL
 			BEGIN
@@ -222,12 +225,20 @@ BEGIN
 			INTO #tmpQuote
 			FROM [dbo].[CustomerRfqPartMapping] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
+			UPDATE TMP
+			SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END,
+				TMP.CustomerId = CASE WHEN ISNULL(CS.CustomerId, 0) > 0 THEN CS.CustomerId ELSE 0 END
+			FROM #tmpQuote TMP
+			LEFT JOIN dbo.[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
+			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
+			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId AND CS.IsActive = 1 AND CS.IsDeleted = 0
+
 			SELECT @TotalQuoteRow = MAX(RowId), @CurrentQuoteRow = MIN(RowId) FROM #tmpQuote;
 
 			WHILE(@TotalQuoteRow >= @CurrentQuoteRow) AND ISNULL(@TotalQuoteRow, 0) > 0
 			BEGIN
 
-				SELECT @CustomerRfqPartMappingId = CustomerRfqPartMappingId, @PartNumber = PartNumber, @Condition = Condition FROM #tmpQuote WHERE RowId = @CurrentQuoteRow;
+				SELECT @CustomerRfqPartMappingId = CustomerRfqPartMappingId, @PartNumber = PartNumber, @Condition = Condition, @PartDescription = PartDescription, @ItemMasterId = ItemMasterId, @CustomerId = CustomerId FROM #tmpQuote WHERE RowId = @CurrentQuoteRow;
 
 				TRUNCATE TABLE #tmpRFQPriceResult
 
@@ -248,32 +259,28 @@ BEGIN
 				) A
 				WHERE RowId = @CurrentQuoteRow;
 
-				--TRUNCATE TABLE #tmpRFQDetails;
-				----Get price based on rfqId
-				--INSERT INTO #tmpRFQDetails
-				--EXEC [dbo].[usp_GetRFQPriceSuggestionDetails] @CustomerRfqId, @MasterCompanyId, @CustomerRfqPartMappingId;
+				IF(ISNULL(@ItemMasterId, 0) = 0)
+				BEGIN
+					SET @NewItemMasterId = 0;
+					EXEC [dbo].[usp_CreateItemMasterForRFQ] @PartNumber, @PartDescription, @MasterCompanyId, @EmployeeId, @CreatedBy, @NewItemMasterId OUTPUT;
 
-				--UPDATE TMP
-				--SET	TMP.[Price] = (SELECT ISNULL(ilsPrice,0) FROM #tmpRFQDetails),
-				--	TMP.ConditionId = A.ConditionId
-				--FROM #tmpQuote TMP 
-				--OUTER APPLY (
-				--	SELECT TOP 1 CD.ConditionId
-				--	FROM [dbo].[Condition] CD WITH(NOLOCK) 
-				--	WHERE CD.[Description] = TMP.Condition AND CD.MasterCompanyId = TMP.MasterCompanyId
-				--) A
-				--WHERE RowId = @CurrentQuoteRow;
+					UPDATE TMP
+					SET	TMP.ItemMasterId = @NewItemMasterId
+					FROM #tmpQuote TMP WHERE RowId = @CurrentQuoteRow; 
+				END
+
+				IF(ISNULL(@CustomerId, 0) = 0)
+				BEGIN
+					SET @NewCustomerId = 0;
+					EXEC [dbo].[usp_CreateCustomerForRFQ] @tbl_RfqCustomerType, @MasterCompanyId, @EmployeeId, @CreatedBy, @NewCustomerId OUTPUT;
+
+					UPDATE TMP
+					SET	TMP.CustomerId = @NewCustomerId
+					FROM #tmpQuote TMP WHERE RowId = @CurrentQuoteRow;
+				END
 
 				SET @CurrentQuoteRow += 1;
-			END
-
-			UPDATE TMP
-			SET TMP.ItemMasterId = CASE WHEN ISNULL(IM.ItemMasterId, 0) > 0 THEN IM.ItemMasterId ELSE 0 END,
-				TMP.CustomerId = CASE WHEN ISNULL(CS.CustomerId, 0) > 0 THEN CS.CustomerId ELSE 0 END
-			FROM #tmpQuote TMP
-			LEFT JOIN dbo.[CustomerRfq] RFQ WITH(NOLOCK) ON TMP.[CustomerRfqId] = RFQ.[CustomerRfqId]
-			LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(TMP.PartNumber)) AND IM.MasterCompanyId = TMP.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
-			LEFT JOIN dbo.[Customer] CS WITH(NOLOCK) ON (LOWER(TRIM(CS.[Name])) = LOWER(TRIM(RFQ.[BuyerCompanyName])) OR (CS.CustomerId = RFQ.CustomerId)) AND CS.MasterCompanyId = TMP.MasterCompanyId AND CS.IsActive = 1 AND CS.IsDeleted = 0
+			END			
 
 			IF EXISTS(SELECT 1 FROM #tmpQuote WHERE ISNULL(ItemMasterId, 0) = 0 OR ISNULL(CustomerId, 0) = 0 OR ISNULL(ConditionId, 0) = 0 OR ISNULL(QuoteSendReviewId, 0) = 0)
 			BEGIN

@@ -319,7 +319,7 @@ BEGIN
 												WHEN ISNULL(IMF.DropdownListType, '') != ''  
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
 												THEN 
-													'Please Enter Correct ' + IMF.HeaderName + IMF.FieldName
+													'Please Enter Correct ' + IMF.HeaderName 
 
 												-- UnitPrice Validation (checking for numeric value and greater than 0)
 												WHEN  @ModuleId = @MROPriceMasterModule 
@@ -345,6 +345,24 @@ BEGIN
 													 AND TRY_CONVERT(DATE, TMP.FieldValue, 101) IS NULL
 												THEN 
 													'Start Date must be in MM/DD/YYYY format'
+
+												WHEN IMF.FieldName = 'EndDate' 
+													 AND ISNULL(TMP.FieldValue, '') != '' 
+													 AND TRY_CONVERT(DATE, TMP.FieldValue, 101) IS NULL
+												THEN 
+													'End Date must be in MM/DD/YYYY format'
+
+												WHEN IMF.FieldName = 'EndDate'
+													 AND EXISTS (
+														 SELECT 1
+														 FROM #DynamicKeyValue SD
+														 WHERE SD.FieldName = 'StartDate'
+														   AND ISNULL(SD.FieldValue, '') != ''
+														   AND TRY_CONVERT(DATE, SD.FieldValue, 101) IS NOT NULL
+														   AND TRY_CONVERT(DATE, TMP.FieldValue, 101) IS NOT NULL
+														   AND TRY_CONVERT(DATE, TMP.FieldValue, 101) < TRY_CONVERT									(DATE, SD.FieldValue, 101)
+													 )
+												THEN 'End Date must be greater than Start Date'
 
 
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'Email' OR IMF.FieldName = 'VendorEmail')

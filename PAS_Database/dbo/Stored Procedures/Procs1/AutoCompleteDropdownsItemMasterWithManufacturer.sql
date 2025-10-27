@@ -21,7 +21,7 @@
 	7    30/01/2025   Shrey Chandegara  Modified due to add itemgroup
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
-EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '',1,20,'',1  
+EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '100',1,50,'',18  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
 @StartWith VARCHAR(50),  
@@ -38,7 +38,7 @@ BEGIN
   
   IF(@IsActive = 1)  
    BEGIN    
-     SELECT DISTINCT TOP 20   
+     SELECT DISTINCT TOP 50   
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
@@ -122,7 +122,7 @@ BEGIN
    End  
    ELSE  
    BEGIN  
-    SELECT DISTINCT TOP 20   
+    SELECT DISTINCT TOP 50   
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,    
@@ -162,7 +162,7 @@ BEGIN
     
 	UNION   
 
-    SELECT DISTINCT TOP 20   
+    SELECT DISTINCT TOP 50   
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,    
 		  Im.partnumber AS PartNumber,  

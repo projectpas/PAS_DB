@@ -4282,6 +4282,12 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesPersonDetails.sql" />
     <Build Include="dbo\Tables\MROPriceMasterAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMROPriceMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQPO.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQPOPartType.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateItemMasterForRFQ.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateCustomerForRFQ.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddItemMasterCapes.sql" />
+    <Build Include="dbo\User Defined Types\ItemMasterCapesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4314,5 +4320,6 @@
     <None Include="Snapshots\PAS_SPRINT_58_1.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_60.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_61_Mid.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_61.dacpac" />
   </ItemGroup>
 </Project>

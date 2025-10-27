@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_SearchCustomerInvoicesQBExtract]           
  ** Author:  RAJESH GAMI
  ** Description: Search CustomerInvoices QuickBook Extract : Copied from USP_SearchCustomerInvoices for Extract the Quickbook
@@ -705,13 +706,17 @@ BEGIN
 				   OFFSET @RecordFrom ROWS   
 				   FETCH NEXT @PageSize ROWS ONLY;
 
-				   DROP TABLE #TempResult;
+				   DROP TABLE #TempResults;
 		END
      END TRY
   BEGIN CATCH
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
+		SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

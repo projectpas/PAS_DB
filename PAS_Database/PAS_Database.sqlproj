@@ -4288,6 +4288,9 @@
     <Build Include="dbo\Stored Procedures\usp_CreateCustomerForRFQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddItemMasterCapes.sql" />
     <Build Include="dbo\User Defined Types\ItemMasterCapesType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterPurchaseSale.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSalesAndPurchase.sql" />
+    <Build Include="dbo\User Defined Types\SuggestedPriceTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

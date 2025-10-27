@@ -36,7 +36,7 @@ BEGIN
             pb.ExpirationDate,
             pb.NextReviewDate,
             pb.VerifiedBy,
-            CASE WHEN pb.VerifiedBy = 0 THEN 'NA' ELSE ISNULL(emvb.FirstName, '') + ' ' + ISNULL(emvb.LastName, '') END AS VerifiedByName,
+            CASE WHEN ISNULL(pb.VerifiedBy,0) = 0 THEN 'NA' ELSE ISNULL(emvb.FirstName, '') + ' ' + ISNULL(emvb.LastName, '') END AS VerifiedByName,
             pb.VerifiedDate,
             ISNULL(em.FirstName, '') + ' ' + ISNULL(em.LastName, '') AS EmployeeName,
             ISNULL(pb.RevisionNum, '') AS RevisionNum,

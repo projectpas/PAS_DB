@@ -53,7 +53,7 @@ BEGIN
             pa.UpdatedBy,
 			(Cast(DBO.ConvertUTCtoLocal(pa.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
             ISNULL(pa.RevisionNum, '') AS RevisionNum,
-			CASE WHEN pa.VerifiedBy = 0 THEN 'NA' ELSE ISNULL(vb.FirstName, '') + ' ' + ISNULL(vb.LastName, '') END AS VerifiedBy,
+			CASE WHEN ISNULL(pa.VerifiedBy,0) = 0 THEN 'NA' ELSE ISNULL(vb.FirstName, '') + ' ' + ISNULL(vb.LastName, '') END AS VerifiedBy,
             pa.VerifiedDate,
             ISNULL(pa.IsDeleted,0) AS IsDeleted,
             pa.CreatedBy,

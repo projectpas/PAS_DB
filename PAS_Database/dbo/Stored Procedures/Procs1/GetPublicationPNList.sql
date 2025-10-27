@@ -134,7 +134,7 @@ BEGIN
 					   p.NextReviewDate AS NextReviewDate,
 					   p.ExpirationDate AS ExpirationDate,					   
 					   loc.[Name] AS [Location],
-					   CASE WHEN p.VerifiedBy = 0 THEN 'NA' ELSE e.FirstName+' '+e.LastName end  AS VerifiedBy,
+					   CASE WHEN ISNULL(p.VerifiedBy,0) = 0 THEN 'NA' ELSE e.FirstName+' '+e.LastName end  AS VerifiedBy,
 					   p.VerifiedDate AS VerifiedDate,					  
 					   case when CAST(p.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(p.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
 					   case when CAST(p.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(p.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,

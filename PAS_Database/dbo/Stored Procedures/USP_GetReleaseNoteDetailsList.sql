@@ -16,8 +16,9 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    22-May-2025   Bhargav Saliya		Created
+    2    16-Sept-2025  Devendra Shekh		Added ReleaseNotesTitleDetails Select
 
-	EXEC [USP_GetWorkOrderQuoteChargesDetails]  @WorkOrderQuoteDetailsId = 6803, @BuildMethodId = 4
+EXEC [USP_GetReleaseNoteDetailsList] 233, 1, 0
 **************************************************************/
 CREATE   PROCEDURE	[dbo].[USP_GetReleaseNoteDetailsList]
     @EmployeeId BIGINT,
@@ -54,6 +55,23 @@ BEGIN
 		FROM [dbo].[ReleaseNoteHeadersDetails] RHD WITH(NOLOCK)
 		WHERE RHD. IsActive = @IsActive and RHD.IsDeleted = @IsDelete 
 		ORDER BY RHD.ReleaseNoteHeaderId DESC
+
+		SELECT 
+			[TitleId], [ReleaseNoteHeaderId], [Title], [SprintName], [Type], [TitleDescription]
+		FROM
+		(
+			SELECT 
+				rtd.[TitleId],
+				rtd.[ReleaseNoteHeaderId],
+				rtd.[Title],
+				rtd.[SprintName],
+				WT.[WorkType] AS [Type],
+				rtd.[Description] AS TitleDescription
+			FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK) 
+			INNER JOIN DBO.[ReleaseNoteHeadersDetails] rh WITH(NOLOCK) ON rtd.[ReleaseNoteHeaderId] = rh.[ReleaseNoteHeaderId]
+			LEFT JOIN DBO.[WorkType] WT WITH(NOLOCK) ON rtd.TypeId = WT.WorkTypeId
+			WHERE rh. IsActive = @IsActive and rh.IsDeleted = @IsDelete 
+		) AS Titles;
 	END TRY
 	BEGIN CATCH      
 			IF @@trancount > 0

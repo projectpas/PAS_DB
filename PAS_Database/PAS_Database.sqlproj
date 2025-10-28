@@ -4293,6 +4293,15 @@
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterPurchaseSale.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteSalesAndPurchase.sql" />
     <Build Include="dbo\User Defined Types\SuggestedPriceTableType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_itemNonstockUpdateforActive.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ItemMastercapesUpdate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_itemmasterCapesAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Getexchangeloan.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreItemMasterCapes.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreItemMasterAircraftStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Addupdateexchangeloan.sql" />
+    <Build Include="dbo\User Defined Types\ItemMasterCapesUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\AddexchangeloanType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

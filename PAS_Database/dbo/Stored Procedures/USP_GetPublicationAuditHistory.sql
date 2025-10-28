@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-30		  Ayushi Patel				Created
+	2    2025-10-16		  Bhargav Saliya			Added Case For [verifiedBy]
 	
  ***************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetPublicationAuditHistory]
@@ -52,7 +53,7 @@ BEGIN
             pa.UpdatedBy,
 			(Cast(DBO.ConvertUTCtoLocal(pa.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime)) UpdatedDate,
             ISNULL(pa.RevisionNum, '') AS RevisionNum,
-            ISNULL(vb.FirstName, '') AS VerifiedBy,
+			CASE WHEN ISNULL(pa.VerifiedBy,0) = 0 THEN 'NA' ELSE ISNULL(vb.FirstName, '') + ' ' + ISNULL(vb.LastName, '') END AS VerifiedBy,
             pa.VerifiedDate,
             ISNULL(pa.IsDeleted,0) AS IsDeleted,
             pa.CreatedBy,

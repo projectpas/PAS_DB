@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-30		  Ayushi Patel				Created
+    2    2025-10-16		  Bhargav Saliya			Added Case For [VerifiedByName]
 	
  ***************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetPublicationViewById]  
@@ -35,7 +36,7 @@ BEGIN
             pb.ExpirationDate,
             pb.NextReviewDate,
             pb.VerifiedBy,
-            ISNULL(emvb.FirstName, '') + ' ' + ISNULL(emvb.LastName, '') AS VerifiedByName,
+            CASE WHEN ISNULL(pb.VerifiedBy,0) = 0 THEN 'NA' ELSE ISNULL(emvb.FirstName, '') + ' ' + ISNULL(emvb.LastName, '') END AS VerifiedByName,
             pb.VerifiedDate,
             ISNULL(em.FirstName, '') + ' ' + ISNULL(em.LastName, '') AS EmployeeName,
             ISNULL(pb.RevisionNum, '') AS RevisionNum,

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetPublicationPNList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Publication List    
@@ -21,6 +20,7 @@
 	3    13/02/2025   Sahdev Saliya    Added new field PublishedByName
 	4    12/03/2025   Sahdev Saliya    Added a case to get timeZone
 	5    22/05/2025   Sahdev Saliya    Added new field Fleet
+	6    16/10/2025   Bhargav Saliya   Added case for VerifiedBy
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
@@ -134,7 +134,7 @@ BEGIN
 					   p.NextReviewDate AS NextReviewDate,
 					   p.ExpirationDate AS ExpirationDate,					   
 					   loc.[Name] AS [Location],
-					   e.FirstName+' '+e.LastName  AS VerifiedBy,
+					   CASE WHEN ISNULL(p.VerifiedBy,0) = 0 THEN 'NA' ELSE e.FirstName+' '+e.LastName end  AS VerifiedBy,
 					   p.VerifiedDate AS VerifiedDate,					  
 					   case when CAST(p.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(p.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
 					   case when CAST(p.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(p.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,

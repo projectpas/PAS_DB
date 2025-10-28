@@ -12,7 +12,7 @@
 	1	 27-10-2025         Nakul Chandigra     Created 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetKitByItemMaster]
-@ItemMasterid BIGINT
+@ItemMasterId BIGINT
 AS
 BEGIN
 	BEGIN TRY

@@ -82,7 +82,7 @@ BEGIN
 
 		SELECT 	[ItemMasterLoanExchId],[ItemMasterId],[IsLoan]  ,[IsExchange]  ,[ExchangeCurrencyId]  ,[LoanCurrencyId] ,[ExchangeListPrice],[ExchangeCorePrice] ,[ExchangeOverhaulPrice],[ExchangeOutrightPrice] ,[ExchangeCoreCost],[LoanCorePrice] ,
 				[LoanOutrightPrice],[LoanFees] ,[MasterCompanyId]  ,[CreatedBy]  ,[CreatedDate]  ,[UpdatedBy]  ,[UpdatedDate]  ,[IsActive] ,[IsDeleted]  ,[ExchangeOverhaulCost] ,[EFcogs]  ,[OPcogs]  ,[EFcogsamount] ,[OPcogsamount] 
-		FROM [DBO].[ItemMasterExchangeLoan]
+		FROM [DBO].[ItemMasterExchangeLoan] WITH(NOLOCK)
 		WHERE [ItemMasterLoanExchId] = @ItemMasterLoanExchId
 
 	END 

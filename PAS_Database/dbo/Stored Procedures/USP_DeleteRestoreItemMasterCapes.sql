@@ -21,13 +21,13 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 
-	DECLARE @DELETE BIT
+	DECLARE @IsDELETE BIT
 
-	SELECT @DELETE = IsDeleted
+	SELECT @IsDELETE = ISNULL(IsDeleted, 0)
 	FROM [dbo].[itemMasterCapes] WITH (NOLOCK)
 	WHERE ItemMasterCapesId = @itemMasterCapesId
 
-	IF (@DELETE = 0)
+	IF (@IsDELETE = 0)
 	BEGIN
 		UPDATE [dbo].[itemMasterCapes]	
 		SET [IsDeleted] = 1 ,

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Customer] (
+CREATE TABLE [dbo].[Customer] (
     [CustomerId]                BIGINT         IDENTITY (1, 1) NOT NULL,
     [CustomerAffiliationId]     INT            NULL,
     [CustomerTypeId]            INT            NOT NULL,
@@ -63,27 +63,116 @@
 
 
 
+
+
 GO
 
+     
+     CREATE     TRIGGER [dbo].[trg_Audit_dbo_Customer]
+        ON [dbo].[Customer]
+        AFTER INSERT, UPDATE, DELETE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            ;WITH
+            d AS (SELECT d.[CustomerId],d.[CustomerAffiliationId],d.[CustomerTypeId],d.[Name],d.[CustomerCode],d.[DoingBuinessAsName],d.[IsParent],d.[ParentId],d.[CustomerPhone],d.[CustomerPhoneExt],d.[Email],d.[AddressId],d.[IsAddressForBilling],d.[IsAddressForShipping],d.[IsCustomerAlsoVendor],d.[ContractReference],d.[IsPBHCustomer],d.[PBHCustomerMemo],d.[CustomerURL],d.[RestrictPMA],d.[RestrictDER],d.[ManagementStructureId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[IsCRMCustomer],d.[BillingAddressId],d.[ShippingAddressId],d.[IsTradeRestricted],d.[TradeRestrictedMemo],d.[IsTrackScoreCard],d.[CommunicationPreference],d.[Ismiscellaneous],d.[IsStageChange],d.[IsCommunicationPreference],d.[IsCustomerShipping],d.[QuickBooksReferenceId],d.[IsUpdated],d.[LastSyncDate],d.[Memo],d.[SyncToken] FROM deleted d),
+            i AS (SELECT i.[CustomerId],i.[CustomerAffiliationId],i.[CustomerTypeId],i.[Name],i.[CustomerCode],i.[DoingBuinessAsName],i.[IsParent],i.[ParentId],i.[CustomerPhone],i.[CustomerPhoneExt],i.[Email],i.[AddressId],i.[IsAddressForBilling],i.[IsAddressForShipping],i.[IsCustomerAlsoVendor],i.[ContractReference],i.[IsPBHCustomer],i.[PBHCustomerMemo],i.[CustomerURL],i.[RestrictPMA],i.[RestrictDER],i.[ManagementStructureId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[IsCRMCustomer],i.[BillingAddressId],i.[ShippingAddressId],i.[IsTradeRestricted],i.[TradeRestrictedMemo],i.[IsTrackScoreCard],i.[CommunicationPreference],i.[Ismiscellaneous],i.[IsStageChange],i.[IsCommunicationPreference],i.[IsCustomerShipping],i.[QuickBooksReferenceId],i.[IsUpdated],i.[LastSyncDate],i.[Memo],i.[SyncToken] FROM inserted i),
+            paired AS (
+                SELECT
+                    COALESCE(i.CustomerId, d.CustomerId ) AS CustomerId,
+                    (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
+                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+                    CASE
+                        WHEN i.CustomerId IS NOT NULL AND d.CustomerId IS NOT NULL THEN 'U'
+                        WHEN i.CustomerId IS NOT NULL AND d.CustomerId IS NULL     THEN 'I'
+                        WHEN i.CustomerId IS NULL     AND d.CustomerId IS NOT NULL THEN 'D'
+                    END AS Action,
 
-CREATE TRIGGER [dbo].[Trg_CustomerAudit]
+                    (SELECT COALESCE(i.CustomerId, d.CustomerId) AS CustomerId
+                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
+                FROM d
+                FULL OUTER JOIN i
+                    ON i.CustomerId = d.CustomerId
+            ),
 
-   ON  [dbo].[Customer]
-
-   AFTER INSERT,DELETE,UPDATE
-
-AS 
-
-BEGIN
-
-	INSERT INTO [dbo].[CustomerAudit]
-
-	SELECT * FROM INSERTED
-
-
-
-	SET NOCOUNT ON;
-
-
-
-END
+            oldv AS (
+                SELECT
+                    p.PKJson,
+                    p.CustomerId,
+                    v.[key]  AS ColumnName,
+                    v.value  AS OldValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.old_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'Customer'
+                      AND ign.ColumnName = N'CustomerId'
+                )),
+            newv AS (
+                SELECT
+                    p.PKJson,
+                    p.CustomerId ,
+                    v.[key]  AS ColumnName,
+                    v.value  AS NewValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.new_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'Customer'
+                      AND ign.ColumnName = N'CustomerId'
+                )),
+            merged AS (
+                SELECT
+                    COALESCE(n.PKJson, o.PKJson)                AS PKJson,
+                    COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
+                    o.OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN oldv o
+                    ON o.CustomerId = p.CustomerId
+                LEFT JOIN newv n
+                    ON n.CustomerId = p.CustomerId
+                   AND n.ColumnName = o.ColumnName
+                UNION ALL
+                SELECT
+                    n.PKJson,
+                    n.ColumnName,
+                    NULL AS OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN newv n
+                    ON n.CustomerId = p.CustomerId
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM oldv o2
+                    WHERE o2.CustomerId = p.CustomerId
+                      AND o2.ColumnName    = n.ColumnName
+                )
+            )
+            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+            SELECT
+                N'dbo' AS SchemaName,
+                N'Customer' AS TableName,
+                m.PKJson,
+                m.ColumnName,
+                m.Action,
+                m.OldValue,
+                m.NewValue
+            FROM merged m
+            WHERE
+                (m.Action = 'U' AND (
+                     (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
+                  OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
+                  OR (m.OldValue <> m.NewValue)
+                ))
+                OR
+                (m.Action = 'I' AND m.NewValue IS NOT NULL)
+                OR
+                (m.Action = 'D' AND m.OldValue IS NOT NULL);
+        END;

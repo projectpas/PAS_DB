@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WorkOrder] (
+CREATE TABLE [dbo].[WorkOrder] (
     [WorkOrderId]                      BIGINT          IDENTITY (1, 1) NOT NULL,
     [WorkOrderNum]                     VARCHAR (30)    NOT NULL,
     [IsSinglePN]                       BIT             NOT NULL,
@@ -88,6 +88,8 @@
 
 
 
+
+
 GO
 
 
@@ -123,60 +125,117 @@ BEGIN
 
 END
 GO
-/*************************************************************             
- ** File:        
- ** Author:   
- ** Description: 
- ** Purpose:           
- ** Date:   
-         
- **************************************************************             
-  ** Change History             
- **************************************************************             
- ** PR   Date         Author		Change Description              
- ** --   --------     -------		-------------------------------            
-    2    18/03/2024   Bhargav Saliya    Add New Fields [PercentId],[Days],[NetDays]
-	3	 07/20/2024	  Bhargav Saliya    Move Audit Table in backup DB
-	4	 10/28/2024	  AMIT GHEDIYA		Added Curr in workorder & audit table.
-	
-**************************************************************/ 
-CREATE     TRIGGER [dbo].[Trg_WorkOrderAudit]
-   ON  [dbo].[WorkOrder]
-   AFTER INSERT,UPDATE
-AS 
 
-BEGIN
-	DECLARE @StatusId BIGINT,@CustomerId BIGINT,@ContactId BIGINT,@CreditTermsId BIGINT,@SalesPersonId BIGINT,@CSRId BIGINT,@EmployeeId BIGINT
-	DECLARE @Status VARCHAR(256),@ContactName VARCHAR(256),@ContactPhone VARCHAR(30),--@CreditLimit DECIMAL(20,2), @CustomerName VARCHAR(256), @CreditTerms VARCHAR(256),
-
-	@SalesPerson VARCHAR(256),@CSR VARCHAR(256),@Employee VARCHAR(256), @TearDownTypes VARCHAR(300)
-
-	SELECT @StatusId=WorkOrderStatusId,@CustomerId=CustomerId,@ContactId=CustomerContactId,@SalesPersonId=SalesPersonId,@CSRId=CSRId,@EmployeeId=EmployeeId, @TearDownTypes=TearDownTypes
-	FROM INSERTED
-
-	SELECT @Status=Status FROM WorkOrderStatus WHERE Id=@StatusId
-
-	SELECT @ContactName=C.FirstName+' '+C.LastName,@ContactPhone=C.WorkPhone+' '+ c.WorkPhoneExtn FROM CustomerContact CC
-	INNER JOIN Contact C ON CC.ContactId=C.ContactId
-	WHERE CustomerContactId=@ContactId
-
-	SELECT @SalesPerson=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@SalesPersonId
-	SELECT @CSR=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@CSRId
-	SELECT @Employee=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@EmployeeId
-	
-	INSERT INTO [PAS_DEV_logs].[dbo].[WorkOrderAudit] 
-
-    SELECT WorkOrderId, WorkOrderNum,IsSinglePN,WorkOrderTypeId,OpenDate,CustomerId,WorkOrderStatusId, EmployeeId,
-	MasterCompanyId,CreatedBy,UpdatedBy,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
-	Memo, Notes, CustomerContactId, @Status, CustomerName,
-	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason,CreditTermId,IsManualForm,PercentId,Days,NetDays,
-	FunctionalCurrencyId, ReportCurrencyId, ForeignExchangeRate
-	FROM INSERTED 
-
-	SET NOCOUNT ON;
-END
 
 GO
-DISABLE TRIGGER [dbo].[Trg_WorkOrderAudit]
-    ON [dbo].[WorkOrder];
+     
 
+     
+     CREATE     TRIGGER [dbo].[trg_Audit_dbo_WorkOrder]
+        ON [dbo].[WorkOrder]
+        AFTER INSERT, UPDATE, DELETE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            ;WITH
+            d AS (SELECT d.[WorkOrderId],d.[WorkOrderNum],d.[IsSinglePN],d.[WorkOrderTypeId],d.[OpenDate],d.[CustomerId],d.[WorkOrderStatusId],d.[EmployeeId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[SalesPersonId],d.[CSRId],d.[ReceivingCustomerWorkId],d.[Memo],d.[Notes],d.[CustomerContactId],d.[CustomerName],d.[CustomerType],d.[CreditLimit],d.[CreditTerms],d.[TearDownTypes],d.[RMAHeaderId],d.[IsWarranty],d.[IsAccepted],d.[ReasonId],d.[Reason],d.[CreditTermId],d.[IsManualForm],d.[PercentId],d.[Days],d.[NetDays],d.[WorkOrderType],d.[FunctionalCurrencyId],d.[ReportCurrencyId],d.[ForeignExchangeRate],d.[WorkOrderFormTypeId],d.[IsWoAlwaysOrOndemandId],d.[EnforceMpnPickTicketConfirmation],d.[SecondarySalesPersonId],d.[SalesAgentID],d.[PrimarySalesRevenue],d.[PrimarySalesMargin],d.[SecondarySalesRevenue],d.[SecondarySalesMargin],d.[CSRSalesRevenue],d.[CSRSalesMargin],d.[AgentSalesRevenue],d.[AgentSalesMargin] FROM deleted d),
+            i AS (SELECT i.[WorkOrderId],i.[WorkOrderNum],i.[IsSinglePN],i.[WorkOrderTypeId],i.[OpenDate],i.[CustomerId],i.[WorkOrderStatusId],i.[EmployeeId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[SalesPersonId],i.[CSRId],i.[ReceivingCustomerWorkId],i.[Memo],i.[Notes],i.[CustomerContactId],i.[CustomerName],i.[CustomerType],i.[CreditLimit],i.[CreditTerms],i.[TearDownTypes],i.[RMAHeaderId],i.[IsWarranty],i.[IsAccepted],i.[ReasonId],i.[Reason],i.[CreditTermId],i.[IsManualForm],i.[PercentId],i.[Days],i.[NetDays],i.[WorkOrderType],i.[FunctionalCurrencyId],i.[ReportCurrencyId],i.[ForeignExchangeRate],i.[WorkOrderFormTypeId],i.[IsWoAlwaysOrOndemandId],i.[EnforceMpnPickTicketConfirmation],i.[SecondarySalesPersonId],i.[SalesAgentID],i.[PrimarySalesRevenue],i.[PrimarySalesMargin],i.[SecondarySalesRevenue],i.[SecondarySalesMargin],i.[CSRSalesRevenue],i.[CSRSalesMargin],i.[AgentSalesRevenue],i.[AgentSalesMargin] FROM inserted i),
+            paired AS (
+                SELECT
+                    COALESCE(i.WorkOrderId, d.WorkOrderId ) AS WorkOrderId,
+                    (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
+                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+                    CASE
+                        WHEN i.WorkOrderId IS NOT NULL AND d.WorkOrderId IS NOT NULL THEN 'U'
+                        WHEN i.WorkOrderId IS NOT NULL AND d.WorkOrderId IS NULL     THEN 'I'
+                        WHEN i.WorkOrderId IS NULL     AND d.WorkOrderId IS NOT NULL THEN 'D'
+                    END AS Action,
+
+                    (SELECT COALESCE(i.WorkOrderId, d.WorkOrderId) AS WorkOrderId
+                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
+                FROM d
+                FULL OUTER JOIN i
+                    ON i.WorkOrderId = d.WorkOrderId
+            ),
+
+            oldv AS (
+                SELECT
+                    p.PKJson,
+                    p.WorkOrderId,
+                    v.[key]  AS ColumnName,
+                    v.value  AS OldValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.old_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'WorkOrder'
+                      AND ign.ColumnName = N'WorkOrderId'
+                )),
+            newv AS (
+                SELECT
+                    p.PKJson,
+                    p.WorkOrderId ,
+                    v.[key]  AS ColumnName,
+                    v.value  AS NewValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.new_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'WorkOrder'
+                      AND ign.ColumnName = N'WorkOrderId'
+                )),
+            merged AS (
+                SELECT
+                    COALESCE(n.PKJson, o.PKJson)                AS PKJson,
+                    COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
+                    o.OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN oldv o
+                    ON o.WorkOrderId = p.WorkOrderId
+                LEFT JOIN newv n
+                    ON n.WorkOrderId = p.WorkOrderId
+                   AND n.ColumnName = o.ColumnName
+                UNION ALL
+                SELECT
+                    n.PKJson,
+                    n.ColumnName,
+                    NULL AS OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN newv n
+                    ON n.WorkOrderId = p.WorkOrderId
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM oldv o2
+                    WHERE o2.WorkOrderId = p.WorkOrderId
+                      AND o2.ColumnName    = n.ColumnName
+                )
+            )
+            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+            SELECT
+                N'dbo' AS SchemaName,
+                N'WorkOrder' AS TableName,
+                m.PKJson,
+                m.ColumnName,
+                m.Action,
+                m.OldValue,
+                m.NewValue
+            FROM merged m
+            WHERE
+                (m.Action = 'U' AND (
+                     (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
+                  OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
+                  OR (m.OldValue <> m.NewValue)
+                ))
+                OR
+                (m.Action = 'I' AND m.NewValue IS NOT NULL)
+                OR
+                (m.Action = 'D' AND m.OldValue IS NOT NULL);
+        END;

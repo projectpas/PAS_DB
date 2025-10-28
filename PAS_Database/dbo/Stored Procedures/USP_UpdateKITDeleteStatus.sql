@@ -12,7 +12,7 @@
 	1	 27-10-2025           Nakul Chandigra     Created 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateKITDeleteStatus]
-@Kitid BIGINT
+@KitId BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;

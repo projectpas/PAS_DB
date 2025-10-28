@@ -21,7 +21,7 @@ BEGIN
 	BEGIN TRANSACTION
 
 	DECLARE @DELETE BIT;
-	SELECT @DELETE = [IsDeleted]
+	SELECT @DELETE = ISNULL([IsDeleted], 0)
 	FROM [dbo].[ItemMasterAircraftMapping] WITH (NOLOCK)
 	WHERE ItemMasterAircraftMappingId = @MappingId
 	

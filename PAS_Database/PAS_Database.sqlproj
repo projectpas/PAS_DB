@@ -4305,6 +4305,7 @@
     <Build Include="dbo\Tables\IgnoreColumn.sql" />
     <Build Include="dbo\Tables\AuditLog.sql" />
     <Build Include="dbo\Stored Procedures\InstallFieldChangeTriggers.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CommonGetHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

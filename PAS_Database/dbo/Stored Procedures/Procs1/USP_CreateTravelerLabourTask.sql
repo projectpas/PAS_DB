@@ -23,6 +23,7 @@
 	4	 04/14/2025	  Devendra Shekh  Added changes for IsLaborTrackingTurnedOff
 	5	 04/18/2025	  Moin Bloch	  Modified (for existing [WorkOrderLaborHeader] Data)
 	6	 05/30/2025	  Abhishek Jirawla Fixed @DataEnteredBy read script
+	7	 10/28/2025	  Moin Bloch	  Modified (for Assign Total Hours to Work Add All Task )
        
 -- EXEC [USP_CreateTravelerLabourTask] 44  
 **************************************************************/  
@@ -57,15 +58,19 @@ BEGIN
     declare @ManagementStructureId bigint=0  
 	DECLARE @WorkOrderFormTypeId BIT = 0; 
 	DECLARE @IsLaborTrackingTurnedOff bit =0; 
+	DECLARE @LaborHoursId INT = 0
+	DECLARE @TechnicianId BIGINT = NULL  
+
+	DECLARE @AssignTotalHourstoWork INT = 2
 				
 	SELECT @WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WO WITH(NOLOCK)	WHERE WO.[WorkOrderId] = @WorkOrderId;
 
 	IF(@WorkOrderFormTypeId = 0)
 	BEGIN
                   
-    SELECT TOP 1 @ManagementStructureId= ManagementStructureId,@ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId,@IstravelerTask=IsTraveler FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId  
+    SELECT TOP 1 @ManagementStructureId = [ManagementStructureId],@ItemMasterId = [ItemMasterId],@WorkScopeId = [WorkOrderScopeId],@IstravelerTask = [IsTraveler],@TechnicianId = [TechnicianId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId  
     
-	SELECT TOP 1 @HoursorClockorScan=laborHoursMedthodId, @IsLaborTrackingTurnedOff = ISNULL(IsLaborTrackingTurnedOff, 0) FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ManagementStructureId=@ManagementStructureId  
+	SELECT TOP 1 @LaborHoursId = [LaborHoursId], @HoursorClockorScan=laborHoursMedthodId, @IsLaborTrackingTurnedOff = ISNULL(IsLaborTrackingTurnedOff, 0) FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ManagementStructureId=@ManagementStructureId  
     
 	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@CreatedBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId  
     
@@ -137,7 +142,9 @@ BEGIN
 				
 		IF NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLabor] WITH(NOLOCK) WHERE [WorkOrderLaborHeaderId] = @WorkOrderLaborHeaderId AND [MasterCompanyId]=@MasterCompanyId) AND @WorkOrderLaborHeaderId > 0 
         BEGIN 
-			INSERT INTO [dbo].[WorkOrderLabor]  
+			IF(@LaborHoursId != @AssignTotalHourstoWork)
+			BEGIN
+				INSERT INTO [dbo].[WorkOrderLabor]  
 						([WorkOrderLaborHeaderId]  
 						,[TaskId]  
 						,[ExpertiseId]  
@@ -174,6 +181,54 @@ BEGIN
 				LEFT JOIN [dbo].[Task] TSK WITH(NOLOCK) ON TST.TaskId = TSK.TaskId 
 				  WHERE TST.Traveler_SetupId=@Traveler_SetupId AND TST.IsDeleted = 0 ORDER BY TST.[Sequence] ASC  
 			END
+
+			IF(@LaborHoursId = @AssignTotalHourstoWork)
+			BEGIN				
+				IF NOT EXISTS(SELECT 1 FROM [dbo].[Task] WHERE [Description] = 'ALL TASK' AND [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0)
+				BEGIN				  
+					INSERT INTO [dbo].[Task]([Description],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Sequence],[IsTravelerTask],[Descrepancy],[Resolution],[StandardHours],[StandardMinute],[IsPrintInWO],[IsPrintInWOQ],[IsPrintInspector],[IsPrintTechnician],[IsPrintAdmin])
+					 	             VALUES ('ALL TASK','',@MasterCompanyId,'AUTO SCRIPT','AUTO SCRIPT',GETUTCDATE(),GETUTCDATE(),1,0,(SELECT (MAX([Sequence]) + 1) FROM [dbo].[Task] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId),1,NULL,NULL,0,0,0,0,1,0,1);						
+				END
+
+				INSERT INTO [dbo].[WorkOrderLabor]  
+						([WorkOrderLaborHeaderId]  
+						,[TaskId]  
+						,[ExpertiseId]  
+						,[EmployeeId]
+						,[TaskInstruction]  
+						,[CreatedBy]  
+						,[UpdatedBy]  
+						,[CreatedDate]  
+						,[UpdatedDate]  
+						,[IsActive]  
+						,[IsDeleted]  
+						,[BillableId]  
+						,[IsFromWorkFlow]  
+						,[MasterCompanyId]  
+						,[TaskStatusId]
+						,[StandardHours]
+						,[StandardMinute])  
+				  SELECT @WorkOrderLaborHeaderId  
+						 ,TSK.[TaskId]  
+						 ,@ExpertiseId  
+						 ,CASE WHEN @TechnicianId > 0 THEN @TechnicianId ELSE @EmployeeId END
+						 ,TSK.[Memo]  
+						 ,@CreatedBy  
+						 ,@CreatedBy  
+						 ,GETUTCDATE()  
+						 ,GETUTCDATE()  
+						 ,1  
+						 ,0  
+						 ,1  
+						 ,0  
+						 ,@MasterCompanyId  
+						 ,@TaskStatusId  
+						 ,TSK.[StandardHours]
+						 ,TSK.[StandardMinute]
+					FROM [dbo].[Task] TSK WITH(NOLOCK) 
+				  WHERE TSK.[Description] = 'ALL TASK'  AND TSK.[MasterCompanyId] = @MasterCompanyId AND TSK.[IsDeleted] = 0
+			END
+		END
 		END 
 	 END
    END  
@@ -187,8 +242,8 @@ BEGIN
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-              , @AdhocComments     VARCHAR(150)    = 'USP_AddUpdateTravelerSetupHeader'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@workorderid, '') + ''  
+              , @AdhocComments     VARCHAR(150)    = 'USP_AddUpdateTravelerSetupHeader'                 
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@workorderid, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

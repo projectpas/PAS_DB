@@ -13,17 +13,27 @@
  ** --   --------     -------		--------------------------------          
     1    11/11/2024  Ekta Chandegra     Created
 	2    17/01/2025  Ekta Chandegra     Retrieve Employee name and email
+	3    27/01/2025  Bhargav Saliya     Convert Date as per time zone
 
 
 exec [dbo].[GetCustomerTicketById] @CustomerTicketId = 4
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetCustomerTicketById]
-@CustomerTicketId BIGINT = NULL
+@CustomerTicketId BIGINT = NULL,
+@EmployeeId bigint = 0
 AS
 BEGIN 
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON
+
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
+
 	BEGIN TRY
 		BEGIN
 
@@ -35,7 +45,7 @@ BEGIN
 				(ISNULL(CTR.ResponseBody,'')) AS ResponseBody,
 				CTR.CreatedBy,
 				CTR.UpdatedBy,
-				CTR.CreatedDate,
+				CASE WHEN CAST(CTR.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CTR.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
 				CTR.UpdatedDate,
 				CTR.IsActive,
 				CTR.IsDeleted,

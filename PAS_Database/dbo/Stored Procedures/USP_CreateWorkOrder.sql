@@ -369,7 +369,7 @@ BEGIN
 	
 	SELECT TOP 1 @SecondarySalesPersonId=[SecondarySalesPersonId],@SalesAgentID=[SaId] FROM [dbo].[CustomerSales] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 	
-	SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [Name] = 'Removal Reasons' AND [MasterCompanyId] = @MasterCompanyId;
+	SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [TearDownCode] = 'RemovalReason' AND [MasterCompanyId] = @MasterCompanyId;
 
     -- Set CSRId and SalesPersonId to NULL if 0
     IF @CSRId = 0

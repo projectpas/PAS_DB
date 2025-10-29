@@ -29,7 +29,7 @@ CREATE     PROCEDURE [dbo].[USP_AddUpdateLegalEntityBankingCheque]
 @CreatedBy VARCHAR(256),
 @UpdatedBy VARCHAR(256),
 @IsPrimary BIT = NULL,
-@AccountTypeId INT
+@AccountTypeId INT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;

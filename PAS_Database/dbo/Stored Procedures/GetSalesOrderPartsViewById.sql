@@ -20,8 +20,9 @@
 	5	 05-12-2024     Shrey Chandegara	add [Customer]
 	5	 20-12-2024     RAJESH GAMI			Add the PickTicket(ID) join with the SalesOrderShippingItem instead of SOPart ID
 	6    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
+	7    28-10-2025		Vishal Suthar		Fixed issue with fetching wrong Qty from SalesOrderReserveParts table
 
--- exec GetSalesOrderPartsViewById 1624,2087
+-- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
 	@SalesOrderId BIGINT,
@@ -72,7 +73,7 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 				INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId 
-				AND rPart.QtyToReserve > 0 
+				AND rPart.SalesOrderId = @SalesOrderId AND rPart.QtyToReserve > 0 
 				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON CU.CustomerId = SO.CustomerId

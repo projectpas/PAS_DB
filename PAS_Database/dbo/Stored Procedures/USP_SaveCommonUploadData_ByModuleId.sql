@@ -152,7 +152,7 @@ BEGIN
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
-			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule  OR @ModuleId = @MROPriceMasterModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END;
+			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule  OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END; 
 
 			IF(@ModuleId = @StocklineModule)
 			BEGIN				
@@ -846,6 +846,7 @@ BEGIN
 								END
 						END
 					, ' AND ')
+					+ ' AND isDeleted = 0'
 					FROM Pairs;
 
 

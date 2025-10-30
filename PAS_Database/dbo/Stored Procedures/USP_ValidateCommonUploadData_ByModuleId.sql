@@ -45,7 +45,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "PurchaseCurrencyId": "USD",
   "SalesCurrencyId": "USD",
   "SiteId": "MESA"
-}')
+}')					
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
@@ -333,15 +333,15 @@ BEGIN
 												WHEN ISNULL(IMF.DropdownListType, '') != ''  
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
 												THEN 
-													'Please Enter Correct ' + IMF.HeaderName 
+													'Please Enter Correct  ' + IMF.HeaderName 
 
 												-- UnitPrice Validation (checking for numeric value and greater than 0)
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 														AND ISNULL(TMP.FieldValue, '') != '' 
 														AND IMF.FieldName = 'UnitPrice' 
-															 AND TMP.FieldValue LIKE '%[^0-9]%'
+														AND TMP.FieldValue LIKE '%[^0-9]%'
 														And ( TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
-														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0 )
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= TRY_CAST(0 AS DECIMAL(18,2)) )
 												THEN 
 													'Unit Price  must be a whole number greater than 0' 
 
@@ -502,7 +502,7 @@ BEGIN
 				SET @CurrentRow += 1;
 			END
 
-			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule)
+			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule )
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 

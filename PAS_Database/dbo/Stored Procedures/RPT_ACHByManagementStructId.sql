@@ -19,7 +19,8 @@
 	3    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096)
 	4    10/Oct/2025	RAJESH GAMI		 Added code for NEO (PN-14371)
 	5    29/Oct/2025	RAJESH GAMI		 Added Swift Code
-EXEC [dbo].[RPT_ACHByManagementStructId]  1
+	6    30/Oct/2025	RAJESH GAMI		 Check the condition with MasterCompanyCode instead of MasterCompanyId
+EXEC [dbo].[RPT_ACHByManagementStructId]  38
 **************************************************************/
 CREATE  PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
 @ManagementStructId BIGINT = NULL
@@ -30,11 +31,12 @@ BEGIN
     BEGIN TRY
       BEGIN
 			DECLARE @LegalEntityId BIGINT, @ownerAddress VARCHAR(MAX);
-			DECLARE @MasterCompanyId INT,@NEO_MasterComapnyId BIGINT = 20;;
+			DECLARE @MasterCompanyId INT,@NEO_MasterComapnyId BIGINT = 20,@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO' , @CompanyCode VARCHAR(100)='';
 				SET @MasterCompanyId = (SELECT TOP 1 MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
 								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
-			PRINT 'START'
+			SET @CompanyCode = (SELECT TOP 1 MasterCompanyCode FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 )
+			
 			SELECT TOP 1 @LegalENtityId = LE.LegalEntityId, @ownerAddress = 
 
 				CASE WHEN ad.Line1 IS NOT NULL THEN 
@@ -53,8 +55,8 @@ BEGIN
 								  	INNER JOIN [dbo].[Address] ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 								  WHERE ES.EntityStructureId = @ManagementStructId;
 								  PRINT  @ownerAddress
-			PRINT @MasterCompanyId
-			IF @MasterCompanyId = CAST(@NEO_MasterComapnyId AS INT)
+
+			IF @CompanyCode = @NEO_MasterCompanyIdCode
 			BEGIN
 						SELECT  
 						
@@ -81,8 +83,6 @@ BEGIN
 				WHERE LegalEntityId = @LegalEntityId 
 				  AND IsPrimay = 1;
 			END
-			
-		
 
 	  END
 	END TRY

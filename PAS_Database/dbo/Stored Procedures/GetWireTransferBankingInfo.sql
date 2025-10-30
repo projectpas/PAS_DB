@@ -20,6 +20,7 @@
 	5    16/Jul/2025	Moin Bloch		 Added UPPERCASE
 	6    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096), Remove line break comma
 	7    08/Oct/2025	RAJESH GAMI		 Added logic for NEO(PN-14371)
+	8    30/Oct/2025	RAJESH GAMI		 Check the condition with MasterCompanyCode instead of MasterCompanyId
  EXEC GetWireTransferBankingInfo 38 
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[GetWireTransferBankingInfo]
@@ -29,19 +30,14 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	SET NOCOUNT ON;   
 	BEGIN TRY
-		-- Declare variable to store MasterCompanyId
-		DECLARE @MasterCompanyId INT;
-		DECLARE @MTI_MasterComapnyId BIGINT = 12,@NEO_MasterComapnyId BIGINT = 20;
+		DECLARE @MasterCompanyId INT , @CompanyCode VARCHAR(100)='';
+		--DECLARE @MTI_MasterComapnyId BIGINT = 12,@NEO_MasterComapnyId BIGINT = 20;
+		DECLARE @MTI_MasterCompanyCode  VARCHAR(100) ='MTI',@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO';
+		SET @MasterCompanyId = (SELECT MasterCompanyId	FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)	WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
+		SET @CompanyCode = (SELECT TOP 1 MasterCompanyCode FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 )
 
-		-- Retrieve MasterCompanyId from EntityStructureSetup table
-		SET @MasterCompanyId = (SELECT MasterCompanyId
-								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
-								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
-
-		-- Check if MasterCompanyId is equal to the value for @MTI_MasterComapnyId
-		IF @MasterCompanyId = CAST(@MTI_MasterComapnyId AS INT)
+		IF @CompanyCode = @MTI_MasterCompanyCode
 		BEGIN
-			-- Query for @MTI_MasterComapnyId
 			SELECT TOP 1
 			(
 				 CASE WHEN inter.BankName IS NOT NULL THEN 
@@ -76,7 +72,7 @@ BEGIN
 				AND ISNULL(ess.IsDeleted,0) = 0
 				AND ess.EntityStructureId = @ManagementStructId;
 		END
-		ELSE IF @MasterCompanyId = CAST(@NEO_MasterComapnyId AS INT)
+		ELSE IF @CompanyCode = @NEO_MasterCompanyIdCode
 		BEGIN
 			-- Query for other companies
 			SELECT TOP 1
@@ -182,7 +178,7 @@ BEGIN
 					'ABA# <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
-					'SWIFT/IBAN CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
+					'SWIFT CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
 				ELSE '' END
 			) AS chequeTo
 			FROM 

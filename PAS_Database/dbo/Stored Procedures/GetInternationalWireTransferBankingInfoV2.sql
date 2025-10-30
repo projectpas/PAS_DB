@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
 	1    08/Oct/2025	RAJESH GAMI		 CREATED
+	2    30/Oct/2025	RAJESH GAMI		 Check the condition with MasterCompanyCode instead of MasterCompanyId
  EXEC GetInternationalWireTransferBankingInfoV2 38 
 ************************************************************************/  
 CREATE       PROCEDURE [dbo].[GetInternationalWireTransferBankingInfoV2]
@@ -24,13 +25,14 @@ BEGIN
 	SET NOCOUNT ON;   
 	BEGIN TRY
 		DECLARE @MasterCompanyId INT;
-		DECLARE @MTI_MasterComapnyId BIGINT = 12,@NEO_MasterComapnyId BIGINT = 20;
+		DECLARE @MTI_MasterCompanyCode  VARCHAR(100) ='MTI',@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO',@CompanyCode VARCHAR(100)='';;
 
 		SET @MasterCompanyId = (SELECT MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
 								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1);
+		SET @CompanyCode = (SELECT TOP 1 MasterCompanyCode FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 )
 
-		IF @MasterCompanyId = CAST(@MTI_MasterComapnyId AS INT)
+		IF @CompanyCode = @MTI_MasterCompanyCode
 		BEGIN
 			SELECT TOP 1
 			(
@@ -66,7 +68,7 @@ BEGIN
 				AND ISNULL(ess.IsDeleted,0) = 0
 				AND ess.EntityStructureId = @ManagementStructId;
 		END
-		ELSE IF @MasterCompanyId = CAST(@NEO_MasterComapnyId AS INT)
+		ELSE IF @CompanyCode = @NEO_MasterCompanyIdCode
 		BEGIN
 			SELECT TOP 1
 			(
@@ -114,7 +116,7 @@ BEGIN
 					'ABA# <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
-					'SWIFT/IBAN CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
+					'SWIFT CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
 				ELSE '' END
 			) AS chequeTo
 			FROM 
@@ -167,7 +169,7 @@ BEGIN
 					'ABA# <label style="text-transform: uppercase;">' + UPPER(inter.ABA) + '</label><br />' 
 				ELSE '' END +
 				CASE WHEN inter.SwiftCode IS NOT NULL THEN 
-					'SWIFT/IBAN CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
+					'SWIFT CODE: <label style="text-transform: uppercase;">' + UPPER(inter.SwiftCode) + '</label>' 
 				ELSE '' END
 			) AS chequeTo
 			FROM 

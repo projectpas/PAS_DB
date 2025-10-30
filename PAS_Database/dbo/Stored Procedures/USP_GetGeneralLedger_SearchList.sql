@@ -16,6 +16,7 @@
 	5    10/09/2024   Devendra Shekh	     Modifed (Added new fields [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule])
 	6    10/25/2024   Devendra Shekh	     Modifed (Added customerId to select)
 	7    11/04/2024   Devendra Shekh	     Modifed (Commented unnecessary joins)
+	8    30/10/2025	  Devendra Shekh		 Modified (Added @BaseUtcOffsetSec for EntryDate, TransactionDate)
 
 exec USP_GetGeneralLedger_SearchList 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate='2024-09-09 00:00:00',@ToEffectiveDate='2024-10-09 00:00:00',@FromJournalId=N'0',@ToJournalId=N'0',
@@ -61,7 +62,8 @@ CREATE   PROCEDURE [dbo].[USP_GetGeneralLedger_SearchList]
 	@GLAccountName VARCHAR(256) = NULL,
 	@TypeName VARCHAR(256) = NULL,
 	@IsDownload BIT = NULL,
-	@MasterCompanyId INT
+	@MasterCompanyId INT,
+	@UserEmployeeId BIGINT = NULL
 AS
 BEGIN
 	
@@ -74,6 +76,18 @@ BEGIN
 		DECLARE @Count INT;
 		DECLARE @EmployeeName VARCHAR(80) = '';
 		DECLARE @CustomerRefundModuleId BIGINT = 0;
+
+		/* --------------START: Get the timzone and UTC offset -------------- */
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
+		SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+		FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @UserEmployeeId;	
+				
+		SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
+		/* -------------- END: Get the timzone and UTC offset -------------- */
 
 		IF OBJECT_ID('tempdb..#TempJournalDetails') IS NOT NULL
 			DROP TABLE #TempJournalDetails;
@@ -161,8 +175,8 @@ BEGIN
 				ISNULL(CBD.CreditAmount, 0) AS 'CreditAmount',
 				ISNULL(CBD.LocalCurrency, '') AS 'Currency',
 				ISNULL(CBD.ReferenceNumber, '') AS 'DocumentNumber',
-				CBD.TransactionDate AS 'EffectiveDate',
-				CBD.EntryDate,
+				CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CBD.TransactionDate)) AS 'EffectiveDate',
+				CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CBD.EntryDate)) AS EntryDate,
 				ISNULL(CBD.DistributionName,'') AS 'Distribution',
 				ISNULL(CBD.JournalTypeNumber,'') AS 'JournalId',
 				CASE WHEN ISNULL(CBD.GlAccountNumber, '') = '' THEN ISNULL(CBD.GlAccountName, '') ELSE ISNULL(CBD.GlAccountNumber, '') + '-' + ISNULL(CBD.GlAccountName, '') END AS 'GLAccountName',
@@ -285,7 +299,7 @@ BEGIN
 		--LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = NPOBD.JournalBatchDetailId 
 		--LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SPBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SPBD.JournalBatchDetailId 		
 
-		WHERE	CAST(CBD.TransactionDate AS date) BETWEEN CAST(@FromEffectiveDate AS date) AND CAST(@ToEffectiveDate AS date) AND
+		WHERE	CAST(DATEADD(SECOND, @BaseUtcOffsetSec, CBD.TransactionDate) AS date) BETWEEN CAST(@FromEffectiveDate AS date) AND CAST(@ToEffectiveDate AS date) AND
 				((ISNULL(@FromJournalId, '') = '0' OR ISNULL(@ToJournalId, '') = '0') OR 
 				SUBSTRING(CBD.JournalTypeNumber, PATINDEX('%[0-9]%', CBD.JournalTypeNumber), LEN(CBD.JournalTypeNumber)) BETWEEN CAST(@FromJournalId AS numeric) AND CAST(@ToJournalId AS numeric)) AND
 				((ISNULL(@FromGLAccount, '') = '0' OR ISNULL(@ToGLAccount, '') = '0') OR 

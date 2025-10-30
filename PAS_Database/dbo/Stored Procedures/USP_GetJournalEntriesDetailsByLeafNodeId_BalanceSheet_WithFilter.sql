@@ -12,6 +12,7 @@
 	1   21-NOV-2024			Devendra Shekh			Created
 	2   03-Jan-2025			Bhargav Saliya			Resolved EntryDate conversation issue(Removed DBO.ConvertUTCtoLocal() Function)
 	3   07-Oct-2025			Bhargav Saliya			Added ReferenceNumber Field
+	4   30-Oct-2025			Devendra Shekh			Added @BaseUtcOffsetSec for EntryDate
 **************************************************************/  
 /*************************************************************             
 exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter 
@@ -46,7 +47,8 @@ CREATE   PROCEDURE [dbo].[USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_
 	@LeafNodeId BIGINT = NULL,
 	@GLAccountId BIGINT = NULL,
 	@ReferenceNumber VARCHAR(150) = NULL,
-	@strFilter VARCHAR(MAX) = NULL
+	@strFilter VARCHAR(MAX) = NULL,
+	@EmployeeId BIGINT = NULL
 )  
 AS  
 BEGIN   
@@ -125,6 +127,18 @@ BEGIN
 
 	SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
 	SELECT @CustomerRefundModuleId = [ModuleId] FROM [dbo].[Module] WHERE [ModuleName] = 'CustomerRefund';
+
+	/* --------------START: Get the timzone and UTC offset -------------- */
+	DECLARE @BaseUtcOffsetSec BIGINT = 0;
+	SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+	FROM dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE E.EmployeeId = @EmployeeId;	
+				
+	SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
+	/* -------------- END: Get the timzone and UTC offset -------------- */
 
 	IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 	BEGIN    
@@ -292,7 +306,7 @@ BEGIN
 							(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) -
 							(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END)
 						END AS AMONUT,
-						CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120),				
+						CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CMD.EntryDate)),				
 						--REPLACE(BD.AccountingPeriod,' - ','')
 						@periodNameDistinct
 						,0
@@ -316,7 +330,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-	GROUP BY LF.LeafNodeId , GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120), GL.GLAccountTypeId, BD.AccountingPeriod)
+	GROUP BY LF.LeafNodeId , GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CMD.EntryDate)), GL.GLAccountTypeId, BD.AccountingPeriod)
 		
 	IF(@IsDebugMode = 1)
 	BEGIN

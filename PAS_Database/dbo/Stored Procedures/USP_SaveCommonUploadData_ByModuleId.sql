@@ -29,6 +29,8 @@
 	19	 16-Sep-2025        Rajesh Gami				Price Master/Purchase and Sales: Calculate the Discount and related changes 
 	20	 10-Oct-2025        Priyansh Patel			MRO Price Master Implemented 
 	21	 14-OCT-2025        Rajesh Gami				Added validation 
+	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
+
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -80,6 +82,8 @@ BEGIN
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 		DECLARE @isMROPriceDataExist BIT = 0;
+
+		DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
 
 		DECLARE @ItemMasterId BIGINT = 0;
 		DECLARE @IsAddressForBilling VARCHAR(50);				
@@ -171,7 +175,7 @@ BEGIN
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
-			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule) AND IMF.FieldName = 'ManufacturerId' );
+			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );
 			
 			DECLARE @Qty AS INT;
 			DECLARE @PurchaseUOMId AS BIGINT;
@@ -650,7 +654,7 @@ BEGIN
 				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
 	
 			END
-			ELSE IF  (@ModuleId = @MROPriceMasterModule)
+			ELSE IF  (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 			BEGIN
 			SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
@@ -784,7 +788,7 @@ BEGIN
 										+ CAST(@SalePriceSelectId AS VARCHAR(30)) + ',' 
 										+ '''' + CONVERT(VARCHAR(30), @UtcNow, 126) + '''' + ',';
 			END	
-			ELSE IF(@ModuleId = @MROPriceMasterModule )
+			ELSE IF(@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule )
 			BEGIN
 				DECLARE @MROWhereClause NVARCHAR(MAX) = '';
 				DECLARE @MROSQL NVARCHAR(MAX);
@@ -793,7 +797,7 @@ BEGIN
 
 				SELECT @MRORefFieldName = STRING_AGG(FieldName, ',')
 				FROM ImportModuleFieldMaster IMF
-				WHERE IMF.ModuleId = @MROPriceMasterModule
+				WHERE IMF.ModuleId = @ModuleId
 				  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId');
 
 				WITH Fields AS (
@@ -811,7 +815,7 @@ BEGIN
 				FieldTypes AS (
 					SELECT IMF.FieldName, IMF.FieldType
 					FROM ImportModuleFieldMaster IMF
-					WHERE IMF.ModuleId = @MROPriceMasterModule
+					WHERE IMF.ModuleId = @ModuleId
 					  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId')
 				),
 				Pairs AS (
@@ -902,12 +906,12 @@ BEGIN
 
 						SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
 			END
-			ELSE IF(@ModuleId = @MROPriceMasterModule AND @isMROPriceDataExist = 1 AND @MatchedId IS NOT NULL)
+			ELSE IF( (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule )  AND @isMROPriceDataExist = 1 AND @MatchedId IS NOT NULL)
 			BEGIN
 						DECLARE @MROUpdateFields NVARCHAR(MAX) = '';
 							SELECT @MRORefFieldName = STRING_AGG(FieldName, ',')
 						FROM ImportModuleFieldMaster IMF
-						WHERE IMF.ModuleId = @MROPriceMasterModule
+						WHERE IMF.ModuleId = @ModuleId
 						  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId','UnitPrice','CurrencyId');
 								;WITH Fields AS (
 									SELECT LTRIM(RTRIM(value)) AS FieldName,
@@ -922,7 +926,7 @@ BEGIN
 								FieldTypes AS (
 									SELECT IMF.FieldName, IMF.FieldType
 									FROM ImportModuleFieldMaster IMF
-									WHERE IMF.ModuleId = @MROPriceMasterModule
+									WHERE IMF.ModuleId = @ModuleId
 									  AND IMF.FieldName IN (SELECT FieldName FROM Fields)
 								),
 								Pairs AS (

@@ -1,7 +1,7 @@
 ﻿/*********************           
  ** File:   [USP_GetMROPriceMasterByItemMasterId]           
  ** Author: Priyansh Patel
- ** Description: This stored procedure returns all Price Master records
+ ** Description: This stored procedure returns all MRO Price Master records
  **              by ItemMasterId 
  ** Date:   26/09/2025
 
@@ -12,10 +12,10 @@
  ** --   --------      -------			---------------------------     
     1    26/09/2025    Priyansh Patel   Created
 **********************/
--- Example: EXEC USP_GetMROPriceMasterByItemMasterId 1001, 0, 1
+-- Example: EXEC USP_GetMROPriceMasterByItemMasterId 97005, 0, 1
 
 CREATE PROCEDURE [dbo].[USP_GetMROPriceMasterByItemMasterId] 
-    @ItemMasterId BIGINT,
+    @ItemMasterId BIGINT = NULL, 
 	@IsDeleted BIT,
 	@MasterCompanyId int = 0
 AS
@@ -24,15 +24,25 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
+
+		IF @ItemMasterId=0
+		BEGIN
+			SET @ItemMasterId=NULL
+		END
+
         BEGIN
             SELECT 
                   MPM.[MROPriceMasterId],
                   MPM.[ItemMasterId],
+					(ISNULL(UPPER(im.[PartNumber]),'')) 'PartNumber',
+					(ISNULL(UPPER(im.[PartDescription]),'')) 'PartDescription',
+					(ISNULL(UPPER(im.[ManufacturerName]),'')) 'ManufacturerName',
+
                   MPM.[MasterCompanyId],
                   MPM.[CustomerId],
                   MPM.[WorkscopeId],
                   MPM.[UnitPrice],
-				   MPM.[CurrencyId],
+				  MPM.[CurrencyId],
                   MPM.[StartDate],
 				  MPM.[EndDate],
                   MPM.[CreatedBy],
@@ -42,11 +52,13 @@ BEGIN
                   MPM.[IsActive],
                   MPM.[IsDeleted]
             FROM [dbo].[MROPriceMaster] MPM WITH(NOLOCK)
-            WHERE MPM.[ItemMasterId] = @ItemMasterId
+			INNER JOIN dbo.ItemMaster im WITH (NOLOCK) on MPM.ItemMasterId = im.ItemMasterId
+            WHERE 
+			(@ItemMasterId IS NULL OR  MPM.[ItemMasterId] = @ItemMasterId)
               AND MPM.[MasterCompanyId] = @MasterCompanyId
               AND MPM.[IsActive] = 1
               AND MPM.[IsDeleted] = @IsDeleted
-            ORDER BY MPM.[StartDate] DESC;
+            ORDER BY MPM.[ItemMasterId], MPM.[StartDate] DESC;
         END
     END TRY
 
@@ -61,6 +73,7 @@ BEGIN
 
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),
+		-----------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
                 @AdhocComments VARCHAR(150) = '[USP_GetMROPriceMasterByItemMasterId]',
                 @ProcedureParameters VARCHAR(3000) = 
                     '@ItemMasterId=''' + CAST(ISNULL(@ItemMasterId, 0) AS VARCHAR(100)) + ''',

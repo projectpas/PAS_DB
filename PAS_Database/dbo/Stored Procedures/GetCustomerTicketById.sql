@@ -92,7 +92,7 @@ BEGIN
 				(ISNULL(CT.EmailBody,'')) AS EmailBody,
 				CT.FromEmail,
 				CT.CreatedBy,
-				CT.CreatedDate,
+				CASE WHEN CAST(CT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
 				CT.UpdatedBy,
 				CT.UpdatedDate,
 				CT.IsActive,

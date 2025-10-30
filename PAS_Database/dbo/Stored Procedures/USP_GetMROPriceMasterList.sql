@@ -39,12 +39,12 @@ BEGIN
 					DROP TABLE #PagedParents;
 
 				CREATE TABLE #PagedParents
-				(
-					ItemMasterId INT,
-					PartNumber NVARCHAR(100),
-					PartDescription NVARCHAR(255),
-					ManufacturerName NVARCHAR(255)
-				);
+					(
+						ItemMasterId INT,
+						PartNumber NVARCHAR(100),           
+						PartDescription NVARCHAR(MAX),    
+						ManufacturerName NVARCHAR(255)      
+					);
 
 				IF @HasChild = 0
 				BEGIN

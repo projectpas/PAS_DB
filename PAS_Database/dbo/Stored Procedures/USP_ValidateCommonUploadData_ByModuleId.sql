@@ -29,6 +29,7 @@
 	19	 14-OCT-2025        Rajesh Gami				Remove Comma from the dicimal value 
 	20   17-OCT-2025        Bhargav Saliya          Publication module :: Added case for 'VerifiedBy' Field 
 	21	 28-OCT-2025        Divyesh Kathitiya		Fixed: Getting error when validate Item Masterdata.
+	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -84,6 +85,8 @@ BEGIN
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
+		DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
+
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
 		@DropdownListValue VARCHAR(100) = NULL, 
@@ -216,7 +219,9 @@ BEGIN
 			DECLARE @ManufacturerId VARCHAR(255)
 			DECLARE @ManufacturerName VARCHAR(255)
 			DECLARE @Manufacture VARCHAR(255)
-			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule)
+			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule
+			OR @ModuleId = @MROPriceMasterListModule
+			)
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
 				FROM #ImportFields 
@@ -317,7 +322,7 @@ BEGIN
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
-												WHEN @ModuleId = @MROPriceMasterModule 
+												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
 													 AND ISNULL(IMF.DropdownListType, '') != ''  
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
@@ -331,7 +336,7 @@ BEGIN
 													'Please Enter Correct ' + IMF.HeaderName 
 
 												-- UnitPrice Validation (checking for numeric value and greater than 0)
-												WHEN  @ModuleId = @MROPriceMasterModule 
+												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 														AND ISNULL(TMP.FieldValue, '') != '' 
 														AND IMF.FieldName = 'UnitPrice' 
 															 AND TMP.FieldValue LIKE '%[^0-9]%'

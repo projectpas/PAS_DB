@@ -18,7 +18,8 @@
 	2    16/Jul/2025  Moin Bloch	Added UPPERCASE
 	3    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096)
 	4    10/Oct/2025	RAJESH GAMI		 Added code for NEO (PN-14371)
-EXEC [dbo].[RPT_ACHByManagementStructId]  38
+	5    29/Oct/2025	RAJESH GAMI		 Added Swift Code
+EXEC [dbo].[RPT_ACHByManagementStructId]  1
 **************************************************************/
 CREATE  PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
 @ManagementStructId BIGINT = NULL
@@ -62,7 +63,7 @@ BEGIN
 						'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(ach.BeneficiaryBankName, '')) + ' </label><br/>' +
 						'ACCT# <label style="text-transform:uppercase;">' + UPPER(ISNULL(ach.AccountNumber, '')) + '</label><br/>' +
 						'ABA# <label style="text-transform:uppercase;">' + UPPER(ISNULL(ach.ABA, '')) + '</label><br/>'
-						--+'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
+						+'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
 						AS ACHDetail
 					FROM [dbo].[ACH] ach WITH (NOLOCK)
 					WHERE LegalEntityId = @LegalEntityId 
@@ -74,7 +75,7 @@ BEGIN
 					'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(IntermediateBankName, '')) + ' </label><br/>' +
 					'ACCT# <label style="text-transform:uppercase;">' + UPPER(ISNULL(AccountNumber, '')) + '</label><br/>' +
 					'ROUTING# <label style="text-transform:uppercase;">' + UPPER(ISNULL(ABA, '')) + '</label><br/>'
-					--+'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
+					+'SWIFT CODE : <label style="text-transform:uppercase;">' + UPPER(ISNULL(SwiftCode, '')) + '</label><br/>' 
 					AS ACHDetail
 				FROM [dbo].[ACH] WITH (NOLOCK)
 				WHERE LegalEntityId = @LegalEntityId 

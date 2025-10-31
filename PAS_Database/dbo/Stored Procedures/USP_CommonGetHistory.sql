@@ -1,6 +1,6 @@
 ﻿/*************************************************************             
  ** File:   [USP_CommonGetHistory]             
- ** Author:  Bhargav Saliya  
+ ** Author:  Hemant Saliya  
  ** Description: This stored procedure is used History data  
  ** Purpose:           
  ** Date:   29/10/2025       
@@ -11,7 +11,12 @@
  **************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-    1    29/10/2025   Bhargav Saliya     Created  
+ ** --   --------     -------			--------------------------------            
+    1    29/10/2025   Hemant Saliya     Created  
+
+ EXEC  USP_CommonGetHistory @PageSize=50,@PageNumber=1,@SortColumn=N'AuditId',@SortOrder=1,@GlobalFilter=N'',
+ @ReferenceId=4481,@ModuleId=1,@TableName=NULL,@ColumnName=NULL,@OldValue=NULL,@NewValue=NULL,@Activity=NULL,
+ @MasterCompanyId=1,@UpdatedBy=NULL,@UpdatedDate=NULL,@EmployeeId=2
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_CommonGetHistory]  
  @PageSize INT,  
@@ -78,8 +83,18 @@ BEGIN
          AL.AuditId,
          AL.TableName,
          AL.ColumnName,
-         AL.OldValue,
-         AL.NewValue,
+		 CASE WHEN TRY_CAST(AL.OldValue AS DATETIME2) IS NOT NULL 
+		 THEN CONVERT(
+                VARCHAR(10), 
+                CAST(DBO.ConvertUTCtoLocal(TRY_CAST(AL.OldValue AS DATETIME2), @CurrntEmpTimeZoneDesc) AS DATETIME),
+                110
+             )ELSE AL.OldValue END AS OldValue,
+		 CASE WHEN TRY_CAST(AL.NewValue AS DATETIME2) IS NOT NULL 
+		 THEN CONVERT(
+                VARCHAR(10), 
+                CAST(DBO.ConvertUTCtoLocal(TRY_CAST(AL.NewValue AS DATETIME2), @CurrntEmpTimeZoneDesc) AS DATETIME),
+                110
+             )ELSE AL.NewValue END AS NewValue,
          AL.UpdatedBy,
 		 CASE WHEN CAST(AL.ChangedAt AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(AL.ChangedAt, @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate]
 	FROM [dbo].[AuditLog] AL WITH (NOLOCK)  

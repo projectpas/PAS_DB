@@ -4315,6 +4315,7 @@
     <Build Include="dbo\Stored Procedures\usp_GetOpenAIPrompts.sql" />
     <Build Include="dbo\Stored Procedures\GetPMAPartNumbersByPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetAltOrEquivalentPartNumbersByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\GetManufacturerByItemMasterId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

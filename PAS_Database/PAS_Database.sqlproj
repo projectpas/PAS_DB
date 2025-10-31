@@ -4315,6 +4315,10 @@
     <Build Include="dbo\Stored Procedures\usp_GetOpenAIPrompts.sql" />
     <Build Include="dbo\Stored Procedures\GetPMAPartNumbersByPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetAltOrEquivalentPartNumbersByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_NhaTlaAltEquPartList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetNhaTlaAltEquPartHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonForStocklineByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Delete_NhaTlaAltEquPart.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

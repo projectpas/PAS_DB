@@ -46,6 +46,7 @@ BEGIN
 						ManufacturerName NVARCHAR(255)      
 					);
 
+
 				IF @HasChild = 0
 				BEGIN
 					;WITH ParentCTE AS (
@@ -54,7 +55,7 @@ BEGIN
 							IM.PartNumber,
 							IM.PartDescription,
 							IM.ManufacturerName,
-							ROW_NUMBER() OVER (ORDER BY IM.ItemMasterId) AS RowNum
+							ROW_NUMBER() OVER (ORDER BY IM.ItemMasterId Desc) AS RowNum
 						FROM dbo.ItemMaster IM WITH (NOLOCK)
 						WHERE 
 							IM.MasterCompanyId = @MasterCompanyId

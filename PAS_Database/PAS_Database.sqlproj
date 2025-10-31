@@ -4313,6 +4313,8 @@
     <Build Include="dbo\Stored Procedures\usp_GetSupportEmailConfiguration.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportEmail.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetOpenAIPrompts.sql" />
+    <Build Include="dbo\Stored Procedures\GetPMAPartNumbersByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\GetAltOrEquivalentPartNumbersByPartId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

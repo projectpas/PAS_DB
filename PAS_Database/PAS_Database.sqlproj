@@ -4307,6 +4307,8 @@
     <Build Include="dbo\Stored Procedures\InstallFieldChangeTriggers.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMROPriceMasterList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CommonGetHistory.sql" />
+    <Build Include="dbo\Stored Procedures\GetPMAPartNumbersByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\GetAltOrEquivalentPartNumbersByPartId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

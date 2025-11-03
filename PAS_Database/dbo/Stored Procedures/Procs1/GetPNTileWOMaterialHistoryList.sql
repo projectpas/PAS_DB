@@ -20,6 +20,7 @@
 	2    06/01/2023   Amit Ghediya  Added MPN & MPN desc.
 	3    07/27/2023   Vishal Suthar Showing both issued and reserved qty WOM stockline
 	4    12/06/2023   Jevik Raiyani add @statusValue 
+	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
@@ -48,7 +49,8 @@ CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@IsDeleted bit = 0,
 	@ItemMasterId bigint=0,
 	@MasterCompanyId bigint = 1,
-	@ConditionId VARCHAR(250) = NULL
+	@ConditionId VARCHAR(250) = NULL,
+	@Stage VARCHAR(100) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -96,7 +98,8 @@ BEGIN
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
 					IMP.[PartNumber] AS MPN,
 					IMP.[PartDescription] AS MPNDescription,
-					WS.[Description] AS StatusValue
+					WS.[Description] AS StatusValue,
+					ISNULL(wos.Stage,'') as Stage
 			   FROM [dbo].[WorkOrderMaterials] WOM  WITH (NOLOCK)
 			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
@@ -107,6 +110,7 @@ BEGIN
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
+			   LEFT JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON WPN.WorkOrderStageId = wos.WorkOrderStageId
 			WHERE WO.MasterCompanyId = @MasterCompanyId	
 			      AND WO.IsDeleted = 0
 				  AND WO.IsActive = 1				  
@@ -140,7 +144,8 @@ BEGIN
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
 					IMP.[PartNumber] AS MPN,
 					IMP.[PartDescription] AS MPNDescription,
-					WS.[Description] AS StatusValue
+					WS.[Description] AS StatusValue,
+					ISNULL(wos.Stage,'') as Stage
 			   FROM  [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)
 			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
@@ -151,6 +156,7 @@ BEGIN
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
+			   LEFT JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON WPN.WorkOrderStageId = wos.WorkOrderStageId
 
 			WHERE WO.MasterCompanyId = @MasterCompanyId	
 			      AND WO.IsDeleted = 0
@@ -173,7 +179,8 @@ BEGIN
 					(ExtendedUnitCost LIKE '%' + @GlobalFilter +'%') OR
 					(StocklineNum LIKE '%' + @GlobalFilter +'%') OR
 					(ControlNum LIKE '%' + @GlobalFilter +'%') OR
-					(ControlID LIKE '%' + @GlobalFilter +'%'))
+					(ControlID LIKE '%' + @GlobalFilter +'%') OR 
+					(Stage LIKE '%' + @GlobalFilter +'%'))
 					OR 
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -188,7 +195,8 @@ BEGIN
 					(ISNULL(@StocklineNum,'') ='' OR StocklineNum LIKE '%' + @StocklineNum + '%') AND
 					(ISNULL(@ControlNum,'') ='' OR ControlNum LIKE '%' + @ControlNum + '%') AND
 					(IsNull(@RequestedQty, 0) = 0 OR CAST(ReqQty as VARCHAR(10)) like @RequestedQty) AND
-					(ISNULL(@ControlID,'') ='' OR ControlID LIKE '%' + @ControlID + '%'))))	 	
+					(ISNULL(@ControlID,'') ='' OR ControlID LIKE '%' + @ControlID + '%') AND
+					(ISNULL(@Stage,'') ='' OR Stage LIKE '%' + @Stage + '%'))))	 	
 			SELECT @Count = COUNT(WorkOrderId) FROM #TempResult			
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY 
@@ -222,7 +230,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ReqQty')  THEN ReqQty END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ReqQty')  THEN ReqQty END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Stage')  THEN Stage END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Stage')  THEN Stage END DESC
 			
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

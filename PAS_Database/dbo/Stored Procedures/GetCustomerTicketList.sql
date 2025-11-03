@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/11/2024  Ekta Chandegra     Created
+    2    31/10/2025  Bhargav Saliya     Fixed Filters issues
 
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
@@ -40,7 +41,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
 @EmployeeId BIGINT = NULL,
 @StatusId INT = NULL,
 @DepartmentId INT = NULL,
-@CompanyName VARCHAR(500) = NULL
+@CompanyName VARCHAR(500) = NULL,
+@UserEmployeeId BIGINT = NULL
 AS 
 BEGIN
 	SET NOCOUNT ON;  
@@ -80,6 +82,16 @@ BEGIN
 			Set @SortColumn=UPPER(@SortColumn)
 		END	
 
+		DECLARE @empROleId BIGINT = 0;
+		DECLARE @IsSupertUser BIT = 0;
+
+		SELECT TOP 1 @empROleId = Id FROM DBO.UserRole WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId and [Name] = 'SUPERADMIN';
+
+		IF EXISTS(SELECT 1 FROM DBO.EmployeeUserRole WITH(NOLOCK) WHERE EmployeeId = @UserEmployeeId AND [RoleId] = @empROleId)
+		BEGIN
+			SET @IsSupertUser = 1
+		END
+
 		;WITH Result AS(
 			SELECT DISTINCT
 				CT.CustomerTicketId,
@@ -116,12 +128,13 @@ BEGIN
 			LEFT JOIN [dbo].[Employee] EMP WITH (NOLOCK) ON CT.AssignTo = EMP.EmployeeId
 			LEFT JOIN [dbo].[Employee] EMP1 WITH (NOLOCK) ON CT.EmployeeId = EMP1.EmployeeId
 			LEFT JOIN [dbo].[CustomerTicketResponse] CTR WITH (NOLOCK) ON CT.CustomerTicketId = CTR.CustomerTicketId 
-			WHERE CT.MasterCompanyId = @MasterCompanyId
-			AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId))
+			WHERE 
+			((ISNULL(@IsSupertUser, 0) = 1)
+				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
 			AND ISNULL(CT.IsDeleted,0) = @IsDeleted
 			AND (@StatusId IS NULL OR TS.TicketStatusId = @StatusId)
 			AND (@DepartmentId IS NULL OR SD.DepartmentId = @DepartmentId)
-			),
+			)),
 			ResultCount AS (SELECT COUNT(CustomerTicketId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND (

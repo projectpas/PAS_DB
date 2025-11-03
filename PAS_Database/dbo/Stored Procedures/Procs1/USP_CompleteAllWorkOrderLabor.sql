@@ -203,7 +203,7 @@ BEGIN
 						
 							UPDATE WL 
 							SET [Hours]= @totalMainHours,
-								AdjustedHours = @FinalAdjustedHours,
+								--AdjustedHours = @FinalAdjustedHours,
 								BurdenRateAmount = (CASE WHEN ISNULL(BurdaenRatePercentageId, 0) = 0 THEN BurdenRateAmount ELSE (CONVERT(DECIMAL(10, 2), (DirectLaborOHCost * P.PercentValue) / 100)) END),
 								TotalCostPerHour = (ISNULL(DirectLaborOHCost, 0) + (CASE WHEN ISNULL(BurdaenRatePercentageId, 0) = 0 THEN BurdenRateAmount ELSE (CONVERT(DECIMAL(10, 2), (DirectLaborOHCost * P.PercentValue) / 100)) END))
 							FROM dbo.WorkOrderLabor WL  WITH(NOLOCK)
@@ -211,7 +211,7 @@ BEGIN
 							WHERE  Wl.WorkOrderLaborId = @WorkOrderLaborId;
 						
 							UPDATE WL
-							SET TotalCost = ISNULL((CAST(@FinalAdjustedHours AS INT) + (@FinalAdjustedHours - CAST(@FinalAdjustedHours AS INT)) / .6) * TotalCostPerHour, 0),
+							SET --TotalCost = ISNULL((CAST(@FinalAdjustedHours AS INT) + (@FinalAdjustedHours - CAST(@FinalAdjustedHours AS INT)) / .6) * TotalCostPerHour, 0),
 							WL.TaskStatusId = @CompletedTaskStatusId, 
 							IsBegin = 0,
 							UpdatedBy = @UserName,

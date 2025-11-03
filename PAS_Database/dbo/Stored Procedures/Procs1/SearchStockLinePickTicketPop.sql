@@ -15,6 +15,7 @@
     5    11/15/2024   Vishal Suthar		Fixed issues with listing the stockline
 	6	 01/22/2025	  Abhishek Jirawla	Fixed issue related to pick ticket display calculation
 	7	 03/13/2025	  Vishal Suthar		Fixed issue with displaying picked records also in the multiple pick ticket create popup
+	8    31/10/2025   Amit Ghediya		added for location
 
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
@@ -54,6 +55,7 @@ BEGIN
 						END AS StockType
 					--,@MappingType AS MappingType
 					,sl.StockLineNumber 
+					,sl.[location]
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
@@ -128,6 +130,7 @@ BEGIN
 						ELSE 'OEM'
 						END AS StockType
 					,sl.StockLineNumber 
+					,sl.[location]
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber

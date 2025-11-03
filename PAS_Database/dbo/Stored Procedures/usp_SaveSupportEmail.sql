@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    28-Oct-2025		Devendra Shekh		Created
+    2    31-Oct-2025		Devendra Shekh		Removed OutPut And Return As Select Table
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveSupportEmail]
@@ -33,17 +34,24 @@ CREATE   PROCEDURE [dbo].[usp_SaveSupportEmail]
 @IsDeleted           BIT,
 @IsRead              BIT = NULL,
 @TicketNumber		 VARCHAR(MAX) = NULL,
-@SupportEmailId      BIGINT OUTPUT,
-@CustomerTicketId	 BIGINT OUTPUT,
-@IsNewEmail			 BIT OUTPUT
+@AssignToId			 BIGINT = NULL
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 SET NOCOUNT ON  
 	BEGIN TRY  
 		
-		DECLARE @TotalRecord INT = 0;
-		SELECT @CustomerTicketId = 0, @IsNewEmail = 0;
+		DECLARE @SupportEmailId BIGINT = 0, @CustomerTicketId BIGINT = 0, @IsNewEmail BIT = 0, @SendEmail BIT = 0;
+
+		/* --------------START: Get the timzone -------------- */
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
+		FROM [dbo].[Employee] E WITH (NOLOCK) 
+			LEFT JOIN [dbo].[TimeZone] ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @AssignToId;
+		/* -------------- END: Get the timzone -------------- */
 
 		IF NOT EXISTS(SELECT 1 FROM [dbo].[SupportEmail] WITH(NOLOCK) WHERE [FromEmail] = @FromEmail AND [Subject] = @Subject  AND [EmailReadBy] = @EmailReadBy AND [MessageId] = @MessageId)
 		BEGIN
@@ -56,6 +64,7 @@ SET NOCOUNT ON
 
 			SET @SupportEmailId = SCOPE_IDENTITY();	
 			SET @IsNewEmail = 1;			
+			SET @SendEmail = 1;			
 		END
 		ELSE
 		BEGIN
@@ -68,6 +77,8 @@ SET NOCOUNT ON
 
 			UPDATE [dbo].[SupportEmail] SET [CustomerTicketId] = @CustomerTicketId WHERE [SupportEmailId] = @SupportEmailId;
 		END
+
+		SELECT @SupportEmailId AS SupportEmailId, @CustomerTicketId AS CustomerTicketId, @IsNewEmail AS IsNewEmail,@SendEmail AS SendEmail, @CurrntEmpTimeZoneDesc AS TimeZoneName
 
 	END TRY
 	BEGIN CATCH	

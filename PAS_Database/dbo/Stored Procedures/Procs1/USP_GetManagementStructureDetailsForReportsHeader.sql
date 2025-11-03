@@ -20,7 +20,7 @@
 	5    17/09/2024   RAJESH GAMI		    Added the SP for MERGEADDRESS instead of function
 	6    06-12-2024   Shrey Chandegara      Add field 'Company' because use company name in original form
 	7    04-03-2025   Amit Ghediya			Added field UKCAALicense.
-
+	8    03-11-2025   Rajesh Gami			Added field MasterCompanyCode.
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
@@ -120,7 +120,8 @@ SET NOCOUNT ON
 					Upper(le.UKCAALicense) as UKCAALicense,
 					Upper(c.Email) as Email,
 					CompanyLogoPath = MS.companylogo,
-					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime'
+					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime',
+					MS.MasterCompanyCode as MasterCompanyCode
 				FROM EntityStructureSetup est
 					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
 					INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId

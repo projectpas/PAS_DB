@@ -171,6 +171,15 @@ BEGIN
 				WHERE [key] = 'partnumber';
 			END
 
+			IF (@ModuleId = @MROPriceMasterModule 
+			 OR @ModuleId = @MROPriceMasterListModule)
+			BEGIN
+				UPDATE #TempDynamicData
+				SET [value] = REPLACE([value], '''', '''''')
+				WHERE [key] = 'CustomerId';
+			END;
+
+
 			INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], TRIM([value]) FROM #TempDynamicData;
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,
@@ -204,7 +213,6 @@ BEGIN
 					BEGIN
 						EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
 					END
-
 					IF(ISNULL(@DropdownListValueId, '') != '')
 					BEGIN
 						SET @DropdownListValueId = (SELECT LEFT(@DropdownListValueId, CHARINDEX(',', @DropdownListValueId + ',') - 1))
@@ -708,7 +716,7 @@ BEGIN
     ERROR_LINE() AS ErrorLine,
     ERROR_MESSAGE() AS ErrorMessage;
 		IF @@trancount > 0
-			PRINT 'ROLLBACK'
+			PRINT 'ROLLBACK' 
 			ROLLBACK TRAN;
 			DECLARE @ErrorLogID int,    
 			@DatabaseName varchar(100) = DB_NAME()    

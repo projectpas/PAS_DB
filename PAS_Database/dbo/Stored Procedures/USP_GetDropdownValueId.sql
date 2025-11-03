@@ -12,6 +12,8 @@
 	2    06-Jan-2025		Devendra Shekh			Checking Equal Values instead similar
 	3    04-Feb-2025		SHREY CHANDEGARA		Modified due to ALternate part 
 	4	 06-Aug-2025		Ayushi Patel			Updated WHERE clause in dynamic SQL to include MasterCompanyId = 0
+	5	 31-Oct-2025		Priyansh Patel			Updated the conditions for the MRO price master
+
 DECLARE @FieldValueId VARCHAR(50);
 
 EXEC [dbo].[USP_GetDropdownValueId]
@@ -48,13 +50,43 @@ BEGIN
 	BEGIN TRANSACTION
 
     DECLARE @RefQuery AS NVARCHAR(MAX) = '';
+	DECLARE @ActiveConditions NVARCHAR(MAX) = N'';
+
 	DECLARE @AlterModule AS BIGINT;
 	SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 
+
+	DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
+	DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
+
 	IF(@ModuleId = @AlterModule AND @IsChekColumnRef = 1 AND ISNULL(@ColumnReferenceName,'') != '')
 		BEGIN
+
+	
+
 			SET @RefQuery 
 			= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + 'AND '+ @ColumnReferenceName +' = ' + CAST(@ColumnReferenceId AS VARCHAR) + ') AS DropDownResult';
+		END
+
+	ELSE IF(@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
+		BEGIN
+
+		IF COL_LENGTH(N'[DBO].[' + @DropdownListTable + ']', 'isActive') IS NOT NULL
+			SET @ActiveConditions += N' AND isActive = 1';
+
+		IF COL_LENGTH(N'[DBO].[' + @DropdownListTable + ']', 'isDeleted') IS NOT NULL
+			SET @ActiveConditions += N' AND isDeleted = 0';
+
+				IF(@DropdownListId = 'CustomerId')
+				BEGIN
+					SET @RefQuery = 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''') + CAST(' + @DropdownListId + ' AS VARCHAR) ' + 'FROM [' + 'DBO].[' + @DropdownListTable + '] WITH(NOLOCK) ' + 'WHERE ' + @DropdownListValue + ' = ''' + UPPER(LTRIM(RTRIM(@FieldValue))) + ''' ' +'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0) ' + @ActiveConditions;
+				END
+				ELSE
+				BEGIN
+					SET @RefQuery 
+					= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)' + @ActiveConditions + ' ) AS DropDownResult';
+				END
+				
 		END
 	ELSE
 		BEGIN

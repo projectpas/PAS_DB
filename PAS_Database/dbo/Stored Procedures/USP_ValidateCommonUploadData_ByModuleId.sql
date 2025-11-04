@@ -30,6 +30,7 @@
 	20   17-OCT-2025        Bhargav Saliya          Publication module :: Added case for 'VerifiedBy' Field 
 	21	 28-OCT-2025        Divyesh Kathitiya		Fixed: Getting error when validate Item Masterdata.
 	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
+	23	 03-Nov-2025        Divyesh Kathitiya		Added New Module "Employee"
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -53,7 +54,8 @@ CREATE    PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,
 	@MasterCompanyId INT = NULL, 
-	@UploadData [UploadModuleDataTableType] READONLY
+	@UploadData [UploadModuleDataTableType] READONLY,
+	@EmployeeId BIGINT = NULL
 AS    
 BEGIN    
 	SET NOCOUNT ON;    
@@ -76,7 +78,7 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
@@ -84,6 +86,7 @@ BEGIN
 		SET @ItemMasterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 		DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
 
@@ -93,6 +96,19 @@ BEGIN
 		@DropdownLFieldValue VARCHAR(MAX) = NULL,
 		@SelectFieldName VARCHAR(100) = NULL;
 		DECLARE @PublicationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Publication');
+		DECLARE @IsMultiValue BIT = NULL;
+		DECLARE @EmployeeMSId BIGINT;
+		DECLARE @MasterCompanyCode VARCHAR(255);
+		DECLARE @EmpUserName VARCHAR(255);
+		DECLARE @EmpFirstName VARCHAR(255);
+		DECLARE @EmpLastName VARCHAR(255);
+		DECLARE @EMPCode VARCHAR(255);
+		DECLARE @EmpId BIGINT;
+		DECLARE @UserExits INT, @UserFirstLastExits INT;
+		DECLARE @LegalEntityId BIGINT;
+		DECLARE @Level1Id INT;
+
+		SET @EmployeeMSId  = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 
 		IF OBJECT_ID('tempdb..#ImportFields') IS NOT NULL
 			DROP TABLE #ImportFields
@@ -123,7 +139,7 @@ BEGIN
 			[IsError] [bit] NULL,
 			[Status] [varchar](MAX) NULL
 		);
-		PRINT @ModuleId
+		
 		DELETE FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND [MasterCompanyId] = @MasterCompanyId;
 		
 		SELECT @GlImportModuleId = [ImportModuleId] FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'GLACCOUNT';
@@ -171,6 +187,15 @@ BEGIN
 				WHERE [key] = 'partnumber';
 			END
 
+			IF (@ModuleId = @MROPriceMasterModule 
+			 OR @ModuleId = @MROPriceMasterListModule)
+			BEGIN
+				UPDATE #TempDynamicData
+				SET [value] = REPLACE([value], '''', '''''')
+				WHERE [key] = 'CustomerId';
+			END;
+
+
 			INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], TRIM([value]) FROM #TempDynamicData;
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,
@@ -188,7 +213,7 @@ BEGIN
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
 
-				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = '',@SelectFieldName = FieldName
+				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = '',@SelectFieldName = FieldName, @IsMultiValue = IsMultiValue
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '')
@@ -205,9 +230,15 @@ BEGIN
 						EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
 					END
 
-					IF(ISNULL(@DropdownListValueId, '') != '')
+					--IF(ISNULL(@DropdownListValueId, '') != '')
+					IF(ISNULL(@DropdownListValueId, '') != '' AND ISNULL(@IsMultiValue, 0) = 0)
 					BEGIN
 						SET @DropdownListValueId = (SELECT LEFT(@DropdownListValueId, CHARINDEX(',', @DropdownListValueId + ',') - 1))
+						UPDATE #ImportFields SET DropdownListValueId = CAST(@DropdownListValueId AS VARCHAR) WHERE ImportModuleFieldMasterId = @CurrentRow;
+					END
+					IF(ISNULL(@DropdownListValueId, '') != '' AND ISNULL(@IsMultiValue, 0) = 1)
+					BEGIN
+						SET @DropdownListValueId = '''' + @DropdownListValueId + '''';
 						UPDATE #ImportFields SET DropdownListValueId = CAST(@DropdownListValueId AS VARCHAR) WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
@@ -318,6 +349,43 @@ BEGIN
 				--SET @Manufacture = @ManufacturerId;
 				--SET @ManufacturerId = @ManufacturerName;
 			END
+			IF(@ModuleId = @EmployeeModule)
+			BEGIN
+				SET @UserExits = 0;
+				SET @EmpId = 0;
+				SET @UserFirstLastExits = 0;
+
+				SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [DBO].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				SELECT @EmpUserName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'userName';
+				SELECT @EmpFirstName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'firstName';
+				SELECT @EmpLastName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'lastName';
+				SET @EMPCode = @MasterCompanyCode + '-' + @EmpUserName;
+
+				SELECT @EmpId = [EmployeeId] FROM [DBO].[AspNetUsers] WITH(NOLOCK) WHERE [UserName] = @EMPCode;
+
+				IF EXISTS (SELECT 1 FROM [DBO].[AspNetUsers] WITH(NOLOCK) WHERE [UserName] = @EMPCode)
+				BEGIN
+					IF EXISTS (SELECT 1 FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmpId)
+					BEGIN
+						SET @UserExits = 1;
+					END
+				END				
+
+				SELECT @Level1Id = Level1Id FROM [DBO].[EntityStructureSetup] WITH(NOLOCK) WHERE [EntityStructureId] = @EmployeeMSId;
+				SELECT @LegalEntityId = [LegalEntityId] FROM [DBO].[ManagementStructureLevel] WITH(NOLOCK) WHERE [ID] = @Level1Id;
+
+				IF EXISTS (SELECT 1 FROM [DBO].[EntityStructureSetup] WITH(NOLOCK) WHERE [EntityStructureId] = @EmployeeMSId)
+				BEGIN
+					IF (@LegalEntityId IS NOT NULL AND @LegalEntityId > 0)
+					BEGIN
+						IF EXISTS (SELECT 1 FROM [DBO].[Employee] e WITH(NOLOCK) WHERE e.[FirstName] = @EmpFirstName AND e.[LastName] = @EmpLastName AND e.[LegalEntityId] = @LegalEntityId AND e.[MasterCompanyId] = @MasterCompanyId)
+						BEGIN
+							SET @UserFirstLastExits = 1;
+						END
+					END
+				END
+			END
+
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
@@ -409,6 +477,17 @@ BEGIN
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'isAddressForBilling' OR IMF.FieldName = 'isAddressForShipping') AND (LOWER(TMP.FieldValue) NOT IN ('yes','no'))
 													THEN IMF.FieldName + ' must be YES OR NO'
 
+												WHEN @ModuleId = @EmployeeModule AND IMF.FieldName = 'userName'
+												THEN CASE 
+														WHEN @UserExits = 1 AND @UserFirstLastExits = 1 
+															THEN 'Employee UserName already exist.! Employee Firstname/Lastname with legal entity already exist.!'
+														WHEN IMF.FieldName = 'userName' AND @UserExits = 1
+															THEN 'Employee UserName already exist.!'
+														WHEN IMF.FieldName = 'userName' AND @UserFirstLastExits = 1
+															THEN 'Employee Firstname/Lastname with legal entity already exist.!'
+														ELSE ''
+													END	
+
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
@@ -454,7 +533,11 @@ BEGIN
 					
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-				SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
+				IF(@ModuleId != @GLModule AND @ModuleId != @EmployeeModule)
+				BEGIN
+					SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
+				END
+				
 				SET @CurrentRow += 1;
 			END
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
@@ -492,11 +575,10 @@ BEGIN
 														WHEN @ModuleId = @CustomerModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @StocklineModule THEN 'Entered Serial Number Already Exits for This PartNumber'
 														WHEN @ModuleId = @PriceMasterModule THEN 'Part and Condition mapping already exists'
+														WHEN @ModuleId = @EmployeeModule THEN 'Entered Email Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
-					
-
 				END
 				
 				SET @CurrentRow += 1;

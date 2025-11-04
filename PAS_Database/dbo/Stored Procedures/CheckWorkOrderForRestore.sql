@@ -24,16 +24,19 @@ BEGIN
 	BEGIN TRY
 		
 	DECLARE @MasterCompanyId BIGINT;
+	DECLARE @ClosedWorkOrderStatusId BIGINT;
 	DECLARE @CurrentSerialNumber VARCHAR(100);
 	DECLARE @RevisedSerialNumber VARCHAR(100);
 
 	SELECT @MasterCompanyId = MasterCompanyId, @CurrentSerialNumber = CurrentSerialNumber, @RevisedSerialNumber = RevisedSerialNumber 
 	FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE WorkOrderId = @ReferenceId;
 
+	SELECT @ClosedWorkOrderStatusId = Id FROM DBO.WorkOrderStatus WITH (NOLOCK) WHERE StatusCode = 'CLOSED';
+
 	IF @RevisedSerialNumber IS NOT NULL
 	BEGIN
 		IF EXISTS (SELECT 1 FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
-				AND UPPER(RevisedSerialNumber) = UPPER(@RevisedSerialNumber) AND WorkOrderId <> @ReferenceId AND IsDeleted = 0)
+				AND UPPER(RevisedSerialNumber) = UPPER(@RevisedSerialNumber) AND WorkOrderId <> @ReferenceId AND IsDeleted = 0 AND WorkOrderStatusId <> @ClosedWorkOrderStatusId)
 		BEGIN
 			SELECT 1 AS ReferenceId; -- Duplicate found
 		END
@@ -41,7 +44,7 @@ BEGIN
 	ELSE
 	BEGIN
 		IF EXISTS (SELECT 1 FROM DBO.WorkOrderPartNumber WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
-				AND UPPER(CurrentSerialNumber) = UPPER(@CurrentSerialNumber) AND WorkOrderId <> @ReferenceId AND IsDeleted = 0)
+				AND UPPER(CurrentSerialNumber) = UPPER(@CurrentSerialNumber) AND WorkOrderId <> @ReferenceId AND IsDeleted = 0 AND WorkOrderStatusId <> @ClosedWorkOrderStatusId)
 		BEGIN
 			SELECT 1 AS ReferenceId; -- Duplicate found
 		END

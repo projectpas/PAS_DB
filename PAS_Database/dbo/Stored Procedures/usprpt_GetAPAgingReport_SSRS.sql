@@ -14,10 +14,11 @@
  *************************************************************************************************                   
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------                  
-    1    15 APR 2024    Rajesh Gami		   Created        
+    1    15 APR 2024    Rajesh Gami		   Created  
+	2    03 OCT 2025    Rajesh Gami		   Fixed the Remaining Amount related issue
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2024-04-24',3654,1,null,null
 ***************************************************************************************************/        
-CREATE     PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
+create       PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
 @id DATETIME2,
 @id2 VARCHAR(100) = null,
@@ -422,7 +423,7 @@ BEGIN
 		
 	--	NonPO Details  --
 		SELECT * INTO #tempNonPODetails FROM 
-		(SELECT DISTINCT (V.VendorId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,(CR.Code) AS  'currencyCode',ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
+		(SELECT DISTINCT (V.VendorId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,(CR.Code) AS  'currencyCode',ISNULL(vpd.RemainingAmount,0) AS 'BalanceAmount',      
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (NPH.NPONumber) AS 'InvoiceNo',  NPH.PostedDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays, 
 					(CASE WHEN DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
@@ -449,7 +450,7 @@ BEGIN
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef','' AS 'Salesperson',ctm.Name AS 'Terms','0' AS 'FixRateAmount',      
-					PartData.InvoiceTotal AS 'InvoiceAmount',0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',UPPER(MSD.Level1Name) AS level1,        
+					vpd.RemainingAmount AS 'InvoiceAmount',0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,UPPER(MSD.Level6Name) AS level6,       
 					UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,NPH.MasterCompanyId,
 					0 AS IsCreditMemo,0 AS StatusId ,0 AS InvoicePaidAmount
@@ -811,7 +812,7 @@ BEGIN
 		--	NonPO Details  --
 		SELECT * INTO #tempNonPODetailsElse FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId,ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,      
-						(CR.Code) AS  'currencyCode',  ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
+						(CR.Code) AS  'currencyCode',  ISNULL(vpd.RemainingAmount,0) AS 'BalanceAmount',ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
 						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',(NPH.NPONumber) AS 'InvoiceNo', NPH.PostedDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays,      						
 						(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
@@ -838,7 +839,7 @@ BEGIN
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 						(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms',      
-						'0' AS 'FixRateAmount', PartData.InvoiceTotal AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount,
+						'0' AS 'FixRateAmount', vpd.RemainingAmount AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount,
 						DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',     
 						UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,       
 						UPPER(MSD.Level5Name) AS level5,UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,

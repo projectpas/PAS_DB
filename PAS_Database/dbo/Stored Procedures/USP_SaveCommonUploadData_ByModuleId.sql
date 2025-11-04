@@ -30,6 +30,7 @@
 	20	 10-Oct-2025        Priyansh Patel			MRO Price Master Implemented 
 	21	 14-OCT-2025        Rajesh Gami				Added validation 
 	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
+	23 	 03-Nov-2025        Divyesh Kathiriya		Added New Module "Employee"
 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
@@ -69,6 +70,14 @@ BEGIN
 		DECLARE @UtcNow DATETIME2(7) = GETUTCDATE();
 		DECLARE @GetDate DATE = GETDATE();
 		DECLARE @PublicationMSId BIGINT;
+		DECLARE @EmployeeMSId BIGINT;
+		DECLARE @LegalEntityId BIGINT;
+		DECLARE @EmpUserName VARCHAR(256);
+		DECLARE @EmpFirstName VARCHAR(256);
+		DECLARE @EmpLastName VARCHAR(256);
+		DECLARE @EmpFullName VARCHAR(256);
+		DECLARE @EmpEmail VARCHAR(256);
+		DECLARE @IsEnabled BIT; 
 		DECLARE @isPriceDataExist BIT = 0, @ItemMasterPurchaseSaleId BIGINT = 0
 		DECLARE @IsAutoGenerate BIT = 0;
 		DECLARE @CodeTypeId BIGINT = 0;
@@ -77,7 +86,7 @@ BEGIN
 		DECLARE @ModuleTableId BIGINT,@ParentModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
@@ -92,6 +101,7 @@ BEGIN
 		DECLARE @SP_CalSPByPP_MarkUpPercOnListPriceValue DECIMAL(18,2) =0;
 		DECLARE @SP_CalSPByPP_MarkUpPercOnListPrice DECIMAL(18,2) = 0
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		DECLARE @EnumEmployeeGeneralInfo INT;
 
 		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
 					LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
@@ -106,7 +116,9 @@ BEGIN
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @VendorModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor');
 		SET @PublicationModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Publication');
-
+		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
+		SET @EnumEmployeeGeneralInfo = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeGeneralInfo');
+		SET @EmployeeMSId = (SELECT [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		SET @PublicationMSId = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 
 		CREATE TABLE #uploadDataResults (
@@ -175,8 +187,8 @@ BEGIN
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
-			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );
-			
+			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );			
+
 			DECLARE @Qty AS INT;
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
@@ -872,6 +884,59 @@ BEGIN
 
 			SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
 			END
+			ELSE IF(@ModuleId = @EmployeeModule)
+			BEGIN
+				/*************** Prefixes ***************/				
+
+				-- Declare variables
+				DECLARE @EmployeeCodePrefix INT, @EmployeeNum NVARCHAR(100);
+				DECLARE @CodePrefix NVARCHAR(50), @CodeSuffix NVARCHAR(50);
+				DECLARE @Level1Id INT;
+
+				SELECT @Level1Id = Level1Id FROM [DBO].[EntityStructureSetup] WITH(NOLOCK) WHERE [EntityStructureId] = @EmployeeMSId;
+				SELECT @LegalEntityId = [LegalEntityId] FROM [DBO].[ManagementStructureLevel] WITH(NOLOCK) WHERE [ID] = @Level1Id;
+				SET @CurrentNo = 0;
+
+				-- Code Types Of CodePrefix	
+				SELECT @EmployeeCodePrefix = [CodeTypeId] FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Employee';
+				SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @EmployeeCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+
+				IF (@CodePrefix IS NOT NULL AND @CodePrefix <> '')
+				BEGIN
+					SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					IF (@CurrentNo > 0)
+					BEGIN
+						SET @CurrentNo = @CurrentNo + 1;
+
+						UPDATE [DBO].[CodePrefixes] 
+						SET [CurrentNummber] = @CurrentNo
+						WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					END
+					ELSE
+					BEGIN
+						SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0) FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+
+						UPDATE [DBO].[CodePrefixes]
+						SET [CurrentNummber] = @CurrentNo
+						WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					END
+
+					-- Generate Employee Number
+					SET @EmployeeNum = (SELECT * FROM DBO.udfGenerateCodeNumber(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+				END
+				ELSE
+				BEGIN
+					-- Generate Employee Number
+
+					SET @EmployeeNum = (SELECT * FROM DBO.udfGenerateCodeNumber(@CurrentNo, '',''))
+
+				END
+			/*****************End Prefixes*******************/
+
+				SET @RefFieldName += ' , EmployeeCode, LegalEntityId, EmployeeExpertiseId, CreatedDate, UpdatedDate, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy ';
+				SET @FieldValue += '''' + @EmployeeNum  + '''' + ','  + CAST(@LegalEntityId AS VARCHAR(50)) + ', 0, @UtcNow, @UtcNow,' + CAST(@EmployeeMSId AS VARCHAR(50)) + ' , ';				
+
+			END
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
@@ -969,6 +1034,10 @@ BEGIN
 			IF(@ModuleId = @PublicationModule)
 			BEGIN
 				EXEC sp_executesql @RefQuery, N'@GetDate DATE, @UtcNow DATETIME2(7), @EmployeeId BIGINT, @ModuleTableId BIGINT OUTPUT', @GetDate = @GetDate, @UtcNow = @UtcNow, @EmployeeId = @EmployeeId, @ModuleTableId = @ModuleTableId OUTPUT;
+			END
+			ELSE IF(@ModuleId = @EmployeeModule)
+			BEGIN
+				EXEC sp_executesql @RefQuery, N'@UtcNow DATETIME2(7), @ModuleTableId BIGINT OUTPUT', @UtcNow = @UtcNow, @ModuleTableId = @ModuleTableId OUTPUT;
 			END
 			ELSE
 			BEGIN
@@ -1158,6 +1227,31 @@ BEGIN
 
 			END
 
+			IF(@ModuleId = @EmployeeModule)
+			BEGIN
+				DECLARE @MasterCompanyCode VARCHAR(255);
+				DECLARE @EMPCode VARCHAR(255);	
+
+				EXEC [DBO].[PROCAddModuleWiseMSData] @EmployeeId = @ModuleTableId, @EntityMSID = @EmployeeMSId, @MasterCompanyId = @MasterCompanyId, @CreatedBy = @UserName, @UpdatedBy = @UserName, @ModuleId = @EnumEmployeeGeneralInfo, @Opr = 1;
+
+				SELECT @EmpFirstName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'FirstName';
+				SELECT @EmpLastName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'LastName';
+				SELECT @EmpEmail = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'email';
+
+				INSERT INTO #DynamicKeyValue (FieldName, FieldValue) SELECT [key], TRIM([value]) FROM #TempDynamicData;
+
+				SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [DBO].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				SELECT @EmpUserName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'userName';
+				SET @EMPCode = @MasterCompanyCode + '-' + @EmpUserName;	
+
+				EXEC [DBO].[sp_SaveMSByEmployee] @MSID = @EmployeeMSId, @EmployeeID = @ModuleTableId, @UserName = @UserName, @MasterCompanyId = @MasterCompanyId;				
+
+				UPDATE [DBO].[Employee]
+				SET [IsUploadEmployee] = 1, [UserName] = @EMPCode
+				WHERE [EmployeeId] = @ModuleTableId;			
+
+			END
+
 			IF(ISNULL(@ChildTable, '') != '')
 			BEGIN
 				SET @RefFieldName = ''+ @ReferenceColumnName + '';
@@ -1189,7 +1283,7 @@ BEGIN
 				IF(@ModuleId = @PublicationModule)
 				BEGIN
 					SET @RefFieldName += ' ,ManagementStructureId, IsActive, IsDeleted, CreatedDate, UpdatedDate';
-					SET @FieldValue += CAST(@PublicationMSId AS VARCHAR(50)) + ',1,1,@UtcNow,@UtcNow,';
+					SET @FieldValue += CAST(@PublicationMSId AS VARCHAR(50)) + ',1,0,@UtcNow,@UtcNow,';
 				END	
 	  
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
@@ -1206,6 +1300,45 @@ BEGIN
 				BEGIN
 					EXEC (@RefQuery)
 				END				 
+			END
+			
+			-- Save Mapping Data
+			DECLARE @MappingFields NVARCHAR(MAX) = '', @MappingValues NVARCHAR(MAX) = '' , @ExpCsv NVARCHAR(MAX), @MappingQuery NVARCHAR(MAX);
+			SET @ExpCsv =	CASE
+							WHEN @ModuleId = @EmployeeModule THEN JSON_VALUE(@UploadRecord, '$.employeeExpIds')
+							WHEN @ModuleId = @GLModule THEN JSON_VALUE(@UploadRecord, '$.ledgerId')
+							ELSE '' END;
+
+			IF(ISNULL(@ExpCsv, '') <> '')
+			BEGIN
+				-- remove spaces
+				SET @ExpCsv = REPLACE(@ExpCsv, ' ', '');
+
+				-- strip outer single quotes if the JSON held "'2,3,4,5'"
+				IF (@ExpCsv IS NOT NULL AND LEN(@ExpCsv) >= 2 AND LEFT(@ExpCsv,1) = '''' AND RIGHT(@ExpCsv,1) = '''')
+				BEGIN
+					SET @ExpCsv = SUBSTRING(@ExpCsv, 2, LEN(@ExpCsv)-2);
+				END
+
+				IF(@ModuleId = @GLModule)
+				BEGIN
+					SET @MappingFields = '[GlAccountId], [LedgerId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]'
+					SET @MappingValues =  N' SELECT ' + CAST(@ModuleTableId AS VARCHAR) + ', value, ' + CAST(@MasterCompanyId AS VARCHAR) + ', @UserName, @UserName, @UtcNow, @UtcNow, 1, 0 FROM STRING_SPLIT(@ExpCsv, '','')';
+
+					SET @MappingQuery = N'INSERT INTO [DBO].[GLAccountLadgerMapping] ' + N' (' + @MappingFields + N') ' + @MappingValues + N';';
+
+					EXEC sp_executesql @MappingQuery, N'@UtcNow datetime2(7), @UserName nvarchar(max), @ExpCsv nvarchar(max)', @UtcNow = @UtcNow, @UserName = @UserName, @ExpCsv = @ExpCsv;
+				END
+
+				IF(@ModuleId = @EmployeeModule)
+				BEGIN
+					SET @MappingFields = '[EmployeeId], [EmployeeExpertiseIds], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]'
+					SET @MappingValues =  N' SELECT ' + CAST(@ModuleTableId AS VARCHAR) + ', value, ' + CAST(@MasterCompanyId AS VARCHAR) + ', @UserName, @UserName, @UtcNow, @UtcNow, 1, 0 FROM STRING_SPLIT(@ExpCsv, '','')';
+
+					SET @MappingQuery = N'INSERT INTO [dbo].[EmployeeExpertiseMapping] ' + N' (' + @MappingFields + N') ' + @MappingValues + N';';
+
+					EXEC sp_executesql @MappingQuery, N'@UtcNow datetime2(7), @UserName nvarchar(max), @ExpCsv nvarchar(max)', @UtcNow = @UtcNow, @UserName = @UserName, @ExpCsv = @ExpCsv;
+				END
 			END
 
 			-- Need to update ledger

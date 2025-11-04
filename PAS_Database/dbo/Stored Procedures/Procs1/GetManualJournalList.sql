@@ -18,7 +18,7 @@
 	7   04/09/2024   AMIT GHEDIYA     Modify (Get Debit & Credit Fields)
 	8   25/09/2024   Devendra Shekh     Modify(join change for Ledger and added LegalEntity)
     9   08/04/2025	  Ekta Chandegra	 Convert date using dbo.ConvertUTCtoLocal
-
+    10  03/10/2025	  Rajesh Gami		 Remove convert UTC for the effectiveDate
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[GetManualJournalList]  
@@ -141,7 +141,7 @@ BEGIN
 			   MJH.ManualJournalBalanceTypeId,
 			   MJBT.[Name] AS ManualJournalBalanceType,			   			  
 			   (Cast(DBO.ConvertUTCtoLocal(MJH.EntryDate,@CurrntEmpTimeZone)AS DATETIME)) as EntryDate,
-			   (Cast(DBO.ConvertUTCtoLocal(MJH.EffectiveDate,@CurrntEmpTimeZone)AS DATETIME)) as EffectiveDate,
+			   MJH.EffectiveDate as EffectiveDate,
 			   MJH.AccountingPeriodId,
 			   Ac.PeriodName,
 			   MJH.ManualJournalStatusId,

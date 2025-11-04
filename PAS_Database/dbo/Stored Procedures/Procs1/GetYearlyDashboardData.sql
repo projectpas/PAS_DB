@@ -21,6 +21,7 @@
 	7	 06 MAY 2025	HEMANT SALIYA				Handle Flat rate case for Multiple MPN WO
 	8	 26-June-2025	Devendra Shekh				Billing Table Changes
 	9	 30-June-2025	Devendra Shekh				SO Billing Table Changes
+	10	 03 NOV 2025	HEMANT SALIYA				Corrected Dashbord MRO Billing Last 12 month trend Reports
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 2, 2, '2025-06-24 00:00:00'
@@ -157,7 +158,9 @@ BEGIN
 
 					;WITH cte(Total, Mnth) AS (
 						--SELECT CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END , @Month Total
-						SELECT ISNULL(SUM(WOBI.GrandTotal),0) - (ISNULL(SUM(WOBI.SalesTax),0) + ISNULL(SUM(WOBI.OtherTax),0)) AS GrandTotal, @Month Total
+						SELECT --(ISNULL(SUM(WOBI.GrandTotal),0) - (ISNULL(SUM(WOBI.SalesTax),0) + ISNULL(SUM(WOBI.OtherTax),0))) AS GrandTotal
+						CASE WHEN wobii.CostPlusType = 'Flat Rate' AND ISNULL(SUM(wobii.GrandTotal),0) > 0 THEN (ISNULL(SUM(wobii.GrandTotal),0) - (ISNULL(SUM(wobii.SalesTax),0) + ISNULL(SUM(wobii.OtherTax),0))) ELSE CASE WHEN ISNULL(SUM(wobii.GrandTotal),0) > 0 THEN (ISNULL(SUM(wobii.GrandTotal), 0) - (ISNULL(Sum(wobii.SalesTax), 0) + ISNULL(SUM(wobii.OtherTax), 0))) WHEN ISNULL(SUM(wobii.SubTotal),0) > 0 THEN ISNULL(SUM(wobii.SubTotal),0) ELSE ISNULL(SUM(wobii.UnitPrice),0) END END AS GrandTotal,   
+						@Month Total
 						FROM DBO.BillingInvoicing WOBI WITH (NOLOCK) 
 							LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsVersionIncrease, 0) = 0 AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.SubModuleId = @SubModuleId
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.SubReferenceId
@@ -170,7 +173,7 @@ BEGIN
 							AND WOBI.MasterCompanyId = @MasterCompanyId
 							AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 							AND WOBI.ModuleId = @WOModuleId
-						GROUP BY WOBI.CostPlusType
+						GROUP BY wobii.CostPlusType
 					)
 
 					SELECT @Amt = SUM(Total) FROM cte GROUP BY Mnth

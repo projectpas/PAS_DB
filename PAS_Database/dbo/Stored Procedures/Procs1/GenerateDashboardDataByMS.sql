@@ -31,6 +31,7 @@
 	18	 07/01/2025		Devendra Shekh		Parts Count Issue resolved for WOQ
 	19	 07/02/2025		Devendra Shekh		Using @BaseUtcOffsetSec for DateConversion
 	20	 09/09/2025		Devendra Shekh		Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
+	21	 03 NOV 2025	HEMANT SALIYA		Corrected Dashbord MRO Billing Last 12 month trend Reports
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -159,7 +160,9 @@ BEGIN
 		SELECT @WOBillingAmt = SUM(GrandTotal) FROM (
 			SELECT DISTINCT
 				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
-				(ISNULL(wobi.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) AS GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				--(ISNULL(wobi.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) AS GrandTotal, 
+				CASE WHEN wobii.CostPlusType = 'Flat Rate' AND ISNULL(wobii.GrandTotal,0) > 0 THEN (ISNULL(wobii.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) ELSE CASE WHEN ISNULL(wobii.GrandTotal,0) > 0 THEN (ISNULL(wobii.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) WHEN ISNULL(wobii.SubTotal,0) > 0 THEN ISNULL(wobii.SubTotal,0) ELSE ISNULL(wobii.UnitPrice,0) END END AS GrandTotal,   
+				wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 			FROM DBO.BillingInvoicing wobi WITH (NOLOCK)
 			INNER JOIN DBO.BillingInvoicingItems wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobii.SubModuleId = @SubModuleId
 			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.ReferenceId = WO.WorkOrderId

@@ -19,6 +19,7 @@
 	3    11/23/2023   Moin Bloch		Changed QtyReserved + QtyIssued - SUM(QtyToShip) IN IsMPNPickTicket = 0
 	4    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
 	5    02/05/2024   Devendra Shekh	Multiple MPN with Same Part Number issue Resolved
+	6    31/10/2025   Amit Ghediya		added for location
 
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
@@ -81,7 +82,8 @@ BEGIN
 									WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 									ELSE 'OEM'
 									END AS StockType
-								,sl.StockLineNumber 
+								,sl.StockLineNumber
+								,sl.[location]
 								,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
@@ -151,6 +153,7 @@ BEGIN
 									ELSE 'OEM'
 								 END AS StockType
 								,sl.StockLineNumber 
+								,sl.[location]
 								,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
@@ -216,7 +219,8 @@ BEGIN
 									WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 									ELSE 'OEM'
 									END AS StockType
-								,sl.StockLineNumber 
+								,sl.StockLineNumber
+								,sl.[location]
 								,CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END AS 'SerialNumber'
 								--,sl.SerialNumber
 								,sl.ControlNumber
@@ -284,7 +288,8 @@ BEGIN
 									WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 									ELSE 'OEM'
 									END AS StockType
-								,sl.StockLineNumber 
+								,sl.StockLineNumber
+								,sl.[location]
 								,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
@@ -359,7 +364,8 @@ BEGIN
 									WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 									ELSE 'OEM'
 									END AS StockType
-								,sl.StockLineNumber 
+								,sl.StockLineNumber
+								,sl.[location]
 								,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
@@ -427,6 +433,7 @@ BEGIN
 									ELSE 'OEM'
 									END AS StockType
 								,sl.StockLineNumber 
+								,sl.[location]
 								,CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END As 'SerialNumber'
 								--,sl.SerialNumber
 								,sl.ControlNumber

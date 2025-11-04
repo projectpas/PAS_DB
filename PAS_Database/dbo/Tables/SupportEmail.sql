@@ -19,6 +19,7 @@
     [UpdatedDate]      DATETIME2 (7)  CONSTRAINT [DF_SupportEmail_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]         BIT            CONSTRAINT [DF_SupportEmail_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]        BIT            CONSTRAINT [DF_SupportEmail_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [TicketResponseId] BIGINT         NULL,
     [IsRead]           BIT            DEFAULT ((0)) NULL,
     [IsProcessed]      BIT            NULL,
     [EmailStatusId]    INT            NULL,

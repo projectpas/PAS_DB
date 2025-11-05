@@ -196,7 +196,7 @@ BEGIN
 				  ) as avrg
 
 		--Update for avg cost
-		UPDATE #tmpFinalAnalysis SET avgROCost = (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,0))
+		UPDATE #tmpFinalAnalysis SET avgROCost = (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1))
 		FROM #tmpFinalAnalysis TmpInv 
 		INNER JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
 

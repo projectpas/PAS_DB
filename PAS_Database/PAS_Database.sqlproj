@@ -4322,6 +4322,8 @@
     <Build Include="dbo\Stored Procedures\USP_Delete_NhaTlaAltEquPart.sql" />
     <Build Include="dbo\Stored Procedures\usp_CheckSupportEmailExists.sql" />
     <Build Include="dbo\Stored Procedures\USP_EmployeeUploadList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreNhaTlaAltEquPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateNhaTlaAltEquPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterMappingParts.sql" />
   </ItemGroup>
   <ItemGroup>

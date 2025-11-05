@@ -17,6 +17,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    20-AUG-2024     Rajesh Gami       Created  
+	2    05-NOV-2025     Amit Ghediya      Update for Avg price
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_POStock]
@@ -119,6 +120,7 @@ BEGIN
 			UPPER(IM.ManufacturerName) 'manufacturers',
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
+			ISNULL(POP.ExtendedCost,0) AS 'avgPOCost', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    --(CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			(CASE WHEN ISNULL(PO.IsEnforce,0) = 1 
@@ -136,7 +138,8 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
-			PO.PurchaseOrderId
+			PO.PurchaseOrderId,
+			pop.PurchaseOrderPartRecordId
         FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
 			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId AND POP.ItemMasterId = stk.ItemMasterId
@@ -162,7 +165,6 @@ BEGIN
 		) as a
 		--SELECT * FROM #TempPOAnalysis
 
-
 		SELECT * INTO #TempPOAnalysisFinal FROM
 		 (SELECT 
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.conditions FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE conditions END) AS 'condition',
@@ -180,14 +182,26 @@ BEGIN
 		SELECT *
 			  INTO #tmpFinalAnalysis FROM (SELECT 
 			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
-			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,SUM(qty) as qty,dateAge,PurchaseOrderId 
-			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,PurchaseOrderId) as res
+			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgPOCost,pnDescription,SUM(qty) as qty,dateAge,PurchaseOrderId,PurchaseOrderPartRecordId 
+			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgPOCost,pnDescription,dateAge,PurchaseOrderId,PurchaseOrderPartRecordId) as res
+
+		SELECT *
+			INTO #tmpavg FROM (SELECT 
+			condition,SUM(avgPOCost) avgROCost,SUM(qty) qty,ItemMasterId
+			FROM #tmpFinalAnalysis 
+			GROUP BY ItemMasterId,condition
+			) as avrg
+	
+		--Update for avg cost
+		UPDATE #tmpFinalAnalysis SET avgPOCost = (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,0))
+		FROM #tmpFinalAnalysis TmpInv 
+		INNER JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
 
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate,SUM(dateAge)sums, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
+		 (SELECT condition,pn,avgPOCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate,SUM(dateAge)sums, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
 		 ,MAX(MaxRow_Number) MaxRow_Number
 		 ,SUM(qty) qty, oem
-		 FROM #tmpFinalAnalysis GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
+		 FROM #tmpFinalAnalysis GROUP BY pn,avgPOCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		

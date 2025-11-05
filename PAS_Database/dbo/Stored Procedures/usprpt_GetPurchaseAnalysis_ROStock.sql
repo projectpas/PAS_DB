@@ -16,6 +16,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    20-AUG-2024     Rajesh Gami       Created  
+	2    05-NOV-2025     Amit Ghediya      Update for Avg price
 
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_ROStock]
@@ -112,7 +113,7 @@ BEGIN
 			UPPER(V.VendorName) 'vendor',  
 			V.VendorId VendorId,
 			ROW_NUMBER() OVER(Partition by STK.ItemMasterId ORDER BY STK.CreatedDate) AS Row_Number,
-			IM.ItemMasterId,
+			POP.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
 			UPPER(CN.Description) 'conditions',  
@@ -121,6 +122,7 @@ BEGIN
 			UPPER(IM.ManufacturerName) 'manufacturers',
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
+			ISNULL(POP.ExtendedCost,0) AS 'avgROCost', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    --(CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			(CASE WHEN ISNULL(RO.IsEnforce,0) = 1 
@@ -138,7 +140,8 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
-			RO.RepairOrderId
+			RO.RepairOrderId,
+			pop.RepairOrderPartRecordId
         FROM 
 			DBO.RepairOrder AS RO WITH (NOLOCK)  
 			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
@@ -176,20 +179,33 @@ BEGIN
 
 			(SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) AS LastRowNo,
 			* FROM #TempPOAnalysis main) as res
+			--select * from #TempPOAnalysisFinal
+			
 
 			SELECT *
 			  INTO #tmpFinalAnalysis FROM (SELECT 
 			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
-			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,SUM(qty) as qty,dateAge,RepairOrderId 
-			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,RepairOrderId) as res
+			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgROCost,pnDescription,SUM(qty) as qty,dateAge,RepairOrderId , RepairOrderPartRecordId
+			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgROCost,pnDescription,dateAge,RepairOrderId, RepairOrderPartRecordId) as res
 
+			  SELECT *
+				  INTO #tmpavg FROM (SELECT 
+				  condition,SUM(avgROCost) avgROCost,SUM(qty) qty,ItemMasterId
+				  FROM #tmpFinalAnalysis 
+				  GROUP BY ItemMasterId,condition
+				  ) as avrg
+
+		--Update for avg cost
+		UPDATE #tmpFinalAnalysis SET avgROCost = (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,0))
+		FROM #tmpFinalAnalysis TmpInv 
+		INNER JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
 
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
+		 (SELECT condition,pn,avgROCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
 		 ,MAX(MaxRow_Number) MaxRow_Number
 		 ,SUM(qty) qty, oem
-		 FROM #tmpFinalAnalysis GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
-		
+		 FROM #tmpFinalAnalysis GROUP BY pn,avgROCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
+
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		
 		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by MaxRow_Number DESC'

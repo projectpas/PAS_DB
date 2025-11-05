@@ -28,8 +28,8 @@ BEGIN
         SELECT TOP 1
             st.StockLineId,
             st.PurchaseUnitOfMeasureId,
-            st.UnitSalesPrice,
-            (st.PurchaseOrderUnitCost + pp.DiscountPerUnit) AS VendorListPrice,
+            ISNULL(st.UnitSalesPrice, 0) AS UnitSalesPrice,
+            (ISNULL (st.PurchaseOrderUnitCost, 0) + ISNULL(pp.DiscountPerUnit, 0)) AS VendorListPrice,
             po.PurchaseOrderNumber,
             st.ReceivedDate
         FROM dbo.ItemMaster AS im WITH (NOLOCK)

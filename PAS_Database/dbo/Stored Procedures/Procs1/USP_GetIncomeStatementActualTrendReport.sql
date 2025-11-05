@@ -12,6 +12,7 @@
  1    27/08/2025   Hemant Saliya		Created 
  2    18/09/2025   Devendra Shekh		Added Changes for total Amount
  3    24/09/2025   Devendra Shekh		total Amount Formula Change
+ 4    04/11/2025   Devendra Shekh		added New Param @ShowTotal 
 
 
  @strFilter=N'1!2,7!3,11,10!4,12'
@@ -60,7 +61,6 @@ exec DBO.USP_GetIncomeStatementActualTrendReport @ReportingStructureId=20,@Maste
   </Filter>
 </ArrayOfFilter>'
 ************************************************************************/
-  
 CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementActualTrendReport]
 (
 		 @masterCompanyId BIGINT,  
@@ -69,6 +69,7 @@ CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementActualTrendReport]
 		 @StartAccountingPeriodId BIGINT = NULL,   
 		 @EndAccountingPeriodId BIGINT = NULL,
 		 @IsSupressZero BIT = 1,
+		 @ShowTotal BIT = NULL,
 		 @xmlFilter XML  
 )
 AS
@@ -828,7 +829,10 @@ BEGIN
 		SELECT ((SELECT MAX([leafNodeId]) FROM ##AccTrendTablePivot) + 1), null, ''Total'', ' + @cols + ' FROM ##FinalAmountResult
 		'
 
-		EXEC sp_executesql @query;
+		IF(ISNULL(@ShowTotal, 0) = 1)
+		BEGIN
+			EXEC sp_executesql @query;
+		END
 
 		SELECT * INTO #ResultTabel FROM ##AccTrendTablePivot  WHERE IsBlankHeader != 1 and IsTotlaLine = 0 --Order BY parentId ASC
 

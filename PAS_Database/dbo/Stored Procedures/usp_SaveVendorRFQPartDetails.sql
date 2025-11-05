@@ -11,6 +11,7 @@
     1    27-Aug-2025		Devendra Shekh		  Created
     2    28-Aug-2025		Devendra Shekh		  Modified (added ModuleRef Related Changes)
     3    25-Sep-2025		Devendra Shekh		  Modified (Added Merge Insert/Update Changes)
+	4    04-Nov-2025		Devendra Shekh		  Modified (Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart])
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
@@ -108,6 +109,7 @@ SET NOCOUNT ON
 		SELECT	VRFQ.[VendorRFQPartId], VRFQ.[ILSRFQDetailId], VRFQ.[ItemId], VRFQ.[ItemSupplierPartId], VRFQ.[VendorName], VRFQ.[VendorId], VRFQ.[Email], VRFQ.[Phone], VRFQ.[PartNumber], VRFQ.[RfqId], VRFQ.[Description], VRFQ.[AltPartNumber], VRFQ.[ReferenceNumber], VRFQ.[Traceability], VRFQ.[UnitOfMeasure], VRFQ.[Price], VRFQ.[PriceType], VRFQ.[LeadTime], VRFQ.[Qty], VRFQ.[RequestedQty], VRFQ.[MinQuantity],
 				VRFQ.[Condition], VRFQ.[Address1], VRFQ.[Address2], VRFQ.[City], VRFQ.[Country], VRFQ.[PostalCode], VRFQ.[StateProvince], VRFQ.[MasterCompanyId], VRFQ.[CreatedBy], VRFQ.[UpdatedBy], VRFQ.[CreatedDate], VRFQ.[UpdatedDate], VRFQ.[IsDeleted], VRFQ.[IsActive],
 				VRFQ.[VendorName] as SupplierName, IM.ItemMasterId, VRFQ.ModuleId, VRFQ.ReferenceId, @ReferenceNumber AS ModuleReferenceNumber
+				, @ReferenceNumber AS VendorRFQPurchaseOrderNumber, 0 AS RFQReferenceId, 0 AS RFQModuleId
 		INTO #tmpResult
 		FROM [dbo].[VendorRFQPart] VRFQ WITH(NOLOCK) 
 		INNER JOIN @tbl_VendorRFQPartType TMP ON VRFQ.ItemId = TMP.ItemId AND VRFQ.ItemSupplierPartId = TMP.ItemSupplierPartId AND VRFQ.ILSRFQDetailId = TMP.ILSRFQDetailId AND VRFQ.MasterCompanyId = TMP.MasterCompanyId
@@ -116,11 +118,33 @@ SET NOCOUNT ON
 		UPDATE TMP
 		SET
 			TMP.ModuleReferenceNumber = CASE	WHEN TMP.ModuleId = @POModuleId THEN PO.PurchaseOrderNumber
-												WHEN TMP.ModuleId = @RFQPOModuleId THEN VPO.VendorRFQPurchaseOrderNumber
+												--WHEN TMP.ModuleId = @RFQPOModuleId THEN VPO.VendorRFQPurchaseOrderNumber
 												ELSE '' END
 		FROM #tmpResult TMP
 		LEFT JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON TMP.ReferenceId = PO.PurchaseOrderId AND TMP.[MasterCompanyId] = PO.[MasterCompanyId] AND TMP.ModuleId = @POModuleId 
-		LEFT JOIN [dbo].[VendorRFQPurchaseOrder] VPO WITH(NOLOCK) ON TMP.ReferenceId = VPO.VendorRFQPurchaseOrderId AND TMP.[MasterCompanyId] = VPO.[MasterCompanyId] AND TMP.ModuleId = @RFQPOModuleId 
+		--LEFT JOIN [dbo].[VendorRFQPurchaseOrder] VPO WITH(NOLOCK) ON TMP.ReferenceId = VPO.VendorRFQPurchaseOrderId AND TMP.[MasterCompanyId] = VPO.[MasterCompanyId] AND TMP.ModuleId = @RFQPOModuleId 
+
+		-- RFQ Purchase Order Update
+		UPDATE TMP
+		SET
+			TMP.VendorRFQPurchaseOrderNumber = RFQResult.ReferenceNumber,
+			TMP.RFQReferenceId = RFQResult.RFQReferenceId,
+			TMP.RFQModuleId = @RFQPOModuleId
+		FROM #tmpResult TMP
+		OUTER APPLY
+		(
+			SELECT * FROM (
+				SELECT [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderNumber AS ReferenceNumber, VPO.VendorRFQPurchaseOrderId AS RFQReferenceId, @RFQPOModuleId AS RFQModuleId
+				,COUNT(*) OVER (PARTITION BY [ILSRFQDetailId], [ModuleId]) AS RefModCount
+				FROM [DBO].[VendorRFQPart] VRFQP WITH(NOLOCK)
+				INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+				INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
+				INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
+				WHERE	ISNULL(VRFQP.[IsDeleted], 0) = 0 AND ISNULL(VRFQP.[IsActive], 0) = 1 AND VRFQP.[MasterCompanyId] = TMP.MasterCompanyId AND ISNULL([ModuleId], 0) = @POModuleId AND VRFQP.[VendorRFQPartId] = TMP.VendorRFQPartId
+						GROUP BY [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderNumber, VPO.[VendorRFQPurchaseOrderId], [ModuleId]
+				) AS t
+			WHERE t.RefModCount = 1
+		) RFQResult WHERE RFQResult.ILSRFQDetailId = TMP.ILSRFQDetailId AND RFQResult.MasterCompanyId = TMP.MasterCompanyId
 
 		SELECT * FROM #tmpResult;
 

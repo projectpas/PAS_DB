@@ -4324,6 +4324,7 @@
     <Build Include="dbo\Stored Procedures\USP_EmployeeUploadList.sql" />
     <Build Include="dbo\Stored Procedures\USP_RestoreNhaTlaAltEquPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateNhaTlaAltEquPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterMappingParts.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

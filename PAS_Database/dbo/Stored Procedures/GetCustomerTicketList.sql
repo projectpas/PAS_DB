@@ -13,7 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/11/2024  Ekta Chandegra     Created
     2    31/10/2025  Bhargav Saliya     Fixed Filters issues
-
+    3    04/11/2025  Bhargav Saliya     Fixed Utc Date issues
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -84,6 +84,13 @@ BEGIN
 
 		DECLARE @empROleId BIGINT = 0;
 		DECLARE @IsSupertUser BIT = 0;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		
+		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE E.EmployeeId = @EmployeeId; 
 
 		SELECT TOP 1 @empROleId = Id FROM DBO.UserRole WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId and [Name] = 'SUPERADMIN';
 
@@ -104,8 +111,8 @@ BEGIN
 				CT.ReportedBy,
 				CT.CreatedBy,
 				CT.UpdatedBy,
-				CT.CreatedDate,
-				CT.UpdatedDate,
+				CASE WHEN CAST(CT.[CreatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [CreatedDate],
+				CASE WHEN CAST(CT.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CT.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate],
 				CT.IsActive,
 				CT.IsDeleted,
 				CT.MasterCompanyId,

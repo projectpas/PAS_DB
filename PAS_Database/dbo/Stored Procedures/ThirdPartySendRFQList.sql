@@ -16,6 +16,7 @@
 	4    08-10-2025   Amit Ghediya    add po vendor param
 	5    09-10-2025   Devendra Shekh  Added ReferenceId, ModuleId
 	6    14-10-2025   Devendra Shekh  Added VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId
+	7    04-11-2025   Devendra Shekh  Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart]
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
@@ -153,11 +154,14 @@ BEGIN
 		),
 		RFQReferenceResult AS (
 			SELECT * FROM (
-				SELECT [ILSRFQDetailId], [MasterCompanyId], [ReferenceId] AS RFQReferenceId, [ModuleId] AS RFQModuleId
+				SELECT [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderId AS RFQReferenceId, @RFQPOModuleId AS RFQModuleId
 				,COUNT(*) OVER (PARTITION BY [ILSRFQDetailId], [ModuleId]) AS RefModCount
-				FROM [DBO].[VendorRFQPart] WITH(NOLOCK)
-				WHERE	ISNULL([IsDeleted], 0) = 0 AND ISNULL([IsActive], 0) = 1 AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([ModuleId], 0) = @RFQPOModuleId
-						GROUP BY [ILSRFQDetailId], [MasterCompanyId], [ReferenceId], [ModuleId]
+				FROM [DBO].[VendorRFQPart] VRFQP WITH(NOLOCK)
+				INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+				INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
+				INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
+				WHERE	ISNULL(VRFQP.[IsDeleted], 0) = 0 AND ISNULL(VRFQP.[IsActive], 0) = 1 AND VRFQP.[MasterCompanyId] = @MasterCompanyId AND ISNULL([ModuleId], 0) = @PoModuleId
+						GROUP BY [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.[VendorRFQPurchaseOrderId], [ModuleId]
 				) AS t
 			WHERE t.RefModCount = 1
 		),
@@ -236,10 +240,12 @@ BEGIN
 					 (
 						SELECT STRING_AGG(VendorRFQPurchaseOrderNumber, ', ')
 						FROM (
-							SELECT DISTINCT PO.VendorRFQPurchaseOrderNumber
+							SELECT DISTINCT VPO.VendorRFQPurchaseOrderNumber
 							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
-							INNER JOIN DBO.VendorRFQPurchaseOrder PO WITH(NOLOCK) ON PO.VendorRFQPurchaseOrderId = VRFQP.ReferenceId
-							WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.ModuleId = @RFQPOModuleId
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
+							INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
+							WHERE VRFQP.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
 						) AS DistinctVendors
 					 ) AS VendorRFQPurchaseOrderNumber,
 					 RR.ReferenceId,

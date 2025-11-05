@@ -20,7 +20,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateNhaTlaAltEquPart]
     @ItemMappingId BIGINT = NULL,  
     @ItemMasterId BIGINT = NULL,
     @MappingItemMasterId BIGINT = NULL,
-    @Memo VARCHAR(256) = NULL,
+    @Memo VARCHAR(Max) = NULL,
     @MappingType VARCHAR(256) = NULL,
     @CustomerId BIGINT = NULL,
 	@IsActive BIT = NULL,

@@ -14,6 +14,7 @@
 	3    24-June-2025		Devendra Shekh			Billing Table Changes
 	4	 01-July-2025		Devendra Shekh			Parts Count Issue resolved for WOQ
 	5	 02-July-2025		Devendra Shekh			Using @BaseUtcOffsetSec for DateConversion
+	6	 03 NOV 2025		HEMANT SALIYA			Corrected Dashbord Reports Issue for Multiple MPN
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -151,7 +152,7 @@ BEGIN
 		-- selecting work order billing unit and amount details		:(DashboardType = 13)
 		SELECT @WOBillingUnits = COUNT(*), @WOBillingAmount = SUM(GrandTotal) FROM (
 				SELECT DISTINCT
-					item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup--, wobii.GrandTotal
+					wobii.BillingInvoicingItemId ,item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup--, wobii.GrandTotal
 					, (ISNULL(wobii.GrandTotal, 0) - (ISNULL(wobii.SalesTax, 0) + ISNULL(wobii.OtherTax, 0))) AS GrandTotal
 					--, CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [GrandTotal]
 					, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 

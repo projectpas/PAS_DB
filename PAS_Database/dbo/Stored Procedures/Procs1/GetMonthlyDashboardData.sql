@@ -24,6 +24,7 @@
 	10	 06 MAY 2025	HEMANT SALIYA				Handle Flat rate case for Multiple MPN WO
 	11	 26-June-2025	Devendra Shekh				Billing Table Changes
 	12	 30-June-2025	Devendra Shekh				SO Billing Table Changes
+	13	 03 NOV 2025	HEMANT SALIYA				Corrected Dashbord Reports Issue for Multiple MPN
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '12-03-2025 00:00:00'
@@ -179,7 +180,9 @@ BEGIN
 					DECLARE @Amt DECIMAL(18, 2) = 0;
 					--SELECT @Amt = CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END
 					;WITH InvoiceResult AS (
-					SELECT ISNULL(SUM(WOBI.GrandTotal),0) - (ISNULL(SUM(WOBI.SalesTax),0) + ISNULL(SUM(WOBI.OtherTax),0)) as GrandTotal
+					SELECT ISNULL(SUM(wobii.GrandTotal),0) - (ISNULL(SUM(wobii.SalesTax),0) + ISNULL(SUM(wobii.OtherTax),0)) as GrandTotal
+
+
 					FROM DBO.BillingInvoicing WOBI WITH (NOLOCK)
 						LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsVersionIncrease, 0) = 0 AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.SubModuleId = @SubModuleId
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.SubReferenceId

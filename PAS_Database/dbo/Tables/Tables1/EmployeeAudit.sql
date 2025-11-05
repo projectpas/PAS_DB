@@ -59,10 +59,8 @@
     [MROMarginPercentageId]              BIGINT          NULL,
     [BrokeringMarginPercentageId]        BIGINT          NULL,
     [ManufacturingMarginPercentageId]    BIGINT          NULL,
+    [IsUploadEmployee]                   BIT             NULL,
+    [UserName]                           NVARCHAR (256)  NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
-
-
-
-
 

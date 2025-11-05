@@ -20,6 +20,7 @@
 	9    27 Aug 2025	Devendra Shekh		Modified (price decimal issue when autoquote resolved)
 	10	 27 Aug 2025	Devendra Shekh		Modified (select employee from LegalEntity or Employee Table if @EmployeeId is null or 0)
 	11	 27 Oct 2025	Devendra Shekh		Modified (Create Item and Customer if Not Exists in System)
+	12	 04 Nov 2025	Devendra Shekh		Modified (Duplicate Customer Issue Resolved)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -269,14 +270,14 @@ BEGIN
 					FROM #tmpQuote TMP WHERE RowId = @CurrentQuoteRow; 
 				END
 
-				IF(ISNULL(@CustomerId, 0) = 0)
+				IF(ISNULL(@CustomerId, 0) = 0) AND @CurrentQuoteRow = 1
 				BEGIN
 					SET @NewCustomerId = 0;
 					EXEC [dbo].[usp_CreateCustomerForRFQ] @tbl_RfqCustomerType, @MasterCompanyId, @EmployeeId, @CreatedBy, @NewCustomerId OUTPUT;
 
 					UPDATE TMP
 					SET	TMP.CustomerId = @NewCustomerId
-					FROM #tmpQuote TMP WHERE RowId = @CurrentQuoteRow;
+					FROM #tmpQuote TMP --WHERE RowId = @CurrentQuoteRow;
 				END
 
 				SET @CurrentQuoteRow += 1;

@@ -18,7 +18,7 @@
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRecevingStocklineDetails]
     @ItemMasterId BIGINT = NULL,
-    @ConditionId INT = NULL
+    @ConditionId BIGINT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

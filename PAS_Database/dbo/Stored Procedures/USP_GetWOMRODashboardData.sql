@@ -15,6 +15,7 @@
 	4	 01-July-2025		Devendra Shekh			Parts Count Issue resolved for WOQ
 	5	 02-July-2025		Devendra Shekh			Using @BaseUtcOffsetSec for DateConversion
 	6	 03 NOV 2025		HEMANT SALIYA			Corrected Dashbord Reports Issue for Multiple MPN
+	7    05 NOV 2025        Moin Bloch              Exclude Credit Memo Condition 
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -193,6 +194,7 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 				AND wobi.ModuleId = @WOModuleId
 		) AS WorkOrderMTDBillingResult
 

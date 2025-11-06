@@ -16,6 +16,7 @@
 	3    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	4    21-07-2025   Moin Bloch        Added BillingAmount IN SO PartList
 	5    28-07-2025   Moin Bloch        Modified Fix for performa not comming due to same ItemMasterId
+	6    30-10-2025   Moin Bloch        Added CreditMemoHeaderId
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 706, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -56,7 +57,7 @@ BEGIN
 			[Condition] [VARCHAR](250)  NULL,
 			[CustomerId] [BIGINT] NULL,
 			[BillingAmount] [decimal](18,2) NULL,
-			[PerformaBillingAmount] [decimal](18,2) NULL,
+			[PerformaBillingAmount] [decimal](18,2) NULL,			
 		)
 		
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
@@ -110,7 +111,8 @@ BEGIN
 								   AND WOB.[ModuleId] = @WOModuleId
 								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
 								   AND WOBI.[SubReferenceId] = wop.[ID] 
-								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0)
 					   ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
 								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
@@ -118,7 +120,7 @@ BEGIN
 								   AND WOB.[ModuleId] = @WOModuleId
 								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
 								   AND WOBI.[SubReferenceId] = wop.[ID] 
-								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)						
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wos.[WorkOrderId] = wop.[WorkOrderId]
@@ -160,7 +162,8 @@ BEGIN
 								   AND WOB.[ModuleId] = @WOModuleId
 								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
 								   AND WOBI.[SubReferenceId] = wop.[ID] 
-								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0)
 					   ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
 								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
@@ -168,7 +171,7 @@ BEGIN
 								   AND WOB.[ModuleId] = @WOModuleId
 								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
 								   AND WOBI.[SubReferenceId] = wop.[ID] 
-								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)					  
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]
@@ -235,7 +238,8 @@ BEGIN
 								   AND WOB.[ModuleId] = @WOModuleId
 								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
 								   AND WOBI.[SubReferenceId] = wop.[ID] 
-								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0)
 					    ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
 								INNER JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOB.[BillingInvoicingId] = WOBI.[BillingInvoicingId] 
@@ -243,7 +247,7 @@ BEGIN
 								   AND WOB.[ModuleId] = @WOModuleId
 								   AND WOB.[ReferenceId] = wo.[WorkOrderId] 
 								   AND WOBI.[SubReferenceId] = wop.[ID] 
-								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)
+								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 1)						
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
 					LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]
 					LEFT JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wos.[WorkOrderId] = wop.[WorkOrderId]
@@ -264,7 +268,7 @@ BEGIN
 						WHERE imd.ItemMasterId = ISNULL(wop.RevisedItemMasterId, imt.ItemMasterId) AND imd.SubReferenceId = wop.ID
 					)
 					GROUP BY wo.[WorkOrderNum],wop.[ID],imt.[partnumber],imt.[PartDescription],wo.[WorkOrderId],wop.[WorkOrderId],
-					imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]								
+					imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]	
 		END /*********END: WORK ORDER ********/
 		ELSE IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN		
@@ -283,6 +287,7 @@ BEGIN
 								   AND WOB.[ModuleId] = @SOModuleId
 								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
 								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0
 								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
 					,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
@@ -322,6 +327,7 @@ BEGIN
 								   AND WOB.[ModuleId] = @SOModuleId
 								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
 								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0
 								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
 					    ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
@@ -362,6 +368,7 @@ BEGIN
 								   AND WOB.[ModuleId] = @SOModuleId
 								   AND WOB.[ReferenceId] = sop.[SalesOrderId] 
 								   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+								   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0
 								   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0)
 					    ,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 						        FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 
@@ -442,6 +449,7 @@ BEGIN
 										   AND WOB.[ModuleId] = @SOModuleId
 										   AND WOB.[ReferenceId] = @ReferenceId
 										   AND WOBI.[SubReferenceId] = sop.[SalesOrderPartId] 
+										   AND ISNULL(WOB.[CreditMemoHeaderId], 0) = 0
 										   AND ISNULL(WOBI.[IsPerformaInvoice], 0) = 0) [BillingAmount]
 									,(SELECT SUM(ISNULL(WOBI.[GrandTotal],0)) 
 											FROM [dbo].[BillingInvoicing] WOB WITH(NOLOCK) 

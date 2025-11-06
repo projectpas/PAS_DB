@@ -21,6 +21,7 @@
 	8    30/06/2025   Hemnat Saliya		Handle Duplidate entry in billing list
 	9    07 JUL 2025   RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default 
 	10   09 Jul 2025   RAJESH GAMI		Deposit amount getting from the item level instead of invoice in SO
+	11   30-10-2025    Moin Bloch       Added CreditMemoHeaderId 
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
@@ -133,6 +134,7 @@ BEGIN
 				[SizeHeight] DECIMAL(18,2) NULL,
 				IsLastInserted BIT DEFAULT 0,
 				IsSerialized BIT DEFAULT 0,
+				[CreditMemoHeaderId] BIGINT NULL,
 			)
 		
 			IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
@@ -182,6 +184,7 @@ BEGIN
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
+						,wobi.[CreditMemoHeaderId]
 					FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId AND wosi.WorkOrderPartNumId = wof.WorkOrderPartNoId
@@ -208,7 +211,7 @@ BEGIN
 						cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
 						,wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.IsFinishGood
 						,wop.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-						,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+						,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice],wobi.[CreditMemoHeaderId]
 					) a
 
 					;WITH CTE_Temp AS
@@ -221,11 +224,11 @@ BEGIN
 					INSERT INTO #InvoiceMainDetails([BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [ReferenceId], [SubReferenceId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice])
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId])
 					SELECT [BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice] from CTE_Temp t1
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId] from CTE_Temp t1
 					where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 							or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 							or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -276,6 +279,7 @@ BEGIN
 								,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 								,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 								,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
+								,wobi.[CreditMemoHeaderId]
 							FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
 							INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId								
 							 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
@@ -301,7 +305,7 @@ BEGIN
 								cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
 								,wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.IsFinishGood
 								,wop.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-								,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+								,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice],wobi.[CreditMemoHeaderId]
 							) a
 
 							;WITH CTE_Temp AS
@@ -314,11 +318,11 @@ BEGIN
 							INSERT INTO #InvoiceMainDetails([BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [ReferenceId], [SubReferenceId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice])
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId])
 							SELECT [BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice] from CTE_Temp t1
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId] from CTE_Temp t1
 							WHERE (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 									or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 									or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -368,6 +372,7 @@ BEGIN
 							,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 							,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 							,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
+							,wobi.[CreditMemoHeaderId]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)							
 						 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
 						 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
@@ -392,7 +397,7 @@ BEGIN
 							cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobii.GrandTotal 
 							, wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wosi.WorkOrderShippingId,wop.IsFinishGood
 							,wop.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-							,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+							,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice],wobi.[CreditMemoHeaderId]
 						) a
 
 						;WITH CTE_Temp AS
@@ -405,11 +410,11 @@ BEGIN
 						INSERT INTO #InvoiceMainDetails([BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [ReferenceId], [SubReferenceId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice])
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId])
 						select [BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice] from CTE_Temp t1
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId] from CTE_Temp t1
 						where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 								or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 								or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -465,6 +470,7 @@ BEGIN
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
 						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						,ISNULL(wobi.[IsQuickBookGeneratedInvoice], 0) AS [IsQuickBookGeneratedInvoice]
+						,wobi.[CreditMemoHeaderId]
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)							
 					 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
 					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
@@ -503,7 +509,7 @@ BEGIN
 						,wobii.BillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wos.WorkOrderShippingId,wop.IsFinishGood
 						,wop.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
 						,INV.[Description],cond.ConditionId,wobi.[IsInvoicePosted],billcond.Memo,billcond.Code,billcond.ConditionId,woBillData.InvoiceStatus
-						,woProfomaBillData.WorkOrderShippingId,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice]
+						,woProfomaBillData.WorkOrderShippingId,wobii.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease,wobi.[IsQuickBookGeneratedInvoice],wobi.[CreditMemoHeaderId]
 					) a
 
 					;WITH CTE_Temp AS
@@ -515,11 +521,11 @@ BEGIN
 					INSERT INTO #InvoiceMainDetails([BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 														[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [ReferenceId], [SubReferenceId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 														[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-														,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice])
+														,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId])
 					SELECT [BillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [ReferenceNumber], [PartNumber], [PartDescription],
 														[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 														[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 1, ConditionId
-														,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice] from CTE_Temp t1
+														,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem], [IsQuickBookGeneratedInvoice],[CreditMemoHeaderId] from CTE_Temp t1
 					WHERE (((VersionNo IS NULL AND IsAllowIncreaseVersion =1) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0) AND RowNumber =1)
 							OR ((VersionNo IS NOT NULL AND IsAllowIncreaseVersion =1) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 							OR((VersionNo IS NULL AND IsAllowIncreaseVersion =0) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0) AND RowNumber =1)
@@ -542,7 +548,7 @@ BEGIN
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
-					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized) AS
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized,CreditMemoHeaderId) AS
 					(
 					SELECT DISTINCT 
 					0 AS IndexColumn,
@@ -633,7 +639,8 @@ BEGIN
 					sop.SizeLength AS BillSizeLength,
 					sop.SizeWidth AS BillSizeWidth,
 					sop.SizeHeight AS BillSizeHeight,
-					ISNULL(imt.isSerialized,0)  AS IsSerialized
+					ISNULL(imt.isSerialized,0)  AS IsSerialized,
+					sobi.CreditMemoHeaderId
 					FROM DBO.SalesOrderShipping sos WITH (NOLOCK)
 					INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) on sop.SalesOrderId = sos.SalesOrderId --AND sop.SalesOrderPartId = sosi.SalesOrderPartId  
 					INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -656,18 +663,18 @@ BEGIN
 					sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
 					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
-					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized)
+					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized,sobi.CreditMemoHeaderId)
 
 					INSERT INTO #InvoiceMainDetails (IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
-					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight)
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,CreditMemoHeaderId)
 					SELECT IndexColumn,
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice,DepositAmount,IsAllowIncreaseVersionForBillItem,IsBilling,
-					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight FROM CTE
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,CreditMemoHeaderId FROM CTE
 				END
 				ELSE
 				BEGIN
@@ -682,7 +689,7 @@ BEGIN
 							SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo ,InvoiceTypeId,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 							StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 							TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-							ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized)
+							ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,isSerialized,CreditMemoHeaderId)
 							(
 							SELECT DISTINCT 
 							--ROW_NUMBER() OVER (ORDER BY sop.SalesOrderPartId, sobi.BillingInvoicingId DESC) AS IndexColumn,
@@ -790,7 +797,8 @@ BEGIN
 							stk.SizeLength AS BillSizeLength,
 							stk.SizeWidth AS BillSizeWidth,
 							stk.SizeHeight AS BillSizeHeight
-							,ISNULL(imt.isSerialized,0) AS isSerialized
+							,ISNULL(imt.isSerialized,0) AS isSerialized,
+							sobi.CreditMemoHeaderId
 							FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND sop.SalesOrderId = @ReferenceId
@@ -865,6 +873,7 @@ BEGIN
 								stk.SizeWidth AS BillSizeWidth,
 								stk.SizeHeight AS BillSizeHeight
 								,ISNULL(imt.isSerialized,0) AS isSerialized
+								,sobi.CreditMemoHeaderId
 							FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 								INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
 								INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = sop.SalesOrderPartId
@@ -1025,7 +1034,7 @@ BEGIN
 						SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId , BillingInvoicingItemId, InvoiceDate , InvoiceNo, InvoiceTypeId ,SOShippingNum ,	SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 						StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId , ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 						SmentNo, TotalUnitCost, VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-						ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,IsSerialized)
+						ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,IsSerialized,CreditMemoHeaderId)
 						SELECT DISTINCT 
 							0 AS IndexColumn,
 							0 AS SalesOrderShippingId,   
@@ -1068,6 +1077,7 @@ BEGIN
 							stk.SizeWidth AS BillSizeWidth,
 							stk.SizeHeight AS BillSizeHeight
 								,ISNULL(imt.isSerialized,0) AS isSerialized
+							,sobi.CreditMemoHeaderId
 						FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId 
@@ -1202,7 +1212,7 @@ BEGIN
 					SalesOrderShippingId,SalesOrderShippingItemId,BillingInvoicingId ,InvoiceDate , InvoiceNo , InvoiceTypeId ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId, SalesOrderStocklineId ,Condition ,	CurrencyCode ,
 					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProformaInvoice, DepositAmount, IsAllowIncreaseVersionForBillItem,[IsBilling],
-					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges,IsSerialized)
+					ECCN ,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,TotalUnitCost,TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges,IsSerialized,CreditMemoHeaderId)
 				(
 					
 						SELECT DISTINCT 
@@ -1266,6 +1276,7 @@ BEGIN
 						WHERE [SO].[SalesOrderId] = @ReferenceId AND so.ChargesBilingMethodId = @FlateBilingMethodId)
 						AS TotalFlatCharges
 							,ISNULL(imt.isSerialized,0) AS isSerialized
+						,sobi.CreditMemoHeaderId
 						FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.SalesOrderPartCost spc WITH (NOLOCK) ON spc.SalesOrderPartId = sop.SalesOrderPartId
@@ -1329,7 +1340,8 @@ BEGIN
 						   SizeLength,
 						   SizeWidth,
 						   SizeHeight,
-						   IsSerialized
+						   IsSerialized,
+						   CreditMemoHeaderId
 					FROM #InvoiceMainDetails )
 
 					INSERT INTO #InvoiceMainDetails (
@@ -1379,7 +1391,7 @@ BEGIN
 							SizeWidth,
 							SizeHeight,
 							IsAllowIncreaseVersion,
-							IsLastInserted,IsSerialized
+							IsLastInserted,IsSerialized,CreditMemoHeaderId
 						)
 						SELECT 
 							IndexColumn,
@@ -1428,7 +1440,7 @@ BEGIN
 							SizeWidth,
 							SizeHeight,
 							IsVersionIncrease,
-							1,IsSerialized
+							1,IsSerialized,CreditMemoHeaderId
 						FROM FinalCTE ORDER BY partnumber, IsProformaInvoice DESC ,VersionNo DESC;
 						--ORDER BY partnumber, IsProformaInvoice DESC, InvoiceNo DESC, VersionNo DESC;
 

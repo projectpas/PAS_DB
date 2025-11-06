@@ -31,6 +31,7 @@
 	19	 07/02/2025		Devendra Shekh  Using @BaseUtcOffsetSec for DateConversion
 	20	 09/09/2025		Devendra Shekh	Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
 	21	 03 NOV 2025	HEMANT SALIYA	Corrected Dashbord Reports Issue for Multiple MPN
+	22   05 NOV 2025    Moin Bloch      Exclude Credit Memo Condition 
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -413,6 +414,7 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) AND @Date
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 				AND wobi.ModuleId = @WOModuleId
 			END
 			ELSE IF (@DashboardType = 11)
@@ -465,7 +467,7 @@ BEGIN
 				AND wobi.IsVersionIncrease = 0
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @Date)
 				AND wobi.MasterCompanyId = @MasterCompanyId
-				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0				
 				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 				AND wobi.ModuleId = @WOModuleId
 			END

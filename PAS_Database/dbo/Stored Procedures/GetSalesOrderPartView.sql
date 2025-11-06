@@ -31,6 +31,7 @@
 	18   05-07-2025   BHARGAV SALIYA    get condition through the [SalesOrderPartV1] Join
 	19   07-Aug-2025  RAJESH GAMI	    Getting LotNumber 
 	20   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
+	21   05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -53,6 +54,11 @@ BEGIN
 	BEGIN
 		SET @SoPartId = NULL;
 	END
+
+		IF OBJECT_ID(N'tempdb..#tmpSOPartTblV1') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpSOPartTblV1
+		END
 
     SELECT DISTINCT
         part.SalesOrderId,
@@ -194,7 +200,11 @@ BEGIN
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
 		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber,
-CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit
+		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit,
+		PS.UnitSalesPrice MainUnitSalesPrice,
+		ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
+
+		INTO #tmpSOPartTblV1 
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId
@@ -222,6 +232,21 @@ CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUn
     AND ISNULL(part.IsDeleted,0) = 0
     AND ISNULL(rop.isAsset, 0) = 0
 	ORDER BY part.SalesOrderPartId;
+
+	;WITH CTE_Cost AS (
+			SELECT 
+				SalesOrderPartId,
+				SUM(ISNULL(Qty, 0)) AS TotalQtyQuoted,
+				SUM(ISNULL(NetSalePriceExtendedPart, 0)) AS TotalNetSalePriceExtended
+			FROM #tmpSOPartTblV1
+			GROUP BY SalesOrderPartId
+		)
+		SELECT 
+			main.*,
+			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
+			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
+		FROM #tmpSOPartTblV1 main
+		LEFT JOIN CTE_Cost c ON main.SalesOrderPartId = c.SalesOrderPartId;
 
   END TRY
   BEGIN CATCH

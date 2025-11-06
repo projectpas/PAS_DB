@@ -104,12 +104,15 @@ BEGIN
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
 			UPPER(CN.Description) 'condition',  
-			UPPER(POP.UnitOfMeasure) 'uom',
+			--UPPER(POP.UnitOfMeasure) 'uom',
+			UPPER(stk.UnitOfMeasure) 'uom',
 			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oem',
 			UPPER(IM.ManufacturerName) 'manufacturer',
 			ISNULL(stk.Quantity,0) AS 'qtys', 
-			ISNULL(POP.UnitCost,0) AS 'unitCost', 
-			(ISNULL(stk.Quantity,0) * ISNULL(POP.UnitCost,0)) 'extCosts',
+			--ISNULL(POP.UnitCost,0) AS 'unitCost', 
+			ISNULL(stk.UnitCost,0) AS 'unitCost',
+			--(ISNULL(stk.Quantity,0) * ISNULL(POP.UnitCost,0)) 'extCosts',
+			(ISNULL(stk.Quantity,0) * ISNULL(stk.UnitCost,0)) 'extCosts',
 			CAST(stk.CreatedDate as Date) AS 'receivedDate',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -129,16 +132,16 @@ BEGIN
 			1 as 'isPurchaseOrder'
         FROM 
 			DBO.PurchaseOrder AS PO WITH (NOLOCK)  
-			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId  AND POP.ItemMasterId = stk.ItemMasterId
-			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
-			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
+			--INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId  --AND POP.ItemMasterId = stk.ItemMasterId
+			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stk.PurchaseOrderPartRecordId --POP.PurchaseOrderPartRecordId
+			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON stk.itemmasterId = IM.itemmasterId --POP.itemmasterId = IM.itemmasterId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
 		  
 		  WHERE ISNULL(PO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
-				PO.VendorId=ISNULL(@vendorId,PO.VendorId)    AND POP.ItemMasterId = ISNULL(@selectedItemMasterId,POP.ItemMasterId)  
+				PO.VendorId=ISNULL(@vendorId,PO.VendorId)    AND stk.ItemMasterId = ISNULL(@selectedItemMasterId,stk.ItemMasterId)  -- POP.ItemMasterId = ISNULL(@selectedItemMasterId,POP.ItemMasterId)  
 					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND PO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@conditionIds,'')='' OR Stk.ConditionId IN(SELECT value FROM String_split(ISNULL(@conditionIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

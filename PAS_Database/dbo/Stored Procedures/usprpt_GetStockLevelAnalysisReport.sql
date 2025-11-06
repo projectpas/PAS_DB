@@ -114,7 +114,7 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription,manufacturer,cond,stockuom, masterCompanyId,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,
+	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom, masterCompanyId,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,
 					qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,
 			     level9, level10) AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
@@ -122,6 +122,7 @@ BEGIN
         UPPER(stl.PNDescription) AS 'pndescription',
 		UPPER(stl.Manufacturer) AS 'manufacturer',
 		UPPER(stl.Condition) AS 'cond',
+		stl.StockLineId AS 'stockLineId',
 		stl.UnitOfMeasure AS 'stockuom',
 		stl.MasterCompanyId AS 'masterCompanyId',
 		IM.StockLevel AS 'stocklevel',
@@ -175,15 +176,15 @@ BEGIN
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			)
-			,FinalCTE(TotalRecordsCount, pn, pndescription,manufacturer,cond,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId) 
-			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription,manufacturer,cond,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId FROM rptCTE)
+			,FinalCTE(TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId) 
+			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId FROM rptCTE)
 
 			,WithTotal (masterCompanyId) 
 			  AS (SELECT masterCompanyId
 				FROM FinalCTE
 				GROUP BY masterCompanyId)
 
-			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription,manufacturer,cond,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
 				FROM FinalCTE FC
 					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
 				ORDER BY pn DESC

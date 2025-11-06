@@ -97,7 +97,7 @@ BEGIN
 		  SELECT @PageSize=COUNT(*)
 		  FROM DBO.Stockline stl WITH (NOLOCK)
 			INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
-			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
+			LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
 			WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 AND stl.IsDeleted=0
 	        AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
@@ -153,9 +153,9 @@ BEGIN
 		UPPER(MSD.Level9Name) AS level9,    
 		UPPER(MSD.Level10Name) AS level10
 		FROM DBO.Stockline stl WITH (NOLOCK)
-		INNER JOIN dbo.ItemMaster IM ON IM.ItemMasterId = stl.ItemMasterId
+		INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
 	    INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
-		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
+		LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
 		WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 and stl.isActive =1 AND stl.IsDeleted=0
 			AND (ISNULL(@PN,'') ='' OR stl.ItemMasterId  = @PN)
 			AND (ISNULL(@Condition,'') ='' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,','))) 

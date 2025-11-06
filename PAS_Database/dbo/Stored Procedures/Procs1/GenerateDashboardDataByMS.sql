@@ -32,6 +32,7 @@
 	19	 07/02/2025		Devendra Shekh		Using @BaseUtcOffsetSec for DateConversion
 	20	 09/09/2025		Devendra Shekh		Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
 	21	 03 NOV 2025	HEMANT SALIYA		Corrected Dashbord MRO Billing Last 12 month trend Reports
+	22   06 NOV 2025    Moin Bloch      Exclude Credit Memo Condition 
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -65,6 +66,13 @@ BEGIN
 		DECLARE @WOModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder');
 		DECLARE @SubModuleId BIGINT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN');
 		DECLARE @SOModuleId INT = (SELECT [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder');
+
+		DECLARE @CMPostedStatusId INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'POSTED');
+		DECLARE @ClosedCreditMemoStatus INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'CLOSED');
+		DECLARE @RefundedCreditMemoStatus INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'REFUNDED');
+		DECLARE @RefundRequestedCreditMemoStatus INT = (SELECT [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'REFUND REQUESTED');
+		DECLARE @WOInvoiceTypeId INT = (SELECT [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WITH(NOLOCK) WHERE ModuleName='WorkOrder');
+
 
 		/* --------------START: Get the timzone and UTC offset -------------- */
 			DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
@@ -176,6 +184,7 @@ BEGIN
 			AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @SelectedDate)
 			AND wobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+			AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 			AND wobi.ModuleId = @WOModuleId
 		) AS WOBillingResult
 

@@ -199,7 +199,7 @@ BEGIN
 
 		--Update for avg cost
 		UPDATE #tmpFinalAnalysis 
-		SET avgPOCost = COALESCE(avge.avgROCost / NULLIF(avge.qty, 0), 0)--CASE WHEN ISNULL(avge.avgROCost,0) > 0  THEN (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1)) ELSE 0 END
+		SET avgPOCost = COALESCE(avge.avgROCost / NULLIF(avge.qty, 1), 0)--CASE WHEN ISNULL(avge.avgROCost,0) > 0  THEN (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1)) ELSE 0 END
 		FROM #tmpFinalAnalysis TmpInv 
 		LEFT JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
 

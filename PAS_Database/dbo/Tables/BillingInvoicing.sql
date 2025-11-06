@@ -53,8 +53,11 @@
     [SignEmpId]                   BIGINT          NULL,
     [SignEmpDate]                 DATETIME2 (7)   NULL,
     [IsStandardInvoicePosted]     BIT             NULL,
+    [CreditMemoHeaderId]          BIGINT          NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
+
+
 
 
 

@@ -17,6 +17,7 @@
 	1    19/06/2025   Moin Bloch	  Created
 	2    24/06/2025   Moin Bloch	  Added [IsMiscChargesCheck] Flag
 	3    27/06/2025   Moin Bloch	  Change Logic For quote
+	4    30/10/2025   Moin Bloch      Added CreditMemoHeaderId 
 	
 	EXEC [dbo].[RPT_GetWorkFlowWorkOrderChargesList] 8982,8764,1    
 ****************************************************************************************/
@@ -64,7 +65,8 @@ BEGIN
 				 LEFT JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 				 LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.ID = WOF.WorkOrderPartNoId
 				 LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON WOP.ID = BII.SubReferenceId AND WOP.WorkOrderId = BII.ReferenceId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice,0) = 0 AND BII.ModuleId = @WOModuleId
-			     LEFT JOIN [dbo].[Percent] PER WITH(NOLOCK) ON BII.MiscChargesCostPercent = PER.PercentId AND BII.ModuleId = @WOModuleId
+			     LEFT JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND ISNULL(BI.[CreditMemoHeaderId],0) = 0
+				 LEFT JOIN [dbo].[Percent] PER WITH(NOLOCK) ON BII.MiscChargesCostPercent = PER.PercentId AND BII.ModuleId = @WOModuleId
 			WHERE woc.IsDeleted = 0 AND woc.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND woc.MasterCompanyId=@masterCompanyId
 	END
 	ELSE
@@ -100,7 +102,8 @@ BEGIN
 				  LEFT JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 				  LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.ID = WOF.WorkOrderPartNoId
 				  LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) ON WOP.ID = BII.SubReferenceId AND WOP.WorkOrderId = BII.ReferenceId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice,0) = 0 AND BII.ModuleId = @WOModuleId
-			      LEFT JOIN [dbo].[Percent] PER WITH(NOLOCK) ON BII.MiscChargesCostPercent = PER.PercentId AND BII.ModuleId = @WOModuleId
+			      LEFT JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId AND ISNULL(BI.[CreditMemoHeaderId],0) = 0
+				  LEFT JOIN [dbo].[Percent] PER WITH(NOLOCK) ON BII.MiscChargesCostPercent = PER.PercentId AND BII.ModuleId = @WOModuleId
 			WHERE woc.IsDeleted = 0 AND wq.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND woc.MasterCompanyId=@masterCompanyId
 	END
 

@@ -27,6 +27,7 @@
 	14   28/07/2025   RAJESH GAMI     Implement the Update Revenue while generating the invoice(Update SO Stockline Cost)
 	15   29/07/2025   RAJESH GAMI     Added stocklineIds while checking InvoiceNumber exist or not.(Only for SO)
 	16   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
+	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -109,13 +110,17 @@ BEGIN
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+	DECLARE @InvoicedStatusId INT = 0,@InvoicedStatus VARCHAR(50) 
 
 	SET @CreatedDate = GETUTCDATE();
     SET @UpdatedDate = GETUTCDATE();
 	
 	SELECT @BilledInvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Billed';		
-	SELECT @BilledInvoiceStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @BilledInvoiceStatusId;	
+	SELECT @BilledInvoiceStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @BilledInvoiceStatusId;
 	SELECT @VerCode  = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Version';	
+
+	SELECT @InvoicedStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Invoiced';		
+	SELECT @InvoicedStatus = [Status] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [InvoiceStatusId] = @InvoicedStatusId;		
 		
 	IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 	BEGIN
@@ -428,9 +433,11 @@ BEGIN
 			END
 			ELSE
 			BEGIN				
-				DECLARE @VersionNums INT= 0;
+				DECLARE @VersionNums INT= 0, @StatusId INT= 0 , @CreditMemoHeaderId BIGINT = 0 
 				SELECT @VersionNo = [VersionNo] FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [BillingInvoicingItemId] = @BillingInvoicingItemId AND [BillingInvoicingId] = @BillingInvoicingId; 
 				
+				SELECT @StatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
+
 				IF(@isNewInvoice = 1)
 				BEGIN
 					SET @VersionNo = NULL
@@ -456,16 +463,34 @@ BEGIN
 				BEGIN			
 					SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
 				END
-				
-			    UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
+								
+				SELECT TOP 1 @CreditMemoHeaderId = ISNULL(CM.[CreditMemoHeaderId],0)
+				  FROM [dbo].[CreditMemo] CM WITH(NOLOCK)
+				  INNER JOIN [dbo].[CreditMemoDetails] CD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CD.[CreditMemoHeaderId]
+					WHERE CD.[ReferenceId] = @ReferenceId 
+					  AND CD.[InvoiceId] = @BillingInvoicingId
+					  --AND CD.[BillingInvoicingItemId] = @BillingInvoicingItemId
+					  AND CM.[StatusId] = @StatusId
 
-				IF(@ModuleId = @SOModuleId)
+				IF(@CreditMemoHeaderId = 0)
 				BEGIN
-					UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+					UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
 				END
-				ELSE IF(@ModuleId = @WOModuleId)
+				ELSE
 				BEGIN
-					UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId; 
+					UPDATE [dbo].[BillingInvoicing] SET [CreditMemoHeaderId] = @CreditMemoHeaderId,[InvoiceStatusId] = @InvoicedStatusId,[InvoiceStatus] = @InvoicedStatus,[UpdatedDate] = @UpdatedDate WHERE [BillingInvoicingId] = @BillingInvoicingId; 
+				END
+							
+				IF(@CreditMemoHeaderId = 0)
+				BEGIN
+					IF(@ModuleId = @SOModuleId)
+					BEGIN
+						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+					END
+					ELSE IF(@ModuleId = @WOModuleId)
+					BEGIN
+						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId; 
+					END
 				END
 
 				INSERT INTO [dbo].[BillingInvoicingItems]([BillingInvoicingId],[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId]

@@ -98,7 +98,7 @@ BEGIN
 		  FROM DBO.Stockline stl WITH (NOLOCK)
 			INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 			LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
-			WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 AND stl.IsDeleted=0
+			WHERE stl.mastercompanyid = @mastercompanyid AND ISNULL(stl.IsParent, 0) = 1 AND stl.IsDeleted=0 AND ISNULL(stl.IsCustomerStock, 0) = 0
 	        AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -156,7 +156,7 @@ BEGIN
 		INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
 	    INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
 		LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
-		WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 and stl.isActive =1 AND stl.IsDeleted=0
+		WHERE stl.mastercompanyid = @mastercompanyid and stl.isActive =1 AND ISNULL(stl.IsParent, 0) = 1 AND stl.IsDeleted=0 AND ISNULL(stl.IsCustomerStock, 0) = 0
 			AND (ISNULL(@PN,'') ='' OR stl.ItemMasterId  = @PN)
 			AND (ISNULL(@Condition,'') ='' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,','))) 
 			AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   

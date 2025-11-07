@@ -4330,6 +4330,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetRecevingStocklineDetails.sql" />
     <Build Include="dbo\Tables\SupportAssignmentMaster.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportAssignmentMaster_ById.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderQuoteParts]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get sales order quote part details for view    
@@ -19,6 +18,7 @@
     2    12/03/2024   Vishal Suthar Handled null values
     3    12/09/2024   Vishal Suthar Fix for qty issue when stockline is not added
   	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit        
+	5    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost 
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -28,6 +28,13 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
     SET NOCOUNT ON;
 	BEGIN TRY
+
+	
+    	IF OBJECT_ID(N'tempdb..#tmpSOPartTblView') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpSOPartTblView
+		END
+
 		SELECT DISTINCT
 			part.SalesOrderQuotePartId,
 			part.SalesOrderQuoteId,
@@ -137,7 +144,11 @@ BEGIN
 			COALESCE(mf.Name, '') AS ManufacturerName,
 			part.SalesPriceExpiryDate,
 			part.IsNoQuote,
-			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOQPC.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit
+			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOQPC.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit,
+			SOQPC.UnitSalesPrice MainUnitSalesPrice,
+			ISNULL((CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.NetSaleAmount, 0) ELSE ISNULL(SOQPC.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
+
+		INTO #tmpSOPartTblView 
 		FROM DBO.SalesOrderQuotePartV1 part WITH (NOLOCK)
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderQuotePartId = Stk.SalesOrderQuotePartId
 		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON Stk.StockLineId = qs.StockLineId
@@ -154,6 +165,23 @@ BEGIN
 		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId
 		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
 		ORDER BY part.SalesOrderQuotePartId;
+
+
+		;WITH CTE_Cost AS (
+			SELECT 
+				SalesOrderQuotePartId,
+				SUM(ISNULL(QtyQuoted, 0)) AS TotalQtyQuoted,
+				SUM(ISNULL(NetSalePriceExtendedPart, 0)) AS TotalNetSalePriceExtended
+			FROM #tmpSOPartTblView
+			GROUP BY SalesOrderQuotePartId
+		)
+		SELECT 
+			main.*,
+			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
+			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
+		FROM #tmpSOPartTblView main
+		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId;
+
 	END TRY
 	BEGIN CATCH
 		IF @@trancount > 0

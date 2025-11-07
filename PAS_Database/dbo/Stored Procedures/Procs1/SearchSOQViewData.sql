@@ -19,7 +19,7 @@
 	6    27-06-2025  Bhargav Saliya		 Add New Fields @NumberOfItemCount 
 	7    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return 
 	8    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
-
+	9    06-11-2025  Rajesh Gami		Correct the QuoteAmount 
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -134,7 +134,7 @@ BEGIN
       Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,
 	  SOQ.OpenDate,
 	  SOQ.CustomerId, SOQ.CustomerName Name, SOQ.CustomerCode CustomerCode, MST.Name AS 'Status',  
-      B.Cost, B.NetSales AS 'SalesPrice', (E.FirstName + ' ' + E.LastName) AS SalesPerson, SOQ.AccountTypeName CustomerTypeName, SO.SalesOrderNumber,  
+      B.Cost, Z.NetSales AS 'SalesPrice', (E.FirstName + ' ' + E.LastName) AS SalesPerson, SOQ.AccountTypeName CustomerTypeName, SO.SalesOrderNumber,  
       A.SoAmount,
 	  (Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
 	  (Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
@@ -161,6 +161,73 @@ BEGIN
 	   INNER JOIN DBO.SalesOrderQuotePartCost SOC WITH (NOLOCK) ON S.SalesOrderQuotePartId = SOC.SalesOrderQuotePartId
        Where S.SalesOrderQuoteId=SOQ.SalesOrderQuoteId
       ) B
+	   OUTER APPLY (
+					SELECT SUM(X.NetSales) AS NetSales
+						FROM (
+
+						SELECT 
+								 (CASE 
+									WHEN ISNULL(SUM(SOP.QtyRequested), 0) = ISNULL(SUM(SOP.QtyQuoted), 0) 
+										THEN 0 
+									ELSE 
+										(
+											(
+												ISNULL(SUM(
+													CASE 
+														WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL 
+															THEN stk.QtyQuoted 
+														ELSE 
+															CASE 
+																WHEN ISNULL(SOP.QtyQuoted, 0) > 0 
+																	THEN ISNULL(SOP.QtyQuoted, 0) 
+																ELSE 
+																	ISNULL(SOP.QtyRequested, 0) 
+															END 
+													END
+												), 0)
+												* -1
+												+ ISNULL(SUM(SOP.QtyRequested), 0)
+											) * ISNULL(U.UnitSalesPrice, 0)
+										)
+								END)
+								+
+								ISNULL(SUM(
+									CASE 
+										WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL 
+											THEN ISNULL(SC.NetSaleAmount, 0) 
+										ELSE 
+											ISNULL(SOQPS.NetSaleAmount, 0) 
+									END
+								), 0) AS NetSales--,U.UnitSalesPrice
+							FROM DBO.SalesOrderQuote quote WITH (NOLOCK)
+							INNER JOIN DBO.SalesOrderQuotePartV1 SOP WITH (NOLOCK) 
+								ON SOP.SalesOrderQuoteId = quote.SalesOrderQuoteId
+							INNER JOIN DBO.SalesOrderQuotePartCost SOQPS WITH (NOLOCK) 
+								ON SOQPS.SalesOrderQuoteId = quote.SalesOrderQuoteId 
+								AND SOP.SalesOrderQuotePartId = SOQPS.SalesOrderQuotePartId
+							LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) 
+								ON stk.SalesOrderQuotePartId = SOQPS.SalesOrderQuotePartId
+							LEFT JOIN DBO.SalesOrderQuoteStockLineCost SC WITH (NOLOCK) 
+								ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId 
+								AND quote.SalesOrderQuoteId = SC.SalesOrderQuoteId
+
+							OUTER APPLY (
+								SELECT  
+									ISNULL(SOQPS2.UnitSalesPrice, 0) AS UnitSalesPrice
+								FROM DBO.SalesOrderQuotePartCost SOQPS2 WITH (NOLOCK)
+								 LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk2 WITH (NOLOCK) 
+								ON stk2.SalesOrderQuotePartId = SOQPS2.SalesOrderQuotePartId
+								WHERE SOQPS2.SalesOrderQuoteId = quote.SalesOrderQuoteId 
+								  AND SOQPS2.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
+								--ORDER BY SOQPS2.SalesOrderQuotePartCostId DESC
+								GROUP BY SOQPS2.UnitSalesPrice
+							) AS U
+
+							WHERE quote.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+							AND SOP.SalesOrderQuoteId =SOQ.SalesOrderQuoteId
+							GROUP BY U.UnitSalesPrice
+							) AS X
+      ) Z
 	  OUTER APPLY(SELECT count(SalesOrderQuotePartId) as 'Items' FROM [dbo].[SalesOrderQuotePartV1] soqv1 with(nolock) where soqv1.SalesOrderQuoteId = SOQ.SalesOrderQuoteId GROUP BY soqv1.SalesOrderQuoteId) PartCount
       WHERE (SOQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID) AND (@SourceByName IS NULL OR CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END = @SourceByName) AND SOQ.MasterCompanyId = @MasterCompanyId), PartCTE AS (  
       SELECT SQ.SalesOrderQuoteId,(CASE WHEN Count(SP.SalesOrderQuotePartId) > 1 THEN 'Multiple' ELSE A.PartNumber END)  AS 'PartNumberType',A.PartNumber FROM DBO.SalesOrderQuote SQ WITH (NOLOCK)  

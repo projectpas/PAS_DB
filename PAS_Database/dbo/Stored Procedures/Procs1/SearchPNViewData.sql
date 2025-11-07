@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [SearchPNViewData]             
  ** Author:    
  ** Description: Get Search Data for PN View  
@@ -21,7 +20,7 @@
 	7    15-07-2025  Rajesh Gami		Fixed: Getting proper status as shown as in header
 	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
     9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
-
+	10   06-11-2025  Rajesh Gami		Correct the QuoteAmount 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -120,6 +119,15 @@ BEGIN
 		SET @Status = NULL  
     END  
     DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID
+	   
+	IF OBJECT_ID(N'tempdb..#tmpSOPartTblData') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmpSOPartTblData
+	END
+	IF OBJECT_ID(N'tempdb..#tmpSOPartTblDataFinal') IS NOT NULL
+	BEGIN
+		DROP TABLE #tmpSOPartTblDataFinal
+	END
 
    ;WITH Result AS (
     SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status', ISNULL(SPC.NetSaleAmount, 0) AS 'QuoteAmount',  
@@ -130,7 +138,9 @@ BEGIN
 	(CAST(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',ISNULL(count(SP.SalesOrderQuotePartId),0) AS NumberOfItemCount,
 	  CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END SourceBy, 
-	  ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef
+	  ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef,
+	  SP.SalesOrderQuotePartId,
+	  SP.QtyQuoted,SP.QtyRequested,SPC.UnitSalesPrice MainUnitSalesPrice
     FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)  
 	INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
     LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0  
@@ -148,11 +158,11 @@ BEGIN
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
     IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  
     SOQ.AccountTypeName,SO.SalesOrderNumber, SOQ.CreatedDate, SOQ.UpdatedDate,MST.Name,
-	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef)
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SPC.UnitSalesPrice)
 	,  
-    FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId  
+    FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  
-	 CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,NumberOfItemCount,SourceBy, MarketplaceRef from Result  
+	 CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,NumberOfItemCount,SourceBy, MarketplaceRef,SalesOrderQuotePartId,QtyQuoted,QtyRequested,MainUnitSalesPrice from Result  
     WHERE (  
      (@GlobalFilter <>'' AND ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
        (CustomerName LIKE '%' +@GlobalFilter+'%') OR  
@@ -194,10 +204,11 @@ BEGIN
        (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
 	   (ISNULL(@NumberOfItemCount,'') ='' OR NumberOfItemCount LIKE '%'+@NumberOfItemCount+'%'))  
        ))
-     SELECT SalesOrderQuoteId,UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber',QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',QuoteAmount,IsNewVersionCreated,StatusId  
+
+     SELECT SalesOrderQuoteId,UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber',QuoteDate,CustomerId,UPPER(CustomerName) 'CustomerName',UPPER(Status) 'Status',UPPER(VersionNumber) 'VersionNumber',isnull(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,UPPER(CustomerReference) 'CustomerReference',UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType',UPPER(SalesPerson) 'SalesPerson',UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerType) 'ManufacturerType',UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',UPPER(CustomerType) 'CustomerType',UPPER(SalesOrderNumber) 'SalesOrderNumber',  
-     CreatedDate,UpdatedDate, UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy', NumberOfItemCount,SourceBy,MarketplaceRef,
-	 (SELECT COUNT(*) FROM FinalResult) AS NumberOfItems FROM FinalResult
+     CreatedDate,UpdatedDate, UPPER(CreatedBy) 'CreatedBy',UPPER(UpdatedBy) 'UpdatedBy', NumberOfItemCount,SourceBy,MarketplaceRef,SalesOrderQuotePartId,QtyQuoted,QtyRequested,MainUnitSalesPrice,
+	 (SELECT COUNT(*) FROM FinalResult) AS NumberOfItems INTO #tmpSOPartTblData FROM FinalResult
     ORDER BY
      CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERQUOTEID')  THEN SalesOrderQuoteId END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
@@ -242,6 +253,29 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
        
+	   ;WITH CTE_Cost AS (
+			SELECT 
+				dt.SalesOrderQuotePartId,
+				SUM(ISNULL((CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE (CASE WHEN ISNULL(DT.QtyQuoted, 0) > 0 THEN ISNULL(DT.QtyQuoted, 0) ELSE ISNULL(DT.QtyRequested, 0) END) END), 0)) AS TotalQtyQuoted,
+				SUM(ISNULL((ISNULL((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(DT.QuoteAmount, 0) END), 0)), 0)) AS TotalNetSalePriceExtended
+			FROM #tmpSOPartTblData dt
+			LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = dt.SalesOrderQuotePartId
+			LEFT JOIN DBO.SalesOrderQuoteStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
+			GROUP BY dt.SalesOrderQuotePartId
+		)
+		SELECT 
+			main.*,
+			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
+			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
+			  INTO #tmpSOPartTblDataFinal
+		FROM #tmpSOPartTblData main
+		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId;
+
+		--ALTER TABLE #tmpSOPartTblDataFinal
+		--ALTER COLUMN QuoteAmount DECIMAL(18,4) NULL;
+
+		Update #tmpSOPartTblDataFinal SET QuoteAmount = ISNULL(TotalPartCost ,0)
+		SELECT * FROM #tmpSOPartTblDataFinal
     END  
    COMMIT  TRANSACTION  
   
@@ -250,6 +284,13 @@ BEGIN
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
     ROLLBACK TRAN;  
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'SearchPNViewData'   

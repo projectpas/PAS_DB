@@ -17,10 +17,11 @@
 	4    03-12-2024   AMIT GHEDIYA		Fixed Get Saved CurrId from part table.
 	5    12-12-2024   Vishal Suthar		Fixed Qty Quoted when no stockline is added
 	6    09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
-  	7    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit   
+  	7    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
+	8    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost   
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePartView]
+CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
     @CurrencyDisplayName NVARCHAR(100)
 AS
@@ -28,148 +29,180 @@ BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
-    SELECT DISTINCT
-        part.SalesOrderQuotePartId,
-        stk.SalesOrderQuoteStocklineId,
-        part.SalesOrderQuoteId,
-        part.ItemMasterId,
-        stk.StockLineId,
-        ISNULL(qs.StockLineNumber, '') AS stockLineNumber,
-        part.FxRate,
-        CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE (CASE WHEN ISNULL(Part.QtyQuoted, 0) > 0 THEN ISNULL(Part.QtyQuoted, 0) ELSE ISNULL(Part.QtyRequested, 0) END) END AS QtyQuoted,
-        ISNULL(part.QtyRequested, 0) AS QtyRequested,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPrice, 0) ELSE ISNULL(PS.UnitSalesPrice, 0) END UnitSalePrice,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountAmount, 0) ELSE ISNULL(PS.DiscountAmount, 0) END SalesBeforeDiscount,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountPercentage, 0) ELSE ISNULL(PS.DiscountPercentage, 0) END Discount,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.DiscountAmount, 0) / (CASE WHEN ISNULL(stk.QtyQuoted, 0) > 0 THEN stk.QtyQuoted ELSE 1 END)) ELSE (ISNULL(PS.DiscountAmount, 0) / CASE WHEN ISNULL(part.QtyQuoted, 0) > 0 THEN part.QtyQuoted ELSE 1 END) END DiscountAmount,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END NetSales,
-        part.MasterCompanyId,
-        part.CreatedBy,
-        part.CreatedDate,
-        part.UpdatedBy,
-        part.UpdatedDate,
-        itemMaster.PartNumber,
-        itemMaster.PartDescription,
-        ISNULL(qs.OEM, 0) AS isOEM,
-        itemMaster.IsPma AS isPMA,
-        itemMaster.IsDER AS isDER,
-        CASE WHEN stk.StockLineId IS NOT NULL THEN 'S' ELSE 'I' END MethodType,
-        '' AS Method,
-        ISNULL(qs.SerialNumber, '') AS SerialNumber,
-        ISNULL(qs.ControlNumber, '') AS ControlNumber,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitCost, 0) ELSE ISNULL(PS.UnitCost, 0) END UnitCost,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPriceExtended, 0) ELSE ISNULL(PS.UnitSalesPriceExtended, 0) END SalesPriceExtended,
-        ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpAmount, 0) ELSE ISNULL(PS.MarkUpAmount, 0) END) * stk.QtyQuoted), 0) MarkupExtended,
-        ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountAmount, 0) ELSE ISNULL(PS.DiscountAmount, 0) END) * stk.QtyQuoted), 0) SalesDiscountExtended,
-        ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END) * stk.QtyQuoted), 0) NetSalePriceExtended,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitCostExtended, 0) ELSE ISNULL(PS.UnitCostExtended, 0) END UnitCostExtended,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginAmount, 0) ELSE ISNULL(PS.MarginAmount, 0) END MarginAmount,
-        ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginAmount, 0) ELSE ISNULL(PS.MarginAmount, 0) END) * stk.QtyQuoted), 0) MarginAmountExtended,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginPercentage, 0) ELSE ISNULL(PS.MarginPercentage, 0) END MarginPercentage,
-        --@CurrencyDisplayName AS CurrencyDescription,
-        ISNULL(cp.ConditionId, 0) AS ConditionId,
-        ISNULL(cp.Description, '') AS ConditionDescription,
-        ISNULL(qs.IdNumber, '') AS IdNumber,
-        CASE WHEN EXISTS (
-                SELECT 1
-                FROM SalesOrderQuoteApproval sqap
-                WHERE sqap.SalesOrderQuotePartId = part.SalesOrderQuotePartId 
-                  AND sqap.IsDeleted = 0 
-                  AND sqap.CustomerStatusId = 1 -- Assuming 1 is 'Approved'
-            ) THEN 1 ELSE 0 END AS IsApproved,
-        ISNULL(UPPER(um.ShortName), '') AS UomName,
-        ISNULL(po.PurchaseOrderNumber, '') AS PoNumber,
-        ISNULL(ro.RepairOrderNumber, '') AS RoNumber,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.CustomerRequestDate ELSE part.CustomerRequestDate END CustomerRequestDate,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.PromisedDate ELSE part.PromisedDate END AS PromisedDate,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.EstimatedShipDate ELSE part.EstimatedShipDate END AS EstimatedShipDate,
-		CASE WHEN part.PriorityId = 0 THEN 2 ELSE part.PriorityId END AS PriorityId,
-        CASE WHEN part.PriorityId = 0 THEN 'Routine' ELSE ISNULL(pri.Description, 'Routine') END AS PriorityName,
-        ISNULL(part.StatusId, 1) AS StatusId, -- Assuming 1 represents 'Open'
-        ISNULL(st.Description, 'Open') AS StatusName,
-        soq.CustomerReference CustomerReference,
-        CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.Notes ELSE part.Notes END AS Notes,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / CASE WHEN ISNULL(stk.QtyQuoted, 0) > 0 THEN stk.QtyQuoted ELSE 1 END) ELSE (ISNULL(PS.MarkUpAmount, 0) / CASE WHEN ISNULL(part.QtyQuoted, 0) > 0 THEN part.QtyQuoted ELSE 1 END) END MarkupPerUnit,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePricePerUnit,
-        CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePrice,
-        TaxPercentage = 0,--dbo.GetCustomerTaxBaseOnPartDetail(part.SalesOrderQuoteId, part.SalesOrderQuotePartId, soq.CustomerId), 
-        --ISNULL(part.TaxType, '') AS TaxType,
-        '' AS TaxType,
-        ISNULL(PS.TaxAmount, 0) TaxAmount,
-        --ISNULL(part.QtyPrevQuoted, 0) AS QtyPrevQuoted,
-        0 AS QtyPrevQuoted,
-        --part.AltOrEqType,
-        '' AltOrEqType,
-        Freight = ISNULL((
-            SELECT SUM(sqf.BillingAmount) 
-            FROM SalesOrderQuoteFreight sqf
-            WHERE sqf.SalesOrderQuoteId = @SalesQuoteId
-              AND sqf.ItemMasterId = part.ItemMasterId
-              AND sqf.ConditionId = part.ConditionId
-              AND sqf.IsActive = 1
-              AND sqf.IsDeleted = 0), 0),
-        Misc = ISNULL((
-            SELECT SUM(sqc.BillingAmount) 
-            FROM SalesOrderQuoteCharges sqc
-            WHERE sqc.SalesOrderQuoteId = @SalesQuoteId
-              AND sqc.ItemMasterId = part.ItemMasterId
-              AND sqc.ConditionId = part.ConditionId
-              AND sqc.IsActive = 1
-              AND sqc.IsDeleted = 0), 0),
-        StockType = CASE 
-            WHEN itemMaster.IsPma = 1 AND itemMaster.IsDER = 1 THEN 'PMA&DER'
-            WHEN itemMaster.IsPma = 1 THEN 'PMA'
-            WHEN itemMaster.IsDER = 1 THEN 'DER'
-            ELSE 'OEM'
-        END,
-		CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
-			(SELECT ISNULL(SUM(Stkl.QuantityAvailable),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
-		ELSE
-			(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
-		END StkQtyAvailable,
-		(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
-		 QtyAvailable,
-		CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
-			(SELECT ISNULL(SUM(Stkl.QuantityOnHand),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
-		ELSE
-			(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
-		END StkQuantityOnHand,
-		(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
-		 QuantityOnHand,
-        part.IsConvertedToSalesOrder,
-        --ISNULL(part.ItemNo, 0) AS ItemNo,
-        0 AS ItemNo,
-        (CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN SC.UnitSalesPrice ELSE PS.UnitSalesPrice END) UnitSalesPricePerUnit,
-        itemMaster.ItemClassificationName AS ItemClassification,
-        itemMaster.ItemGroup,
-        ISNULL(mf.Name, '') AS ManufacturerName,
-        --part.SalesPriceExpiryDate,
-        NULL SalesPriceExpiryDate,
-        part.IsNoQuote,
-		qs.TraceableToName,
-		qs.TagDate,
-		qs.TagType,
-		ISNULL(fcu.Code, '') AS CurrencyDescription,
-        part.CurrencyId,
-		CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit
-    FROM DBO.SalesOrderQuotePartV1 part  WITH (NOLOCK)
-    LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-    LEFT JOIN DBO.SalesOrderQuotePartCost PS WITH (NOLOCK) ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId
-    LEFT JOIN DBO.SalesOrderQuoteStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
-    LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
-    INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-    LEFT JOIN DBO.[Condition] cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
-    LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
-    LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-    LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
-    LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
-    LEFT JOIN DBO.Priority pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
-    LEFT JOIN DBO.SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
-    LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
-	LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
-    WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-    ORDER BY part.CreatedDate;
+
+    	IF OBJECT_ID(N'tempdb..#tmpSOPartTbl') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpSOPartTbl
+		END
+
+		SELECT DISTINCT
+			part.SalesOrderQuotePartId,
+			stk.SalesOrderQuoteStocklineId,
+			part.SalesOrderQuoteId,
+			part.ItemMasterId,
+			stk.StockLineId,
+			ISNULL(qs.StockLineNumber, '') AS stockLineNumber,
+			part.FxRate,
+			CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.QtyQuoted ELSE (CASE WHEN ISNULL(Part.QtyQuoted, 0) > 0 THEN ISNULL(Part.QtyQuoted, 0) ELSE ISNULL(Part.QtyRequested, 0) END) END AS QtyQuoted,
+			ISNULL(part.QtyRequested, 0) AS QtyRequested,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPrice, 0) ELSE ISNULL(PS.UnitSalesPrice, 0) END UnitSalePrice,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountAmount, 0) ELSE ISNULL(PS.DiscountAmount, 0) END SalesBeforeDiscount,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountPercentage, 0) ELSE ISNULL(PS.DiscountPercentage, 0) END Discount,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.DiscountAmount, 0) / (CASE WHEN ISNULL(stk.QtyQuoted, 0) > 0 THEN stk.QtyQuoted ELSE 1 END)) ELSE (ISNULL(PS.DiscountAmount, 0) / CASE WHEN ISNULL(part.QtyQuoted, 0) > 0 THEN part.QtyQuoted ELSE 1 END) END DiscountAmount,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END NetSales,
+			part.MasterCompanyId,
+			part.CreatedBy,
+			part.CreatedDate,
+			part.UpdatedBy,
+			part.UpdatedDate,
+			itemMaster.PartNumber,
+			itemMaster.PartDescription,
+			ISNULL(qs.OEM, 0) AS isOEM,
+			itemMaster.IsPma AS isPMA,
+			itemMaster.IsDER AS isDER,
+			CASE WHEN stk.StockLineId IS NOT NULL THEN 'S' ELSE 'I' END MethodType,
+			'' AS Method,
+			ISNULL(qs.SerialNumber, '') AS SerialNumber,
+			ISNULL(qs.ControlNumber, '') AS ControlNumber,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitCost, 0) ELSE ISNULL(PS.UnitCost, 0) END UnitCost,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPriceExtended, 0) ELSE ISNULL(PS.UnitSalesPriceExtended, 0) END SalesPriceExtended,
+			ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpAmount, 0) ELSE ISNULL(PS.MarkUpAmount, 0) END) * stk.QtyQuoted), 0) MarkupExtended,
+			ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.DiscountAmount, 0) ELSE ISNULL(PS.DiscountAmount, 0) END) * stk.QtyQuoted), 0) SalesDiscountExtended,
+			ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END) * stk.QtyQuoted), 0) NetSalePriceExtended,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.UnitCostExtended, 0) ELSE ISNULL(PS.UnitCostExtended, 0) END UnitCostExtended,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginAmount, 0) ELSE ISNULL(PS.MarginAmount, 0) END MarginAmount,
+			ISNULL(((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginAmount, 0) ELSE ISNULL(PS.MarginAmount, 0) END) * stk.QtyQuoted), 0) MarginAmountExtended,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarginPercentage, 0) ELSE ISNULL(PS.MarginPercentage, 0) END MarginPercentage,
+			--@CurrencyDisplayName AS CurrencyDescription,
+			ISNULL(cp.ConditionId, 0) AS ConditionId,
+			ISNULL(cp.Description, '') AS ConditionDescription,
+			ISNULL(qs.IdNumber, '') AS IdNumber,
+			CASE WHEN EXISTS (
+					SELECT 1
+					FROM SalesOrderQuoteApproval sqap
+					WHERE sqap.SalesOrderQuotePartId = part.SalesOrderQuotePartId 
+					  AND sqap.IsDeleted = 0 
+					  AND sqap.CustomerStatusId = 1 -- Assuming 1 is 'Approved'
+				) THEN 1 ELSE 0 END AS IsApproved,
+			ISNULL(UPPER(um.ShortName), '') AS UomName,
+			ISNULL(po.PurchaseOrderNumber, '') AS PoNumber,
+			ISNULL(ro.RepairOrderNumber, '') AS RoNumber,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.CustomerRequestDate ELSE part.CustomerRequestDate END CustomerRequestDate,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.PromisedDate ELSE part.PromisedDate END AS PromisedDate,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.EstimatedShipDate ELSE part.EstimatedShipDate END AS EstimatedShipDate,
+			CASE WHEN part.PriorityId = 0 THEN 2 ELSE part.PriorityId END AS PriorityId,
+			CASE WHEN part.PriorityId = 0 THEN 'Routine' ELSE ISNULL(pri.Description, 'Routine') END AS PriorityName,
+			ISNULL(part.StatusId, 1) AS StatusId, -- Assuming 1 represents 'Open'
+			ISNULL(st.Description, 'Open') AS StatusName,
+			soq.CustomerReference CustomerReference,
+			CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.Notes ELSE part.Notes END AS Notes,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / CASE WHEN ISNULL(stk.QtyQuoted, 0) > 0 THEN stk.QtyQuoted ELSE 1 END) ELSE (ISNULL(PS.MarkUpAmount, 0) / CASE WHEN ISNULL(part.QtyQuoted, 0) > 0 THEN part.QtyQuoted ELSE 1 END) END MarkupPerUnit,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePricePerUnit,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePrice,
+			TaxPercentage = 0,--dbo.GetCustomerTaxBaseOnPartDetail(part.SalesOrderQuoteId, part.SalesOrderQuotePartId, soq.CustomerId), 
+			--ISNULL(part.TaxType, '') AS TaxType,
+			'' AS TaxType,
+			ISNULL(PS.TaxAmount, 0) TaxAmount,
+			--ISNULL(part.QtyPrevQuoted, 0) AS QtyPrevQuoted,
+			0 AS QtyPrevQuoted,
+			--part.AltOrEqType,
+			'' AltOrEqType,
+			Freight = ISNULL((
+				SELECT SUM(sqf.BillingAmount) 
+				FROM SalesOrderQuoteFreight sqf
+				WHERE sqf.SalesOrderQuoteId = @SalesQuoteId
+				  AND sqf.ItemMasterId = part.ItemMasterId
+				  AND sqf.ConditionId = part.ConditionId
+				  AND sqf.IsActive = 1
+				  AND sqf.IsDeleted = 0), 0),
+			Misc = ISNULL((
+				SELECT SUM(sqc.BillingAmount) 
+				FROM SalesOrderQuoteCharges sqc
+				WHERE sqc.SalesOrderQuoteId = @SalesQuoteId
+				  AND sqc.ItemMasterId = part.ItemMasterId
+				  AND sqc.ConditionId = part.ConditionId
+				  AND sqc.IsActive = 1
+				  AND sqc.IsDeleted = 0), 0),
+			StockType = CASE 
+				WHEN itemMaster.IsPma = 1 AND itemMaster.IsDER = 1 THEN 'PMA&DER'
+				WHEN itemMaster.IsPma = 1 THEN 'PMA'
+				WHEN itemMaster.IsDER = 1 THEN 'DER'
+				ELSE 'OEM'
+			END,
+			CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
+				(SELECT ISNULL(SUM(Stkl.QuantityAvailable),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+			ELSE
+				(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+			END StkQtyAvailable,
+			(SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+			 QtyAvailable,
+
+			CASE WHEN Stk.SalesOrderQuoteStocklineId IS NOT NULL THEN
+				(SELECT ISNULL(SUM(Stkl.QuantityOnHand),0) FROM DBO.Stockline Stkl WITH (NOLOCK) WHERE Stkl.StockLineId = Stk.StockLineId) 
+			ELSE
+				(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0) 
+			END StkQuantityOnHand,
+			
+			(SELECT ISNULL(SUM(Stk.QuantityOnHand),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)
+			 QuantityOnHand,
+
+			part.IsConvertedToSalesOrder,
+			--ISNULL(part.ItemNo, 0) AS ItemNo,
+			0 AS ItemNo,
+			(CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN SC.UnitSalesPrice ELSE PS.UnitSalesPrice END) UnitSalesPricePerUnit,
+			itemMaster.ItemClassificationName AS ItemClassification,
+			itemMaster.ItemGroup,
+			ISNULL(mf.Name, '') AS ManufacturerName,
+			--part.SalesPriceExpiryDate,
+			NULL SalesPriceExpiryDate,
+			part.IsNoQuote,
+			qs.TraceableToName,
+			qs.TagDate,
+			qs.TagType,
+			ISNULL(fcu.Code, '') AS CurrencyDescription,
+			part.CurrencyId,
+			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit,
+			PS.UnitSalesPrice MainUnitSalesPrice,
+			ISNULL((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
+
+		INTO #tmpSOPartTbl 
+		FROM DBO.SalesOrderQuotePartV1 part  WITH (NOLOCK)
+		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+		LEFT JOIN DBO.SalesOrderQuotePartCost PS WITH (NOLOCK) ON PS.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+		LEFT JOIN DBO.SalesOrderQuoteStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
+		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+		INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
+		LEFT JOIN DBO.[Condition] cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
+		LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
+		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
+		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+		LEFT JOIN DBO.Priority pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
+		LEFT JOIN DBO.SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
+		LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
+		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
+		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
+		ORDER BY part.CreatedDate;
+
+		--Select *,(((main.QtyRequested - (Select SUM(ISNULL(QtyQuoted,0)) from #tmpSOPartTbl sub WHERE main.SalesOrderQuotePartId =sub.SalesOrderQuotePartId)) * ISNULL(main.MainUnitSalesPrice,0)) + (Select SUM(ISNULL(NetSalePriceExtended,0)) from #tmpSOPartTbl sub WHERE main.SalesOrderQuotePartId =sub.SalesOrderQuotePartId )) AS TotalPartCost from #tmpSOPartTbl main
+
+		;WITH CTE_Cost AS (
+			SELECT 
+				SalesOrderQuotePartId,
+				SUM(ISNULL(QtyQuoted, 0)) AS TotalQtyQuoted,
+				SUM(ISNULL(NetSalePriceExtendedPart, 0)) AS TotalNetSalePriceExtended
+			FROM #tmpSOPartTbl
+			GROUP BY SalesOrderQuotePartId
+		)
+		SELECT 
+			main.*,
+			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
+			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
+		FROM #tmpSOPartTbl main
+		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId;
+
+
 	END TRY
 
 	BEGIN CATCH

@@ -22,7 +22,7 @@ exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrde
 	
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
+CREATE     PROCEDURE [dbo].[GetCustomerTicketList]
 @PageNumber INT = NULL,        
 @PageSize INT = NULL,        
 @SortColumn VARCHAR(50)=NULL,        
@@ -90,7 +90,7 @@ BEGIN
 			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-		WHERE E.EmployeeId = @EmployeeId; 
+		WHERE E.EmployeeId = @UserEmployeeId; 
 
 		SELECT TOP 1 @empROleId = Id FROM DBO.UserRole WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId and [Name] = 'SUPERADMIN';
 

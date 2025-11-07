@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_ROStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Repaired Stock]
@@ -120,16 +119,15 @@ BEGIN
 			UPPER(POP.UnitOfMeasure) 'uoms',
 			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oems',
 			UPPER(IM.ManufacturerName) 'manufacturers',
-			ISNULL(stk.Quantity,0) AS 'qty', 
+			ISNULL(POP.QuantityOrdered,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
-			ISNULL(POP.ExtendedCost,0) AS 'avgROCost', 
+			(ISNULL(POP.QuantityOrdered,0) * ISNULL(POP.UnitCost,0)) AS 'avgROCost', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    --(CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			(CASE WHEN ISNULL(RO.IsEnforce,0) = 1 
 				  THEN (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE (CASE WHEN RO.CreatedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.CreatedDate,stk.ReceivedDate) ELSE 0 END) END) 
 				  ELSE (CASE WHEN RO.CreatedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.CreatedDate,stk.ReceivedDate) ELSE 0 END) 
 				  END) as dateAge,
-
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -185,20 +183,22 @@ BEGIN
 			SELECT *
 			  INTO #tmpFinalAnalysis FROM (SELECT 
 			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
-			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgROCost,pnDescription,SUM(qty) as qty,dateAge,RepairOrderId , RepairOrderPartRecordId
-			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgROCost,pnDescription,dateAge,RepairOrderId, RepairOrderPartRecordId) as res
+			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,SUM(avgROCost) avgROCost,pnDescription,SUM(qty) as qty,dateAge,RepairOrderId , RepairOrderPartRecordId
+			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,RepairOrderId, RepairOrderPartRecordId) as res
 
 			  SELECT *
 				  INTO #tmpavg FROM (SELECT 
 				  condition,SUM(avgROCost) avgROCost,SUM(qty) qty,ItemMasterId
 				  FROM #tmpFinalAnalysis 
+				  WHERE avgROCost > 0
 				  GROUP BY ItemMasterId,condition
 				  ) as avrg
 
 		--Update for avg cost
-		UPDATE #tmpFinalAnalysis SET avgROCost = (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1))
+		UPDATE #tmpFinalAnalysis 
+		SET avgROCost = COALESCE(avge.avgROCost / NULLIF(avge.qty, 1), 0)
 		FROM #tmpFinalAnalysis TmpInv 
-		INNER JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
+		LEFT JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
 
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,avgROCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge

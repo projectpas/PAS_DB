@@ -121,7 +121,8 @@ BEGIN
 			--ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
 			ISNULL(stk.UnitCost,0) AS 'lastUnitPrices', 
 			--ISNULL(POP.ExtendedCost,0) AS 'avgPOCost', 
-			(ISNULL(stk.Quantity,0) * ISNULL(stk.PurchaseOrderExtendedCost,0)) AS 'avgPOCost', 
+			--(ISNULL(stk.Quantity,0) * ISNULL(stk.PurchaseOrderExtendedCost,0)) AS 'avgPOCost', 
+			(ISNULL(stk.Quantity,0) * ISNULL(stk.UnitCost,0)) AS 'avgPOCost', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    --(CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			(CASE WHEN ISNULL(PO.IsEnforce,0) = 1 
@@ -184,12 +185,12 @@ BEGIN
 		SELECT *
 			  INTO #tmpFinalAnalysis FROM (SELECT 
 			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
-			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgPOCost,pnDescription,qty,dateAge,PurchaseOrderId--SUM(qty) as qty,dateAge,PurchaseOrderId--,PurchaseOrderPartRecordId 
-			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,avgPOCost,pnDescription,qty,dateAge,PurchaseOrderId) as res
-
+			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,SUM(avgPOCost) avgPOCost,pnDescription,SUM(qty) as qty,dateAge,PurchaseOrderId--,PurchaseOrderPartRecordId 
+			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,PurchaseOrderId) as res
+--SELECT * from #tmpFinalAnalysis
 		SELECT *
 			INTO #tmpavg FROM (SELECT 
-			condition,SUM(avgPOCost) avgROCost,SUM(qty) qty,ItemMasterId
+			condition,SUM(avgPOCost) avgPOCost,SUM(qty) qty,ItemMasterId
 			FROM #tmpFinalAnalysis 
 			WHERE avgPOCost > 0
 			GROUP BY ItemMasterId,condition
@@ -199,17 +200,17 @@ BEGIN
 
 		--Update for avg cost
 		UPDATE #tmpFinalAnalysis 
-		SET avgPOCost = COALESCE(avge.avgROCost / NULLIF(avge.qty, 1), 0)--CASE WHEN ISNULL(avge.avgROCost,0) > 0  THEN (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1)) ELSE 0 END
+		SET avgPOCost = COALESCE(avge.avgPOCost / NULLIF(avge.qty, 1), 0)--CASE WHEN ISNULL(avge.avgROCost,0) > 0  THEN (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1)) ELSE 0 END
 		FROM #tmpFinalAnalysis TmpInv 
 		LEFT JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
 
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,avgPOCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate,SUM(dateAge)sums, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
 		 ,MAX(MaxRow_Number) MaxRow_Number,
-		 --,SUM(qty) qty,
-		 qty,
+		 SUM(qty) qty,
+		 --qty,
 		 oem
-		 FROM #tmpFinalAnalysis GROUP BY pn,avgPOCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,qty,oem,manufacturer) as result
+		 FROM #tmpFinalAnalysis GROUP BY pn,avgPOCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		

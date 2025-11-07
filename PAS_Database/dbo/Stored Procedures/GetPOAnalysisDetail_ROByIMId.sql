@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    21-AUG-2024      Rajesh Gami       Created  
+	2    05-NOV-2025     Amit Ghediya      Update for Avg price
 
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_ROByIMId] 
@@ -106,9 +107,9 @@ BEGIN
 			UPPER(POP.UnitOfMeasure) 'uom',
 			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oem',
 			UPPER(IM.ManufacturerName) 'manufacturer',
-			ISNULL(stk.Quantity,0) AS 'qtys', 
+			ISNULL(POP.QuantityOrdered,0) AS 'qtys', 
 			ISNULL(POP.UnitCost,0) AS 'unitCost', 
-			(ISNULL(stk.Quantity,0) * ISNULL(POP.UnitCost,0)) 'extCosts',
+			(ISNULL(POP.QuantityOrdered,0) * ISNULL(POP.UnitCost,0)) 'extCosts',
 			CAST(stk.CreatedDate as Date) AS 'receivedDate',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -151,6 +152,7 @@ BEGIN
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
+
 		SELECT *
 			 INTO #tmpFinalAnalysisResult FROM (SELECT DISTINCT vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,SUM(qtys) as qty,
 			  unitCost,SUM(extCosts)extCost,receivedDate,openDate,requester,refNumber,receiverNum,poroAnalysisId,isPurchaseOrder FROM #TempPOAnalysisTbl GROUP BY vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,

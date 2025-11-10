@@ -33,6 +33,7 @@
 	17   08/09/2025   Bhargav Saliya		Get ShipDate,IsSubWo Flage From MPN Table and remove the Outer Join
 	18   24/09/2025   Rajesh Gami			Added MPN Notes in return field value (Also added parameter as well)
 	19   03/11/2025   Bhargav Saliya		Added New Field [IsWorkOrderTask]
+	20   010/11/2025  Bhargav Saliya		Added New Filters WoTaskType
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
 	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
@@ -83,7 +84,8 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @MPNQuoteStatus VARCHAR(50) = NULL,
 	 @ApprovedAmount VARCHAR(50) = NULL,
 	 @Notes NVARCHAR(MAX) = NULL,
-	 @IsWorkOrderTask VARCHAR(50) = NULL
+	 @IsWorkOrderTask VARCHAR(50) = NULL,
+	 @WoTaskType BIT = NULL
 
 AS  
 BEGIN  
@@ -302,7 +304,7 @@ BEGIN
 			ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
 			WPN.[ID] AS [WOPartId],
 			ISNULL(WPN.Notes,'') as Notes,
-			CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN 'Yes' else 'No' end AS [IsWorkOrderTask]
+			CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN 'Dynamic' else 'Static' end AS [IsWorkOrderTask]
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
@@ -320,7 +322,8 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
 			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 			LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
-		WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus))  
+		WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
+		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
         ),
 		QuoteResult AS (
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
@@ -515,7 +518,8 @@ BEGIN
 				FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDateType],
 				FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate],
 				CASE WHEN ISNULL(WPN.[IsSubWorkOrder], 0) = 1 THEN 'Yes' else 'No' end AS [IsSubWorkOrder],
-				CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN 'Yes' else 'No' end AS [IsWorkOrderTask]
+				CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN 'Dynamic' else 'Static' end AS [IsWorkOrderTask],
+				ISNULL(WO.[WorkOrderFormTypeId], 0) as WorkOrderFormTypeId
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
 				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM [dbo].[WorkOrder] WO WITH (NOLOCK)   
@@ -587,7 +591,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 				LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
           WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
-				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus))
+				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus) AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))
 		  GROUP BY	WO.[WorkOrderNum],WO.[WorkOrderId],WO.[CustomerId],WO.[CustomerName],WO.[CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate],WO.[CreatedBy], WO.[UpdatedBy],
 					WO.[IsActive],WO.[IsDeleted],WO.[WorkOrderType], WO.[EstimatedCompletionDateType],  WO.[EstimatedCompletionDate], WO.[IsSubWorkOrder],WOPC.[PartCount],WO.[IsWorkOrderTask]
 
@@ -817,21 +821,21 @@ BEGIN
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderList'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''',  
-                @Parameter2 = ' + ISNULL(@PageSize,'') + ',   
-                @Parameter3 = ' + ISNULL(@SortColumn,'') + ',   
-                @Parameter4 = ' + ISNULL(@SortOrder,'') + ',   
-                @Parameter5 = ' + ISNULL(@GlobalFilter,'') + ',   
-                @Parameter6 = ' + ISNULL(@ViewType,'') + ',    
-                @Parameter7 = ' + ISNULL(@WorkOrderNum,'') + ',   
-                @Parameter8 = ' + ISNULL(@PartNumber,'') + ',   
-                @Parameter9 = ' + ISNULL(@PartDescription,'') + ',   
-                @Parameter10 = ' + ISNULL(@WorkScope,'') + ',   
-                @Parameter11 = ' + ISNULL(@Priority,'') + ',   
-                @Parameter12 = ' + ISNULL(@CustomerName,'') + ',   
-                @Parameter13 = ' + ISNULL(@CustomerAffiliation,'') + ',   
-                @Parameter14 = ' + ISNULL(@Stage,'') + ',   
-                @Parameter15 = ' + ISNULL(@WorkOrderStatus,'') + ',   
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@PageNumber AS VARCHAR(50)) ,'') + ''',  
+                @Parameter2 = ' + ISNULL(CAST(@PageSize AS VARCHAR(50)) ,'') + ',   
+                @Parameter3 = ' + ISNULL(CAST(@SortColumn AS VARCHAR(50)) ,'') + ',   
+                @Parameter4 = ' + ISNULL(CAST(@SortOrder AS VARCHAR(50)) ,'') + ',   
+                @Parameter5 = ' + ISNULL(CAST(@GlobalFilter AS VARCHAR(50)) ,'') + ',   
+                @Parameter6 = ' + ISNULL(CAST(@ViewType AS VARCHAR(50)) ,'') + ',    
+                @Parameter7 = ' + ISNULL(CAST(@WorkOrderNum AS VARCHAR(50)) ,'') + ',   
+                @Parameter8 = ' + ISNULL(CAST(@PartNumber AS VARCHAR(50)) ,'') + ',   
+                @Parameter9 = ' + ISNULL(CAST(@PartDescription AS VARCHAR(50)) ,'') + ',   
+                @Parameter10 = ' + ISNULL(CAST(@WorkScope AS VARCHAR(50)) ,'') + ',   
+                @Parameter11 = ' + ISNULL(CAST(@Priority AS VARCHAR(50)) ,'') + ',   
+                @Parameter12 = ' + ISNULL(CAST(@CustomerName AS VARCHAR(50)) ,'') + ',   
+                @Parameter13 = ' + ISNULL(CAST(@CustomerAffiliation AS VARCHAR(50)) ,'') + ',   
+                @Parameter14 = ' + ISNULL(CAST(@Stage AS VARCHAR(50)) ,'') + ',   
+                @Parameter15 = ' + ISNULL(CAST(@WorkOrderStatus AS VARCHAR(50)) ,'') + ',   
                 @Parameter16 = ' + ISNULL(CAST(@OpenDate AS VARCHAR(50)) ,'') + ',   
                 @Parameter17 = ' + ISNULL(CAST(@CustReqDate AS VARCHAR(50)) ,'') + ',   
                 @Parameter18 = ' + ISNULL(CAST(@PromiseDate AS VARCHAR(50)) ,'') + ',   
@@ -848,7 +852,8 @@ BEGIN
                 @Parameter29 = ' + ISNULL(@WorkOrderType,'') + ',   
                 @Parameter30 = ' + ISNULL(@TechName,'') + ',   
                 @Parameter31 = ' + ISNULL(CAST(@TechStation AS VARCHAR(10)) ,'') + ',
-				@Parameter32 = ' + ISNULL(CAST(@IsSubWorkOrder AS VARCHAR(50)) ,'') + ''   
+				@Parameter32 = ' + ISNULL(CAST(@IsSubWorkOrder AS VARCHAR(50)) ,'') + ',
+				@Parameter33 = ' + ISNULL(CAST(@WoTaskType AS VARCHAR(50)) ,'') + ''    
 
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  

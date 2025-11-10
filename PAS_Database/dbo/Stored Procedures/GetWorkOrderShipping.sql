@@ -16,7 +16,7 @@
     1    05-Mar-2025  Bhargav Saliya		Created    
 	2    28-May-2025  Devendra Shekh		changes to read [ShipviaId]
 	3    29-Mar-2025  Amit Ghediya			Added isBypass flag for shipping. 
-         
+	4    01-Nov-2025  RAJESH GAMI			ADDED : ShipWeightUnitOfMeasure
 	exec dbo.GetWorkOrderShipping @workOrderShippingId=3554
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[GetWorkOrderShipping]
@@ -102,7 +102,8 @@ BEGIN
 			wos.CustomerDomensticShippingShipViaId,
 			wos.ShippingAccountInfo,
 			wos.NoOfItems,
-			uoi.ShortName AS ShipSizeUnitOfMeasure,
+			uois.ShortName AS ShipSizeUnitOfMeasure,
+			uoi.ShortName AS ShipWeightUnitOfMeasure,
 			CASE WHEN ISNULL(wos.SoldToState,'') = '' THEN '' ELSE wos.SoldToState END SoldStateCode,
 			CASE WHEN ISNULL(wos.OriginState,'') = '' THEN '' ELSE wos.OriginState END OriginStateCode,
 			CASE WHEN ISNULL(wos.ShipToState,'') = '' THEN '' ELSE wos.ShipToState END ShipStateCode,
@@ -150,6 +151,7 @@ BEGIN
 		JOIN [dbo].[Customer] cus WITH(NOLOCK) ON wos.CustomerId = cus.CustomerId
 		JOIN [dbo].[ShippingStatus] ss WITH(NOLOCK) ON wos.WOShippingStatusId = ss.ShippingStatusId
 		LEFT JOIN [dbo].[UnitOfMeasure] uoi WITH(NOLOCK) ON wos.ShipWeightUnit = uoi.UnitOfMeasureId
+		LEFT JOIN [dbo].[UnitOfMeasure] uois WITH(NOLOCK) ON wos.ShipSizeUnitOfMeasureId = uois.UnitOfMeasureId
 		LEFT JOIN [dbo].[Countries] ocon WITH(NOLOCK) ON wos.OriginCountryId = ocon.countries_id
 		LEFT JOIN [dbo].[Countries] shipcon WITH(NOLOCK) ON wos.ShipToCountryId = shipcon.countries_id
 		LEFT JOIN [dbo].[Countries] soldcon WITH(NOLOCK) ON wos.SoldToCountryId = soldcon.countries_id

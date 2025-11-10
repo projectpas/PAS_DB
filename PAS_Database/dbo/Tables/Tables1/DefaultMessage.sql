@@ -10,10 +10,14 @@
     [IsActive]         BIT            CONSTRAINT [DefaultMessage_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]        BIT            CONSTRAINT [DefaultMessage_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ModuleID]         INT            NULL,
+    [IsDefault]        BIT            NULL,
+    [Sequence]         INT            NULL,
     CONSTRAINT [PK_DefaultMessage] PRIMARY KEY CLUSTERED ([DefaultMessageId] ASC),
     CONSTRAINT [FK_DefaultMessage_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_DefaultMessage_ModuleID] FOREIGN KEY ([ModuleID]) REFERENCES [dbo].[Module] ([ModuleId])
 );
+
+
 
 
 GO

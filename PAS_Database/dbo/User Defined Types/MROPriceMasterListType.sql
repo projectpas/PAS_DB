@@ -5,7 +5,7 @@
     [CustomerId]       BIGINT          NULL,
     [WorkscopeId]      BIGINT          NULL,
     [CurrencyId]       INT             NULL,
-    [UnitPrice]        DECIMAL (18, 2) NULL,
+    [FlatRatePrice]    DECIMAL (18, 2) NULL,
     [StartDate]        DATETIME2 (7)   NULL,
     [EndDate]          DATETIME2 (7)   NULL,
     [CreatedBy]        VARCHAR (50)    NULL,

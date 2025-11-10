@@ -5,7 +5,7 @@
     [MasterCompanyId]       INT             NOT NULL,
     [CustomerId]            BIGINT          NULL,
     [WorkscopeId]           BIGINT          NOT NULL,
-    [UnitPrice]             DECIMAL (18, 2) NOT NULL,
+    [FlatRatePrice]         DECIMAL (18, 2) NOT NULL,
     [CurrencyId]            INT             NOT NULL,
     [StartDate]             DATETIME2 (7)   NOT NULL,
     [CreatedBy]             VARCHAR (50)    NOT NULL,

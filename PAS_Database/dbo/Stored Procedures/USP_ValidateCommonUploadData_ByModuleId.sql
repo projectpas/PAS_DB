@@ -31,6 +31,7 @@
 	21	 28-OCT-2025        Divyesh Kathitiya		Fixed: Getting error when validate Item Masterdata.
 	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
 	23	 03-Nov-2025        Divyesh Kathitiya		Added New Module "Employee"
+	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -227,6 +228,8 @@ BEGIN
 					END
 					ELSE
 					BEGIN
+					Print @DropdownLFieldValue
+
 						EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
 					END
 
@@ -403,15 +406,15 @@ BEGIN
 												THEN 
 													'Please Enter Correct  ' + IMF.HeaderName 
 
-												-- UnitPrice Validation (checking for numeric value and greater than 0)
+												-- FlatRatePrice Validation (checking for numeric value and greater than 0)
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 														AND ISNULL(TMP.FieldValue, '') != '' 
-														AND IMF.FieldName = 'UnitPrice' 
+														AND IMF.FieldName = 'FlatRatePrice' 
 														AND TMP.FieldValue LIKE '%[^0-9]%'
 														And ( TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
 														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= TRY_CAST(0 AS DECIMAL(18,2)) )
 												THEN 
-													'Unit Price  must be a whole number greater than 0' 
+													'Flat Rate Price  must be a whole number greater than 0' 
 
 													WHEN ISNULL(TMP.FieldValue, '') != '' 
 														 AND IMF.FieldName = 'PP_PurchaseDiscPerc' 

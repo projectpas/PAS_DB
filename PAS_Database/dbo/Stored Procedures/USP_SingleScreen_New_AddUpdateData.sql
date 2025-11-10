@@ -13,6 +13,7 @@
 	2	 05/04/2024   Bhargav saliya resolved credit-terms days and netdays updates issue in single screnn
 	3    17/05/2024   Abhishek Jirawla Remove SelectedCompanyIds from queries so it can be inserted in the tables.
 	4.   27/05/2024   Amit Ghediya     Update for set Default Site.
+	5    10/11/2025   Sahdev Saliya    New field named “IsDefault” and a Sequence have been added to the Single Screen Default Message.
 
 
 declare @p5 dbo.SingleScreenColumnType
@@ -68,7 +69,7 @@ BEGIN
 			UPDATE Site SET IsDefault = 0 WHERE MasterCompanyId = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
 		END
 	END 
-    
+	
     IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @PageName))    
     BEGIN    
       SET @Erorr = @PageName + ' Screen table is not available';    
@@ -180,6 +181,53 @@ BEGIN
       PRINT @Query
 	  EXEC (@Query)    
       SET @ID = IDENT_CURRENT(@PageName)    
+
+	  IF(@PageName = 'defaultmessage')  
+	  BEGIN			
+		DECLARE @IsDefault BIT = 0
+		SELECT @IsDefault = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'IsDefault')
+
+		SET @IsDefault = ISNULL(@IsDefault,0)
+
+		IF(@IsDefault = 0)
+		BEGIN		
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			BEGIN		
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')	
+			END
+			ELSE
+			BEGIN
+				DECLARE @DefaultMessageId BIGINT = 0 
+				SELECT @DefaultMessageId = [DefaultMessageId] FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+				
+				IF(@DefaultMessageId > 0)
+				BEGIN
+					UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 0 WHERE [DefaultMessageId] = @ID
+				END
+				ELSE
+				BEGIN
+					UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 0 WHERE [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')				
+					UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID
+				END
+			END
+		END
+		ELSE
+		BEGIN
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			BEGIN		
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')	
+			END
+			ELSE
+			BEGIN
+				DECLARE @DefaultMessageId2 BIGINT = 0 
+				SELECT @DefaultMessageId2 = [DefaultMessageId] FROM [dbo].[DefaultMessage] WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 0 WHERE [DefaultMessageId] = @DefaultMessageId2
+
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID
+			END
+		END
+	  END 
     END    
     ELSE    
     BEGIN	  
@@ -294,7 +342,35 @@ BEGIN
       SET @SQLQuery2 = 'INSERT INTO ' + @ManagementStructureTable + '(ManagementStructureId,' + @PrimaryKey + ',MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted)'    
       SET @SQLQuery2 += ' SELECT  CAST(Item AS bigint), ' + CAST(@ID AS varchar(max)) + ',' + CAST(@MasterCompanyId AS varchar(max)) + ',' + ''''+ @UpdatedBy +''''+ ',GETUTCDATE(), ' +''''+ @UpdatedBy +''''+ ', GETUTCDATE(),1,0 FROM dbo.SplitString(''' + @ManagementStructureIds + ''','','')';    
       EXECUTE (@SQLQuery2)    
-    END    
+    END   
+	
+	 IF(@PageName = 'defaultmessage')  
+	 BEGIN	
+		DECLARE @IsDefaultUpdate BIT = 0
+		SELECT @IsDefaultUpdate = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'IsDefault')
+
+		SET @IsDefaultUpdate = ISNULL(@IsDefaultUpdate,0)
+
+		IF(@IsDefaultUpdate = 0)
+		BEGIN
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			BEGIN		
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID
+			END
+		END
+		ELSE
+		BEGIN
+			IF EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			BEGIN		
+				DECLARE @DefaultMessageIdOld BIGINT = 0 
+				SELECT @DefaultMessageIdOld = [DefaultMessageId] FROM [dbo].[DefaultMessage] WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 0 WHERE [DefaultMessageId] = @DefaultMessageIdOld
+
+				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID
+			END
+		END
+	 END
     
 	EXEC [dbo].[USP_SingleScreen_UpdateMasterSettings] @PageName, @ID    
   END TRY    

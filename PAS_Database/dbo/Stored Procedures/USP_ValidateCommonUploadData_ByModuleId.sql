@@ -228,7 +228,6 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-					Print @DropdownLFieldValue
 
 						EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
 					END
@@ -280,7 +279,6 @@ BEGIN
 									  AND IM.MasterCompanyId = @MasterCompanyId
 							)
 							BEGIN
-							 	PRINT 'IF'
 								-- Case 1: @ManufacturerId is actually a ManufacturerName
 								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
 								SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName, Im.partnumber, Im.ItemMasterId
@@ -295,7 +293,6 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-							PRINT 'ELSE'
 								-- Case 2: @ManufacturerId is NOT a ManufacturerName (treat it as before)
 								INSERT INTO @MatchingManufacturerIds (ManufacturerId, ManufacturerName,PartNumber,PartNumberId)
 								SELECT DISTINCT IM.ManufacturerId, IM.ManufacturerName, Im.partnumber, Im.ItemMasterId

@@ -112,14 +112,14 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			UPPER(CN.Description) 'conditions',  
+			UPPER(CN.Description) 'condition',  
 			--UPPER(POP.UnitOfMeasure) 'uoms',
 			UPPER(stk.UnitOfMeasure) 'uoms',
 			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oems',
 			UPPER(IM.ManufacturerName) 'manufacturers',
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			--ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
-			ISNULL(stk.UnitCost,0) AS 'lastUnitPrices', 
+			ISNULL(stk.UnitCost,0) AS 'lastUnitPrice', 
 			--ISNULL(POP.ExtendedCost,0) AS 'avgPOCost', 
 			--(ISNULL(stk.Quantity,0) * ISNULL(stk.PurchaseOrderExtendedCost,0)) AS 'avgPOCost', 
 			(ISNULL(stk.Quantity,0) * ISNULL(stk.UnitCost,0)) AS 'avgPOCost', 
@@ -140,17 +140,29 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
-			PO.PurchaseOrderId
-			--pop.PurchaseOrderPartRecordId
-        FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
+			PO.PurchaseOrderId,
+			pop.PurchaseOrderPartRecordId
+   --     FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
+			----INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			--INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId --AND POP.ItemMasterId = stk.ItemMasterId
+			----INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId --AND POP.ItemMasterId = stk.ItemMasterId
+			--INNER JOIN DBO.Stockline STK WITH (NOLOCK) on POP.PurchaseOrderId = STK.PurchaseOrderId AND POP.ItemMasterId = stk.ItemMasterId and stk.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
+			--INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stk.PurchaseOrderPartRecordId --POP.PurchaseOrderPartRecordId
+			----INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
+			--INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STK.itemmasterId = IM.itemmasterId
+			--LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
+			--LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
+			--LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
+		FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
+			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on POP.PurchaseOrderId = STK.PurchaseOrderId AND POP.ItemMasterId = stk.ItemMasterId and stk.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
+			--INNER JOIN DBO.StocklineDraft STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId and stk.IsParent = 0--AND POP.ItemMasterId = stk.ItemMasterId and stk.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId and stk.IsParent = 0
 			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stk.PurchaseOrderPartRecordId --POP.PurchaseOrderPartRecordId
 			--INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STK.itemmasterId = IM.itemmasterId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
+			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId
 		  WHERE ISNULL(PO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
 				    PO.VendorId=ISNULL(@vendorId,PO.VendorId) AND stk.ItemMasterId = ISNULL(@itemMasterId,stk.ItemMasterId)-- POP.ItemMasterId = ISNULL(@itemMasterId,POP.ItemMasterId)  
 					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND PO.mastercompanyid = @mastercompanyid
@@ -170,10 +182,10 @@ BEGIN
 
 		SELECT * INTO #TempPOAnalysisFinal FROM
 		 (SELECT 
-			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.conditions FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE conditions END) AS 'condition',
+			--(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.conditions FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE conditions END) AS 'condition',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.uoms FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE uoms END) AS 'uom',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.oems FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE oems END) AS 'oem',
-			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 CONVERT(DECIMAL(10,2),tm.lastUnitPrices) FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE CONVERT(DECIMAL(10,2),lastUnitPrices) END) AS 'lastUnitPrice',
+			--(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 CONVERT(DECIMAL(10,2),tm.lastUnitPrices) FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE CONVERT(DECIMAL(10,2),lastUnitPrices) END) AS 'lastUnitPrice',
 			--(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 convert(varchar, tm.lastPurchaseDates, 101) FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE  convert(varchar, lastPurchaseDates, 101)  END) AS 'lastPurchaseDate',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.lastPurchaseDates FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE  lastPurchaseDates END) AS 'lastPurchaseDate',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.manufacturers FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE manufacturers END) AS 'manufacturer',
@@ -182,35 +194,156 @@ BEGIN
 			* FROM #TempPOAnalysis main) as res
 		--Select * From #TempPOAnalysisFinal order by LastRowNo desc--where ItemMasterId =20740
 		
-		SELECT *
-			  INTO #tmpFinalAnalysis FROM (SELECT 
-			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
-			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,SUM(avgPOCost) avgPOCost,pnDescription,SUM(qty) as qty,dateAge,PurchaseOrderId--,PurchaseOrderPartRecordId 
-			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,PurchaseOrderId) as res
---SELECT * from #tmpFinalAnalysis
-		SELECT *
-			INTO #tmpavg FROM (SELECT 
-			condition,SUM(avgPOCost) avgPOCost,SUM(qty) qty,ItemMasterId
-			FROM #tmpFinalAnalysis 
-			WHERE avgPOCost > 0
-			GROUP BY ItemMasterId,condition
-			) as avrg
+		--select * from #TempPOAnalysisFinal
 
-	--select * from #tmpavg
+	--	SELECT *
+	--		  INTO #tmpFinalAnalysis FROM (SELECT 
+	--			ROW_NUMBER() OVER (
+	--				PARTITION BY main.pn, main.condition 
+	--				ORDER BY MAX(main.lastPurchaseDate) DESC
+	--			) AS MaxRow_Number,
+	--			main.pn,
+	--			main.condition,
+	--			main.ItemMasterId,
+	--			MAX(main.uom)                AS uom,
+	--			MAX(main.oem)                AS oem,
+	--			MAX(main.lastUnitPrice)      AS lastUnitPrice,
+	--			MAX(main.lastPurchaseDate)   AS lastPurchaseDate,
+	--			MAX(main.manufacturer)       AS manufacturer,
+	--			MAX(main.vendor)             AS vendor,
+	--			MAX(main.pnDescription)      AS pnDescription,
+	--			SUM(main.avgPOCost)          AS avgPOCost,
+	--			SUM(main.qty)                AS qty,     -- sum quantities
+	--			AVG(main.dateAge)            AS dateAge,   -- optional
+	--			COUNT(DISTINCT main.PurchaseOrderId) AS totalPOs -- optional
+	--		  FROM #TempPOAnalysisFinal AS main
+ --   GROUP BY main.pn, main.condition,main.ItemMasterId
+	--		  --,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,avgPOCost,pnDescription,dateAge,PurchaseOrderId
+	--		  ) as res
+
+	----SELECT * from #tmpFinalAnalysis
+
+	--	SELECT *
+	--		INTO #tmpavg FROM (SELECT 
+	--		condition,SUM(avgPOCost) avgPOCost,SUM(qty) qty,ItemMasterId
+	--		FROM #tmpFinalAnalysis 
+	--		WHERE avgPOCost > 0
+	--		GROUP BY ItemMasterId,condition
+	--		) as avrg
+
+--	select * from #tmpavg
 
 		--Update for avg cost
-		UPDATE #tmpFinalAnalysis 
-		SET avgPOCost = COALESCE(avge.avgPOCost / NULLIF(avge.qty, 1), 0)--CASE WHEN ISNULL(avge.avgROCost,0) > 0  THEN (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1)) ELSE 0 END
-		FROM #tmpFinalAnalysis TmpInv 
-		LEFT JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
+		--UPDATE #tmpFinalAnalysis 
+		--SET avgPOCost = COALESCE(avge.avgPOCost / NULLIF(avge.qty, 1), 0)--CASE WHEN ISNULL(avge.avgROCost,0) > 0  THEN (ISNULL(avge.avgROCost,0) / ISNULL(avge.qty,1)) ELSE 0 END
+		--FROM #tmpFinalAnalysis TmpInv 
+		--LEFT JOIN #tmpavg avge ON avge.ItemMasterId = TmpInv.ItemMasterId and  avge.condition = TmpInv.condition
+
+--		select * into #tmpFinalAnalysis1
+--	 FROM (
+--    SELECT 
+--       MAX(main.pn) pn,
+--	   MAX(main.pnDescription) AS pnDescription,
+--	   MAX(main.uom) AS uom,
+--	   MAX(main.oem) AS oem,
+--	   MAX(main.lastUnitPrice) AS lastUnitPrice,
+--		MAX(main.lastPurchaseDate) AS lastPurchaseDate,
+--		MAX(main.manufacturer) AS manufacturer,
+--		MAX(main.vendor) AS vendor,
+--       main.condition,
+--	   SUM(main.avgPOCost) avgPOCost,
+--	   SUM(main.qty) AS qty,     
+--     AVG(main.dateAge)AS dateAge,  
+--     COUNT(DISTINCT main.PurchaseOrderId) AS totalPOs ,
+--       MAX(main.ItemMasterId) ItemMasterId,   
+--		main.PurchaseOrderPartRecordId
+--    FROM #TempPOAnalysisFinal AS main
+--    GROUP BY main.PurchaseOrderPartRecordId,main.condition--,main.avgPOCost
+--) AS res;
+--select * from #tmpFinalAnalysis1
+select * into #tmpFinalAnalysis1
+	 FROM (
+    SELECT 
+       MAX(main.pn) pn,
+	   MAX(main.pnDescription) AS pnDescription,
+	   MAX(main.uom) AS uom,
+	   MAX(main.oem) AS oem,
+	   MAX(main.lastUnitPrice) AS lastUnitPrice,
+		MAX(main.lastPurchaseDate) AS lastPurchaseDate,
+		MAX(main.manufacturer) AS manufacturer,
+		MAX(main.vendor) AS vendor,
+       main.condition,
+	   main.avgPOCost,
+	   SUM(main.qty) AS qty,     
+     AVG(main.dateAge) AS dateAge,  
+     COUNT(DISTINCT main.PurchaseOrderId) AS totalPOs ,
+       MAX(main.ItemMasterId) ItemMasterId,   
+		main.PurchaseOrderPartRecordId
+    FROM #TempPOAnalysisFinal AS main
+    GROUP BY main.PurchaseOrderPartRecordId,main.condition,main.avgPOCost
+) AS res;
+
+--select * from #tmpFinalAnalysis1;
+--SELECT * INTO #tmpFinalAnalysis
+--FROM (
+--    SELECT 
+--        ROW_NUMBER() OVER (
+--            PARTITION BY main.pn, main.condition
+--            ORDER BY MAX(main.lastPurchaseDate) DESC
+--        ) AS MaxRow_Number,
+--        main.pn,
+--        main.condition,
+--        main.ItemMasterId,
+--        MAX(main.uom) AS uom,
+--        MAX(main.oem) AS oem,
+--		MAX(main.lastUnitPrice) AS lastUnitPrice,
+--		MAX(main.lastPurchaseDate) AS lastPurchaseDate,
+--		MAX(main.manufacturer) AS manufacturer,
+--		MAX(main.vendor) AS vendor,
+--		MAX(main.pnDescription) AS pnDescription,
+--        SUM(main.avgPOCost) / MAX(main.qty) AS avgPOCost,  
+--		SUM(main.qty) AS qty,     
+--     AVG(main.dateAge) AS DateAge,  
+--     COUNT(totalPOs) AS totalPOs 
+--    FROM #tmpFinalAnalysis1 AS main
+--    GROUP BY main.pn, main.ItemMasterId, main.condition
+--) AS res;
+
+--		select * from #tmpFinalAnalysis
+SELECT * INTO #tmpFinalAnalysis
+FROM (
+    SELECT 
+        ROW_NUMBER() OVER (
+            PARTITION BY main.pn, main.condition 
+            ORDER BY MAX(main.lastPurchaseDate) DESC
+        ) AS MaxRow_Number,
+        main.pn,
+        main.condition,
+        main.ItemMasterId,
+        MAX(main.uom) AS uom,
+        MAX(main.oem) AS oem,
+		MAX(main.lastUnitPrice) AS lastUnitPrice,
+		MAX(main.lastPurchaseDate) AS lastPurchaseDate,
+		MAX(main.manufacturer) AS manufacturer,
+		MAX(main.vendor) AS vendor,
+		MAX(main.pnDescription) AS pnDescription,
+        SUM(main.avgPOCost) / SUM(main.qty) AS avgPOCost,  
+		SUM(main.qty) AS Qty,     
+     AVG(main.dateAge) AS DateAge,  
+     COUNT(totalPOs) AS totalPOs 
+    FROM #tmpFinalAnalysis1 AS main
+    GROUP BY main.pn, main.ItemMasterId, main.condition
+) AS res;
+
+--SELECT * FROM #tmpFinalAnalysis;
 
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,avgPOCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate,SUM(dateAge)sums, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
-		 ,MAX(MaxRow_Number) MaxRow_Number,
+		 --,MAX(MaxRow_Number) MaxRow_Number,
+		 ,totalPOs AS MaxRow_Number,
 		 SUM(qty) qty,
-		 --qty,
 		 oem
-		 FROM #tmpFinalAnalysis GROUP BY pn,avgPOCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
+		 FROM #tmpFinalAnalysis GROUP BY pn,avgPOCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,totalPOs,oem,manufacturer) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		

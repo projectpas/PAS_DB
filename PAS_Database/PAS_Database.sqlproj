@@ -4328,6 +4328,11 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetStockLevelAnalysisReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMROPriceForWorkOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRecevingStocklineDetails.sql" />
+    <Build Include="dbo\Tables\SupportAssignmentMaster.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetSupportAssignmentMaster_ById.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

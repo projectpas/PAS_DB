@@ -14,6 +14,7 @@
     1    07/11/2024  Ekta Chandegra     Created
     2    31/10/2025  Bhargav Saliya     Fixed Filters issues
     3    04/11/2025  Bhargav Saliya     Fixed Utc Date issues
+    4    07/11/2025  Bhargav Saliya     Fixed Filters issues For Super Admin Role
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -22,7 +23,7 @@ exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrde
 	
 ************************************************************************/
 
-CREATE     PROCEDURE [dbo].[GetCustomerTicketList]
+CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
 @PageNumber INT = NULL,        
 @PageSize INT = NULL,        
 @SortColumn VARCHAR(50)=NULL,        
@@ -136,7 +137,7 @@ BEGIN
 			LEFT JOIN [dbo].[Employee] EMP1 WITH (NOLOCK) ON CT.EmployeeId = EMP1.EmployeeId
 			LEFT JOIN [dbo].[CustomerTicketResponse] CTR WITH (NOLOCK) ON CT.CustomerTicketId = CTR.CustomerTicketId 
 			WHERE 
-			((ISNULL(@IsSupertUser, 0) = 1)
+			((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
 				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
 			AND ISNULL(CT.IsDeleted,0) = @IsDeleted
 			AND (@StatusId IS NULL OR TS.TicketStatusId = @StatusId)

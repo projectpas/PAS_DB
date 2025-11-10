@@ -11,7 +11,7 @@
  ** --   --------      -------			---------------------------     
     1    26/09/2025    Priyansh Patel   Created
     2    15/10/2025    Priyansh Patel   Updated the Parameter to user defiend table type
-
+	3	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
 **********************/
 
 CREATE PROCEDURE [dbo].[USP_AddOrUpdateMROPriceMaster]
@@ -37,7 +37,7 @@ BEGIN
         CustomerId BIGINT NULL,
         WorkscopeId BIGINT NULL,
         CurrencyId INT NULL,
-        UnitPrice DECIMAL(18,2) NULL,
+        FlatRatePrice DECIMAL(18,2) NULL,
         StartDate DATETIME2(7) NULL,
         EndDate DATETIME2(7) NULL,
         CreatedBy VARCHAR(50) NULL,
@@ -52,7 +52,7 @@ BEGIN
         CustomerId,
         WorkscopeId,
         CurrencyId,
-        UnitPrice,
+        FlatRatePrice,
         StartDate,
 		EndDate,
         CreatedBy,
@@ -65,7 +65,7 @@ BEGIN
         CustomerId,
         WorkscopeId,
         CurrencyId,
-        UnitPrice,
+        FlatRatePrice,
         StartDate,
 		EndDate,
         CreatedBy,
@@ -90,7 +90,7 @@ BEGIN
                 @CustomerId BIGINT,
                 @WorkscopeId BIGINT,
                 @CurrencyId INT,
-                @UnitPrice DECIMAL(18,2),
+                @FlatRatePrice DECIMAL(18,2),
                 @StartDate DATETIME2(7),
                 @EndDate DATETIME2(7),
                 @CreatedBy VARCHAR(50),
@@ -104,7 +104,7 @@ BEGIN
                 @CustomerId = CustomerId,
                 @WorkscopeId = WorkscopeId,
                 @CurrencyId = CurrencyId,
-                @UnitPrice = UnitPrice,
+                @FlatRatePrice = FlatRatePrice,
                 @StartDate = StartDate,
                 @EndDate = EndDate,
                 @CreatedBy = CreatedBy,
@@ -118,14 +118,14 @@ BEGIN
                     INSERT INTO dbo.MROPriceMaster
                     (
                         ItemMasterId, MasterCompanyId, CustomerId, WorkscopeId,
-                        UnitPrice, CurrencyId, StartDate,EndDate,
+                        FlatRatePrice, CurrencyId, StartDate,EndDate,
                         CreatedBy, CreatedDate,
                         UpdatedBy, UpdatedDate, IsActive, IsDeleted
                     )
                     VALUES
                     (
                         @ItemMasterId, @MasterCompanyId, @CustomerId, @WorkscopeId,
-                        @UnitPrice, @CurrencyId, @StartDate,@EndDate,
+                        @FlatRatePrice, @CurrencyId, @StartDate,@EndDate,
                         @CreatedBy, GETUTCDATE(),
                         @UpdatedBy, GETUTCDATE(),
                         1, 0
@@ -141,7 +141,7 @@ BEGIN
                         mp.StartDate = @StartDate,
                         mp.EndDate = @EndDate,
                         mp.CurrencyId = @CurrencyId,
-                        mp.UnitPrice = @UnitPrice,
+                        mp.FlatRatePrice = @FlatRatePrice,
                         mp.UpdatedBy = @UpdatedBy,
                         mp.UpdatedDate = GETUTCDATE()
                     FROM dbo.MROPriceMaster mp
@@ -171,7 +171,7 @@ BEGIN
                      @MasterCompanyId=''' + CAST(ISNULL(@MasterCompanyId, 0) AS VARCHAR(100)) + ''',
                      @CustomerId=''' + CAST(ISNULL(@CustomerId, 0) AS VARCHAR(100)) + ''',
                      @WorkscopeId=''' + CAST(ISNULL(@WorkscopeId, 0) AS VARCHAR(100)) + ''',
-                     @UnitPrice=''' + CAST(ISNULL(@UnitPrice, 0) AS VARCHAR(100)) + '''',
+                     @FlatRatePrice=''' + CAST(ISNULL(@FlatRatePrice, 0) AS VARCHAR(100)) + '''',
                   
                 @ApplicationName VARCHAR(100) = 'PAS';
         -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

@@ -11,6 +11,8 @@
  ** PR   Date          Author  			Change Description            
  ** --   --------      -------			---------------------------     
     1    27/10/2025    Priyansh Patel   Created
+	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
+
 **********************/
 -- Example: EXEC [USP_GetMROPriceMasterList] 0, 0, 1, 1, 10
 
@@ -104,7 +106,7 @@ BEGIN
         MPM.MasterCompanyId,
         MPM.CustomerId,
         MPM.WorkscopeId,
-        MPM.UnitPrice,
+        MPM.FlatRatePrice,
         MPM.CurrencyId,
         MPM.StartDate,
         MPM.EndDate,

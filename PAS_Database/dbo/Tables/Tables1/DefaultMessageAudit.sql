@@ -11,9 +11,13 @@
     [IsActive]              BIT            NOT NULL,
     [IsDeleted]             BIT            NOT NULL,
     [ModuleID]              INT            NULL,
+    [IsDefault]             BIT            NULL,
+    [Sequence]              INT            NULL,
     [ModuleName]            VARCHAR (100)  NULL,
     CONSTRAINT [PK_DefaultMessageAudit] PRIMARY KEY CLUSTERED ([DefaultMessageAuditId] ASC),
     CONSTRAINT [FK_DefaultMessageAudit_DefaultMessage] FOREIGN KEY ([DefaultMessageId]) REFERENCES [dbo].[DefaultMessage] ([DefaultMessageId]),
     CONSTRAINT [FK_DefaultMessageAudit_ModuleID] FOREIGN KEY ([ModuleID]) REFERENCES [dbo].[Module] ([ModuleId])
 );
+
+
 

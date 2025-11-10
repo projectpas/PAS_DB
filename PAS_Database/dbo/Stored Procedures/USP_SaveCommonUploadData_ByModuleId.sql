@@ -31,6 +31,7 @@
 	21	 14-OCT-2025        Rajesh Gami				Added validation 
 	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
 	23 	 03-Nov-2025        Divyesh Kathiriya		Added New Module "Employee"
+	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
@@ -978,7 +979,7 @@ BEGIN
 							SELECT @MRORefFieldName = STRING_AGG(FieldName, ',')
 						FROM ImportModuleFieldMaster IMF
 						WHERE IMF.ModuleId = @ModuleId
-						  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId','UnitPrice','CurrencyId');
+						  AND IMF.FieldName IN ('ItemMasterId', 'CustomerId', 'WorkScopeId', 'MasterCompanyId','FlatRatePrice','CurrencyId');
 								;WITH Fields AS (
 									SELECT LTRIM(RTRIM(value)) AS FieldName,
 										   ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rn

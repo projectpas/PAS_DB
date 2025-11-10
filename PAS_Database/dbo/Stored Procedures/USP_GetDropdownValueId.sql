@@ -13,6 +13,8 @@
 	3    04-Feb-2025		SHREY CHANDEGARA		Modified due to ALternate part 
 	4	 06-Aug-2025		Ayushi Patel			Updated WHERE clause in dynamic SQL to include MasterCompanyId = 0
 	5	 31-Oct-2025		Priyansh Patel			Updated the conditions for the MRO price master
+	6	 10-Nov-2025		Priyansh Patel			Added Delimiter logic for item master SiteId
+
 
 DECLARE @FieldValueId VARCHAR(50);
 
@@ -58,11 +60,17 @@ BEGIN
 
 	DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 	DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
+	DECLARE @ItemMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
+
+	DECLARE @Delimiter CHAR(1);
+
+	SET @Delimiter = CASE 
+                   WHEN @ModuleId = @ItemMasterModule  AND @DropdownListId = 'SiteId' THEN '|'
+                   ELSE ','
+                 END;
 
 	IF(@ModuleId = @AlterModule AND @IsChekColumnRef = 1 AND ISNULL(@ColumnReferenceName,'') != '')
 		BEGIN
-
-	
 
 			SET @RefQuery 
 			= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + 'AND '+ @ColumnReferenceName +' = ' + CAST(@ColumnReferenceId AS VARCHAR) + ') AS DropDownResult';
@@ -93,12 +101,13 @@ BEGIN
 			IF(ISNULL(@MasterCompanyId, 0) > 0)
 			BEGIN
 				SET @RefQuery 
-				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)' + ' ) AS DropDownResult';
+				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', ''' + @Delimiter + ''') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + 'AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)' + ' ) AS DropDownResult';
+
 			END
 			ELSE
 			BEGIN
 				SET @RefQuery 
-				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', '','') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + ' ) AS DropDownResult';
+				= 'SELECT @FieldValueId = ' + 'COALESCE(@FieldValueId + '','' , '''' ) + CAST(' + @DropdownListId +' AS VARCHAR)' + ' FROM (' +'SELECT '+ @DropdownListId + ' FROM [DBO].[' + @DropdownListTable + '] '+ 'WITH(NOLOCK) CROSS APPLY STRING_SPLIT(' + '''' + @FieldValue + ''''+', ''' + @Delimiter + ''') ST WHERE '+ @DropdownListValue + ' = '''' + UPPER(TRIM(ST.value)) + '''' ' + ' ) AS DropDownResult';
 			END
 		END
 

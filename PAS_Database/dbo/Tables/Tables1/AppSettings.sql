@@ -105,6 +105,9 @@
     [EncryptParseNum]                 NVARCHAR (200)  NULL,
     [EncryptParseVer]                 NVARCHAR (200)  NULL,
     [ApplicationURLWithoutAuth]       NVARCHAR (100)  NULL,
+    [IsUPSImplement]                  BIT             CONSTRAINT [DF_AppSettings_IsUPSImplement] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
+
+
 

@@ -13,8 +13,11 @@
     [IsDeleted]               BIT            CONSTRAINT [DF_WOSI_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PDFPath]                 NVARCHAR (MAX) NULL,
     [FedexPdfPath]            VARCHAR (MAX)  NULL,
+    [UPSPdfPath]              VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderShippingItem] PRIMARY KEY CLUSTERED ([WorkOrderShippingItemId] ASC),
     CONSTRAINT [FK_WorkOrderShippingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderShippingItem_WOPickTicket] FOREIGN KEY ([WOPickTicketId]) REFERENCES [dbo].[WOPickTicket] ([PickTicketId])
 );
+
+
 

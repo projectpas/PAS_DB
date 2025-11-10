@@ -309,7 +309,7 @@ select * into #tmpFinalAnalysis1
 --    GROUP BY main.pn, main.ItemMasterId, main.condition
 --) AS res;
 
-select * from #tmpFinalAnalysis1
+--select * from #tmpFinalAnalysis1
 SELECT * INTO #tmpFinalAnalysis
 FROM (
     SELECT 
@@ -338,7 +338,7 @@ FROM (
     GROUP BY main.pn, main.ItemMasterId, main.condition
 ) AS res;
 
-SELECT * FROM #tmpFinalAnalysis;
+--SELECT * FROM #tmpFinalAnalysis;
 
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,avgPOCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate,SUM(dateAge)sums, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge

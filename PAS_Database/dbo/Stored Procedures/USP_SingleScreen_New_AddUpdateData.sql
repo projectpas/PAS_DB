@@ -191,14 +191,14 @@ BEGIN
 
 		IF(@IsDefault = 0)
 		BEGIN		
-			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WITH (NOLOCK) WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
 			BEGIN		
 				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')	
 			END
 			ELSE
 			BEGIN
 				DECLARE @DefaultMessageId BIGINT = 0 
-				SELECT @DefaultMessageId = [DefaultMessageId] FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+				SELECT @DefaultMessageId = [DefaultMessageId] FROM [dbo].[DefaultMessage] WITH (NOLOCK) WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
 				
 				IF(@DefaultMessageId > 0)
 				BEGIN
@@ -213,14 +213,14 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WITH (NOLOCK) WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
 			BEGIN		
 				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')	
 			END
 			ELSE
 			BEGIN
 				DECLARE @DefaultMessageId2 BIGINT = 0 
-				SELECT @DefaultMessageId2 = [DefaultMessageId] FROM [dbo].[DefaultMessage] WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+				SELECT @DefaultMessageId2 = [DefaultMessageId] FROM [dbo].[DefaultMessage] WITH (NOLOCK) WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
 
 				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 0 WHERE [DefaultMessageId] = @DefaultMessageId2
 
@@ -353,17 +353,17 @@ BEGIN
 
 		IF(@IsDefaultUpdate = 0)
 		BEGIN
-			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WITH (NOLOCK)  WHERE [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
 			BEGIN		
 				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 1 WHERE [DefaultMessageId] = @ID
 			END
 		END
 		ELSE
 		BEGIN
-			IF EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
+			IF EXISTS(SELECT 1 FROM [dbo].[DefaultMessage] WITH (NOLOCK) WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId'))	
 			BEGIN		
 				DECLARE @DefaultMessageIdOld BIGINT = 0 
-				SELECT @DefaultMessageIdOld = [DefaultMessageId] FROM [dbo].[DefaultMessage] WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+				SELECT @DefaultMessageIdOld = [DefaultMessageId] FROM [dbo].[DefaultMessage] WITH (NOLOCK) WHERE [DefaultMessageId] <> @ID AND [IsDefault] = 1 AND [ModuleID] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'ModuleID') AND [MasterCompanyId] = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
 
 				UPDATE [dbo].[DefaultMessage] SET [IsDefault] = 0 WHERE [DefaultMessageId] = @DefaultMessageIdOld
 

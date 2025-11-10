@@ -20,7 +20,7 @@
 	3    14/05/2024   Hemant Saliya	    updated for Shapping Status
     4    04-07-2025   Moin Bloch        Changed Old To New Billing Table
 	5    07/28/2025   Moin Bloch        Added Condition For Enforce Mpn Pick Ticket Confirmation
-
+	6    10/11/2025   Rajesh Gami       Added [UPSPdfPath]
 EXEC DBO.sp_GetWOShippingChildList @WorkOrderId =19769 ,@WorkOrderPartId=19892
 **************************************************************/ 
 CREATE Procedure [dbo].[sp_GetWOShippingChildList]  
@@ -63,7 +63,8 @@ BEGIN
 			  wobii.[WorkOrderShippingId] AS WOShippingId, 
 			  wosi.[FedexPdfPath],
 			  SS.[Status] As [Status],
-			  ISNULL(wop.[IsFinishGood],0) IsFinishGood
+			  ISNULL(wop.[IsFinishGood],0) IsFinishGood,
+			  ISNULL(wosi.[UPSPdfPath],'') UpsPdfPath
 		FROM [dbo].[WOPickTicket] wopt WITH (NOLOCK)   
 			INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON wop.[WorkOrderId] = wopt.[WorkOrderId] AND wop.id=wopt.[OrderPartId]  
 			INNER JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON wo.[WorkOrderId] = wop.[WorkOrderId]  

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [sp_GetSOShippingChildList]           
  ** Author:   
  ** Description: 
@@ -19,7 +20,8 @@
 	2	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
 	3   11/26/2024		Amit Ghediya		Get ECCN,HSCODE,Weight,LWH for billing.
  	4	16 Jun 2025	    RAJESH GAMI			Change the new billing invoicing table with old one (SO)    
-	5	11 July 2025	RAJESH GAMI			Get SOShipping ID from the BIlling Invoicing If it's posted    
+	5	11 July 2025	RAJESH GAMI			Get SOShipping ID from the BIlling Invoicing If it's posted  
+	6   10 Nov 2025		Rajesh Gami			Added [UPSPdfPath]	
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
@@ -49,7 +51,8 @@ BEGIN
 			 Stk.[Weight] AS [Weight],
 			 Stk.SizeLength AS SizeLength,
 			 Stk.SizeWidth AS SizeWidth,
-			 Stk.SizeHeight AS SizeHeight
+			 Stk.SizeHeight AS SizeHeight,
+			 ISNULL(sosi.UPSPdfPath,'') UpsPdfPath
 	  FROM DBO.SOPickTicket sopt WITH (NOLOCK)   
 	  INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId  
 	  LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId --stk.SalesOrderPartId = sop.SalesOrderPartId  

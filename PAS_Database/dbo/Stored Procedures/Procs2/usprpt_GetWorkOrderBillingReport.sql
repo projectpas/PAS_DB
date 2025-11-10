@@ -24,6 +24,8 @@
 	8   10-APR-2025		Vishal Suthar		Added WOBillingInvoicingItemId column in the select statement to display all the records
 	9   28-MAY-2025		Hemant Saliya		Updated for Flat rate Amount Correction
 	10  20-June-2025	Devendra Shekh		Billing Table Changes
+	11  10-Nov-2025	    Moin Bloch			Updated Credit memo Amount Get From CreditMemoDetails
+
 
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/  
@@ -293,7 +295,7 @@ BEGIN
 				 UPPER(WOPN.WorkScope) 'workscope',  
 				 UPPER(WO.WorkOrderNum) + ' (' + UPPER(CM.CreditMemoNumber) +')' AS 'wonum',  
 				 CM.InvoiceNumber 'invoicenum',  
-				 ISNULL(CM.Amount,0) 'revenue',   
+				 ISNULL(CMD.Amount,0) 'revenue',   
 				 UPPER(WOQ.QuoteNumber) 'quotenum',  
 				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',   
 				 CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',   

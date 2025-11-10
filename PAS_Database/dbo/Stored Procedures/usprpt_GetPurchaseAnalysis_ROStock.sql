@@ -244,7 +244,10 @@ FROM (
 		MAX(main.manufacturer) AS manufacturer,
 		MAX(main.vendor) AS vendor,
 		MAX(main.pnDescription) AS pnDescription,
-        SUM(main.avgROCost) / SUM(main.qty)  AS avgROCost,  
+		CASE 
+            WHEN SUM(main.qty) = 0 THEN 0
+            ELSE SUM(main.avgROCost) / NULLIF(SUM(main.qty), 1)
+        END AS avgROCost,
 		SUM(main.qty) AS Qty,     
      AVG(main.dateAge) AS DateAge,  
      COUNT(totalROs) AS totalROs 

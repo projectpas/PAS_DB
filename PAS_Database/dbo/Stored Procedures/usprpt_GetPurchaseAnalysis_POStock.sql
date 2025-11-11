@@ -309,7 +309,7 @@ select * into #tmpFinalAnalysis1
 --    GROUP BY main.pn, main.ItemMasterId, main.condition
 --) AS res;
 
---		select * from #tmpFinalAnalysis
+--select * from #tmpFinalAnalysis1
 SELECT * INTO #tmpFinalAnalysis
 FROM (
     SELECT 
@@ -327,7 +327,10 @@ FROM (
 		MAX(main.manufacturer) AS manufacturer,
 		MAX(main.vendor) AS vendor,
 		MAX(main.pnDescription) AS pnDescription,
-        SUM(main.avgPOCost) / SUM(main.qty) AS avgPOCost,  
+		CASE 
+            WHEN SUM(main.qty) = 0 THEN 0
+            ELSE SUM(main.avgPOCost) / NULLIF(SUM(main.qty), 1)
+        END AS avgPOCost, 
 		SUM(main.qty) AS Qty,     
      AVG(main.dateAge) AS DateAge,  
      COUNT(totalPOs) AS totalPOs 

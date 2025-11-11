@@ -21,6 +21,7 @@
 	4    08/01/2022   Ekta Chandegara  Retrieve full employee name as VerifiedBy
 	5    13/02/2025   Sahdev Saliya    Added new field PublishedByName
 	6    12/03/2025   Sahdev Saliya    Added a case to get timeZone
+	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -54,7 +55,8 @@ CREATE   PROCEDURE [dbo].[GetPublicationViewList]
 @UpdatedBy varchar(50)=null,
 @EmployeeId bigint=null,
 @MasterCompanyId bigint=null,
-@ModuleID bigint=null
+@ModuleID bigint=null,
+@Notes nvarchar(max)=null
 AS
 BEGIN
     -- SET NOCOUNT ON added to prevent extra result sets from
@@ -150,7 +152,8 @@ BEGIN
 						 INNER JOIN [dbo].[Publication] t
 						     ON t1.PublicationRecordId = t.PublicationRecordId 
 						 WHERE pu.PublicationRecordId = t.PublicationRecordId 
-						 FOR XML PATH ('')), 1, 1, '') LastMSLevel
+						 FOR XML PATH ('')), 1, 1, '') LastMSLevel,
+						 pu.Notes
 						 
 					   FROM [dbo].[Publication] pu WITH (NOLOCK)
 					   INNER JOIN  [dbo].[PublicationType] pt WITH (NOLOCK) ON pU.PublicationTypeId = pt.PublicationTypeId
@@ -231,7 +234,7 @@ BEGIN
 									M.ExpirationDate AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy',M.VerifiedDate AS VerifiedDate,
 									M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.IsActive,M.IsDeleted, PT.PartNumber, PT.PartNumberType as 'PartNos',
 									PD.PartDescription,PD.PartDescriptionType  as 'PnDescription',M.LastMSLevel,M.AllMSlevels,
-									MFG.Manufacturer,MFG.ManufacturerType AS 'Manufacturers'
+									MFG.Manufacturer,MFG.ManufacturerType AS 'Manufacturers',M.Notes
 						FROM Result M 
 						LEFT JOIN PartCTE PT ON M.PublicationRecordId = PT.PublicationRecordId
 						LEFT JOIN PartDescCTE PD ON PD.PublicationRecordId = M.PublicationRecordId
@@ -252,7 +255,8 @@ BEGIN
 					([Location] LIKE '%' +@GlobalFilter+'%') OR					
 					(VerifiedBy LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%') 					
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+					(Notes LIKE '%' +@GlobalFilter+'%')
 					))
 					OR 
 					(@GlobalFilter='' AND
@@ -274,7 +278,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))					
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes + '%'))					
 				   )
 				   SELECT @Count = COUNT(PublicationRecordId) FROM #TempResult;		
 			       SELECT *, @Count AS NumberOfItems FROM #TempResult
@@ -316,7 +321,9 @@ BEGIN
 			       CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			       CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			       CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='Notes')  THEN Notes END ASC,
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN Notes END DESC
 			       OFFSET @RecordFrom ROWS 
 			       FETCH NEXT @PageSize ROWS ONLY
 				   END

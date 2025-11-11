@@ -29,6 +29,7 @@
     [ManagementStructureIds] VARCHAR (50)   NULL,
     [URL]                    NVARCHAR (500) NULL,
     [Fleet]                  VARCHAR (50)   NULL,
+    [Notes]                  NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_PublicationAudit] PRIMARY KEY CLUSTERED ([PublicationAuditId] ASC)
 );
 

@@ -273,7 +273,7 @@ select * into #tmpFinalAnalysis1
 		MAX(main.manufacturer) AS manufacturer,
 		MAX(main.vendor) AS vendor,
        main.condition,
-	   main.avgPOCost,
+	   main.avgPOCost * SUM(main.qty) avgPOCost,
 	   SUM(main.qty) AS qty,     
      AVG(main.dateAge) AS dateAge,  
      COUNT(DISTINCT main.PurchaseOrderId) AS totalPOs ,
@@ -283,7 +283,7 @@ select * into #tmpFinalAnalysis1
     GROUP BY main.PurchaseOrderPartRecordId,main.condition,main.avgPOCost
 ) AS res;
 
---select * from #tmpFinalAnalysis1;
+select * from #tmpFinalAnalysis1;
 --SELECT * INTO #tmpFinalAnalysis
 --FROM (
 --    SELECT 

@@ -26,7 +26,7 @@ BEGIN
 	BEGIN TRY
 		DECLARE @UnitPrice DECIMAL(18,2) = 0
 			
-		SELECT TOP 1 @UnitPrice = ISNULL([UnitPrice],0)				 
+		SELECT TOP 1 @UnitPrice = ISNULL([FlatRatePrice],0)				 
 		 FROM [dbo].[MROPriceMaster] WITH(NOLOCK)			
 		WHERE CAST(GETUTCDATE() AS DATE) BETWEEN CAST([StartDate] AS DATE) AND CAST([EndDate] AS DATE)
 		  AND [ItemMasterId] = @ItemMasterId
@@ -38,7 +38,7 @@ BEGIN
 
 		IF(@UnitPrice = 0)
 		BEGIN			
-			SELECT TOP 1 @UnitPrice = ISNULL([UnitPrice],0)				 
+			SELECT TOP 1 @UnitPrice = ISNULL([FlatRatePrice],0)				 
 			 FROM [dbo].[MROPriceMaster] WITH(NOLOCK)			
 			WHERE CAST(GETUTCDATE() AS DATE) BETWEEN CAST([StartDate] AS DATE) AND CAST([EndDate] AS DATE) 
 			  AND [ItemMasterId] = @ItemMasterId

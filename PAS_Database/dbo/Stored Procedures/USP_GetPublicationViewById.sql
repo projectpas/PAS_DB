@@ -11,7 +11,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-05-30		  Ayushi Patel				Created
     2    2025-10-16		  Bhargav Saliya			Added Case For [VerifiedByName]
-	
+	3    10/11/2025       Bhargav Saliya            Get Notes which has been newly added
  ***************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetPublicationViewById]  
     @PublicationRecordId BIGINT  
@@ -56,7 +56,8 @@ BEGIN
 
             (SELECT TOP 1 pt.EmailBody
              FROM DBO.PublicationTemplate pt
-             WHERE pt.PublicationTypeId = pb.PublicationTypeId AND pt.MasterCompanyId = pb.MasterCompanyId) AS PublicationTemplate
+             WHERE pt.PublicationTypeId = pb.PublicationTypeId AND pt.MasterCompanyId = pb.MasterCompanyId) AS PublicationTemplate,
+			 pb.Notes
 
         FROM DBO.Publication pb WITH (NOLOCK)
 

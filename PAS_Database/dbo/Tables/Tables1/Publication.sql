@@ -28,6 +28,7 @@
     [ManagementStructureIds] VARCHAR (50)   NULL,
     [URL]                    NVARCHAR (500) NULL,
     [Fleet]                  VARCHAR (50)   NULL,
+    [Notes]                  NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_Publication] PRIMARY KEY CLUSTERED ([PublicationRecordId] ASC),
     CONSTRAINT [FK_Publication_Location] FOREIGN KEY ([LocationId]) REFERENCES [dbo].[Location] ([LocationId]),
     CONSTRAINT [FK_Publication_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -35,6 +36,8 @@
     CONSTRAINT [FK_PublicationPublication_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_PublicationPublication_PublishedById] FOREIGN KEY ([PublishedById]) REFERENCES [dbo].[Module] ([ModuleId])
 );
+
+
 
 
 

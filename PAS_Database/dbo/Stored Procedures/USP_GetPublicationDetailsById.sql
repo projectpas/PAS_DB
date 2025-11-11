@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-06-02		  Ayushi Patel				Created
+    2    2025-11-10		  Bhargav Saliya			Get Added new field notes
 	exec [dbo].[USP_GetPublicationDetailsById] 708
  ***************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetPublicationDetailsById]
@@ -64,7 +65,8 @@ BEGIN
             p.Fleet,
 			v.VendorName,
 			m.Name,
-			p.PublishedByRefId
+			p.PublishedByRefId,
+			ISNULL(p.Notes,'') Notes
         FROM dbo.Publication p WITH (NOLOCK)
         LEFT JOIN dbo.PublicationType pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
         LEFT JOIN dbo.Location loc WITH (NOLOCK) ON p.LocationId = loc.LocationId

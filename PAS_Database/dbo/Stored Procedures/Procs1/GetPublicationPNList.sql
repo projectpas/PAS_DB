@@ -21,6 +21,7 @@
 	4    12/03/2025   Sahdev Saliya    Added a case to get timeZone
 	5    22/05/2025   Sahdev Saliya    Added new field Fleet
 	6    16/10/2025   Bhargav Saliya   Added case for VerifiedBy
+	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
@@ -55,7 +56,8 @@ CREATE   PROCEDURE [dbo].[GetPublicationPNList]
 @UpdatedBy  varchar(50)=null,
 @EmployeeId bigint=NULL,
 @MasterCompanyId bigint=NULL,
-@ModuleID bigint=NULL
+@ModuleID bigint=NULL,
+@Notes nvarchar(max)=null
 AS
 BEGIN
     -- SET NOCOUNT ON added to prevent extra result sets from
@@ -155,7 +157,8 @@ BEGIN
 						 INNER JOIN [dbo].[Publication] t WITH (NOLOCK)
 						     ON t1.PublicationRecordId = t.PublicationRecordId 
 						 WHERE p.PublicationRecordId = t.PublicationRecordId 
-						 FOR XML PATH ('')), 1, 1, '') LastMSLevel
+						 FOR XML PATH ('')), 1, 1, '') LastMSLevel,
+						 p.[Notes]
 				  FROM [dbo].[Publication] p WITH (NOLOCK)
 				  LEFT JOIN [dbo].[PublicationType] pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
 				  LEFT JOIN [dbo].[PublicationItemMasterMapping] pum WITH (NOLOCK) ON p.PublicationRecordId = pum.PublicationRecordId and isnull(pum.IsDeleted,0)=0
@@ -187,7 +190,8 @@ BEGIN
 					([Location] LIKE '%' +@GlobalFilter+'%') OR					
 					(VerifiedBy LIKE '%' +@GlobalFilter+'%') OR
 			        (CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') or
+					(Notes LIKE '%' +@GlobalFilter+'%')
 					))
 					OR 
 					(@GlobalFilter=''  AND 			
@@ -210,7 +214,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))					
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) and
+					(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes + '%'))					
 				   )
 				   SELECT @Count = COUNT(PublicationRecordId) FROM #TempResult;		
 			       SELECT *, @Count AS NumberOfItems FROM #TempResult
@@ -254,7 +259,9 @@ BEGIN
 			       CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			       CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			       CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='Notes')  THEN Notes END ASC,
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN Notes END DESC
 			       OFFSET @RecordFrom ROWS 
 			       FETCH NEXT @PageSize ROWS ONLY
 

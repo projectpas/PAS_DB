@@ -283,7 +283,7 @@ select * into #tmpFinalAnalysis1
     GROUP BY main.PurchaseOrderPartRecordId,main.condition,main.avgPOCost
 ) AS res;
 
-select * from #tmpFinalAnalysis1;
+--select * from #tmpFinalAnalysis1;
 --SELECT * INTO #tmpFinalAnalysis
 --FROM (
 --    SELECT 

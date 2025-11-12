@@ -11,7 +11,7 @@
  ** --   -------------		----------------	--------------------------------          
     1    04-11-2025		    Moin Bloch	        Created
    
- --  EXEC [dbo].[USP_GetMROPriceForWorkOrderQuote] 
+ --  EXEC [dbo].[USP_GetMROPriceForWorkOrderQuote]  97032, 152 ,4491, 12
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetMROPriceForWorkOrderQuote]
@@ -25,7 +25,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 		DECLARE @UnitPrice DECIMAL(18,2) = 0
-			
+
 		SELECT TOP 1 @UnitPrice = ISNULL([FlatRatePrice],0)				 
 		 FROM [dbo].[MROPriceMaster] WITH(NOLOCK)			
 		WHERE CAST(GETUTCDATE() AS DATE) BETWEEN CAST([StartDate] AS DATE) AND CAST([EndDate] AS DATE)
@@ -46,6 +46,7 @@ BEGIN
 			  AND [MasterCompanyId] = @MasterCompanyId
 			  AND [IsActive] = 1
 			  AND [IsDeleted] = 0
+			  AND [CustomerId] IS NULL
 		END
 
 		SELECT @UnitPrice [UnitPrice]

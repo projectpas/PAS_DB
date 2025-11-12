@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [dbo].[usp_Get_CommonAuditLogHistory]        
  ** Author:   HEMANT SALIYA    
  ** Description: Get Data for Common Audit Report   
@@ -9,17 +9,18 @@
            
  ** RETURN VALUE:             
     
- **************************************************************             
+ **********************             
   ** Change History             
- **************************************************************             
+ **********************             
  ** S NO		Date			Author				Change Description              
  ** --		--------		-------------		--------------------------------            
     1		07-NOV-2025		HEMANT SALIYA			Created  
-    2       11-NOV-2025     AYUSHI PATEL            Mapped ModuleId to Module   
+    2       11-NOV-2025     AYUSHI PATEL            Mapped ModuleId to Module 
+    3       12-NOV-2025     AYUSHI PATEL            Removed TableName, PKJson, ChangedBy, Actions from output; added UpdatedDate fallback to ChangedAt; excluded columns via IgnoreColumn.
 --EXEC dbo.usp_Get_CommonAuditLogHistory @Module='WorkOrder', @PK_Key='WorkOrderId', @PK_Value=4482
 --EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=1, @PK_Key='CustomerId', @PK_Value=4493
---EXEC dbo.usp_Get_CommonAuditLogHistory @Module='Vendor', @PK_Key='VendorId', @PK_Value=5418 
-**************************************************************/ 
+--EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=2, @PK_Key='VendorId', @PK_Value=5418 
+**********************/ 
 
 CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
     @ModuleId     BIGINT       = NULL,       -- e.g. '1 => Customer' / 'Vendor' (maps to TableName)
@@ -47,7 +48,7 @@ BEGIN
         STRING_AGG(QUOTENAME(ColumnName), ',')
     FROM (
         SELECT DISTINCT ColumnName
-        FROM [dbo].[AuditLog] WITH (NOLOCK)
+        FROM [dbo].[AuditLog] AL WITH (NOLOCK)
         WHERE (@Module IS NULL OR TableName = @Module)
           AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
           AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
@@ -58,6 +59,12 @@ BEGIN
           AND ColumnName IS NOT NULL
           AND ColumnName <> ''
           AND LEN(ColumnName) <= 128         -- QUOTENAME limit
+          AND NOT EXISTS (            
+          SELECT 1
+          FROM dbo.IgnoreColumn ic WITH (NOLOCK)
+          WHERE ic.TableName = @Module
+            AND ic.ColumnName = AL.ColumnName
+    )
     ) AS c;
 
     -- If nothing to pivot, return an empty-shaped set
@@ -71,6 +78,12 @@ BEGIN
         RETURN;
     END
 
+        DECLARE @cols_out nvarchar(MAX);
+        SELECT @cols_out =
+            STRING_AGG(s.value, ',')
+        FROM STRING_SPLIT(@cols, ',') AS s
+        WHERE s.value <> '[UpdatedDate]';
+
     DECLARE @valExpr nvarchar(20) =
         CASE WHEN @UseOld = 1 THEN N'OldValue' ELSE N'NewValue' END;
 
@@ -80,7 +93,7 @@ BEGIN
     --  - Pivot columns = each distinct ColumnName
     --  - Include a compact Actions string (e.g., 'I', 'U', 'D' or combination)
     ----------------------------------------------------------------
-    DECLARE @sql nvarchar(MAX) =
+     DECLARE @sql nvarchar(MAX) =
         N';WITH S AS
         (
             SELECT
@@ -134,12 +147,12 @@ BEGIN
             GROUP BY TableName, PKJson, ChangedAt, [Action]
         )
         SELECT
-            p.TableName,
-            p.PKJson,
-            p.ChangedAt,
-            a.AnyChangedBy AS ChangedBy,
-            a.Actions,
-            ' + REPLACE(@cols, '],[', '], p.[') + N'
+          COALESCE(p.[UpdatedDate], p.ChangedAt) AS UpdatedDate'
+          + CASE WHEN ISNULL(@cols_out, N'') <> N'' THEN
+                N', ' + REPLACE(@cols_out, '],[', '], p.[')
+            ELSE N''
+            END
+          + N'
         FROM
         (
             SELECT TableName, PKJson, ChangedAt, ChangedBy, ColumnName, ValToPivot
@@ -161,7 +174,7 @@ BEGIN
         @sql,
         N'@Module sysname, @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128)',
         @Module=@Module, @StartAt=@StartAt, @EndAt=@EndAt, @PK_Key=@PK_Key, @PK_Value=@PK_Value;
-    END TRY  
+    END TRY    
   
     BEGIN CATCH  
   

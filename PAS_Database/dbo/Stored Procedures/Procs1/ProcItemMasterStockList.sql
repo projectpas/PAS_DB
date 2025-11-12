@@ -13,8 +13,8 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
    
-    2    23 Nov 2023    BHARGAV SALIYA               Add HasSubAssy  
-	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+    2    23 Nov 2023    BHARGAV SALIYA       Add HasSubAssy  
+	3    17 July 2024   Shrey Chandegara     Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	4    28/01/2025     Ayushi Patel         converted the date into utc (created , updated) , Added a case to get timeZone
 	5	 14/02/2025		Ayushi Patel		 Resolve sorting related issue (createdDates)
 	6    06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
@@ -23,6 +23,7 @@
 	9	 21-Aug-2025	Bhargav saliya		 added Ranking
 	10   04-Sep-2025    Sahdev Saliya        Added WorkOrderType
 	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
+	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -139,8 +140,8 @@ BEGIN
 					   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
 					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',	
 					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
-					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0
-					   OR ISNULL((SELECT COUNT(RepairOrderAssemblyId) from [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK)WHERE RAP.ItemMasterId = im.ItemMasterId),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
+					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
+					   --OR ISNULL((SELECT COUNT(RepairOrderAssemblyId) from [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK)WHERE RAP.ItemMasterId = im.ItemMasterId),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
 					   im.IsActive,
 					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,					   
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',

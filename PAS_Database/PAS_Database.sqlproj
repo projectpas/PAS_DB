@@ -4333,6 +4333,8 @@
     <Build Include="dbo\Stored Procedures\usp_Get_CommonAuditLogHistory.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetSupportTicketById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSalesOrderShippingUPSPath.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageListByModuleId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageByModuleId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

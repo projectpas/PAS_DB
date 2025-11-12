@@ -23,6 +23,7 @@
 	6    02/13/2025   Moin Bloch     Updated For Get Is813013aeOr14ae Flag 
 	7    10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	8    13/10/2025   Moin Bloch     Updated to Dynamic VersionNo
+	9    12/11/2025   Moin Bloch     Updated trackingNo For PAR Company
      
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
@@ -38,9 +39,15 @@ BEGIN
 		BEGIN TRY
 			BEGIN  
 			    DECLARE @MSModuleId INT,@MasterCompanyId INT;
+				DECLARE @MasterCompanyCode VARCHAR(100)='', @PARMasterCompanyCode VARCHAR(100)=''
+				
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
 				SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Work_ReleaseFrom_8130] CTT WITH(NOLOCK) WHERE [ReleaseFromId]=@ReleaseFromId;
+
+				SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [DBO].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				-- PAR COMPANY
+				SELECT @PARMasterCompanyCode = [MasterCompanyCode] FROM [DBO].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'PAR';				
 
 				DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
 
@@ -92,7 +99,7 @@ BEGIN
 					  ,wro.[UpdatedDate]
 					  ,wro.[IsActive]
 					  ,wro.[IsDeleted]
-					  ,wro.[trackingNo]
+					  ,CASE WHEN @MasterCompanyCode = @PARMasterCompanyCode THEN wro.[InvoiceNo] ELSE wro.[trackingNo] END AS [trackingNo]
 					  ,wro.[OrganizationAddress]
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]

@@ -15,7 +15,7 @@
 
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 
+CREATE    PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -114,81 +114,204 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom, masterCompanyId,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,
-					qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,
-			     level9, level10) AS (
-      SELECT COUNT(1) OVER () AS TotalRecordsCount,
-        UPPER(stl.partnumber) AS 'pn',
-        UPPER(stl.PNDescription) AS 'pndescription',
-		UPPER(stl.Manufacturer) AS 'manufacturer',
-		UPPER(stl.Condition) AS 'cond',
-		stl.StockLineId AS 'stockLineId',
-		stl.UnitOfMeasure AS 'stockuom',
-		stl.MasterCompanyId AS 'masterCompanyId',
-		IM.StockLevel AS 'stocklevel',
-		IM.LeadTimeDays AS 'leadtimedays',
-		IM.ReorderPoint AS 'reorderpoint',
-		IM.ReorderQuantiy AS 'reorderqty',
-		IM.MinimumOrderQuantity AS 'minqtyorder',
-		stl.QuantityOnHand AS 'qtyonhand',
-		stl.QuantityAvailable AS 'qtyonavail',
-		CASE WHEN stl.QuantityAvailable <= IM.StockLevel THEN 'YES' ELSE 'NO' END AS 'reorder',
-		CASE 
-			WHEN 
-				(ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) > ISNULL(IM.MinimumOrderQuantity,0) 
-			THEN (ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) ELSE ISNULL(IM.MinimumOrderQuantity,0)
-		END	AS 'qtytoorder',
-		UPPER(stl.[Site]) As 'site',
-		UPPER(stl.[Warehouse]) As 'warehouse',
-		UPPER(stl.[Location]) As 'location',
-		UPPER(stl.[Shelf]) As 'shelf',
-		UPPER(stl.[Bin]) As 'bin',
-		UPPER(MSD.Level1Name) AS level1,     
-		UPPER(MSD.Level2Name) AS level2,    
-		UPPER(MSD.Level3Name) AS level3,    
-		UPPER(MSD.Level4Name) AS level4,    
-		UPPER(MSD.Level5Name) AS level5,    
-		UPPER(MSD.Level6Name) AS level6,    
-		UPPER(MSD.Level7Name) AS level7,   
-		UPPER(MSD.Level8Name) AS level8,    
-		UPPER(MSD.Level9Name) AS level9,    
-		UPPER(MSD.Level10Name) AS level10
-		FROM DBO.Stockline stl WITH (NOLOCK)
-		INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
-	    INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
-		LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
-		WHERE stl.mastercompanyid = @mastercompanyid and stl.isActive =1 AND ISNULL(stl.IsParent, 0) = 1 AND stl.IsDeleted=0 AND ISNULL(stl.IsCustomerStock, 0) = 0
-			AND (ISNULL(@PN,'') ='' OR stl.ItemMasterId  = @PN)
-			AND (ISNULL(@Condition,'') ='' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,','))) 
-			AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
-			AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
-			AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
-			AND (ISNULL(@Shelf,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@Shelf,',')))   
-			AND (ISNULL(@Bin,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@Bin,',')))
-	        AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-			AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-			AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-			AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-			AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			)
-			,FinalCTE(TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId) 
-			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId FROM rptCTE)
+	 -- ;WITH rptCTE (TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom, masterCompanyId,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,
+		--			qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,
+		--	     level9, level10) AS (
+  --    SELECT COUNT(1) OVER () AS TotalRecordsCount,
+  --      UPPER(stl.partnumber) AS 'pn',
+  --      UPPER(stl.PNDescription) AS 'pndescription',
+		--UPPER(stl.Manufacturer) AS 'manufacturer',
+		--UPPER(stl.Condition) AS 'cond',
+		--stl.StockLineId AS 'stockLineId',
+		--stl.UnitOfMeasure AS 'stockuom',
+		--stl.MasterCompanyId AS 'masterCompanyId',
+		--IM.StockLevel AS 'stocklevel',
+		--IM.LeadTimeDays AS 'leadtimedays',
+		--IM.ReorderPoint AS 'reorderpoint',
+		--IM.ReorderQuantiy AS 'reorderqty',
+		--IM.MinimumOrderQuantity AS 'minqtyorder',
+		--stl.QuantityOnHand AS 'qtyonhand',
+		--stl.QuantityAvailable AS 'qtyonavail',
+		--CASE WHEN stl.QuantityAvailable <= IM.StockLevel THEN 'YES' ELSE 'NO' END AS 'reorder',
+		--CASE 
+		--	WHEN 
+		--		(ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) > ISNULL(IM.MinimumOrderQuantity,0) 
+		--	THEN (ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) ELSE ISNULL(IM.MinimumOrderQuantity,0)
+		--END	AS 'qtytoorder',
+		--UPPER(stl.[Site]) As 'site',
+		--UPPER(stl.[Warehouse]) As 'warehouse',
+		--UPPER(stl.[Location]) As 'location',
+		--UPPER(stl.[Shelf]) As 'shelf',
+		--UPPER(stl.[Bin]) As 'bin',
+		--UPPER(MSD.Level1Name) AS level1,     
+		--UPPER(MSD.Level2Name) AS level2,    
+		--UPPER(MSD.Level3Name) AS level3,    
+		--UPPER(MSD.Level4Name) AS level4,    
+		--UPPER(MSD.Level5Name) AS level5,    
+		--UPPER(MSD.Level6Name) AS level6,    
+		--UPPER(MSD.Level7Name) AS level7,   
+		--UPPER(MSD.Level8Name) AS level8,    
+		--UPPER(MSD.Level9Name) AS level9,    
+		--UPPER(MSD.Level10Name) AS level10
+		--FROM DBO.Stockline stl WITH (NOLOCK)
+		--INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
+	 --   INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
+		--LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
+		--WHERE stl.mastercompanyid = @mastercompanyid and stl.isActive =1 AND ISNULL(stl.IsParent, 0) = 1 AND stl.IsDeleted=0 AND ISNULL(stl.IsCustomerStock, 0) = 0
+		--	AND (ISNULL(@PN,'') ='' OR stl.ItemMasterId  = @PN)
+		--	AND (ISNULL(@Condition,'') ='' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,','))) 
+		--	AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
+		--	AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
+		--	AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
+		--	AND (ISNULL(@Shelf,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@Shelf,',')))   
+		--	AND (ISNULL(@Bin,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@Bin,',')))
+	 --       AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
+		--	AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
+		--	AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
+		--	AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
+		--	AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
+		--	AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
+		--	AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
+		--	AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
+		--	AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
+		--	AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		--	)
+		--	,FinalCTE(TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId) 
+		--	  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId 
+		--	  FROM rptCTE)
 
-			,WithTotal (masterCompanyId) 
-			  AS (SELECT masterCompanyId
-				FROM FinalCTE
-				GROUP BY masterCompanyId)
+		--	,WithTotal (masterCompanyId) 
+		--	  AS (SELECT masterCompanyId
+		--		FROM FinalCTE
+		--		GROUP BY masterCompanyId)
 
-			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-				FROM FinalCTE FC
-					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-				ORDER BY pn DESC
-				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+		--	  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
+		--		FROM FinalCTE FC
+		--			INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+		--		ORDER BY pn DESC
+		--		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+		;WITH rptCTE AS (
+			SELECT 
+				COUNT(1) OVER () AS TotalRecordsCount,
+				UPPER(stl.partnumber) AS pn,
+				IM.itemMasterId,
+				UPPER(stl.PNDescription) AS pndescription,
+				UPPER(stl.Manufacturer) AS manufacturer,
+				UPPER(stl.Condition) AS cond,
+				stl.StockLineId AS stockLineId,
+				stl.UnitOfMeasure AS stockuom,
+				stl.MasterCompanyId AS masterCompanyId,
+				IM.StockLevel AS stocklevel,
+				IM.LeadTimeDays AS leadtimedays,
+				IM.ReorderPoint AS reorderpoint,
+				IM.ReorderQuantiy AS reorderqty,
+				IM.MinimumOrderQuantity AS minqtyorder,
+				stl.QuantityOnHand AS qtyonhand,
+				stl.QuantityAvailable AS qtyonavail,
+				CASE WHEN stl.QuantityAvailable <= IM.StockLevel THEN 'YES' ELSE 'NO' END AS reorder,
+				CASE 
+					WHEN (ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) > ISNULL(IM.MinimumOrderQuantity,0)
+					THEN (ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) 
+					ELSE ISNULL(IM.MinimumOrderQuantity,0)
+				END AS qtytoorder,
+				UPPER(stl.[Site]) AS site,
+				UPPER(stl.[Warehouse]) AS warehouse,
+				UPPER(stl.[Location]) AS location,
+				UPPER(stl.[Shelf]) AS shelf,
+				UPPER(stl.[Bin]) AS bin,
+				UPPER(MSD.Level1Name) AS level1,     
+				UPPER(MSD.Level2Name) AS level2,    
+				UPPER(MSD.Level3Name) AS level3,    
+				UPPER(MSD.Level4Name) AS level4,    
+				UPPER(MSD.Level5Name) AS level5,    
+				UPPER(MSD.Level6Name) AS level6,    
+				UPPER(MSD.Level7Name) AS level7,   
+				UPPER(MSD.Level8Name) AS level8,    
+				UPPER(MSD.Level9Name) AS level9,    
+				UPPER(MSD.Level10Name) AS level10
+			FROM DBO.Stockline stl WITH (NOLOCK)
+			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
+			INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)
+				ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
+			LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
+			WHERE 
+				stl.mastercompanyid = @mastercompanyid 
+				AND stl.isActive = 1 
+				AND ISNULL(stl.IsParent, 0) = 1 
+				AND stl.IsDeleted = 0 
+				AND ISNULL(stl.IsCustomerStock, 0) = 0
+				AND (ISNULL(@PN,'') = '' OR stl.ItemMasterId = @PN)
+				AND (ISNULL(@Condition,'') = '' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,',')))
+				AND (ISNULL(@Site,'') = '' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
+				AND (ISNULL(@Warehouse,'') = '' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
+				AND (ISNULL(@Location,'') = '' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
+				AND (ISNULL(@Shelf,'') = '' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@Shelf,',')))   
+				AND (ISNULL(@Bin,'') = '' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@Bin,',')))
+				AND (ISNULL(@Level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
+				AND (ISNULL(@Level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
+				AND (ISNULL(@Level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
+				AND (ISNULL(@Level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
+				AND (ISNULL(@Level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
+				AND (ISNULL(@Level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
+				AND (ISNULL(@Level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
+				AND (ISNULL(@Level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
+				AND (ISNULL(@Level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
+				AND (ISNULL(@Level10,'') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		)
+
+		,GroupedCTE AS (
+			SELECT 
+				MAX(TotalRecordsCount) AS TotalRecordsCount,
+				pn,
+				MAX(itemMasterId) AS itemMasterId,
+				MAX(pndescription) AS pndescription,
+				MAX(manufacturer) AS manufacturer,
+				cond,
+				site,
+				MAX(stockuom) AS stockuom,
+				MAX(stocklevel) AS stocklevel,
+				MAX(leadtimedays) AS leadtimedays,
+				MAX(reorderpoint) AS reorderpoint,
+				MAX(reorderqty) AS reorderqty,
+				MAX(minqtyorder) AS minqtyorder,
+				SUM(qtyonhand) AS qtyonhand,
+				SUM(qtyonavail) AS qtyonavail,
+				MAX(reorder) AS reorder,
+				CASE 
+					WHEN (ISNULL(MAX(StockLevel),0) - ISNULL(SUM(qtyonavail),0)) > ISNULL(SUM(minqtyorder),0)
+					THEN (ISNULL(MAX(StockLevel),0) - ISNULL(SUM(qtyonavail),0)) 
+					ELSE ISNULL(MAX(minqtyorder),0)
+				END AS qtytoorder,
+				MAX(warehouse) AS warehouse,
+				MAX(location) AS location,
+				MAX(shelf) AS shelf,
+				MAX(bin) AS bin,
+				MAX(level1) AS level1,
+				MAX(level2) AS level2,
+				MAX(level3) AS level3,
+				MAX(level4) AS level4,
+				MAX(level5) AS level5,
+				MAX(level6) AS level6,
+				MAX(level7) AS level7,
+				MAX(level8) AS level8,
+				MAX(level9) AS level9,
+				MAX(level10) AS level10,
+				MAX(masterCompanyId) AS masterCompanyId
+			FROM rptCTE
+			GROUP BY pn, cond, site
+		)
+		SELECT 
+			COUNT(1) OVER () AS TotalRecordsCount,
+			pn, itemMasterId, pndescription, manufacturer, cond, site,
+			stockuom, stocklevel, leadtimedays, reorderpoint, reorderqty, 
+			minqtyorder, qtyonhand, qtyonavail, reorder, qtytoorder,
+			warehouse, location, shelf, bin,
+			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+		FROM GroupedCTE
+		ORDER BY pn DESC
+		OFFSET ((@PageNumber - 1) * @PageSize) ROWS
+		FETCH NEXT @PageSize ROWS ONLY;
+
   END TRY
   BEGIN CATCH
     DECLARE @ErrorLogID int,

@@ -15,14 +15,14 @@
  ** S NO		Date			Author				Change Description              
  ** --		--------		-------------		--------------------------------            
     1		07-NOV-2025		HEMANT SALIYA			Created  
-       
+    2       11-NOV-2025     AYUSHI PATEL            Mapped ModuleId to Module   
 --EXEC dbo.usp_Get_CommonAuditLogHistory @Module='WorkOrder', @PK_Key='WorkOrderId', @PK_Value=4482
---EXEC dbo.usp_Get_CommonAuditLogHistory @Module='Customer', @PK_Key='CustomerId', @PK_Value=4482
+--EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=1, @PK_Key='CustomerId', @PK_Value=4493
 --EXEC dbo.usp_Get_CommonAuditLogHistory @Module='Vendor', @PK_Key='VendorId', @PK_Value=5418 
 **************************************************************/ 
 
 CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
-    @Module     sysname       = NULL,       -- e.g. 'Customer' / 'Vendor' (maps to TableName)
+    @ModuleId     BIGINT       = NULL,       -- e.g. '1 => Customer' / 'Vendor' (maps to TableName)
     @PK_Key     nvarchar(128) = NULL,       -- e.g. 'CustomerId'
     @PK_Value   nvarchar(128) = NULL,       -- e.g. '7' (compared as NVARCHAR)
     @StartAt    datetime2(3)  = NULL,       -- inclusive
@@ -36,7 +36,7 @@ BEGIN
     BEGIN TRY  
     -- Validate sort dir
     IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
-
+    DECLARE @Module VARCHAR(100) = (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = @ModuleId);
     ----------------------------------------------------------------
     -- Build dynamic column list from ColumnName in the filtered scope
     -- (ensures only relevant fields appear as pivoted columns)

@@ -298,13 +298,14 @@ BEGIN
 				MAX(level10) AS level10,
 				MAX(masterCompanyId) AS masterCompanyId
 			FROM rptCTE
-			GROUP BY pn, cond, site
+			GROUP BY pn, cond, site 
 		)
 		SELECT 
 			COUNT(1) OVER () AS TotalRecordsCount,
 			pn, itemMasterId, pndescription, manufacturer, cond, site,
 			stockuom, stocklevel, leadtimedays, reorderpoint, reorderqty, 
-			minqtyorder, qtyonhand, qtyonavail, reorder, qtytoorder,
+			minqtyorder, qtyonhand, qtyonavail, CASE WHEN qtyonavail  <= stocklevel THEN 'YES' ELSE 'NO' END AS reorder
+			, qtytoorder,
 			warehouse, location, shelf, bin,
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
 		FROM GroupedCTE

@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetWorkOrderQuoteBuildMethodDetails]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Get WorkOrder Quote Build Method Details    
@@ -18,6 +17,7 @@
  ** --   --------     -------  --------------------------------            
     1    05/25/2021   Hemant Saliya Created  
 	2    11/12/2025   Moin Bloch    Updated For MRO Price Flag   
+	3    13/12/2025  Moin Bloch     Updated (Added Opr)
        
 -- EXEC [GetWorkOrderQuoteBuildMethodDetails] 29871  
 **************************************************************/  
@@ -32,7 +32,7 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN  
-    DECLARE @ItemMasterId BIGINT=0,@MasterCompanyId INT = 0,@WorkOrderScopeId BIGINT=0,@CustomerId BIGINT=0,@UnitPrice DECIMAL(18,2)=0
+    DECLARE @ItemMasterId BIGINT=0,@MasterCompanyId INT = 0,@WorkOrderScopeId BIGINT=0,@CustomerId BIGINT=0,@UnitPrice DECIMAL(18,2)=0,@Opr INT=2
 
 	IF OBJECT_ID(N'tempdb..#MROPriceResult') IS NOT NULL
 	BEGIN
@@ -50,7 +50,7 @@ BEGIN
 
 	CREATE TABLE #MROPriceResult ([UnitPrice] DECIMAL(18,2) NULL);
 	INSERT INTO #MROPriceResult
-    EXEC [dbo].[USP_GetMROPriceForWorkOrderQuote] @ItemMasterId,@WorkOrderScopeId,@CustomerId,@MasterCompanyId
+    EXEC [dbo].[USP_GetMROPriceForWorkOrderQuote] @ItemMasterId,@WorkOrderScopeId,@CustomerId,@MasterCompanyId,@Opr
 
 	SELECT @UnitPrice = ISNULL([UnitPrice],0) FROM #MROPriceResult
 
@@ -79,7 +79,7 @@ BEGIN
 		CASE WHEN @UnitPrice > 0 THEN 1 ELSE 0 END [IsMroPrice]
     FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK)  
      LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId  
-    WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND IsVersionIncrease = 0  
+    WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND ISNULL(IsVersionIncrease,0) = 0  
 
    END  
   COMMIT  TRANSACTION  

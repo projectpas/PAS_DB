@@ -12,6 +12,7 @@
  ** --   --------      -------			---------------------------     
     1    26/09/2025    Priyansh Patel   Created
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
+    3    13/11/2025    Ayushi Patel     Sort By created Date
 **********************/
 -- Example: EXEC USP_GetMROPriceMasterByItemMasterId 97005, 0, 1
 
@@ -59,7 +60,7 @@ BEGIN
               AND MPM.[MasterCompanyId] = @MasterCompanyId
               AND MPM.[IsActive] = 1
               AND MPM.[IsDeleted] = @IsDeleted
-            ORDER BY MPM.[ItemMasterId], MPM.[StartDate] DESC;
+            ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
         END
     END TRY
 

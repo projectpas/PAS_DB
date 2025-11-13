@@ -22,7 +22,7 @@
 	9    24/09/2025   RAJESH GAMI		Added MPN Notes
 	10   15/10/2025   Moin Bloch        Added SalesPersion Details
 	11   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
-
+	12   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_CreateWorkOrder]
@@ -369,7 +369,7 @@ BEGIN
 	
 	SELECT TOP 1 @SecondarySalesPersonId=[SecondarySalesPersonId],@SalesAgentID=[SaId] FROM [dbo].[CustomerSales] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 	
-	SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [TearDownCode] = 'RemovalReason' AND [MasterCompanyId] = @MasterCompanyId;
+	--SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [TearDownCode] = 'RemovalReason' AND [MasterCompanyId] = @MasterCompanyId;
 
     -- Set CSRId and SalesPersonId to NULL if 0
     IF @CSRId = 0
@@ -390,16 +390,16 @@ BEGIN
 				 @EnforceMpnPickTicketConfirmation = [EnforceMpnPickTicketConfirmation]
       FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 
-	IF(ISNULL(@TearDownTypes,'') <> '') 
-	BEGIN
-		IF(ISNULL(@CommonTeardownTypeId,0) <> 0)
-		BEGIN		
-			IF ',' + @TearDownTypes + ',' NOT LIKE '%,' + CAST(@CommonTeardownTypeId AS VARCHAR) + ',%'
-			BEGIN
-				SET @TearDownTypes = @TearDownTypes + ',' + CAST(@CommonTeardownTypeId AS VARCHAR); 
-			END
-		END
-	END
+	--IF(ISNULL(@TearDownTypes,'') <> '') 
+	--BEGIN
+	--	IF(ISNULL(@CommonTeardownTypeId,0) <> 0)
+	--	BEGIN		
+	--		IF ',' + @TearDownTypes + ',' NOT LIKE '%,' + CAST(@CommonTeardownTypeId AS VARCHAR) + ',%'
+	--		BEGIN
+	--			SET @TearDownTypes = @TearDownTypes + ',' + CAST(@CommonTeardownTypeId AS VARCHAR); 
+	--		END
+	--	END
+	--END
 
 	SELECT TOP 1  @CustomerFinancialId=[CustomerFinancialId],@CreditTermsId=[CreditTermsId] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 	

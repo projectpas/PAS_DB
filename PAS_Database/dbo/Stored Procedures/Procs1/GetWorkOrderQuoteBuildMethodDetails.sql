@@ -17,12 +17,13 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    05/25/2021   Hemant Saliya Created  
+	2    11/12/2025   Moin Bloch    Updated For MRO Price Flag   
        
--- EXEC [GetWorkOrderQuoteBuildMethodDetails] 186  
+-- EXEC [GetWorkOrderQuoteBuildMethodDetails] 29871  
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteBuildMethodDetails]  
- @workflowWorkorderId BIGINT  
+@workflowWorkorderId BIGINT  
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -31,31 +32,55 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN  
+    DECLARE @ItemMasterId BIGINT=0,@MasterCompanyId INT = 0,@WorkOrderScopeId BIGINT=0,@CustomerId BIGINT=0,@UnitPrice DECIMAL(18,2)=0
+
+	IF OBJECT_ID(N'tempdb..#MROPriceResult') IS NOT NULL
+	BEGIN
+		DROP TABLE #MROPriceResult
+	END
+
+	SELECT TOP 1 @ItemMasterId = WQD.[ItemMasterId], 	             
+				 @WorkOrderScopeId = WOP.[WorkOrderScopeId],
+				 @CustomerId = WOQ.[CustomerId],
+				 @MasterCompanyId = WQD.[MasterCompanyId]
+	FROM [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK)  
+	INNER JOIN  [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WQD.WOPartNoId = WOP.ID
+	INNER JOIN  [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) ON WQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
+	WHERE WQD.[WorkflowWorkOrderId] = @workflowWorkorderId AND ISNULL(WQD.[IsVersionIncrease],0) = 0 
+
+	CREATE TABLE #MROPriceResult ([UnitPrice] DECIMAL(18,2) NULL);
+	INSERT INTO #MROPriceResult
+    EXEC [dbo].[USP_GetMROPriceForWorkOrderQuote] @ItemMasterId,@WorkOrderScopeId,@CustomerId,@MasterCompanyId
+
+	SELECT @UnitPrice = ISNULL([UnitPrice],0) FROM #MROPriceResult
+
     SELECT   
-		WQD.ItemMasterId,  
-		IM.PartNumber,  
-		CASE WHEN BuildMethodId = 1 THEN 'WF' WHEN BuildMethodId = 2 THEN 'WO' WHEN BuildMethodId = 3 THEN 'WF' ELSE 'Third Party' END AS BuildMethod,  
-		BuildMethodId,  
-		WorkOrderQuoteDetailsId,  
-		LaborFlatBillingAmount,  
-		MaterialFlatBillingAmount,  
-		ChargesFlatBillingAmount,  
-		FreightFlatBillingAmount,  
-		MaterialBuildMethod,  
-		LaborBuildMethod,  
-		ChargesBuildMethod,  
-		FreightBuildMethod,  
-		MaterialMarkupId,  
-		LaborMarkupId,  
-		ChargesMarkupId,  
-		FreightMarkupId,  
-		ExclusionsMarkupId,  
-        CommonFlatRate,  
-        QuoteMethod,
-		EvalFees
+		WQD.[ItemMasterId],  
+		IM.[PartNumber],  
+		CASE WHEN [BuildMethodId] = 1 THEN 'WF' WHEN [BuildMethodId] = 2 THEN 'WO' WHEN [BuildMethodId] = 3 THEN 'WF' ELSE 'Third Party' END AS [BuildMethod],  
+		[BuildMethodId],  
+		[WorkOrderQuoteDetailsId],  
+		[LaborFlatBillingAmount],  
+		[MaterialFlatBillingAmount],  
+		[ChargesFlatBillingAmount],  
+		[FreightFlatBillingAmount],  
+		[MaterialBuildMethod],  
+		[LaborBuildMethod],  
+		[ChargesBuildMethod],  
+		[FreightBuildMethod],  
+		[MaterialMarkupId],  
+		[LaborMarkupId],  
+		[ChargesMarkupId],  
+		[FreightMarkupId],  
+		[ExclusionsMarkupId],  
+        [CommonFlatRate],  
+        [QuoteMethod],
+		[EvalFees],
+		CASE WHEN @UnitPrice > 0 THEN 1 ELSE 0 END [IsMroPrice]
     FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK)  
      LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId  
-    WHERE WorkflowWorkOrderId = @workflowWorkorderId AND IsVersionIncrease = 0  
+    WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND IsVersionIncrease = 0  
+
    END  
   COMMIT  TRANSACTION  
   

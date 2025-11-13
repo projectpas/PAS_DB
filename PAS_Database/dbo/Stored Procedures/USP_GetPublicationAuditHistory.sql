@@ -12,6 +12,7 @@
     1    2025-05-30		  Ayushi Patel				Created
 	2    2025-10-16		  Bhargav Saliya			Added Case For [verifiedBy]
 	3    10/11/2025       Bhargav Saliya            Get Notes which has been newly added
+	4    10/13/2025       Bhargav Saliya            Remove added
  ***************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetPublicationAuditHistory]
     @PublicationId BIGINT,
@@ -61,8 +62,7 @@ BEGIN
             ISNULL(im.PartNumber, '') AS PartNos,
             ISNULL(im.PartDescription, '') AS PnDescription,
             ISNULL(ac.ATAChapterName, '') AS AtaChapterName,
-            pa.URL,
-			pa.Notes
+            pa.URL
         FROM DBO.PublicationAudit pa WITH (NOLOCK)
 		INNER JOIN DBO.PublicationType pt WITH (NOLOCK) ON pa.PublicationTypeId = pt.PublicationTypeId
         LEFT JOIN DBO.PublicationItemMasterMapping pum WITH (NOLOCK) ON pa.PublicationRecordId = pum.PublicationRecordId

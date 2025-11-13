@@ -22,6 +22,7 @@
 	5    13/02/2025   Sahdev Saliya    Added new field PublishedByName
 	6    12/03/2025   Sahdev Saliya    Added a case to get timeZone
 	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
+	8    13/11/2025   Bhargav Saliya   Get Notes From The Mapping Tab
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -131,7 +132,7 @@ BEGIN
 						pu.NextReviewDate AS NextReviewDate,
 					    pu.ExpirationDate AS ExpirationDate,
 						loc.[Name] AS [Location],
-						e.FirstName+' '+e.LastName AS VerifiedBy,
+						CASE WHEN ISNULL(pu.VerifiedBy,0) = 0 THEN 'NA' ELSE e.FirstName+' '+e.LastName end  AS VerifiedBy,
 						pu.VerifiedDate AS VerifiedDate,
 					    case when CAST(pu.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(pu.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end CreatedDate,
 						case when CAST(pu.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(pu.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date))end UpdatedDate,
@@ -152,8 +153,7 @@ BEGIN
 						 INNER JOIN [dbo].[Publication] t
 						     ON t1.PublicationRecordId = t.PublicationRecordId 
 						 WHERE pu.PublicationRecordId = t.PublicationRecordId 
-						 FOR XML PATH ('')), 1, 1, '') LastMSLevel,
-						 pu.Notes
+						 FOR XML PATH ('')), 1, 1, '') LastMSLevel
 						 
 					   FROM [dbo].[Publication] pu WITH (NOLOCK)
 					   INNER JOIN  [dbo].[PublicationType] pt WITH (NOLOCK) ON pU.PublicationTypeId = pt.PublicationTypeId
@@ -226,7 +226,27 @@ BEGIN
 									WHERE ((PC.IsDeleted = @IsDeleted))
 									AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
 									GROUP BY PC.PublicationRecordId, A.Manufacturer
-									),			
+									),
+						PnMappingNotes AS(
+						Select PC.PublicationRecordId,
+							  case when count(PCI.PublicationRecordId) > 1 then 'Multiple' else A.Notes end as 'Notes'
+						FROM [dbo].[Publication] PC WITH (NOLOCK)
+						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
+						LEFT JOIN (
+									SELECT 
+										S.PublicationRecordId,
+										(SELECT TOP 1 S2.Notes
+										FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
+										Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+										) Notes
+
+									FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+									GROUP BY S.PublicationRecordId
+								 ) A ON PC.PublicationRecordId = A.PublicationRecordId
+						WHERE ((PC.IsDeleted = @IsDeleted))
+									AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
+									GROUP BY PC.PublicationRecordId, A.Notes
+									),
 						Results AS(
 						Select M.PublicationRecordId, PublicationId,M.[Description] as 'Description',
 							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',M.PublishedByName as 'PublishedByName',M.RevisionDate AS RevisionDate,
@@ -234,11 +254,12 @@ BEGIN
 									M.ExpirationDate AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy',M.VerifiedDate AS VerifiedDate,
 									M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.IsActive,M.IsDeleted, PT.PartNumber, PT.PartNumberType as 'PartNos',
 									PD.PartDescription,PD.PartDescriptionType  as 'PnDescription',M.LastMSLevel,M.AllMSlevels,
-									MFG.Manufacturer,MFG.ManufacturerType AS 'Manufacturers',M.Notes
+									MFG.Manufacturer,MFG.ManufacturerType AS 'Manufacturers',PMN.Notes
 						FROM Result M 
 						LEFT JOIN PartCTE PT ON M.PublicationRecordId = PT.PublicationRecordId
 						LEFT JOIN PartDescCTE PD ON PD.PublicationRecordId = M.PublicationRecordId
-						LEFT JOIN ManufacturerCTE MFG ON MFG.PublicationRecordId = M.PublicationRecordId						
+						LEFT JOIN ManufacturerCTE MFG ON MFG.PublicationRecordId = M.PublicationRecordId
+						LEFT JOIN PnMappingNotes PMN ON PMN.PublicationRecordId = M.PublicationRecordId
 						),
 				  ResultCount AS(Select COUNT(PublicationRecordId) AS totalItems FROM Results)
 				  SELECT * INTO #TempResult FROM Results				  

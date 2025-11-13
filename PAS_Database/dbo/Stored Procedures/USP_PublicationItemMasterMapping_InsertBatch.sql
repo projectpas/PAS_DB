@@ -20,6 +20,7 @@ CREATE   PROCEDURE [dbo].[USP_PublicationItemMasterMapping_InsertBatch]
     @IMPNMapping PublicationItemMasterMappingType READONLY,
     @CreatedBy VARCHAR(100),
     @UpdatedBy VARCHAR(100),
+    @Notes VARCHAR(MAX),
     @OutputFlag BIT OUTPUT 
 AS
 BEGIN
@@ -55,7 +56,8 @@ BEGIN
             CreatedDate,
             UpdatedDate,
             IsActive,
-            IsDeleted
+            IsDeleted,
+			Notes
         )
         SELECT 
             t.PublicationRecordId,
@@ -66,7 +68,8 @@ BEGIN
             @Now,
             @Now,
             t.IsActive,
-            t.IsDeleted
+            t.IsDeleted,
+			@Notes
         FROM @IMPNMapping t
         WHERE NOT EXISTS (
             SELECT 1

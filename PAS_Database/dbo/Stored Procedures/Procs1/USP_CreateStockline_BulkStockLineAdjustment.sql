@@ -20,6 +20,7 @@
 	3    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
     4    09/24/2024   RAJESH GAMI    	Added BulkAdjustment Reference number while create new stockline.
     5    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
+	6    12/11/2025   SAHDEV SALIYA     Modified - Fixed the unit of measure error when creating a new stock line.
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
@@ -814,7 +815,7 @@ BEGIN
 					0,0,@qtyonhand,@qtyonhand,0,0,0,[BlackListed],[BlackListedReason],[Incident],[IncidentReason],
 					[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive],[isDeleted],[WorkOrderExtendedCost],0,[IsCustomerStock],GETUTCDATE(), 0,
 					[NHAItemMasterId],[TLAItemMasterId],NULL,NULL, @PORequestorId, NULL, NULL, NULL, NULL, NULL, NULL, [IsParent],
-					[ParentId],[IsSameDetailsForAllParts],0,[SubWorkOrderId],0,NULL, 0,[ObtainFromName],[OwnerName],[TraceableToName],
+					[ParentId],[IsSameDetailsForAllParts],0,[SubWorkOrderId],0,NULL, [PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],
 					[Level1],[Level2],[Level3],[Level4],[Condition],NULL,NULL,[Warehouse],[Location],NULL,NULL,[UnitOfMeasure],NULL,NULL,NULL,
 					NULL,NULL,NULL,NULL,[CustomerId],NULL,ISNULL([isCustomerstockType], 0), '', NULL, NULL, NULL,
 					[TaggedBy],[TaggedByName], (0 + 0 + 0)

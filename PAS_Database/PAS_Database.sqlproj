@@ -4336,7 +4336,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageListByModuleId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDefaultMessageByModuleId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyCode.sql" />
-
+    <Build Include="dbo\Tables\DefaultConnectionStringUrl.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

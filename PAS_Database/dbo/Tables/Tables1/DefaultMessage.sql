@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[DefaultMessage] (
     [DefaultMessageId] BIGINT         IDENTITY (1, 1) NOT NULL,
-    [Description]      VARCHAR (500)  NOT NULL,
+    [Description]      VARCHAR (MAX)  NOT NULL,
     [Memo]             NVARCHAR (MAX) NULL,
     [MasterCompanyId]  INT            NOT NULL,
     [CreatedBy]        VARCHAR (256)  NOT NULL,
@@ -16,6 +16,8 @@
     CONSTRAINT [FK_DefaultMessage_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_DefaultMessage_ModuleID] FOREIGN KEY ([ModuleID]) REFERENCES [dbo].[Module] ([ModuleId])
 );
+
+
 
 
 

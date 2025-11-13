@@ -17,8 +17,8 @@
     2    07/23/2024  Vishal Suthar		Added DISTINCT in the result set
 	3    19/05/2025  Devendra Shekh		Added new Fields : TotalPartCost, DepositAmount
 	4    22/05/2025  Devendra Shekh		checking IsParent for @TotalPartCost
-     
--- EXEC RPT_PrintPurchaseOrderDataById 6807
+	5    12 Nov 2025 RAJESH GAMI        Make changes for PAR company (BillTo|ShipTo Address)  
+-- EXEC RPT_PrintPurchaseOrderDataById 7881
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
 @PurchaseOrderId BIGINT
@@ -119,7 +119,7 @@ BEGIN
 					--CASE WHEN ISNULL(SC.[Email],'') != '' THEN Upper(SC.[Email])+'<br/>'ELSE ''END
 					--) ShipToMergedAddress
 					--,
-				ShipToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(Ad.[Line1],Ad.[Line2],NULL,Ad.[City],Ad.[StateOrProvince],Ad.[PostalCode],Ad.[Country],Ad.[ContactPhoneNo],NULL,SC.[Email])),
+				ShipToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(Ad.[Line1],Ad.[Line2],NULL,Ad.[City],Ad.[StateOrProvince],Ad.[PostalCode],Ad.[Country],Ad.[ContactPhoneNo],NULL,CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE SC.[Email] END)),
 					
 			   CASE
 			   WHEN Ad.[Line1] !='' OR Ad.[Line2] !='' 
@@ -190,7 +190,7 @@ BEGIN
 					--CASE WHEN ISNULL(BC.[Email],'') != '' THEN Upper(BC.[Email])+'<br/>'ELSE ''END
 					--) BillToMergedAddress
 					--,
-				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL,BC.[Email])),
+				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL, CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE BC.[Email] END)),
 					
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
@@ -233,6 +233,7 @@ BEGIN
 			   ISNULL(@TotalPartCost, 0) AS 'TotalPartCost',
 			   CAST(0 AS DECIMAL(10,2)) AS DepositAmount
 		FROM [DBO].[PurchaseOrder] PO WITH (NOLOCK)
+		INNER JOIN dbo.MasterCompany MC WITH (NOLOCK) ON PO.MasterCompanyId = MC.MasterCompanyId
 		LEFT JOIN [DBO].[AllAddress] AD WITH (NOLOCK) ON PO.PurchaseOrderId = AD.ReffranceId AND Ad.IsShippingAdd = @IsTrue AND Ad.ModuleId = @ModuleID
 		LEFT JOIN [DBO].[Contact] SC WITH (NOLOCK) ON SC.ContactId = AD.ContactId
 		LEFT JOIN [DBO].[AllAddress] ADB WITH (NOLOCK) ON PO.PurchaseOrderId = AdB.ReffranceId AND ADB.IsShippingAdd = @IsFalse AND ADB.ModuleId = @ModuleID

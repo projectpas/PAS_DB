@@ -32,8 +32,9 @@
 	20	 09/09/2025		Devendra Shekh	Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
 	21	 03 NOV 2025	HEMANT SALIYA	Corrected Dashbord Reports Issue for Multiple MPN
 	22   05 NOV 2025    Moin Bloch      Exclude Credit Memo Condition 
+	23   14 NOV 2025    Moin Bloch      Fix For Partial Credit Memo
 
--- EXEC GetDashboardViewData 
+-- EXEC GetDashboardViewData  1,'2025-11-14',2,2,1
 ************************************************************************/
 
 CREATE    PROCEDURE [dbo].[GetDashboardViewData]
@@ -179,7 +180,10 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @Date)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
-				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				--AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      				
+				AND wobii.[BillingInvoicingItemId] NOT IN (SELECT ISNULL(CMD.[BillingInvoicingItemId], 0) FROM [dbo].[CreditMemo] CM WITH(NOLOCK) 
+				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CMD.[CreditMemoHeaderId]
+				WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)
 				AND wobi.ModuleId = @WOModuleId
 			END
 			ELSE IF (@DashboardType = 3)
@@ -415,7 +419,10 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) AND @Date
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
-				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				--AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				AND wobii.[BillingInvoicingItemId] NOT IN (SELECT ISNULL(CMD.[BillingInvoicingItemId], 0) FROM [dbo].[CreditMemo] CM WITH(NOLOCK) 
+				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CMD.[CreditMemoHeaderId]
+				WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)
 				AND wobi.ModuleId = @WOModuleId
 			END
 			ELSE IF (@DashboardType = 11)
@@ -469,7 +476,10 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @Date)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0				
-				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				--AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      				
+				AND wobii.[BillingInvoicingItemId] NOT IN (SELECT ISNULL(CMD.[BillingInvoicingItemId], 0) FROM [dbo].[CreditMemo] CM WITH(NOLOCK) 
+				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CMD.[CreditMemoHeaderId]
+				WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)				
 				AND wobi.ModuleId = @WOModuleId
 			END
 		END

@@ -16,6 +16,7 @@
 	5	 02-July-2025		Devendra Shekh			Using @BaseUtcOffsetSec for DateConversion
 	6	 03 NOV 2025		HEMANT SALIYA			Corrected Dashbord Reports Issue for Multiple MPN
 	7    05 NOV 2025        Moin Bloch              Exclude Credit Memo Condition 
+	8    14 NOV 2025        Moin Bloch              Fix For Partial Credit Memo 
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
@@ -170,8 +171,10 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @StartDate)
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
-				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
-				AND wobi.ModuleId = @WOModuleId
+			  --AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			    AND wobii.[BillingInvoicingItemId] NOT IN (SELECT ISNULL(CMD.[BillingInvoicingItemId], 0) FROM [dbo].[CreditMemo] CM WITH(NOLOCK) INNER JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CMD.[CreditMemoHeaderId]
+				WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)				
+			    AND wobi.ModuleId = @WOModuleId
 		) AS WorkOrderBillingResult
 
 		-- selecting work order MTD billing unit and amount details		:(DashboardType = 10)
@@ -194,7 +197,9 @@ BEGIN
 				AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
 				AND wobi.MasterCompanyId = @MasterCompanyId
 				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
-				AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			  --AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+				AND wobii.[BillingInvoicingItemId] NOT IN (SELECT ISNULL(CMD.[BillingInvoicingItemId], 0) FROM [dbo].[CreditMemo] CM WITH(NOLOCK) INNER JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CMD.[CreditMemoHeaderId]
+				WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)
 				AND wobi.ModuleId = @WOModuleId
 		) AS WorkOrderMTDBillingResult
 

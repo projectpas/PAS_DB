@@ -24,6 +24,7 @@
 	10   04-Sep-2025    Sahdev Saliya        Added WorkOrderType
 	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
 	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
+	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -55,7 +56,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @IsUpdated BIT = NULL,
 @WorkOrderFormTypeId INT = NULL,
 @RankingsName VARCHAR(50) = NULL,
-@workOrderType VARCHAR(50) = NULL
+@workOrderType VARCHAR(50) = NULL,
+@RoSubAssy varchar(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -141,7 +143,7 @@ BEGIN
 					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',	
 					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
 					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
-					   --OR ISNULL((SELECT COUNT(RepairOrderAssemblyId) from [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK)WHERE RAP.ItemMasterId = im.ItemMasterId),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
+					   CASE WHEN ISNULL((SELECT COUNT(RepairOrderAssemblyId) from [DBO].[RepairOrderAssembly] RAP WITH (NOLOCK)WHERE RAP.ItemMasterId = im.ItemMasterId),0) >0 THEN 'Yes' ELSE 'No' END AS RoSubAssy,
 					   im.IsActive,
 					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,					   
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
@@ -182,7 +184,8 @@ BEGIN
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(RankingsName LIKE '%' +@GlobalFilter+'%') OR
-					(workOrderType LIKE '%' +@GlobalFilter+'%')))	
+					(workOrderType LIKE '%' +@GlobalFilter+'%') OR
+					(RoSubAssy LIKE '%' +@GlobalFilter+'%')))	
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -202,7 +205,8 @@ BEGIN
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS date)=CAST(@CreatedDate AS date))AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))AND
 				    (ISNULL(@RankingsName,'') ='' OR RankingsName LIKE '%' + @RankingsName + '%') AND
-					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%'))
+					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%') AND
+					(ISNULL(@RoSubAssy,'') ='' OR RoSubAssy LIKE '%' + @RoSubAssy + '%'))
 	)
 
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult			
@@ -243,7 +247,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='RankingsName')  THEN RankingsName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='RankingsName')  THEN RankingsName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='workOrderType')  THEN workOrderType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderType')  THEN workOrderType END DESC	
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderType')  THEN workOrderType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='RoSubAssy')  THEN RoSubAssy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RoSubAssy')  THEN RoSubAssy END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END TRY

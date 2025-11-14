@@ -13,7 +13,7 @@
 	2    09/24/2024   Devendra Shekh	     Modified to same rows as qty for serialized part
 	3    09/26/2024   Devendra Shekh	     Modified to differentiate Serialized part with PartRowIndex
 	4    10/01/2024   Devendra Shekh	     Modified (changes for [QtyToTender] and for where case to select result)
-	5    14/11/2025   Bhargav Saliya	     Get WoTaskName
+	5    14/11/2025   Bhargav Saliya	     Get TaskName
 
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4404,@WorkFlowWorkOrderId=3925,@MasterCompanyId=1

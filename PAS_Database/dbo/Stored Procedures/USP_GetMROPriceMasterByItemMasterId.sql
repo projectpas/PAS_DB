@@ -13,6 +13,7 @@
     1    26/09/2025    Priyansh Patel   Created
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
     3    13/11/2025    Ayushi Patel     Sort By created Date
+	4    14/11/2025    Moin Bloch       Added Some Field
 **********************/
 -- Example: EXEC USP_GetMROPriceMasterByItemMasterId 97005, 0, 1
 
@@ -36,12 +37,14 @@ BEGIN
             SELECT 
                   MPM.[MROPriceMasterId],
                   MPM.[ItemMasterId],
-					(ISNULL(UPPER(im.[PartNumber]),'')) 'PartNumber',
-					(ISNULL(UPPER(im.[PartDescription]),'')) 'PartDescription',
-					(ISNULL(UPPER(im.[ManufacturerName]),'')) 'ManufacturerName',
-
+				  (ISNULL(UPPER(IM.[PartNumber]),'')) 'PartNumber',
+				  (ISNULL(UPPER(IM.[PartDescription]),'')) 'PartDescription',
+				  (ISNULL(UPPER(IM.[ManufacturerName]),'')) 'ManufacturerName',
                   MPM.[MasterCompanyId],
                   MPM.[CustomerId],
+				  CM.[Name] [CustomerName],
+				  WS.[WorkScopeCode] [WorkScopeName],
+				  CR.[Code] [CurrencyName],
                   MPM.[WorkscopeId],
                   MPM.[FlatRatePrice],
 				  MPM.[CurrencyId],
@@ -54,18 +57,17 @@ BEGIN
                   MPM.[IsActive],
                   MPM.[IsDeleted]
             FROM [dbo].[MROPriceMaster] MPM WITH(NOLOCK)
-			INNER JOIN dbo.ItemMaster im WITH (NOLOCK) on MPM.ItemMasterId = im.ItemMasterId
-            WHERE 
-			(@ItemMasterId IS NULL OR  MPM.[ItemMasterId] = @ItemMasterId)
+			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON MPM.ItemMasterId = IM.ItemMasterId
+			 LEFT JOIN [dbo].[Customer] CM   WITH(NOLOCK) ON CM.CustomerId = MPM.CustomerId
+			 LEFT JOIN [dbo].[WorkScope] WS  WITH(NOLOCK) ON WS.WorkScopeId = MPM.WorkScopeId
+			 LEFT JOIN [dbo].[Currency] CR   WITH(NOLOCK) ON CR.CurrencyId = MPM.CurrencyId
+			WHERE (@ItemMasterId IS NULL OR  MPM.[ItemMasterId] = @ItemMasterId)
               AND MPM.[MasterCompanyId] = @MasterCompanyId
               AND MPM.[IsActive] = 1
               AND MPM.[IsDeleted] = @IsDeleted
             ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
         END
     END TRY
-
-
-
  BEGIN CATCH
         IF @@TRANCOUNT > 0
         BEGIN

@@ -25,6 +25,7 @@
 	9   28-MAY-2025		Hemant Saliya		Updated for Flat rate Amount Correction
 	10  20-June-2025	Devendra Shekh		Billing Table Changes
 	11  10-Nov-2025	    Moin Bloch			Updated Credit memo Amount Get From CreditMemoDetails
+	12  10-Nov-2025	    Moin Bloch			Updated Fix For Duplicate Credit Memo
 
 
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
@@ -174,7 +175,7 @@ BEGIN
 				  LEFT JOIN [dbo].[InvoiceStatus] IVS WITH (NOLOCK) ON WOBI.InvoiceStatus = IVS.Status  
 				  LEFT JOIN [dbo].[WorkOrderStage] WTG WITH (NOLOCK) ON WOPN.WorkOrderStageId = WTG.WorkOrderStageId  
 				  LEFT JOIN [dbo].[WorkOrderStatus] AS WTS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WTS.Id  
-				  LEFT JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId
+				  LEFT JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON CMD.InvoiceId = WOBIM.BillingInvoicingId AND CMD.BillingInvoicingItemId = WOBIM.BillingInvoicingItemId  AND ISNULL(WOBIM.IsVersionIncrease,0) = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId    
 				  LEFT JOIN [dbo].[WorkOrderShippingItem] AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.SubReferenceId  
 				  LEFT JOIN [dbo].[WorkOrderShipping] AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
 				  LEFT JOIN [dbo].[ReceivingCustomerWork] RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId  
@@ -333,7 +334,6 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
 				LEFT JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId AND WOBI.ModuleId = @WOModuleId
-				--LEFT JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOBI.WorkOrderPartNoId = WOWF.WorkOrderPartNoId  
 				LEFT JOIN [dbo].[Employee] E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId  
 				LEFT JOIN [dbo].[Employee] E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId  
 				LEFT JOIN [dbo].[WorkOrderQuote] WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND WOQ.IsVersionIncrease = 0  
@@ -342,7 +342,7 @@ BEGIN
 				LEFT JOIN [dbo].InvoiceStatus IVS WITH (NOLOCK) ON WOBI.InvoiceStatus = IVS.Status  
 				LEFT JOIN [dbo].WorkOrderStage WTG WITH (NOLOCK) ON WOPN.WorkOrderStageId = WTG.WorkOrderStageId  
 				LEFT JOIN [dbo].WorkOrderStatus AS WTS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WTS.Id  
-				LEFT JOIN [dbo].BillingInvoicingItems WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId    
+				LEFT JOIN [dbo].BillingInvoicingItems WOBIM WITH (NOLOCK) ON CMD.InvoiceId = WOBIM.BillingInvoicingId AND CMD.BillingInvoicingItemId = WOBIM.BillingInvoicingItemId  AND ISNULL(WOBIM.IsVersionIncrease,0) = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId    
 				LEFT JOIN [dbo].WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.SubReferenceId  
 				LEFT JOIN [dbo].WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
 				LEFT JOIN [dbo].ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId  

@@ -20,9 +20,10 @@
  **	4	13-08-2022   Devendra Shekh			increased length for temptable fields
  ** 5   18/04/2025   Ayushi  Patel          Added the condition for pn , pndescription , serialnum 
  ** 6   20-06-2025	 Devendra Shekh			Billing Table Changes
+ ** 7   13-11-2025	 Moin Bloch			    Fixed For Duplicate Billing
 
-exec usprpt_GetWorkOrderBacklogReportSSRSData 
-@mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+exec usprpt_GetWorkOrderBacklogReportSSRSData @mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+EXEC usprpt_GetWorkOrderBacklogReportSSRSData 1,'2025-11-12','2025-11-13','','','','1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
 	@mastercompanyid INT,
@@ -136,7 +137,7 @@ BEGIN
 
 	INSERT INTO #TEMPWOBackLogReportRecords(WorkOrderId,WorkOrderPartNoId, Customername, PN, PNdescription, WONum, SerialNum, WOType, StageCode, StatusCode, ReceivedDate, OpenDate, ApprovedAmount, UnitCost, StocklineId, PartsCost, LaborCost, OverheadCost,  
 				MiscCharge, Othercost, Total, WODaysCount, Techname, Priority, WorkScope, QuoteAmount, DaysInStage, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, MasterCompanyId, WorkOrderQuoteId)  
-    SELECT    
+    SELECT DISTINCT   
     WO.WorkOrderId,  
 	WOWF.WorkOrderPartNoId,
     UPPER(C.Name) 'Customername',   
@@ -176,29 +177,29 @@ BEGIN
     UPPER(MSD.Level10Name) AS level10 ,  
     WO.MasterCompanyId  
 	,WOQ.WorkOrderQuoteId
-   FROM DBO.WorkOrder WO WITH (NOLOCK)      
-    INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
-    INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
-    INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
-	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-    INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
-    LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
-    --LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
-    LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
-    LEFT JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
-    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
-    LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
-    LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
-    LEFT JOIN DBO.WorkOrderStatus AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
-    LEFT JOIN DBO.WorkOrderType AS WOT WITH (NOLOCK)ON WO.WorkOrderTypeId = WOT.Id            
-    LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId        
-    LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId 
-    LEFT JOIN DBO.[Priority] P WITH (NOLOCK) ON WOPN.WorkOrderPriorityId = P.PriorityId 
-    LEFT JOIN DBO.[WorkScope] WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId   
-	LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
-	LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
-	LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
-	LEFT JOIN [dbo].BillingInvoicingItems WOBI WITH(NOLOCK) ON WOPN.ID = WOBI.SubReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.SubModuleId = @SubModuleId
+   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)      
+    INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
+    INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
+    INNER JOIN [dbo].[ItemMaster] AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
+	 LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
+    INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
+     LEFT JOIN [dbo].[WorkOrderQuote] WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
+     LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
+     LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
+     LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
+     LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID    
+     LEFT JOIN [dbo].[WorkOrderStage] AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
+     LEFT JOIN [dbo].[WorkOrderStatus] AS WOSS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WOSS.Id    
+     LEFT JOIN [dbo].[WorkOrderType] AS WOT WITH (NOLOCK)ON WO.WorkOrderTypeId = WOT.Id            
+     LEFT JOIN [dbo].[ReceivingCustomerWork] RCW WITH (NOLOCK) ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId        
+     LEFT JOIN [dbo].[Employee] E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId 
+     LEFT JOIN [dbo].[Priority] P WITH (NOLOCK) ON WOPN.WorkOrderPriorityId = P.PriorityId 
+     LEFT JOIN [dbo].[WorkScope] WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId   
+	 LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+	 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
+	 LEFT JOIN [dbo].[TimeZone] TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
+	 LEFT JOIN [dbo].[BillingInvoicingItems] WOBI WITH(NOLOCK) ON WOPN.ID = WOBI.SubReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.SubModuleId = @SubModuleId
+	 LEFT JOIN [dbo].[BillingInvoicing] WOI WITH(NOLOCK) ON WOI.BillingInvoicingId = WOBI.BillingInvoicingId AND ISNULL(WOI.IsVersionIncrease, 0) = 0 AND ISNULL(WOI.CreditMemoHeaderId,0) = 0
 
    WHERE CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)    
     AND (ISNULL(@id5,'') ='' OR WOT.Id = ISNULL(@id5,WOT.Id)) AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 1) = 1 AND ISNULL(WO.WorkOrderStatusId, 0) != 2 --WO Not Closed  
@@ -255,7 +256,7 @@ BEGIN
             '@Parameter4 = ''' + CAST(ISNULL(@id3, '') AS varchar(100)) +    
             '@Parameter5 = ''' + CAST(ISNULL(@id4, '') AS varchar(100)) +    
             '@Parameter6 = ''' + CAST(ISNULL(@id5, '') AS varchar(100)) +    
-            '@Parameter7 = ''' + CAST(ISNULL(@strFilter, '') AS varchar),    
+            '@Parameter7 = ''' + CAST(ISNULL(@strFilter, '') AS varchar(MAX)),    
             @ApplicationName varchar(100) = 'PAS'    
     
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    

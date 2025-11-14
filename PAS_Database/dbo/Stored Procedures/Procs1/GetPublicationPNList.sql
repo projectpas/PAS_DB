@@ -22,6 +22,7 @@
 	5    22/05/2025   Sahdev Saliya    Added new field Fleet
 	6    16/10/2025   Bhargav Saliya   Added case for VerifiedBy
 	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
+	8    13/11/2025   Bhargav Saliya   Get Notes From the mapping Table
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
@@ -158,7 +159,7 @@ BEGIN
 						     ON t1.PublicationRecordId = t.PublicationRecordId 
 						 WHERE p.PublicationRecordId = t.PublicationRecordId 
 						 FOR XML PATH ('')), 1, 1, '') LastMSLevel,
-						 p.[Notes]
+						 pum.[Notes]
 				  FROM [dbo].[Publication] p WITH (NOLOCK)
 				  LEFT JOIN [dbo].[PublicationType] pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
 				  LEFT JOIN [dbo].[PublicationItemMasterMapping] pum WITH (NOLOCK) ON p.PublicationRecordId = pum.PublicationRecordId and isnull(pum.IsDeleted,0)=0

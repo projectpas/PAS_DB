@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-06-02		  Ayushi Patel				Created
     2    2025-11-10		  Bhargav Saliya			Get Added new field notes
+    3    2025-13-10		  Bhargav Saliya			Remove notes
 	exec [dbo].[USP_GetPublicationDetailsById] 708
  ***************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetPublicationDetailsById]
@@ -65,8 +66,7 @@ BEGIN
             p.Fleet,
 			v.VendorName,
 			m.Name,
-			p.PublishedByRefId,
-			ISNULL(p.Notes,'') Notes
+			p.PublishedByRefId
         FROM dbo.Publication p WITH (NOLOCK)
         LEFT JOIN dbo.PublicationType pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
         LEFT JOIN dbo.Location loc WITH (NOLOCK) ON p.LocationId = loc.LocationId

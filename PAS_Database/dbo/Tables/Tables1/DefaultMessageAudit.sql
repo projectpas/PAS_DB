@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[DefaultMessageAudit] (
     [DefaultMessageAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [DefaultMessageId]      BIGINT         NOT NULL,
-    [Description]           VARCHAR (500)  NOT NULL,
+    [Description]           VARCHAR (MAX)  NOT NULL,
     [Memo]                  NVARCHAR (MAX) NULL,
     [MasterCompanyId]       INT            NOT NULL,
     [CreatedBy]             VARCHAR (256)  NOT NULL,
@@ -18,6 +18,8 @@
     CONSTRAINT [FK_DefaultMessageAudit_DefaultMessage] FOREIGN KEY ([DefaultMessageId]) REFERENCES [dbo].[DefaultMessage] ([DefaultMessageId]),
     CONSTRAINT [FK_DefaultMessageAudit_ModuleID] FOREIGN KEY ([ModuleID]) REFERENCES [dbo].[Module] ([ModuleId])
 );
+
+
 
 
 

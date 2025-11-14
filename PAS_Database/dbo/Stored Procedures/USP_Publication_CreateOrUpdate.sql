@@ -39,6 +39,7 @@
  ** --   --------     -------         --------------------------------          
     1    06/25/2025   Ayushi Patel    Created - replaced cursor with WHILE loop
     2    10/11/2025   Bhargav Saliya  Add New Field Notes
+    3    10/13/2025   Bhargav Saliya  Remove Notes
 
 -- exec [USP_Publication_CreateOrUpdate] 716,'qwe','',1,'25-06-2025 18:52:32',null,null,'',53,'25-06-2025 00:00:00',229,'AYUSHI P','AYUSHI P',70,1,'',null,true,886,2,4762,'',1,'',''
 
@@ -69,8 +70,7 @@ CREATE   PROCEDURE [dbo].[USP_Publication_CreateOrUpdate]
     @PublishedByOthers VARCHAR(100),
     @ManagementStructureIds VARCHAR(MAX),
     @URL VARCHAR(500),
-    @Fleet VARCHAR(100),
-	@Notes VARCHAR(MAX)
+    @Fleet VARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -89,7 +89,7 @@ BEGIN
                 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
                 PublicationTypeId, Sequence, RevisionNum, ExpirationDate,
                 VerifiedStatus, LocationId, PublishedById, PublishedByRefId,
-                PublishedByOthers, URL, Fleet, ManagementStructureIds, IsActive, IsDeleted,Notes
+                PublishedByOthers, URL, Fleet, ManagementStructureIds, IsActive, IsDeleted
             )
             VALUES (
                 @PublicationId, @Description, @MasterCompanyId, @EntryDate, @RevisionDate,
@@ -97,7 +97,7 @@ BEGIN
                 @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),
                 @PublicationTypeId, @Sequence, @RevisionNum, @ExpirationDate,
                 @VerifiedStatus, @LocationId, @PublishedById, @PublishedByRefId,
-                @PublishedByOthers, @URL, @Fleet, @ManagementStructureIds, 1, 0,@Notes
+                @PublishedByOthers, @URL, @Fleet, @ManagementStructureIds, 1, 0
             );
             SET @PublicationRecordId = SCOPE_IDENTITY();
         END
@@ -127,8 +127,7 @@ BEGIN
                 PublishedByOthers = @PublishedByOthers,
                 URL = @URL,
                 Fleet = @Fleet,
-                ManagementStructureIds = @ManagementStructureIds,
-				Notes = @Notes
+                ManagementStructureIds = @ManagementStructureIds
             WHERE PublicationRecordId = @PublicationRecordId;
         END
 

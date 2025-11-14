@@ -277,11 +277,7 @@ BEGIN
 				SUM(qtyonhand) AS qtyonhand,
 				SUM(qtyonavail) AS qtyonavail,
 				MAX(reorder) AS reorder,
-				CASE 
-					WHEN (ISNULL(MAX(StockLevel),0) - ISNULL(SUM(qtyonavail),0)) > ISNULL(SUM(minqtyorder),0)
-					THEN (ISNULL(MAX(StockLevel),0) - ISNULL(SUM(qtyonavail),0)) 
-					ELSE ISNULL(MAX(minqtyorder),0)
-				END AS qtytoorder,
+				MAX(qtytoorder) AS qtytoorder,
 				MAX(warehouse) AS warehouse,
 				MAX(location) AS location,
 				MAX(shelf) AS shelf,
@@ -305,7 +301,11 @@ BEGIN
 			pn, itemMasterId, pndescription, manufacturer, cond, site,
 			stockuom, stocklevel, leadtimedays, reorderpoint, reorderqty, 
 			minqtyorder, qtyonhand, qtyonavail, CASE WHEN qtyonavail  <= stocklevel THEN 'YES' ELSE 'NO' END AS reorder
-			, qtytoorder,
+			,CASE 
+				WHEN (ISNULL(StockLevel,0) - ISNULL(qtyonavail,0)) > ISNULL(minqtyorder,0)
+				THEN (ISNULL(StockLevel,0) - ISNULL(qtyonavail,0)) 
+				ELSE ISNULL(minqtyorder,0)
+			END AS qtytoorder,
 			warehouse, location, shelf, bin,
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
 		FROM GroupedCTE

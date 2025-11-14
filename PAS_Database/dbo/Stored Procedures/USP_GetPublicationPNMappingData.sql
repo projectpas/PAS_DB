@@ -35,7 +35,8 @@ BEGIN
             pub.PublicationRecordId,
             pim.MasterCompanyId,
             ISNULL(pim.IsActive,0) AS IsActive,
-            ISNULL(pim.IsDeleted,0) AS IsDeleted
+            ISNULL(pim.IsDeleted,0) AS IsDeleted,
+			pim.[Notes]
         FROM dbo.PublicationItemMasterMapping pim WITH (NOLOCK)
         INNER JOIN dbo.Publication pub WITH (NOLOCK) ON pim.PublicationRecordId = pub.PublicationRecordId
         INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON pim.ItemMasterId = im.ItemMasterId

@@ -32,7 +32,8 @@
 	19	 07/02/2025		Devendra Shekh		Using @BaseUtcOffsetSec for DateConversion
 	20	 09/09/2025		Devendra Shekh		Modified the WHERE clause for WOQ, SOQ, and SpeedQuote
 	21	 03 NOV 2025	HEMANT SALIYA		Corrected Dashbord MRO Billing Last 12 month trend Reports
-	22   06 NOV 2025    Moin Bloch      Exclude Credit Memo Condition 
+	22   06 NOV 2025    Moin Bloch          Exclude Credit Memo Condition 
+	23   14 NOV 2025    Moin Bloch          Fix For Partial Credit Memo
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -184,7 +185,9 @@ BEGIN
 			AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, wobi.InvoiceDate)) = CONVERT(DATE, @SelectedDate)
 			AND wobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
-			AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			--AND wobi.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      			
+			AND wobii.[BillingInvoicingItemId] NOT IN (SELECT ISNULL(CMD.[BillingInvoicingItemId], 0) FROM [dbo].[CreditMemo] CM WITH(NOLOCK) INNER JOIN [dbo].[CreditMemoDetails] CMD WITH(NOLOCK) ON CM.[CreditMemoHeaderId] = CMD.[CreditMemoHeaderId]
+				WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)						
 			AND wobi.ModuleId = @WOModuleId
 		) AS WOBillingResult
 

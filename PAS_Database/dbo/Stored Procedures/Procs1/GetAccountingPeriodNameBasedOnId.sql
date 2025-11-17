@@ -15,18 +15,18 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06/21/2023   Hemant Saliya Created	
-     
+	2    04/11/2025   Moin Bloch	Added Space in PeriodName     
 --EXEC [GetAccountingPeriodNameBasedOnId] '128'
 **************************************************************/
 
-CREATE   PROCEDURE dbo.GetAccountingPeriodNameBasedOnId
+CREATE   PROCEDURE [dbo].[GetAccountingPeriodNameBasedOnId]
 (
 	@id VARCHAR(50) = NULL
 )
 AS
 BEGIN
-	BEGIN TRY
-		SELECT UPPER(PeriodName) AS PeriodName FROM  dbo.AccountingCalendar WITH (NOLOCK) WHERE  AccountingCalendarId = @id
+	BEGIN TRY		
+		SELECT REPLACE(UPPER([PeriodName]),' - ',' ') AS [PeriodName] FROM  [dbo].[AccountingCalendar] WITH (NOLOCK) WHERE [AccountingCalendarId] = @id
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

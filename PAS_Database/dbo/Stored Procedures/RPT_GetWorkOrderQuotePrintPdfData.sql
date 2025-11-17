@@ -22,7 +22,8 @@
 	8    09-MAY-2025	Devendra Shekh		Added IsPrintCorrectiveAction to select
 	9    10-JUL-2025    Moin Bloch          Updated MEMO To PublicationNotes
 	10	 23-JUL-2025    Devendra Shekh      Added Case for Memo     
-	11	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
+	11	 14-OCT-2025    RAJESH GAMI		    Return Estimated Ship Date
+	12   10-Nov-2025    Moin Bloch          Updated Removed MEMO For MTI Company
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -37,10 +38,18 @@ BEGIN
    BEGIN   
 		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
 
+		DECLARE @MasterCompanyCode VARCHAR(100)='', @MTIMasterCompanyCode VARCHAR(100)='',@MasterCompanyId INT;
+
 		DECLARE @VendorModuleId INT, @ManufacturerModuleId INT, @OtherModuleId INT;
 		SELECT @VendorModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
 		SELECT @ManufacturerModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Manufacturer';
 		SELECT @OtherModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Others';
+
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId] = @WorkOrderQuoteId;
+
+		SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+		-- MTI COMPANY
+		SELECT  @MTIMasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'MTI';	
 
 		DECLARE @WorkOrderId BIGINT;
 		DECLARE @EmailContent NVARCHAR(MAX);
@@ -236,7 +245,7 @@ BEGIN
 		--				LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 		--			WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
 
-		,Memo = CASE WHEN ISNULL(wop.PublicationNotes, '') <> '' THEN
+		,CASE WHEN @MasterCompanyCode = @MTIMasterCompanyCode THEN '' ELSE CASE WHEN ISNULL(wop.PublicationNotes, '') <> '' THEN
 				(SELECT CAST('<x>' + 
 					REPLACE(
 						REPLACE(
@@ -262,7 +271,8 @@ BEGIN
 							'"', '&quot;'),
 						'''', '&apos;'),
 					'</p><p>', ' ') + '</x>' AS XML).value('.', 'NVARCHAR(MAX)'))
-					END
+					END 
+		 END Memo
 		,ISNULL(woq.IsPrintCorrectiveAction, 0) AS IsPrintCorrectiveAction
 			,CASE 
 				WHEN wop.EstimatedShipDate IS NULL 

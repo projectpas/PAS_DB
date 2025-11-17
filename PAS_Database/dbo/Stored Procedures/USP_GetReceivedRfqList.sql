@@ -27,6 +27,7 @@
 	14   16-09-2025  Devendra Shekh		 Modified (Changes for StockLineId select, reduced Query Time)
 	15   18-09-2025  Devendra Shekh		 Modified (UTC DateTime Issue Resolved)
 	16   03-10-2025  Devendra Shekh		 Modified (added new Param : @Condition, @Quantity) And Added [IsCustomerStock] for Stk
+	17   17-11-2025  Devendra Shekh		 Modified (added new Param : @VendorRFQId, @PurchaseOrderNumber, @VendorRFQPurchaseOrderNumber)
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -60,7 +61,10 @@ CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@RefrenceQuoteNumber VARCHAR(50)=NULL,
 	@UserEmployeeId BIGINT = NULL,
 	@Condition VARCHAR(250) = NULL,
-	@Quantity INT = NULL
+	@Quantity INT = NULL,
+	@VendorRFQId VARCHAR(100) = NULL,
+	@PurchaseOrderNumber VARCHAR(MAX) = NULL,
+	@VendorRFQPurchaseOrderNumber VARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -73,10 +77,14 @@ BEGIN
 					@ReviewRequired VARCHAR(50)= 'Review Required',
 					@SoqModuleId INT,
 					@SoModuleId INT;
+			DECLARE @PoModuleId BIGINT = 0, @RFQPOModuleId BIGINT = 0;
 
 				--Get module id
 				SELECT @SoqModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
 				SELECT @SoModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+
+				SELECT @PoModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
+				SELECT @RFQPOModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
 
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				IF @IsDeleted is null
@@ -97,6 +105,11 @@ BEGIN
 					Set @IntegrationPortalId = NULL
 				END
 
+				IF OBJECT_ID('tempdb..#VendorsRFQResult') IS NOT NULL
+				BEGIN
+					DROP TABLE #VendorsRFQResult
+				END
+
 				/* --------------START: Get the timzone and UTC offset -------------- */
 				DECLARE @CurrntEmpTimeZoneDesc VARCHAR(400) = '', @BaseUtcOffsetSec BIGINT = 0;
 				SELECT 	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description] )
@@ -110,6 +123,37 @@ BEGIN
 				/* -------------- END: Get the timzone and UTC offset -------------- */
 
 				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
+
+				SELECT DISTINCT tmpVRFQResult.CustomerRfqId, tmpVRFQResult.MasterCompanyId, tmpVRFQResult.VendorRFQId, tmpVRFQResult.ILSRFQDetailId, tmpVRFQResult.PartNumber, tmpVRFQResult.Condition
+				INTO #VendorsRFQResult
+				FROM (
+					SELECT DISTINCT PT.CustomerRfqId, PT.MasterCompanyId, TP.RFQId AS VendorRFQId, 0 AS ILSRFQDetailId, RFQ.LinePartNumber AS PartNumber, RFQ.Condition
+					FROM [dbo].[ILSRFQPart] PT WITH(NOLOCK)
+					INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON PT.CustomerRfqId = RFQ.CustomerRfqId
+					INNER JOIN [dbo].[ILSRFQDetail] DT WITH(NOLOCK) ON PT.ILSRFQDetailId = DT.ILSRFQDetailId
+					INNER JOIN [dbo].[ILSRFQPart] ILSP WITH(NOLOCK) ON ILSP.ILSRFQDetailId = DT.ILSRFQDetailId AND LOWER(TRIM(ILSP.PartNumber)) = LOWER(TRIM(RFQ.LinePartNumber)) AND LOWER(TRIM(ILSP.Condition)) = LOWER(TRIM(RFQ.Condition)) AND ILSP.CustomerRfqId = RFQ.CustomerRfqId
+					INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON DT.ThirdPartyRFQId = TP.ThirdPartyRFQId
+					WHERE PT.IsActive = 1 AND PT.IsDeleted = 0 AND PT.MasterCompanyId = @MasterCompanyId AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+
+					UNION ALL
+
+					SELECT DISTINCT PT.CustomerRfqId, PT.MasterCompanyId, TP.RFQId AS VendorRFQId, 0 AS ILSRFQDetailId, CRPM.PartNumber, CRPM.Condition
+					FROM [dbo].[ILSRFQPart] PT WITH(NOLOCK)
+					INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON PT.CustomerRfqId = RFQ.CustomerRfqId
+					INNER JOIN [dbo].[CustomerRfqPartMapping] CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
+					INNER JOIN [dbo].[ILSRFQDetail] DT WITH(NOLOCK) ON PT.ILSRFQDetailId = DT.ILSRFQDetailId
+					INNER JOIN [dbo].[ILSRFQPart] ILSP WITH(NOLOCK) ON ILSP.ILSRFQDetailId = DT.ILSRFQDetailId AND LOWER(TRIM(ILSP.PartNumber)) = LOWER(TRIM(CRPM.PartNumber)) AND LOWER(TRIM(ILSP.Condition)) = LOWER(TRIM(CRPM.Condition)) AND ILSP.CustomerRfqId = RFQ.CustomerRfqId
+					INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON DT.ThirdPartyRFQId = TP.ThirdPartyRFQId
+					WHERE PT.IsActive = 1 AND PT.IsDeleted = 0 AND PT.MasterCompanyId = @MasterCompanyId AND RFQ.IntegrationPortalId IN (@EmailPortalId)
+				) AS tmpVRFQResult
+
+				UPDATE TMP
+				SET	TMP.ILSRFQDetailId = PartResult.ILSRFQDetailId
+				FROM #VendorsRFQResult TMP
+				OUTER APPLY (
+					SELECT MAX(PT.ILSRFQDetailId) AS ILSRFQDetailId FROM dbo.ILSRFQPart PT WITH(NOLOCK) WHERE PT.CustomerRfqId = TMP.CustomerRfqId
+				) PartResult
+			
 			;With ItemResult AS (
 				SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
 				FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
@@ -122,6 +166,29 @@ BEGIN
 				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
 				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
+			),			
+			VendorRFQReferenceResult AS (
+			SELECT * FROM (
+				SELECT [ILSRFQDetailId], [MasterCompanyId], [ReferenceId], [ModuleId]
+				,COUNT(*) OVER (PARTITION BY [ILSRFQDetailId], [ModuleId]) AS RefModCount
+				FROM [DBO].[VendorRFQPart] WITH(NOLOCK)
+				WHERE	ISNULL([IsDeleted], 0) = 0 AND ISNULL([IsActive], 0) = 1 AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([ModuleId], 0) = @PoModuleId
+						GROUP BY [ILSRFQDetailId], [MasterCompanyId], [ReferenceId], [ModuleId]
+				) AS t
+			WHERE t.RefModCount = 1
+			),
+			RFQReferenceResult AS (
+				SELECT * FROM (
+					SELECT [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderId AS RFQReferenceId, @RFQPOModuleId AS RFQModuleId
+					,COUNT(*) OVER (PARTITION BY [ILSRFQDetailId], [ModuleId]) AS RefModCount
+					FROM [DBO].[VendorRFQPart] VRFQP WITH(NOLOCK)
+					INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+					INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
+					INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
+					WHERE	ISNULL(VRFQP.[IsDeleted], 0) = 0 AND ISNULL(VRFQP.[IsActive], 0) = 1 AND VRFQP.[MasterCompanyId] = @MasterCompanyId AND ISNULL([ModuleId], 0) = @PoModuleId
+							GROUP BY [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.[VendorRFQPurchaseOrderId], [ModuleId]
+					) AS t
+				WHERE t.RefModCount = 1
 			),
 			Result AS(
 				SELECT RFQ.[CustomerRfqId],
@@ -168,7 +235,30 @@ BEGIN
 					END AS 'QuoteStatus',
 					Expired = NULL,
 					DaysTillExpire = NULL,
-					DisableRow = CASE WHEN ISNULL(RFQ.IsQuote, 0) > 0 THEN 1 ELSE 0 END
+					DisableRow = CASE WHEN ISNULL(RFQ.IsQuote, 0) > 0 THEN 1 ELSE 0 END,
+					VRFQ.VendorRFQId,
+					(SELECT STRING_AGG(PurchaseOrderNumber, ', ')
+						FROM (
+							SELECT DISTINCT PO.PurchaseOrderNumber
+							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							WHERE VRFQP.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
+						) AS DistinctVendors
+					 ) AS PurchaseOrderNumber,
+					(SELECT STRING_AGG(VendorRFQPurchaseOrderNumber, ', ')
+						FROM (
+							SELECT DISTINCT VPO.VendorRFQPurchaseOrderNumber
+							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
+							INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
+							WHERE VRFQP.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
+						) AS DistinctVendors
+					 ) AS VendorRFQPurchaseOrderNumber,
+					RR.ReferenceId AS POReferenceId,
+					RR.ModuleId  AS POModuleId,
+					RFQR.RFQReferenceId,
+					RFQR.RFQModuleId
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
@@ -180,6 +270,9 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrder SO WITH(NOLOCK) ON RFQ.[ReferenceId] = SO.[SalesOrderId] AND RFQ.[MasterCompanyId] = SO.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
+				LEFT JOIN #VendorsRFQResult VRFQ WITH(NOLOCK) ON RFQ.CustomerRfqId = VRFQ.CustomerRfqId AND LOWER(TRIM(RFQ.LineDescription)) = LOWER(TRIM(VRFQ.PartNumber)) AND LOWER(TRIM(RFQ.Condition)) = LOWER(TRIM(VRFQ.Condition))
+				LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND RR.[MasterCompanyId] = VRFQ.[MasterCompanyId] 
+				LEFT JOIN RFQReferenceResult RFQR ON RFQR.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND RFQR.[MasterCompanyId] = VRFQ.[MasterCompanyId] 
 				--OUTER APPLY (
 				--	SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
 				--	FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
@@ -239,7 +332,30 @@ BEGIN
 						WHEN RFQ.IsQuote = 1 AND ISNULL(RFQ.ReferenceId, 0) > 0 THEN 1
 						WHEN RFQ.IsQuote = 2 THEN 1
 						ELSE 0
-					END AS 'DisableRow'
+					END AS 'DisableRow',
+					VRFQ.VendorRFQId,
+					(SELECT STRING_AGG(PurchaseOrderNumber, ', ')
+						FROM (
+							SELECT DISTINCT PO.PurchaseOrderNumber
+							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							WHERE VRFQP.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
+						) AS POResult
+					) AS PurchaseOrderNumber,
+					(SELECT STRING_AGG(VendorRFQPurchaseOrderNumber, ', ')
+						FROM (
+							SELECT DISTINCT VPO.VendorRFQPurchaseOrderNumber
+							FROM DBO.VendorRFQPart VRFQP WITH(NOLOCK)
+							INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
+							INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
+							INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
+							WHERE VRFQP.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND VRFQP.ModuleId = @PoModuleId
+						) AS VPOResult
+					) AS VendorRFQPurchaseOrderNumber,
+					RR.ReferenceId AS POReferenceId,
+					RR.ModuleId  AS POModuleId,
+					RFQR.RFQReferenceId,
+					RFQR.RFQModuleId
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
@@ -252,6 +368,9 @@ BEGIN
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
+				LEFT JOIN #VendorsRFQResult VRFQ WITH(NOLOCK) ON RFQ.CustomerRfqId = VRFQ.CustomerRfqId AND LOWER(TRIM(CRPM.PartNumber)) = LOWER(TRIM(VRFQ.PartNumber)) AND LOWER(TRIM(CRPM.Condition)) = LOWER(TRIM(VRFQ.Condition))
+				LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND RR.[MasterCompanyId] = VRFQ.[MasterCompanyId] 
+				LEFT JOIN RFQReferenceResult RFQR ON RFQR.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND RFQR.[MasterCompanyId] = VRFQ.[MasterCompanyId] 
 				--OUTER APPLY (
 				--	SELECT TOP 1 RIM.ItemMasterId, RIM.partnumber, RIM.PartDescription
 				--	FROM [dbo].[ItemMaster] RIM WITH(NOLOCK)
@@ -280,6 +399,9 @@ BEGIN
 							(EmployeeName like '%'+@GlobalFilter+'%') OR
 							(Condition like '%'+@GlobalFilter+'%') OR
 							(CAST(Quantity AS varchar(20)) like '%'+@GlobalFilter+'%') OR
+							(VendorRFQId like '%'+@GlobalFilter+'%') OR
+							(PurchaseOrderNumber like '%'+@GlobalFilter+'%') OR
+							(VendorRFQPurchaseOrderNumber like '%'+@GlobalFilter+'%') OR
 							(RefrenceQuoteNumber like '%'+@GlobalFilter+'%')
 							))
 							OR   
@@ -303,6 +425,9 @@ BEGIN
 							(IsNull(@EmployeeName,'') ='' OR EmployeeName like '%'+ @EmployeeName +'%') and
 							(IsNull(@RefrenceQuoteNumber,'') ='' OR RefrenceQuoteNumber like '%'+ @RefrenceQuoteNumber +'%') and
 							(IsNull(@Condition,'') ='' OR Condition like '%'+ @Condition +'%') and
+							(IsNull(@VendorRFQId,'') ='' OR VendorRFQId like '%'+ @VendorRFQId +'%') and
+							(IsNull(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber like '%'+ @PurchaseOrderNumber +'%') and
+							(IsNull(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber like '%'+ @VendorRFQPurchaseOrderNumber +'%') and
 							(IsNull(@Quantity,'') ='' OR CAST(Quantity AS VARCHAR(20)) like '%' + CAST(@Quantity AS VARCHAR(20)) + '%') and 
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
@@ -335,6 +460,9 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='RefrenceQuoteNumber')  THEN RefrenceQuoteNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='Condition')  THEN Condition END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='Quantity')  THEN Quantity END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='VendorRFQId')  THEN VendorRFQId END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
@@ -357,7 +485,10 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='EmployeeName')  THEN EmployeeName END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RefrenceQuoteNumber')  THEN RefrenceQuoteNumber END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Condition')  THEN Condition END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='Quantity')  THEN Quantity END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='Quantity')  THEN Quantity END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQId')  THEN VendorRFQId END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 

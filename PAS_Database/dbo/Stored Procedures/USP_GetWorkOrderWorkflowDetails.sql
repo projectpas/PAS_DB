@@ -13,6 +13,7 @@
     1    15-04-2025   HEMANT SALIYA			Created
     2    29-04-2025   Vishal Suthar			Fixed issue with using revisedpartnumber instead of partnumber
 	3    30-04-2025   HEMANT SALIYA			UPDATED for revisedpartnumber
+    4    14/11/2025   Sahdev Saliya         Added New Field : RevisedCondition
 
 EXEC USP_GetWorkOrderWorkflowDetails 8736
 **************************************************************/
@@ -86,7 +87,8 @@ BEGIN
 			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN wop.RevisedSerialNumber ELSE ISNULL(sl.SerialNumber, '') END AS SerialNumber,
 			wo.workOrderFormTypeId,
 			wo.IsWoAlwaysOrOndemandId,
-			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN 1 WHEN ISNULL(sl.SerialNumber, '') != '' THEN 1 ELSE 0 END AS IsSerialNumber
+			CASE WHEN ISNULL(wop.RevisedSerialNumber, '') != '' THEN 1 WHEN ISNULL(sl.SerialNumber, '') != '' THEN 1 ELSE 0 END AS IsSerialNumber,
+			rcon.[Description] AS RevisedCondition
 		FROM [dbo].WorkOrderWorkFlow w WITH(NOLOCK)
 			INNER JOIN [dbo].WorkOrderPartNumber wop WITH(NOLOCK) ON w.WorkOrderPartNoId = wop.ID
 			INNER JOIN [dbo].WorkOrder wo WITH(NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
@@ -98,6 +100,7 @@ BEGIN
 			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			LEFT JOIN  [dbo].ReceivingCustomerWork rc WITH(NOLOCK) ON sl.StockLineId = rc.StockLineId
 			LEFT JOIN WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
+			LEFT JOIN [dbo].[Condition] rcon WITH(NOLOCK) ON wop.[RevisedConditionId] = rcon.[ConditionId]
 		WHERE wop.IsDeleted = 0 
 		  AND w.WorkOrderId = @WorkOrderId 
 		  AND wop.WorkOrderId = @WorkOrderId 

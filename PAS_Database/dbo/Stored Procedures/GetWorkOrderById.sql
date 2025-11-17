@@ -21,6 +21,7 @@
 	9    26/08/2025   Moin Bloch	   added RevisedSerialNumber 
 	10   24/09/2025   Rajesh Gami	   added MPN Notes   
 	11   25/09/2025   Vishal Suthar	   Fixed populating WorkFlowId based on customerId as well
+	12   14/11/2025   Sahdev Saliya    Added New Field : RevisedCondition
 
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -102,7 +103,7 @@ BEGIN
     DECLARE @CustomerId BIGINT=0,@CustomerContactId BIGINT=0,@ReceivingCustomerWorkId BIGINT=0,@ItemMasterId BIGINT=0,@ConditionId BIGINT=0,@RecStockLineId BIGINT=0,@WorkScopeId BIGINT=0,@CsrId BIGINT=0,@EmployeeId BIGINT=0
 	DECLARE @PrimarySalesPersonId BIGINT=0,@CustomerFinancialId BIGINT=0,@ContactContactId BIGINT=NULL,@DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0,@EmployeeName VARCHAR(50)=NULL
 	DECLARE @MasterCompanyId INT=0,@CustomerAffiliationId INT=0,@CustAffiliationId INT=0,@CreditTermsId INT=0,@CurrencyId INT=0,@WorkOrderStatusId INT=0,@WorkOrderTypeId INT=0,@ModuleEnumCustomer INT=1,@MSModuleEnumRecevingCustomer INT=1,@MSModuleStockline INT=2
-	DECLARE @Reference VARCHAR(256)='',@RCReference VARCHAR(256)='',@ReceivingNumber VARCHAR(50)='',@CustomerPhoneNo VARCHAR(50)=NULL,@CustomerEmail VARCHAR(50)=NULL,@Condition VARCHAR(256)=NULL,@StockLineNumber VARCHAR(50)=NULL,@StockLineUnitCost DECIMAL(18, 2)=NULL
+	DECLARE @Reference VARCHAR(256)='',@RCReference VARCHAR(256)='',@ReceivingNumber VARCHAR(50)='',@CustomerPhoneNo VARCHAR(50)=NULL,@CustomerEmail VARCHAR(50)=NULL,@Condition VARCHAR(256)=NULL,@RevisedCondition VARCHAR(256)=NULL,@StockLineNumber VARCHAR(50)=NULL,@StockLineUnitCost DECIMAL(18, 2)=NULL
 	DECLARE @Memo VARCHAR(MAX)='',@PartDescription NVARCHAR(MAX)='',@Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@RevisedPartNo VARCHAR(250)=NULL
 	DECLARE @SerialNumber VARCHAR(100)='',@CustName VARCHAR(100)='',@ContractReference VARCHAR(100)='',@Email VARCHAR(200)='',@CustomerPhone VARCHAR(20)='',@CSRName VARCHAR(100)='',@CreditTermName VARCHAR(20)=NULL,@CustomerContact VARCHAR(200)=NULL
 	DECLARE @CreditLimit DECIMAL(18,2)=0,@AnnualRevenuePotential DECIMAL(16,2)=0,@ARBalance DECIMAL(18,2)=0,@SalesPersonName VARCHAR(100)='',@MPNPartNumber VARCHAR(400)=''
@@ -849,7 +850,8 @@ BEGIN
 				[IsAllowReOpenWO] BIT NULL,
 				[RevisedPartNo] VARCHAR(250) NULL,
 				[TechnicianName] VARCHAR(100) NULL,
-				[Condition] VARCHAR(256) NULL,				
+				[Condition] VARCHAR(256) NULL,		
+				[RevisedCondition] VARCHAR(256) NULL,
 				[SerialNumber] VARCHAR(100) NULL,
 				[StockLineNumber] VARCHAR(50) NULL,				
 				[ReceivingNumber] VARCHAR(50) NULL,				
@@ -983,6 +985,7 @@ BEGIN
 						@ManufacturerName = im.[ManufacturerName],
 						@PartDescription = CASE WHEN wop.[RevisedPartDescription] IS NOT NULL AND wop.[RevisedPartDescription] <> '' THEN wop.[RevisedPartDescription] ELSE im.[PartDescription] END,						
 						@Condition = con.[Description],
+						@RevisedCondition = rcon.[Description],
 						@StockLineNumber = sl.[StockLineNumber],
 						--@SerialNumber = CASE WHEN wop.[RevisedSerialNumber] IS NOT NULL AND wop.[RevisedSerialNumber] <> '' THEN wop.[RevisedSerialNumber] ELSE sl.[SerialNumber] END,
 						@SerialNumber = sl.[SerialNumber],
@@ -1014,6 +1017,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH(NOLOCK) ON wop.[ID] = msd.[ReferenceID]
 					 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 					INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON wop.[ConditionId] = con.[ConditionId]
+					 LEFT JOIN [dbo].[Condition] rcon WITH(NOLOCK) ON wop.[RevisedConditionId] = rcon.[ConditionId]
 					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wop.[WorkOrderId] = wo.[WorkOrderId]
 					 LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON wop.[ReceivingCustomerWorkId] = rc.[ReceivingCustomerWorkId]
 					WHERE wop.[WorkOrderId] = @WorkOrderId AND wop.[ID] = @ID AND msd.[ModuleID] = @WorkOrderMPNMSModuleEnum;
@@ -1091,6 +1095,7 @@ BEGIN
 						   [RevisedPartNo] = @RevisedPartNo,
 						   [TechnicianName] = @TechnicianName,
 						   [Condition] = @Condition,
+						   [RevisedCondition] = @RevisedCondition,
 						   [ManufacturerName] = @ManufacturerName,
 						   [SerialNumber] = @SerialNumber,
 						   [StockLineNumber] = @StockLineNumber,

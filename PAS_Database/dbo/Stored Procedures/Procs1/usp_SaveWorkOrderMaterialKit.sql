@@ -20,7 +20,7 @@
 	3    08/29/2023   AMIT GHEDIYA		    Updated HistoryText for wohistory & set multiple kit entry in history table.
 	4	 01/13/2024	  Moin Bloch			Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	5	 01/16/2024	  Moin Bloch			Modified (Added TaskId In Type)
-
+	6    17/11/2024	  Ayuhi Patel			Added logic to set @ProvisionId
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
@@ -189,7 +189,18 @@ BEGIN
 
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
 					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId;
-					SELECT @ProvisionId = PROV.ProvisionId FROM [DBO].[Provision] PROV WHERE UPPER(StatusCode) = 'REPLACE';
+					
+					SELECT @ProvisionId = PROV.ProvisionId
+					FROM [DBO].[KitMaster] PROV
+					WHERE PROV.KitId = @KitId;
+
+					SELECT @ProvisionId = CASE 
+											 WHEN @ProvisionId IS NULL OR @ProvisionId = 0 THEN
+												 (SELECT TOP 1 P.ProvisionId 
+												  FROM [DBO].[Provision] P
+												  WHERE P.StatusCode = 'REPLACE')
+											 ELSE @ProvisionId
+										  END;
 					--SELECT @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WOPartNoId;
 					
 					--IF(@WorkOrderFormTypeId = 1)

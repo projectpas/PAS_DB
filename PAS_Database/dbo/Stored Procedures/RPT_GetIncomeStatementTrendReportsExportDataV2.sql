@@ -17,10 +17,11 @@
 	5    08/11/2023   Hemant Saliya  Resolved Balance MissMatch Issue
 	6    12/08/2023   Moin Bloch     Resolved Balance MissMatch Issue
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
+	8    04/11/2025   Moin Bloch	 Added Space in PeriodName
 ************************************************************************
 EXEC [RPT_GetIncomeStatementTrendReportsExportDataV2] 243,243,20,1,1,0, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
-************************************************************************/
-  
+EXEC [dbo].[RPT_GetIncomeStatementTrendReportsExportDataV2] 235,237,45,1,1,0,'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13'
+************************************************************************/  
 CREATE   PROCEDURE [dbo].[RPT_GetIncomeStatementTrendReportsExportDataV2]  
 (  
  @StartAccountingPeriodId BIGINT = NULL,   
@@ -252,6 +253,7 @@ BEGIN
 			FROM tree_view
 			ORDER BY SequenceNumber;
 
+
 		  ---Reporting Strctrue with Parent Child
 		  IF OBJECT_ID(N'tempdb..#ReportingStructureTable') IS NOT NULL
 		  BEGIN
@@ -382,6 +384,8 @@ BEGIN
 					GOTO ProcessNode;
 			END
 			---- If SIBLING NOT FOUND find Parent Sibling 
+					
+
 		  
 		  IF @CurrentParentId != 0
 		  BEGIN
@@ -448,6 +452,8 @@ BEGIN
 
 		  END 
 
+		
+
 		  --SELECT * FROM #ReportingStructureExport ORDER BY SequenceNumber ASC
 		  --SELECT * FROM #ReportingStructureExportData where leafNodeId IN (92, 128)
 
@@ -511,7 +517,7 @@ BEGIN
 					FROM #ReportingStructureExportData RS 
 						WHERE RS.AccountingPeriod = 'Total'
 
-			UPDATE #ReportingStructureExportData SET AccountingPeriodId = AP.AccountingCalendarId 
+			UPDATE #ReportingStructureExportData SET AccountingPeriodId = AP.AccountingCalendarId, AccountingPeriod = REPLACE(AP.PeriodName,' - ',' ')
 			FROM #ReportingStructureExportData RS JOIN dbo.AccountingCalendar AP WITH(NOLOCK) ON RS.AccountcalMonth = REPLACE(AP.PeriodName,' - ','')
 			WHERE AP.LegalEntityId = @LegalEntityId
 

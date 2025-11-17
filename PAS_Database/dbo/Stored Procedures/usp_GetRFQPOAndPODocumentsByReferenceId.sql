@@ -47,12 +47,12 @@ BEGIN
 				WHERE RFQ.ModuleId = @SOQ_ModuleId AND RFQ.ReferenceId = @ReferenceId AND VRFQ.ModuleId = @PO_ModuleId AND PT.MasterCompanyId = @MasterCompanyId
 			)
 			SELECT @PORerenceIds = STRING_AGG([ReferenceId], ',') FROM Result;
-
+			 
 			;WITH VRFQResult AS (
 				SELECT DISTINCT VPO.VendorRFQPurchaseOrderId AS [ReferenceId]
 				FROM [dbo].[VendorRFQPurchaseOrder] VPO WITH(NOLOCK)
 				INNER JOIN [dbo].[VendorRFQPurchaseOrderPart] VPOP WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
-				WHERE VPOP.PurchaseOrderId IN (@PORerenceIds) AND VPO.MasterCompanyId = @MasterCompanyId
+				WHERE VPOP.PurchaseOrderId IN (SELECT value FROM STRING_SPLIT(ISNULL(@PORerenceIds, ''), ',')) AND VPO.MasterCompanyId = @MasterCompanyId
 			)
 			SELECT @RFQPORerenceIds = STRING_AGG([ReferenceId], ',') FROM VRFQResult;
 		END
@@ -71,8 +71,8 @@ BEGIN
 			WHERE cdd.MasterCompanyId = @MasterCompanyId			
 			AND ISNULL(cdd.IsActive,1) = 1 
 			AND ISNULL(cdd.IsDeleted,0) = 0		
-			AND ((cdd.ModuleId = @PO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(@PORerenceIds, ',')))
-			OR	(cdd.ModuleId = @VRFQPO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(@RFQPORerenceIds, ',')))
+			AND ((cdd.ModuleId = @PO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@PORerenceIds, ''), ',')))
+			OR	(cdd.ModuleId = @VRFQPO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@RFQPORerenceIds, ''), ',')))
 			)
 		
 	END TRY

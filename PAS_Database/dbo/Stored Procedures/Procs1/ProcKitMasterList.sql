@@ -24,6 +24,7 @@ CREATE   PROCEDURE [dbo].[ProcKitMasterList]
 @MasterCompanyId bigint = NULL,
 @listtype varchar(50) = NULL,
 @WorkScopeName varchar(50) = NULL,
+@ProvisionName varchar(50) = NULL,
 @EmployeeId bigint
 AS
 BEGIN	
@@ -101,6 +102,7 @@ BEGIN
 					  kitm.CustomerId,
 					  kitm.CustomerName AS customerName,
 					  wos.WorkScopeCode AS WorkScopeName,
+					  kitm.ProvisionName,
 					  kitm.KitCost,
 					  kitm.KitCost AS UnitCost,
 					  (SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.KitId AND kimm.IsDeleted = 0) AS Qty,
@@ -133,6 +135,7 @@ BEGIN
 					(Qty LIKE '%' +@GlobalFilter+'%') OR
 					(CustomerName LIKE '%' +@GlobalFilter+'%') OR
 					(WorkScopeName LIKE '%' +@GlobalFilter+'%') OR
+					(ProvisionName LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 					OR   
@@ -142,6 +145,7 @@ BEGIN
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND
 					(ISNULL(@KitNumber,'') ='' OR KitNumber LIKE '%' + @KitNumber + '%') AND
 					(ISNULL(@WorkScopeName,'') ='' OR WorkScopeName LIKE '%' + @WorkScopeName + '%') AND
+					(ISNULL(@ProvisionName,'') ='' OR ProvisionName LIKE '%' + @ProvisionName + '%') AND
 					(IsNull(@Qty,'') ='' OR  Qty= @Qty) AND 
 		            (IsNull(@UnitCost,'') ='' OR UnitCost= @UnitCost) AND 
 					(IsNull(@StocklineUnitCost,'') ='' OR StocklineUnitCost= @StocklineUnitCost) AND 
@@ -164,6 +168,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='ProvisionName')  THEN ProvisionName END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ProvisionName')  THEN ProvisionName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,

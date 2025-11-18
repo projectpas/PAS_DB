@@ -21,8 +21,8 @@
     [WorkScopeId]        BIGINT          NULL,
     [WorkScopeName]      VARCHAR (250)   NULL,
     [Memo]               VARCHAR (MAX)   NULL,
+    [ProvisionId]        INT             NULL,
+    [ProvisionName]      VARCHAR (250)   NULL,
     CONSTRAINT [PK_KitMasterHistory] PRIMARY KEY CLUSTERED ([KitMasterHistoryId] ASC)
 );
-
-
 

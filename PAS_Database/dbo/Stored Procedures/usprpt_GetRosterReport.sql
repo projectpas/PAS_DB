@@ -19,6 +19,7 @@
 	3    26-03-2025    Sahdev Saliya       EndDate has been updated And Record issue resolve
 	4    31-03-2025    Sahdev Saliya       Add Employee and Certifyingstaff Filters
 	5    07-7-2025     BHARGAV SALIYA      Add IsDelete and Supperadmin Condition
+	6    19-11-2025    Devendra Shekh      Added MasterCompanyId for AspNetUsers
 
 **************************************************************/  
 
@@ -94,7 +95,7 @@ BEGIN
 		   FROM DBO.Employee EMP WITH (NOLOCK)  
            INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = @ModuleID AND EMS.ReferenceID = EMP.EmployeeId
 	       LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = EMS.EntityMSID
-	       LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId
+	       LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId AND EMP.MasterCompanyId = ASP.MasterCompanyId
 	       LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId	
 		    WHERE EMP.mastercompanyid = @mastercompanyid 
 	        AND EMP.IsActive = 1 AND EMP.IsDeleted = 0
@@ -147,7 +148,7 @@ BEGIN
       FROM DBO.Employee EMP WITH (NOLOCK)  
 	  INNER JOIN dbo.EmployeeManagementStructureDetails EMS WITH (NOLOCK) ON EMS.ModuleID = @ModuleID AND EMS.ReferenceID = EMP.EmployeeId
 	  LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = EMS.EntityMSID
-	  LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId
+	  LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON EMP.EmployeeId = ASP.EmployeeId AND EMP.MasterCompanyId = ASP.MasterCompanyId
 	  LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON EMP.JobTitleId = jot.JobTitleId
 	  LEFT JOIN  dbo.Employee EP WITH (NOLOCK) ON EP.EmployeeId = EMP.SupervisorId
 	  WHERE EMP.mastercompanyid = @mastercompanyid

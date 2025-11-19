@@ -32,6 +32,7 @@
 	22   29-OCT-2025        Priyansh Patel          Added MRO Price Master List Module Validation
 	23	 03-Nov-2025        Divyesh Kathitiya		Added New Module "Employee"
 	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
+	25	 19-Nov-2025	    Devendra Shekh			added MasterCompanyId for [Employee] exists Check
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -365,7 +366,7 @@ BEGIN
 
 				IF EXISTS (SELECT 1 FROM [DBO].[AspNetUsers] WITH(NOLOCK) WHERE [UserName] = @EMPCode)
 				BEGIN
-					IF EXISTS (SELECT 1 FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmpId)
+					IF EXISTS (SELECT 1 FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmpId AND [MasterCompanyId] = @MasterCompanyId)
 					BEGIN
 						SET @UserExits = 1;
 					END

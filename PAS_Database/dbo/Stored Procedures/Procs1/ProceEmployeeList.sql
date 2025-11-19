@@ -19,6 +19,7 @@
 	5    29/05/2025   Amit Ghediya       Get user has role or not.
 	6	 17/06/2025   Bhargav Saliya     select the  Employee Roles
 	7    10/03/2025   Sahdev Saliya      Added New Field CommissionEligible
+	8    19/11/2025   Devendra Shekh     Added MasterCompanyId for AspNetUsers
      
 ************************************************************************/
 CREATE PROCEDURE [dbo].[ProceEmployeeList]
@@ -143,7 +144,7 @@ BEGIN
 					LEFT JOIN  dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId							   
 			        LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
 					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId	
-					LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON T.EmployeeId = ASP.EmployeeId
+					LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON T.EmployeeId = ASP.EmployeeId AND t.MasterCompanyId = ASP.MasterCompanyId
 					LEFT JOIN EmpRoleAgg ERA WITH (NOLOCK) ON ERA.EmployeeId = t.EmployeeId
 
 		 	  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))

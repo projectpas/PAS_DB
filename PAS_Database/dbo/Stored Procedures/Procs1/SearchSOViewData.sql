@@ -19,6 +19,7 @@
 	6	 25-04-2025  Bhargav Saliya		Customer Name Get from the SO table instead of the Customer table
 	7    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 	8    03-09-2025  AMIT GHEDIYA		Updated for filter issue (SalesQuoteNumber)
+	9    19-11-2025  RAJESH GAMI		Return SO Amount
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
 	@PageNumber INT,
@@ -117,7 +118,7 @@ BEGIN
     ;WITH Main AS (    
       SELECT DISTINCT SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber as 'SalesQuoteNumber',SO.ContractReference as ContractReference,     
       SOQ.VersionNumber, SO.OpenDate, SOQ.OpenDate AS 'QuoteDate', C.CustomerId,SO.CustomerName as [Name], SO.CustomerReference, C.CustomerCode, MST.Name as 'Status',    
-      B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson, SO.AccountTypeName CustomerTypeName, SO.ShippedDate, A.SoAmount,
+      B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson, SO.AccountTypeName CustomerTypeName, SO.ShippedDate, Z.SoAmount,
 	  (Cast(DBO.ConvertUTCtoLocal(SO.CreatedDate, @CurrntEmpTimeZoneDesc) as Date)) CreatedDate,
 	  (Cast(DBO.ConvertUTCtoLocal(SO.UpdatedDate, @CurrntEmpTimeZoneDesc) as Date)) UpdatedDate,
 	  SO.StatusId, SO.CreatedBy, SO.UpdatedBy,ISNULL(PartCount.ItemNo,0) AS NumberOfItemCount    
@@ -128,6 +129,71 @@ BEGIN
       INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId    
       INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId    
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId    
+
+	   OUTER APPLY (
+					SELECT SUM(X.NetSales) AS SoAmount
+						FROM (
+
+						SELECT 
+								 (CASE 
+									WHEN ISNULL(SOP.QtyRequested, 0) = ISNULL(SUM(( CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.QtyOrder ELSE SOP.QtyOrder END)), 0) 
+										THEN 0 
+									ELSE 
+										(
+											(
+												ISNULL(SUM(
+													CASE 
+														WHEN stk.SalesOrderStocklineId IS NOT NULL 	THEN Stk.QtyOrder 
+														ELSE 
+																CASE WHEN ISNULL(SOP.QtyOrder, 0) > 0  THEN ISNULL(SOP.QtyOrder, 0) 
+																	ELSE 
+																		ISNULL(SOP.QtyRequested, 0) 
+																	END 
+													END
+												), 0)
+												* -1
+												+ ISNULL(SOP.QtyRequested, 0)
+											) * ISNULL(U.UnitSalesPrice, 0)
+										)
+								END)
+								+
+								ISNULL(SUM(
+									CASE 
+										WHEN SC.SalesOrderStocklineId IS NOT NULL 
+											THEN ISNULL(SC.NetSaleAmount, 0) 
+										ELSE 
+											ISNULL(SOQPS.NetSaleAmount, 0) 
+									END
+								), 0) AS NetSales--,U.UnitSalesPrice
+							FROM DBO.SalesOrder quote WITH (NOLOCK)
+							INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+								ON SOP.SalesOrderId = quote.SalesOrderId
+							INNER JOIN DBO.SalesOrderPartCost SOQPS WITH (NOLOCK) 
+								ON SOQPS.SalesOrderId = quote.SalesOrderId 
+								AND SOP.SalesOrderPartId = SOQPS.SalesOrderPartId
+							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) 
+								ON stk.SalesOrderPartId = SOQPS.SalesOrderPartId
+							LEFT JOIN DBO.SalesOrderStockLineCost SC WITH (NOLOCK) 
+								ON SC.SalesOrderStocklineId = stk.SalesOrderStocklineId 
+								AND quote.SalesOrderId = SC.SalesOrderId
+
+							OUTER APPLY (
+								SELECT  
+									ISNULL(SOQPS2.UnitSalesPrice, 0) AS UnitSalesPrice
+								FROM DBO.SalesOrderPartCost SOQPS2 WITH (NOLOCK)
+								 LEFT JOIN DBO.SalesOrderStocklineV1 stk2 WITH (NOLOCK) 
+								ON stk2.SalesOrderPartId = SOQPS2.SalesOrderPartId
+								WHERE SOQPS2.SalesOrderId = quote.SalesOrderId 
+								  AND SOQPS2.SalesOrderPartId = SOP.SalesOrderPartId
+								GROUP BY SOQPS2.UnitSalesPrice
+							) AS U
+
+							WHERE quote.SalesOrderId = SO.SalesOrderId
+							AND SOP.SalesOrderId =SO.SalesOrderId
+							GROUP BY U.UnitSalesPrice,SOP.SalesOrderPartId,SOP.QtyRequested
+							) AS X
+      ) Z
+
       OUTER APPLY (
        SELECT SUM(NetSaleAmount) AS SoAmount FROM DBO.SalesOrderPartCost WITH (NOLOCK)     
        WHERE SalesOrderId = SO.SalesOrderId    
@@ -299,7 +365,7 @@ BEGIN
       UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType', QuoteAmount, Cost, RequestedDate, RequestedDateType, EstimatedShipDate, EstimatedShipDateType, PromisedDate,    
       ShippedDate,UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType', UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId    
       ,UPPER(PartNumber) 'PartNumber', UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',    
-      CreatedDate, UpdatedDate, NumberOfItems, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy',NumberOfItemCount FROM Result,CTE_Count    
+      CreatedDate, UpdatedDate, NumberOfItems, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy',NumberOfItemCount,SoAmount FROM Result,CTE_Count    
       ORDER BY      
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERID')  THEN SalesOrderId END DESC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,    
